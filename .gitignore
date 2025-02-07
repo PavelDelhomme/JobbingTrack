@@ -1,6 +1,19 @@
-node_modules/
+# Environnement
 .env
-.DS_Store
+.env*.local
+
+# Dépendances
+node_modules/
 dist/
 build/
+.expo/
+public/build/
+
+# Logs
 *.log
+npm-debug.log*
+
+# Système
+.DS_Store
+.idea/
+.vscode/
