@@ -1,14 +1,193 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum ApplicationStatus {
+  CANDIDATE_EN_ATTENTE
+  A_RELANCE
+  RELANCEE_EN_ATTENTE
+  EN_ATTENTE_ENTRETIEN
+  EN_ATTENTE_AUTRE_ENTRETIEN
+  AUCUNE_REPONSE_APRES_ENTRETIEN
+  NON_RETENU_AVEC_ENTRETIEN
+  NON_RETENU_SANS_ENTRETIEN
+  AUCUNE_REPONSE_APRES_RELANCE
+}
+
+enum FollowUpType {
+  APPEL
+  MAIL
+  SUR_PLACE
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  ONSITE
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  passwordHash    String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastUpdated     DateTime  @updatedAt
+  hashSync        String?
+  profile         Profile?
+  applications    Application[]
+  contacts        Contact[]
+  companies       Company[]
+}
+
+model Profile {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  user            User     @relation(fields: [userId], references: [id])
+  resumes         Json     // Stocké comme un tableau JSON
+  skills          Json     // Stocké comme un tableau JSON
+  experiences     Json     // Stockage structuré des expériences
+  projects        Json
+  languages       Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastUpdated     DateTime @updatedAt
+  hashSync        String?
+}
+
+model Application {
+  id              Int             @id @default(autoincrement())
+  position        String
+  applicationDate DateTime        @default(now())
+  location        String?
+  isSpontaneous   Boolean         @default(false)
+  contractType    String?
+  notes           String?
+  status          ApplicationStatus
+  user            User            @relation(fields: [userId], references: [id])
+  userId          Int
+  company         Company         @relation(fields: [companyId], references: [id])
+  companyId       Int
+  calls           Call[]
+  interviews      Interview[]
+  followUps       FollowUp[]
+  contacts        Contact[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model Company {
+  id              Int             @id @default(autoincrement())
+  name            String          @unique
+  type            String?
+  phone           String?
+  email           String?
+  emailRH         String?
+  address         String?
+  users           User[]
+  applications    Application[]
+  contacts        Contact[]
+  interviews      Interview[]
+  calls           Call[]
+  followUps       FollowUp[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model Contact {
+  id              Int             @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  position        String?
+  department      String?
+  phone           String?
+  email           String?
+  company         Company         @relation(fields: [companyId], references: [id])
+  companyId       Int
+  applications    Application[]
+  calls           Call[]
+  interviews      Interview[]
+  followUps       FollowUp[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model Call {
+  id              Int             @id @default(autoincrement())
+  dateTime        DateTime        @default(now())
+  subject         String
+  notes           String?
+  application     Application?    @relation(fields: [applicationId], references: [id])
+  applicationId   Int?
+  contact         Contact?        @relation(fields: [contactId], references: [id])
+  contactId       Int?
+  company         Company         @relation(fields: [companyId], references: [id])
+  companyId       Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model Interview {
+  id              Int             @id @default(autoincrement())
+  startDateTime   DateTime
+  duration        Int?            // En minutes
+  type            InterviewType
+  preparationNotes String?
+  duringNotes     String?
+  postNotes       String?
+  testDeadline    DateTime?
+  application     Application     @relation(fields: [applicationId], references: [id])
+  applicationId   Int
+  company         Company         @relation(fields: [companyId], references: [id])
+  companyId       Int
+  contacts        Contact[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model FollowUp {
+  id              Int             @id @default(autoincrement())
+  date            DateTime        @default(now())
+  type            FollowUpType
+  hasResponse     Boolean         @default(false)
+  responseDate    DateTime?
+  notes           String?
+  application     Application     @relation(fields: [applicationId], references: [id])
+  applicationId   Int
+  company         Company         @relation(fields: [companyId], references: [id])
+  companyId       Int
+  contacts        Contact[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
+}
+
+model Event {
+  id              Int             @id @default(autoincrement())
+  startDateTime   DateTime
+  endDateTime     DateTime?
+  title           String
+  notes           String?
+  linkedEntityType String?        // 'APPLICATION' | 'INTERVIEW' | 'CALL' | 'FOLLOW_UP'
+  linkedEntityId  Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastUpdated     DateTime        @updatedAt
+  hashSync        String?
 }

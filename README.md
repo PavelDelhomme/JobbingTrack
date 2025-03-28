@@ -19,11 +19,11 @@ Application complète pour le suivi des candidatures d'emploi avec :
 
 ## Structure du projet
 
-.
-|─ admin/ # Panel d'administration
-├── backend/ # API et logique métier
-├── frontend/ # Interface publique (future implémentation)
-├── mobile/ # Application mobile
-└── infrastructure/ # Configuration Docker et déploiement
+.<br />
+|─ admin/ # Panel d'administration<br />
+├── backend/ # API et logique métier<br />
+├── frontend/ # Interface publique (future implémentation)<br />
+├── mobile/ # Application mobile<br />
+└── infrastructure/ # Configuration Docker et déploiement<br />
 
 [Documentation détaillée par module](#)
