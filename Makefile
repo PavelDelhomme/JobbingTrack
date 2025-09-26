@@ -1,7 +1,7 @@
-# JobbingTrack Makefile - Gestion complète du projet
+# JobbingTrack Makefile - Gestion complète du projet avec build optimisé
 # Utilisation: make <target>
 
-.PHONY: help install build up down restart logs clean test migrate studio seed backup restore
+.PHONY: help install build build-fast up down restart logs clean test migrate studio seed backup restore
 
 # Variables
 DOCKER_COMPOSE = docker-compose
@@ -32,9 +32,20 @@ install: ## Installation complète du projet
 	@cd $(BACKEND_DIR) && npm install
 	@echo "$(GREEN)✅ Installation terminée!$(NC)"
 
-build: ## Construire les images Docker
+build: ## Construire les images Docker (standard)
 	@echo "$(GREEN)🏗️ Construction des images Docker...$(NC)"
 	$(DOCKER_COMPOSE) build --no-cache
+	@echo "$(GREEN)✅ Build terminé!$(NC)"
+
+build-fast: ## Construction ultra-rapide avec cache optimisé ⚡
+	@echo "$(GREEN)⚡ Construction ultra-rapide...$(NC)"
+	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel --pull=false
+	@echo "$(GREEN)✅ Build rapide terminé!$(NC)"
+
+build-parallel: ## Construction rapide en parallèle 🚀
+	@echo "$(GREEN)🚀 Construction rapide en parallèle...$(NC)"
+	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel
+	@echo "$(GREEN)✅ Build parallèle terminé!$(NC)"
 
 up: ## Démarrer tous les services
 	@echo "$(GREEN)🚀 Démarrage des services...$(NC)"
@@ -75,6 +86,7 @@ migrate-reset: ## Reset complet de la base de données
 generate: ## Générer le client Prisma
 	@echo "$(GREEN)🔧 Génération du client Prisma...$(NC)"
 	$(DOCKER_COMPOSE) exec api npx prisma generate
+	@echo "$(GREEN)✅ Client Prisma généré!$(NC)"
 
 studio: ## Ouvrir Prisma Studio
 	@echo "$(GREEN)🎨 Ouverture de Prisma Studio...$(NC)"
@@ -84,6 +96,7 @@ studio: ## Ouvrir Prisma Studio
 seed: ## Peupler la base avec des données de test
 	@echo "$(GREEN)🌱 Peuplement de la base de données...$(NC)"
 	$(DOCKER_COMPOSE) exec api npm run seed
+	@echo "$(GREEN)✅ Base de données peuplée!$(NC)"
 
 ## 🧪 TESTS ET QUALITÉ
 
@@ -118,11 +131,12 @@ backup: ## Sauvegarder la base de données
 	@echo "$(GREEN)💾 Sauvegarde de la base de données...$(NC)"
 	@mkdir -p backups
 	$(DOCKER_COMPOSE) exec postgres pg_dump -U jobbingtrack jobbingtrack > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "$(GREEN)✅ Sauvegarde terminée!$(NC)"
+	@echo "$(GREEN)✅ Sauvegarde terminée dans backups/$(NC)"
 
 restore: ## Restaurer la base de données (usage: make restore FILE=backup.sql)
 	@if [ -z "$(FILE)" ]; then \
 		echo "$(RED)Erreur: Spécifiez le fichier avec FILE=nom_du_fichier.sql$(NC)"; \
+		echo "$(YELLOW)Exemple: make restore FILE=backups/backup_20241026_143022.sql$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(YELLOW)🔄 Restauration de la base de données...$(NC)"
@@ -183,11 +197,53 @@ mobile-android: ## Démarrer l'app Android
 		echo "$(RED)Dossier mobile non trouvé$(NC)"; \
 	fi
 
-## 🚀 RACCOURCIS
+## 🚀 RACCOURCIS ET WORKFLOWS
 
-dev: up ## Alias pour 'up'
+dev: build-fast up ## Démarrage rapide pour développement ⚡
+	@echo "$(GREEN)🔥 Mode développement activé avec hot reload!$(NC)"
+
+dev-clean: clean build-fast up ## Clean + build rapide + start
+
+rebuild: clean build up ## Rebuild complet (plus lent mais sûr)
+
+rebuild-fast: clean build-fast up ## Rebuild rapide + start ⚡
+
+quick-start: build-parallel up ## Start rapide en parallèle
+
 stop: down ## Alias pour 'down'
-rebuild: clean build up ## Rebuild complet
+
+restart-fast: down build-fast up ## Restart avec build rapide
+
+## 🎯 WORKFLOWS SPÉCIAUX
+
+full-reset: ## Reset complet: clean + build + migrate + seed
+	@echo "$(YELLOW)🔄 Reset complet du projet...$(NC)"
+	@$(MAKE) clean
+	@$(MAKE) build-fast
+	@$(MAKE) up
+	@sleep 10
+	@$(MAKE) migrate
+	@$(MAKE) seed
+	@echo "$(GREEN)✅ Reset complet terminé!$(NC)"
+
+demo: ## Préparer une démo avec données de test
+	@echo "$(GREEN)🎭 Préparation de la démo...$(NC)"
+	@$(MAKE) clean
+	@$(MAKE) build-fast
+	@$(MAKE) up
+	@sleep 10
+	@$(MAKE) migrate
+	@$(MAKE) seed
+	@$(MAKE) health
+	@echo "$(GREEN)🎉 Démo prête! API: http://localhost:3000$(NC)"
+	@echo "$(GREEN)📚 Doc: http://localhost:3000/api-docs$(NC)"
+
+production-ready: ## Vérifications avant production
+	@echo "$(GREEN)🔍 Vérifications de production...$(NC)"
+	@$(MAKE) lint
+	@$(MAKE) test
+	@$(MAKE) health
+	@echo "$(GREEN)✅ Prêt pour la production!$(NC)"
 
 # Commande par défaut
 .DEFAULT_GOAL := help

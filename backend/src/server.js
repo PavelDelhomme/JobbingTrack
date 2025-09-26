@@ -71,3 +71,4 @@ process.on('unhandledRejection', (err) => {
 });
 
 module.exports = app;
+console.log('🔥 Hot reload test!');

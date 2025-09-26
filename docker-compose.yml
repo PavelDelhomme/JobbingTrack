@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # Base de données PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: jobbingtrack-db
@@ -23,7 +20,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis pour cache et sessions
   redis:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
@@ -40,7 +36,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # API Backend
   api:
     build:
       context: ./backend
@@ -57,22 +52,13 @@ services:
       JWT_REFRESH_EXPIRES_IN: 30d
       PORT: 3000
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8081,http://localhost:19006
-      # Email configuration (optionnel pour le dev)
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_SECURE: false
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASSWORD: your-app-password
-      EMAIL_FROM: "JobbingTrack <noreply@jobbingtrack.com>"
-      # Upload configuration
-      UPLOAD_DIR: /app/uploads
-      MAX_FILE_SIZE: 10485760
-      ALLOWED_FILE_TYPES: image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document
-      # Frontend URL pour les emails
-      FRONTEND_URL: http://localhost:8081
+      # Variables Prisma pour corriger OpenSSL
+      PRISMA_QUERY_ENGINE_LIBRARY: /app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so
+      PRISMA_QUERY_ENGINE_BINARY: /app/node_modules/.prisma/client/query-engine-linux-musl-openssl-3.0.x
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - /app/.prisma
       - uploads_data:/app/uploads
     ports:
       - "3000:3000"
@@ -83,9 +69,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c "npm run migrate && npm run dev"
+    command: sh -c "
+      echo '🔍 Waiting for database...' &&
+      sleep 3 &&
+      echo '🔄 Running migrations...' &&
+      npx prisma migrate dev --name init &&
+      echo '🌱 Seeding database...' &&
+      npx prisma db seed ||
+      echo '⚠️ Seed failed, continuing...' &&
+      echo '🚀 Starting server...' &&
+      npm run dev
+      "
 
-  # Adminer pour gérer la base de données (dev uniquement)
   adminer:
     image: adminer
     container_name: jobbingtrack-adminer
@@ -98,7 +93,6 @@ services:
       - postgres
     environment:
       ADMINER_DEFAULT_SERVER: postgres
-      ADMINER_DESIGN: pepa-linha
 
 networks:
   jobbingtrack-network:
@@ -106,8 +100,5 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
   uploads_data:
-    driver: local

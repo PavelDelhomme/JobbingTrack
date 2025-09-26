@@ -1,9 +1,11 @@
-
 {
   "name": "jobbingtrack-api",
   "version": "1.0.0",
   "description": "API REST pour le suivi de candidatures JobbingTrack",
   "main": "src/server.js",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
@@ -13,10 +15,10 @@
     
     "migrate": "npx prisma migrate dev",
     "migrate:reset": "npx prisma migrate reset --force",
-    "migrate:deploy": "npx prisma migrate deploy",
+    "migrate:deploy": "npx prisma migrate deploy", 
     "generate": "npx prisma generate",
     "studio": "npx prisma studio",
-    "seed": "node prisma/seed.js",
+    "seed": "npx prisma db seed",
     
     "docker:build": "docker build -t jobbingtrack-api .",
     "docker:run": "docker run -p 3000:3000 jobbingtrack-api",
@@ -29,7 +31,7 @@
     "clean": "rm -rf node_modules package-lock.json"
   },
   "keywords": ["job", "tracking", "api", "rest", "nodejs", "prisma"],
-  "author": "Pavel Delhomme",
+  "author": "Pavel Delhomme", 
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.5.0",
