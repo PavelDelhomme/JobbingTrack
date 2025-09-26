@@ -8,59 +8,54 @@ DOCKER_COMPOSE = docker-compose
 BACKEND_DIR = backend
 MOBILE_DIR = mobile
 
-# Couleurs pour l'affichage
-GREEN = \033[0;32m
-YELLOW = \033[1;33m
-RED = \033[0;31m
-NC = \033[0m # No Color
 
 ## 🚀 COMMANDES PRINCIPALES
 
 help: ## Afficher cette aide
-	@echo "$(GREEN)JobbingTrack - Commandes disponibles:$(NC)"
+	@echo "JobbingTrack - Commandes disponibles:"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 	@echo ""
 
 install: ## Installation complète du projet
-	@echo "$(GREEN)🚀 Installation de JobbingTrack...$(NC)"
+	@echo "🚀 Installation de JobbingTrack..."
 	@if [ ! -f "$(BACKEND_DIR)/package.json" ]; then \
-		echo "$(RED)Erreur: package.json non trouvé dans backend/$(NC)"; \
+		echo "Erreur: package.json non trouvé dans backend/"; \
 		exit 1; \
 	fi
-	@echo "$(YELLOW)📦 Installation des dépendances backend...$(NC)"
+	@echo "📦 Installation des dépendances backend..."
 	@cd $(BACKEND_DIR) && npm install
-	@echo "$(GREEN)✅ Installation terminée!$(NC)"
+	@echo "✅ Installation terminée!"
 
 build: ## Construire les images Docker (standard)
-	@echo "$(GREEN)🏗️ Construction des images Docker...$(NC)"
+	@echo "🏗️ Construction des images Docker..."
 	$(DOCKER_COMPOSE) build --no-cache
-	@echo "$(GREEN)✅ Build terminé!$(NC)"
+	@echo "✅ Build terminé!"
 
 build-fast: ## Construction ultra-rapide avec cache optimisé ⚡
-	@echo "$(GREEN)⚡ Construction ultra-rapide...$(NC)"
+	@echo "⚡ Construction ultra-rapide..."
 	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel --pull=false
-	@echo "$(GREEN)✅ Build rapide terminé!$(NC)"
+	@echo "✅ Build rapide terminé!"
 
 build-parallel: ## Construction rapide en parallèle 🚀
-	@echo "$(GREEN)🚀 Construction rapide en parallèle...$(NC)"
+	@echo "🚀 Construction rapide en parallèle..."
 	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel
-	@echo "$(GREEN)✅ Build parallèle terminé!$(NC)"
+	@echo "✅ Build parallèle terminé!"
 
 up: ## Démarrer tous les services
-	@echo "$(GREEN)🚀 Démarrage des services...$(NC)"
+	@echo "🚀 Démarrage des services..."
 	$(DOCKER_COMPOSE) up -d
-	@echo "$(GREEN)✅ Services démarrés!$(NC)"
-	@echo "$(YELLOW)📊 Services disponibles:$(NC)"
+	@echo "✅ Services démarrés!"
+	@echo "📊 Services disponibles:"
 	@echo "  - API: http://localhost:3000"
 	@echo "  - Documentation: http://localhost:3000/api-docs"  
 	@echo "  - Adminer: http://localhost:8080"
 	@echo "  - Health Check: http://localhost:3000/health"
 
 down: ## Arrêter tous les services
-	@echo "$(YELLOW)🛑 Arrêt des services...$(NC)"
+	@echo "🛑 Arrêt des services..."
 	$(DOCKER_COMPOSE) down
-	@echo "$(GREEN)✅ Services arrêtés!$(NC)"
+	@echo "✅ Services arrêtés!"
 
 restart: down up ## Redémarrer tous les services
 
@@ -73,35 +68,35 @@ logs-api: ## Afficher uniquement les logs de l'API
 ## 🗄️ GESTION BASE DE DONNÉES
 
 migrate: ## Exécuter les migrations Prisma
-	@echo "$(GREEN)🔄 Exécution des migrations...$(NC)"
+	@echo "🔄 Exécution des migrations..."
 	$(DOCKER_COMPOSE) exec api npx prisma migrate dev
-	@echo "$(GREEN)✅ Migrations terminées!$(NC)"
+	@echo "✅ Migrations terminées!"
 
 migrate-reset: ## Reset complet de la base de données
-	@echo "$(RED)⚠️  Reset de la base de données...$(NC)"
+	@echo "⚠️  Reset de la base de données..."
 	@read -p "Êtes-vous sûr? Cette action est irréversible (y/n): " confirm && [ "$$confirm" = "y" ]
 	$(DOCKER_COMPOSE) exec api npx prisma migrate reset --force
-	@echo "$(GREEN)✅ Base de données resetée!$(NC)"
+	@echo "✅ Base de données resetée!"
 
 generate: ## Générer le client Prisma
-	@echo "$(GREEN)🔧 Génération du client Prisma...$(NC)"
+	@echo "🔧 Génération du client Prisma..."
 	$(DOCKER_COMPOSE) exec api npx prisma generate
-	@echo "$(GREEN)✅ Client Prisma généré!$(NC)"
+	@echo "✅ Client Prisma généré!"
 
 studio: ## Ouvrir Prisma Studio
-	@echo "$(GREEN)🎨 Ouverture de Prisma Studio...$(NC)"
-	@echo "$(YELLOW)Studio disponible sur: http://localhost:5555$(NC)"
+	@echo "🎨 Ouverture de Prisma Studio..."
+	@echo "Studio disponible sur: http://localhost:5555"
 	$(DOCKER_COMPOSE) exec api npx prisma studio
 
 seed: ## Peupler la base avec des données de test
-	@echo "$(GREEN)🌱 Peuplement de la base de données...$(NC)"
+	@echo "🌱 Peuplement de la base de données..."
 	$(DOCKER_COMPOSE) exec api npm run seed
-	@echo "$(GREEN)✅ Base de données peuplée!$(NC)"
+	@echo "✅ Base de données peuplée!"
 
 ## 🧪 TESTS ET QUALITÉ
 
 test: ## Lancer tous les tests
-	@echo "$(GREEN)🧪 Exécution des tests...$(NC)"
+	@echo "🧪 Exécution des tests..."
 	$(DOCKER_COMPOSE) exec api npm test
 
 test-watch: ## Lancer les tests en mode watch
@@ -128,46 +123,46 @@ shell-db: ## Accéder au shell PostgreSQL
 	$(DOCKER_COMPOSE) exec postgres psql -U jobbingtrack -d jobbingtrack
 
 backup: ## Sauvegarder la base de données
-	@echo "$(GREEN)💾 Sauvegarde de la base de données...$(NC)"
+	@echo "💾 Sauvegarde de la base de données..."
 	@mkdir -p backups
 	$(DOCKER_COMPOSE) exec postgres pg_dump -U jobbingtrack jobbingtrack > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "$(GREEN)✅ Sauvegarde terminée dans backups/$(NC)"
+	@echo "✅ Sauvegarde terminée dans backups/"
 
 restore: ## Restaurer la base de données (usage: make restore FILE=backup.sql)
 	@if [ -z "$(FILE)" ]; then \
-		echo "$(RED)Erreur: Spécifiez le fichier avec FILE=nom_du_fichier.sql$(NC)"; \
-		echo "$(YELLOW)Exemple: make restore FILE=backups/backup_20241026_143022.sql$(NC)"; \
+		echo "Erreur: Spécifiez le fichier avec FILE=nom_du_fichier.sql"; \
+		echo "Exemple: make restore FILE=backups/backup_20241026_143022.sql"; \
 		exit 1; \
 	fi
-	@echo "$(YELLOW)🔄 Restauration de la base de données...$(NC)"
+	@echo "🔄 Restauration de la base de données..."
 	$(DOCKER_COMPOSE) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(FILE)
-	@echo "$(GREEN)✅ Restauration terminée!$(NC)"
+	@echo "✅ Restauration terminée!"
 
 clean: ## Nettoyer les containers et volumes
-	@echo "$(YELLOW)🧹 Nettoyage...$(NC)"
+	@echo "🧹 Nettoyage..."
 	$(DOCKER_COMPOSE) down -v --remove-orphans
 	docker system prune -f
-	@echo "$(GREEN)✅ Nettoyage terminé!$(NC)"
+	@echo "✅ Nettoyage terminé!"
 
 clean-all: ## Nettoyage complet (ATTENTION: supprime tout!)
-	@echo "$(RED)⚠️  Nettoyage complet...$(NC)"
+	@echo "⚠️  Nettoyage complet..."
 	@read -p "Êtes-vous sûr? Cette action supprime TOUT (y/n): " confirm && [ "$$confirm" = "y" ]
 	$(DOCKER_COMPOSE) down -v --remove-orphans
 	docker system prune -af --volumes
-	@echo "$(GREEN)✅ Nettoyage complet terminé!$(NC)"
+	@echo "✅ Nettoyage complet terminé!"
 
 status: ## Afficher le statut des services
-	@echo "$(GREEN)📊 Statut des services:$(NC)"
+	@echo "📊 Statut des services:"
 	$(DOCKER_COMPOSE) ps
 
 ## 🔍 MONITORING
 
 health: ## Vérifier la santé de l'API
-	@echo "$(GREEN)🏥 Vérification de santé...$(NC)"
-	@curl -s http://localhost:3000/health | jq '.' || echo "$(RED)API non accessible$(NC)"
+	@echo "🏥 Vérification de santé..."
+	@curl -s http://localhost:3000/health | jq '.' || echo "API non accessible"
 
 endpoints: ## Tester les endpoints principaux
-	@echo "$(GREEN)🔗 Test des endpoints...$(NC)"
+	@echo "🔗 Test des endpoints..."
 	@echo "Health Check:"
 	@curl -s http://localhost:3000/health | jq '.status' || echo "❌"
 	@echo "Documentation:"
@@ -177,30 +172,30 @@ endpoints: ## Tester les endpoints principaux
 
 mobile-install: ## Installer les dépendances mobile
 	@if [ -d "$(MOBILE_DIR)" ]; then \
-		echo "$(GREEN)📱 Installation mobile...$(NC)"; \
+		echo "📱 Installation mobile..."; \
 		cd $(MOBILE_DIR) && npm install; \
 	else \
-		echo "$(YELLOW)📱 Dossier mobile non trouvé$(NC)"; \
+		echo "📱 Dossier mobile non trouvé"; \
 	fi
 
 mobile-ios: ## Démarrer l'app iOS
 	@if [ -d "$(MOBILE_DIR)" ]; then \
 		cd $(MOBILE_DIR) && npm run ios; \
 	else \
-		echo "$(RED)Dossier mobile non trouvé$(NC)"; \
+		echo "Dossier mobile non trouvé"; \
 	fi
 
 mobile-android: ## Démarrer l'app Android
 	@if [ -d "$(MOBILE_DIR)" ]; then \
 		cd $(MOBILE_DIR) && npm run android; \
 	else \
-		echo "$(RED)Dossier mobile non trouvé$(NC)"; \
+		echo "Dossier mobile non trouvé"; \
 	fi
 
 ## 🚀 RACCOURCIS ET WORKFLOWS
 
 dev: build-fast up ## Démarrage rapide pour développement ⚡
-	@echo "$(GREEN)🔥 Mode développement activé avec hot reload!$(NC)"
+	@echo "🔥 Mode développement activé avec hot reload!"
 
 dev-clean: clean build-fast up ## Clean + build rapide + start
 
@@ -217,17 +212,17 @@ restart-fast: down build-fast up ## Restart avec build rapide
 ## 🎯 WORKFLOWS SPÉCIAUX
 
 full-reset: ## Reset complet: clean + build + migrate + seed
-	@echo "$(YELLOW)🔄 Reset complet du projet...$(NC)"
+	@echo "🔄 Reset complet du projet..."
 	@$(MAKE) clean
 	@$(MAKE) build-fast
 	@$(MAKE) up
 	@sleep 10
 	@$(MAKE) migrate
 	@$(MAKE) seed
-	@echo "$(GREEN)✅ Reset complet terminé!$(NC)"
+	@echo "✅ Reset complet terminé!"
 
 demo: ## Préparer une démo avec données de test
-	@echo "$(GREEN)🎭 Préparation de la démo...$(NC)"
+	@echo "🎭 Préparation de la démo..."
 	@$(MAKE) clean
 	@$(MAKE) build-fast
 	@$(MAKE) up
@@ -235,15 +230,15 @@ demo: ## Préparer une démo avec données de test
 	@$(MAKE) migrate
 	@$(MAKE) seed
 	@$(MAKE) health
-	@echo "$(GREEN)🎉 Démo prête! API: http://localhost:3000$(NC)"
-	@echo "$(GREEN)📚 Doc: http://localhost:3000/api-docs$(NC)"
+	@echo "🎉 Démo prête! API: http://localhost:3000"
+	@echo "📚 Doc: http://localhost:3000/api-docs"
 
 production-ready: ## Vérifications avant production
-	@echo "$(GREEN)🔍 Vérifications de production...$(NC)"
+	@echo "🔍 Vérifications de production..."
 	@$(MAKE) lint
 	@$(MAKE) test
 	@$(MAKE) health
-	@echo "$(GREEN)✅ Prêt pour la production!$(NC)"
+	@echo "✅ Prêt pour la production!"
 
 # Commande par défaut
 .DEFAULT_GOAL := help

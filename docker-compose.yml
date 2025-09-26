@@ -7,13 +7,8 @@ services:
       POSTGRES_USER: jobbingtrack
       POSTGRES_PASSWORD: jobbingtrack123
       POSTGRES_DB: jobbingtrack
-      PGDATA: /data/postgres
-    volumes:
-      - postgres_data:/data/postgres
     ports:
       - "5432:5432"
-    networks:
-      - jobbingtrack-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jobbingtrack"]
       interval: 10s
@@ -26,10 +21,6 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    networks:
-      - jobbingtrack-network
-    volumes:
-      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -38,67 +29,41 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: ./backend  
       dockerfile: Dockerfile
     container_name: jobbingtrack-api
-    restart: unless-stopped
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: votre-super-secret-jwt-changez-en-production-2024
-      JWT_REFRESH_SECRET: votre-secret-refresh-token-changez-aussi-2024
-      JWT_EXPIRES_IN: 7d
-      JWT_REFRESH_EXPIRES_IN: 30d
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_REFRESH_SECRET: your-refresh-secret-change-too
       PORT: 3000
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8081,http://localhost:19006
-      # Variables Prisma pour corriger OpenSSL
-      PRISMA_QUERY_ENGINE_LIBRARY: /app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so
-      PRISMA_QUERY_ENGINE_BINARY: /app/node_modules/.prisma/client/query-engine-linux-musl-openssl-3.0.x
     volumes:
       - ./backend:/app
       - /app/node_modules
-      - /app/.prisma
-      - uploads_data:/app/uploads
     ports:
       - "3000:3000"
-    networks:
-      - jobbingtrack-network
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Commande simple qui marche
     command: sh -c "
-      echo '🔍 Waiting for database...' &&
-      sleep 3 &&
-      echo '🔄 Running migrations...' &&
-      npx prisma migrate dev --name init &&
-      echo '🌱 Seeding database...' &&
-      npx prisma db seed ||
-      echo '⚠️ Seed failed, continuing...' &&
-      echo '🚀 Starting server...' &&
+      echo 'Waiting for database...' &&
+      sleep 5 &&
+      echo 'Running migrations...' &&
+      npx prisma migrate dev --name init --skip-generate &&
+      echo 'Seeding database...' &&
+      node prisma/seed.js &&
+      echo 'Starting server...' &&
       npm run dev
       "
 
   adminer:
     image: adminer
     container_name: jobbingtrack-adminer
-    restart: unless-stopped
     ports:
       - "8080:8080"
-    networks:
-      - jobbingtrack-network
     depends_on:
       - postgres
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
-
-networks:
-  jobbingtrack-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  redis_data:
-  uploads_data:

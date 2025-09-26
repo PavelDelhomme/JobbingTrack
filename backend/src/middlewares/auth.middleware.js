@@ -10,7 +10,7 @@ const authenticate = async (req, res, next) => {
     
     if (!authHeader) {
       return res.status(401).json({
-        error: 'Token d\\'authentification manquant'
+        error: 'Token d\'authentification manquant'
       });
     }
 
@@ -57,9 +57,9 @@ const authenticate = async (req, res, next) => {
       next();
     });
   } catch (error) {
-    logger.error('Erreur dans le middleware d\\'authentification:', error);
+    logger.error('Erreur dans le middleware d\'authentification:', error);
     res.status(500).json({
-      error: 'Erreur lors de l\\'authentification'
+      error: 'Erreur lors de l\'authentification'
     });
   }
 };

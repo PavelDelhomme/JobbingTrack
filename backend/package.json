@@ -3,36 +3,17 @@
   "version": "1.0.0",
   "description": "API REST pour le suivi de candidatures JobbingTrack",
   "main": "src/server.js",
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    
     "migrate": "npx prisma migrate dev",
-    "migrate:reset": "npx prisma migrate reset --force",
-    "migrate:deploy": "npx prisma migrate deploy", 
-    "generate": "npx prisma generate",
+    "generate": "npx prisma generate", 
     "studio": "npx prisma studio",
-    "seed": "npx prisma db seed",
-    
-    "docker:build": "docker build -t jobbingtrack-api .",
-    "docker:run": "docker run -p 3000:3000 jobbingtrack-api",
-    
+    "seed": "node prisma/seed.js",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    
-    "logs": "docker-compose logs -f api",
-    "clean": "rm -rf node_modules package-lock.json"
+    "format": "prettier --write \"src/**/*.js\""
   },
-  "keywords": ["job", "tracking", "api", "rest", "nodejs", "prisma"],
-  "author": "Admin JobbingTrack", 
-  "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.5.0",
     "bcryptjs": "^2.4.3",
@@ -49,18 +30,14 @@
     "nodemailer": "^6.9.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "nodemon": "^3.0.1",
+    "prisma": "^5.5.0"
   },
   "devDependencies": {
     "eslint": "^8.52.0",
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.1",
+    "jest": "^29.7.0", 
     "prettier": "^3.0.3",
-    "prisma": "^5.5.0",
     "supertest": "^6.3.3"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
   }
 }
