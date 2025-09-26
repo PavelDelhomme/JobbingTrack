@@ -59,7 +59,7 @@ const register = async (req, res, next) => {
       }
     });
   } catch (error) {
-    logger.error('Erreur lors de l\\'inscription:', error);
+    logger.error('Erreur lors de l\'inscription:', error);
     next(error);
   }
 };

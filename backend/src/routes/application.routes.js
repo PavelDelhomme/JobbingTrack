@@ -38,7 +38,7 @@ router.get('/:id',
 
 router.post('/',
   [
-    body('companyName').notEmpty().withMessage('Nom de l\\'entreprise requis'),
+    body('companyName').notEmpty().withMessage('Nom de l\'entreprise requis'),
     body('position').notEmpty().withMessage('Poste requis'),
     body('type').optional().isIn(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP', 'TEMPORARY', 'REMOTE', 'HYBRID']),
     body('status').optional().isIn([

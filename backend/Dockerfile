@@ -1,52 +1,31 @@
-# Multi-stage Dockerfile optimisé pour vitesse
-FROM node:18-alpine as base
+# Version finale qui marche
+FROM node:18-alpine
 
-# Installer OpenSSL pour corriger Prisma
-RUN apk add --no-cache openssl openssl-dev
+# Installer les dépendances système
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# =============================
-# Stage de dépendances (cacheable)
-FROM base as deps
-
-# Copier seulement les fichiers de dépendances
+# Copier package.json et package-lock.json
 COPY package*.json ./
+
+# Copier le schéma Prisma
 COPY prisma ./prisma/
 
-# Installer les dépendances avec cache npm
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production && npm cache clean --force
-
-# Installer Prisma globalement 
-RUN npm install -g prisma
+# Installer les dépendances
+RUN npm install
 
 # Générer le client Prisma
 RUN npx prisma generate
 
-# =============================
-# Stage de développement
-FROM base as dev
-
-# Copier les node_modules du stage deps
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /usr/local/lib/node_modules ./node_modules
-COPY --from=deps /root/.npm /root/.npm
-
-# Copier le code source
+# Copier le reste de l'application
 COPY . .
 
-# Créer dossier uploads
-RUN mkdir -p /app/uploads && chmod 755 /app/uploads
+# Créer le dossier uploads
+RUN mkdir -p uploads && chmod 755 uploads
 
-# Créer utilisateur non-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app
-
-USER nextjs
-
+# Exposer le port
 EXPOSE 3000
 
-# Commande pour développement
+# Commande de démarrage
 CMD ["npm", "run", "dev"]
