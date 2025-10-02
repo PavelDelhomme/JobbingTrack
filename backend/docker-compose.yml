@@ -224,6 +224,27 @@ services:
     networks:
       - jobbingtrack-network
 
+  # Service de tests
+  test-runner:
+    image: curlimages/curl:latest
+    container_name: jobbingtrack-test-runner
+    depends_on:
+      - api-gateway
+      - auth-service
+      - application-service
+      - company-service
+      - contact-service
+      - interview-service
+      - notification-service
+      - dashboard-service
+    networks:
+      - jobbingtrack-network
+    volumes:
+      - ./test-microservices.sh:/test-microservices.sh
+    command: ["sh", "/test-microservices.sh"]
+    profiles: ["testing"]
+
+
 volumes:
   postgres_data:
 

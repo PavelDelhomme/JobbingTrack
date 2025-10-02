@@ -1,6 +1,6 @@
 # Makefile pour JobbingTrack Microservices
 
-.PHONY: help build up down logs clean dev test migrate
+.PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load
 
 # Variables
 COMPOSE_FILE = docker-compose.yml
@@ -95,3 +95,50 @@ restart-%:
 rebuild-%:
 	@echo "🔨 Reconstruction du service $*..."
 	docker-compose -f $(COMPOSE_FILE) up --build -d $*
+
+# Tests
+# Tests automatisés complets
+test-all: test-services test-auth test-integration
+	@echo "$(GREEN)🎉 Tous les tests passés avec succès !$(RESET)"
+
+# Tests de santé de tous les services
+test-services:
+	@echo "$(BLUE)🏥 Tests de santé des micro-services...$(RESET)"
+	@./test-services.sh
+
+# Tests d'authentification
+test-auth:
+	@echo "$(BLUE)🔐 Tests d'authentification...$(RESET)"
+	@curl -s http://localhost:3000/health > /dev/null || (echo "$(RED)❌ API Gateway non accessible$(RESET)" && exit 1)
+	@echo "$(GREEN)✅ Tests auth OK$(RESET)"
+
+# Tests d'intégration
+test-integration:
+	@echo "$(BLUE)🔗 Tests d'intégration...$(RESET)"
+	@./test-microservices.sh
+
+# Tests de charge (optionnel)
+test-load:
+	@echo "$(BLUE)⚡ Tests de charge...$(RESET)"
+	@if command -v ab > /dev/null 2>&1; then \
+		ab -n 100 -c 10 http://localhost:3000/health; \
+	else \
+		echo "$(YELLOW)⚠️ Apache Bench (ab) non installé$(RESET)"; \
+	fi
+
+# Installer jq si nécessaire
+install-jq:
+	@if ! command -v jq > /dev/null 2>&1; then \
+		echo "$(YELLOW)📦 Installation de jq...$(RESET)"; \
+		if command -v apt > /dev/null 2>&1; then \
+			sudo apt update && sudo apt install -y jq; \
+		elif command -v brew > /dev/null 2>&1; then \
+			brew install jq; \
+		elif command -v pacman > /dev/null 2>&1; then \
+			sudo pacman -S jq; \
+		else \
+			echo "$(RED)❌ Impossible d'installer jq automatiquement$(RESET)"; \
+		fi; \
+	else \
+		echo "$(GREEN)✅ jq déjà installé$(RESET)"; \
+	fi
