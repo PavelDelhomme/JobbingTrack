@@ -1,0 +1,103 @@
+# docker-compose.prod.yml
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  jobbingtrack-db:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-db
+    restart: always
+    environment:
+      POSTGRES_DB: jobbingtrack
+      POSTGRES_USER: PavelAdmin
+      POSTGRES_PASSWORD: Pavel180400&SrvJobbingTrack@DATABASE123
+    volumes:
+      - jobbingtrack_db_data:/var/lib/postgresql/data
+    networks:
+      - shared-network-copy
+
+  # Redis pour cache et sessions
+  jobbingtrack-redis:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis
+    restart: always
+    networks:
+      - shared-network-copy
+
+  # API Backend
+  jobbingtrack-api:
+    build: ./backend
+    container_name: jobbingtrack-api
+    restart: always
+    depends_on:
+      - jobbingtrack-db
+      - jobbingtrack-redis
+      - jobbingtrack-mail
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://PavelAdmin:Pavel180400&SrvJobbingTrack@DATABASE123@jobbingtrack-db:5432/jobbingtrack
+      JWT_SECRET: Pavel180400&SrvJobbingTrack@JWT_SECRET_ULTRA_SECURE_2025
+      JWT_REFRESH_SECRET: Pavel180400&SrvJobbingTrack@REFRESH_SECRET_2025
+      
+      # Configuration Email avec serveur interne
+      SMTP_HOST: jobbingtrack-mail
+      SMTP_PORT: 587
+      SMTP_USER: candidatures@jobbingtrack.delhomme.ovh
+      SMTP_PASS: Pavel180400&EmailJobbingTrack
+      SMTP_FROM: "JobbingTrack <candidatures@jobbingtrack.delhomme.ovh>"
+      
+      # URLs de production
+      FRONTEND_URL: https://jobbingtrack.delhomme.ovh
+      API_URL: https://api.jobbingtrack.delhomme.ovh
+      ADMIN_URL: https://admin.jobbingtrack.delhomme.ovh
+      
+      # CORS
+      ALLOWED_ORIGINS: "https://jobbingtrack.delhomme.ovh,https://admin.jobbingtrack.delhomme.ovh"
+    volumes:
+      - jobbingtrack_uploads:/app/uploads
+    networks:
+      - shared-network-copy
+
+  # Frontend Dashboard Web
+  jobbingtrack-frontend:
+    build: ./frontend
+    container_name: jobbingtrack-frontend
+    restart: always
+    depends_on:
+      - jobbingtrack-api
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.jobbingtrack.delhomme.ovh
+      NODE_ENV: production
+    networks:
+      - shared-network-copy
+
+  # Serveur Mail Postfix (interne)
+  jobbingtrack-mail:
+    image: maildev/maildev:latest
+    container_name: jobbingtrack-mail
+    restart: always
+    environment:
+      MAILDEV_SMTP_PORT: 587
+      MAILDEV_WEB_PORT: 1080
+      MAILDEV_MAIL_DIRECTORY: /tmp
+    volumes:
+      - jobbingtrack_mail_data:/tmp
+    networks:
+      - shared-network-copy
+
+  # Interface d'administration mail (optionnel)
+  jobbingtrack-mailcatcher:
+    image: schickling/mailcatcher
+    container_name: jobbingtrack-mailcatcher
+    restart: always
+    networks:
+      - shared-network-copy
+
+networks:
+  shared-network-copy:
+    external: true
+
+volumes:
+  jobbingtrack_db_data:
+  jobbingtrack_uploads:
+  jobbingtrack_mail_data:

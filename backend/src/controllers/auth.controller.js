@@ -1,8 +1,10 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
+const emailService = require('../services/emailService');
 
 const prisma = new PrismaClient();
 
@@ -10,56 +12,65 @@ const register = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        success: false,
+        errors: errors.array() 
+      });
     }
 
     const { email, password, firstName, lastName, phone } = req.body;
 
+    // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email.toLowerCase() }
     });
 
     if (existingUser) {
       return res.status(409).json({
-        error: 'Un utilisateur avec cet email existe déjà'
+        success: false,
+        error: 'Un compte avec cette adresse email existe déjà'
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Créer l'utilisateur
     const user = await prisma.user.create({
       data: {
-        email,
+        email: email.toLowerCase(),
         password: hashedPassword,
         firstName,
         lastName,
         phone
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        createdAt: true
       }
     });
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    logger.info(`Nouvel utilisateur inscrit: ${user.email}`);
+    // Envoyer email de bienvenue (async)
+    emailService.sendWelcomeEmail(user).catch(error => {
+      logger.error('Erreur envoi email bienvenue:', error);
+    });
+
+    // Retourner la réponse (sans le mot de passe)
+    const { password: _, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
 
     res.status(201).json({
-      message: 'Inscription réussie',
-      user,
-      tokens: {
-        accessToken,
-        refreshToken
-      }
+      success: true,
+      message: 'Compte créé avec succès',
+      user: userWithoutPassword,
+      token
     });
+
+    logger.info(`Nouvel utilisateur inscrit: ${user.email}`);
   } catch (error) {
-    logger.error('Erreur lors de l\'inscription:', error);
+    logger.error('Erreur inscription:', error);
     next(error);
   }
 };
@@ -68,123 +79,296 @@ const login = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        success: false, 
+        errors: errors.array() 
+      });
     }
 
     const { email, password } = req.body;
 
+    // Trouver l'utilisateur
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email.toLowerCase() }
+    });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou mot de passe incorrect'
+      });
+    }
+
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Retourner la réponse (sans le mot de passe)
+    const { password: _, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      message: 'Connexion réussie',
+      user: userWithoutPassword,
+      token
+    });
+
+    logger.info(`Connexion utilisateur: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur connexion:', error);
+    next(error);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email requis'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    // Pour la sécurité, on renvoie toujours le même message
+    const successMessage = 'Si cet email existe, un lien de réinitialisation a été envoyé';
+
+    if (!user) {
+      return res.json({
+        success: true,
+        message: successMessage
+      });
+    }
+
+    // Générer un token de reset
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Sauvegarder le token avec expiration (1 heure)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: hashedToken,
+        resetTokenExpiry: new Date(Date.now() + 3600000) // 1 heure
+      }
+    });
+
+    // Envoyer l'email (async)
+    emailService.sendResetPasswordEmail(user, resetToken).catch(error => {
+      logger.error('Erreur envoi email reset:', error);
+    });
+
+    res.json({
+      success: true,
+      message: successMessage
+    });
+
+    logger.info(`Reset password demandé pour: ${email}`);
+  } catch (error) {
+    logger.error('Erreur forgot password:', error);
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token et mot de passe requis'
+      });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: hashedToken,
+        resetTokenExpiry: {
+          gt: new Date()
+        }
+      }
     });
 
     if (!user) {
-      return res.status(401).json({
-        error: 'Email ou mot de passe incorrect'
+      return res.status(400).json({
+        success: false,
+        error: 'Token invalide ou expiré'
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        error: 'Email ou mot de passe incorrect'
-      });
-    }
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    const { password: _, ...userWithoutPassword } = user;
-
-    logger.info(`Utilisateur connecté: ${user.email}`);
+    // Mettre à jour l'utilisateur
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null
+      }
+    });
 
     res.json({
-      message: 'Connexion réussie',
-      user: userWithoutPassword,
-      tokens: {
-        accessToken,
-        refreshToken
-      }
+      success: true,
+      message: 'Mot de passe réinitialisé avec succès'
     });
+
+    logger.info(`Mot de passe réinitialisé pour: ${user.email}`);
   } catch (error) {
-    logger.error('Erreur lors de la connexion:', error);
+    logger.error('Erreur reset password:', error);
     next(error);
   }
 };
 
-const refreshToken = async (req, res, next) => {
+const getProfile = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const userId = req.user.userId;
 
-    if (!refreshToken) {
-      return res.status(401).json({
-        error: 'Refresh token manquant'
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        profilePicture: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            applications: true,
+            contacts: true,
+            reminders: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
       });
     }
 
-    jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({
-          error: 'Refresh token invalide'
-        });
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id }
-      });
-
-      if (!user) {
-        return res.status(404).json({
-          error: 'Utilisateur non trouvé'
-        });
-      }
-
-      const newAccessToken = generateAccessToken(user);
-
-      res.json({
-        accessToken: newAccessToken
-      });
-    });
-  } catch (error) {
-    logger.error('Erreur lors du refresh token:', error);
-    next(error);
-  }
-};
-
-const logout = async (req, res, next) => {
-  try {
     res.json({
-      message: 'Déconnexion réussie'
+      success: true,
+      user
     });
   } catch (error) {
-    logger.error('Erreur lors de la déconnexion:', error);
+    logger.error('Erreur récupération profil:', error);
     next(error);
   }
 };
 
-const generateAccessToken = (user) => {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
+const updateProfile = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false,
+        errors: errors.array() 
+      });
+    }
+
+    const userId = req.user.userId;
+    const { firstName, lastName, phone } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        phone: phone || undefined
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        profilePicture: true,
+        updatedAt: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profil mis à jour avec succès',
+      user
+    });
+
+    logger.info(`Profil mis à jour: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur mise à jour profil:', error);
+    next(error);
+  }
 };
 
-const generateRefreshToken = (user) => {
-  return jwt.sign(
-    { id: user.id },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d' }
-  );
+const changePassword = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false,
+        errors: errors.array() 
+      });
+    }
+
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+      return res.status(401).json({
+        success: false,
+        error: 'Mot de passe actuel incorrect'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Mot de passe changé avec succès'
+    });
+
+    logger.info(`Mot de passe changé pour: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur changement mot de passe:', error);
+    next(error);
+  }
 };
 
 module.exports = {
   register,
   login,
-  refreshToken,
-  logout
+  forgotPassword,
+  resetPassword,
+  getProfile,
+  updateProfile,
+  changePassword
 };
