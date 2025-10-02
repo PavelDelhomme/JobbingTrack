@@ -19,6 +19,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - jobbingtrack-network
 
   # Redis pour le cache et les sessions
   redis:
@@ -31,6 +33,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - jobbingtrack-network
 
   # API Gateway
   api-gateway:
