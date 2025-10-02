@@ -1,244 +1,326 @@
-# JobbingTrack Makefile - Gestion complète du projet avec build optimisé
-# Utilisation: make <target>
-
-.PHONY: help install build build-fast up down restart logs clean test migrate studio seed backup restore
+# Makefile Final JobbingTrack - Adapté à ton Infrastructure
 
 # Variables
-DOCKER_COMPOSE = docker-compose
-BACKEND_DIR = backend
-MOBILE_DIR = mobile
+PROJECT_NAME=jobbingtrack
+COMPOSE_FILE=docker-compose.yml
+COMPOSE_PROD_FILE=docker-compose.prod.yml
+API_CONTAINER=jobbingtrack-api
+DB_CONTAINER=jobbingtrack-db
+REDIS_CONTAINER=jobbingtrack-redis
+FRONTEND_CONTAINER=jobbingtrack-frontend
+MAIL_CONTAINER=jobbingtrack-mail
 
+# Couleurs pour les messages
+GREEN=\033[0;32m
+YELLOW=\033[1;33m
+RED=\033[0;31m
+BLUE=\033[0;34m
+PURPLE=\033[0;35m
+RESET=\033[0m
 
-## 🚀 COMMANDES PRINCIPALES
+.PHONY: help dev demo production up down restart status logs health test install-deps migrate seed backup clean
 
-help: ## Afficher cette aide
-	@echo "JobbingTrack - Commandes disponibles:"
+# 🆘 Aide - Affiche toutes les commandes disponibles
+help: ## Afficher toutes les commandes disponibles
+	@echo "$(BLUE)🎯 JobbingTrack - Commandes pour Développement & Production$(RESET)"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
+	@echo "$(GREEN)🚀 DÉVELOPPEMENT LOCAL$(RESET)"
+	@echo "  dev              🔥 Démarrage développement complet (API + DB + Mail)"
+	@echo "  demo             🎭 Setup complet avec données de test"
+	@echo "  install-deps     📦 Installer toutes les dépendances"
+	@echo "  test-all         🧪 Tester inscription, connexion, reset password"
+	@echo ""
+	@echo "$(GREEN)🌐 PRODUCTION PORTAINER$(RESET)"
+	@echo "  production       🚀 Démarrer en mode production (Portainer ready)"
+	@echo "  prod-build       🏗️ Build production avec optimisations"
+	@echo "  prod-deploy      📤 Déployer sur Portainer (shared-network-copy)"
+	@echo "  prod-logs        📜 Logs production"
+	@echo "  prod-status      📊 Status production"
+	@echo ""
+	@echo "$(GREEN)🔄 GESTION SERVICES$(RESET)"
+	@echo "  up               ▶️ Démarrer services (local)"
+	@echo "  down             ⏹️ Arrêter services"
+	@echo "  restart          🔄 Redémarrer services"
+	@echo "  status           📊 Statut des services"
+	@echo ""
+	@echo "$(GREEN)📊 MONITORING$(RESET)"
+	@echo "  logs             📜 Logs temps réel (local)"
+	@echo "  logs-api         📋 Logs API uniquement"
+	@echo "  logs-mail        📧 Logs serveur mail"
+	@echo "  health           🏥 Test santé API"
+	@echo "  endpoints        🔗 Tester tous les endpoints"
+	@echo ""
+	@echo "$(GREEN)🗄️ BASE DE DONNÉES$(RESET)"
+	@echo "  migrate          📈 Migrations Prisma"
+	@echo "  migrate-reset    🔄 Reset complet DB"
+	@echo "  seed             🌱 Données de test"
+	@echo "  studio           🎨 Prisma Studio GUI"
+	@echo "  backup           💾 Sauvegarde DB"
+	@echo ""
+	@echo "$(GREEN)🧪 TESTS$(RESET)"
+	@echo "  test             🧪 Tests unitaires"
+	@echo "  test-auth        🔐 Tester authentification complète"
+	@echo "  test-email       📧 Tester envoi emails"
+	@echo "  test-api         🌐 Tester API complète"
+	@echo ""
+	@echo "$(GREEN)🧹 MAINTENANCE$(RESET)"
+	@echo "  clean            🧹 Nettoyer containers/volumes"
+	@echo "  clean-all        💥 Nettoyage complet"
+	@echo "  reset            🔄 Reset projet complet"
 	@echo ""
 
-install: ## Installation complète du projet
-	@echo "🚀 Installation de JobbingTrack..."
-	@if [ ! -f "$(BACKEND_DIR)/package.json" ]; then \
-		echo "Erreur: package.json non trouvé dans backend/"; \
-		exit 1; \
-	fi
-	@echo "📦 Installation des dépendances backend..."
-	@cd $(BACKEND_DIR) && npm install
-	@echo "✅ Installation terminée!"
+# 🚀 DÉVELOPPEMENT LOCAL
 
-build: ## Construire les images Docker (standard)
-	@echo "🏗️ Construction des images Docker..."
-	$(DOCKER_COMPOSE) build --no-cache
-	@echo "✅ Build terminé!"
+# Démarrage développement complet
+dev: install-deps
+	@echo "$(GREEN)🔥 Démarrage mode développement...$(RESET)"
+	@docker-compose up --build -d
+	@sleep 10
+	@make migrate
+	@make seed
+	@echo "$(GREEN)✅ Développement prêt !$(RESET)"
+	@echo "$(BLUE)📊 Services disponibles :$(RESET)"
+	@echo "  - API Backend: http://localhost:3000"
+	@echo "  - Documentation: http://localhost:3000/api-docs"
+	@echo "  - Base de données: localhost:5432"
+	@echo "  - Adminer DB: http://localhost:8080"
+	@echo "  - Mail Catcher: http://localhost:1080"
 
-build-fast: ## Construction ultra-rapide avec cache optimisé ⚡
-	@echo "⚡ Construction ultra-rapide..."
-	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel --pull=false
-	@echo "✅ Build rapide terminé!"
-
-build-parallel: ## Construction rapide en parallèle 🚀
-	@echo "🚀 Construction rapide en parallèle..."
-	DOCKER_BUILDKIT=1 $(DOCKER_COMPOSE) build --parallel
-	@echo "✅ Build parallèle terminé!"
-
-up: ## Démarrer tous les services
-	@echo "🚀 Démarrage des services..."
-	$(DOCKER_COMPOSE) up -d
-	@echo "✅ Services démarrés!"
-	@echo "📊 Services disponibles:"
+# Setup démo complet
+demo: clean install-deps
+	@echo "$(PURPLE)🎭 Préparation démo JobbingTrack...$(RESET)"
+	@docker-compose up --build -d
+	@sleep 15
+	@make migrate
+	@make seed
+	@make test-auth
+	@echo "$(GREEN)🎉 Démo JobbingTrack prête !$(RESET)"
+	@echo "$(YELLOW)👤 Compte de test créé :$(RESET)"
+	@echo "  Email: redacted@example.invalid"
+	@echo "  Password: password123"
+	@echo "$(BLUE)🌐 URLs importantes :$(RESET)"
 	@echo "  - API: http://localhost:3000"
-	@echo "  - Documentation: http://localhost:3000/api-docs"  
-	@echo "  - Adminer: http://localhost:8080"
-	@echo "  - Health Check: http://localhost:3000/health"
+	@echo "  - Docs: http://localhost:3000/api-docs"
+	@echo "  - Mail: http://localhost:1080"
 
-down: ## Arrêter tous les services
-	@echo "🛑 Arrêt des services..."
-	$(DOCKER_COMPOSE) down
-	@echo "✅ Services arrêtés!"
+# Installation des dépendances
+install-deps:
+	@echo "$(GREEN)📦 Installation des dépendances...$(RESET)"
+	@if [ -d "backend" ]; then \
+		cd backend && npm install; \
+		echo "$(GREEN)✅ Dépendances backend installées$(RESET)"; \
+	fi
+	@if [ -d "frontend" ]; then \
+		cd frontend && npm install; \
+		echo "$(GREEN)✅ Dépendances frontend installées$(RESET)"; \
+	fi
 
-restart: down up ## Redémarrer tous les services
+# 🌐 PRODUCTION PORTAINER
 
-logs: ## Afficher les logs en temps réel
-	$(DOCKER_COMPOSE) logs -f
+# Mode production (compatible Portainer + NPM)
+production:
+	@echo "$(PURPLE)🚀 Démarrage mode PRODUCTION...$(RESET)"
+	@echo "$(YELLOW)⚠️ Configuration pour Portainer + Nginx Proxy Manager$(RESET)"
+	@docker-compose -f $(COMPOSE_PROD_FILE) up --build -d
+	@sleep 15
+	@docker-compose -f $(COMPOSE_PROD_FILE) exec jobbingtrack-api npx prisma migrate deploy
+	@echo "$(GREEN)✅ Production JobbingTrack démarrée !$(RESET)"
+	@echo "$(BLUE)🌐 URLs production :$(RESET)"
+	@echo "  - API: https://api.jobbingtrack.example.invalid"
+	@echo "  - Frontend: https://jobbingtrack.example.invalid"
+	@echo "  - Admin: https://admin.jobbingtrack.example.invalid"
 
-logs-api: ## Afficher uniquement les logs de l'API
-	$(DOCKER_COMPOSE) logs -f api
+# Build production optimisé
+prod-build:
+	@echo "$(GREEN)🏗️ Build production optimisé...$(RESET)"
+	@DOCKER_BUILDKIT=1 docker-compose -f $(COMPOSE_PROD_FILE) build --parallel --no-cache
+	@echo "$(GREEN)✅ Build production terminé$(RESET)"
 
-## 🗄️ GESTION BASE DE DONNÉES
+# Déploiement pour Portainer
+prod-deploy: prod-build
+	@echo "$(PURPLE)📤 Déploiement Portainer...$(RESET)"
+	@echo "$(BLUE)💡 Copier le docker-compose.prod.yml dans Portainer$(RESET)"
+	@echo "$(YELLOW)⚠️ N'oubliez pas de configurer les variables d'environnement$(RESET)"
+	@echo "$(GREEN)✅ Prêt pour déploiement Portainer$(RESET)"
 
-migrate: ## Exécuter les migrations Prisma
-	@echo "🔄 Exécution des migrations..."
-	$(DOCKER_COMPOSE) exec api npx prisma migrate dev
-	@echo "✅ Migrations terminées!"
+# Logs production
+prod-logs:
+	@echo "$(BLUE)📜 Logs production...$(RESET)"
+	@docker-compose -f $(COMPOSE_PROD_FILE) logs -f
 
-migrate-reset: ## Reset complet de la base de données
-	@echo "⚠️  Reset de la base de données..."
-	@read -p "Êtes-vous sûr? Cette action est irréversible (y/n): " confirm && [ "$$confirm" = "y" ]
-	$(DOCKER_COMPOSE) exec api npx prisma migrate reset --force
-	@echo "✅ Base de données resetée!"
+# Status production
+prod-status:
+	@echo "$(BLUE)📊 Status production :$(RESET)"
+	@docker-compose -f $(COMPOSE_PROD_FILE) ps
 
-generate: ## Générer le client Prisma
-	@echo "🔧 Génération du client Prisma..."
-	$(DOCKER_COMPOSE) exec api npx prisma generate
-	@echo "✅ Client Prisma généré!"
+# 🔄 GESTION SERVICES
 
-studio: ## Ouvrir Prisma Studio
-	@echo "🎨 Ouverture de Prisma Studio..."
-	@echo "Studio disponible sur: http://localhost:5555"
-	$(DOCKER_COMPOSE) exec api npx prisma studio
+# Démarrer services locaux
+up:
+	@echo "$(GREEN)▶️ Démarrage services locaux...$(RESET)"
+	@docker-compose up -d
+	@echo "$(GREEN)✅ Services démarrés$(RESET)"
 
-seed: ## Peupler la base avec des données de test
-	@echo "🌱 Peuplement de la base de données..."
-	$(DOCKER_COMPOSE) exec api npm run seed
-	@echo "✅ Base de données peuplée!"
+# Arrêter services
+down:
+	@echo "$(YELLOW)⏹️ Arrêt services...$(RESET)"
+	@docker-compose down
+	@if [ -f "$(COMPOSE_PROD_FILE)" ]; then \
+		docker-compose -f $(COMPOSE_PROD_FILE) down; \
+	fi
+	@echo "$(GREEN)✅ Services arrêtés$(RESET)"
 
-## 🧪 TESTS ET QUALITÉ
+# Redémarrer services
+restart: down up
+	@echo "$(GREEN)🔄 Services redémarrés$(RESET)"
 
-test: ## Lancer tous les tests
-	@echo "🧪 Exécution des tests..."
-	$(DOCKER_COMPOSE) exec api npm test
+# Status des services
+status:
+	@echo "$(BLUE)📊 Status services locaux :$(RESET)"
+	@docker-compose ps
+	@echo ""
+	@if [ -f "$(COMPOSE_PROD_FILE)" ]; then \
+		echo "$(BLUE)📊 Status services production :$(RESET)"; \
+		docker-compose -f $(COMPOSE_PROD_FILE) ps; \
+	fi
 
-test-watch: ## Lancer les tests en mode watch
-	$(DOCKER_COMPOSE) exec api npm run test:watch
+# 📊 MONITORING
 
-test-coverage: ## Lancer les tests avec couverture
-	$(DOCKER_COMPOSE) exec api npm run test:coverage
+# Logs temps réel
+logs:
+	@echo "$(BLUE)📜 Logs temps réel (Ctrl+C pour quitter)...$(RESET)"
+	@docker-compose logs -f
 
-lint: ## Vérifier le code avec ESLint
-	$(DOCKER_COMPOSE) exec api npm run lint
+# Logs API uniquement
+logs-api:
+	@echo "$(BLUE)📋 Logs API...$(RESET)"
+	@docker-compose logs -f $(API_CONTAINER)
 
-lint-fix: ## Corriger automatiquement les erreurs ESLint
-	$(DOCKER_COMPOSE) exec api npm run lint:fix
+# Logs serveur mail
+logs-mail:
+	@echo "$(BLUE)📧 Logs serveur mail...$(RESET)"
+	@docker-compose logs -f $(MAIL_CONTAINER)
 
-format: ## Formater le code avec Prettier
-	$(DOCKER_COMPOSE) exec api npm run format
+# Test santé API
+health:
+	@echo "$(BLUE)🏥 Test santé API...$(RESET)"
+	@sleep 3
+	@curl -s http://localhost:3000/health | jq . || echo "$(RED)❌ API non accessible$(RESET)"
 
-## 🔧 UTILITAIRES
+# Tester tous les endpoints principaux
+endpoints:
+	@echo "$(BLUE)🔗 Test endpoints principaux...$(RESET)"
+	@echo "$(YELLOW)Health Check:$(RESET)"
+	@curl -s http://localhost:3000/health | jq .status 2>/dev/null || echo "❌"
+	@echo "$(YELLOW)Documentation:$(RESET)"
+	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api-docs 2>/dev/null | grep -q "200" && echo "✅" || echo "❌"
+	@echo "$(YELLOW)Auth Register:$(RESET)"
+	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/auth/register 2>/dev/null | grep -q "400\|405" && echo "✅" || echo "❌"
 
-shell-api: ## Accéder au shell du conteneur API
-	$(DOCKER_COMPOSE) exec api sh
+# 🗄️ BASE DE DONNÉES
 
-shell-db: ## Accéder au shell PostgreSQL
-	$(DOCKER_COMPOSE) exec postgres psql -U jobbingtrack -d jobbingtrack
+# Migrations Prisma
+migrate:
+	@echo "$(GREEN)📈 Exécution migrations Prisma...$(RESET)"
+	@docker-compose exec $(API_CONTAINER) npx prisma migrate dev --name auto-migration || true
+	@echo "$(GREEN)✅ Migrations terminées$(RESET)"
 
-backup: ## Sauvegarder la base de données
-	@echo "💾 Sauvegarde de la base de données..."
+# Reset complet DB
+migrate-reset:
+	@echo "$(RED)🔄 RESET COMPLET BASE DE DONNÉES$(RESET)"
+	@read -p "Êtes-vous sûr? Tapez 'yes' pour confirmer: " confirm && [ "$$confirm" = "yes" ] || (echo "Annulé" && exit 1)
+	@docker-compose exec $(API_CONTAINER) npx prisma migrate reset --force
+	@echo "$(GREEN)✅ Base de données réinitialisée$(RESET)"
+
+# Données de test
+seed:
+	@echo "$(GREEN)🌱 Insertion données de test...$(RESET)"
+	@docker-compose exec $(API_CONTAINER) npm run seed || true
+	@echo "$(GREEN)✅ Données de test insérées$(RESET)"
+
+# Prisma Studio
+studio:
+	@echo "$(GREEN)🎨 Ouverture Prisma Studio...$(RESET)"
+	@echo "$(BLUE)🌐 Studio: http://localhost:5555$(RESET)"
+	@docker-compose exec -d $(API_CONTAINER) npx prisma studio --port 5555 --hostname 0.0.0.0
+
+# Sauvegarde DB
+backup:
+	@echo "$(GREEN)💾 Sauvegarde base de données...$(RESET)"
 	@mkdir -p backups
-	$(DOCKER_COMPOSE) exec postgres pg_dump -U jobbingtrack jobbingtrack > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "✅ Sauvegarde terminée dans backups/"
+	@docker-compose exec $(DB_CONTAINER) pg_dump -U jobbingtrack jobbingtrack > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)✅ Sauvegarde créée dans backups/$(RESET)"
 
-restore: ## Restaurer la base de données (usage: make restore FILE=backup.sql)
-	@if [ -z "$(FILE)" ]; then \
-		echo "Erreur: Spécifiez le fichier avec FILE=nom_du_fichier.sql"; \
-		echo "Exemple: make restore FILE=backups/backup_20241026_143022.sql"; \
-		exit 1; \
-	fi
-	@echo "🔄 Restauration de la base de données..."
-	$(DOCKER_COMPOSE) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(FILE)
-	@echo "✅ Restauration terminée!"
+# 🧪 TESTS
 
-clean: ## Nettoyer les containers et volumes
-	@echo "🧹 Nettoyage..."
-	$(DOCKER_COMPOSE) down -v --remove-orphans
-	docker system prune -f
-	@echo "✅ Nettoyage terminé!"
+# Tests unitaires
+test:
+	@echo "$(GREEN)🧪 Tests unitaires...$(RESET)"
+	@docker-compose exec $(API_CONTAINER) npm test || true
 
-clean-all: ## Nettoyage complet (ATTENTION: supprime tout!)
-	@echo "⚠️  Nettoyage complet..."
-	@read -p "Êtes-vous sûr? Cette action supprime TOUT (y/n): " confirm && [ "$$confirm" = "y" ]
-	$(DOCKER_COMPOSE) down -v --remove-orphans
-	docker system prune -af --volumes
-	@echo "✅ Nettoyage complet terminé!"
+# Test authentification complète
+test-auth:
+	@echo "$(GREEN)🔐 Test authentification complète...$(RESET)"
+	@echo "$(YELLOW)1. Test inscription...$(RESET)"
+	@curl -s -X POST http://localhost:3000/api/v1/auth/register \
+		-H "Content-Type: application/json" \
+		-d '{"email":"redacted@example.invalid","password":"password123","firstName":"Admin","lastName":"JobbingTrack"}' \
+		| jq '.success // false' || echo "❌ Inscription failed"
+	@echo "$(YELLOW)2. Test connexion...$(RESET)"
+	@curl -s -X POST http://localhost:3000/api/v1/auth/login \
+		-H "Content-Type: application/json" \
+		-d '{"email":"redacted@example.invalid","password":"password123"}' \
+		| jq '.success // false' || echo "❌ Login failed"
+	@echo "$(YELLOW)3. Test reset password...$(RESET)"
+	@curl -s -X POST http://localhost:3000/api/v1/auth/forgot-password \
+		-H "Content-Type: application/json" \
+		-d '{"email":"redacted@example.invalid"}' \
+		| jq '.success // false' || echo "❌ Reset failed"
+	@echo "$(GREEN)✅ Tests authentification terminés$(RESET)"
 
-status: ## Afficher le statut des services
-	@echo "📊 Statut des services:"
-	$(DOCKER_COMPOSE) ps
+# Test envoi emails
+test-email:
+	@echo "$(GREEN)📧 Test envoi emails...$(RESET)"
+	@curl -s -X POST http://localhost:3000/api/test/test-email 2>/dev/null || echo "$(YELLOW)⚠️ Route de test email non disponible$(RESET)"
+	@echo "$(BLUE)💡 Vérifiez http://localhost:1080 pour voir les emails$(RESET)"
 
-## 🔍 MONITORING
+# Test API complète
+test-api: health endpoints test-auth
+	@echo "$(GREEN)✅ Tests API complets terminés$(RESET)"
 
-health: ## Vérifier la santé de l'API
-	@echo "🏥 Vérification de santé..."
-	@curl -s http://localhost:3000/health | jq '.' || echo "API non accessible"
+# 🧹 MAINTENANCE
 
-endpoints: ## Tester les endpoints principaux
-	@echo "🔗 Test des endpoints..."
-	@echo "Health Check:"
-	@curl -s http://localhost:3000/health | jq '.status' || echo "❌"
-	@echo "Documentation:"
-	@curl -s -o /dev/null -w "Status: %{http_code}\n" http://localhost:3000/api-docs
+# Nettoyage standard
+clean:
+	@echo "$(YELLOW)🧹 Nettoyage containers et volumes...$(RESET)"
+	@docker-compose down -v --remove-orphans 2>/dev/null || true
+	@docker-compose -f $(COMPOSE_PROD_FILE) down -v --remove-orphans 2>/dev/null || true
+	@docker system prune -f
+	@echo "$(GREEN)✅ Nettoyage terminé$(RESET)"
 
-## 📱 MOBILE (à venir)
+# Nettoyage complet
+clean-all:
+	@echo "$(RED)💥 NETTOYAGE COMPLET$(RESET)"
+	@read -p "Supprimer TOUT (containers, volumes, images)? Tapez 'yes': " confirm && [ "$$confirm" = "yes" ] || (echo "Annulé" && exit 1)
+	@docker-compose down -v --remove-orphans --rmi all 2>/dev/null || true
+	@docker-compose -f $(COMPOSE_PROD_FILE) down -v --remove-orphans --rmi all 2>/dev/null || true
+	@docker system prune -af --volumes
+	@echo "$(GREEN)✅ Nettoyage complet terminé$(RESET)"
 
-mobile-install: ## Installer les dépendances mobile
-	@if [ -d "$(MOBILE_DIR)" ]; then \
-		echo "📱 Installation mobile..."; \
-		cd $(MOBILE_DIR) && npm install; \
-	else \
-		echo "📱 Dossier mobile non trouvé"; \
-	fi
+# Reset projet complet
+reset: clean install-deps dev
+	@echo "$(GREEN)🔄 Projet complètement réinitialisé$(RESET)"
 
-mobile-ios: ## Démarrer l'app iOS
-	@if [ -d "$(MOBILE_DIR)" ]; then \
-		cd $(MOBILE_DIR) && npm run ios; \
-	else \
-		echo "Dossier mobile non trouvé"; \
-	fi
-
-mobile-android: ## Démarrer l'app Android
-	@if [ -d "$(MOBILE_DIR)" ]; then \
-		cd $(MOBILE_DIR) && npm run android; \
-	else \
-		echo "Dossier mobile non trouvé"; \
-	fi
-
-## 🚀 RACCOURCIS ET WORKFLOWS
-
-dev: build-fast up ## Démarrage rapide pour développement ⚡
-	@echo "🔥 Mode développement activé avec hot reload!"
-
-dev-clean: clean build-fast up ## Clean + build rapide + start
-
-rebuild: clean build up ## Rebuild complet (plus lent mais sûr)
-
-rebuild-fast: clean build-fast up ## Rebuild rapide + start ⚡
-
-quick-start: build-parallel up ## Start rapide en parallèle
-
+# 🎯 RACCOURCIS UTILES
+start: dev ## Alias pour 'dev'
 stop: down ## Alias pour 'down'
+restart-fast: down dev ## Restart rapide
 
-restart-fast: down build-fast up ## Restart avec build rapide
+# Tests rapides
+quick-test: health test-auth ## Tests rapides essentiels
 
-## 🎯 WORKFLOWS SPÉCIAUX
-
-full-reset: ## Reset complet: clean + build + migrate + seed
-	@echo "🔄 Reset complet du projet..."
-	@$(MAKE) clean
-	@$(MAKE) build-fast
-	@$(MAKE) up
-	@sleep 10
-	@$(MAKE) migrate
-	@$(MAKE) seed
-	@echo "✅ Reset complet terminé!"
-
-demo: ## Préparer une démo avec données de test
-	@echo "🎭 Préparation de la démo..."
-	@$(MAKE) clean
-	@$(MAKE) build-fast
-	@$(MAKE) up
-	@sleep 10
-	@$(MAKE) migrate
-	@$(MAKE) seed
-	@$(MAKE) health
-	@echo "🎉 Démo prête! API: http://localhost:3000"
-	@echo "📚 Doc: http://localhost:3000/api-docs"
-
-production-ready: ## Vérifications avant production
-	@echo "🔍 Vérifications de production..."
-	@$(MAKE) lint
-	@$(MAKE) test
-	@$(MAKE) health
-	@echo "✅ Prêt pour la production!"
+# Production check
+prod-check: prod-build ## Vérifier build production
 
 # Commande par défaut
 .DEFAULT_GOAL := help

@@ -19,6 +19,15 @@ model User {
   lastName        String
   phone           String?
   profilePicture  String?
+
+  // Champs pour reset password
+  resetToken      String?
+  resetTokenExpiry DateTime?
+
+  // Champs administratifs
+  role UserRole @default(USER)
+  isActive Boolean @default(true)
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -294,4 +303,10 @@ enum ActivityType {
   FOLLOWUP_SENT
   CONTACT_ADDED
   NOTE_ADDED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
 }
