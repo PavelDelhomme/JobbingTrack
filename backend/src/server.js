@@ -10,6 +10,13 @@ const logger = require('./utils/logger');
 
 const authRoutes = require('./routes/auth.routes');
 const applicationRoutes = require('./routes/application.routes');
+const interviewRoutes = require('./routes/interview.routes');
+const companyRoutes = require('./routes/company.routes');
+const contactRoutes = require('./routes/contact.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+
+const notificationService = require('./services/notificationService');
+const statusService = require('./services/statusService');
 
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
@@ -47,9 +54,18 @@ app.get('/health', (req, res) => {
 const apiV1 = '/api/v1';
 app.use(`${apiV1}/auth`, authRoutes);
 app.use(`${apiV1}/applications`, applicationRoutes);
+app.use(`${apiV1}/interviews`, interviewRoutes);
+app.use(`${apiV1}/companies`, companyRoutes);
+app.use(`${apiV1}/contacts`, contactRoutes);
+app.use(`${apiV1}/dashboard`, dashboardRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
+
+if (process.env.NODE_ENV !== 'test') {
+  notificationService.start();
+  statusService.start();
+}
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Serveur démarré sur le port ${PORT}`);
