@@ -68,6 +68,8 @@ Object.entries(services).forEach(([serviceName, serviceUrl]) => {
   app.use(`/api/v1/${serviceName}`, createProxyMiddleware({
     target: serviceUrl,
     changeOrigin: true,
+    timeout: 30000, // 30 secondes de timeout
+    proxyTimeout: 30000,
     pathRewrite: {
       [`^/api/v1/${serviceName}`]: `/api/v1/${serviceName}`
     },
