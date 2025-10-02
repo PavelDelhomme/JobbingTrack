@@ -363,6 +363,70 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+const refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Refresh token requis'
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+      
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId }
+      });
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+      }
+
+      const newToken = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        success: true,
+        message: 'Token rafraîchi avec succès',
+        token: newToken
+      });
+
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: 'Refresh token invalide'
+      });
+    }
+  } catch (error) {
+    logger.error('Erreur refresh token:', error);
+    next(error);
+  }
+};
+
+
+const logout = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Déconnexion réussie'
+    });
+
+    logger.info('Utilisateur déconnecté');
+  } catch (error) {
+    logger.error('Erreur logout:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -370,5 +434,7 @@ module.exports = {
   resetPassword,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  refreshToken,
+  logout
 };

@@ -1,7 +1,7 @@
 // backend/src/routes/interview.routes.js
 const express = require('express');
 const { body } = require('express-validator');
-const auth = require('../middlewares/auth');
+const { authenticate } = require('../middlewares/auth.middleware');
 const {
   getInterviews,
   createInterview,
@@ -19,7 +19,7 @@ const createInterviewValidation = [
 ];
 
 // Toutes les routes nécessitent une authentification
-router.use(auth);
+router.use(authenticate);
 
 /**
  * @swagger
