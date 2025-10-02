@@ -141,6 +141,58 @@ class EmailService {
       return false;
     }
   }
+
+  async sendFollowUpReminder(userEmail, application) {
+    try {
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: userEmail,
+        subject: `⏰ Temps de relancer ${application.company.name}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #f59e0b;">⏰ Il est temps de relancer !</h2>
+            <p>Votre candidature pour <strong>${application.position}</strong> chez <strong>${application.company.name}</strong> a été envoyée il y a plus de 7 jours.</p>
+            <p>Il serait peut-être temps de faire une relance courtoise.</p>
+          </div>
+        `
+      };
+  
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`✅ Email de rappel relance envoyé à ${userEmail}`);
+    } catch (error) {
+      logger.error('❌ Erreur envoi email rappel:', error);
+      // Ne pas faire crash l'app
+    }
+  }
+
+  async sendInterviewReminder(userEmail, interview) {
+    try {
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: userEmail,
+        subject: `📅 Entretien demain - ${interview.application.company.name}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #8b5cf6;">📅 Rappel d'entretien demain</h2>
+            <p>Vous avez un entretien prévu demain :</p>
+            <ul>
+              <li><strong>Entreprise:</strong> ${interview.application.company.name}</li>
+              <li><strong>Poste:</strong> ${interview.application.position}</li>
+              <li><strong>Type:</strong> ${interview.type}</li>
+            </ul>
+            <p style="color: #10b981; font-weight: bold;">🍀 Bonne chance !</p>
+          </div>
+        `
+      };
+  
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`✅ Email de rappel entretien envoyé à ${userEmail}`);
+    } catch (error) {
+      logger.error('❌ Erreur envoi email entretien:', error);
+      // Ne pas faire crash l'app
+    }
+  }
+
 }
 
 module.exports = new EmailService();
