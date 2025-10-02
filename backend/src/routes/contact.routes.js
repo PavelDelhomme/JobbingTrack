@@ -1,7 +1,7 @@
 // backend/src/routes/contact.routes.js
 const express = require('express');
 const { body } = require('express-validator');
-const auth = require('../middlewares/auth');
+const { authenticate } = require('../middlewares/auth.middleware');
 const {
   getContacts,
   getContact,
@@ -16,10 +16,11 @@ const createContactValidation = [
   body('firstName').notEmpty().withMessage('Prénom requis'),
   body('lastName').notEmpty().withMessage('Nom requis'),
   body('email').optional().isEmail().withMessage('Email invalide'),
-  body('phone').optional().isMobilePhone().withMessage('Numéro de téléphone invalide')
+  body('phone').optional().isMobilePhone().withMessage('Numéro de téléphone invalide'),
+  body('linkedinUrl').optional().isURL().withMessage('URL LinkedIn invalide')
 ];
 
-router.use(auth);
+router.use(authenticate);
 
 router.get('/', getContacts);
 router.get('/:id', getContact);

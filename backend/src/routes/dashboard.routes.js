@@ -1,6 +1,6 @@
 // backend/src/routes/dashboard.routes.js
 const express = require('express');
-const auth = require('../middlewares/auth');
+const { authenticate } = require('../middlewares/auth.middleware');
 const {
   getDashboardStats,
   getRecentActivities,
@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-router.use(auth);
+router.use(authenticate);
 
 /**
  * @swagger

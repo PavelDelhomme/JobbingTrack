@@ -1,7 +1,7 @@
 // backend/src/routes/company.routes.js
 const express = require('express');
 const { body } = require('express-validator');
-const auth = require('../middlewares/auth');
+const { authenticate } = require('../middlewares/auth.middleware');
 const {
   getCompanies,
   getCompany,
@@ -19,7 +19,7 @@ const createCompanyValidation = [
   body('industry').optional().isLength({ max: 100 }).withMessage('Secteur trop long')
 ];
 
-router.use(auth);
+router.use(authenticate);
 
 /**
  * @swagger
