@@ -1,8 +1,10 @@
 # Version finale qui marche
-FROM node:18-alpine
+FROM node:20-slim
 
-# Installer les dépendances système
-RUN apk add --no-cache openssl libc6-compat
+# Installer les dépendances système minimales
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
