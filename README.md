@@ -1,15 +1,16 @@
 # JobbingTrack 🎯
 
-> Application complète de suivi de candidatures avec API REST et application mobile React Native.
+> Application complète de suivi de candidatures avec architecture microservices et application mobile React Native.
 
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://docker.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://postgresql.org/)
+[![Microservices](https://img.shields.io/badge/Architecture-Microservices-orange.svg)](https://microservices.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 📋 Description
 
-JobbingTrack est une solution complète pour gérer et suivre vos candidatures professionnelles :
+JobbingTrack est une solution complète pour gérer et suivre vos candidatures professionnelles avec une architecture microservices moderne :
 
 - 📝 **Suivi complet** des candidatures (statut, entreprise, poste, etc.)
 - 📅 **Gestion des entretiens** avec rappels automatiques
@@ -19,6 +20,31 @@ JobbingTrack est une solution complète pour gérer et suivre vos candidatures p
 - 📊 **Tableau de bord** avec statistiques détaillées
 - 🔍 **API REST complète** avec documentation Swagger
 - 📱 **Application mobile** React Native (à venir)
+- 🏗️ **Architecture microservices** scalable et maintenable
+
+---
+
+## 🏗️ Architecture Microservices
+
+### Services Disponibles
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **API Gateway** | 3000 | Point d'entrée unique, routage et documentation |
+| **Auth Service** | 3001 | Authentification, autorisation, gestion des utilisateurs |
+| **Application Service** | 3002 | Gestion des candidatures |
+| **Company Service** | 3003 | Gestion des entreprises |
+| **Contact Service** | 3004 | Gestion des contacts professionnels |
+| **Interview Service** | 3005 | Gestion des entretiens |
+| **Notification Service** | 3006 | Notifications et rappels |
+| **Dashboard Service** | 3007 | Statistiques et tableaux de bord |
+
+### Infrastructure
+
+- **PostgreSQL** : Base de données principale
+- **Redis** : Cache et sessions
+- **Docker Compose** : Orchestration des services
+- **API Gateway** : Routage et load balancing
 
 ---
 
@@ -26,7 +52,7 @@ JobbingTrack est une solution complète pour gérer et suivre vos candidatures p
 
 ### Prérequis
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **Node.js** 20+ ([Download](https://nodejs.org/))
 - **Docker** & **Docker Compose** ([Download](https://docker.com/))
 - **Git** ([Download](https://git-scm.com/))
 
@@ -37,37 +63,29 @@ JobbingTrack est une solution complète pour gérer et suivre vos candidatures p
 git clone https://github.com/OWNER/JobbingTrack.git
 cd JobbingTrack
 
-# 2. Configuration automatique et démarrage
-make demo
+# 2. Configuration et démarrage
+make dev
 ```
 
-**C'est tout !** 🎉 Votre API JobbingTrack est prête avec données de test !
+**C'est tout !** 🎉 Tous les microservices sont prêts !
 
 ---
 
-## 📖 Guide Makefile - Toutes les Commandes
+## 📖 Guide des Commandes
 
 ### 🔍 **Découvrir les Commandes**
 
 ```bash
-make help    # Affiche toutes les commandes disponibles avec descriptions
+make help    # Affiche toutes les commandes disponibles
 ```
 
 ### 🚀 **Commandes de Démarrage**
 
 | Commande | Description | Temps |
 |----------|-------------|-------|
-| `make dev` | 🔥 **Développement rapide** - Build + Start avec hot reload | ~30s |
-| `make demo` | 🎭 **Démo complète** - Reset + Build + Migrate + Seed + Test | ~60s |
-| `make quick-start` | ⚡ **Start ultra-rapide** en parallèle | ~20s |
-
-### 🏗️ **Commandes de Build**
-
-| Commande | Description | Temps |
-|----------|-------------|-------|
-| `make build` | 🏗️ **Build standard** (clean, no cache) | ~90s |
-| `make build-fast` | ⚡ **Build ultra-rapide** avec cache optimisé | ~15s |
-| `make build-parallel` | 🚀 **Build parallèle** rapide | ~25s |
+| `make dev` | 🔥 **Développement complet** - Tous les microservices | ~60s |
+| `make up` | ▶️ **Démarrage rapide** - Services existants | ~30s |
+| `make build` | 🏗️ **Build complet** - Toutes les images | ~90s |
 
 ### 🔄 **Gestion des Services**
 
@@ -75,116 +93,38 @@ make help    # Affiche toutes les commandes disponibles avec descriptions
 make up              # Démarrer tous les services
 make down            # Arrêter tous les services  
 make restart         # Redémarrer tous les services
-make restart-fast    # Restart avec build rapide
 make status          # Voir le statut des services
+make logs            # Logs de tous les services
 ```
 
-### 📊 **Monitoring & Logs**
+### 🎯 **Services Spécifiques**
 
 ```bash
-make logs            # Logs de tous les services en temps réel
-make logs-api        # Logs API uniquement  
-make health          # Test de santé de l'API
-make endpoints       # Tester les endpoints principaux
+make start-auth-service      # Démarrer uniquement le service auth
+make logs-application-service # Logs du service applications
+make restart-company-service # Redémarrer le service companies
+make rebuild-interview-service # Rebuild le service interviews
 ```
 
-### 🗄️ **Gestion Base de Données**
+### 🗄️ **Base de Données**
 
 ```bash
 make migrate         # Exécuter les migrations Prisma
-make migrate-reset   # Reset complet de la DB (ATTENTION!)
-make generate        # Générer le client Prisma
-make studio          # Ouvrir Prisma Studio (DB GUI)
 make seed            # Peupler avec des données de test
 ```
 
-### 💾 **Sauvegarde & Restauration**
+### 🧪 **Tests**
 
 ```bash
-make backup                           # Sauvegarde automatique avec timestamp
-make restore FILE=backups/backup.sql  # Restaurer depuis un fichier
+make test            # Tests de tous les services
+make test-auth       # Tests du service auth uniquement
 ```
 
-### 🧪 **Tests & Qualité**
-
-```bash
-make test            # Lancer tous les tests
-make test-watch      # Tests en mode watch
-make test-coverage   # Tests avec couverture
-make lint            # Vérifier le code (ESLint)  
-make lint-fix        # Corriger automatiquement
-make format          # Formater le code (Prettier)
-```
-
-### 🔧 **Debug & Shell**
-
-```bash
-make shell-api       # Accéder au shell du container API
-make shell-db        # Accéder au shell PostgreSQL
-```
-
-### 🧹 **Nettoyage**
+### 🧹 **Maintenance**
 
 ```bash
 make clean           # Nettoyer containers et volumes
-make clean-all       # Nettoyage complet (TOUT supprimer)
-```
-
-### 🎯 **Workflows Spéciaux**
-
-```bash
-make full-reset      # Reset complet : clean + build + migrate + seed
-make production-ready # Vérifications avant production (lint + test + health)
-make dev-clean       # Clean + build rapide + start
-```
-
-### 📱 **Mobile (à venir)**
-
-```bash
-make mobile-install  # Installer dépendances mobile
-make mobile-ios      # Démarrer app iOS
-make mobile-android  # Démarrer app Android
-```
-
----
-
-## 🎯 Workflows Recommandés
-
-### 👨‍💻 **Développement Quotidien**
-
-```bash
-# Premier démarrage
-make demo            # Setup complet avec données de test
-
-# Développement quotidien
-make dev             # Start rapide avec hot reload
-make logs-api        # Voir les logs en temps réel
-```
-
-### 🔄 **Après Modifications du Code**
-
-```bash
-# Simple changement de code -> Hot reload automatique ✨
-# Pas besoin de redemarrer !
-
-# Changement Dockerfile/dependencies
-make restart-fast    # Rebuild + restart rapide
-```
-
-### 🚨 **En Cas de Problème**
-
-```bash
-make clean           # Nettoyer
-make build-fast      # Rebuilder rapidement  
-make up              # Redémarrer
-make health          # Vérifier que tout marche
-```
-
-### 🎭 **Préparer une Démo**
-
-```bash
-make demo            # Setup complet automatique
-# -> Clean + Build + Start + Migrate + Seed + Health Check
+make clean-all       # Nettoyage complet
 ```
 
 ---
@@ -195,19 +135,24 @@ Après `make up` ou `make dev`, vous avez accès à :
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **API REST** | http://localhost:3000 | Backend principal |
+| **API Gateway** | http://localhost:3000 | Point d'entrée unique |
 | **Documentation** | http://localhost:3000/api-docs | Swagger UI interactive |
-| **Health Check** | http://localhost:3000/health | Status de l'API |
-| **Adminer** | http://localhost:8080 | Interface DB (admin/admin) |
-| **Prisma Studio** | http://localhost:5555 | GUI base de données |
+| **Health Check** | http://localhost:3000/health | Status de tous les services |
+| **Auth Service** | http://localhost:3001 | Service d'authentification |
+| **Application Service** | http://localhost:3002 | Service des candidatures |
+| **Company Service** | http://localhost:3003 | Service des entreprises |
+| **Contact Service** | http://localhost:3004 | Service des contacts |
+| **Interview Service** | http://localhost:3005 | Service des entretiens |
+| **Notification Service** | http://localhost:3006 | Service des notifications |
+| **Dashboard Service** | http://localhost:3007 | Service du dashboard |
 
 ---
 
 ## 🧪 Tests de l'API
 
-### 🔐 **Compte de Test Automatique**
+### 🔐 **Compte de Test**
 
-Après `make seed` ou `make demo` :
+Après `make seed` :
 
 - **Email :** `admin@jobbingtrack.test`  
 - **Mot de passe :** `password123`
@@ -215,10 +160,14 @@ Après `make seed` ou `make demo` :
 ### 🚀 **Tests Rapides**
 
 ```bash
-# Test de santé
+# Test de santé global
 curl http://localhost:3000/health
 
-# Inscription
+# Test d'un service spécifique
+curl http://localhost:3001/health  # Auth service
+curl http://localhost:3002/health  # Application service
+
+# Inscription via API Gateway
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -228,25 +177,12 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
     "lastName": "Doe"
   }'
 
-# Connexion et récupération du token
+# Connexion
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@jobbingtrack.test", 
     "password": "password123"
-  }'
-
-# Utiliser le token pour créer une candidature
-export TOKEN="votre_token_ici"
-curl -X POST http://localhost:3000/api/v1/applications \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "companyName": "Google",
-    "position": "Software Engineer",
-    "location": "Paris",
-    "type": "FULL_TIME",
-    "status": "SENT"
   }'
 ```
 
@@ -258,62 +194,65 @@ curl -X POST http://localhost:3000/api/v1/applications \
 
 ```
 JobbingTrack/
-├── backend/                    # API REST Node.js
-│   ├── src/                   # Code source
-│   │   ├── controllers/       # Logique métier
-│   │   ├── routes/            # Routes API
-│   │   ├── middlewares/       # Auth, validation, etc.
-│   │   ├── services/          # Services (email, etc.)
-│   │   └── utils/             # Utilitaires
-│   ├── prisma/               # Base de données
-│   │   ├── schema.prisma     # Schéma DB
-│   │   └── seed.js           # Données de test
-│   ├── Dockerfile            # Image Docker
-│   └── package.json          # Dépendances
-├── docker-compose.yml         # Services Docker
-├── Makefile                   # Commandes automatisées
+├── backend/                    # Architecture microservices
+│   ├── api-gateway/           # Point d'entrée unique
+│   ├── auth-service/          # Service d'authentification
+│   ├── application-service/   # Service des candidatures
+│   ├── company-service/       # Service des entreprises
+│   ├── contact-service/       # Service des contacts
+│   ├── interview-service/     # Service des entretiens
+│   ├── notification-service/  # Service des notifications
+│   ├── dashboard-service/     # Service du dashboard
+│   ├── monitoring/            # Monitoring et métriques
+│   ├── docker-compose.yml     # Configuration des services
+│   └── Makefile              # Commandes automatisées
+├── mobile/                    # Application mobile React Native
+├── docker-compose.yml         # Configuration principale
+├── Makefile                   # Commandes principales
 └── README.md                  # Cette documentation
 ```
 
 ### ⚙️ **Variables d'Environnement**
 
-Le fichier `backend/.env` contient :
+Le fichier `.env.example` contient toutes les variables nécessaires :
 
 ```bash
 # Base de données
-DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack
+DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack
 
 # JWT
-JWT_SECRET=your-super-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
+JWT_SECRET=your-secret-key-change-in-production-2025
+JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
 
-# API
-PORT=3000
-NODE_ENV=development
+# Services URLs
+AUTH_SERVICE_URL=http://auth-service:3001
+APPLICATION_SERVICE_URL=http://application-service:3002
+# ... autres services
 ```
 
 ---
 
-## 🚀 Performance & Optimisations
+## 🚀 Avantages de l'Architecture Microservices
 
-### ⚡ **Build Optimisé**
+### ✅ **Scalabilité**
+- Chaque service peut être mis à l'échelle indépendamment
+- Déploiement indépendant des services
+- Technologies différentes par service si nécessaire
 
-- **Multi-stage Docker** avec cache des dépendances
-- **DOCKER_BUILDKIT** pour builds modernes
-- **Build parallèle** pour gagner du temps
-- **.dockerignore** optimisé (126MB de fichiers exclus)
+### ✅ **Maintenabilité**
+- Code modulaire et séparé par domaine métier
+- Équipes peuvent travailler sur différents services
+- Tests isolés par service
 
-### 🔥 **Hot Reload**
+### ✅ **Résilience**
+- Panne d'un service n'affecte pas les autres
+- Circuit breakers et retry policies
+- Monitoring granulaire
 
-- **Nodemon** configuré pour `src/`
-- **Volume Docker** monte votre code local
-- **Rechargement automatique** dès modification
-
-### 📊 **Monitoring**
-
-- **Health checks** automatiques
-- **Logs structurés** avec Winston
-- **Prisma Studio** pour debug DB
+### ✅ **Performance**
+- Cache Redis partagé
+- Load balancing via API Gateway
+- Optimisations spécifiques par service
 
 ---
 
@@ -324,15 +263,15 @@ NODE_ENV=development
 | Problème | Solution |
 |----------|----------|
 | Port déjà utilisé | `make down` puis `make up` |
-| Erreur build Docker | `make clean` puis `make build-fast` |
-| Problème DB | `make migrate-reset` puis `make seed` |
-| API non accessible | `make health` pour diagnostiquer |
+| Service non accessible | `make logs-<service-name>` pour diagnostiquer |
+| Erreur de migration | `make migrate` pour relancer |
+| Problème de build | `make clean` puis `make build` |
 
 ### 🆘 **Reset Complet**
 
 ```bash
 make clean-all       # Supprime TOUT
-make demo           # Recrée tout de zéro
+make dev            # Recrée tout de zéro
 ```
 
 ---
@@ -340,7 +279,7 @@ make demo           # Recrée tout de zéro
 ## 📚 Documentation API
 
 - **Swagger UI :** http://localhost:3000/api-docs
-- **Endpoints :** Authentification, Candidatures, Entretiens, Contacts
+- **Endpoints :** Tous les services via l'API Gateway
 - **Format :** JSON REST avec validation
 - **Auth :** JWT Bearer tokens
 
@@ -377,4 +316,4 @@ Pour tout problème, ouvrez une [issue](https://github.com/OWNER/JobbingTrack/is
 
 ---
 
-**🎯 JobbingTrack - Votre assistant personnel pour la recherche d'emploi !**
+**🎯 JobbingTrack - Votre assistant personnel pour la recherche d'emploi avec une architecture microservices moderne !**

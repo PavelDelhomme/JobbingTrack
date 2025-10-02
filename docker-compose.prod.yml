@@ -1,103 +1,262 @@
-# docker-compose.prod.yml
 version: '3.8'
 
+# Configuration pour la production
+# Utilisez: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
 services:
-  # Base de données PostgreSQL
-  jobbingtrack-db:
-    image: postgres:15-alpine
-    container_name: jobbingtrack-db
-    restart: always
+  # API Gateway - Configuration production
+  api-gateway:
     environment:
-      POSTGRES_DB: jobbingtrack
-      POSTGRES_USER: AdminAdmin
-      POSTGRES_PASSWORD: Admin180400&SrvJobbingTrack@DATABASE123
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Auth Service - Configuration production
+  auth-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Application Service - Configuration production
+  application-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Company Service - Configuration production
+  company-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Contact Service - Configuration production
+  contact-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Interview Service - Configuration production
+  interview-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Notification Service - Configuration production
+  notification-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Dashboard Service - Configuration production
+  dashboard-service:
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL - Configuration production
+  postgres:
+    environment:
+      - POSTGRES_DB=jobbingtrack
+      - POSTGRES_USER=jobbingtrack
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
     volumes:
-      - jobbingtrack_db_data:/var/lib/postgresql/data
-    networks:
-      - shared-network-copy
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Redis pour cache et sessions
-  jobbingtrack-redis:
-    image: redis:7-alpine
-    container_name: jobbingtrack-redis
-    restart: always
-    networks:
-      - shared-network-copy
+  # Redis - Configuration production
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # API Backend
-  jobbingtrack-api:
-    build: ./backend
-    container_name: jobbingtrack-api
-    restart: always
-    depends_on:
-      - jobbingtrack-db
-      - jobbingtrack-redis
-      - jobbingtrack-mail
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://AdminAdmin:Admin180400&SrvJobbingTrack@DATABASE123@jobbingtrack-db:5432/jobbingtrack
-      JWT_SECRET: Admin180400&SrvJobbingTrack@JWT_SECRET_ULTRA_SECURE_2025
-      JWT_REFRESH_SECRET: Admin180400&SrvJobbingTrack@REFRESH_SECRET_2025
-      
-      # Configuration Email avec serveur interne
-      SMTP_HOST: jobbingtrack-mail
-      SMTP_PORT: 587
-      SMTP_USER: candidatures@jobbingtrack.example.invalid
-      SMTP_PASS: Admin180400&EmailJobbingTrack
-      SMTP_FROM: "JobbingTrack <candidatures@jobbingtrack.example.invalid>"
-      
-      # URLs de production
-      FRONTEND_URL: https://jobbingtrack.example.invalid
-      API_URL: https://api.jobbingtrack.example.invalid
-      ADMIN_URL: https://admin.jobbingtrack.example.invalid
-      
-      # CORS
-      ALLOWED_ORIGINS: "https://jobbingtrack.example.invalid,https://admin.jobbingtrack.example.invalid"
-    volumes:
-      - jobbingtrack_uploads:/app/uploads
-    networks:
-      - shared-network-copy
-
-  # Frontend Dashboard Web
-  jobbingtrack-frontend:
-    build: ./frontend
-    container_name: jobbingtrack-frontend
-    restart: always
-    depends_on:
-      - jobbingtrack-api
-    environment:
-      NEXT_PUBLIC_API_URL: https://api.jobbingtrack.example.invalid
-      NODE_ENV: production
-    networks:
-      - shared-network-copy
-
-  # Serveur Mail Postfix (interne)
-  jobbingtrack-mail:
-    image: maildev/maildev:latest
-    container_name: jobbingtrack-mail
-    restart: always
-    environment:
-      MAILDEV_SMTP_PORT: 587
-      MAILDEV_WEB_PORT: 1080
-      MAILDEV_MAIL_DIRECTORY: /tmp
-    volumes:
-      - jobbingtrack_mail_data:/tmp
-    networks:
-      - shared-network-copy
-
-  # Interface d'administration mail (optionnel)
-  jobbingtrack-mailcatcher:
-    image: schickling/mailcatcher
-    container_name: jobbingtrack-mailcatcher
-    restart: always
-    networks:
-      - shared-network-copy
-
+# Configuration du réseau pour la production
 networks:
-  shared-network-copy:
-    external: true
-
-volumes:
-  jobbingtrack_db_data:
-  jobbingtrack_uploads:
-  jobbingtrack_mail_data:
+  jobbingtrack-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
