@@ -1,11 +1,13 @@
 # frontend/Dockerfile multi-stage
 FROM node:20-alpine AS base
-
-#FROM base AS deps
 RUN apk add --no-cache libc6-compat curl
 WORKDIR /app
 
+# Stage development (pour docker-compose)
+FROM base AS development
 # Dependencies
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+
 COPY package.json yarn.lock* package-lock.json* ./
 RUN \
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
