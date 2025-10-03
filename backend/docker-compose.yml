@@ -224,6 +224,142 @@ services:
     networks:
       - jobbingtrack-network
 
+  # Services des appels téléphoniques
+  call-service:
+    build:
+      context: ./call-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-call-service
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service dédié aux relances (séparé des notifications)
+  followup-service:
+    build:
+      context: ./followup-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-followup-service
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+  
+  # Gestion du calendrier et disponibilités
+  calendar-service:
+    build:
+      context: ./calendar-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-calendar-service
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  event-service:
+    build:
+      context: ./event-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-event-service
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service dédié aux profils utilisateurs avancés
+  user-profile-service:
+    build:
+      context: ./user-profile-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-user-profile-service
+    ports:
+      - "3012:3012"
+    environment:
+      - NODE_ENV=development
+      - PORT=3012
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+
+  # Service de tracking de candidatures
+  # tracking-service:
+  #   build:
+  #     context: ./tracking-service
+  #     dockerfile: Dockerfile
+  #   container_name: jobbingtrack-tracking-service
+  #   ports:
+  #     - "3008:3008"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3008
+  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #     - JWT_SECRET=your-secret-key-change-in-production-2025
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     auth-service:
+  #       condition: service_started
+  #   networks:
+  #     - jobbingtrack-network
+
   # Service de tests
   test-runner:
     image: curlimages/curl:latest
