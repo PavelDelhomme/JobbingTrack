@@ -1,6 +1,9 @@
 # Makefile pour JobbingTrack Microservices
 
-.PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load
+.PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load full-dev full-up full-down full-logs full-clean full-health
+
+# Couleurs
+GREEN := \033
 
 # Variables
 COMPOSE_FILE = docker-compose.yml
