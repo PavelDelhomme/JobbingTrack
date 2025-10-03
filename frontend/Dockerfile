@@ -1,4 +1,4 @@
-# frontend/Dockerfile multi-stage
+# frontend/Dockerfile - VERSION FINALE SANS AUTO-INIT
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat curl
 WORKDIR /app
@@ -18,11 +18,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Auto-install Next.js si pas encore fait
-RUN if [ ! -d "app" ] && [ ! -d "pages" ]; then \
-    echo "Initializing Next.js app..." && \
-    npx create-next-app@latest . --typescript --tailwind --app --eslint --import-alias "@/*" --use-npm --yes; \
-  fi
+# ⚠️ SUPPRIMER L'AUTO-INIT - Next.js est déjà configuré !
 
 # Utilisateur non-root
 RUN addgroup --system --gid 1001 nodejs
@@ -32,6 +28,7 @@ USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 CMD ["npm", "run", "dev"]
 
 # Stage builder pour production
@@ -39,6 +36,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Stage runner pour production  
