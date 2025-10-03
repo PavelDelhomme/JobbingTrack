@@ -1,9 +1,18 @@
 # frontend/Dockerfile multi-stage
 FROM node:20-alpine AS base
 
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+#FROM base AS deps
+RUN apk add --no-cache libc6-compat curl
 WORKDIR /app
+
+# Dependencies
+COPY package.json yarn.lock* package-lock.json* ./
+RUN \
+    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    else echo "Lockfile not found." && exit 1; \
+    fi
+
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
