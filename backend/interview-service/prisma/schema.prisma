@@ -42,10 +42,14 @@ enum InterviewType {
 
 enum InterviewStatus {
   SCHEDULED
-  COMPLETED
+  CONFIRMED // Confirmé par les deux parties
+  REMINDED // Rappel envoyé
+  IN_PROGRESS // En cours
+  COMPLETED // Terminé
+  WAITING_FEEDBACK // En attente de retour (2 semaines)
+  FEEDBACK_RECEIVED // Retour recu
   CANCELLED
   RESCHEDULED
   NO_SHOW
-  CONFIRMED
-  WAITING_FEEDBACK
+  POSTPONED // Reporté
 }

@@ -30,7 +30,6 @@ model Application {
   appliedAt       DateTime?
   
   // Plateforme et source
-  platform        String?  // LinkedIn, Indeed, etc.
   source          String?
   notes           String?
   
@@ -40,6 +39,14 @@ model Application {
   typeRefId          String?
   statusRefId        String?
   
+  // Référence personnallisable ?
+  platformId      String?
+  contractTypeId  String?
+
+  // Relations
+  platform            ApplicationPlatform? @relation(fields: [platformId], references: [id])
+  contractType        ContractType?        @relation(fields: [contractTypeId], references: [id])
+
   // Métadonnées BaseEntity
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -56,7 +63,9 @@ model Application {
   statusReason        String?  // Raison du changement d'état
   autoFollowUpDate    DateTime? // Date de relance automatique
   daysWithoutResponse Int      @default(0)
-  
+  expectedResponseDate DateTime?
+
+
   // Métadonnées pour transitions
   statusHistory       Json[]   @default([]) // Historique des changements
   nextAction          String?  // Prochaine action recommandée
@@ -84,20 +93,72 @@ enum JobType {
 }
 
 enum ApplicationStatus {
+  // Etat de base
   DRAFT
   SENT
   IN_REVIEW
+
+  // Etats de relance
+  PENDING_FOLLOWUP // "A relancer" (candidature ancienne sans réponse)
+  FOLLOWUP_SENT // "Relance envoyé"
+  AWAITING_FOLLOWUP_RESPONSE // "En attente de réponse à la relance"
+  FOLLOWUP_TIMEOUT // "Pas de réponse après relance" (relancer à nouveau)
+  FOLLOWUP_RESPONDED // Réponse recu après relance
+  
+  // Etats d'entretien
   INTERVIEW_SCHEDULED
-  INTERVIEWED
+  INTERVIEWED // Entretien confirmer
+  AWAITING_INTERVIEW // En attente d'entretien
+  INTERVIEW_COMPLETED // Entretien passé
+  POST_INTERVIEW_FOLLOWUP // Mail de remerciement envoyé après entretien
+  AWAITING_INTERVIEW_FEEDBACK // EN attente de retour après entretien
+
+  // Etats finaux
   OFFER_RECEIVED
   ACCEPTED
   REJECTED
   WITHDRAWN
   NO_RESPONSE
-  PENDING_FOLLOWUP // A Relancer
-  FOLLOWUP_SENT // Relance envoyé
-  FOLLOWUP_RESPONDED // Réponse recu après relance
-  PENDING_INTERVIEW // Etat en attente d'une interviwe
-  STALE // Ancienne candidature
+
+  // Etat spéciaux
+  ON_HOLD // En pause temporaire
+  EXPIRED // Candidature trop ancienne  
+}
+
+
+model ApplicationPlatform {
+  id              String   @id @default(cuid())
+  userId          String?   // Utilisateur qui a créé la plateforme || null = plateforme système
+  name            String   // "LinkedIn", "HelloWork", etc.
+  url             String?  // URL de la plateforme
+  isDefault       Boolean  @default(false) // Plateforme par défaut du système
+  isActive        Boolean  @default(true)
   
+  // Métadonnées
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  applications    Application[] // Candidatures utilisant cette plateforme
+  
+  @@map("application_platforms")
+}
+
+
+model ContractType {
+  id              String   @id @default(cuid())
+  userId          String?  // null = type système, sinon utilisateur spécifique
+  name            String   // "CDI", "CDD", "Freelance", etc.
+  description     String?
+  isDefault       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  
+  // Métadonnées
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  applications    Application[] // Candidatures avec ce type de contrat
+  
+  @@map("contract_types")
 }

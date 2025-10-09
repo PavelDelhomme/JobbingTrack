@@ -56,12 +56,15 @@ enum CallType {
 
 enum CallStatus {
   PLANNED         // Planifié
+  ATTEMPTED       // Tentative d'appel
+  IN_PROGRESS     // En cours
   COMPLETED       // Terminé
   MISSED          // Manqué
-  CANCELLED       // Annulé
   NO_ANSWER       // Pas de réponse
   BUSY            // Occupé
   LEFT_MESSAGE    // Message laissé
+  CALLBACK_REQUESTED // Rappel demandé
+  CANCELLED
   RESCHEDULED     // Reprogrammé
 }
 
