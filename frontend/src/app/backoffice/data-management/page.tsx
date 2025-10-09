@@ -1,0 +1,420 @@
+'use client'
+
+import { useState } from 'react'
+import AdminLayout from '@/components/AdminLayout'
+import { useAuth } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
+import { applicationService, companyService, contactService, authService } from '@/lib/api'
+
+export default function DataManagementPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'export' | 'import' | 'bulk'>('export')
+  const [loading, setLoading] = useState(false)
+
+  if (authLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  return (
+    <AdminLayout>
+      <div>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            💾 Gestion des Données
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Import, export et opérations en masse sur les données
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <TabButton
+              active={activeTab === 'export'}
+              onClick={() => setActiveTab('export')}
+              icon="📤"
+              label="Export"
+            />
+            <TabButton
+              active={activeTab === 'import'}
+              onClick={() => setActiveTab('import')}
+              icon="📥"
+              label="Import"
+            />
+            <TabButton
+              active={activeTab === 'bulk'}
+              onClick={() => setActiveTab('bulk')}
+              icon="⚡"
+              label="Opérations en masse"
+            />
+          </nav>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'export' && <ExportPanel />}
+        {activeTab === 'import' && <ImportPanel />}
+        {activeTab === 'bulk' && <BulkOperationsPanel />}
+      </div>
+    </AdminLayout>
+  )
+}
+
+function TabButton({ active, onClick, icon, label }: {
+  active: boolean
+  onClick: () => void
+  icon: string
+  label: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+        active
+          ? 'border-blue-500 text-blue-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function ExportPanel() {
+  const handleExport = async (type: string) => {
+    try {
+      let data: any[] = []
+      let filename = ''
+
+      switch (type) {
+        case 'applications':
+          const appsResponse = await applicationService.getAll()
+          data = appsResponse.data.applications || []
+          filename = 'candidatures'
+          break
+        case 'companies':
+          const companiesResponse = await companyService.getAll()
+          data = companiesResponse.data.companies || []
+          filename = 'entreprises'
+          break
+        case 'users':
+          const usersResponse = await authService.getAllUsers()
+          data = usersResponse.data.users || []
+          filename = 'utilisateurs'
+          break
+        case 'contacts':
+          const contactsResponse = await contactService.getAll()
+          data = contactsResponse.data.contacts || []
+          filename = 'contacts'
+          break
+      }
+
+      // Créer et télécharger le fichier JSON
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}_${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      alert(`✅ Export de ${data.length} ${filename} réussi !`)
+    } catch (error) {
+      console.error('Erreur export:', error)
+      alert('❌ Erreur lors de l\'export')
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Exporter les données
+        </h3>
+        <p className="text-sm text-gray-600 mb-6">
+          Exportez vos données au format JSON pour sauvegarde ou migration
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExportCard
+            icon="📝"
+            title="Candidatures"
+            description="Exporter toutes les candidatures"
+            onClick={() => handleExport('applications')}
+          />
+          <ExportCard
+            icon="🏢"
+            title="Entreprises"
+            description="Exporter toutes les entreprises"
+            onClick={() => handleExport('companies')}
+          />
+          <ExportCard
+            icon="👥"
+            title="Utilisateurs"
+            description="Exporter tous les utilisateurs"
+            onClick={() => handleExport('users')}
+          />
+          <ExportCard
+            icon="👤"
+            title="Contacts"
+            description="Exporter tous les contacts"
+            onClick={() => handleExport('contacts')}
+          />
+        </div>
+      </div>
+
+      {/* Export All */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-1">
+              💾 Export complet
+            </h4>
+            <p className="text-sm text-blue-700">
+              Exporter toutes les données du système en un seul fichier
+            </p>
+          </div>
+          <button
+            onClick={() => alert('Export complet en cours...')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+          >
+            Exporter tout
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ImportPanel() {
+  const [file, setFile] = useState<File | null>(null)
+  const [importType, setImportType] = useState('applications')
+
+  const handleImport = async () => {
+    if (!file) {
+      alert('Veuillez sélectionner un fichier')
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      alert(`✅ Fichier lu: ${data.length} entrées trouvées\n\n⚠️ Fonction d'import à implémenter dans le backend`)
+    } catch (error) {
+      console.error('Erreur import:', error)
+      alert('❌ Erreur lors de la lecture du fichier')
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Importer des données
+        </h3>
+        <p className="text-sm text-gray-600 mb-6">
+          Importez des données au format JSON (sauvegarde ou migration)
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type de données
+            </label>
+            <select
+              value={importType}
+              onChange={(e) => setImportType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="applications">Candidatures</option>
+              <option value="companies">Entreprises</option>
+              <option value="users">Utilisateurs</option>
+              <option value="contacts">Contacts</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fichier JSON
+            </label>
+            <input
+              type="file"
+              accept=".json"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <button
+            onClick={handleImport}
+            disabled={!file}
+            className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50"
+          >
+            📥 Importer les données
+          </button>
+        </div>
+      </div>
+
+      {/* Warning */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <p className="font-semibold text-yellow-900">Attention</p>
+            <p className="text-sm text-yellow-700">
+              L'import de données peut écraser les données existantes. Assurez-vous d'avoir une sauvegarde avant de continuer.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BulkOperationsPanel() {
+  const [selectedOperation, setSelectedOperation] = useState('')
+
+  const operations = [
+    {
+      id: 'delete-inactive-users',
+      title: 'Supprimer utilisateurs inactifs',
+      description: 'Supprimer tous les utilisateurs inactifs depuis plus de 6 mois',
+      danger: true
+    },
+    {
+      id: 'archive-old-applications',
+      title: 'Archiver vieilles candidatures',
+      description: 'Archiver les candidatures de plus d\'un an',
+      danger: false
+    },
+    {
+      id: 'clean-duplicates',
+      title: 'Nettoyer doublons',
+      description: 'Rechercher et supprimer les entreprises en doublon',
+      danger: true
+    },
+    {
+      id: 'update-statuses',
+      title: 'Mettre à jour statuts',
+      description: 'Mettre à jour automatiquement les statuts obsolètes',
+      danger: false
+    },
+  ]
+
+  const executeOperation = (opId: string) => {
+    if (confirm(`⚠️ Exécuter l'opération "${operations.find(o => o.id === opId)?.title}" ?\n\nCette action ne peut pas être annulée.`)) {
+      alert(`Opération "${opId}" en cours...\n\n(Simulation - à implémenter dans le backend)`)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Opérations en masse
+        </h3>
+        <p className="text-sm text-gray-600 mb-6">
+          Exécutez des opérations sur plusieurs enregistrements à la fois
+        </p>
+
+        <div className="space-y-4">
+          {operations.map((op) => (
+            <div
+              key={op.id}
+              className={`p-4 border-2 rounded-lg ${
+                op.danger ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className={`font-semibold mb-1 ${
+                    op.danger ? 'text-red-900' : 'text-gray-900'
+                  }`}>
+                    {op.danger && '⚠️ '}{op.title}
+                  </h4>
+                  <p className={`text-sm ${
+                    op.danger ? 'text-red-700' : 'text-gray-600'
+                  }`}>
+                    {op.description}
+                  </p>
+                </div>
+                <button
+                  onClick={() => executeOperation(op.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    op.danger
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  Exécuter
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SQL Console (pour les super admins) */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          🛠️ Console SQL (Super Admin uniquement)
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Exécutez des requêtes SQL directement sur la base de données
+        </p>
+
+        <textarea
+          rows={6}
+          placeholder="SELECT * FROM users WHERE role = 'ADMIN';"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-mono text-sm mb-4"
+        />
+
+        <button
+          onClick={() => alert('⚠️ Cette fonctionnalité est désactivée pour des raisons de sécurité')}
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+        >
+          ▶️ Exécuter la requête
+        </button>
+
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            ⚠️ <strong>Attention:</strong> L'exécution de requêtes SQL directes peut endommager les données. Utilisez avec précaution.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ExportCard({ icon, title, description, onClick }: {
+  icon: string
+  title: string
+  description: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+    >
+      <div className="text-3xl mb-2">{icon}</div>
+      <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
+      <p className="text-sm text-gray-600">{description}</p>
+    </button>
+  )
+}
+
+
