@@ -201,7 +201,6 @@ model MessageTemplate {
   
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
 // Modèle Activité (pour l'historique)
 model Activity {
   id              String    @id @default(cuid())
