@@ -45,6 +45,10 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 
+
+// Routes sans préfixe
+app.use('/', authRoutes);
+
 // Middlewares d'erreur
 app.use(notFound);
 app.use(errorHandler);
