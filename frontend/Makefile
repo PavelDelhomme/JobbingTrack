@@ -49,9 +49,8 @@ install:
 # Mode développement
 dev:
 	@echo "$(YELLOW)🔥 Démarrage développement...$(NC)"
-	@$(MAKE) init
 	docker compose -f $(COMPOSE_FILE) up --build
-	@echo "$(GREEN)✅ Frontend: http://localhost:3001$(NC)"
+	@echo "$(GREEN)✅ Frontend: http://localhost:8080$(NC)"
 
 # Build image
 build:
@@ -62,9 +61,8 @@ build:
 # Démarrer service
 up:
 	@echo "$(YELLOW)🚀 Démarrage service...$(NC)"
-	@$(MAKE) init
 	docker compose -f $(COMPOSE_FILE) up -d
-	@echo "$(GREEN)✅ Frontend: http://localhost:3001$(NC)"
+	@echo "$(GREEN)✅ Frontend: http://localhost:8080$(NC)"
 
 # Arrêter service
 down:
@@ -85,7 +83,7 @@ shell:
 # Test santé
 health:
 	@echo "$(BLUE)🏥 Test santé frontend...$(NC)"
-	@curl -f http://localhost:3001 && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend inaccessible$(NC)"
+	@curl -f http://localhost:8080 && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend inaccessible$(NC)"
 
 # Tests
 test:

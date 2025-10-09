@@ -1,20 +1,38 @@
-FROM node:20-slim
+FROM node:20-alpine
+
+# Installer les dépendances système nécessaires pour Prisma
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Installation des dépendances Prisma
-RUN apt-get update -y && apt-get install -y openssl
+# Installer Prisma CLI
+RUN npm install -g prisma
 
-# Copie des fichiers de package
+# Copier les fichiers de dépendances
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Copie du code source
-COPY . .
+# Installer les dépendances
+RUN npm install --omit=dev
 
-# Génération du client Prisma
+# Copier le schéma Prisma
+COPY prisma ./prisma/
+
+# Générer le client Prisma
 RUN npx prisma generate
 
+# Copier le code source
+COPY . .
+
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Changer les permissions
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Exposer le port
 EXPOSE 3013
 
+# Commande de démarrage
 CMD ["npm", "start"]
