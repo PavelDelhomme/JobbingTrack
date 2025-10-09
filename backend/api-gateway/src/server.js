@@ -47,7 +47,10 @@ app.get('/health', (req, res) => {
       contacts: process.env.CONTACT_SERVICE_URL || 'http://localhost:3004',
       interviews: process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005',
       notifications: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
-      dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007'
+      dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
+      calls: process.env.CALL_SERVICE_URL || 'http://localhost:3008',
+      profile: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
+      events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011'
     }
   });
 });
@@ -60,7 +63,10 @@ const services = {
   contacts: process.env.CONTACT_SERVICE_URL || 'http://localhost:3004',
   interviews: process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005',
   notifications: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
-  dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007'
+  dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
+  calls: process.env.CALL_SERVICE_URL || 'http://localhost:3008',
+  profile: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
+  events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011'
 };
 
 // Routes proxy pour chaque service
@@ -103,6 +109,9 @@ app.use('*', (req, res) => {
       '/api/v1/interviews',
       '/api/v1/notifications',
       '/api/v1/dashboard',
+      '/api/v1/calls',
+      '/api/v1/profile',
+      '/api/v1/events',
       '/health',
       '/api-docs'
     ]
