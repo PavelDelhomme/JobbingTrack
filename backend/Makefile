@@ -4,7 +4,7 @@
 
 # Variables
 COMPOSE_FILE = docker-compose.yml
-SERVICES = api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service
+SERVICES = api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service call-service profile-service event-service
 
 # Aide
 help:
