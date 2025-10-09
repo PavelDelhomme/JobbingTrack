@@ -48,6 +48,14 @@ export const authService = {
     logout: () => apiClient.post('/auth/logout'),
     getProfile: () => apiClient.get('/auth/profile'),
     updateProfile: (data: any) => apiClient.put('/auth/profile', data),
+    
+    // ✅ ADMIN - Gestion utilisateurs
+    getAllUsers: () => apiClient.get('/auth/users'),
+    updateUserRole: (userId: string, role: string) => 
+        apiClient.put(`/auth/users/${userId}/role`, { role }),
+    toggleUserStatus: (userId: string, isActive: boolean) => 
+        apiClient.put(`/auth/users/${userId}/status`, { isActive }),
+    deleteUser: (userId: string) => apiClient.delete(`/auth/users/${userId}`),
 };
 
 export const applicationService = {

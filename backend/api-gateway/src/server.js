@@ -19,8 +19,8 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json( { limit: '50mb' } ));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -28,6 +28,14 @@ const limiter = rateLimit({
   max: 1000,
   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
 });
+
+
+// Middleware de debug pour requests
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url} - Body size: ${JSON.stringify(req.body).length} chars`);
+  next();
+});
+
 app.use('/api/', limiter);
 
 // Documentation Swagger
@@ -76,24 +84,38 @@ Object.entries(services).forEach(([serviceName, serviceUrl]) => {
   app.use(`/api/v1/${serviceName}`, createProxyMiddleware({
     target: serviceUrl,
     changeOrigin: true,
-    timeout: 60000, // 30 secondes de timeout
-    proxyTimeout: 60000,
+    timeout: 120000, // 30 secondes de timeout
+    proxyTimeout: 120000,
     pathRewrite: {
       [`^/api/v1/${serviceName}`]: ''
     },
     buffer: true,
     selfHandleResponse: false,
+    logLevel: 'debug',
     onError: (err, req, res) => {
       logger.error(`Erreur proxy pour ${serviceName}:`, err);
       res.status(503).json({
         error: `Service ${serviceName} temporairement indisponible`,
         service: serviceName,
-        details: err.message
+        details: err.message,
+        timestamp: new Date().toISOString()
       });
     },
     onProxyReq: (proxyReq, req, res) => {
       logger.info(`Proxying ${req.method} ${req.url} vers ${serviceUrl}`);
       proxyReq.setHeader('Connexion', 'keep-alive');
+      proxyReq.setHeader('Keep-Alive', 'timeout=5, max=1000');
+
+      // ✅ NOUVEAU: Si POST/PUT, s'assurer que le body est bien envoyé
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Type', 'application/json');
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
+    },
+    onProxyRes: (proxyRes, req, res) => {
+      logger.info(`Proxy response for ${req.method} ${req.url}:`, proxyRes.statusCode);
     }
   }));
 });

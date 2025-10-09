@@ -228,10 +228,139 @@ const logout = async (req, res, next) => {
   }
 };
 
+// ✅ ADMIN - Liste tous les utilisateurs
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      users,
+      total: users.length
+    });
+  } catch (error) {
+    logger.error('Erreur récupération utilisateurs:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Modifier le rôle d'un utilisateur
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['USER', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rôle invalide'
+      });
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Rôle mis à jour',
+      user
+    });
+
+    logger.info(`Rôle utilisateur modifié: ${id} -> ${role}`);
+  } catch (error) {
+    logger.error('Erreur mise à jour rôle:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Activer/Désactiver un utilisateur
+const toggleUserStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Utilisateur ${isActive ? 'activé' : 'désactivé'}`,
+      user
+    });
+
+    logger.info(`Statut utilisateur modifié: ${id} -> ${isActive}`);
+  } catch (error) {
+    logger.error('Erreur modification statut:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Supprimer un utilisateur
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Utilisateur supprimé'
+    });
+
+    logger.info(`Utilisateur supprimé: ${id}`);
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
+      });
+    }
+    logger.error('Erreur suppression utilisateur:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   refreshToken,
-  logout
+  logout,
+  getAllUsers,
+  updateUserRole,
+  toggleUserStatus,
+  deleteUser
 };

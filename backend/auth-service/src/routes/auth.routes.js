@@ -23,4 +23,10 @@ router.post('/logout', authController.logout);
 // Routes protégées
 router.get('/profile', authenticate, authController.getProfile);
 
+// ✅ ADMIN - Routes de gestion des utilisateurs
+router.get('/users', authenticate, authController.getAllUsers);
+router.put('/users/:id/role', authenticate, authController.updateUserRole);
+router.put('/users/:id/status', authenticate, authController.toggleUserStatus);
+router.delete('/users/:id', authenticate, authController.deleteUser);
+
 module.exports = router;
