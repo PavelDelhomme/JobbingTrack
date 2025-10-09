@@ -1,15 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { authService } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 
 export default function Login() {
   const [email, setEmail] = useState('pavel@jobbingtrack.com')
   const [password, setPassword] = useState('password123')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,16 +16,9 @@ export default function Login() {
     setError('')
 
     try {
-      const response = await authService.login(email, password)
-      
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.token)
-        router.push('/dashboard')
-      } else {
-        setError('Identifiants incorrects')
-      }
+      await login(email, password)
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Erreur de connexion')
+      setError(error.message || 'Erreur de connexion')
     } finally {
       setLoading(false)
     }
