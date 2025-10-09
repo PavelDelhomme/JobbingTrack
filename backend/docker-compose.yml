@@ -50,6 +50,7 @@ services:
       - CALL_SERVICE_URL=http://call-service:3008
       - PROFILE_SERVICE_URL=http://profile-service:3009
       - EVENT_SERVICE_URL=http://event-service:3011
+      - FOLLOWUP_SERVICE_URL=http://followup-service:3012
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
     depends_on:
       - auth-service
@@ -62,6 +63,7 @@ services:
       - call-service
       - profile-service
       - event-service
+      - followup-service
     networks:
       - jobbingtrack-network
 
@@ -249,28 +251,28 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Service dédié aux relances (séparé des notifications)
-  # followup-service:
-  #   build:
-  #     context: ./followup-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-followup-service
-  #   ports:
-  #     - "3009:3009"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3009
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - NOTIFICATION_SERVICE_URL=http://notification-service:3006
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
-  #   networks:
-  #     - jobbingtrack-network
+  # Service dédié aux relances
+  followup-service:
+    build:
+      context: ./followup-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-followup-service
+    ports:
+      - "3012:3012"
+    environment:
+      - NODE_ENV=development
+      - PORT=3012
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
   
   # Gestion du calendrier et disponibilités
   # calendar-service:
@@ -377,6 +379,10 @@ services:
       - interview-service
       - notification-service
       - dashboard-service
+      - call-service
+      - profile-service
+      - event-service
+      - followup-service
     networks:
       - jobbingtrack-network
     volumes:
