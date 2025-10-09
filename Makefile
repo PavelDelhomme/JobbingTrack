@@ -1,4 +1,4 @@
-# Makefile pour JobbingTrack Microservices
+# Makefile pour JobbingTrack Microservices (FullStack)
 
 .PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load full-dev full-up full-down full-logs full-clean full-health
 
@@ -11,7 +11,7 @@ SERVICES = api-gateway auth-service application-service company-service contact-
 
 # Aide
 help:
-	@echo "🚀 JobbingTrack Microservices - Commandes disponibles:"
+	@echo "🚀 JobbingTrack Microservices (FullStack) - Commandes disponibles:"
 	@echo ""
 	@echo "  build     - Construire toutes les images Docker"
 	@echo "  up        - Démarrer tous les services"
