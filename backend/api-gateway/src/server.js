@@ -68,20 +68,24 @@ Object.entries(services).forEach(([serviceName, serviceUrl]) => {
   app.use(`/api/v1/${serviceName}`, createProxyMiddleware({
     target: serviceUrl,
     changeOrigin: true,
-    timeout: 30000, // 30 secondes de timeout
-    proxyTimeout: 30000,
+    timeout: 60000, // 30 secondes de timeout
+    proxyTimeout: 60000,
     pathRewrite: {
-      [`^/api/v1/${serviceName}`]: `/api/v1/${serviceName}`
+      [`^/api/v1/${serviceName}`]: ''
     },
+    buffer: true,
+    selfHandleResponse: false,
     onError: (err, req, res) => {
       logger.error(`Erreur proxy pour ${serviceName}:`, err);
       res.status(503).json({
         error: `Service ${serviceName} temporairement indisponible`,
-        service: serviceName
+        service: serviceName,
+        details: err.message
       });
     },
     onProxyReq: (proxyReq, req, res) => {
       logger.info(`Proxying ${req.method} ${req.url} vers ${serviceUrl}`);
+      proxyReq.setHeader('Connexion', 'keep-alive');
     }
   }));
 });
