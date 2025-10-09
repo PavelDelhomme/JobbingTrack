@@ -50,14 +50,14 @@ app.use(notFound);
 app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
-  logger.info(`🔐 Auth Service démarré sur le port ${PORT}`);
+  logger.info(`🔔 Notification Service démarré sur le port ${PORT}`);
   logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
 });
 
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal reçu: fermeture du service d\'authentification');
+  logger.info('SIGTERM signal reçu: fermeture du Notification Service');
   server.close(() => {
-    logger.info('Auth Service fermé');
+    logger.info('Notification Service fermé');
     process.exit(0);
   });
 });
