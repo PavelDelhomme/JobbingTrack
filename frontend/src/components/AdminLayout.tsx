@@ -14,13 +14,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth()
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-    { name: 'Utilisateurs', href: '/dashboard/users', icon: '👥' },
-    { name: 'Entreprises', href: '/dashboard/companies', icon: '🏢' },
-    { name: 'Candidatures', href: '/dashboard/applications', icon: '📝' },
-    { name: 'Contacts', href: '/dashboard/contacts', icon: '👤' },
-    { name: 'Entretiens', href: '/dashboard/interviews', icon: '📅' },
-    { name: 'Tests Services', href: '/dashboard/tests', icon: '🧪' },
+    { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
+    { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
+    { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
+    { name: 'Candidatures', href: '/backoffice/applications', icon: '📝' },
+    { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
+    { name: 'Contacts', href: '/backoffice/contacts', icon: '👤' },
+    { name: 'Entretiens', href: '/backoffice/interviews', icon: '📅' },
+    { name: 'Services & Tests', href: '/backoffice/services', icon: '🔧' },
+    { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
+    { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
+    { name: 'Logs & Activités', href: '/backoffice/logs', icon: '📋' },
+    { name: 'Configuration', href: '/backoffice/settings', icon: '⚙️' },
   ]
 
   return (
@@ -29,7 +34,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
         {/* Logo */}
         <div className="flex h-16 items-center justify-center bg-gray-800">
-          <Link href="/dashboard" className="text-2xl font-bold text-white">
+          <Link href="/backoffice" className="text-2xl font-bold text-white">
             🎯 JobbingTrack
           </Link>
         </div>
@@ -88,7 +93,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="sticky top-0 z-10 bg-white shadow">
           <div className="flex h-16 items-center justify-between px-8">
             <h1 className="text-xl font-semibold text-gray-900">
-              Administration
+              Backoffice Administrateur
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">{user?.email}</span>

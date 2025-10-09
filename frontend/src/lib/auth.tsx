@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newUser)
         localStorage.setItem('token', newToken)
         
-        router.push('/dashboard')
+        router.push('/backoffice')
       }
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Erreur de connexion')
