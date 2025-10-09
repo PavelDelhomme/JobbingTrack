@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === APPELS ===
+model Call {
+  id              String   @id @default(cuid())
+  userId          String
+  applicationId   String?  // Lié à une candidature (optionnel)
+  companyId       String   // Toujours lié à une entreprise
+  contactId       String?  // Lié à un contact (optionnel)
+  followUpId      String?  // Lié à une relance (optionnel)
+  
+  // Informations de l'appel
+  scheduledAt     DateTime?
+  calledAt        DateTime?
+  duration        Int?     // en minutes
+  
+  // Type et statut
+  type            CallType
+  status          CallStatus @default(PLANNED)
+  direction       CallDirection
+  
+  // Contenu
+  subject         String?
+  notes           String?
+  outcome         String?
+  nextAction      String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  @@map("calls")
+}
+
+enum CallType {
+  OUTBOUND        // Appel sortant
+  INBOUND         // Appel entrant
+  FOLLOWUP        // Relance
+  INQUIRY         // Demande d'information
+  SCHEDULED       // Rendez-vous téléphonique
+  COLD_CALL       // Appel à froid
+}
+
+enum CallStatus {
+  PLANNED         // Planifié
+  COMPLETED       // Terminé
+  MISSED          // Manqué
+  CANCELLED       // Annulé
+  NO_ANSWER       // Pas de réponse
+  BUSY            // Occupé
+  LEFT_MESSAGE    // Message laissé
+}
+
+enum CallDirection {
+  OUTBOUND        // Sortant
+  INBOUND         // Entrant
+}
+

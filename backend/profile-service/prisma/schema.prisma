@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === CVs ===
+model CV {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Informations du CV
+  title           String
+  description     String?
+  
+  // Informations personnelles
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  address         String?
+  website         String?
+  linkedinUrl     String?
+  
+  // État
+  isDefault       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations vers les modèles CV
+  experiences     Experience[]
+  educations      Education[]
+  skills          Skill[]
+  languages       Language[]
+  projects        Project[]
+  
+  @@map("cvs")
+}
+
+// === ✅ EXPÉRIENCES PROFESSIONNELLES (ENFIN !) ===
+model Experience {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String?
+  
+  // Informations de l'expérience
+  company         String
+  position        String
+  description     String?
+  location        String?
+  
+  // Dates
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean  @default(false)
+  
+  // Compétences acquises
+  skills          String[] @default([])
+  achievements    String[] @default([])
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations
+  cv              CV?      @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  
+  @@map("experiences")
+}
+
+// === ✅ FORMATIONS/DIPLÔMES (ENFIN !) ===
+model Education {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String?
+  
+  // Informations de la formation
+  institution     String
+  degree          String
+  field           String?
+  description     String?
+  location        String?
+  
+  // Dates
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean  @default(false)
+  
+  // Note/mention
+  grade           String?
+  gpa             String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations
+  cv              CV?      @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  
+  @@map("educations")
+}
+
+// === ✅ COMPÉTENCES (ENFIN !) ===
+model Skill {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String?
+  
+  // Informations de la compétence
+  name            String
+  category        SkillCategory
+  level           SkillLevel
+  description     String?
+  
+  // Années d'expérience
+  yearsOfExperience Int?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations
+  cv              CV?      @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  
+  @@map("skills")
+}
+
+// === ✅ LANGUES (ENFIN !) ===
+model Language {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String?
+  
+  // Informations de la langue
+  name            String
+  level           LanguageLevel
+  certification   String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations
+  cv              CV?      @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  
+  @@map("languages")
+}
+
+// === ✅ PROJETS (ENFIN !) ===
+model Project {
+  id              String   @id @default(cuid())
+  userId          String
+  cvId            String?
+  
+  // Informations du projet
+  name            String
+  description     String
+  role            String?
+  technologies    String[] @default([])
+  
+  // Dates
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrent       Boolean  @default(false)
+  
+  // Liens
+  url             String?
+  repositoryUrl   String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  // Relations
+  cv              CV?      @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  
+  @@map("projects")
+}
+
+// === ENUMS ===
+enum SkillCategory {
+  TECHNICAL
+  SOFT_SKILL
+  LANGUAGE
+  TOOL
+  FRAMEWORK
+  CERTIFICATION
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum LanguageLevel {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  FLUENT
+  NATIVE
+}
+
