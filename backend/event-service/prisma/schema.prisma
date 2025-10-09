@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === ÉVÉNEMENTS GLOBAUX ===
+model Event {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Informations de l'événement
+  type            EventType
+  title           String
+  description     String?
+  occurredAt      DateTime @default(now())
+  
+  // Métadonnées additionnelles (JSON)
+  metadata        Json?
+  
+  // Relations optionnelles (IDs des entités liées)
+  applicationId   String?
+  companyId       String?
+  contactId       String?
+  interviewId     String?
+  callId          String?
+  followUpId      String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  @@map("events")
+}
+
+enum EventType {
+  APPLICATION_CREATED
+  APPLICATION_SENT
+  APPLICATION_UPDATED
+  APPLICATION_REJECTED
+  APPLICATION_ACCEPTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  INTERVIEW_CANCELLED
+  FOLLOWUP_SENT
+  FOLLOWUP_RESPONDED
+  CALL_MADE
+  CALL_RECEIVED
+  COMPANY_ADDED
+  CONTACT_ADDED
+  REMINDER_CREATED
+  DOCUMENT_UPLOADED
+  CV_UPDATED
+  PROFILE_UPDATED
+}
+
