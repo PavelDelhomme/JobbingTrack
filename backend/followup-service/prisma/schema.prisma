@@ -16,7 +16,7 @@ model FollowUp {
   
   // Type et planification
   type            FollowUpType
-  platform        FollowupPlatform
+  platform        FollowUpPlatform @default(EMAIL)  // ✅ Corrigé le typo
   status          FollowUpStatus @default(PENDING)
 
   // Génération automatique (au lieu de AUTO_GENERATED)
@@ -77,5 +77,15 @@ enum ResponseType {
   POSITIVE          // Réponse positive
   REQUEST_INFO      // Demande d'information
   ON_HOLD           // Mise en attente
+  OTHER
+}
+
+// ✅ Ajout de l'enum manquant
+enum FollowUpPlatform {
+  EMAIL
+  LINKEDIN
+  PHONE
+  SMS
+  IN_PERSON
   OTHER
 }

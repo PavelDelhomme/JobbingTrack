@@ -31,11 +31,7 @@ class CompanyService {
       
       try {
         const existingCompany = await this.getCompanyByName(companyName, authToken);
-        
-        if (existingCompany) {
-          logger.info(`✅ Entreprise existante trouvée: ${existingCompany.name} (${existingCompany.id})`);
-          return existingCompany.id;
-        }
+        if (existingCompany) return existingCompany.id;
       } catch (error) {
         // Si 404, l'entreprise n'existe pas, on continue pour la créer
         if (error.response?.status !== 404) {

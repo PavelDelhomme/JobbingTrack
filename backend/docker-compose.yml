@@ -365,26 +365,27 @@ services:
       - jobbingtrack-network
 
   # Service de gestion des workflows
-  scheduler-service:
-    build:
-      context: ./scheduler-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-scheduler-service
-    ports:
-      - "3014:3014"
-    networks:
-      - jobbingtrack-network
-    environment:
-      - NODE_ENV=development
-      - PORT=3014
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=your-secret-key-change-in-production-2025
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      postgres:
-        condition: service_healthy
-      auth-service:
-        condition: service_started
+  # ⚠️ DÉSACTIVÉ - Service non implémenté
+  # scheduler-service:
+  #   build:
+  #     context: ./scheduler-service
+  #     dockerfile: Dockerfile
+  #   container_name: jobbingtrack-scheduler-service
+  #   ports:
+  #     - "3014:3014"
+  #   networks:
+  #     - jobbingtrack-network
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3014
+  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #     - JWT_SECRET=your-secret-key-change-in-production-2025
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     auth-service:
+  #       condition: service_started
 
   # Service de tracking de candidatures
   # tracking-service:
@@ -426,7 +427,7 @@ services:
       - event-service
       - followup-service
       - workflow-service
-      - scheduler-service
+      # - scheduler-service  # ⚠️ DÉSACTIVÉ
     networks:
       - jobbingtrack-network
     volumes:

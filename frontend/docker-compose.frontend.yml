@@ -6,7 +6,7 @@ services:
       target: development  # Maintenant ce stage existe
     container_name: jobbingtrack-frontend
     ports:
-      - "3001:3000"
+      - "8080:3000"  # ✅ Changé de 3001 à 8080 pour éviter conflit avec auth-service
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:3000
