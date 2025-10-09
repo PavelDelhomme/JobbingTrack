@@ -3,136 +3,243 @@
 .PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load full-dev full-up full-down full-logs full-clean full-health
 
 # Couleurs
-GREEN := \033
+GREEN := \033[0;32m
+RED := \033[0;31m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+NC := \033[0m
+RESET := \033[0m
 
 # Variables
-COMPOSE_FILE = docker-compose.yml
+BACKEND_DIR = backend
+COMPOSE_FILE = backend/docker-compose.yml
 SERVICES = api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service
 
 # Aide
 help:
 	@echo "🚀 JobbingTrack Microservices (FullStack) - Commandes disponibles:"
 	@echo ""
-	@echo "  build     - Construire toutes les images Docker"
-	@echo "  up        - Démarrer tous les services"
-	@echo "  down      - Arrêter tous les services"
-	@echo "  logs      - Voir les logs de tous les services"
-	@echo "  dev       - Démarrer en mode développement"
-	@echo "  test      - Exécuter les tests"
-	@echo "  migrate   - Exécuter les migrations de base de données"
-	@echo "  clean     - Nettoyer les conteneurs et volumes"
-	@echo "  status    - Voir le statut des services"
+	@echo "  🏗️  INFRASTRUCTURE:"
+	@echo "    build              - Construire toutes les images Docker"
+	@echo "    up                 - Démarrer tous les services"
+	@echo "    down               - Arrêter tous les services"
+	@echo "    logs               - Voir les logs de TOUS les services"
+	@echo "    logs-<service>     - Logs d'un service spécifique (ex: logs-auth-service)"
+	@echo "    logs-backend       - Logs des services backend uniquement"
+	@echo "    logs-infra         - Logs PostgreSQL + Redis"
+	@echo "    dev                - Démarrer en mode développement"
+	@echo "    status             - Voir le statut des services"
+	@echo "    clean              - Nettoyer les conteneurs et volumes"
 	@echo ""
+	@echo "  🧪 TESTS AUTOMATISÉS:"
+	@echo "    test-automated     - Tests automatisés complets (dossier tests/)"
+	@echo "    test-workflow      - Tests workflow utilisateur complet"
+	@echo "    test-auth-user     - Tests authentification avec dumb@delhomme.ovh"
+	@echo "    test-applications  - Tests candidatures + auto-création entreprises"
+	@echo "    test-cleanup       - Nettoyage données de test"
+	@echo ""
+	@echo "  🔧 TESTS TECHNIQUES:"
+	@echo "    test-all           - Tests techniques (services + intégration)"
+	@echo "    test-services      - Tests de santé des micro-services"
+	@echo "    test-auth          - Tests d'authentification technique"
+	@echo "    test-integration   - Tests d'intégration"
+	@echo "    test-load          - Tests de charge"
+	@echo ""
+	@echo "  🗄️  BASE DE DONNÉES:"
+	@echo "    migrate            - Exécuter les migrations"
+	@echo ""
+
+# ===== INFRASTRUCTURE =====
 
 # Construire toutes les images
 build:
 	@echo "🔨 Construction des images Docker..."
-	docker-compose -f $(COMPOSE_FILE) build
+	docker compose -f $(COMPOSE_FILE) build
 
 # Démarrer tous les services
 up:
 	@echo "🚀 Démarrage des microservices..."
-	docker-compose -f $(COMPOSE_FILE) up -d
+	docker compose -f $(COMPOSE_FILE) up -d
 
 # Arrêter tous les services
 down:
 	@echo "🛑 Arrêt des microservices..."
-	docker-compose -f $(COMPOSE_FILE) down
+	docker compose -f $(COMPOSE_FILE) down
 
 # Voir les logs
 logs:
 	@echo "📋 Logs des microservices..."
-	docker-compose -f $(COMPOSE_FILE) logs -f
+	docker compose -f $(COMPOSE_FILE) logs -f
 
 # Mode développement
 dev:
 	@echo "🔧 Démarrage en mode développement..."
-	docker-compose -f $(COMPOSE_FILE) up --build
-
-# Exécuter les tests
-test:
-	@echo "🧪 Exécution des tests..."
-	@for service in $(SERVICES); do \
-		echo "Testing $$service..."; \
-		docker-compose -f $(COMPOSE_FILE) exec $$service npm test || true; \
-	done
-
-# Migrations de base de données
-migrate:
-	@echo "🗄️ Exécution des migrations..."
-	docker-compose -f $(COMPOSE_FILE) exec auth-service npx prisma migrate deploy
-	docker-compose -f $(COMPOSE_FILE) exec auth-service npx prisma generate
-
-# Nettoyer
-clean:
-	@echo "🧹 Nettoyage des conteneurs et volumes..."
-	docker-compose -f $(COMPOSE_FILE) down -v
-	docker system prune -f
+	docker compose -f $(COMPOSE_FILE) up --build
 
 # Statut des services
 status:
 	@echo "📊 Statut des services:"
-	docker-compose -f $(COMPOSE_FILE) ps
+	docker compose -f $(COMPOSE_FILE) ps
+
+# Nettoyer
+clean:
+	@echo "🧹 Nettoyage des conteneurs et volumes..."
+	docker compose -f $(COMPOSE_FILE) down -v
+	docker system prune -f
+
+# ===== TESTS AUTOMATISÉS (DOSSIER tests/) =====
+
+# Tests automatisés complets
+test-automated:
+	@echo "$(BLUE)🧪 Tests automatisés complets...$(NC)"
+	@if [ -d "tests" ]; then \
+		cd tests && $(MAKE) test-all; \
+	else \
+		echo "$(RED)❌ Dossier tests/ non trouvé$(NC)"; \
+		echo "$(YELLOW)💡 Créez le dossier tests/ avec les scripts automatisés$(NC)"; \
+		exit 1; \
+	fi
+
+# Tests workflow utilisateur complet
+test-workflow:
+	@echo "$(BLUE)📝 Tests workflow utilisateur complet...$(NC)"
+	@if [ -d "tests" ]; then \
+		cd tests && $(MAKE) test-workflow; \
+	else \
+		echo "$(RED)❌ Dossier tests/ non trouvé$(NC)"; \
+		exit 1; \
+	fi
+
+# Tests authentification avec dumb@delhomme.ovh
+test-auth-user:
+	@echo "$(BLUE)🔐 Tests authentification utilisateur...$(NC)"
+	@if [ -d "tests" ]; then \
+		cd tests && $(MAKE) test-auth; \
+	else \
+		echo "$(RED)❌ Dossier tests/ non trouvé$(NC)"; \
+		exit 1; \
+	fi
+
+# Tests candidatures + auto-création entreprises
+test-applications:
+	@echo "$(BLUE)📋 Tests candidatures + auto-création entreprises...$(NC)"
+	@if [ -d "tests" ]; then \
+		cd tests && $(MAKE) test-applications; \
+	else \
+		echo "$(RED)❌ Dossier tests/ non trouvé$(NC)"; \
+		exit 1; \
+	fi
+
+# Nettoyage données de test
+test-cleanup:
+	@echo "$(BLUE)🧹 Nettoyage données de test...$(NC)"
+	@if [ -d "tests" ]; then \
+		cd tests && $(MAKE) clean-test; \
+	else \
+		echo "$(YELLOW)⚠️ Dossier tests/ non trouvé - rien à nettoyer$(NC)"; \
+	fi
+
+# ===== TESTS TECHNIQUES (SERVICES) =====
+
+# Tests techniques complets
+test-all: test-services test-auth test-integration
+	@echo "$(GREEN)🎉 Tous les tests techniques passés avec succès !$(NC)"
+
+# Tests de santé de tous les services
+test-services:
+	@echo "$(BLUE)🏥 Tests de santé des micro-services...$(NC)"
+	@if [ -f "./test-services.sh" ]; then \
+		./test-services.sh; \
+	elif [ -f "backend/test-services.sh" ]; then \
+		cd backend && ./test-services.sh; \
+	else \
+		echo "$(RED)❌ Script test-services.sh non trouvé$(NC)"; \
+		exit 1; \
+	fi
+
+# Tests d'authentification technique
+test-auth:
+	@echo "$(BLUE)🔐 Tests d'authentification technique...$(NC)"
+	@curl -s http://localhost:3000/health > /dev/null || (echo "$(RED)❌ API Gateway non accessible$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Tests auth technique OK$(NC)"
+
+# Tests d'intégration
+test-integration:
+	@echo "$(BLUE)🔗 Tests d'intégration...$(NC)"
+	@if [ -f "./test-microservices.sh" ]; then \
+		./test-microservices.sh; \
+	elif [ -f "backend/test-microservices.sh" ]; then \
+		cd backend && ./test-microservices.sh; \
+	else \
+		echo "$(RED)❌ Script test-microservices.sh non trouvé$(NC)"; \
+		exit 1; \
+	fi
+
+# Tests de charge (optionnel)
+test-load:
+	@echo "$(BLUE)⚡ Tests de charge...$(NC)"
+	@if command -v ab > /dev/null 2>&1; then \
+		ab -n 100 -c 10 http://localhost:3000/health; \
+	else \
+		echo "$(YELLOW)⚠️ Apache Bench (ab) non installé$(NC)"; \
+	fi
+
+# ===== GESTION SERVICES INDIVIDUELS =====
 
 # Démarrer un service spécifique
 start-%:
 	@echo "🚀 Démarrage du service $*..."
-	docker-compose -f $(COMPOSE_FILE) up -d $*
+	docker compose -f $(COMPOSE_FILE) up -d $*
 
 # Arrêter un service spécifique
 stop-%:
 	@echo "🛑 Arrêt du service $*..."
-	docker-compose -f $(COMPOSE_FILE) stop $*
+	docker compose -f $(COMPOSE_FILE) stop $*
 
 # Logs d'un service spécifique
 logs-%:
 	@echo "📋 Logs du service $*..."
-	docker-compose -f $(COMPOSE_FILE) logs -f $*
+	docker compose -f $(COMPOSE_FILE) logs -f $*
+
+# Logs des services backend uniquement (sans infra)
+logs-backend:
+	@echo "📋 Logs des services backend..."
+	docker compose -f $(COMPOSE_FILE) logs -f $(SERVICES)
+
+# Logs de l'infrastructure (PostgreSQL + Redis)
+logs-infra:
+	@echo "📋 Logs infrastructure (PostgreSQL + Redis)..."
+	docker compose -f $(COMPOSE_FILE) logs -f postgres redis
 
 # Redémarrer un service spécifique
 restart-%:
 	@echo "🔄 Redémarrage du service $*..."
-	docker-compose -f $(COMPOSE_FILE) restart $*
+	docker compose -f $(COMPOSE_FILE) restart $*
 
 # Rebuild un service spécifique
 rebuild-%:
 	@echo "🔨 Reconstruction du service $*..."
-	docker-compose -f $(COMPOSE_FILE) up --build -d $*
+	docker compose -f $(COMPOSE_FILE) up --build -d $*
 
-# Tests
-# Tests automatisés complets
-test-all: test-services test-auth test-integration
-	@echo "$(GREEN)🎉 Tous les tests passés avec succès !$(RESET)"
+# ===== BASE DE DONNÉES =====
 
-# Tests de santé de tous les services
-test-services:
-	@echo "$(BLUE)🏥 Tests de santé des micro-services...$(RESET)"
-	@./test-services.sh
+# Migrations de base de données
+migrate:
+	@echo "🗄️ Exécution des migrations..."
+	docker compose -f $(COMPOSE_FILE) exec auth-service npx prisma migrate deploy
+	docker compose -f $(COMPOSE_FILE) exec auth-service npx prisma generate
 
-# Tests d'authentification
-test-auth:
-	@echo "$(BLUE)🔐 Tests d'authentification...$(RESET)"
-	@curl -s http://localhost:3000/health > /dev/null || (echo "$(RED)❌ API Gateway non accessible$(RESET)" && exit 1)
-	@echo "$(GREEN)✅ Tests auth OK$(RESET)"
+# ===== UTILITAIRES =====
 
-# Tests d'intégration
-test-integration:
-	@echo "$(BLUE)🔗 Tests d'intégration...$(RESET)"
-	@./test-microservices.sh
-
-# Tests de charge (optionnel)
-test-load:
-	@echo "$(BLUE)⚡ Tests de charge...$(RESET)"
-	@if command -v ab > /dev/null 2>&1; then \
-		ab -n 100 -c 10 http://localhost:3000/health; \
-	else \
-		echo "$(YELLOW)⚠️ Apache Bench (ab) non installé$(RESET)"; \
-	fi
+# Tests legacy (pour compatibilité)
+test:
+	@echo "$(YELLOW)⚠️ Utilisation legacy - utilisez 'make test-all' ou 'make test-automated'$(NC)"
+	@$(MAKE) test-all
 
 # Installer jq si nécessaire
 install-jq:
 	@if ! command -v jq > /dev/null 2>&1; then \
-		echo "$(YELLOW)📦 Installation de jq...$(RESET)"; \
+		echo "$(YELLOW)📦 Installation de jq...$(NC)"; \
 		if command -v apt > /dev/null 2>&1; then \
 			sudo apt update && sudo apt install -y jq; \
 		elif command -v brew > /dev/null 2>&1; then \
@@ -140,8 +247,8 @@ install-jq:
 		elif command -v pacman > /dev/null 2>&1; then \
 			sudo pacman -S jq; \
 		else \
-			echo "$(RED)❌ Impossible d'installer jq automatiquement$(RESET)"; \
+			echo "$(RED)❌ Impossible d'installer jq automatiquement$(NC)"; \
 		fi; \
 	else \
-		echo "$(GREEN)✅ jq déjà installé$(RESET)"; \
+		echo "$(GREEN)✅ jq déjà installé$(NC)"; \
 	fi

@@ -33,7 +33,7 @@ init:
 	@echo "$(YELLOW)🚀 Initialisation Next.js...$(NC)"
 	@if [ ! -d "src" ] && [ ! -d "app" ] && [ ! -d "pages" ]; then \
 		echo "$(YELLOW)📦 Création structure Next.js...$(NC)"; \
-		docker-compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) \
+		docker compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) \
 		npx create-next-app@latest . --typescript --tailwind --app --eslint --no-src-dir --import-alias "@/*" --use-npm; \
 		echo "$(GREEN)✅ Next.js initialisé$(NC)"; \
 	else \
@@ -43,44 +43,44 @@ init:
 # Installation des dépendances
 install:
 	@echo "$(YELLOW)📦 Installation dépendances...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm install
+	docker compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm install
 	@echo "$(GREEN)✅ Dépendances installées$(NC)"
 
 # Mode développement
 dev:
 	@echo "$(YELLOW)🔥 Démarrage développement...$(NC)"
 	@$(MAKE) init
-	docker-compose -f $(COMPOSE_FILE) up --build
+	docker compose -f $(COMPOSE_FILE) up --build
 	@echo "$(GREEN)✅ Frontend: http://localhost:3001$(NC)"
 
 # Build image
 build:
 	@echo "$(YELLOW)🏗️ Construction image...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) build --no-cache
+	docker compose -f $(COMPOSE_FILE) build --no-cache
 	@echo "$(GREEN)✅ Image construite$(NC)"
 
 # Démarrer service
 up:
 	@echo "$(YELLOW)🚀 Démarrage service...$(NC)"
 	@$(MAKE) init
-	docker-compose -f $(COMPOSE_FILE) up -d
+	docker compose -f $(COMPOSE_FILE) up -d
 	@echo "$(GREEN)✅ Frontend: http://localhost:3001$(NC)"
 
 # Arrêter service
 down:
 	@echo "$(YELLOW)🛑 Arrêt service...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) down
+	docker compose -f $(COMPOSE_FILE) down
 	@echo "$(GREEN)✅ Service arrêté$(NC)"
 
 # Logs
 logs:
 	@echo "$(BLUE)📋 Logs frontend...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) logs -f
+	docker compose -f $(COMPOSE_FILE) logs -f
 
 # Shell
 shell:
 	@echo "$(BLUE)🐚 Shell conteneur...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) exec $(SERVICE_NAME) sh
+	docker compose -f $(COMPOSE_FILE) exec $(SERVICE_NAME) sh
 
 # Test santé
 health:
@@ -90,22 +90,22 @@ health:
 # Tests
 test:
 	@echo "$(YELLOW)🧪 Tests frontend...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm test
+	docker compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm test
 
 # Lint
 lint:
 	@echo "$(YELLOW)🔍 Vérification code...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm run lint
+	docker compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm run lint
 
 # Format
 format:
 	@echo "$(YELLOW)✨ Formatage code...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm run format
+	docker compose -f $(COMPOSE_FILE) run --rm $(SERVICE_NAME) npm run format
 
 # Nettoyer
 clean:
 	@echo "$(YELLOW)🧹 Nettoyage...$(NC)"
-	docker-compose -f $(COMPOSE_FILE) down -v
+	docker compose -f $(COMPOSE_FILE) down -v
 	docker system prune -f
 	@echo "$(GREEN)✅ Nettoyage terminé$(NC)"
 
