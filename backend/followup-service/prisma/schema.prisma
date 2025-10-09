@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === RELANCES ===
+model FollowUp {
+  id              String   @id @default(cuid())
+  userId          String
+  applicationId   String   // Lié à une candidature
+  contactId       String?  // Lié à un contact (optionnel)
+  
+  // Type et planification
+  type            FollowUpType
+  scheduledDate   DateTime
+  completed       Boolean  @default(false)
+  completedDate   DateTime?
+  
+  // Contenu de la relance
+  subject         String
+  message         String?
+  response        String?
+  
+  // Résultat et prochaine action
+  outcome         String?
+  nextAction      String?
+  
+  // Métadonnées BaseEntity
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  
+  @@map("followups")
+}
+
+enum FollowUpType {
+  EMAIL           // Email de relance
+  PHONE           // Appel téléphonique
+  LINKEDIN        // Message LinkedIn
+  MESSAGE         // Message direct
+  MEETING         // Demande de rendez-vous
+  THANK_YOU       // Remerciement
+  STATUS_REQUEST  // Demande de statut
+}
+
