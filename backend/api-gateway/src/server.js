@@ -50,7 +50,8 @@ app.get('/health', (req, res) => {
       dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
       calls: process.env.CALL_SERVICE_URL || 'http://localhost:3008',
       profile: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
-      events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011'
+      events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011',
+      followups: process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012',
     }
   });
 });
@@ -66,7 +67,8 @@ const services = {
   dashboard: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
   calls: process.env.CALL_SERVICE_URL || 'http://localhost:3008',
   profile: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
-  events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011'
+  events: process.env.EVENT_SERVICE_URL || 'http://localhost:3011',
+  followups: process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012',
 };
 
 // Routes proxy pour chaque service
@@ -112,6 +114,7 @@ app.use('*', (req, res) => {
       '/api/v1/calls',
       '/api/v1/profile',
       '/api/v1/events',
+      '/api/v1/followups',
       '/health',
       '/api-docs'
     ]
