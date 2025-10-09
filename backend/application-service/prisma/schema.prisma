@@ -50,7 +50,26 @@ model Application {
   syncHash        String   @default("")
   entityHash      String   @default("")
   
+
+  // Gestion états automatiques
+  lastStatusChange    DateTime @default(now())
+  statusReason        String?  // Raison du changement d'état
+  autoFollowUpDate    DateTime? // Date de relance automatique
+  daysWithoutResponse Int      @default(0)
+  
+  // Métadonnées pour transitions
+  statusHistory       Json[]   @default([]) // Historique des changements
+  nextAction          String?  // Prochaine action recommandée
+  priority            Priority @default(MEDIUM)
+
   @@map("applications")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum JobType {
@@ -75,4 +94,10 @@ enum ApplicationStatus {
   REJECTED
   WITHDRAWN
   NO_RESPONSE
+  PENDING_FOLLOWUP // A Relancer
+  FOLLOWUP_SENT // Relance envoyé
+  FOLLOWUP_RESPONDED // Réponse recu après relance
+  PENDING_INTERVIEW // Etat en attente d'une interviwe
+  STALE // Ancienne candidature
+  
 }

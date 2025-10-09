@@ -52,3 +52,12 @@ enum FollowUpType {
   STATUS_REQUEST  // Demande de statut
 }
 
+enum FollowUpStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  RESPONDED
+  NO_RESPONSE
+  CANCELLED
+  AUTO_GENERATED
+}
