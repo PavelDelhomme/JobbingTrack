@@ -557,7 +557,6 @@ enum EventType {
   REMINDER_CREATED
   DOCUMENT_UPLOADED
 }
-
 // === RAPPELS ===
 model Reminder {
   id              String   @id @default(cuid())

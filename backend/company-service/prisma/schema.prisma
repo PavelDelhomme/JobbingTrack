@@ -304,7 +304,6 @@ enum ActivityType {
   CONTACT_ADDED
   NOTE_ADDED
 }
-
 enum UserRole {
   USER
   ADMIN
