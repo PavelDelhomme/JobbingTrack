@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Configuration pour la production
-# Utilisez: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Utilisez: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 services:
   # API Gateway - Configuration production

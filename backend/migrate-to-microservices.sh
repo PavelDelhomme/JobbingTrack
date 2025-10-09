@@ -39,7 +39,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Vérifier que Docker Compose est installé
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     print_error "Docker Compose n'est pas installé. Veuillez l'installer d'abord."
     exit 1
 fi
@@ -47,7 +47,7 @@ fi
 print_step "1. Arrêt du backend monolithique"
 if [ -f "../backend/docker-compose.yml" ]; then
     cd ../backend
-    docker-compose down
+    docker compose down
     cd ../microservices
     print_message "Backend monolithique arrêté"
 else
@@ -71,36 +71,36 @@ fi
 
 print_step "3. Construction des images Docker des microservices"
 print_message "Construction de l'API Gateway..."
-docker-compose build api-gateway
+docker compose build api-gateway
 
 print_message "Construction du service d'authentification..."
-docker-compose build auth-service
+docker compose build auth-service
 
 print_message "Construction des autres services..."
-docker-compose build application-service company-service contact-service interview-service notification-service dashboard-service
+docker compose build application-service company-service contact-service interview-service notification-service dashboard-service
 
 print_step "4. Démarrage des services d'infrastructure"
 print_message "Démarrage de PostgreSQL et Redis..."
-docker-compose up -d postgres redis
+docker compose up -d postgres redis
 
 # Attendre que PostgreSQL soit prêt
 print_message "Attente que PostgreSQL soit prêt..."
 sleep 10
 
 # Vérifier que PostgreSQL est prêt
-while ! docker-compose exec postgres pg_isready -U jobbingtrack -d jobbingtrack; do
+while ! docker compose exec postgres pg_isready -U jobbingtrack -d jobbingtrack; do
     print_message "Attente de PostgreSQL..."
     sleep 2
 done
 
 print_step "5. Exécution des migrations de base de données"
 print_message "Exécution des migrations Prisma..."
-docker-compose run --rm auth-service npx prisma migrate deploy
-docker-compose run --rm auth-service npx prisma generate
+docker compose run --rm auth-service npx prisma migrate deploy
+docker compose run --rm auth-service npx prisma generate
 
 print_step "6. Démarrage des microservices"
 print_message "Démarrage de tous les microservices..."
-docker-compose up -d
+docker compose up -d
 
 print_step "7. Vérification des services"
 print_message "Attente que tous les services soient prêts..."
@@ -108,7 +108,7 @@ sleep 15
 
 # Vérifier le statut des services
 print_message "Vérification du statut des services:"
-docker-compose ps
+docker compose ps
 
 print_step "8. Tests de connectivité"
 print_message "Test de l'API Gateway..."
@@ -151,4 +151,4 @@ echo ""
 
 # Afficher les logs récents
 print_message "Logs récents des services:"
-docker-compose logs --tail=10
+docker compose logs --tail=10
