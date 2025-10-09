@@ -65,7 +65,6 @@ enum FollowUpStatus {
   PENDING   // En attente d'envoi
   SCHEDULED // Programmée
   SENT // Envoyée
-  DELIVRED // Livrée (pour emails)
   RESPONDED // Réponse recue
   NO_RESPONSE // Pas de réponse
   TIMEOUT   // Délai dépassé (à relancer à nouveau)
