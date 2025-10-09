@@ -1,0 +1,51 @@
+model WorkflowRule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  
+  // Conditions
+  triggerEvent    String   // APPLICATION_CREATED, etc.
+  conditionsJson  Json     // Conditions complexes
+  
+  // Actions
+  actionsJson     Json     // Actions à exécuter
+  
+  // Planification
+  delayDays       Int?     // Délai en jours
+  isActive        Boolean  @default(true)
+  
+  // Métadonnées
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("workflow_rules")
+}
+
+model WorkflowExecution {
+  id              String   @id @default(cuid())
+  userId          String
+  entityId        String   // ID de l'entité concernée
+  entityType      String   // "Application", "FollowUp", etc.
+  ruleId          String
+  
+  // État
+  status          WorkflowStatus @default(PENDING)
+  scheduledAt     DateTime
+  executedAt      DateTime?
+  result          Json?
+  errorMessage    String?
+  
+  // Métadonnées
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("workflow_executions")
+}
+
+enum WorkflowStatus {
+  PENDING
+  EXECUTING
+  COMPLETED
+  FAILED
+  CANCELLED
+}

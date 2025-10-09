@@ -26,3 +26,7 @@ model Company {
   applications    Application[]
   contacts        Contact[]
 }
+
+model CompanySize {
+  
+}

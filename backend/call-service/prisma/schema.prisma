@@ -62,6 +62,7 @@ enum CallStatus {
   NO_ANSWER       // Pas de réponse
   BUSY            // Occupé
   LEFT_MESSAGE    // Message laissé
+  RESCHEDULED     // Reprogrammé
 }
 
 enum CallDirection {
