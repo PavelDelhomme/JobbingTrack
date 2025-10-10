@@ -48,6 +48,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="max-w-md w-full space-y-8">
+        {/* Debug info - temporaire */}
+        {actualTheme === 'dark' && (
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Mode sombre détecté: {actualTheme}
+          </div>
+        )}
         {/* Theme Toggle */}
         <div className="flex justify-end">
           <button

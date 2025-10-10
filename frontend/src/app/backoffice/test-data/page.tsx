@@ -228,7 +228,7 @@ export default function TestDataGeneratorPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ConfigSlider
-              label="👥 Utilisateurs"
+              label="Utilisateurs"
               value={config.users}
               onChange={(val) => setConfig({ ...config, users: val })}
               min={1}
@@ -237,7 +237,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="🏢 Entreprises"
+              label="Entreprises"
               value={config.companies}
               onChange={(val) => setConfig({ ...config, companies: val })}
               min={5}
@@ -246,7 +246,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="📋 Candidatures"
+              label="Candidatures"
               value={config.applications}
               onChange={(val) => setConfig({ ...config, applications: val })}
               min={5}
@@ -255,7 +255,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="👤 Contacts"
+              label="Contacts"
               value={config.contacts}
               onChange={(val) => setConfig({ ...config, contacts: val })}
               min={5}
@@ -264,7 +264,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="🎤 Entretiens"
+              label="Entretiens"
               value={config.interviews}
               onChange={(val) => setConfig({ ...config, interviews: val })}
               min={0}
@@ -273,7 +273,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="📧 Relances"
+              label="Relances"
               value={config.followups}
               onChange={(val) => setConfig({ ...config, followups: val })}
               min={0}
@@ -282,7 +282,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="📞 Appels"
+              label="Appels"
               value={config.calls}
               onChange={(val) => setConfig({ ...config, calls: val })}
               min={0}
@@ -291,7 +291,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="📅 Événements"
+              label="Événements"
               value={config.events}
               onChange={(val) => setConfig({ ...config, events: val })}
               min={0}
@@ -300,7 +300,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="🗑️ Éléments supprimés"
+              label="Éléments supprimés"
               value={config.deletedItems}
               onChange={(val) => setConfig({ ...config, deletedItems: val })}
               min={0}
@@ -309,7 +309,7 @@ export default function TestDataGeneratorPage() {
             />
             
             <ConfigSlider
-              label="📦 Éléments archivés"
+              label="Éléments archivés"
               value={config.archivedItems}
               onChange={(val) => setConfig({ ...config, archivedItems: val })}
               min={0}
