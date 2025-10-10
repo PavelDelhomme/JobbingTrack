@@ -158,9 +158,82 @@ const getAvailableServices = async (req, res) => {
   }
 };
 
+/**
+ * Stream des logs en temps réel (Server-Sent Events)
+ */
+const streamServiceLogs = async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+
+    // Vérifier les permissions admin
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès refusé'
+      });
+    }
+
+    // Mapper le nom du service
+    const dockerServiceName = SERVICE_MAP[serviceName] || serviceName;
+    const containerName = `jobbingtrack-${dockerServiceName}`;
+
+    logger.info(`📋 Admin ${req.user.email} stream les logs de: ${dockerServiceName}`);
+
+    // Configurer les headers pour Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Nginx
+
+    // Envoyer un message initial
+    res.write(`data: ${JSON.stringify({ type: 'connected', service: dockerServiceName })}\n\n`);
+
+    // Stream les logs via spawn
+    const { spawn } = require('child_process');
+    const dockerLogs = spawn('docker', ['logs', '-f', '--tail', '50', '--timestamps', containerName]);
+
+    dockerLogs.stdout.on('data', (data) => {
+      const lines = data.toString().split('\n').filter(line => line.trim());
+      lines.forEach(line => {
+        res.write(`data: ${JSON.stringify({ type: 'log', content: line })}\n\n`);
+      });
+    });
+
+    dockerLogs.stderr.on('data', (data) => {
+      const lines = data.toString().split('\n').filter(line => line.trim());
+      lines.forEach(line => {
+        res.write(`data: ${JSON.stringify({ type: 'log', content: line })}\n\n`);
+      });
+    });
+
+    dockerLogs.on('error', (error) => {
+      logger.error('Erreur stream logs:', error);
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    });
+
+    // Nettoyer à la déconnexion
+    req.on('close', () => {
+      logger.info(`📋 Admin ${req.user.email} a fermé le stream de logs pour ${dockerServiceName}`);
+      dockerLogs.kill();
+      res.end();
+    });
+
+  } catch (error) {
+    logger.error('Erreur stream logs:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+};
+
 module.exports = {
   getServiceLogs,
   getAllLogs,
-  getAvailableServices
+  getAvailableServices,
+  streamServiceLogs
 };
 

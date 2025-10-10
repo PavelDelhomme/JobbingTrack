@@ -60,6 +60,10 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
+// ✅ ROUTES ADMIN (AVANT LES PROXYS)
+const adminRoutes = require('./routes/admin.routes');
+app.use('/api/v1/admin', adminRoutes);
+
 // ✅ CONFIGURATION DES ROUTES VERS LES SERVICES
 const routes = [
   { path: '/api/v1/auth', target: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', service: 'auth' },
@@ -74,10 +78,6 @@ const routes = [
   { path: '/api/v1/events', target: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', service: 'events' },
   { path: '/api/v1/followups', target: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', service: 'followups' }
 ];
-
-// Routes admin pour la gestion des services Docker
-const adminRoutes = require('./routes/admin.routes');
-app.use('/api/v1/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

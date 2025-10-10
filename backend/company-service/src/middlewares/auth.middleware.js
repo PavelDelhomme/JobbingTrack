@@ -27,7 +27,8 @@ const authenticate = async (req, res, next) => {
       // ✅ Pas besoin de vérifier l'utilisateur en base - le JWT est la source de vérité
       req.user = {
         id: decoded.userId,
-        email: decoded.email
+        email: decoded.email,
+        role: decoded.role // ✅ Extraire le rôle du JWT
       };
       req.token = token;
       
