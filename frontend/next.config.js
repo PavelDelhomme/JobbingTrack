@@ -12,7 +12,8 @@ const nextConfig = {
         return [
             {
                 source: '/api/v1/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL}/api/v1/:path*`,
+                // ✅ Utiliser le nom du conteneur Docker exact
+                destination: 'http://jobbingtrack-api-gateway:3000/api/v1/:path*',
             },
         ];
     },

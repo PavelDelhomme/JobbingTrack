@@ -33,7 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ✅ Charger le token et profil au démarrage
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
+    // Vérifier localStorage en priorité
+    let storedToken = localStorage.getItem('token')
+    
+    // Si pas dans localStorage, vérifier les cookies
+    if (!storedToken && typeof window !== 'undefined') {
+      const cookies = document.cookie.split(';')
+      const tokenCookie = cookies.find(c => c.trim().startsWith('token='))
+      if (tokenCookie) {
+        storedToken = tokenCookie.split('=')[1]
+        // Synchroniser avec localStorage
+        localStorage.setItem('token', storedToken)
+      }
+    }
     
     if (storedToken) {
       setToken(storedToken)
@@ -64,7 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         setToken(newToken)
         setUser(newUser)
+        
+        // ✅ Sauvegarder dans localStorage ET cookies
         localStorage.setItem('token', newToken)
+        
+        // ✅ Sauvegarder aussi dans les cookies pour le middleware Next.js
+        if (typeof window !== 'undefined') {
+          document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        }
         
         router.push('/backoffice')
       }
@@ -76,7 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     setToken(null)
+    
+    // ✅ Supprimer du localStorage ET des cookies
     localStorage.removeItem('token')
+    
+    // ✅ Supprimer aussi des cookies
+    if (typeof window !== 'undefined') {
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
+    
     router.push('/login')
   }
 

@@ -22,6 +22,7 @@ services:
     user: "1001:1001" # Utilisation de UID/GID corrects
     networks:
       - frontend-network
+      - backend-network
     restart: unless-stopped
     init: true # Utilise tini pour une meilleure gestion des processus
     healthcheck:
@@ -38,3 +39,6 @@ volumes:
 networks:
   frontend-network:
     driver: bridge
+  backend-network:
+    external: true
+    name: backend_jobbingtrack-network
