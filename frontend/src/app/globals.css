@@ -58,6 +58,13 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* S'assurer que le background change correctement */
+  .dark body {
+    background-color: rgb(17 24 39);
+    color: rgb(243 244 246);
   }
 }
 

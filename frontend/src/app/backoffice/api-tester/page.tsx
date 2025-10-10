@@ -119,24 +119,24 @@ export default function APITesterPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dark:text-white">
           {/* Left Panel - Request Builder */}
           <div className="lg:col-span-2 space-y-6">
             {/* Request Configuration */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100 dark:bg-gray-800">
                 Configuration de la requête
               </h3>
 
               {/* Service Selection */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-100 dark:bg-gray-800">
                   Service
                 </label>
                 <select
                   value={service}
                   onChange={(e) => setService(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {services.map(s => (
                     <option key={s.value} value={s.value}>
@@ -149,13 +149,13 @@ export default function APITesterPage() {
               {/* Method & Endpoint */}
               <div className="mb-4 flex space-x-4">
                 <div className="w-32">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-100 dark:bg-gray-800">
                     Méthode
                   </label>
                   <select
                     value={method}
                     onChange={(e) => setMethod(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -164,7 +164,7 @@ export default function APITesterPage() {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-100 dark:bg-gray-800">
                     Endpoint
                   </label>
                   <input
@@ -172,14 +172,14 @@ export default function APITesterPage() {
                     value={endpoint}
                     onChange={(e) => setEndpoint(e.target.value)}
                     placeholder="/api/v1/service/endpoint"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-mono text-sm dark:bg-gray-700 dark:text-white"
                   />
                 </div>
               </div>
 
               {/* URL Preview */}
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">URL complète:</p>
+                <p className="text-xs text-gray-500 mb-1 dark:text-gray-700">URL complète:</p>
                 <p className="text-sm font-mono text-gray-900">
                   {method} {API_URL}/api/v1/{service}{endpoint}
                 </p>
@@ -188,7 +188,7 @@ export default function APITesterPage() {
               {/* Request Body */}
               {['POST', 'PUT', 'PATCH'].includes(method) && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-100">
                     Corps de la requête (JSON)
                   </label>
                   <textarea
@@ -214,7 +214,7 @@ export default function APITesterPage() {
             {/* Response */}
             {response && (
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100 dark:bg-gray-800">
                   Réponse
                 </h3>
 
@@ -230,7 +230,7 @@ export default function APITesterPage() {
                     {response.status} {response.statusText}
                   </div>
                   {response.responseTime && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-100 dark:bg-gray-800">
                       ⚡ {response.responseTime}ms
                     </div>
                   )}
@@ -238,7 +238,7 @@ export default function APITesterPage() {
 
                 {/* Response Data */}
                 <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                  <pre className="text-sm text-green-400 font-mono">
+                  <pre className="text-sm text-green-400 font-mono dark:text-green-100 dark:bg-gray-800">
                     {JSON.stringify(response.data || response.error, null, 2)}
                   </pre>
                 </div>
@@ -247,7 +247,7 @@ export default function APITesterPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800 font-medium">❌ Erreur:</p>
+                <p className="text-sm text-red-800 font-medium dark:text-red-100">❌ Erreur:</p>
                 <pre className="mt-2 text-sm text-red-700">
                   {JSON.stringify(error, null, 2)}
                 </pre>
@@ -257,16 +257,16 @@ export default function APITesterPage() {
 
           {/* Right Panel - Quick Tests */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100 dark:bg-gray-800">
                 ⚡ Tests rapides
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2 dark:text-white">
                 {(quickTests[service as keyof typeof quickTests] || []).map((test, index) => (
                   <button
                     key={index}
                     onClick={() => loadQuickTest(test)}
-                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors dark:bg-gray-600 dark:text-green-100"
                   >
                     <span className="font-medium">{test.method}</span> {test.name}
                   </button>
@@ -275,28 +275,28 @@ export default function APITesterPage() {
             </div>
 
             {/* Common Headers */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100 dark:bg-gray-800">
                 📋 Headers automatiques
               </h3>
-              <div className="space-y-2 text-xs">
-                <div className="p-2 bg-gray-50 rounded font-mono">
-                  <span className="text-gray-600">Content-Type:</span>
-                  <span className="text-gray-900"> application/json</span>
+              <div className="space-y-2 text-xs dark:text-white">
+                <div className="p-2 bg-gray-50 rounded font-mono dark:bg-gray-600">
+                  <span className="text-gray-600 dark:text-gray-100">Content-Type:</span>
+                  <span className="text-gray-900 dark:text-gray-100"> application/json</span>
                 </div>
-                <div className="p-2 bg-gray-50 rounded font-mono">
-                  <span className="text-gray-600">Authorization:</span>
-                  <span className="text-gray-900"> Bearer {"<token>"}</span>
+                <div className="p-2 bg-gray-50 rounded font-mono dark:bg-gray-600">
+                  <span className="text-gray-600 dark:text-gray-100">Authorization:</span>
+                  <span className="text-gray-900 dark:text-gray-100"> Bearer {"<token>"}</span>
                 </div>
               </div>
             </div>
 
             {/* Examples */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100 dark:bg-gray-800">
                 💡 Exemples
               </h3>
-              <div className="space-y-3 text-xs">
+              <div className="space-y-3 text-xs dark:text-white">
                 <ExampleItem
                   title="Lister les candidatures"
                   code="GET /api/v1/applications"
@@ -323,7 +323,7 @@ export default function APITesterPage() {
 function ExampleItem({ title, code }: { title: string, code: string }) {
   return (
     <div>
-      <p className="text-gray-700 font-medium mb-1">{title}</p>
+      <p className="text-gray-700 font-medium mb-1 dark:text-white">{title}</p>
       <pre className="p-2 bg-gray-900 text-green-400 rounded font-mono text-xs overflow-x-auto">
         {code}
       </pre>
