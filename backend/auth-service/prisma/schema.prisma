@@ -40,11 +40,12 @@ model User {
   entityHash String    @default("")
   lastSyncAt DateTime?
 
-  contacts     Contact[]
-  reminders    Reminder[]
-  documents    Document[]
-  templates    MessageTemplate[]
-  applications Application[]
+  contacts             Contact[]
+  reminders            Reminder[]
+  documents            Document[]
+  templates            MessageTemplate[]
+  applications         Application[]
+  passwordResetTokens  PasswordResetToken[]
 }
 
 // Modèle Entreprise
@@ -266,6 +267,20 @@ model Activity {
 
   application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+// ✅ NOUVEAU - Modèle pour les tokens de réinitialisation de mot de passe
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
 
 // ENUMS

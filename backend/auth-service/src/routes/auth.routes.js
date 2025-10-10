@@ -30,6 +30,16 @@ router.post('/login', [
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', authController.logout);
 
+// Routes publiques - Réinitialisation de mot de passe
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail()
+], authController.forgotPassword);
+
+router.get('/reset-password/:token', authController.verifyResetToken);
+router.post('/reset-password/:token', [
+  body('password').isLength({ min: 6 })
+], authController.resetPassword);
+
 // Routes protégées
 router.get('/profile', authenticate, authController.getProfile);
 

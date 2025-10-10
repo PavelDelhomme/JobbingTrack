@@ -17,7 +17,9 @@ const corsOptions = {
     'http://localhost:3000',    // Même origine
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3001',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'http://192.168.1.134:3000', // URL réseau local
+    'http://192.168.1.134:8080'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -51,14 +53,14 @@ app.use(helmet());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-});
+// Rate limiting - TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 1000,
+//   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
+// });
 
-app.use('/api/', limiter);
+// app.use('/api/', limiter);
 
 // ✅ ROUTES ADMIN (AVANT LES PROXYS)
 const adminRoutes = require('./routes/admin.routes');

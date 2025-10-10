@@ -27,16 +27,16 @@ export default function DataManagementPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             💾 Gestion des Données
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Import, export et opérations en masse sur les données
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
             <TabButton
               active={activeTab === 'export'}
@@ -79,8 +79,8 @@ function TabButton({ active, onClick, icon, label }: {
       onClick={onClick}
       className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
         active
-          ? 'border-blue-500 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
       }`}
     >
       <span>{icon}</span>
@@ -159,11 +159,11 @@ function ExportPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Exporter les données
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          💾 Export des données
         </h3>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
           Exportez vos données au format JSON pour sauvegarde ou migration
         </p>
 
@@ -220,19 +220,19 @@ function ExportPanel() {
       </div>
 
       {/* Export All */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h4 className="font-semibold text-blue-900 mb-1">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
               💾 Export complet
             </h4>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
               Exporter toutes les données du système en un seul fichier
             </p>
           </div>
           <button
             onClick={() => alert('Export complet en cours...')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+            className="px-4 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg text-sm font-medium"
           >
             Exporter tout
           </button>
@@ -265,23 +265,23 @@ function ImportPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Importer des données
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          📥 Importer des données
         </h3>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
           Importez des données au format JSON (sauvegarde ou migration)
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Type de données
             </label>
             <select
               value={importType}
               onChange={(e) => setImportType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
             >
               <option value="applications">Candidatures</option>
               <option value="companies">Entreprises</option>
@@ -295,21 +295,21 @@ function ImportPanel() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Fichier JSON
             </label>
             <input
               type="file"
               accept=".json"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
             />
           </div>
 
           <button
             onClick={handleImport}
             disabled={!file}
-            className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50"
+            className="w-full px-4 py-3 bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 text-white rounded-lg font-medium disabled:opacity-50"
           >
             📥 Importer les données
           </button>
@@ -317,12 +317,12 @@ function ImportPanel() {
       </div>
 
       {/* Warning */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
         <div className="flex items-start space-x-3">
           <span className="text-2xl">⚠️</span>
           <div>
-            <p className="font-semibold text-yellow-900">Attention</p>
-            <p className="text-sm text-yellow-700">
+            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Attention</p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
               L'import de données peut écraser les données existantes. Assurez-vous d'avoir une sauvegarde avant de continuer.
             </p>
           </div>
@@ -370,11 +370,11 @@ function BulkOperationsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Opérations en masse
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          ⚡ Opérations en masse
         </h3>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
           Exécutez des opérations sur plusieurs enregistrements à la fois
         </p>
 
@@ -383,18 +383,20 @@ function BulkOperationsPanel() {
             <div
               key={op.id}
               className={`p-4 border-2 rounded-lg ${
-                op.danger ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'
+                op.danger
+                  ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                  : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className={`font-semibold mb-1 ${
-                    op.danger ? 'text-red-900' : 'text-gray-900'
+                    op.danger ? 'text-red-900 dark:text-red-100' : 'text-gray-900 dark:text-gray-100'
                   }`}>
                     {op.danger && '⚠️ '}{op.title}
                   </h4>
                   <p className={`text-sm ${
-                    op.danger ? 'text-red-700' : 'text-gray-600'
+                    op.danger ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'
                   }`}>
                     {op.description}
                   </p>
@@ -403,8 +405,8 @@ function BulkOperationsPanel() {
                   onClick={() => executeOperation(op.id)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     op.danger
-                      ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white'
+                      : 'bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white'
                   }`}
                 >
                   Exécuter
@@ -416,29 +418,29 @@ function BulkOperationsPanel() {
       </div>
 
       {/* SQL Console (pour les super admins) */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           🛠️ Console SQL (Super Admin uniquement)
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Exécutez des requêtes SQL directement sur la base de données
         </p>
 
         <textarea
           rows={6}
           placeholder="SELECT * FROM users WHERE role = 'ADMIN';"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-mono text-sm mb-4"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 font-mono text-sm mb-4"
         />
 
         <button
           onClick={() => alert('⚠️ Cette fonctionnalité est désactivée pour des raisons de sécurité')}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium"
+          className="px-4 py-2 bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg text-sm font-medium"
         >
           ▶️ Exécuter la requête
         </button>
 
-        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
+        <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
             ⚠️ <strong>Attention:</strong> L'exécution de requêtes SQL directes peut endommager les données. Utilisez avec précaution.
           </p>
         </div>
@@ -456,11 +458,11 @@ function ExportCard({ icon, title, description, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+      className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left"
     >
       <div className="text-3xl mb-2">{icon}</div>
-      <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
-      <p className="text-sm text-gray-600">{description}</p>
+      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{title}</h4>
+      <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
     </button>
   )
 }

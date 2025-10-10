@@ -86,16 +86,16 @@ export default function ApplicationsPage() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               📝 Gestion des Candidatures
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Gérez toutes les candidatures
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center"
           >
             ➕ Nouvelle candidature
           </button>
@@ -106,7 +106,7 @@ export default function ApplicationsPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="all">Tous les statuts</option>
             <option value="DRAFT">Brouillon</option>
@@ -119,52 +119,52 @@ export default function ApplicationsPage() {
         </div>
 
         {/* Applications List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="table-header">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Poste
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Entreprise
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Statut
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Date
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredApplications.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50">
+                <tr key={app.id} className="table-row">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {app.position}
                     </div>
                     {app.location && (
-                      <div className="text-sm text-gray-500">{app.location}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{app.location}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                     {app.company?.name || app.companyName || '-'}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={app.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {app.type}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {app.applicationDate 
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {app.applicationDate
                       ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
                       : new Date(app.createdAt).toLocaleDateString('fr-FR')
                     }
@@ -172,13 +172,13 @@ export default function ApplicationsPage() {
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     <button
                       onClick={() => router.push(`/backoffice/applications/${app.id}`)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
                     >
                       Voir
                     </button>
                     <button
                       onClick={() => handleDeleteApplication(app.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                     >
                       Supprimer
                     </button>

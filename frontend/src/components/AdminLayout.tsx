@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
+import { useTheme } from '@/lib/theme'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -26,7 +27,7 @@ interface NavSection {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const [darkMode, setDarkMode] = useState(false)
+  const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     data: true,
@@ -35,35 +36,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     cleanup: false,
   })
 
-  // Charger le mode sombre depuis localStorage
+  // Charger l'état des sections depuis localStorage
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    const savedSections = localStorage.getItem('expandedSections')
+    if (savedSections) {
+      try {
+        setExpandedSections(JSON.parse(savedSections))
+      } catch (error) {
+        console.error('Erreur chargement état sections:', error)
+      }
     }
   }, [])
 
-  // Sauvegarder et appliquer le mode sombre
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode
-    setDarkMode(newDarkMode)
-    localStorage.setItem('darkMode', String(newDarkMode))
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+  // Sauvegarder l'état des sections dans localStorage
+  const toggleSection = (sectionId: string) => {
+    const newExpandedSections = {
+      ...expandedSections,
+      [sectionId]: !expandedSections[sectionId]
     }
+    setExpandedSections(newExpandedSections)
+    localStorage.setItem('expandedSections', JSON.stringify(newExpandedSections))
   }
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }))
-  }
 
   const sections: NavSection[] = [
     {
@@ -128,7 +122,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ]
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
+    <div className="min-h-screen">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
         {/* Sidebar */}
         <div className="fixed inset-y-0 left-0 w-64 bg-gray-900 dark:bg-gray-950 flex flex-col shadow-xl border-r border-gray-800 dark:border-gray-900">
@@ -229,19 +223,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
               
-              {/* Dark Mode Toggle */}
+              {/* Theme Toggle */}
               <button
-                onClick={toggleDarkMode}
+                onClick={toggleTheme}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
-                  darkMode 
-                    ? 'bg-gray-800 dark:bg-gray-800 text-gray-100 hover:bg-gray-700' 
+                  actualTheme === 'dark'
+                    ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
-                title={darkMode ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
               >
-                <span className="text-lg">{darkMode ? '🌙' : '☀️'}</span>
+                <span className="text-lg">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
                 <span className="text-xs font-medium">
-                  {darkMode ? 'Sombre' : 'Clair'}
+                  {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
                 </span>
               </button>
             </div>

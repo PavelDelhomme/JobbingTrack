@@ -99,16 +99,16 @@ export default function FollowUpsPage() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               📧 Gestion des Relances
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Planifiez et suivez vos relances professionnelles
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center"
           >
             ➕ Nouvelle relance
           </button>
@@ -150,19 +150,19 @@ export default function FollowUpsPage() {
         <div className="mb-6 flex space-x-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Toutes ({followups.length})
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'pending' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             En attente ({followups.filter(f => !f.completed).length})
           </button>
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'completed' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'completed' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Complétées ({followups.filter(f => f.completed).length})
           </button>
@@ -180,8 +180,8 @@ export default function FollowUpsPage() {
           ))}
 
           {filteredFollowups.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <p className="text-gray-500 dark:text-gray-400">
                 📧 Aucune relance trouvée
               </p>
             </div>
@@ -209,8 +209,8 @@ function FollowUpCard({ followup, onMarkAsCompleted, onDelete }: {
   const isPast = new Date(followup.scheduledDate) < new Date()
 
   return (
-    <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
-      isPending && isPast ? 'border-red-600' : isPending ? 'border-yellow-600' : 'border-green-600'
+    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 ${
+      isPending && isPast ? 'border-red-600 dark:border-red-500' : isPending ? 'border-yellow-600 dark:border-yellow-500' : 'border-green-600 dark:border-green-500'
     }`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
@@ -219,17 +219,17 @@ function FollowUpCard({ followup, onMarkAsCompleted, onDelete }: {
           </div>
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {followup.subject}
               </h3>
               <FollowUpStatusBadge status={followup.status} completed={followup.completed} />
             </div>
             {followup.message && (
-              <p className="mt-2 text-sm text-gray-700">
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-400">
                 {followup.message.substring(0, 150)}{followup.message.length > 150 ? '...' : ''}
               </p>
             )}
-            <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500">
+            <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
               <span>
                 📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR')}
               </span>
@@ -239,14 +239,14 @@ function FollowUpCard({ followup, onMarkAsCompleted, onDelete }: {
                 </span>
               )}
               {followup.completedAt && (
-                <span className="text-green-600">
+                <span className="text-green-600 dark:text-green-400">
                   ✅ Complétée : {new Date(followup.completedAt).toLocaleString('fr-FR')}
                 </span>
               )}
             </div>
             {followup.response && (
-              <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-900">
+              <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <p className="text-sm text-green-900 dark:text-green-100">
                   <strong>💬 Réponse :</strong> {followup.response}
                 </p>
               </div>
@@ -258,14 +258,14 @@ function FollowUpCard({ followup, onMarkAsCompleted, onDelete }: {
           {isPending && (
             <button
               onClick={onMarkAsCompleted}
-              className="text-sm text-green-600 hover:text-green-800 font-medium whitespace-nowrap"
+              className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium whitespace-nowrap"
             >
               ✓ Marquer complétée
             </button>
           )}
           <button
             onClick={onDelete}
-            className="text-sm text-red-600 hover:text-red-800 font-medium"
+            className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
           >
             🗑️ Supprimer
           </button>

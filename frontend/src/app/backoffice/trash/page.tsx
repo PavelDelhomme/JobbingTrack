@@ -118,15 +118,15 @@ export default function TrashManagementPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">🗑️ Gestion de la Corbeille</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">🗑️ Gestion de la Corbeille</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
               Gérer et restaurer les éléments supprimés
             </p>
           </div>
-          
+
           <button
             onClick={handleEmptyTrash}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="px-6 py-3 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center gap-2"
           >
             <span>🗑️</span>
             <span>Vider la corbeille</span>
@@ -156,7 +156,7 @@ export default function TrashManagementPage() {
         </div>
 
         {/* Filtres */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Recherche */}
             <div className="flex-1">
@@ -165,7 +165,7 @@ export default function TrashManagementPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher dans la corbeille..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
               />
             </div>
 
@@ -177,14 +177,14 @@ export default function TrashManagementPage() {
                   onClick={() => setSelectedType(type.value)}
                   className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                     selectedType === type.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
                   <span className="mr-2">{type.icon}</span>
                   {type.label}
                   {stats.byType[type.value] > 0 && (
-                    <span className="ml-2 px-2 py-0.5 bg-white bg-opacity-20 rounded-full text-xs">
+                    <span className="ml-2 px-2 py-0.5 bg-white dark:bg-gray-800 bg-opacity-20 dark:bg-opacity-20 rounded-full text-xs">
                       {stats.byType[type.value]}
                     </span>
                   )}
@@ -195,7 +195,7 @@ export default function TrashManagementPage() {
         </div>
 
         {/* Liste des éléments */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           {loading ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -229,10 +229,10 @@ export default function TrashManagementPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-700">
           <div className="flex items-start gap-3">
             <span className="text-blue-600 text-xl">ℹ️</span>
-            <div className="text-sm text-blue-800">
+            <div className="text-sm text-blue-800 dark:text-blue-200">
               <p className="font-semibold mb-1">À propos de la corbeille</p>
               <ul className="list-disc list-inside space-y-1 text-blue-700">
                 <li>Les éléments marqués comme restaurables peuvent être récupérés</li>
@@ -296,14 +296,14 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
   }
 
   const typeColors: Record<string, string> = {
-    Application: 'bg-blue-100 text-blue-800',
-    Contact: 'bg-purple-100 text-purple-800',
-    Company: 'bg-orange-100 text-orange-800',
-    Interview: 'bg-green-100 text-green-800',
-    FollowUp: 'bg-yellow-100 text-yellow-800',
-    Call: 'bg-pink-100 text-pink-800',
-    Event: 'bg-indigo-100 text-indigo-800',
-    User: 'bg-red-100 text-red-800'
+    Application: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
+    Contact: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200',
+    Company: 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200',
+    Interview: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
+    FollowUp: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
+    Call: 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200',
+    Event: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200',
+    User: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
   }
 
   const daysSinceDeleted = Math.floor(
@@ -311,7 +311,7 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
   )
 
   return (
-    <div className="p-6 hover:bg-gray-50 transition-colors">
+    <div className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 flex-1">
           {/* Type Badge */}
@@ -322,8 +322,8 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
 
           {/* Infos */}
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{item.title}</h3>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
               <span>Supprimé il y a {daysSinceDeleted} jour{daysSinceDeleted > 1 ? 's' : ''}</span>
               {item.deletedBy && (
                 <span className="flex items-center gap-1">
@@ -343,12 +343,12 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
           {/* Statut restauration */}
           <div className="text-center">
             {item.canRestore ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-medium">
                 <span>♻️</span>
                 <span>Restaurable</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-full text-sm font-medium">
                 <span>🔒</span>
                 <span>Non restaurable</span>
               </span>
@@ -361,16 +361,16 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
           {item.canRestore && (
             <button
               onClick={onRestore}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center gap-2"
             >
               <span>♻️</span>
               <span>Restaurer</span>
             </button>
           )}
-          
+
           <button
             onClick={onPermanentDelete}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center gap-2"
           >
             <span>🗑️</span>
             <span>Supprimer définitivement</span>
@@ -380,8 +380,8 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
 
       {/* Alerte si proche de la suppression auto */}
       {daysSinceDeleted >= 25 && daysSinceDeleted < 30 && (
-        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
+        <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
             ⚠️ Cet élément sera automatiquement supprimé définitivement dans {30 - daysSinceDeleted} jour{30 - daysSinceDeleted > 1 ? 's' : ''}
           </p>
         </div>

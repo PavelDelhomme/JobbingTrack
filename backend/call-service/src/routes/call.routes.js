@@ -28,5 +28,9 @@ router.put('/:id', updateValidation, controller.updateCall);
 router.delete('/:id', param('id').isString(), controller.deleteCall);
 router.put('/:id/complete', param('id').isString(), controller.completeCall);
 
+// Nouvelles routes pour les statistiques et appels par candidature
+router.get('/stats/overview', controller.getCallStats);
+router.get('/application/:applicationId', param('applicationId').isString(), controller.getCallsByApplication);
+
 module.exports = router;
 

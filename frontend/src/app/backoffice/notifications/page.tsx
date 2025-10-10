@@ -89,10 +89,10 @@ export default function NotificationsPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             🔔 Notifications
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Centre de notifications et alertes
           </p>
         </div>
@@ -123,19 +123,19 @@ export default function NotificationsPage() {
         <div className="mb-6 flex space-x-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Toutes
           </button>
           <button
             onClick={() => setFilterStatus('unread')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'unread' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'unread' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Non lues ({notifications.filter(n => !n.readAt).length})
           </button>
           <button
             onClick={() => setFilterStatus('read')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'read' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'read' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Lues
           </button>
@@ -153,8 +153,8 @@ export default function NotificationsPage() {
           ))}
 
           {filteredNotifications.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <p className="text-gray-500 dark:text-gray-400">
                 🔔 Aucune notification
               </p>
             </div>
