@@ -146,4 +146,53 @@ export const dashboardService = {
     getStats: () => apiClient.get('/dashboard/stats'),
 };
 
+// ✅ Admin Service - Gestion avancée
+export const adminService = {
+    // Gestion des services
+    restartService: (serviceName: string) => 
+        apiClient.post('/admin/services/restart', { serviceName }),
+    stopService: (serviceName: string) => 
+        apiClient.post('/admin/services/stop', { serviceName }),
+    startService: (serviceName: string) => 
+        apiClient.post('/admin/services/start', { serviceName }),
+    
+    // Logs
+    getAvailableServices: () => apiClient.get('/admin/logs/services'),
+    getServiceLogs: (serviceName: string, lines = 100) => 
+        apiClient.get(`/admin/logs/${serviceName}`, { params: { lines } }),
+    getAllLogs: (lines = 100) => 
+        apiClient.get('/admin/logs/all', { params: { lines } }),
+    streamServiceLogs: (serviceName: string) => 
+        `${API_BASE_URL}/api/v1/admin/logs/${serviceName}/stream`,
+    
+    // Corbeille
+    getTrash: (type?: string) => 
+        apiClient.get('/admin/trash', { params: { type } }),
+    restoreItem: (type: string, id: string) => 
+        apiClient.post(`/admin/trash/${type}/${id}/restore`),
+    permanentDelete: (type: string, id: string) => 
+        apiClient.delete(`/admin/trash/${type}/${id}/permanent`),
+    emptyTrash: () => 
+        apiClient.post('/admin/trash/empty'),
+    
+    // Archive
+    getArchived: (type?: string) => 
+        apiClient.get('/admin/archive', { params: { type } }),
+    archiveItem: (type: string, id: string) => 
+        apiClient.post(`/admin/archive/${type}/${id}`),
+    unarchiveItem: (type: string, id: string) => 
+        apiClient.post(`/admin/archive/${type}/${id}/unarchive`),
+    
+    // Génération de données de test
+    generateTestData: (config: any) => 
+        apiClient.post('/admin/test-data/generate', config),
+    clearTestData: () => 
+        apiClient.post('/admin/test-data/clear'),
+    getTestDataStatus: () => 
+        apiClient.get('/admin/test-data/status'),
+};
+
+// Export nommé pour compatibilité
+export const api = apiClient;
+
 export default apiClient;

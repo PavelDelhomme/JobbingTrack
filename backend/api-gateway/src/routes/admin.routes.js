@@ -3,6 +3,8 @@ const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const logsController = require('../controllers/logs.controller');
 const trashController = require('../controllers/trash.controller');
+const archiveController = require('../controllers/archive.controller');
+const testDataController = require('../controllers/testdata.controller');
 
 // Middleware d'authentification
 const authenticate = (req, res, next) => {
@@ -50,6 +52,16 @@ router.get('/trash', authenticate, trashController.getAllDeletedItems);
 router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
 router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
 router.post('/trash/empty', authenticate, trashController.emptyTrash);
+
+// Routes des archives (admin uniquement)
+router.get('/archive', authenticate, archiveController.getAllArchivedItems);
+router.post('/archive/:type/:id', authenticate, archiveController.archiveItem);
+router.post('/archive/:type/:id/unarchive', authenticate, archiveController.unarchiveItem);
+
+// Routes de génération de données de test (admin uniquement)
+router.post('/test-data/generate', authenticate, testDataController.generateTestData);
+router.post('/test-data/clear', authenticate, testDataController.clearTestData);
+router.get('/test-data/status', authenticate, testDataController.getTestDataStatus);
 
 module.exports = router;
 
