@@ -21,14 +21,32 @@ const generateTestData = async (req, res) => {
     
     logger.info(`🎲 Admin ${req.user.email} génère des données de test avec config:`, config);
 
-    // Exécuter le script de génération
-    const scriptPath = path.join(__dirname, '../../../generate-test-data.js');
-    const configJson = JSON.stringify(config);
+    // Configuration par défaut
+    const preset = config.preset || 'standard';
+    const configOptions = {
+      minimal: { users: 2, companies: 5, applications: 5, contacts: 5, interviews: 2, followups: 3, calls: 2, events: 5, deletedItems: 1, archivedItems: 1 },
+      standard: { users: 3, companies: 10, applications: 20, contacts: 15, interviews: 8, followups: 12, calls: 10, events: 20, deletedItems: 5, archivedItems: 3 },
+      complete: { users: 5, companies: 20, applications: 50, contacts: 40, interviews: 20, followups: 30, calls: 25, events: 50, deletedItems: 10, archivedItems: 8 },
+      demo: { users: 1, companies: 8, applications: 15, contacts: 12, interviews: 6, followups: 8, calls: 5, events: 15, deletedItems: 2, archivedItems: 2 }
+    };
+
+    const finalConfig = config.custom || configOptions[preset] || configOptions.standard;
+    const configJson = JSON.stringify(finalConfig).replace(/"/g, '\\"');
     
-    const { stdout, stderr } = await execPromise(
-      `cd /app/.. && node generate-test-data.js '${configJson}'`,
-      { maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
-    );
+    // Exécuter le script de génération de données
+    // Le script se trouve dans le répertoire parent du backend
+    const scriptPath = path.resolve(__dirname, '../../..', 'generate-test-data.js');
+    const command = `node "${scriptPath}" '${configJson}'`;
+    
+    logger.info('📝 Exécution du script:', command);
+    
+    const { stdout, stderr } = await execPromise(command, {
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+      env: {
+        ...process.env,
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public'
+      }
+    });
 
     if (stderr && !stderr.includes('Warning')) {
       logger.error('Erreur génération données test:', stderr);
