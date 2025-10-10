@@ -11,6 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jobbingtrack-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
@@ -23,6 +25,8 @@ services:
     container_name: jobbingtrack-redis
     ports:
       - "6379:6379"
+    networks:
+      - jobbingtrack-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -51,7 +55,7 @@ services:
       - PROFILE_SERVICE_URL=http://profile-service:3009
       - EVENT_SERVICE_URL=http://event-service:3011
       - FOLLOWUP_SERVICE_URL=http://followup-service:3012
-      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
     depends_on:
       - auth-service
       - application-service
