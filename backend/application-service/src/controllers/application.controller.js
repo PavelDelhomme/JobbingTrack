@@ -2,8 +2,11 @@ const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const companyService = require('../services/company.service');
+const axios = require('axios');
 
 const prisma = new PrismaClient();
+
+const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://event-service:3011';
 
 // CREATE - Créer une candidature
 const createApplication = async (req, res, next) => {
@@ -70,8 +73,58 @@ const createApplication = async (req, res, next) => {
         source,
         jobUrl,
         notes
+      },
+      include: {
+        company: true
       }
     });
+
+    // ✅ Créer automatiquement un événement calendrier pour la candidature
+    try {
+      const eventDate = applicationDate ? new Date(applicationDate) : new Date();
+      const eventTitle = `📝 Candidature: ${position} chez ${application.company.name}`;
+      const eventDescription = `Candidature envoyée pour le poste de ${position}\n\n${description || ''}`;
+
+      await axios.post(
+        `${EVENT_SERVICE_URL}/api/v1/events`,
+        {
+          title: eventTitle,
+          description: eventDescription,
+          type: 'APPLICATION',
+          startDate: eventDate,
+          endDate: eventDate,
+          allDay: true,
+          applicationId: application.id,
+          relatedTo: 'APPLICATION',
+          relatedId: application.id
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${req.token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 5000
+        }
+      );
+
+      logger.info(`✅ Événement calendrier créé pour candidature ${application.id}`);
+    } catch (eventError) {
+      // Ne pas bloquer la création de candidature si l'événement échoue
+      logger.warn(`⚠️ Échec création événement calendrier: ${eventError.message}`);
+    }
+
+    // ✅ Créer une activité pour tracer la création
+    try {
+      await prisma.activity.create({
+        data: {
+          applicationId: application.id,
+          type: 'APPLICATION_CREATED',
+          description: `Candidature créée pour ${position} chez ${application.company.name}`
+        }
+      });
+    } catch (activityError) {
+      logger.warn(`⚠️ Échec création activité: ${activityError.message}`);
+    }
 
     res.status(201).json({
       success: true,
@@ -79,7 +132,7 @@ const createApplication = async (req, res, next) => {
       application
     });
 
-    logger.info(`Candidature créée: ${application.id} par ${req.user.email}`);
+    logger.info(`✅ Candidature créée: ${application.id} par ${req.user.email}`);
   } catch (error) {
     logger.error('Erreur création candidature:', error);
     next(error);

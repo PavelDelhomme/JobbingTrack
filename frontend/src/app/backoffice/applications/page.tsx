@@ -189,7 +189,7 @@ export default function ApplicationsPage() {
           </table>
 
           {filteredApplications.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               Aucune candidature trouvée
             </div>
           )}
@@ -212,16 +212,16 @@ export default function ApplicationsPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const statusColors: Record<string, string> = {
-    DRAFT: 'bg-gray-100 text-gray-800',
-    SENT: 'bg-blue-100 text-blue-800',
-    IN_REVIEW: 'bg-yellow-100 text-yellow-800',
-    INTERVIEW_SCHEDULED: 'bg-purple-100 text-purple-800',
-    REJECTED: 'bg-red-100 text-red-800',
-    ACCEPTED: 'bg-green-100 text-green-800',
+    DRAFT: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+    SENT: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+    IN_REVIEW: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+    INTERVIEW_SCHEDULED: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+    REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+    ACCEPTED: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
   }
 
   return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'}`}>
       {status}
     </span>
   )
@@ -242,6 +242,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
     jobUrl: '',
     source: '',
     notes: '',
+    applicationDate: new Date().toISOString().split('T')[0], // Date du jour par défaut
     // Données entreprise (optionnel)
     companyData: {
       website: '',
@@ -268,9 +269,9 @@ function CreateApplicationModal({ onClose, onSuccess }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg p-8 max-w-3xl w-full my-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-lg p-8 max-w-3xl w-full my-8 border border-gray-200 dark:border-gray-800">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
           Nouvelle candidature
         </h2>
 
@@ -278,7 +279,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
           {/* Informations principales */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Nom de l'entreprise * ✅
               </label>
               <input
@@ -287,15 +288,15 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                 placeholder="L'entreprise sera créée automatiquement si elle n'existe pas"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 💡 Si l'entreprise existe déjà, elle sera automatiquement liée. Sinon, elle sera créée.
               </p>
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Intitulé du poste *
               </label>
               <input
@@ -303,18 +304,18 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 required
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Type de contrat
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="FULL_TIME">CDI</option>
                 <option value="PART_TIME">Temps partiel</option>
@@ -325,13 +326,13 @@ function CreateApplicationModal({ onClose, onSuccess }: {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Statut
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="DRAFT">Brouillon</option>
                 <option value="SENT">Envoyée</option>
@@ -340,19 +341,19 @@ function CreateApplicationModal({ onClose, onSuccess }: {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Localisation
               </label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Salaire
               </label>
               <input
@@ -360,43 +361,68 @@ function CreateApplicationModal({ onClose, onSuccess }: {
                 value={formData.salary}
                 onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                 placeholder="45-55K €"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Date candidature
+              </label>
+              <input
+                type="date"
+                value={formData.applicationDate}
+                onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Source
+              </label>
+              <input
+                type="text"
+                value={formData.source}
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                placeholder="LinkedIn, Indeed, etc."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 URL de l'offre
               </label>
               <input
                 type="url"
                 value={formData.jobUrl}
                 onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
                 rows={4}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Notes
               </label>
               <textarea
                 rows={3}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -405,14 +431,14 @@ function CreateApplicationModal({ onClose, onSuccess }: {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
               {loading ? 'Création...' : 'Créer la candidature'}
             </button>
