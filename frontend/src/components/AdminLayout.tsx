@@ -30,6 +30,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Relances', href: '/backoffice/followups', icon: '📧' },
     { name: 'Événements', href: '/backoffice/events', icon: '🗓️' },
     { name: 'Notifications', href: '/backoffice/notifications', icon: '🔔' },
+    { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
   ]
 
   return (
