@@ -1,19 +1,32 @@
 const express = require('express');
 const router = express.Router();
+const { body, param } = require('express-validator');
 const { authenticate } = require('../middlewares/auth.middleware');
 const controller = require('../controllers/followup.controller');
+
+// Validations
+const createValidation = [
+  body('applicationId').notEmpty().withMessage('ID candidature requis'),
+  body('type').notEmpty().withMessage('Type requis'),
+  body('scheduledDate').notEmpty().withMessage('Date requise')
+];
+
+const updateValidation = [
+  param('id').isString().withMessage('ID invalide')
+];
 
 // Routes publiques
 router.get('/health', controller.getHealth);
 
 // Routes protégées
-// TODO: Ajouter les routes spécifiques au service
-// - GET /api/v1/followups - Liste des relances
-// - POST /api/v1/followups - Créer une relance
-// - GET /api/v1/followups/:id - Détails d'une relance
-// - PUT /api/v1/followups/:id - Modifier une relance
-// - DELETE /api/v1/followups/:id - Supprimer une relance
-// - PUT /api/v1/followups/:id/complete - Marquer comme complétée
+router.use(authenticate);
+
+router.post('/', createValidation, controller.createFollowup);
+router.get('/', controller.getFollowups);
+router.get('/:id', param('id').isString(), controller.getFollowup);
+router.put('/:id', updateValidation, controller.updateFollowup);
+router.delete('/:id', param('id').isString(), controller.deleteFollowup);
+router.put('/:id/complete', param('id').isString(), controller.completeFollowup);
 
 module.exports = router;
 

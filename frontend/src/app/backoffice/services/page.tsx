@@ -102,13 +102,106 @@ export default function ServicesPage() {
   }
 
   const testSingleService = async (index: number) => {
-    const newServices = [...services]
-    newServices[index] = { ...newServices[index], status: 'testing' }
-    setServices(newServices)
+    // Mettre le service en mode "testing"
+    setServices(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], status: 'testing' }
+      return updated
+    })
 
+    // Tester le service
     const result = await testService(services[index])
-    newServices[index] = result
-    setServices(newServices)
+    
+    // Mettre à jour avec le résultat
+    setServices(prev => {
+      const updated = [...prev]
+      updated[index] = result
+      return updated
+    })
+  }
+
+  const restartService = async (serviceName: string, index: number) => {
+    if (!confirm(`🔄 Voulez-vous vraiment redémarrer le service "${serviceName}" ?\n\nCela peut prendre quelques secondes.`)) {
+      return
+    }
+
+    try {
+      setServices(prev => {
+        const updated = [...prev]
+        updated[index] = { ...updated[index], status: 'testing' }
+        return updated
+      })
+
+      const response = await axios.post(
+        `${API_GATEWAY_URL}/api/v1/admin/services/restart`,
+        { serviceName: serviceName.toLowerCase().replace(' service', '').replace(' ', '-') },
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          timeout: 30000
+        }
+      )
+
+      if (response.data.success) {
+        alert(`✅ Service "${serviceName}" redémarré avec succès !`)
+        // Attendre 3 secondes puis tester le service
+        setTimeout(() => testSingleService(index), 3000)
+      } else {
+        alert(`❌ Erreur : ${response.data.error}`)
+        setServices(prev => {
+          const updated = [...prev]
+          updated[index] = { ...updated[index], status: 'offline' }
+          return updated
+        })
+      }
+    } catch (error: any) {
+      alert(`❌ Erreur lors du redémarrage : ${error.message}`)
+      setServices(prev => {
+        const updated = [...prev]
+        updated[index] = { ...updated[index], status: 'offline' }
+        return updated
+      })
+    }
+  }
+
+  const stopService = async (serviceName: string, index: number) => {
+    // Double confirmation pour l'arrêt
+    if (!confirm(`⚠️ ATTENTION : Arrêter le service "${serviceName}" ?\n\nCe service ne sera plus accessible jusqu'à son redémarrage manuel.`)) {
+      return
+    }
+
+    if (!confirm(`❗ Êtes-vous VRAIMENT sûr de vouloir arrêter "${serviceName}" ?\n\nCette action nécessite une intervention manuelle pour redémarrer le service.`)) {
+      return
+    }
+
+    try {
+      setServices(prev => {
+        const updated = [...prev]
+        updated[index] = { ...updated[index], status: 'testing' }
+        return updated
+      })
+
+      const response = await axios.post(
+        `${API_GATEWAY_URL}/api/v1/admin/services/stop`,
+        { serviceName: serviceName.toLowerCase().replace(' service', '').replace(' ', '-') },
+        {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          timeout: 30000
+        }
+      )
+
+      if (response.data.success) {
+        alert(`🛑 Service "${serviceName}" arrêté`)
+        setServices(prev => {
+          const updated = [...prev]
+          updated[index] = { ...updated[index], status: 'offline', error: 'Service arrêté manuellement' }
+          return updated
+        })
+      } else {
+        alert(`❌ Erreur : ${response.data.error}`)
+      }
+    } catch (error: any) {
+      alert(`❌ Erreur lors de l'arrêt : ${error.message}`)
+    }
   }
 
   const onlineCount = services.filter(s => s.status === 'online').length
@@ -187,6 +280,8 @@ export default function ServicesPage() {
               key={service.name}
               service={service}
               onTest={() => testSingleService(index)}
+              onRestart={() => restartService(service.name, index)}
+              onStop={() => stopService(service.name, index)}
             />
           ))}
         </div>
@@ -195,9 +290,11 @@ export default function ServicesPage() {
   )
 }
 
-function ServiceCard({ service, onTest }: {
+function ServiceCard({ service, onTest, onRestart, onStop }: {
   service: ServiceStatus
   onTest: () => void
+  onRestart: () => void
+  onStop: () => void
 }) {
   const statusColors = {
     online: 'bg-green-100 text-green-800 border-green-200',
@@ -257,21 +354,40 @@ function ServiceCard({ service, onTest }: {
         )}
 
         {/* Actions */}
-        <div className="flex space-x-2">
-          <button
-            onClick={onTest}
-            className="flex-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded-lg transition-colors"
-          >
-            🧪 Tester
-          </button>
-          <a
-            href={service.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors"
-          >
-            🔗
-          </a>
+        <div className="space-y-2">
+          <div className="flex space-x-2">
+            <button
+              onClick={onTest}
+              className="flex-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded-lg transition-colors font-medium"
+            >
+              🧪 Tester
+            </button>
+            <button
+              onClick={onRestart}
+              className="flex-1 px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 text-sm rounded-lg transition-colors font-medium"
+              title="Redémarrer le service"
+            >
+              🔄 Redémarrer
+            </button>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={onStop}
+              className="flex-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-sm rounded-lg transition-colors font-medium"
+              title="Arrêter le service (confirmation requise)"
+            >
+              🛑 Arrêter
+            </button>
+            <a
+              href={service.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm rounded-lg transition-colors flex items-center justify-center"
+              title="Ouvrir l'URL du service"
+            >
+              🔗
+            </a>
+          </div>
         </div>
       </div>
     </div>

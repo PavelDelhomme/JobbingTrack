@@ -1,0 +1,166 @@
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+const logger = require('../utils/logger');
+
+// Map des noms de services
+const SERVICE_MAP = {
+  'api-gateway': 'api-gateway',
+  'auth': 'auth-service',
+  'application': 'application-service',
+  'company': 'company-service',
+  'contact': 'contact-service',
+  'interview': 'interview-service',
+  'notification': 'notification-service',
+  'dashboard': 'dashboard-service',
+  'call': 'call-service',
+  'profile': 'profile-service',
+  'event': 'event-service',
+  'followup': 'followup-service',
+  'postgres': 'postgres',
+  'redis': 'redis'
+};
+
+/**
+ * Récupérer les logs d'un service
+ */
+const getServiceLogs = async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+    const { lines = 100, since, until, timestamps = 'true' } = req.query;
+
+    // Vérifier les permissions admin
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès refusé. Seuls les administrateurs peuvent consulter les logs.'
+      });
+    }
+
+    if (!serviceName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Le nom du service est requis'
+      });
+    }
+
+    // Mapper le nom du service
+    const dockerServiceName = SERVICE_MAP[serviceName] || serviceName;
+    const containerName = `jobbingtrack-${dockerServiceName}`;
+
+    logger.info(`📋 Admin ${req.user.email} consulte les logs de: ${dockerServiceName}`);
+
+    // Construire la commande docker logs
+    let command = `docker logs ${containerName} --tail ${lines}`;
+    
+    if (timestamps === 'true') {
+      command += ' --timestamps';
+    }
+    
+    if (since) {
+      command += ` --since ${since}`;
+    }
+    
+    if (until) {
+      command += ` --until ${until}`;
+    }
+
+    // Récupérer les logs
+    const { stdout, stderr } = await execPromise(command);
+    
+    // Les logs Docker peuvent être sur stdout ET stderr
+    const logs = stdout + stderr;
+
+    res.json({
+      success: true,
+      service: dockerServiceName,
+      logs: logs.trim().split('\n'),
+      lines: logs.trim().split('\n').length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Erreur récupération logs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erreur lors de la récupération des logs'
+    });
+  }
+};
+
+/**
+ * Récupérer les logs de tous les services
+ */
+const getAllLogs = async (req, res) => {
+  try {
+    const { lines = 50 } = req.query;
+
+    // Vérifier les permissions admin
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès refusé'
+      });
+    }
+
+    logger.info(`📋 Admin ${req.user.email} consulte tous les logs`);
+
+    // Récupérer les logs de tous les conteneurs
+    const { stdout } = await execPromise(
+      `docker ps --filter "name=jobbingtrack-" --format "{{.Names}}" | xargs -I {} sh -c 'echo "=== {} ===" && docker logs {} --tail ${lines} --timestamps 2>&1'`
+    );
+
+    res.json({
+      success: true,
+      logs: stdout.trim().split('\n'),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Erreur récupération logs globaux:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Liste des services disponibles
+ */
+const getAvailableServices = async (req, res) => {
+  try {
+    // Vérifier les permissions admin
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès refusé'
+      });
+    }
+
+    const services = Object.keys(SERVICE_MAP).map(key => ({
+      name: key,
+      dockerName: SERVICE_MAP[key],
+      containerName: `jobbingtrack-${SERVICE_MAP[key]}`
+    }));
+
+    res.json({
+      success: true,
+      services
+    });
+
+  } catch (error) {
+    logger.error('Erreur récupération services:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  getServiceLogs,
+  getAllLogs,
+  getAvailableServices
+};
+

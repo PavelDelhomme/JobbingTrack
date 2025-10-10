@@ -104,10 +104,7 @@ const getApplications = async (req, res, next) => {
       userId: req.user.id,
       ...(status && { status }),
       ...(search && {
-        OR: [
-          { position: { contains: search, mode: 'insensitive' } },
-          { company: { name: { contains: search, mode: 'insensitive' } } }
-        ]
+        position: { contains: search, mode: 'insensitive' }
       })
     };
 

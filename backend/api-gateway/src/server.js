@@ -75,6 +75,10 @@ const routes = [
   { path: '/api/v1/followups', target: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', service: 'followups' }
 ];
 
+// Routes admin pour la gestion des services Docker
+const adminRoutes = require('./routes/admin.routes');
+app.use('/api/v1/admin', adminRoutes);
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -93,7 +97,8 @@ app.get('/health', (req, res) => {
 routes.forEach(route => {
   app.use(route.path, async (req, res) => {
     try {
-      const targetUrl = `${route.target}${req.originalUrl.replace(route.path, '')}`;
+      // ✅ CORRECTION : Utiliser req.originalUrl directement sans replace
+      const targetUrl = `${route.target}${req.originalUrl}`;
       
       logger.info(`→ ${req.method} ${req.originalUrl} -> ${targetUrl}`);
       
@@ -101,6 +106,7 @@ routes.forEach(route => {
         method: req.method.toLowerCase(),
         url: targetUrl,
         data: req.body,
+        params: req.query, // ✅ Ajouter les query params
         headers: {
           ...req.headers,
           host: route.target.replace('http://', '').replace('https://', '').split(':')[0],

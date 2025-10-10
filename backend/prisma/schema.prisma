@@ -30,6 +30,15 @@ model User {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
+  
+  // Champs de synchronisation
+  isDeleted       Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  syncHash        String   @default("")
+  entityHash      String   @default("")
+  lastSyncAt      DateTime?
   
   applications    Application[]
   contacts        Contact[]

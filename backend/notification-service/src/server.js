@@ -23,13 +23,13 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting spécifique à l'auth
-const authLimiter = rateLimit({
+// Rate limiting
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50, // Plus restrictif pour l'auth
-  message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
+  max: 100,
+  message: 'Trop de requêtes, veuillez réessayer plus tard.'
 });
-app.use('/api/v1/notification', authLimiter);
+app.use('/api/v1/notifications', apiLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -43,7 +43,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/v1/notification', notificationRoutes);
+app.use('/api/v1/notifications', notificationRoutes); // ✅ Pluriel pour correspondre à l'API Gateway
 
 // Middlewares d'erreur
 app.use(notFound);

@@ -92,11 +92,11 @@ export const interviewService = {
 };
 
 export const followUpService = {
-    getAll: () => apiClient.get('/follow-ups'),
-    getById: (id: string) => apiClient.get(`/follow-ups/${id}`),
-    create: (data: any) => apiClient.post('/follow-ups', data),
-    update: (id: string, data: any) => apiClient.put(`/follow-ups/${id}`, data),
-    delete: (id: string) => apiClient.delete(`/follow-ups/${id}`),
+    getAll: () => apiClient.get('/followups'),
+    getById: (id: string) => apiClient.get(`/followups/${id}`),
+    create: (data: any) => apiClient.post('/followups', data),
+    update: (id: string, data: any) => apiClient.put(`/followups/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/followups/${id}`),
 };
 
 export const callService = {

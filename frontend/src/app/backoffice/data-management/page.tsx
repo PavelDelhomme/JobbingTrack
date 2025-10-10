@@ -4,7 +4,7 @@ import { useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { applicationService, companyService, contactService, authService } from '@/lib/api'
+import { applicationService, companyService, contactService, authService, interviewService, followUpService, callService, eventService } from '@/lib/api'
 
 export default function DataManagementPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -116,6 +116,26 @@ function ExportPanel() {
           data = contactsResponse.data.contacts || []
           filename = 'contacts'
           break
+        case 'interviews':
+          const interviewsResponse = await interviewService.getAll()
+          data = interviewsResponse.data.interviews || []
+          filename = 'entretiens'
+          break
+        case 'followups':
+          const followupsResponse = await followUpService.getAll()
+          data = followupsResponse.data.followups || []
+          filename = 'relances'
+          break
+        case 'calls':
+          const callsResponse = await callService.getAll()
+          data = callsResponse.data.calls || []
+          filename = 'appels'
+          break
+        case 'events':
+          const eventsResponse = await eventService.getAll()
+          data = eventsResponse.data.events || []
+          filename = 'evenements'
+          break
       }
 
       // Créer et télécharger le fichier JSON
@@ -147,7 +167,7 @@ function ExportPanel() {
           Exportez vos données au format JSON pour sauvegarde ou migration
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <ExportCard
             icon="📝"
             title="Candidatures"
@@ -171,6 +191,30 @@ function ExportPanel() {
             title="Contacts"
             description="Exporter tous les contacts"
             onClick={() => handleExport('contacts')}
+          />
+          <ExportCard
+            icon="🎯"
+            title="Entretiens"
+            description="Exporter tous les entretiens"
+            onClick={() => handleExport('interviews')}
+          />
+          <ExportCard
+            icon="🔔"
+            title="Relances"
+            description="Exporter toutes les relances"
+            onClick={() => handleExport('followups')}
+          />
+          <ExportCard
+            icon="📞"
+            title="Appels"
+            description="Exporter tous les appels"
+            onClick={() => handleExport('calls')}
+          />
+          <ExportCard
+            icon="📅"
+            title="Événements"
+            description="Exporter tous les événements"
+            onClick={() => handleExport('events')}
           />
         </div>
       </div>
@@ -243,6 +287,10 @@ function ImportPanel() {
               <option value="companies">Entreprises</option>
               <option value="users">Utilisateurs</option>
               <option value="contacts">Contacts</option>
+              <option value="interviews">Entretiens</option>
+              <option value="followups">Relances</option>
+              <option value="calls">Appels</option>
+              <option value="events">Événements</option>
             </select>
           </div>
 

@@ -56,6 +56,14 @@ services:
       - EVENT_SERVICE_URL=http://event-service:3011
       - FOLLOWUP_SERVICE_URL=http://followup-service:3012
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+    volumes:
+      # ✅ Monter le socket Docker pour pouvoir contrôler les conteneurs
+      - /var/run/docker.sock:/var/run/docker.sock
+      # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      # ✅ Monter docker CLI (si nécessaire)
+      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       - auth-service
       - application-service
@@ -198,6 +206,7 @@ services:
       - PORT=3006
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production-2025
       - SMTP_HOST=smtp.ovh.net
       - SMTP_PORT=587
       - SMTP_USER=candidatures@delhomme.ovh

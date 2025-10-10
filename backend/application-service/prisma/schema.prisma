@@ -1,3 +1,6 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,79 +10,222 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// === CANDIDATURES SEULEMENT ===
-model Application {
-  id              String   @id @default(cuid())
-  userId          String
-  companyId       String
-  
-  // Informations principales
-  title           String
-  position        String
-  description     String?
-  location        String?
-  salary          String?
-  jobUrl          String?
-  
-  // Type et statut
-  type            JobType  @default(FULL_TIME)
-  status          ApplicationStatus @default(DRAFT)
-  
-  // Dates importantes
-  applicationDate DateTime?
-  appliedAt       DateTime?
-  
-  // Plateforme et source
-  source          String?
-  notes           String?
-  
-  // Références vers types (comme ton système de références)
-  platformRefId       String?
-  contractTypeRefId   String?
-  typeRefId          String?
-  statusRefId        String?
-  
-  // Référence personnallisable ?
-  platformId      String?
-  contractTypeId  String?
+// Modèle Utilisateur
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  phone           String?
+  profilePicture  String?
 
-  // Relations
-  platform            ApplicationPlatform? @relation(fields: [platformId], references: [id])
-  contractType        ContractType?        @relation(fields: [contractTypeId], references: [id])
+  // Champs pour reset password
+  resetToken      String?
+  resetTokenExpiry DateTime?
 
-  // Métadonnées BaseEntity
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Champs administratifs
+  role UserRole @default(USER)
+  isActive Boolean @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
   archivedAt      DateTime?
+  
+  // Champs de synchronisation
   isDeleted       Boolean  @default(false)
   isArchived      Boolean  @default(false)
   syncHash        String   @default("")
   entityHash      String   @default("")
+  lastSyncAt      DateTime?
   
-
-  // Gestion états automatiques
-  lastStatusChange    DateTime @default(now())
-  statusReason        String?  // Raison du changement d'état
-  autoFollowUpDate    DateTime? // Date de relance automatique
-  daysWithoutResponse Int      @default(0)
-  expectedResponseDate DateTime?
-
-
-  // Métadonnées pour transitions
-  statusHistory       Json[]   @default([]) // Historique des changements
-  nextAction          String?  // Prochaine action recommandée
-  priority            Priority @default(MEDIUM)
-
-  @@map("applications")
+  applications    Application[]
+  contacts        Contact[]
+  reminders       Reminder[]
+  documents       Document[]
+  templates       MessageTemplate[]
 }
 
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+// Modèle Entreprise
+model Company {
+  id              String    @id @default(cuid())
+  name            String
+  website         String?
+  industry        String?
+  size            String?
+  location        String?
+  description     String?
+  logoUrl         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  applications    Application[]
+  contacts        Contact[]
 }
+
+// Modèle Candidature
+model Application {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String
+  position        String
+  description     String?
+  location        String?
+  type            JobType   @default(FULL_TIME)
+  salary          String?
+  status          ApplicationStatus @default(DRAFT)
+  applicationDate DateTime?
+  source          String?   // LinkedIn, Indeed, Site entreprise, etc.
+  jobUrl          String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         Company   @relation(fields: [companyId], references: [id])
+  interviews      Interview[]
+  followUps       FollowUp[]
+  documents       ApplicationDocument[]
+  activities      Activity[]
+}
+
+// Modèle Entretien
+model Interview {
+  id              String    @id @default(cuid())
+  applicationId   String
+  type            InterviewType
+  scheduledAt     DateTime
+  duration        Int?      // en minutes
+  location        String?
+  meetingUrl      String?
+  interviewer     String?
+  notes           String?
+  status          InterviewStatus @default(SCHEDULED)
+  feedback        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Contact
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String?
+  firstName       String
+  lastName        String
+  position        String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  notes           String?
+  lastContactDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         Company?  @relation(fields: [companyId], references: [id])
+  followUps       FollowUp[]
+  activities      Activity[]
+}
+
+// Modèle Relance
+model FollowUp {
+  id              String    @id @default(cuid())
+  applicationId   String
+  contactId       String?
+  type            FollowUpType
+  scheduledDate   DateTime
+  completed       Boolean   @default(false)
+  completedDate   DateTime?
+  subject         String
+  message         String?
+  response        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact         Contact?    @relation(fields: [contactId], references: [id])
+}
+
+// Modèle Document
+model Document {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  type            DocumentType
+  url             String
+  size            Int       // en bytes
+  mimeType        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications    ApplicationDocument[]
+}
+
+// Table de liaison Application-Document
+model ApplicationDocument {
+  id              String    @id @default(cuid())
+  applicationId   String
+  documentId      String
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+  
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  document        Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@unique([applicationId, documentId, version])
+}
+
+// Modèle Rappel
+model Reminder {
+  id              String    @id @default(cuid())
+  userId          String
+  title           String
+  description     String?
+  dueDate         DateTime
+  type            ReminderType
+  relatedId       String?   // ID de l'application, interview, etc.
+  completed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Template de Message
+model MessageTemplate {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  subject         String
+  content         String
+  type            MessageTemplateType
+  variables       String[]  // Variables disponibles: {{firstName}}, {{companyName}}, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Activité (pour l'historique)
+model Activity {
+  id              String    @id @default(cuid())
+  applicationId   String?
+  contactId       String?
+  type            ActivityType
+  description     String
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  
+  application     Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact         Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+// ENUMS
 
 enum JobType {
   FULL_TIME
@@ -93,72 +239,83 @@ enum JobType {
 }
 
 enum ApplicationStatus {
-  // Etat de base
   DRAFT
   SENT
   IN_REVIEW
-
-  // Etats de relance
-  PENDING_FOLLOWUP // "A relancer" (candidature ancienne sans réponse)
-  FOLLOWUP_SENT // "Relance envoyé"
-  AWAITING_FOLLOWUP_RESPONSE // "En attente de réponse à la relance"
-  FOLLOWUP_TIMEOUT // "Pas de réponse après relance" (relancer à nouveau)
-  FOLLOWUP_RESPONDED // Réponse recu après relance
-  
-  // Etats d'entretien
   INTERVIEW_SCHEDULED
-  INTERVIEWED // Entretien confirmer
-  AWAITING_INTERVIEW // En attente d'entretien
-  INTERVIEW_COMPLETED // Entretien passé
-  POST_INTERVIEW_FOLLOWUP // Mail de remerciement envoyé après entretien
-  AWAITING_INTERVIEW_FEEDBACK // EN attente de retour après entretien
-
-  // Etats finaux
+  INTERVIEWED
   OFFER_RECEIVED
   ACCEPTED
   REJECTED
   WITHDRAWN
   NO_RESPONSE
-
-  // Etat spéciaux
-  ON_HOLD // En pause temporaire
-  EXPIRED // Candidature trop ancienne  
 }
 
-
-model ApplicationPlatform {
-  id              String   @id @default(cuid())
-  userId          String?   // Utilisateur qui a créé la plateforme || null = plateforme système
-  name            String   // "LinkedIn", "HelloWork", etc.
-  url             String?  // URL de la plateforme
-  isDefault       Boolean  @default(false) // Plateforme par défaut du système
-  isActive        Boolean  @default(true)
-  
-  // Métadonnées
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  applications    Application[] // Candidatures utilisant cette plateforme
-  
-  @@map("application_platforms")
+enum InterviewType {
+  PHONE_SCREENING
+  VIDEO
+  ON_SITE
+  TECHNICAL
+  HR
+  MANAGER
+  TEAM
+  FINAL
 }
 
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+  NO_SHOW
+}
 
-model ContractType {
-  id              String   @id @default(cuid())
-  userId          String?  // null = type système, sinon utilisateur spécifique
-  name            String   // "CDI", "CDD", "Freelance", etc.
-  description     String?
-  isDefault       Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  
-  // Métadonnées
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  applications    Application[] // Candidatures avec ce type de contrat
-  
-  @@map("contract_types")
+enum FollowUpType {
+  EMAIL
+  PHONE
+  LINKEDIN
+  MESSAGE
+  MEETING
+}
+
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+  PORTFOLIO
+  CERTIFICATE
+  REFERENCE
+  OTHER
+}
+
+enum ReminderType {
+  APPLICATION_FOLLOWUP
+  INTERVIEW
+  DOCUMENT_UPDATE
+  GENERAL
+}
+
+enum MessageTemplateType {
+  APPLICATION
+  FOLLOWUP
+  THANK_YOU
+  WITHDRAWAL
+  NEGOTIATION
+}
+
+enum ActivityType {
+  APPLICATION_CREATED
+  APPLICATION_UPDATED
+  STATUS_CHANGED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  DOCUMENT_UPLOADED
+  FOLLOWUP_SENT
+  CONTACT_ADDED
+  NOTE_ADDED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
 }

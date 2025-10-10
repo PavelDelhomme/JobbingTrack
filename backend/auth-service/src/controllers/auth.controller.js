@@ -46,9 +46,13 @@ const register = async (req, res, next) => {
       }
     });
 
-    // Générer le token JWT
+    // Générer le token JWT avec le rôle
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { 
+        userId: user.id, 
+        email: user.email,
+        role: user.role // ✅ Ajout du rôle dans le JWT
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -99,9 +103,13 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Générer le token JWT
+    // Générer le token JWT avec le rôle
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { 
+        userId: user.id, 
+        email: user.email,
+        role: user.role // ✅ Ajout du rôle dans le JWT
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -125,7 +133,7 @@ const login = async (req, res, next) => {
 
 const getProfile = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id; // ✅ Corrigé : req.user.id au lieu de req.user.userId
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -136,15 +144,11 @@ const getProfile = async (req, res, next) => {
         lastName: true,
         phone: true,
         profilePicture: true,
+        role: true,
+        isActive: true,
         createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            applications: true,
-            contacts: true,
-            reminders: true
-          }
-        }
+        updatedAt: true
+        // ✅ Supprimé _count car le schéma auth-service ne contient pas ces relations
       }
     });
 
@@ -191,7 +195,11 @@ const refreshToken = async (req, res, next) => {
       }
 
       const newToken = jwt.sign(
-        { userId: user.id, email: user.email },
+        { 
+          userId: user.id, 
+          email: user.email,
+          role: user.role // ✅ Ajout du rôle dans le JWT
+        },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
