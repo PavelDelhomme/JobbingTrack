@@ -43,7 +43,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes); // ✅ Dashboard reste au singulier (c'est un nom collectif)
 
 // Middlewares d'erreur
 app.use(notFound);

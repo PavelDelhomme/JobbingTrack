@@ -43,7 +43,9 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/v1/profile', profileRoutes);
+app.use('/api/v1/profiles', profileRoutes); // ✅ Pluriel pour correspondre à l'API Gateway
+app.use('/api/v1/profile', profileRoutes);  // ✅ Singulier aussi pour compatibilité
+app.use('/', profileRoutes); // ✅ Routes sans préfixe aussi
 
 // Middlewares d'erreur
 app.use(notFound);

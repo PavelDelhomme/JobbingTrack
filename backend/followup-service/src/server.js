@@ -43,7 +43,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/v1/followup', followupRoutes);
+app.use('/api/v1/followups', followupRoutes); // ✅ Pluriel pour correspondre à l'API Gateway
 
 // Middlewares d'erreur
 app.use(notFound);

@@ -4,6 +4,16 @@ const { body } = require('express-validator');
 const authController = require('../controllers/auth.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 
+// Health check
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Service d\'authentification opérationnel',
+    service: 'auth-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes publiques
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),

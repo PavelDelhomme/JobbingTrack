@@ -61,7 +61,7 @@ class CompanyService {
   async getCompanyByName(name, authToken) {
     try {
       const response = await axios.get(
-        `${COMPANY_SERVICE_URL}/api/v1/company/by-name/${encodeURIComponent(name)}`,
+        `${COMPANY_SERVICE_URL}/api/v1/companies/by-name/${encodeURIComponent(name)}`,
         {
           headers: {
             'Authorization': `Bearer ${authToken}`
@@ -85,7 +85,7 @@ class CompanyService {
   async createCompany(companyData, authToken) {
     try {
       const response = await axios.post(
-        `${COMPANY_SERVICE_URL}/api/v1/company`,
+        `${COMPANY_SERVICE_URL}/api/v1/companies`,
         companyData,
         {
           headers: {
@@ -109,7 +109,7 @@ class CompanyService {
   async getCompanyById(companyId, authToken) {
     try {
       const response = await axios.get(
-        `${COMPANY_SERVICE_URL}/api/v1/company/${companyId}`,
+        `${COMPANY_SERVICE_URL}/api/v1/companies/${companyId}`,
         {
           headers: {
             'Authorization': `Bearer ${authToken}`
@@ -131,7 +131,7 @@ class CompanyService {
   async updateCompany(companyId, companyData, authToken) {
     try {
       const response = await axios.put(
-        `${COMPANY_SERVICE_URL}/api/v1/company/${companyId}`,
+        `${COMPANY_SERVICE_URL}/api/v1/companies/${companyId}`,
         companyData,
         {
           headers: {

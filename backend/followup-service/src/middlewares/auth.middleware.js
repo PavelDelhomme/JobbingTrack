@@ -1,8 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
-
-const prisma = new PrismaClient();
 
 const authenticate = async (req, res, next) => {
   try {
@@ -24,19 +21,23 @@ const authenticate = async (req, res, next) => {
 
     const token = parts[1];
 
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        logger.warn(`Tentative d'accès avec token invalide: ${err.message}`);
-        return res.status(403).json({
-          error: 'Token invalide ou expiré'
-        });
-      }
-
-      req.user = { userId: decoded.userId };
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // ✅ Pas besoin de vérifier l'utilisateur en base - le JWT est la source de vérité
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email
+      };
       req.token = token;
       
       next();
-    });
+    } catch (err) {
+      logger.warn(`Tentative d'accès avec token invalide: ${err.message}`);
+      return res.status(403).json({
+        error: 'Token invalide ou expiré'
+      });
+    }
   } catch (error) {
     logger.error('Erreur dans le middleware d\'authentification:', error);
     res.status(500).json({

@@ -16,31 +16,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigation = [
     { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
     { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
-    { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
-    { name: 'Candidatures', href: '/backoffice/applications', icon: '📝' },
-    { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
-    { name: 'Contacts', href: '/backoffice/contacts', icon: '👤' },
-    { name: 'Entretiens', href: '/backoffice/interviews', icon: '📅' },
     { name: 'Services & Tests', href: '/backoffice/services', icon: '🔧' },
+    { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
     { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
     { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
     { name: 'Logs & Activités', href: '/backoffice/logs', icon: '📋' },
     { name: 'Configuration', href: '/backoffice/settings', icon: '⚙️' },
+    { name: 'Candidatures', href: '/backoffice/applications', icon: '📝' },
+    { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
+    { name: 'Contacts', href: '/backoffice/contacts', icon: '👤' },
+    { name: 'Entretiens', href: '/backoffice/interviews', icon: '📅' },
+    { name: 'Appels', href: '/backoffice/calls', icon: '📞' },
+    { name: 'Relances', href: '/backoffice/followups', icon: '📧' },
+    { name: 'Événements', href: '/backoffice/events', icon: '🗓️' },
+    { name: 'Notifications', href: '/backoffice/notifications', icon: '🔔' },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
+      <div className="fixed inset-y-0 left-0 w-64 bg-gray-900 flex flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-center bg-gray-800">
+        <div className="flex h-16 items-center justify-center bg-gray-800 flex-shrink-0">
           <Link href="/backoffice" className="text-2xl font-bold text-white">
             🎯 JobbingTrack
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="mt-8 px-4">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 overflow-y-auto px-4 py-8 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-800">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -62,8 +66,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           })}
         </nav>
 
-        {/* User info */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 bg-gray-900 p-4">
+        {/* User info - Toujours en bas */}
+        <div className="border-t border-gray-800 bg-gray-900 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
