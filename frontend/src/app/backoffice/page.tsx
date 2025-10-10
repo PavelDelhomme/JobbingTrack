@@ -81,19 +81,19 @@ export default function BackofficePage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Bienvenue, {user?.firstName} ! 👋
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Backoffice d'administration JobbingTrack
           </p>
         </div>
 
         {/* System Status Banner */}
         <div className={`mb-6 p-4 rounded-lg border-2 ${
-          systemStatus === 'healthy' ? 'bg-green-50 border-green-200' :
-          systemStatus === 'degraded' ? 'bg-yellow-50 border-yellow-200' :
-          'bg-red-50 border-red-200'
+          systemStatus === 'healthy' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+          systemStatus === 'degraded' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+          'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -102,22 +102,22 @@ export default function BackofficePage() {
               </span>
               <div>
                 <p className={`font-semibold ${
-                  systemStatus === 'healthy' ? 'text-green-800' :
-                  systemStatus === 'degraded' ? 'text-yellow-800' :
-                  'text-red-800'
+                  systemStatus === 'healthy' ? 'text-green-800 dark:text-green-300' :
+                  systemStatus === 'degraded' ? 'text-yellow-800 dark:text-yellow-300' :
+                  'text-red-800 dark:text-red-300'
                 }`}>
                   {systemStatus === 'healthy' ? 'Tous les systèmes fonctionnent' :
                    systemStatus === 'degraded' ? 'Performances dégradées' :
                    'Systèmes hors ligne'}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Dernière vérification: {new Date().toLocaleTimeString('fr-FR')}
                 </p>
               </div>
             </div>
             <button
               onClick={() => router.push('/backoffice/services')}
-              className="px-4 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-50"
+              className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               Voir les services →
             </button>
@@ -167,9 +167,9 @@ export default function BackofficePage() {
         {/* Main Grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 ⚡ Actions rapides
               </h2>
             </div>
@@ -220,9 +220,9 @@ export default function BackofficePage() {
           </div>
 
           {/* System Overview */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 🖥️ Aperçu système
               </h2>
             </div>
@@ -259,14 +259,14 @@ export default function BackofficePage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow lg:col-span-2">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50 lg:col-span-2">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 📊 Activité récente
               </h2>
               <button
                 onClick={() => router.push('/backoffice/logs')}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
               >
                 Voir tout →
               </button>
@@ -324,19 +324,19 @@ function StatCard({ title, value, subtitle, icon, color, loading, onClick }: {
 
   return (
     <div 
-      className={`bg-white rounded-lg shadow p-6 ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50 p-6 ${onClick ? 'cursor-pointer hover:shadow-xl dark:hover:shadow-gray-900/70 transition-shadow' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
           {loading ? (
-            <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-2"></div>
+            <div className="h-8 w-16 bg-gray-200 dark:bg-gray-800 animate-pulse rounded mt-2"></div>
           ) : (
             <>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
               {subtitle && (
-                <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
               )}
             </>
           )}
@@ -357,11 +357,11 @@ function QuickActionButton({ href, icon, title, description, color }: {
   color: 'blue' | 'green' | 'purple' | 'yellow' | 'gray'
 }) {
   const colors = {
-    blue: 'hover:bg-blue-50 border-l-blue-500',
-    green: 'hover:bg-green-50 border-l-green-500',
-    purple: 'hover:bg-purple-50 border-l-purple-500',
-    yellow: 'hover:bg-yellow-50 border-l-yellow-500',
-    gray: 'hover:bg-gray-50 border-l-gray-500'
+    blue: 'hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-blue-500',
+    green: 'hover:bg-green-50 dark:hover:bg-green-900/20 border-l-green-500',
+    purple: 'hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-purple-500',
+    yellow: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/20 border-l-yellow-500',
+    gray: 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-gray-500'
   }
 
   return (
@@ -371,8 +371,8 @@ function QuickActionButton({ href, icon, title, description, color }: {
     >
       <div className="text-2xl mr-4">{icon}</div>
       <div>
-        <p className="font-medium text-gray-900">{title}</p>
-        <p className="text-sm text-gray-500">{description}</p>
+        <p className="font-medium text-gray-900 dark:text-gray-100">{title}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
     </a>
   )
@@ -385,18 +385,18 @@ function SystemMetric({ label, value, icon, status }: {
   status?: 'success' | 'warning' | 'error'
 }) {
   const statusColors = {
-    success: 'text-green-600',
-    warning: 'text-yellow-600',
-    error: 'text-red-600'
+    success: 'text-green-600 dark:text-green-400',
+    warning: 'text-yellow-600 dark:text-yellow-400',
+    error: 'text-red-600 dark:text-red-400'
   }
 
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
       <div className="flex items-center space-x-3">
         <span className="text-xl">{icon}</span>
-        <span className="text-sm text-gray-600">{label}</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
       </div>
-      <span className={`text-sm font-medium ${status ? statusColors[status] : 'text-gray-900'}`}>
+      <span className={`text-sm font-medium ${status ? statusColors[status] : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </span>
     </div>
@@ -410,12 +410,12 @@ function ActivityItem({ icon, title, description, time }: {
   time: string
 }) {
   return (
-    <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+    <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
       <div className="text-2xl">{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{title}</p>
-        <p className="text-sm text-gray-600">{description}</p>
-        <p className="text-xs text-gray-400 mt-1">{time}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{title}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{time}</p>
       </div>
     </div>
   )
