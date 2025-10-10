@@ -41,6 +41,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     setDarkMode(savedDarkMode)
     if (savedDarkMode) {
       document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
     }
   }, [])
 
@@ -191,63 +193,60 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             ))}
           </nav>
 
-          {/* Dark Mode Toggle & User info - Toujours en bas */}
-          <div className="border-t border-gray-800 dark:border-gray-900 bg-gray-900 dark:bg-gray-950 flex-shrink-0">
-            {/* Dark Mode Toggle */}
-            <div className="px-4 py-3 border-b border-gray-800 dark:border-gray-900">
-              <button
-                onClick={toggleDarkMode}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white transition-all"
-              >
-                <span className="flex items-center">
-                  <span className="mr-3 text-base">{darkMode ? '🌙' : '☀️'}</span>
-                  <span>{darkMode ? 'Mode Sombre' : 'Mode Clair'}</span>
-                </span>
-                <div className={`w-10 h-5 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-600'} relative`}>
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-5' : 'translate-x-0.5'}`}></div>
+          {/* User info - Toujours en bas */}
+          <div className="border-t border-gray-800 dark:border-gray-900 bg-gray-900 dark:bg-gray-950 flex-shrink-0 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </div>
-              </button>
-            </div>
-
-            {/* User Info */}
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-white">
-                      {user?.firstName} {user?.lastName}
-                    </p>
-                    <p className="text-xs text-gray-400">{user?.role}</p>
-                  </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-white">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-400">{user?.role}</p>
                 </div>
-                <button
-                  onClick={logout}
-                  className="text-gray-400 hover:text-white transition-colors"
-                  title="Déconnexion"
-                >
-                  🚪
-                </button>
               </div>
+              <button
+                onClick={logout}
+                className="text-gray-400 hover:text-white transition-colors"
+                title="Déconnexion"
+              >
+                🚪
+              </button>
             </div>
           </div>
         </div>
 
         {/* Main content */}
         <div className="ml-64">
-          {/* Top bar */}
-          <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
-            <div className="flex h-16 items-center justify-between px-8">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Backoffice Administrateur
-              </h1>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
-              </div>
+        {/* Top bar */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
+          <div className="flex h-16 items-center justify-between px-8">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Backoffice Administrateur
+            </h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
+              
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={toggleDarkMode}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                  darkMode 
+                    ? 'bg-gray-800 dark:bg-gray-800 text-gray-100 hover:bg-gray-700' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title={darkMode ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              >
+                <span className="text-lg">{darkMode ? '🌙' : '☀️'}</span>
+                <span className="text-xs font-medium">
+                  {darkMode ? 'Sombre' : 'Clair'}
+                </span>
+              </button>
             </div>
           </div>
+        </div>
 
           {/* Page content */}
           <main className="p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors">
