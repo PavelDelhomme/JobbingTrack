@@ -177,23 +177,23 @@ export default function TestDataGeneratorPage() {
       <div className="p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">🎲 Générateur de Données de Test</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">🎲 Générateur de Données de Test</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Générez des données réalistes et cohérentes pour tester l'application
           </p>
         </div>
 
         {/* Warning Banner */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-8">
           <div className="flex">
             <div className="flex-shrink-0">
-              <span className="text-yellow-400 text-2xl">⚠️</span>
+              <span className="text-yellow-400 dark:text-yellow-500 text-2xl">⚠️</span>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 Attention - Environnement de développement uniquement
               </h3>
-              <div className="mt-2 text-sm text-yellow-700">
+              <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
                 <p>Cette fonctionnalité est destinée aux environnements de développement et staging.</p>
                 <p className="mt-1">Ne jamais utiliser en production !</p>
               </div>
@@ -203,18 +203,18 @@ export default function TestDataGeneratorPage() {
 
         {/* Presets */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">📋 Configurations prédéfinies</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">📋 Configurations prédéfinies</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {presets.map(preset => (
               <button
                 key={preset.name}
                 onClick={() => setConfig(preset.config)}
-                className="text-left p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-lg transition-all"
+                className="text-left p-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all"
               >
                 <div className="text-4xl mb-3">{preset.icon}</div>
-                <h3 className="font-bold text-gray-900 mb-1">{preset.name}</h3>
-                <p className="text-sm text-gray-600 mb-3">{preset.description}</p>
-                <div className="text-xs text-gray-500">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{preset.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{preset.description}</p>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {Object.values(preset.config).reduce((sum, val) => sum + val, 0)} éléments au total
                 </div>
               </button>
@@ -223,8 +223,8 @@ export default function TestDataGeneratorPage() {
         </div>
 
         {/* Configuration personnalisée */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">⚙️ Configuration personnalisée</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">⚙️ Configuration personnalisée</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ConfigSlider
@@ -319,13 +319,13 @@ export default function TestDataGeneratorPage() {
           </div>
 
           {/* Résumé */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total d'éléments à générer</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{totalItems}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total d'éléments à générer</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalItems}</p>
               </div>
-              <div className="text-gray-400 text-6xl">🎲</div>
+              <div className="text-gray-400 dark:text-gray-500 text-6xl">🎲</div>
             </div>
           </div>
         </div>
@@ -335,7 +335,7 @@ export default function TestDataGeneratorPage() {
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex-1 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            className="flex-1 px-8 py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
             {generating ? (
               <>
@@ -353,7 +353,7 @@ export default function TestDataGeneratorPage() {
           <button
             onClick={handleClear}
             disabled={clearing || generating}
-            className="px-8 py-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+            className="px-8 py-4 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
           >
             {clearing ? (
               <>
@@ -371,12 +371,12 @@ export default function TestDataGeneratorPage() {
 
         {/* Output */}
         {showOutput && (
-          <div className="bg-gray-900 text-green-400 rounded-lg p-6 font-mono text-sm overflow-auto max-h-96">
+          <div className="bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-lg p-6 font-mono text-sm overflow-auto max-h-96">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white">📋 Résultat de la génération</h3>
+              <h3 className="font-bold text-white dark:text-gray-100">📋 Résultat de la génération</h3>
               <button
                 onClick={() => setShowOutput(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-100"
               >
                 ✕
               </button>
@@ -386,12 +386,12 @@ export default function TestDataGeneratorPage() {
         )}
 
         {/* Info */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
           <div className="flex items-start gap-3">
-            <span className="text-blue-600 text-2xl">ℹ️</span>
+            <span className="text-blue-600 dark:text-blue-400 text-2xl">ℹ️</span>
             <div>
-              <h3 className="font-semibold text-blue-900 mb-2">Comment utiliser le générateur</h3>
-              <ul className="space-y-2 text-sm text-blue-800">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Comment utiliser le générateur</h3>
+              <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                 <li className="flex items-start gap-2">
                   <span>1️⃣</span>
                   <span><strong>Choisissez un preset</strong> ou personnalisez la configuration avec les sliders</span>
@@ -406,7 +406,7 @@ export default function TestDataGeneratorPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span>4️⃣</span>
-                  <span><strong>Les comptes de test</strong> sont créés avec le mot de passe : <code className="bg-blue-100 px-2 py-1 rounded">password123</code></span>
+                  <span><strong>Les comptes de test</strong> sont créés avec le mot de passe : <code className="bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded text-blue-800 dark:text-blue-200">password123</code></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span>5️⃣</span>
@@ -414,9 +414,9 @@ export default function TestDataGeneratorPage() {
                 </li>
               </ul>
 
-              <div className="mt-4 pt-4 border-t border-blue-200">
-                <h4 className="font-semibold text-blue-900 mb-2">🎯 Données générées</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">🎯 Données générées</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
                   <div>✅ Utilisateurs avec différents rôles (USER, ADMIN, SUPER_ADMIN)</div>
                   <div>✅ Entreprises réalistes (Google, Microsoft, etc.)</div>
                   <div>✅ Candidatures avec différents statuts</div>
@@ -436,34 +436,34 @@ export default function TestDataGeneratorPage() {
         </div>
 
         {/* Exemples de comptes */}
-        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="font-semibold text-green-900 mb-3">🔐 Comptes de test générés</h3>
+        <div className="mt-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-6">
+          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">🔐 Comptes de test générés</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
               <span className="text-2xl">👑</span>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">user1@jobbingtrack.test</p>
-                <p className="text-gray-600">SUPER_ADMIN - Accès complet</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">user1@jobbingtrack.test</p>
+                <p className="text-gray-600 dark:text-gray-400">SUPER_ADMIN - Accès complet</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 rounded text-gray-700">password123</code>
+              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
             </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+
+            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
               <span className="text-2xl">👨‍💼</span>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">user2@jobbingtrack.test</p>
-                <p className="text-gray-600">ADMIN - Gestion administrative</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">user2@jobbingtrack.test</p>
+                <p className="text-gray-600 dark:text-gray-400">ADMIN - Gestion administrative</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 rounded text-gray-700">password123</code>
+              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
             </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+
+            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
               <span className="text-2xl">👤</span>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">user3@jobbingtrack.test</p>
-                <p className="text-gray-600">USER - Utilisateur standard</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">user3@jobbingtrack.test</p>
+                <p className="text-gray-600 dark:text-gray-400">USER - Utilisateur standard</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 rounded text-gray-700">password123</code>
+              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
             </div>
           </div>
         </div>
@@ -481,27 +481,27 @@ function ConfigSlider({ label, value, onChange, min, max, icon }: {
   icon: string
 }) {
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
+    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
           <span>{icon}</span>
           <span>{label}</span>
         </label>
-        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-bold">
           {value}
         </span>
       </div>
-      
+
       <input
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
-        className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500"
       />
-      
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
         <span>{min}</span>
         <span>{max}</span>
       </div>

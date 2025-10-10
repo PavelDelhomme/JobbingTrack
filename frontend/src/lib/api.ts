@@ -105,6 +105,9 @@ export const callService = {
     create: (data: any) => apiClient.post('/calls', data),
     update: (id: string, data: any) => apiClient.put(`/calls/${id}`, data),
     delete: (id: string) => apiClient.delete(`/calls/${id}`),
+    complete: (id: string, data: any) => apiClient.put(`/calls/${id}/complete`, data),
+    getStats: () => apiClient.get('/calls/stats/overview'),
+    getByApplication: (applicationId: string) => apiClient.get(`/calls/application/${applicationId}`),
 };
 
 export const calendarService = {

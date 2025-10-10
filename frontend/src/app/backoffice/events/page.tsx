@@ -68,10 +68,10 @@ export default function EventsPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             📅 Événements & Timeline
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Historique complet de toutes vos activités
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function EventsPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="all">Tous les événements</option>
             <option value="APPLICATION_CREATED">Candidature créée</option>
@@ -100,8 +100,8 @@ export default function EventsPage() {
           ))}
 
           {filteredEvents.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <p className="text-gray-500 dark:text-gray-400">
                 📅 Aucun événement trouvé
               </p>
             </div>
@@ -135,38 +135,38 @@ function EventCard({ event, isFirst }: { event: Event, isFirst: boolean }) {
   }
 
   const eventColors: Record<string, string> = {
-    APPLICATION_CREATED: 'bg-blue-50 border-blue-200',
-    APPLICATION_SENT: 'bg-green-50 border-green-200',
-    APPLICATION_REJECTED: 'bg-red-50 border-red-200',
-    APPLICATION_ACCEPTED: 'bg-green-50 border-green-200',
-    INTERVIEW_SCHEDULED: 'bg-purple-50 border-purple-200',
-    INTERVIEW_COMPLETED: 'bg-green-50 border-green-200',
-    FOLLOWUP_SENT: 'bg-yellow-50 border-yellow-200',
-    CALL_MADE: 'bg-blue-50 border-blue-200',
+    APPLICATION_CREATED: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
+    APPLICATION_SENT: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+    APPLICATION_REJECTED: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
+    APPLICATION_ACCEPTED: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+    INTERVIEW_SCHEDULED: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700',
+    INTERVIEW_COMPLETED: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+    FOLLOWUP_SENT: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700',
+    CALL_MADE: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
   }
 
   return (
-    <div className={`relative pl-8 pb-8 ${isFirst ? '' : 'border-l-2 border-gray-200'}`}>
+    <div className={`relative pl-8 pb-8 ${isFirst ? '' : 'border-l-2 border-gray-200 dark:border-gray-700'}`}>
       {/* Timeline dot */}
-      <div className="absolute left-0 top-0 -ml-1.5 h-3 w-3 rounded-full bg-blue-600"></div>
+      <div className="absolute left-0 top-0 -ml-1.5 h-3 w-3 rounded-full bg-blue-600 dark:bg-blue-500"></div>
 
       {/* Event Card */}
-      <div className={`bg-white rounded-lg shadow p-6 border ${eventColors[event.type] || 'bg-white border-gray-200'}`}>
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 border ${eventColors[event.type] || 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
             <div className="text-3xl">
               {eventIcons[event.type] || '📌'}
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {event.title}
               </h3>
               {event.description && (
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   {event.description}
                 </p>
               )}
-              <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+              <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                 <span>
                   🕒 {new Date(event.occurredAt).toLocaleString('fr-FR')}
                 </span>

@@ -141,16 +141,16 @@ export default function UsersPage() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               👥 Gestion des Utilisateurs
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Administration complète des utilisateurs du système
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center"
           >
             ➕ Nouvel utilisateur
           </button>
@@ -158,21 +158,21 @@ export default function UsersPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm font-medium text-gray-600">Total utilisateurs</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">{stats.total}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total utilisateurs</p>
+            <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm font-medium text-gray-600">Actifs</p>
-            <p className="mt-2 text-3xl font-bold text-green-600">{stats.active}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Actifs</p>
+            <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">{stats.active}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm font-medium text-gray-600">Inactifs</p>
-            <p className="mt-2 text-3xl font-bold text-red-600">{stats.inactive}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Inactifs</p>
+            <p className="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">{stats.inactive}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm font-medium text-gray-600">Administrateurs</p>
-            <p className="mt-2 text-3xl font-bold text-purple-600">{stats.admins}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Administrateurs</p>
+            <p className="mt-2 text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.admins}</p>
           </div>
         </div>
 
@@ -183,12 +183,12 @@ export default function UsersPage() {
             placeholder="🔍 Rechercher un utilisateur..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 min-w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 min-w-64 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           />
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="all">Tous les rôles</option>
             <option value="USER">Utilisateur</option>
@@ -198,7 +198,7 @@ export default function UsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="all">Tous les statuts</option>
             <option value="active">Actifs</option>
@@ -207,55 +207,55 @@ export default function UsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="table-header">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Utilisateur
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Téléphone
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Rôle
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Statut
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Date création
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className="table-row">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 dark:from-blue-500 dark:to-blue-700 flex items-center justify-center text-white font-bold">
                         {user.firstName[0]}{user.lastName[0]}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {user.firstName} {user.lastName}
                         </div>
                         {user.id === currentUser?.id && (
-                          <span className="text-xs text-blue-600">(Vous)</span>
+                          <span className="text-xs text-blue-600 dark:text-blue-400">(Vous)</span>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {user.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {user.phone || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -265,7 +265,7 @@ export default function UsersPage() {
                       <select
                         value={user.role}
                         onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                        className="text-xs px-2 py-1 rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
                       >
                         <option value="USER">USER</option>
                         <option value="ADMIN">ADMIN</option>

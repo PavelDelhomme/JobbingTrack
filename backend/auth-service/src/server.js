@@ -16,7 +16,16 @@ const PORT = process.env.PORT || 3001;
 // Configuration des middlewares
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: [
+    'http://localhost:8080',
+    'http://localhost:3001',
+    'http://localhost:3000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3000',
+    'http://192.168.1.134:3000',
+    'http://192.168.1.134:8080'
+  ],
   credentials: true
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));

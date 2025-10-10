@@ -361,6 +361,197 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+// Fonctionnalités de réinitialisation de mot de passe
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Adresse email requise'
+      });
+    }
+
+    // Trouver l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (!user) {
+      // Pour des raisons de sécurité, retourner le même message
+      return res.json({
+        success: true,
+        message: 'Si cette adresse email existe, un lien de réinitialisation a été envoyé'
+      });
+    }
+
+    // Générer un token sécurisé
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Définir l'expiration (1 heure)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Supprimer les anciens tokens de cet utilisateur
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // Créer le nouveau token
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: hashedToken,
+        expiresAt
+      }
+    });
+
+    // Envoyer l'email avec le token non hashé
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    await emailService.sendPasswordResetEmail(user, resetUrl);
+
+    res.json({
+      success: true,
+      message: 'Lien de réinitialisation envoyé par email'
+    });
+
+    logger.info(`Demande de réinitialisation de mot de passe pour: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur demande réinitialisation:', error);
+    next(error);
+  }
+};
+
+const verifyResetToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token requis'
+      });
+    }
+
+    // Hasher le token reçu pour comparaison
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Trouver le token dans la base de données
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token: hashedToken,
+        used: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token invalide ou expiré'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Token valide',
+      email: resetToken.user.email
+    });
+  } catch (error) {
+    logger.error('Erreur vérification token:', error);
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token et mot de passe requis'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Le mot de passe doit contenir au moins 6 caractères'
+      });
+    }
+
+    // Hasher le token reçu
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Trouver le token valide
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token: hashedToken,
+        used: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: true
+      }
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token invalide ou expiré'
+      });
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Mettre à jour le mot de passe de l'utilisateur
+    await prisma.user.update({
+      where: { id: resetToken.userId },
+      data: {
+        password: hashedPassword,
+        // Nettoyer les anciens tokens de reset
+        resetToken: null,
+        resetTokenExpiry: null
+      }
+    });
+
+    // Marquer le token comme utilisé
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'Mot de passe réinitialisé avec succès'
+    });
+
+    logger.info(`Mot de passe réinitialisé pour: ${resetToken.user.email}`);
+  } catch (error) {
+    logger.error('Erreur réinitialisation mot de passe:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -370,5 +561,8 @@ module.exports = {
   getAllUsers,
   updateUserRole,
   toggleUserStatus,
-  deleteUser
+  deleteUser,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword
 };

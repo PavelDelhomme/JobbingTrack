@@ -31,16 +31,16 @@ export default function SettingsPage() {
       <div>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             ⚙️ Configuration & Administration Système
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Paramètres avancés et outils d'administration
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
             <TabButton
               active={activeTab === 'system'}
@@ -92,8 +92,8 @@ function TabButton({ active, onClick, icon, label }: {
       onClick={onClick}
       className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
         active
-          ? 'border-blue-500 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
       }`}
     >
       <span>{icon}</span>
@@ -115,9 +115,9 @@ function SystemPanel() {
   return (
     <div className="space-y-6">
       {/* System Info */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Informations système
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          🖥️ Informations système
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <InfoRow label="Version" value={systemInfo.version} />
@@ -130,9 +130,9 @@ function SystemPanel() {
       </div>
 
       {/* System Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Actions système
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          ⚙️ Actions système
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <ActionCard
@@ -169,11 +169,11 @@ function DatabasePanel() {
   return (
     <div className="space-y-6">
       {/* Database Info */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           Informations base de données
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 text-white">
           <InfoRow label="Type" value="PostgreSQL 15" />
           <InfoRow label="Hôte" value="localhost:5432" />
           <InfoRow label="Database" value="jobbingtrack" />
@@ -184,11 +184,11 @@ function DatabasePanel() {
       </div>
 
       {/* Database Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-white mb-4">
           Gestion base de données
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 dark:text-white">
           <ActionCard
             icon="💾"
             title="Backup DB"
@@ -231,11 +231,11 @@ function ServicesPanel() {
   return (
     <div className="space-y-6">
       {/* Services Config */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-white mb-4">
           Configuration des services
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-4 text-white dark:text-gray-100 dark:bg-gray-800">
           <ServiceConfigRow 
             name="API Gateway" 
             port={3000} 
@@ -264,9 +264,9 @@ function ServicesPanel() {
       </div>
 
       {/* Service Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Actions services
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          🔧 Actions services
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <ActionCard
@@ -291,9 +291,9 @@ function SecurityPanel() {
   return (
     <div className="space-y-6">
       {/* Security Info */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Paramètres de sécurité
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          🔐 Paramètres de sécurité
         </h3>
         <div className="space-y-4">
           <SecurityOption
@@ -320,8 +320,8 @@ function SecurityPanel() {
       </div>
 
       {/* Security Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           Actions de sécurité
         </h3>
         <div className="grid grid-cols-2 gap-4">
@@ -364,8 +364,8 @@ function SecurityPanel() {
 function InfoRow({ label, value }: { label: string, value: string }) {
   return (
     <div className="flex justify-between py-2">
-      <span className="text-sm text-gray-600">{label}:</span>
-      <span className="text-sm font-medium text-gray-900">{value}</span>
+      <span className="text-sm text-gray-600 dark:text-gray-400">{label}:</span>
+      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{value}</span>
     </div>
   )
 }
@@ -377,10 +377,10 @@ function ServiceConfigRow({ name, port, status, memory }: {
   memory: string
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
       <div className="flex-1">
-        <h4 className="text-sm font-medium text-gray-900">{name}</h4>
-        <p className="text-xs text-gray-500">Port: {port}</p>
+        <h4 className="text-sm font-medium text-gray-900 dark:text-white">{name}</h4>
+        <p className="text-xs text-gray-500 dark:text-white">Port: {port}</p>
       </div>
       <div className="flex items-center space-x-4">
         <span className="text-xs text-gray-600">RAM: {memory}</span>
@@ -400,15 +400,15 @@ function SecurityOption({ label, value, description }: {
   description: string
 }) {
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
+    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
       <div className="flex justify-between items-start mb-2">
-        <h4 className="text-sm font-medium text-gray-900">{label}</h4>
-        <button className="text-blue-600 text-xs hover:text-blue-800">
+        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</h4>
+        <button className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-800 dark:hover:text-blue-300">
           ✏️ Modifier
         </button>
       </div>
-      <p className="text-sm text-gray-900 mb-1 font-mono">{value}</p>
-      <p className="text-xs text-gray-500">{description}</p>
+      <p className="text-sm text-gray-900 dark:text-gray-100 mb-1 font-mono">{value}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
     </div>
   )
 }
@@ -421,10 +421,10 @@ function ActionCard({ icon, title, description, onClick, color = 'blue' }: {
   color?: 'blue' | 'green' | 'yellow' | 'red'
 }) {
   const colors = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200',
-    green: 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200',
-    yellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200',
-    red: 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+    blue: 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700',
+    green: 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700',
+    yellow: 'bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
+    red: 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
   }
 
   return (
@@ -433,8 +433,8 @@ function ActionCard({ icon, title, description, onClick, color = 'blue' }: {
       className={`p-4 border rounded-lg text-left transition-colors ${colors[color]}`}
     >
       <div className="text-2xl mb-2">{icon}</div>
-      <h4 className="font-semibold mb-1">{title}</h4>
-      <p className="text-xs opacity-80">{description}</p>
+      <h4 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{title}</h4>
+      <p className="text-xs opacity-80 text-gray-600 dark:text-gray-400">{description}</p>
     </button>
   )
 }
