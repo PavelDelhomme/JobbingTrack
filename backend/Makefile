@@ -10,15 +10,29 @@ SERVICES = api-gateway auth-service application-service company-service contact-
 help:
 	@echo "🚀 JobbingTrack Microservices - Commandes disponibles:"
 	@echo ""
-	@echo "  build     - Construire toutes les images Docker"
-	@echo "  up        - Démarrer tous les services"
-	@echo "  down      - Arrêter tous les services"
-	@echo "  logs      - Voir les logs de tous les services"
-	@echo "  dev       - Démarrer en mode développement"
-	@echo "  test      - Exécuter les tests"
-	@echo "  migrate   - Exécuter les migrations de base de données"
-	@echo "  clean     - Nettoyer les conteneurs et volumes"
-	@echo "  status    - Voir le statut des services"
+	@echo "Gestion des services:"
+	@echo "  build          - Construire toutes les images Docker"
+	@echo "  up             - Démarrer tous les services"
+	@echo "  down           - Arrêter tous les services"
+	@echo "  logs           - Voir les logs de tous les services"
+	@echo "  dev            - Démarrer en mode développement"
+	@echo "  test           - Exécuter les tests"
+	@echo "  migrate        - Exécuter les migrations de base de données"
+	@echo "  clean          - Nettoyer les conteneurs et volumes"
+	@echo "  status         - Voir le statut des services"
+	@echo ""
+	@echo "Données de test:"
+	@echo "  seed-minimal   - Générer données minimales (développement rapide)"
+	@echo "  seed-standard  - Générer données standard (recommandé)"
+	@echo "  seed-complete  - Générer beaucoup de données (tests de charge)"
+	@echo "  seed-demo      - Générer données pour démo client"
+	@echo "  clean-data     - Supprimer toutes les données de test"
+	@echo ""
+	@echo "Services individuels:"
+	@echo "  start-SERVICE  - Démarrer un service (ex: start-auth-service)"
+	@echo "  stop-SERVICE   - Arrêter un service"
+	@echo "  logs-SERVICE   - Voir les logs d'un service"
+	@echo "  restart-SERVICE - Redémarrer un service"
 	@echo ""
 
 # Construire toutes les images
@@ -95,3 +109,26 @@ restart-%:
 rebuild-%:
 	@echo "🔨 Reconstruction du service $*..."
 	docker compose -f $(COMPOSE_FILE) up --build -d $*
+
+# Générer des données de test
+seed-minimal:
+	@echo "🎲 Génération de données de test (minimal)..."
+	@cd "$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))" && bash generate-test-data.sh minimal
+
+seed-standard:
+	@echo "🎲 Génération de données de test (standard)..."
+	@cd "$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))" && bash generate-test-data.sh standard
+
+seed-complete:
+	@echo "🎲 Génération de données de test (complet)..."
+	@cd "$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))" && bash generate-test-data.sh complete
+
+seed-demo:
+	@echo "🎲 Génération de données de test (démo)..."
+	@cd "$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))" && bash generate-test-data.sh demo
+
+# Nettoyer toutes les données
+clean-data:
+	@echo "🗑️ Nettoyage de toutes les données..."
+	docker compose -f $(COMPOSE_FILE) exec postgres psql -U jobbingtrack -d jobbingtrack -c 'TRUNCATE TABLE "Application", "Interview", "FollowUp", "Call", "Contact", "Company", "Activity", "ApplicationContact", "ApplicationDocument", "Document", "Reminder", "MessageTemplate" CASCADE;'
+	@echo "✅ Données nettoyées"
