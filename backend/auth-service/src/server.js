@@ -32,13 +32,20 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting spécifique à l'auth
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50, // Plus restrictif pour l'auth
-  message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
-});
-app.use('/api/v1/auth', authLimiter);
+// Rate limiting spécifique à l'auth - UNIQUEMENT EN PRODUCTION
+if (process.env.NODE_ENV === 'production') {
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // 50 requêtes max en production
+    message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/v1/auth', authLimiter);
+  logger.info('✅ Rate limiting activé en production (50 req/15min)');
+} else {
+  logger.info('⚠️  Rate limiting COMPLÈTEMENT DÉSACTIVÉ en développement');
+}
 
 // Health check
 app.get('/health', (req, res) => {

@@ -23,15 +23,7 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Trop de requêtes, veuillez réessayer plus tard.'
-});
-app.use('/api/v1/events', apiLimiter);
-
-// Health check
+// Health check (AVANT le rate limiting pour être exempt)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -41,6 +33,27 @@ app.get('/health', (req, res) => {
     version: '1.0.0'
   });
 });
+
+// Rate limiting intelligent - différent selon l'environnement
+if (process.env.NODE_ENV === 'production') {
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // 500 requêtes en production
+    message: 'Trop de requêtes, veuillez réessayer plus tard.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    // ✅ Exempter les routes de monitoring et d'administration
+    skip: (req) => {
+      return req.path === '/health' || 
+             req.path.startsWith('/metrics') ||
+             req.path.startsWith('/api/v1/admin');
+    }
+  });
+  app.use('/api/v1/events', apiLimiter);
+  logger.info('✅ Rate limiting activé en production (500 req/15min, routes monitoring exemptées)');
+} else {
+  logger.info('⚠️  Rate limiting DÉSACTIVÉ en développement pour faciliter les tests');
+}
 
 // Routes
 app.use('/api/v1/events', eventRoutes); // ✅ Pluriel pour correspondre à l'API Gateway

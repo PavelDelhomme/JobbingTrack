@@ -102,9 +102,9 @@ export default function StatisticsPage() {
           }
         },
         performance: {
-          averageResponseTime: 2.5,
-          successRate: 85.5,
-          errorRate: 1.2
+          averageResponseTime: 125, // En millisecondes
+          successRate: 98.8, // ✅ Cohérent avec errorRate
+          errorRate: 1.2 // ✅ Total = 100%
         }
       }
 
@@ -139,20 +139,20 @@ export default function StatisticsPage() {
   return (
     <AdminLayout>
       <div>
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        {/* Header - Responsive */}
+        <div className="mb-4 md:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
               📊 Statistiques Avancées
             </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
               Analyse détaillée des données de la plateforme
             </p>
           </div>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-xs sm:text-sm md:text-base focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="week">Cette semaine</option>
             <option value="month">Ce mois</option>
@@ -160,11 +160,11 @@ export default function StatisticsPage() {
           </select>
         </div>
 
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Main Stats Grid - Responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-4 md:mb-8">
           {/* Applications Stats */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
               📝 Candidatures
             </h3>
             <div className="space-y-4">
@@ -199,8 +199,8 @@ export default function StatisticsPage() {
           </div>
 
           {/* Users Stats */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
               👥 Utilisateurs
             </h3>
             <div className="space-y-4">
@@ -235,8 +235,8 @@ export default function StatisticsPage() {
           </div>
 
           {/* Companies Stats */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
               🏢 Entreprises
             </h3>
             <div className="space-y-4">
@@ -262,46 +262,77 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          {/* Performance Stats */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚡ Performance
-            </h3>
+          {/* Performance Stats - CLIQUABLE vers Analytics */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <div 
+              onClick={() => router.push('/backoffice/analytics')}
+              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 -m-3 sm:-m-4 md:-m-6 p-3 sm:p-4 md:p-6 rounded-lg transition-all group"
+            >
+              <div className="flex items-center justify-between mb-3 md:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  ⚡ Performance
+                </h3>
+                <span className="text-blue-600 dark:text-blue-400 opacity-50 group-hover:opacity-100 transition-opacity text-xs sm:text-sm font-medium whitespace-nowrap">
+                  Voir détails →
+                </span>
+              </div>
+            </div>
             <div className="space-y-4">
-              <div className="p-4 bg-blue-50 rounded-lg dark:bg-gray-700">
+              <div 
+                onClick={() => router.push('/backoffice/analytics')}
+                className="p-3 sm:p-4 bg-blue-50 rounded-lg dark:bg-gray-700 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600 transition-colors group"
+                title="Cliquer pour voir les détails dans Analytics"
+              >
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700">Temps de réponse moyen</span>
-                  <span className="text-xl font-bold text-blue-600">{stats.performance.averageResponseTime}ms</span>
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Temps de réponse moyen</span>
+                  <span className="text-lg sm:text-xl font-bold text-blue-600 flex items-center gap-1">
+                    {stats.performance.averageResponseTime}ms
+                    <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  </span>
                 </div>
                 <div className="w-full bg-blue-200 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full"
+                    className="bg-blue-600 h-2 rounded-full transition-all"
                     style={{ width: `${Math.min(100, (stats.performance.averageResponseTime / 500) * 100)}%` }}
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div 
+                onClick={() => router.push('/backoffice/analytics')}
+                className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group"
+                title="Cliquer pour voir les détails dans Analytics"
+              >
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Taux de succès</span>
-                  <span className="text-xl font-bold text-green-600 dark:text-green-400">{stats.performance.successRate}%</span>
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Taux de succès</span>
+                  <span className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
+                    {stats.performance.successRate}%
+                    <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  </span>
                 </div>
                 <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-2">
                   <div
-                    className="bg-green-600 dark:bg-green-500 h-2 rounded-full"
+                    className="bg-green-600 dark:bg-green-500 h-2 rounded-full transition-all"
                     style={{ width: `${stats.performance.successRate}%` }}
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <div 
+                onClick={() => router.push('/backoffice/analytics?tab=errors')}
+                className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group"
+                title="Cliquer pour voir les erreurs détaillées"
+              >
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Taux d'erreur</span>
-                  <span className="text-xl font-bold text-red-600 dark:text-red-400">{stats.performance.errorRate}%</span>
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Taux d'erreur</span>
+                  <span className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                    {stats.performance.errorRate}%
+                    <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                  </span>
                 </div>
                 <div className="w-full bg-red-200 dark:bg-red-800 rounded-full h-2">
                   <div
-                    className="bg-red-600 dark:bg-red-500 h-2 rounded-full"
+                    className="bg-red-600 dark:bg-red-500 h-2 rounded-full transition-all"
                     style={{ width: `${stats.performance.errorRate}%` }}
                   />
                 </div>
@@ -311,9 +342,9 @@ export default function StatisticsPage() {
         </div>
 
         {/* Applications by Type Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
               📊 Candidatures par type
             </h3>
             <div className="space-y-3">
@@ -339,8 +370,8 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
               🎯 Résumé global
             </h3>
             <div className="space-y-4">
@@ -371,6 +402,8 @@ export default function StatisticsPage() {
                 value={`${stats.performance.averageResponseTime}ms`}
                 trend="-15ms"
                 trendUp={true}
+                onClick={() => router.push('/backoffice/analytics')}
+                clickable={true}
               />
             </div>
           </div>
@@ -411,23 +444,34 @@ function ProgressBar({ label, value, max, color }: {
   )
 }
 
-function SummaryItem({ icon, label, value, trend, trendUp }: {
+function SummaryItem({ icon, label, value, trend, trendUp, onClick, clickable }: {
   icon: string
   label: string
   value: number | string
   trend: string
   trendUp: boolean
+  onClick?: () => void
+  clickable?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <div className="flex items-center space-x-3">
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{value}</p>
+    <div 
+      onClick={onClick}
+      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg ${
+        clickable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group' : ''
+      }`}
+      title={clickable ? "Cliquer pour voir les détails" : undefined}
+    >
+      <div className="flex items-center space-x-2 sm:space-x-3">
+        <span className="text-xl sm:text-2xl flex-shrink-0">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{label}</p>
+          <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
+            {value}
+            {clickable && <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>}
+          </p>
         </div>
       </div>
-      <span className={`text-sm font-medium ${trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+      <span className={`text-xs sm:text-sm font-medium flex-shrink-0 ml-2 ${trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
         {trendUp ? '↗' : '↘'} {trend}
       </span>
     </div>

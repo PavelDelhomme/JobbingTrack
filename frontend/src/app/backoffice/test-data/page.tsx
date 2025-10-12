@@ -278,17 +278,17 @@ export default function TestDataGeneratorPage() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">🎲 Générateur de Données de Test</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+      <div>
+        {/* Header - Responsive */}
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">🎲 Générateur de Données de Test</h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 md:mt-2">
             Générez des données réalistes et cohérentes pour tester l'application
           </p>
         </div>
 
-        {/* Warning Banner */}
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-8">
+        {/* Warning Banner - Responsive */}
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-3 sm:p-4 mb-4 sm:mb-6 md:mb-8">
           <div className="flex">
             <div className="flex-shrink-0">
               <span className="text-yellow-400 dark:text-yellow-500 text-2xl">⚠️</span>
@@ -305,20 +305,20 @@ export default function TestDataGeneratorPage() {
           </div>
         </div>
 
-        {/* Presets */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">📋 Configurations prédéfinies</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Presets - Responsive */}
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">📋 Configurations prédéfinies</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {presets.map(preset => (
               <button
                 key={preset.name}
                 onClick={() => setConfig(preset.config)}
-                className="text-left p-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all"
+                className="text-left p-3 sm:p-4 md:p-6 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all"
               >
-                <div className="text-4xl mb-3">{preset.icon}</div>
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{preset.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{preset.description}</p>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-3xl sm:text-4xl mb-2 sm:mb-3">{preset.icon}</div>
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 mb-1">{preset.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3 line-clamp-2">{preset.description}</p>
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                   {Object.values(preset.config).reduce((sum, val) => sum + val, 0)} éléments au total
                 </div>
               </button>
@@ -326,11 +326,11 @@ export default function TestDataGeneratorPage() {
           </div>
         </div>
 
-        {/* Sélection des types de données */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">🎯 Sélection des données à générer</h2>
+        {/* Sélection des types de données - Responsive */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-6 mb-4 md:mb-8">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">🎯 Sélection des données à générer</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             {Object.entries(options).map(([key, enabled]) => (
               <label key={key} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                 <input
@@ -365,10 +365,10 @@ export default function TestDataGeneratorPage() {
           </div>
 
           {/* Sélection des utilisateurs */}
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">👤 Sélection des utilisateurs</h3>
+          <div className="border-t border-gray-200 dark:border-gray-600 pt-4 md:pt-6">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">👤 Sélection des utilisateurs</h3>
 
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3 md:mb-4">
               <label className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="radio"
@@ -438,11 +438,11 @@ export default function TestDataGeneratorPage() {
           </div>
         </div>
 
-        {/* Configuration personnalisée */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">⚙️ Configuration personnalisée</h2>
+        {/* Configuration personnalisée - Responsive */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-6 mb-4 md:mb-8">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 md:mb-6">⚙️ Configuration personnalisée</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <ConfigSlider
               label="Utilisateurs"
               value={config.users}
@@ -534,34 +534,34 @@ export default function TestDataGeneratorPage() {
             />
           </div>
 
-          {/* Résumé */}
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          {/* Résumé - Responsive */}
+          <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total d'éléments à générer</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalItems}</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total d'éléments à générer</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalItems}</p>
               </div>
-              <div className="text-gray-400 dark:text-gray-500 text-6xl">🎲</div>
+              <div className="text-gray-400 dark:text-gray-500 text-4xl sm:text-5xl md:text-6xl">🎲</div>
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-4 mb-8">
+        {/* Actions - Empilés verticalement sur mobile */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 md:mb-8">
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex-1 px-8 py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+            className="flex-1 px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
           >
             {generating ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Génération en cours...</span>
+                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                <span className="text-sm sm:text-base">Génération en cours...</span>
               </>
             ) : (
               <>
-                <span className="text-2xl">🎲</span>
-                <span className="font-semibold">Générer les données de test</span>
+                <span className="text-xl sm:text-2xl">🎲</span>
+                <span className="text-sm sm:text-base font-semibold">Générer les données de test</span>
               </>
             )}
           </button>
@@ -569,25 +569,25 @@ export default function TestDataGeneratorPage() {
           <button
             onClick={handleClear}
             disabled={clearing || generating}
-            className="px-8 py-4 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+            className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap"
           >
             {clearing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Nettoyage...</span>
+                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                <span className="text-sm sm:text-base">Nettoyage...</span>
               </>
             ) : (
               <>
-                <span className="text-xl">🗑️</span>
-                <span>Tout supprimer</span>
+                <span className="text-lg sm:text-xl">🗑️</span>
+                <span className="text-sm sm:text-base">Tout supprimer</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Output */}
+        {/* Output - Responsive */}
         {showOutput && (
-          <div className="bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-lg p-6 font-mono text-sm overflow-auto max-h-96">
+          <div className="bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 rounded-lg p-3 sm:p-4 md:p-6 font-mono text-xs sm:text-sm overflow-auto max-h-64 sm:max-h-80 md:max-h-96">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white dark:text-gray-100">📋 Résultat de la génération</h3>
               <button
@@ -601,13 +601,13 @@ export default function TestDataGeneratorPage() {
           </div>
         )}
 
-        {/* Info */}
-        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
+        {/* Info - Responsive */}
+        <div className="mt-4 sm:mt-6 md:mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3 sm:p-4 md:p-6">
           <div className="flex items-start gap-3">
             <span className="text-blue-600 dark:text-blue-400 text-2xl">ℹ️</span>
             <div>
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Comment utiliser le générateur</h3>
-              <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+              <h3 className="text-sm sm:text-base font-semibold text-blue-900 dark:text-blue-100 mb-2">Comment utiliser le générateur</h3>
+              <ul className="space-y-2 text-xs sm:text-sm text-blue-800 dark:text-blue-200">
                 <li className="flex items-start gap-2">
                   <span>1️⃣</span>
                   <span><strong>Choisissez un preset</strong> ou personnalisez la configuration avec les sliders</span>
@@ -630,9 +630,9 @@ export default function TestDataGeneratorPage() {
                 </li>
               </ul>
 
-              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">🎯 Données générées</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-blue-200 dark:border-blue-700">
+                <h4 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">🎯 Données générées</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
                   <div>✅ Utilisateurs avec différents rôles (USER, ADMIN, SUPER_ADMIN)</div>
                   <div>✅ Entreprises réalistes (Google, Microsoft, etc.)</div>
                   <div>✅ Candidatures avec différents statuts</div>
@@ -651,35 +651,35 @@ export default function TestDataGeneratorPage() {
           </div>
         </div>
 
-        {/* Exemples de comptes */}
-        <div className="mt-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-6">
-          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">🔐 Comptes de test générés</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
-              <span className="text-2xl">👑</span>
-              <div className="flex-1">
-                <p className="font-medium text-gray-900 dark:text-gray-100">user1@jobbingtrack.com</p>
-                <p className="text-gray-600 dark:text-gray-400">SUPER_ADMIN - Accès complet</p>
+        {/* Exemples de comptes - Responsive */}
+        <div className="mt-4 sm:mt-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 sm:p-4 md:p-6">
+          <h3 className="text-sm sm:text-base font-semibold text-green-900 dark:text-green-100 mb-3">🔐 Comptes de test générés</h3>
+          <div className="space-y-2 text-xs sm:text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg">
+              <span className="text-xl sm:text-2xl flex-shrink-0">👑</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-gray-100 truncate">user1@jobbingtrack.com</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">SUPER_ADMIN - Accès complet</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
+              <code className="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-[10px] sm:text-xs text-gray-700 dark:text-gray-300 flex-shrink-0">password123</code>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
-              <span className="text-2xl">👨‍💼</span>
-              <div className="flex-1">
-                <p className="font-medium text-gray-900 dark:text-gray-100">user2@jobbingtrack.com</p>
-                <p className="text-gray-600 dark:text-gray-400">ADMIN - Gestion administrative</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg">
+              <span className="text-xl sm:text-2xl flex-shrink-0">👨‍💼</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-gray-100 truncate">user2@jobbingtrack.com</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">ADMIN - Gestion administrative</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
+              <code className="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-[10px] sm:text-xs text-gray-700 dark:text-gray-300 flex-shrink-0">password123</code>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg">
-              <span className="text-2xl">👤</span>
-              <div className="flex-1">
-                <p className="font-medium text-gray-900 dark:text-gray-100">user3@jobbingtrack.com</p>
-                <p className="text-gray-600 dark:text-gray-400">USER - Utilisateur standard</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg">
+              <span className="text-xl sm:text-2xl flex-shrink-0">👤</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 dark:text-gray-100 truncate">user3@jobbingtrack.com</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">USER - Utilisateur standard</p>
               </div>
-              <code className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">password123</code>
+              <code className="px-2 sm:px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded text-[10px] sm:text-xs text-gray-700 dark:text-gray-300 flex-shrink-0">password123</code>
             </div>
           </div>
         </div>
@@ -697,13 +697,13 @@ function ConfigSlider({ label, value, onChange, min, max, icon }: {
   icon: string
 }) {
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <span>{icon}</span>
+    <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5 sm:gap-2">
+          <span className="text-sm sm:text-base">{icon}</span>
           <span>{label}</span>
         </label>
-        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-bold">
+        <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs sm:text-sm font-bold flex-shrink-0">
           {value}
         </span>
       </div>
@@ -717,7 +717,7 @@ function ConfigSlider({ label, value, onChange, min, max, icon }: {
         className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500"
       />
 
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+      <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
         <span>{min}</span>
         <span>{max}</span>
       </div>

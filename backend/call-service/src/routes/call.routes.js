@@ -21,16 +21,17 @@ router.get('/health', controller.getHealth);
 // Routes protégées
 router.use(authenticate);
 
+// ✅ Routes avec paramètres spécifiques AVANT les routes avec :id
+router.get('/stats/overview', controller.getCallStats);
+router.get('/application/:applicationId', param('applicationId').isString(), controller.getCallsByApplication);
+
+// Routes CRUD générales
 router.post('/', createValidation, controller.createCall);
 router.get('/', controller.getCalls);
 router.get('/:id', param('id').isString(), controller.getCall);
 router.put('/:id', updateValidation, controller.updateCall);
 router.delete('/:id', param('id').isString(), controller.deleteCall);
 router.put('/:id/complete', param('id').isString(), controller.completeCall);
-
-// Nouvelles routes pour les statistiques et appels par candidature
-router.get('/stats/overview', controller.getCallStats);
-router.get('/application/:applicationId', param('applicationId').isString(), controller.getCallsByApplication);
 
 module.exports = router;
 

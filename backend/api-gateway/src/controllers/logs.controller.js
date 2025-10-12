@@ -3,20 +3,30 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
 
-// Map des noms de services
+// Map des noms de services (avec toutes les variantes possibles)
 const SERVICE_MAP = {
   'api-gateway': 'api-gateway',
   'auth': 'auth-service',
   'application': 'application-service',
+  'applications': 'application-service', // ✅ Ajout du pluriel
   'company': 'company-service',
+  'companies': 'company-service', // ✅ Ajout du pluriel
   'contact': 'contact-service',
+  'contacts': 'contact-service', // ✅ Ajout du pluriel
   'interview': 'interview-service',
+  'interviews': 'interview-service', // ✅ Ajout du pluriel
   'notification': 'notification-service',
+  'notifications': 'notification-service', // ✅ Ajout du pluriel
   'dashboard': 'dashboard-service',
   'call': 'call-service',
+  'calls': 'call-service', // ✅ Ajout du pluriel
   'profile': 'profile-service',
+  'profiles': 'profile-service', // ✅ Ajout du pluriel
   'event': 'event-service',
+  'events': 'event-service', // ✅ Ajout du pluriel
   'followup': 'followup-service',
+  'followups': 'followup-service', // ✅ Ajout du pluriel
+  'frontend': 'frontend', // ✅ Ajout du frontend
   'postgres': 'postgres',
   'redis': 'redis'
 };
