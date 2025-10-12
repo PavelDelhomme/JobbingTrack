@@ -5,8 +5,11 @@ const controller = require('../controllers/dashboard.controller');
 
 // Routes publiques
 router.get('/health', controller.getHealth);
+router.get('/stats/public', controller.getStats);
 
 // Routes protégées
-// TODO: Ajouter les routes spécifiques au service
+router.use(authenticate);
+
+router.get('/stats', controller.getStats);
 
 module.exports = router;

@@ -1,0 +1,58 @@
+.
+├── docker-compose.frontend.yml
+├── Dockerfile
+├── Makefile
+├── next.config.js
+├── next-env.d.ts
+├── node_modules
+├── package.json
+├── src
+│   ├── app
+│   │   ├── backoffice
+│   │   │   ├── api-tester
+│   │   │   │   └── page.tsx
+│   │   │   ├── applications
+│   │   │   │   ├── [id]
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── companies
+│   │   │   │   └── page.tsx
+│   │   │   ├── contacts
+│   │   │   │   └── page.tsx
+│   │   │   ├── data-management
+│   │   │   │   └── page.tsx
+│   │   │   ├── interviews
+│   │   │   │   └── page.tsx
+│   │   │   ├── logs
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── services
+│   │   │   │   └── page.tsx
+│   │   │   ├── settings
+│   │   │   │   └── page.tsx
+│   │   │   ├── statistics
+│   │   │   │   └── page.tsx
+│   │   │   └── users
+│   │   │       └── page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── login
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── AdminLayout.tsx
+│   │   ├── charts
+│   │   ├── forms
+│   │   ├── layout
+│   │   └── ui
+│   ├── lib
+│   │   ├── api.ts
+│   │   ├── auth
+│   │   ├── auth.tsx
+│   │   └── utils
+│   └── types
+├── tailwind.config.js
+├── tree.txt
+└── tsconfig.json
+
+27 directories, 29 files

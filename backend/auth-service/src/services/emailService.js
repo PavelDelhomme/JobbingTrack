@@ -29,11 +29,11 @@ class EmailService {
               <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
               <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d'emploi</p>
             </div>
-            
+
             <h2 style="color: #1f2937;">Bienvenue ${user.firstName} ! 🎉</h2>
-            
+
             <p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p>
-            
+
             <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #374151; margin-top: 0;">🚀 Vous pouvez maintenant :</h3>
               <ul style="color: #4b5563; line-height: 1.6;">
@@ -44,14 +44,14 @@ class EmailService {
                 <li>📊 <strong>Analyser vos performances</strong> - Statistiques de vos candidatures</li>
               </ul>
             </div>
-            
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" 
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}"
                  style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                 Commencer maintenant
               </a>
             </div>
-            
+
             <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
               Si vous avez des questions, n'hésitez pas à nous contacter.
             </p>
@@ -63,6 +63,61 @@ class EmailService {
       logger.info(`Email de bienvenue envoyé à ${user.email}`);
     } catch (error) {
       logger.error('Erreur envoi email bienvenue:', error);
+      throw error;
+    }
+  }
+
+  async sendPasswordResetEmail(user, resetUrl) {
+    try {
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: user.email,
+        subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+              <p style="color: #6b7280; margin: 5px 0;">Réinitialisation de mot de passe</p>
+            </div>
+
+            <h2 style="color: #1f2937;">Bonjour ${user.firstName},</h2>
+
+            <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte JobbingTrack.</p>
+
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #374151; margin: 0;">
+                Cliquez sur le bouton ci-dessous pour réinitialiser votre mot de passe. Ce lien est valide pendant <strong>1 heure</strong>.
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}"
+                 style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Réinitialiser mon mot de passe
+              </a>
+            </div>
+
+            <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+              <p style="color: #92400e; margin: 0; font-size: 14px;">
+                <strong>Si vous n'avez pas demandé cette réinitialisation,</strong> ignorez simplement cet email. Votre mot de passe restera inchangé.
+              </p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px;">
+              Pour des raisons de sécurité, ne partagez jamais ce lien avec qui que ce soit.
+            </p>
+
+            <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
+              Cordialement,<br>L'équipe JobbingTrack
+            </p>
+          </div>
+        `
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`Email de réinitialisation envoyé à ${user.email}`);
+    } catch (error) {
+      logger.error('Erreur envoi email réinitialisation:', error);
       throw error;
     }
   }

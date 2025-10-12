@@ -105,7 +105,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     print_error "Docker Compose n'est pas installé"
     exit 1
 fi
@@ -115,9 +115,9 @@ print_success "Prérequis vérifiés"
 # Nettoyage si demandé
 if [ "$CLEAN" = true ]; then
     print_step "Nettoyage des ressources existantes..."
-    docker-compose -f $COMPOSE_FILE down -v --remove-orphans
+    docker compose -f $COMPOSE_FILE down -v --remove-orphans
     if [ "$MONITORING" = true ]; then
-        docker-compose -f $MONITORING_COMPOSE_FILE down -v --remove-orphans
+        docker compose -f $MONITORING_COMPOSE_FILE down -v --remove-orphans
     fi
     docker system prune -f
     print_success "Nettoyage terminé"
@@ -128,19 +128,19 @@ print_step "Configuration pour l'environnement $ENVIRONMENT"
 
 case $ENVIRONMENT in
     development)
-        COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
+        COMPOSE_CMD="docker compose -f $COMPOSE_FILE"
         if [ "$MONITORING" = true ]; then
             COMPOSE_CMD="$COMPOSE_CMD -f $MONITORING_COMPOSE_FILE"
         fi
         ;;
     staging)
-        COMPOSE_CMD="docker-compose -f $COMPOSE_FILE -f docker-compose.staging.yml"
+        COMPOSE_CMD="docker compose -f $COMPOSE_FILE -f docker-compose.staging.yml"
         if [ "$MONITORING" = true ]; then
             COMPOSE_CMD="$COMPOSE_CMD -f $MONITORING_COMPOSE_FILE"
         fi
         ;;
     production)
-        COMPOSE_CMD="docker-compose -f $COMPOSE_FILE -f docker-compose.prod.yml"
+        COMPOSE_CMD="docker compose -f $COMPOSE_FILE -f docker-compose.prod.yml"
         if [ "$MONITORING" = true ]; then
             COMPOSE_CMD="$COMPOSE_CMD -f $MONITORING_COMPOSE_FILE"
         fi

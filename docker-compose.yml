@@ -180,6 +180,90 @@ services:
     networks:
       - jobbingtrack-network
 
+  call-service:
+    build:
+      context: ./backend/call-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-call-service
+    ports:
+      - "3008:3008"
+    networks:
+      - jobbingtrack-network
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+  
+  event-service:
+    build:
+      context: ./backend/event-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-event-service
+    ports:
+      - "3009:3009"
+    networks:
+      - jobbingtrack-network
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+  
+  followup-service:
+    build:
+      context: ./backend/followup-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-followup-service
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+  
+  profile-service:
+    build:
+      context: ./backend/profile-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-profile-service
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
   # Service des notifications
   notification-service:
     build:
@@ -225,6 +309,50 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service de gestion des workflows
+  workflow-service:
+    build:
+      context: ./backend/workflow-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-workflow-service
+    ports:
+      - "3013:3013"
+    networks:
+      - jobbingtrack-network
+    environment:
+      - NODE_ENV=development
+      - PORT=3013
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - APPLICATION_SERVICE_URL=http://application-service:3002
+      - FOLLOWUP_SERVICE_URL=http://followup-service:3010
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://api-gateway:3000
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - api-gateway
+      - auth-service
     networks:
       - jobbingtrack-network
 

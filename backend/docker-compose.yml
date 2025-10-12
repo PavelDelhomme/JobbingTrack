@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Base de données PostgreSQL
   postgres:
@@ -13,7 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - jobbingtrack-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
@@ -26,6 +25,8 @@ services:
     container_name: jobbingtrack-redis
     ports:
       - "6379:6379"
+    networks:
+      - jobbingtrack-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -50,7 +51,17 @@ services:
       - INTERVIEW_SERVICE_URL=http://interview-service:3005
       - NOTIFICATION_SERVICE_URL=http://notification-service:3006
       - DASHBOARD_SERVICE_URL=http://dashboard-service:3007
-      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
+      - CALL_SERVICE_URL=http://call-service:3008
+      - PROFILE_SERVICE_URL=http://profile-service:3009
+      - EVENT_SERVICE_URL=http://event-service:3011
+      - FOLLOWUP_SERVICE_URL=http://followup-service:3012
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+    volumes:
+      # ✅ Monter le socket Docker pour pouvoir contrôler les conteneurs
+      - /var/run/docker.sock:/var/run/docker.sock
+      # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
     depends_on:
       - auth-service
       - application-service
@@ -59,6 +70,10 @@ services:
       - interview-service
       - notification-service
       - dashboard-service
+      - call-service
+      - profile-service
+      - event-service
+      - followup-service
     networks:
       - jobbingtrack-network
 
@@ -189,6 +204,7 @@ services:
       - PORT=3006
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production-2025
       - SMTP_HOST=smtp.ovh.net
       - SMTP_PORT=587
       - SMTP_USER=candidatures@example.invalid
@@ -224,6 +240,186 @@ services:
     networks:
       - jobbingtrack-network
 
+  # Service des appels téléphoniques
+  call-service:
+    build:
+      context: ./call-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-call-service
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service dédié aux relances
+  followup-service:
+    build:
+      context: ./followup-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-followup-service
+    ports:
+      - "3012:3012"
+    environment:
+      - NODE_ENV=development
+      - PORT=3012
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+  
+  # Gestion du calendrier et disponibilités
+  # calendar-service:
+  #   build:
+  #     context: ./calendar-service
+  #     dockerfile: Dockerfile
+  #   container_name: jobbingtrack-calendar-service
+  #   ports:
+  #     - "3010:3010"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3010
+  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #     - JWT_SECRET=your-secret-key-change-in-production-2025
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     auth-service:
+  #       condition: service_started
+  #   networks:
+  #     - jobbingtrack-network
+
+  # Service des événements globaux
+  event-service:
+    build:
+      context: ./event-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-event-service
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service de gestion des profils et CVs
+  profile-service:
+    build:
+      context: ./profile-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-profile-service
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  workflow-service:
+    build:
+      context: ./workflow-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-workflow-service
+    ports:
+      - "3013:3013"
+    environment:
+      - NODE_ENV=development
+      - PORT=3013
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-secret-key-change-in-production-2025
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - jobbingtrack-network
+
+  # Service de gestion des workflows
+  # ⚠️ DÉSACTIVÉ - Service non implémenté
+  # scheduler-service:
+  #   build:
+  #     context: ./scheduler-service
+  #     dockerfile: Dockerfile
+  #   container_name: jobbingtrack-scheduler-service
+  #   ports:
+  #     - "3014:3014"
+  #   networks:
+  #     - jobbingtrack-network
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3014
+  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #     - JWT_SECRET=your-secret-key-change-in-production-2025
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     auth-service:
+  #       condition: service_started
+
+  # Service de tracking de candidatures
+  # tracking-service:
+  #   build:
+  #     context: ./tracking-service
+  #     dockerfile: Dockerfile
+  #   container_name: jobbingtrack-tracking-service
+  #   ports:
+  #     - "3008:3008"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - PORT=3008
+  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #     - JWT_SECRET=your-secret-key-change-in-production-2025
+  #     - AUTH_SERVICE_URL=http://auth-service:3001
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     auth-service:
+  #       condition: service_started
+  #   networks:
+  #     - jobbingtrack-network
+
   # Service de tests
   test-runner:
     image: curlimages/curl:latest
@@ -237,6 +433,12 @@ services:
       - interview-service
       - notification-service
       - dashboard-service
+      - call-service
+      - profile-service
+      - event-service
+      - followup-service
+      - workflow-service
+      # - scheduler-service  # ⚠️ DÉSACTIVÉ
     networks:
       - jobbingtrack-network
     volumes:

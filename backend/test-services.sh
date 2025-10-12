@@ -74,10 +74,10 @@ test_service() {
 
 # Vérifier que Docker Compose est en cours d'exécution
 print_info "Vérification de Docker Compose..."
-if ! docker-compose ps | grep -q "Up"; then
+if ! docker compose ps | grep -q "Up"; then
     print_warning "Aucun service Docker Compose en cours d'exécution"
     print_info "Démarrage des services..."
-    docker-compose up -d
+    docker compose up -d
     print_info "Attente que les services soient prêts..."
     sleep 30
 fi
@@ -133,7 +133,7 @@ echo "🗄️ Test de la base de données"
 echo "============================="
 
 print_info "Test de la connexion PostgreSQL..."
-if docker-compose exec postgres pg_isready -U jobbingtrack -d jobbingtrack > /dev/null 2>&1; then
+if docker compose exec postgres pg_isready -U jobbingtrack -d jobbingtrack > /dev/null 2>&1; then
     print_success "PostgreSQL opérationnel"
     success_count=$((success_count + 1))
 else
@@ -143,7 +143,7 @@ total_count=$((total_count + 1))
 
 # Test de Redis
 print_info "Test de Redis..."
-if docker-compose exec redis redis-cli ping > /dev/null 2>&1; then
+if docker compose exec redis redis-cli ping > /dev/null 2>&1; then
     print_success "Redis opérationnel"
     success_count=$((success_count + 1))
 else

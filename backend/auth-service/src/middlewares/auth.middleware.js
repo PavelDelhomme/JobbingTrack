@@ -41,6 +41,7 @@ const authenticate = async (req, res, next) => {
           lastName: true,
           phone: true,
           profilePicture: true,
+          role: true, // ✅ Récupérer le rôle
           createdAt: true
         }
       });
