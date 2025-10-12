@@ -47,6 +47,7 @@ interface Stats {
   averageDuration: number
   byType: Record<string, number>
   byOutcome: Record<string, number>
+  monthlyTrend?: any[]
 }
 
 const CALL_TYPES = {
@@ -123,7 +124,7 @@ export default function CallsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/v1/calls/stats/overview', {
+      const response = await fetch('http://localhost:8080/api/v1/calls/stats/overview', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -136,6 +137,20 @@ export default function CallsPage() {
       }
     } catch (err) {
       console.error('Erreur stats:', err)
+      // ✅ Utiliser des stats par défaut si l'endpoint n'existe pas encore
+      setStats({
+        total: calls.length,
+        byType: {
+          INCOMING: calls.filter(c => c.type === 'INCOMING').length,
+          OUTGOING: calls.filter(c => c.type === 'OUTGOING').length
+        },
+        completed: calls.filter(c => c.status === 'COMPLETED').length,
+        scheduled: calls.filter(c => c.status === 'SCHEDULED').length,
+        completionRate: calls.length > 0 ? ((calls.filter(c => c.status === 'COMPLETED').length / calls.length) * 100).toFixed(1) : '0',
+        averageDuration: 0,
+        byOutcome: {},
+        monthlyTrend: []
+      })
     }
   }
 

@@ -29,19 +29,19 @@ export default function SettingsPage() {
   return (
     <AdminLayout>
       <div>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        {/* Header - Responsive */}
+        <div className="mb-4 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
             ⚙️ Configuration & Administration Système
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
             Paramètres avancés et outils d'administration
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8">
+        {/* Tabs - Scrollables sur mobile */}
+        <div className="mb-4 md:mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
             <TabButton
               active={activeTab === 'system'}
               onClick={() => setActiveTab('system')}
@@ -69,8 +69,8 @@ export default function SettingsPage() {
           </nav>
         </div>
 
-        {/* Content */}
-        <div className="space-y-6">
+        {/* Content - Responsive */}
+        <div className="space-y-3 md:space-y-4 lg:space-y-6">
           {activeTab === 'system' && <SystemPanel />}
           {activeTab === 'database' && <DatabasePanel />}
           {activeTab === 'services' && <ServicesPanel />}
@@ -90,13 +90,13 @@ function TabButton({ active, onClick, icon, label }: {
   return (
     <button
       onClick={onClick}
-      className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+      className={`py-2 sm:py-3 md:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 whitespace-nowrap ${
         active
           ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
           : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
       }`}
     >
-      <span>{icon}</span>
+      <span className="text-sm sm:text-base">{icon}</span>
       <span>{label}</span>
     </button>
   )
@@ -113,13 +113,13 @@ function SystemPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* System Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
           🖥️ Informations système
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <InfoRow label="Version" value={systemInfo.version} />
           <InfoRow label="Node.js" value={systemInfo.nodeVersion} />
           <InfoRow label="Environnement" value={systemInfo.environment} />
@@ -130,11 +130,11 @@ function SystemPanel() {
       </div>
 
       {/* System Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
           ⚙️ Actions système
         </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <ActionCard
             icon="🔄"
             title="Redémarrer services"
@@ -167,10 +167,10 @@ function SystemPanel() {
 
 function DatabasePanel() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Database Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
           Informations base de données
         </h3>
         <div className="grid grid-cols-2 gap-4 text-white">
@@ -229,10 +229,10 @@ function DatabasePanel() {
 
 function ServicesPanel() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Services Config */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-white mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
           Configuration des services
         </h3>
         <div className="space-y-4 text-white dark:text-gray-100 dark:bg-gray-800">
@@ -289,10 +289,10 @@ function ServicesPanel() {
 
 function SecurityPanel() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-4 lg:space-y-6">
       {/* Security Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
           🔐 Paramètres de sécurité
         </h3>
         <div className="space-y-4">
@@ -363,9 +363,9 @@ function SecurityPanel() {
 
 function InfoRow({ label, value }: { label: string, value: string }) {
   return (
-    <div className="flex justify-between py-2">
-      <span className="text-sm text-gray-600 dark:text-gray-400">{label}:</span>
-      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{value}</span>
+    <div className="flex justify-between py-2 gap-2">
+      <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{label}:</span>
+      <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 text-right flex-shrink-0">{value}</span>
     </div>
   )
 }
@@ -377,15 +377,15 @@ function ServiceConfigRow({ name, port, status, memory }: {
   memory: string
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-      <div className="flex-1">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white">{name}</h4>
-        <p className="text-xs text-gray-500 dark:text-white">Port: {port}</p>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{name}</h4>
+        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Port: {port}</p>
       </div>
-      <div className="flex items-center space-x-4">
-        <span className="text-xs text-gray-600">RAM: {memory}</span>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          status === 'running' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      <div className="flex items-center space-x-2 sm:space-x-4">
+        <span className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">RAM: {memory}</span>
+        <span className={`px-2 py-1 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap ${
+          status === 'running' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
         }`}>
           {status}
         </span>
@@ -400,15 +400,15 @@ function SecurityOption({ label, value, description }: {
   description: string
 }) {
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</h4>
-        <button className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-800 dark:hover:text-blue-300">
+    <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+      <div className="flex justify-between items-start mb-2 gap-2">
+        <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{label}</h4>
+        <button className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-800 dark:hover:text-blue-300 flex-shrink-0">
           ✏️ Modifier
         </button>
       </div>
-      <p className="text-sm text-gray-900 dark:text-gray-100 mb-1 font-mono">{value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+      <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 mb-1 font-mono truncate">{value}</p>
+      <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{description}</p>
     </div>
   )
 }
@@ -430,11 +430,11 @@ function ActionCard({ icon, title, description, onClick, color = 'blue' }: {
   return (
     <button
       onClick={onClick}
-      className={`p-4 border rounded-lg text-left transition-colors ${colors[color]}`}
+      className={`p-3 sm:p-4 border rounded-lg text-left transition-colors ${colors[color]}`}
     >
-      <div className="text-2xl mb-2">{icon}</div>
-      <h4 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{title}</h4>
-      <p className="text-xs opacity-80 text-gray-600 dark:text-gray-400">{description}</p>
+      <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{icon}</div>
+      <h4 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1 text-gray-900 dark:text-gray-100 truncate">{title}</h4>
+      <p className="text-[10px] sm:text-xs opacity-80 text-gray-600 dark:text-gray-400 line-clamp-2">{description}</p>
     </button>
   )
 }

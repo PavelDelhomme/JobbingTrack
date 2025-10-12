@@ -8,6 +8,7 @@ const logsController = require('../controllers/logs.controller');
 const trashController = require('../controllers/trash.controller');
 const archiveController = require('../controllers/archive.controller');
 const testDataController = require('../controllers/testdata.controller');
+const dockerStatsController = require('../controllers/docker-stats.controller');
 
 // Middleware d'authentification
 const authenticate = (req, res, next) => {
@@ -43,6 +44,12 @@ const authenticate = (req, res, next) => {
 router.post('/services/restart', authenticate, adminController.restartService);
 router.post('/services/stop', authenticate, adminController.stopService);
 router.post('/services/start', authenticate, adminController.startService);
+
+// Routes des statistiques Docker (admin uniquement)
+router.get('/docker/stats', authenticate, dockerStatsController.getAllDockerStats);
+router.get('/docker/stats/:serviceName', authenticate, dockerStatsController.getDockerStatsByService);
+router.get('/docker/stats/:serviceName/history', authenticate, dockerStatsController.getDockerStatsHistory);
+router.get('/docker/info/:serviceName', authenticate, dockerStatsController.getContainerInfo);
 
 // Routes des logs (admin uniquement)
 router.get('/logs/services', authenticate, logsController.getAvailableServices);
