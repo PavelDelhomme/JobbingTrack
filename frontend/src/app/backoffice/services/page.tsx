@@ -39,6 +39,7 @@ export default function ServicesPage() {
   ])
   const [testing, setTesting] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState(15) // En secondes, par défaut 15s
   const [logs, setLogs] = useState<string[]>([])
   const [selectedService, setSelectedService] = useState<string>('all')
   const [loadingLogs, setLoadingLogs] = useState(false)
@@ -58,12 +59,12 @@ export default function ServicesPage() {
         if (activeTab === 'logs') {
           fetchLogs()
         }
-      }, 30000)
+      }, refreshInterval * 1000) // Convertir les secondes en millisecondes
     }
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [autoRefresh, activeTab])
+  }, [autoRefresh, activeTab, refreshInterval])
 
   useEffect(() => {
     if (activeTab === 'logs' && token) {
@@ -153,13 +154,13 @@ export default function ServicesPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                🔧 Services & Tests
+                🔧 Gestion des Services
               </h1>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Surveillance, tests et logs des microservices
               </p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 items-center">
               <label className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <input
                   type="checkbox"
@@ -167,8 +168,27 @@ export default function ServicesPage() {
                   onChange={(e) => setAutoRefresh(e.target.checked)}
                   className="rounded text-blue-600"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Auto-refresh (30s)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Auto-refresh ({refreshInterval}s)</span>
               </label>
+              
+              {/* Contrôle de l'intervalle de refresh */}
+              <div className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <span className="text-sm text-gray-700 dark:text-gray-300">Intervalle:</span>
+                <select
+                  value={refreshInterval}
+                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  className="px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
+                >
+                  <option value={5}>5s</option>
+                  <option value={10}>10s</option>
+                  <option value={15}>15s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>1 min</option>
+                  <option value={120}>2 min</option>
+                  <option value={300}>5 min</option>
+                </select>
+              </div>
+
               {activeTab === 'services' && (
                 <button
                   onClick={testAllServices}

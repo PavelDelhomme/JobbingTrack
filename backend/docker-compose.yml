@@ -62,8 +62,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
       - ./docker-compose.yml:/app/docker-compose.yml:ro
-      # ✅ Monter docker CLI (si nécessaire)
-      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       - auth-service
       - application-service

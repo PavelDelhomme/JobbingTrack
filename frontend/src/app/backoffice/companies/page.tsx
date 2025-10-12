@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { companyService } from '@/lib/api'
+import Link from 'next/link'
 
 interface Company {
   id: string
@@ -85,9 +86,9 @@ export default function CompaniesPage() {
     <AdminLayout>
       <div>
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               🏢 Gestion des Entreprises
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
@@ -96,7 +97,7 @@ export default function CompaniesPage() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center whitespace-nowrap"
           >
             ➕ Nouvelle entreprise
           </button>
@@ -106,29 +107,29 @@ export default function CompaniesPage() {
         <div className="mb-6">
           <input
             type="text"
-            placeholder="Rechercher une entreprise..."    
+            placeholder="Rechercher une entreprise..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </div>
 
         {/* Companies Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCompanies.map((company) => (
-            <CompanyCard
-              key={company.id}
-              company={company}
-              onDelete={() => handleDeleteCompany(company.id)}
-            />
-          ))}
-
-          {filteredCompanies.length === 0 && (
-            <div className="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
-              Aucune entreprise trouvée
-            </div>
-          )}
-        </div>
+        {filteredCompanies.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            Aucune entreprise trouvée
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredCompanies.map((company) => (
+              <CompanyCard
+                key={company.id}
+                company={company}
+                onDelete={() => handleDeleteCompany(company.id)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Create Company Modal */}
         {showCreateModal && (
@@ -150,66 +151,77 @@ function CompanyCard({ company, onDelete }: {
   onDelete: () => void
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-            {company.name}
-          </h3>
-          {company.industry && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{company.industry}</p>
+    <Link href={`/backoffice/companies/${company.id}`}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer hover:scale-[1.02]">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              {company.name}
+            </h3>
+            {company.industry && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{company.industry}</p>
+            )}
+          </div>
+          <div className="h-12 w-12 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-2xl">
+            🏢
+          </div>
+        </div>
+
+        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {company.location && (
+            <p>📍 {company.location}</p>
+          )}
+          {company.size && (
+            <p>👥 {company.size} employés</p>
+          )}
+          {company.website && (
+            <a
+              href={company.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block truncate"
+              onClick={(e) => e.stopPropagation()}
+            >
+              🔗 {company.website}
+            </a>
           )}
         </div>
-        <div className="h-12 w-12 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-2xl">
-          🏢
-        </div>
-      </div>
 
-      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-        {company.location && (
-          <p>📍 {company.location}</p>
+        {company._count && (
+          <div className="flex space-x-4 mb-4 text-sm">
+            <span className="text-gray-600 dark:text-gray-400">
+              📝 {company._count.applications} candidatures
+            </span>
+            <span className="text-gray-600 dark:text-gray-400">
+              👤 {company._count.contacts} contacts
+            </span>
+          </div>
         )}
-        {company.size && (
-          <p>👥 {company.size} employés</p>
-        )}
-        {company.website && (
-          <a
-            href={company.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block truncate"
+
+        <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              window.location.href = `/backoffice/companies/${company.id}?edit=true`
+            }}
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
           >
-            🔗 {company.website}
-          </a>
-        )}
-      </div>
-
-      {company._count && (
-        <div className="flex space-x-4 mb-4 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">
-            📝 {company._count.applications} candidatures
-          </span>
-          <span className="text-gray-600 dark:text-gray-400">
-            👤 {company._count.contacts} contacts
-          </span>
+            ✏️ Modifier
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium"
+          >
+            🗑️ Supprimer
+          </button>
         </div>
-      )}
-
-      <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => alert('Édition à implémenter')}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
-        >
-          ✏️ Modifier
-        </button>
-        <button
-          onClick={onDelete}
-          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium"
-        >
-          🗑️ Supprimer
-        </button>
       </div>
-    </div>
+    </Link>
   )
 }
 

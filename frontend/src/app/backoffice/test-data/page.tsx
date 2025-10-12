@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { adminService } from '@/lib/api'
+import { adminService, authService } from '@/lib/api'
 
 interface GenerationConfig {
   users: number
@@ -15,6 +15,32 @@ interface GenerationConfig {
   events: number
   deletedItems: number
   archivedItems: number
+}
+
+interface GenerationOptions {
+  users: boolean
+  companies: boolean
+  applications: boolean
+  contacts: boolean
+  interviews: boolean
+  followups: boolean
+  calls: boolean
+  events: boolean
+  deletedItems: boolean
+  archivedItems: boolean
+}
+
+interface UserSelection {
+  selectedUsers: string[]
+  generateForAllUsers: boolean
+}
+
+interface User {
+  id: string
+  email: string
+  role: string
+  firstName?: string
+  lastName?: string
 }
 
 export default function TestDataGeneratorPage() {
@@ -31,23 +57,51 @@ export default function TestDataGeneratorPage() {
     archivedItems: 3
   })
 
+  const [options, setOptions] = useState<GenerationOptions>({
+    users: true,
+    companies: true,
+    applications: true,
+    contacts: true,
+    interviews: true,
+    followups: true,
+    calls: true,
+    events: true,
+    deletedItems: true,
+    archivedItems: true
+  })
+
+  const [userSelection, setUserSelection] = useState<UserSelection>({
+    selectedUsers: [],
+    generateForAllUsers: true
+  })
+
+  const [availableUsers, setAvailableUsers] = useState<User[]>([])
+
   const [generating, setGenerating] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [output, setOutput] = useState<string>('')
   const [showOutput, setShowOutput] = useState(false)
 
   const handleGenerate = async () => {
+    // Vérifier qu'au moins une option est sélectionnée
+    const enabledOptions = Object.values(options).filter(Boolean)
+    if (enabledOptions.length === 0) {
+      alert('❌ Veuillez sélectionner au moins un type de données à générer.')
+      return
+    }
+
+    // Construire la liste des données à générer
+    const dataToGenerate = Object.entries(options)
+      .filter(([_, enabled]) => enabled)
+      .map(([key, _]) => {
+        const count = config[key as keyof GenerationConfig]
+        return `${count} ${getLabelForKey(key)}`
+      })
+      .join('\n')
+
     if (!confirm(
-      `⚠️ ATTENTION ⚠️\n\nVoulez-vous générer des données de test avec cette configuration ?\n\nCela va créer:\n` +
-      `- ${config.users} utilisateurs\n` +
-      `- ${config.companies} entreprises\n` +
-      `- ${config.applications} candidatures\n` +
-      `- ${config.contacts} contacts\n` +
-      `- ${config.interviews} entretiens\n` +
-      `- ${config.followups} relances\n` +
-      `- ${config.calls} appels\n` +
-      `- ${config.deletedItems} éléments en corbeille\n` +
-      `- ${config.archivedItems} éléments archivés`
+      `⚠️ ATTENTION ⚠️\n\nVoulez-vous générer ces données de test ?\n\nCela va créer:\n${dataToGenerate}\n\n` +
+      `${userSelection.generateForAllUsers ? 'Pour TOUS les utilisateurs' : `Pour ${userSelection.selectedUsers.length} utilisateur(s) sélectionné(s)`}`
     )) return
 
     setGenerating(true)
@@ -55,8 +109,14 @@ export default function TestDataGeneratorPage() {
     setShowOutput(true)
 
     try {
-      const response = await adminService.generateTestData(config)
-      
+      const generationData = {
+        config,
+        options,
+        userSelection
+      }
+
+      const response = await adminService.generateTestData(generationData)
+
       if (response.data.success) {
         setOutput(response.data.output || 'Données générées avec succès !')
         alert('✅ Données de test générées avec succès !')
@@ -69,6 +129,50 @@ export default function TestDataGeneratorPage() {
       setGenerating(false)
     }
   }
+
+  const getLabelForKey = (key: string): string => {
+    const labels: Record<string, string> = {
+      users: 'utilisateurs',
+      companies: 'entreprises',
+      applications: 'candidatures',
+      contacts: 'contacts',
+      interviews: 'entretiens',
+      followups: 'relances',
+      calls: 'appels',
+      events: 'événements',
+      deletedItems: 'éléments supprimés',
+      archivedItems: 'éléments archivés'
+    }
+    return labels[key] || key
+  }
+
+  const fetchAvailableUsers = async () => {
+    try {
+      const response = await authService.getAllUsers()
+      if (response.data.success && response.data.users) {
+        setAvailableUsers(response.data.users.map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          firstName: u.firstName,
+          lastName: u.lastName
+        })))
+      }
+    } catch (error) {
+      console.error('Erreur récupération utilisateurs:', error)
+      // Fallback sur des utilisateurs par défaut en cas d'erreur
+      setAvailableUsers([
+        { id: '1', email: 'user1@jobbingtrack.test', role: 'SUPER_ADMIN', firstName: 'Admin', lastName: 'JobbingTrack' },
+        { id: '2', email: 'user2@jobbingtrack.test', role: 'ADMIN', firstName: 'Marie', lastName: 'Martin' },
+        { id: '3', email: 'user3@jobbingtrack.test', role: 'USER', firstName: 'Thomas', lastName: 'Bernard' }
+      ])
+    }
+  }
+
+  // Charger les utilisateurs au montage du composant
+  useEffect(() => {
+    fetchAvailableUsers()
+  }, [])
 
   const handleClear = async () => {
     if (!confirm(
@@ -176,8 +280,8 @@ export default function TestDataGeneratorPage() {
     <AdminLayout>
       <div className="p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">🎲 Générateur de Données de Test</h1>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">🎲 Générateur de Données de Test</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Générez des données réalistes et cohérentes pour tester l'application
           </p>
@@ -202,9 +306,9 @@ export default function TestDataGeneratorPage() {
         </div>
 
         {/* Presets */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">📋 Configurations prédéfinies</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">📋 Configurations prédéfinies</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {presets.map(preset => (
               <button
                 key={preset.name}
@@ -219,6 +323,118 @@ export default function TestDataGeneratorPage() {
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Sélection des types de données */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">🎯 Sélection des données à générer</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {Object.entries(options).map(([key, enabled]) => (
+              <label key={key} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => setOptions({ ...options, [key]: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">
+                      {key === 'users' ? '👥' :
+                       key === 'companies' ? '🏢' :
+                       key === 'applications' ? '📋' :
+                       key === 'contacts' ? '👤' :
+                       key === 'interviews' ? '🎤' :
+                       key === 'followups' ? '📧' :
+                       key === 'calls' ? '📞' :
+                       key === 'events' ? '📅' :
+                       key === 'deletedItems' ? '🗑️' : '📦'}
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {getLabelForKey(key)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {config[key as keyof GenerationConfig]} éléments
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Sélection des utilisateurs */}
+          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">👤 Sélection des utilisateurs</h3>
+
+            <div className="flex items-center gap-4 mb-4">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={userSelection.generateForAllUsers}
+                  onChange={() => setUserSelection({ selectedUsers: [], generateForAllUsers: true })}
+                  className="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400"
+                />
+                <span className="text-gray-900 dark:text-gray-100 font-medium">Tous les utilisateurs</span>
+              </label>
+
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={!userSelection.generateForAllUsers}
+                  onChange={() => setUserSelection({ ...userSelection, generateForAllUsers: false })}
+                  className="w-4 h-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400"
+                />
+                <span className="text-gray-900 dark:text-gray-100 font-medium">Utilisateurs spécifiques</span>
+              </label>
+            </div>
+
+            {!userSelection.generateForAllUsers && (
+              <div>
+                {availableUsers.length === 0 ? (
+                  <div className="flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">⏳</div>
+                      <p>Chargement des utilisateurs...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {availableUsers.map((user) => (
+                      <label key={user.id} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={userSelection.selectedUsers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                          setUserSelection({
+                            ...userSelection,
+                            selectedUsers: [...userSelection.selectedUsers, user.id]
+                          })
+                        } else {
+                          setUserSelection({
+                            ...userSelection,
+                            selectedUsers: userSelection.selectedUsers.filter(id => id !== user.id)
+                          })
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {user.email} • {user.role}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

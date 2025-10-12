@@ -84,9 +84,9 @@ export default function ApplicationsPage() {
     <AdminLayout>
       <div>
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               📝 Gestion des Candidatures
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
@@ -95,18 +95,18 @@ export default function ApplicationsPage() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center whitespace-nowrap"
           >
             ➕ Nouvelle candidature
           </button>
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex space-x-4">
+        <div className="mb-6">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
           >
             <option value="all">Tous les statuts</option>
             <option value="DRAFT">Brouillon</option>
@@ -119,74 +119,146 @@ export default function ApplicationsPage() {
         </div>
 
         {/* Applications List */}
-        <div className="table-container">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="table-header">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Poste
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Entreprise
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredApplications.map((app) => (
-                <tr key={app.id} className="table-row">
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {app.position}
-                    </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Poste
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Entreprise
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredApplications.map((app) => (
+                  <tr
+                    key={app.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                    onClick={(e) => {
+                      // Ne pas déclencher si on clique sur les boutons d'action
+                      if ((e.target as HTMLElement).closest('button')) return
+                      router.push(`/backoffice/applications/${app.id}`)
+                    }}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {app.position}
+                      </div>
+                      {app.location && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{app.location}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {app.company?.name || app.companyName || '-'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={app.status} />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {app.type}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {app.applicationDate
+                        ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
+                        : new Date(app.createdAt).toLocaleDateString('fr-FR')
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/backoffice/applications/${app.id}`)
+                        }}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
+                      >
+                        Voir
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteApplication(app.id)
+                        }}
+                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredApplications.map((app) => (
+              <div
+                key={app.id}
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                onClick={() => router.push(`/backoffice/applications/${app.id}`)}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{app.position}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {app.company?.name || app.companyName || '-'}
+                    </p>
                     {app.location && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{app.location}</div>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">📍 {app.location}</p>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {app.company?.name || app.companyName || '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {app.type}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                  </div>
+                  <StatusBadge status={app.status} />
+                </div>
+
+                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
+                  <span>{app.type}</span>
+                  <span>
                     {app.applicationDate
                       ? new Date(app.applicationDate).toLocaleDateString('fr-FR')
                       : new Date(app.createdAt).toLocaleDateString('fr-FR')
                     }
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    <button
-                      onClick={() => router.push(`/backoffice/applications/${app.id}`)}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
-                    >
-                      Voir
-                    </button>
-                    <button
-                      onClick={() => handleDeleteApplication(app.id)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                    >
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/backoffice/applications/${app.id}`)
+                    }}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Voir détails
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteApplication(app.id)
+                    }}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {filteredApplications.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
