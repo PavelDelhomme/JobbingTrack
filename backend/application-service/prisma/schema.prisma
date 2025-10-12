@@ -10,108 +10,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle Utilisateur
-model User {
-  id             String  @id @default(cuid())
-  email          String  @unique
-  password       String
-  firstName      String
-  lastName       String
-  phone          String?
-  profilePicture String?
+// Modèles spécifiques au Application Service
+// Le Application Service gère les candidatures, plateformes, entretiens, relances et appels
 
-  // Champs pour reset password
-  resetToken       String?
-  resetTokenExpiry DateTime?
-
-  // Champs administratifs
-  role     UserRole @default(USER)
-  isActive Boolean  @default(true)
-
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-  archivedAt DateTime?
-
-  // Champs de synchronisation
-  isDeleted  Boolean   @default(false)
-  isArchived Boolean   @default(false)
-  syncHash   String    @default("")
-  entityHash String    @default("")
-  lastSyncAt DateTime?
-
-  contacts     Contact[]
-  reminders    Reminder[]
-  documents    Document[]
-  templates    MessageTemplate[]
-  applications Application[]
-}
-
-// Modèle Entreprise
-model Company {
-  id          String   @id @default(cuid())
-  name        String
-  website     String?
-  industry    String?
-  size        String?
-  location    String?
-  description String?
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  applications Application[]
-  contacts     Contact[]
-}
-
-// Modèle Candidature
 model Application {
   id              String            @id @default(cuid())
   userId          String
   companyId       String
+  platformId      String? // Plateforme de candidature utilisée
   position        String
   description     String?
   location        String?
   type            JobType           @default(FULL_TIME)
   salary          String?
-  status          ApplicationStatus @default(DRAFT)
-  applicationDate DateTime?
-  source          String? // LinkedIn, Indeed, Site entreprise, etc.
+  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime          @default(now()) // Date et heure d'envoi
   jobUrl          String?
   notes           String?
+  // Champs d'archivage
+  isArchived      Boolean           @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?           // ID de l'utilisateur qui a archivé
+  archivedReason  String?           // Raison de l'archivage
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company             Company               @relation(fields: [companyId], references: [id])
-  interviews          Interview[]
-  followUps           FollowUp[]
-  applicationDocuments ApplicationDocument[]
-  activities          Activity[]
-  applicationContacts ApplicationContact[] // ✅ NOUVEAU - Liaison avec contacts
-  calls               Call[]
+  platform   Platform?             @relation(fields: [platformId], references: [id])
+  interviews Interview[]
+  followUps  FollowUp[]
+  calls      Call[]
+  applicationContacts ApplicationContact[]
 }
 
-// Modèle Entretien
+model Platform {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  website     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications Application[]
+}
+
 model Interview {
   id            String          @id @default(cuid())
   applicationId String
   type          InterviewType
-  scheduledAt   DateTime
+  scheduledAt   DateTime // Date et heure programmée
   duration      Int? // en minutes
   location      String?
   meetingUrl    String?
   interviewer   String?
   notes         String?
-  status        InterviewStatus @default(SCHEDULED)
+  status        InterviewStatus @default(PENDING)
   feedback      String?
+  completedAt   DateTime? // Date et heure de fin
+  // Champs d'archivage
+  isArchived    Boolean         @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?         // ID de l'utilisateur qui a archivé
+  archivedReason String?        // Raison de l'archivage
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
-// ✅ NOUVEAU - Modèle Appel Téléphonique
+model FollowUp {
+  id            String         @id @default(cuid())
+  applicationId String
+  contactId     String?
+  type          FollowUpType
+  scheduledDate DateTime // Date et heure programmée
+  completed     Boolean        @default(false)
+  completedDate DateTime? // Date et heure de fin
+  sentDate      DateTime? // Date et heure d'envoi effectif
+  subject       String
+  message       String?
+  response      String?
+  responseDate  DateTime? // Date et heure de réponse
+  status        FollowUpStatus @default(PENDING_FOLLOWUP)
+  // Champs d'archivage
+  isArchived    Boolean       @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?       // ID de l'utilisateur qui a archivé
+  archivedReason String?      // Raison de l'archivage
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact     Contact?    @relation(fields: [contactId], references: [id])
+}
+
 model Call {
   id             String     @id @default(cuid())
   applicationId  String // ⚠️ OBLIGATOIRE - Lié à une candidature
@@ -124,6 +116,11 @@ model Call {
   notes          String?
   outcome        String? // Résultat de l'appel
   followUpNeeded Boolean    @default(false)
+  // Champs d'archivage
+  isArchived     Boolean    @default(false)
+  archivedAt     DateTime?
+  archivedBy     String?    // ID de l'utilisateur qui a archivé
+  archivedReason String?    // Raison de l'archivage
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -131,54 +128,6 @@ model Call {
   contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
 }
 
-// Modèle Contact
-model Contact {
-  id              String    @id @default(cuid())
-  userId          String
-  companyId       String? // Peut être lié à une entreprise
-  firstName       String
-  lastName        String
-  position        String?
-  email           String?
-  phone           String?
-  linkedinUrl     String?
-  notes           String?
-  lastContactDate DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company             Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  followUps           FollowUp[]
-  calls               Call[] // ✅ NOUVEAU
-  activities          Activity[]
-  applicationContacts ApplicationContact[]
-}
-
-// Modèle Relance
-model FollowUp {
-  id             String       @id @default(cuid())
-  applicationId  String // ⚠️ OBLIGATOIRE - Lié à une candidature
-  contactId      String? // Optionnel - Contact à relancer
-  type           FollowUpType
-  scheduledDate  DateTime
-  completed      Boolean      @default(false)
-  completedDate  DateTime?
-  subject        String
-  message        String?
-  response       String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deletedBy      String? // ID de l\'admin qui a supprimé
-  adminDeletedAt DateTime? // Date de suppression admin
-  canRestore     Boolean      @default(true) // Peut être restauré
-
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
-}
-
-// ✅ NOUVEAU - Table de liaison Application-Contact
-// Permet de lier plusieurs contacts à une candidature
 model ApplicationContact {
   id            String   @id @default(cuid())
   applicationId String
@@ -193,68 +142,65 @@ model ApplicationContact {
   @@unique([applicationId, contactId])
 }
 
-// Modèle Document
-model Document {
-  id        String       @id @default(cuid())
-  userId    String
-  name      String
-  type      DocumentType
-  url       String
-  size      Int // en bytes
-  mimeType  String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+// Modèles partagés nécessaires pour les relations
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  profilePicture String?
+  role      String   @default('USER')
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  applicationDocuments ApplicationDocument[]
+  applications Application[]
 }
 
-// Table de liaison Application-Document
-model ApplicationDocument {
-  id            String   @id @default(cuid())
-  applicationId String
-  documentId    String
-  version       Int      @default(1)
-  createdAt     DateTime @default(now())
-
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  document    Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@unique([applicationId, documentId, version])
-}
-
-// Modèle Rappel
-model Reminder {
-  id          String       @id @default(cuid())
-  userId      String
-  title       String
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
   description String?
-  dueDate     DateTime
-  type        ReminderType
-  relatedId   String? // ID de l'application, interview, etc.
-  completed   Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications Application[]
 }
 
-// Modèle Template de Message
-model MessageTemplate {
-  id        String              @id @default(cuid())
-  userId    String
-  name      String
-  subject   String
-  content   String
-  type      MessageTemplateType
-  variables String[] // Variables disponibles: {{firstName}}, {{companyName}}, etc.
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String?
+  firstName       String
+  lastName        String
+  position        String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  notes           String?
+  lastContactDate DateTime?
+  // Champs d'archivage
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?   // ID de l'utilisateur qui a archivé
+  archivedReason  String?   // Raison de l'archivage
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    Company?   @relation(fields: [companyId], references: [id])
+  followUps  FollowUp[]
+  calls      Call[]
+  applicationContacts ApplicationContact[]
 }
 
-// Modèle Activité (pour l'historique)
 model Activity {
   id            String       @id @default(cuid())
   applicationId String?
@@ -263,13 +209,11 @@ model Activity {
   description   String
   metadata      Json?
   createdAt     DateTime     @default(now())
-
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
 }
 
-// ENUMS
 
+
+// Enums partagés
 enum JobType {
   FULL_TIME
   PART_TIME
@@ -282,16 +226,15 @@ enum JobType {
 }
 
 enum ApplicationStatus {
-  DRAFT
-  SENT
-  IN_REVIEW
-  INTERVIEW_SCHEDULED
-  INTERVIEWED
-  OFFER_RECEIVED
-  ACCEPTED
-  REJECTED
-  WITHDRAWN
-  NO_RESPONSE
+  CANDIDATE_PENDING    // "Candidaté et en attente"
+  NO_RESPONSE          // "Aucune réponse"
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP  // "Aucune réponse après 1 relance"
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // "Aucune réponse après 2 relance"
+  FIRST_INTERVIEW_PENDING           // "1er entretien en attente"
+  OTHER_INTERVIEW_PENDING           // "Autre entretien en attente"
+  ACCEPTED_AFTER_INTERVIEW         // "Retenue après entretien"
+  REJECTED_WITHOUT_INTERVIEW       // "Non retenue sans entretien"
+  REJECTED_AFTER_INTERVIEW         // "Non retenue après entretien"
 }
 
 enum InterviewType {
@@ -306,11 +249,10 @@ enum InterviewType {
 }
 
 enum InterviewStatus {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
-  RESCHEDULED
-  NO_SHOW
+  UPCOMING_ARRIVAL     // "Entretien arrivé"
+  COMPLETED            // "Entretien passé"
+  FEEDBACK_PENDING     // "Retour prévu d'ici (plage de retour)"
+  PENDING              // "Entretien en attente"
 }
 
 enum FollowUpType {
@@ -321,49 +263,14 @@ enum FollowUpType {
   MEETING
 }
 
-enum DocumentType {
-  RESUME
-  COVER_LETTER
-  PORTFOLIO
-  CERTIFICATE
-  REFERENCE
-  OTHER
+enum FollowUpStatus {
+  PENDING_FOLLOWUP     // "Relance et en attente"
+  POSITIVE_RESPONSE    // "Retour positif reçu"
+  NEGATIVE_RESPONSE    // "Retour négatif reçu"
+  NO_RESPONSE          // "Aucun retour"
+  SCHEDULED_FOLLOWUP   // "Relance prévisionnel"
 }
 
-enum ReminderType {
-  APPLICATION_FOLLOWUP
-  INTERVIEW
-  DOCUMENT_UPDATE
-  GENERAL
-}
-
-enum MessageTemplateType {
-  APPLICATION
-  FOLLOWUP
-  THANK_YOU
-  WITHDRAWAL
-  NEGOTIATION
-}
-
-enum ActivityType {
-  APPLICATION_CREATED
-  APPLICATION_UPDATED
-  STATUS_CHANGED
-  INTERVIEW_SCHEDULED
-  INTERVIEW_COMPLETED
-  DOCUMENT_UPLOADED
-  FOLLOWUP_SENT
-  CONTACT_ADDED
-  NOTE_ADDED
-}
-
-enum UserRole {
-  USER
-  ADMIN
-  SUPER_ADMIN
-}
-
-// ✅ NOUVEAUX ENUMS pour les appels
 enum CallType {
   OUTGOING // Appel sortant
   INCOMING // Appel entrant
@@ -377,4 +284,27 @@ enum CallStatus {
   NO_ANSWER // Pas de réponse
   VOICEMAIL // Message vocal laissé
   RESCHEDULED // Replanifié
+}
+
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+  PORTFOLIO
+  CERTIFICATE
+  REFERENCE
+  OTHER
+}
+
+enum ActivityType {
+  APPLICATION_CREATED
+  APPLICATION_UPDATED
+  STATUS_CHANGED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  DOCUMENT_UPLOADED
+  FOLLOWUP_SENT
+  CONTACT_ADDED
+  NOTE_ADDED
+  APPLICATION_ARCHIVED
+  APPLICATION_RESTORED
 }

@@ -132,9 +132,33 @@ export default function TrashManagementPage() {
             <span>Vider la corbeille</span>
           </button>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <StatCard
+            title="Total archives"
+            value={stats.total}
+            icon="🗑️"
+            color="blue"
+          />
+          <StatCard
+            title="Cette semaine"
+            value={stats.restorable}
+            icon="♻️"
+            color="purple"
+          />
+          <StatCard
+            title="Ce mois-ci"
+            value={items.filter(i => {
+              const monthAgo = new Date()
+              monthAgo.setMonth(monthAgo.getMonth() - 1)
+              return new Date(i.deletedAt) > monthAgo
+            }).length}
+            icon="📊"
+            color="green"
+          />
+        </div>
 
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/*<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
             title="Total éléments"
             value={stats.total}
@@ -153,7 +177,7 @@ export default function TrashManagementPage() {
             icon="⚠️"
             color="red"
           />
-        </div>
+        </div>*/}
 
         {/* Filtres */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -252,6 +276,37 @@ function StatCard({ title, value, icon, color }: {
   title: string
   value: number
   icon: string
+  color: 'blue' | 'green' | 'purple'
+}) {
+  const colors = {
+    blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+    green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+    purple: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+  }
+
+  const textColors = {
+    blue: 'text-blue-700 dark:text-blue-300',
+    green: 'text-green-700 dark:text-green-300',
+    purple: 'text-purple-700 dark:text-purple-300'
+  }
+
+  return (
+    <div className={`${colors[color]} border rounded-lg p-6`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className={`text-sm font-medium ${textColors[color]}`}>{title}</p>
+          <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-gray-100">{value}</p>
+        </div>
+        <div className="text-4xl">{icon}</div>
+      </div>
+    </div>
+  )
+}
+/*
+function StatCard({ title, value, icon, color }: {
+  title: string
+  value: number
+  icon: string
   color: 'gray' | 'green' | 'red'
 }) {
   const colors = {
@@ -277,7 +332,7 @@ function StatCard({ title, value, icon, color }: {
       </div>
     </div>
   )
-}
+}*/
 
 function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
   item: DeletedItem

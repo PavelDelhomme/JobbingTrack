@@ -19,18 +19,18 @@ const createApplication = async (req, res, next) => {
       });
     }
 
-    const { 
+    const {
       companyId,  // Peut être fourni directement
       companyName,  // ✅ NOUVEAU - Ou on peut fournir juste le nom
       companyData,  // ✅ NOUVEAU - Données supplémentaires de l'entreprise
-      position, 
-      description, 
-      location, 
+      platformId,   // ✅ NOUVEAU - Plateforme de candidature utilisée
+      position,
+      description,
+      location,
       type = 'FULL_TIME',
       salary,
-      status = 'DRAFT',
+      status = 'CANDIDATE_PENDING', // ✅ NOUVEAU - Statut par défaut mis à jour
       applicationDate,
-      source,
       jobUrl,
       notes
     } = req.body;
@@ -63,19 +63,20 @@ const createApplication = async (req, res, next) => {
       data: {
         userId: req.user.id,
         companyId: finalCompanyId,
+        platformId: platformId || null,
         position,
         description,
         location,
         type,
         salary,
         status,
-        applicationDate: applicationDate ? new Date(applicationDate) : null,
-        source,
+        applicationDate: applicationDate ? new Date(applicationDate) : new Date(), // ✅ NOUVEAU - Date par défaut
         jobUrl,
         notes
       },
       include: {
-        company: true
+        company: true,
+        platform: true // ✅ NOUVEAU - Inclure la plateforme
       }
     });
 
@@ -142,30 +143,33 @@ const createApplication = async (req, res, next) => {
 // READ - Lister les candidatures
 const getApplications = async (req, res, next) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      status, 
-      search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    search,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+    includeArchived = 'false' // Inclure les candidatures archivées
+  } = req.query;
 
     const offset = (page - 1) * limit;
     
-    const where = {
-      userId: req.user.id,
-      ...(status && { status }),
-      ...(search && {
-        position: { contains: search, mode: 'insensitive' }
-      })
-    };
+  const where = {
+    userId: req.user.id,
+    ...(includeArchived !== 'true' && { isArchived: false }), // Exclure les candidatures archivées sauf si demandé
+    ...(status && { status }),
+    ...(search && {
+      position: { contains: search, mode: 'insensitive' }
+    })
+  };
 
     const [applications, total] = await Promise.all([
       prisma.application.findMany({
         where,
         include: {
           company: true,
+          platform: true, // ✅ NOUVEAU - Inclure la plateforme
           _count: {
             select: {
               interviews: true,
@@ -208,6 +212,7 @@ const getApplication = async (req, res, next) => {
       },
       include: {
         company: true,
+        platform: true, // ✅ NOUVEAU - Inclure la plateforme
         interviews: {
           orderBy: { scheduledAt: 'asc' }
         },

@@ -25,7 +25,7 @@ const createInterview = async (req, res, next) => {
         meetingUrl: req.body.meetingUrl,
         interviewer: req.body.interviewer,
         notes: req.body.notes,
-        status: req.body.status || 'SCHEDULED'
+        status: req.body.status || 'PENDING'
       }
     });
 
