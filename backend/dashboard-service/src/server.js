@@ -23,13 +23,13 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting spécifique à l'auth
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50, // Plus restrictif pour l'auth
-  message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
-});
-app.use('/api/v1/dashboard', authLimiter);
+// Rate limiting spécifique à l'auth - TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
+// const authLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 50, // Plus restrictif pour l'auth
+//   message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
+// });
+// app.use('/api/v1/dashboard', authLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -42,22 +42,31 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
+// Test route - directement dans le serveur principal
+app.get('/api/v1/dashboard/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Test route fonctionne'
+  });
+});
+
+// Routes du routeur
 app.use('/api/v1/dashboard', dashboardRoutes);
 
+// ✅ TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
 // Middlewares d'erreur
-app.use(notFound);
-app.use(errorHandler);
+// app.use(notFound);
+// app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
-  logger.info(`🔐 Auth Service démarré sur le port ${PORT}`);
+  logger.info(`📊 Dashboard Service démarré sur le port ${PORT}`);
   logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
 });
 
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal reçu: fermeture du service d\'authentification');
+  logger.info('SIGTERM signal reçu: fermeture du Dashboard Service');
   server.close(() => {
-    logger.info('Auth Service fermé');
+    logger.info('Dashboard Service fermé');
     process.exit(0);
   });
 });

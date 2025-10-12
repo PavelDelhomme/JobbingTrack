@@ -14,14 +14,11 @@ COPY package*.json ./
 # Installer les dépendances
 RUN npm install --omit=dev
 
-# Copier le schéma Prisma
-COPY prisma ./prisma/
-
-# Générer le client Prisma
-RUN npx prisma generate
-
-# Copier le code source
+# Copier le code source complet
 COPY . .
+
+# Générer le client Prisma APRÈS avoir copié tout le code
+RUN npx prisma generate
 
 # Créer un utilisateur non-root
 RUN addgroup -g 1001 -S nodejs

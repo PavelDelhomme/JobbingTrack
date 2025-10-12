@@ -46,9 +46,13 @@ const register = async (req, res, next) => {
       }
     });
 
-    // Générer le token JWT
+    // Générer le token JWT avec le rôle
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { 
+        userId: user.id, 
+        email: user.email,
+        role: user.role // ✅ Ajout du rôle dans le JWT
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -99,9 +103,13 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Générer le token JWT
+    // Générer le token JWT avec le rôle
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { 
+        userId: user.id, 
+        email: user.email,
+        role: user.role // ✅ Ajout du rôle dans le JWT
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -125,7 +133,7 @@ const login = async (req, res, next) => {
 
 const getProfile = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id; // ✅ Corrigé : req.user.id au lieu de req.user.userId
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -136,15 +144,11 @@ const getProfile = async (req, res, next) => {
         lastName: true,
         phone: true,
         profilePicture: true,
+        role: true,
+        isActive: true,
         createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            applications: true,
-            contacts: true,
-            reminders: true
-          }
-        }
+        updatedAt: true
+        // ✅ Supprimé _count car le schéma auth-service ne contient pas ces relations
       }
     });
 
@@ -191,7 +195,11 @@ const refreshToken = async (req, res, next) => {
       }
 
       const newToken = jwt.sign(
-        { userId: user.id, email: user.email },
+        { 
+          userId: user.id, 
+          email: user.email,
+          role: user.role // ✅ Ajout du rôle dans le JWT
+        },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -228,10 +236,333 @@ const logout = async (req, res, next) => {
   }
 };
 
+// ✅ ADMIN - Liste tous les utilisateurs
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      users,
+      total: users.length
+    });
+  } catch (error) {
+    logger.error('Erreur récupération utilisateurs:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Modifier le rôle d'un utilisateur
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['USER', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rôle invalide'
+      });
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Rôle mis à jour',
+      user
+    });
+
+    logger.info(`Rôle utilisateur modifié: ${id} -> ${role}`);
+  } catch (error) {
+    logger.error('Erreur mise à jour rôle:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Activer/Désactiver un utilisateur
+const toggleUserStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Utilisateur ${isActive ? 'activé' : 'désactivé'}`,
+      user
+    });
+
+    logger.info(`Statut utilisateur modifié: ${id} -> ${isActive}`);
+  } catch (error) {
+    logger.error('Erreur modification statut:', error);
+    next(error);
+  }
+};
+
+// ✅ ADMIN - Supprimer un utilisateur
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Utilisateur supprimé'
+    });
+
+    logger.info(`Utilisateur supprimé: ${id}`);
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
+      });
+    }
+    logger.error('Erreur suppression utilisateur:', error);
+    next(error);
+  }
+};
+
+// Fonctionnalités de réinitialisation de mot de passe
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Adresse email requise'
+      });
+    }
+
+    // Trouver l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (!user) {
+      // Pour des raisons de sécurité, retourner le même message
+      return res.json({
+        success: true,
+        message: 'Si cette adresse email existe, un lien de réinitialisation a été envoyé'
+      });
+    }
+
+    // Générer un token sécurisé
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Définir l'expiration (1 heure)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Supprimer les anciens tokens de cet utilisateur
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // Créer le nouveau token
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: hashedToken,
+        expiresAt
+      }
+    });
+
+    // Envoyer l'email avec le token non hashé
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    await emailService.sendPasswordResetEmail(user, resetUrl);
+
+    res.json({
+      success: true,
+      message: 'Lien de réinitialisation envoyé par email'
+    });
+
+    logger.info(`Demande de réinitialisation de mot de passe pour: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur demande réinitialisation:', error);
+    next(error);
+  }
+};
+
+const verifyResetToken = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token requis'
+      });
+    }
+
+    // Hasher le token reçu pour comparaison
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Trouver le token dans la base de données
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token: hashedToken,
+        used: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token invalide ou expiré'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Token valide',
+      email: resetToken.user.email
+    });
+  } catch (error) {
+    logger.error('Erreur vérification token:', error);
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token et mot de passe requis'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Le mot de passe doit contenir au moins 6 caractères'
+      });
+    }
+
+    // Hasher le token reçu
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Trouver le token valide
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token: hashedToken,
+        used: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        user: true
+      }
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token invalide ou expiré'
+      });
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Mettre à jour le mot de passe de l'utilisateur
+    await prisma.user.update({
+      where: { id: resetToken.userId },
+      data: {
+        password: hashedPassword,
+        // Nettoyer les anciens tokens de reset
+        resetToken: null,
+        resetTokenExpiry: null
+      }
+    });
+
+    // Marquer le token comme utilisé
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'Mot de passe réinitialisé avec succès'
+    });
+
+    logger.info(`Mot de passe réinitialisé pour: ${resetToken.user.email}`);
+  } catch (error) {
+    logger.error('Erreur réinitialisation mot de passe:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   refreshToken,
-  logout
+  logout,
+  getAllUsers,
+  updateUserRole,
+  toggleUserStatus,
+  deleteUser,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword
 };

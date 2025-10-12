@@ -41,7 +41,7 @@ cd JobbingTrack/microservices
 make up
 
 # Ou avec Docker Compose directement
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Vérification
@@ -133,7 +133,7 @@ curl http://localhost:3001/health
 make test
 
 # Tests d'un service spécifique
-docker-compose exec auth-service npm test
+docker compose exec auth-service npm test
 ```
 
 ## 🔄 Déploiement
@@ -213,7 +213,7 @@ make rebuild-auth-service
 
 ```bash
 # Vérifier la connexion
-docker-compose exec postgres psql -U jobbingtrack -d jobbingtrack
+docker compose exec postgres psql -U jobbingtrack -d jobbingtrack
 
 # Exécuter les migrations
 make migrate

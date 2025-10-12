@@ -1,0 +1,86 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modèles spécifiques au Profile Service
+// Le Profile Service gère les profils utilisateurs et préférences
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bio             String?
+  location        String?
+  website         String?
+  linkedinUrl     String?
+  githubUrl       String?
+  skills          String[] // Compétences techniques
+  experience      Json?    // Expérience professionnelle
+  education       Json?    // Formation
+  languages       Json?    // Langues parlées
+  preferences     Json?    // Préférences utilisateur
+  isPublic        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  theme     String   @default('auto') // auto, light, dark
+  language  String   @default('fr')
+  timezone  String   @default('Europe/Paris')
+  notifications Json   @default("{}") // Préférences de notifications
+  privacy   Json     @default("{}") // Préférences de confidentialité
+  dashboard Json     @default("{}") // Préférences du dashboard
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  deviceInfo   Json?    // Informations sur l'appareil
+  ipAddress    String?
+  location     String?  // Localisation approximative
+  expiresAt    DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  lastActivity DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([token])
+}
+
+// Relations vers les modèles partagés (références uniquement)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  profilePicture String?
+  role      String   @default('USER')
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile     UserProfile?
+  preferences UserPreference?
+  sessions    UserSession[]
+}

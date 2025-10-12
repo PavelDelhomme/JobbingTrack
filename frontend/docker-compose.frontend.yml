@@ -1,0 +1,44 @@
+services:
+  jobbingtrack-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Maintenant ce stage existe
+    container_name: jobbingtrack-frontend
+    ports:
+      - "8080:3000"  # ✅ Changé de 3001 à 8080 pour éviter conflit avec auth-service
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3001
+      - NEXT_PUBLIC_APP_NAME=JobbingTrack
+      - NEXT_PUBLIC_APP_VERSION=1.0.0
+      - WATCHPACK_POLLING=true
+    volumes:
+      # Volume pour hot reload - AVEC PERMISSIONS CORRECTES
+      - .:/app:cached
+      - /app/node_modules
+      - nextjs-cache:/app/.next # Volume nommé pour .next
+    user: "1001:1001" # Utilisation de UID/GID corrects
+    networks:
+      - frontend-network
+      - backend-network
+    restart: unless-stopped
+    init: true # Utilise tini pour une meilleure gestion des processus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  nextjs-cache:
+    driver: local
+
+networks:
+  frontend-network:
+    driver: bridge
+  backend-network:
+    external: true
+    name: backend_jobbingtrack-network
