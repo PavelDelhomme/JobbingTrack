@@ -486,25 +486,25 @@ export default function DataManagementPage() {
 
   return (
     <AdminLayout>
-    <div className="space-y-6">
-        {/* Header */}
+    <div className="space-y-4 md:space-y-6">
+        {/* Header - Responsive */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
             💾 Gestion des Données
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
             Interface complète de gestion de base de données
           </p>
         </div>
 
-        {/* Onglets */}
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8">
+        {/* Onglets - Scrollables sur mobile */}
+        <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
             {['browse', 'export', 'import', 'operations', 'tests'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-2 sm:py-3 md:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
@@ -522,11 +522,11 @@ export default function DataManagementPage() {
 
         {/* Onglet Parcourir */}
         {activeTab === 'browse' && (
-          <div className="grid grid-cols-12 gap-6">
-            {/* Sidebar - Liste des tables */}
-            <div className="col-span-3">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3">Tables</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+            {/* Sidebar - Liste des tables - Full width sur mobile */}
+            <div className="lg:col-span-3">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 mb-3">Tables</h3>
                 <div className="space-y-1">
                   {TABLES.map(table => (
                     <button
@@ -535,13 +535,13 @@ export default function DataManagementPage() {
                         setSelectedTable(table.name)
                         setPage(1)
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                      className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm ${
                         selectedTable === table.name
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
                           : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      <span className="mr-2">{table.icon}</span>
+                      <span className="mr-1 sm:mr-2">{table.icon}</span>
                       {table.description}
                     </button>
                   ))}
@@ -549,50 +549,50 @@ export default function DataManagementPage() {
               </div>
           </div>
 
-            {/* Contenu principal */}
-            <div className="col-span-9 space-y-4">
-              {/* Actions */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex justify-between items-center">
-                <div className="flex gap-2">
-            <input
+            {/* Contenu principal - Full width sur mobile */}
+            <div className="lg:col-span-9 space-y-3 md:space-y-4">
+              {/* Actions - Responsive */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Rechercher..."
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   />
                   <button
                     onClick={fetchTableData}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 whitespace-nowrap"
                   >
-                    🔍 Rechercher
+                    🔍 <span className="hidden sm:inline">Rechercher</span>
                   </button>
-          </div>
-                <div className="flex gap-2">
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap"
                   >
                     ➕ Nouveau
                   </button>
-          <button
+                  <button
                     onClick={fetchTableData}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-                    🔄 Rafraîchir
-          </button>
-        </div>
-      </div>
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
+                  >
+                    🔄 <span className="hidden sm:inline">Rafraîchir</span>
+                  </button>
+                </div>
+              </div>
 
-              {/* Table de données */}
+              {/* Table de données - Responsive */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
                       {TABLES.find(t => t.name === selectedTable)?.icon} Table : {selectedTable}
                     </h2>
                     {tableData && tableData.rows.length > 0 && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                         {tableData.total} enregistrement{tableData.total > 1 ? 's' : ''} • {tableData.columns.length} colonne{tableData.columns.length > 1 ? 's' : ''}
                       </p>
                     )}
@@ -610,8 +610,8 @@ export default function DataManagementPage() {
                     <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement des données...</p>
                   </div>
                 ) : tableData && tableData.rows.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-0">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
                       <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
                           {tableData.columns.map(col => (

@@ -79,29 +79,29 @@ export default function BackofficePage() {
   return (
     <AdminLayout>
       <div>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        {/* Header - Responsive */}
+        <div className="mb-4 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
             Bienvenue, {user?.firstName} ! 👋
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
             Backoffice d'administration JobbingTrack
           </p>
         </div>
 
-        {/* System Status Banner */}
-        <div className={`mb-6 p-4 rounded-lg border-2 ${
+        {/* System Status Banner - Responsive */}
+        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg border-2 ${
           systemStatus === 'healthy' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
           systemStatus === 'degraded' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
           'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
         }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
+              <span className="text-xl md:text-2xl flex-shrink-0">
                 {systemStatus === 'healthy' ? '✅' : systemStatus === 'degraded' ? '⚠️' : '❌'}
               </span>
               <div>
-                <p className={`font-semibold ${
+                <p className={`text-sm md:text-base font-semibold ${
                   systemStatus === 'healthy' ? 'text-green-800 dark:text-green-300' :
                   systemStatus === 'degraded' ? 'text-yellow-800 dark:text-yellow-300' :
                   'text-red-800 dark:text-red-300'
@@ -110,22 +110,22 @@ export default function BackofficePage() {
                    systemStatus === 'degraded' ? 'Performances dégradées' :
                    'Systèmes hors ligne'}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Dernière vérification: {new Date().toLocaleTimeString('fr-FR')}
                 </p>
               </div>
             </div>
             <button
               onClick={() => router.push('/backoffice/services')}
-              className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full sm:w-auto px-3 md:px-4 py-1.5 md:py-2 bg-white dark:bg-gray-800 rounded-lg text-xs md:text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 whitespace-nowrap"
             >
               Voir les services →
             </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        {/* Stats Cards - Responsive */}
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-4 md:mb-8">
           <StatCard
             title="Candidatures"
             value={stats.totalApplications}
@@ -164,16 +164,16 @@ export default function BackofficePage() {
           />
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Main Grid - Responsive */}
+        <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
           {/* Quick Actions */}
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                 ⚡ Actions rapides
               </h2>
             </div>
-            <div className="p-6 space-y-3">
+            <div className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
               <QuickActionButton 
                 href="/backoffice/applications"
                 icon="➕"
@@ -221,12 +221,12 @@ export default function BackofficePage() {
 
           {/* System Overview */}
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                 🖥️ Aperçu système
               </h2>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3 md:space-y-4">
               <SystemMetric
                 label="Version"
                 value="1.0.0"
@@ -265,18 +265,18 @@ export default function BackofficePage() {
 
           {/* Recent Activity */}
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50 lg:col-span-2">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center gap-2">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 📊 Activité récente
               </h2>
               <button
                 onClick={() => router.push('/backoffice/logs')}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 whitespace-nowrap flex-shrink-0"
               >
                 Voir tout →
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-3 sm:p-4 md:p-6">
               <div className="space-y-4">
                 <ActivityItem
                   icon="👤"
@@ -329,24 +329,24 @@ function StatCard({ title, value, subtitle, icon, color, loading, onClick }: {
 
   return (
     <div 
-      className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50 p-6 ${onClick ? 'cursor-pointer hover:shadow-xl dark:hover:shadow-gray-900/70 transition-shadow' : ''}`}
+      className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg dark:shadow-gray-900/50 p-3 sm:p-4 md:p-6 ${onClick ? 'cursor-pointer hover:shadow-xl dark:hover:shadow-gray-900/70 transition-shadow' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{title}</p>
           {loading ? (
-            <div className="h-8 w-16 bg-gray-200 dark:bg-gray-800 animate-pulse rounded mt-2"></div>
+            <div className="h-6 sm:h-8 w-12 sm:w-16 bg-gray-200 dark:bg-gray-800 animate-pulse rounded mt-1 sm:mt-2"></div>
           ) : (
             <>
-              <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+              <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">{value}</p>
               {subtitle && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+                <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">{subtitle}</p>
               )}
             </>
           )}
         </div>
-        <div className={`h-12 w-12 rounded-lg ${colors[color]} flex items-center justify-center text-2xl`}>
+        <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-lg ${colors[color]} flex items-center justify-center text-xl sm:text-2xl flex-shrink-0 ml-2`}>
           {icon}
         </div>
       </div>
@@ -372,12 +372,12 @@ function QuickActionButton({ href, icon, title, description, color }: {
   return (
     <a
       href={href}
-      className={`flex items-center p-4 rounded-lg transition-colors border-l-4 ${colors[color]}`}
+      className={`flex items-center p-2 sm:p-3 md:p-4 rounded-lg transition-colors border-l-4 ${colors[color]}`}
     >
-      <div className="text-2xl mr-4">{icon}</div>
-      <div>
-        <p className="font-medium text-gray-900 dark:text-gray-100">{title}</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
+      <div className="text-xl sm:text-2xl mr-2 sm:mr-3 md:mr-4 flex-shrink-0">{icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">{title}</p>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{description}</p>
       </div>
     </a>
   )
@@ -399,14 +399,14 @@ function SystemMetric({ label, value, icon, status, onClick, className }: {
 
   return (
     <div 
-      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${onClick ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors' : ''} ${className}`}
+      className={`flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${onClick ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors' : ''} ${className}`}
       onClick={onClick}
     >
-      <div className="flex items-center space-x-3">
-        <span className="text-xl">{icon}</span>
-        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+      <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+        <span className="text-lg sm:text-xl flex-shrink-0">{icon}</span>
+        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{label}</span>
       </div>
-      <span className={`text-sm font-medium ${status ? statusColors[status] : 'text-gray-900 dark:text-gray-100'}`}>
+      <span className={`text-xs sm:text-sm font-medium ${status ? statusColors[status] : 'text-gray-900 dark:text-gray-100'} flex-shrink-0 ml-2`}>
         {value}
       </span>
     </div>
@@ -420,12 +420,12 @@ function ActivityItem({ icon, title, description, time }: {
   time: string
 }) {
   return (
-    <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-      <div className="text-2xl">{icon}</div>
+    <div className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+      <div className="text-xl sm:text-2xl flex-shrink-0">{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{title}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{time}</p>
+        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{title}</p>
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{description}</p>
+        <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1">{time}</p>
       </div>
     </div>
   )

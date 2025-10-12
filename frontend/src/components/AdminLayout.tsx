@@ -29,6 +29,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     data: true,
@@ -48,6 +49,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     }
   }, [])
+
+  // ✅ Fermer la sidebar sur mobile quand on change de page
+  useEffect(() => {
+    setIsSidebarOpen(false)
+  }, [pathname])
 
   // Auto-expand sections qui contiennent l'élément actif
   useEffect(() => {
@@ -95,6 +101,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
         { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
+        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
     },
     {
@@ -188,13 +195,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }
       `}</style>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
-        {/* Sidebar */}
-        <div className="fixed inset-y-0 left-0 w-64 bg-gray-900 dark:bg-gray-950 flex flex-col shadow-xl border-r border-gray-800 dark:border-gray-900">
-          {/* Logo */}
-          <div className="flex h-16 items-center justify-center bg-gray-800 dark:bg-gray-900 flex-shrink-0 border-b border-gray-700 dark:border-gray-800">
-            <Link href="/backoffice" className="text-2xl font-bold text-white">
+        {/* ✅ Overlay mobile - Ferme la sidebar quand on clique dessus */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
+
+        {/* Sidebar - Cachée sur mobile, visible sur desktop */}
+        <div className={`
+          fixed inset-y-0 left-0 w-64 bg-gray-900 dark:bg-gray-950 flex flex-col shadow-xl border-r border-gray-800 dark:border-gray-900 z-50 transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          {/* Logo avec bouton de fermeture sur mobile */}
+          <div className="flex h-16 items-center justify-between px-4 lg:justify-center bg-gray-800 dark:bg-gray-900 flex-shrink-0 border-b border-gray-700 dark:border-gray-800">
+            <Link href="/backoffice" className="text-xl lg:text-2xl font-bold text-white">
               🎯 JobbingTrack
             </Link>
+            {/* Bouton fermer visible uniquement sur mobile */}
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden text-gray-400 hover:text-white transition-colors p-2"
+              aria-label="Fermer le menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
           {/* Navigation - Scrollable */}
@@ -308,27 +336,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="ml-64">
+        {/* Main content - Pas de marge sur mobile, marge sur desktop */}
+        <div className="lg:ml-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
-          <div className="flex h-16 items-center justify-between px-8">
+        <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
+          <div className="flex h-16 items-center justify-between px-4 lg:px-8">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              {/* ✅ Bouton hamburger pour mobile */}
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="lg:hidden text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isSidebarOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+
+              <h1 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Backoffice Administrateur
               </h1>
 
-              {/* Fil d'Ariane pour la navigation */}
-              <Breadcrumb />
+              {/* Fil d'Ariane pour la navigation - Caché sur très petits écrans */}
+              <div className="hidden md:block">
+                <Breadcrumb />
+              </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              {/* Email - Caché sur mobile */}
+              <span className="hidden md:inline text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
 
-              {/* Theme Toggle */}
+              {/* Theme Toggle - Version compacte sur mobile */}
               <button
                 onClick={toggleTheme}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                className={`flex items-center gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
                   actualTheme === 'dark'
                     ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -336,7 +382,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
               >
                 <span className="text-lg">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
-                <span className="text-xs font-medium">
+                <span className="hidden sm:inline text-xs font-medium">
                   {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
                 </span>
               </button>
@@ -344,8 +390,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-          {/* Page content */}
-          <main className="p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors">
+          {/* Page content - Padding adapté pour mobile */}
+          <main className="p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors">
             {children}
           </main>
         </div>

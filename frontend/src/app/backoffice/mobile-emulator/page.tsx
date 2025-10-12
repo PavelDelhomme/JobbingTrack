@@ -128,27 +128,38 @@ export default function MobileEmulatorPage() {
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState<Array<{ time: string; type: 'info' | 'error' | 'success'; message: string }>>([])
   const [appRunning, setAppRunning] = useState(true)
+  const [hasAutoLoggedIn, setHasAutoLoggedIn] = useState(false) // ✅ Flag pour éviter les auto-login répétés
 
   const width = orientation === 'portrait' ? selectedDevice.width : selectedDevice.height
   const height = orientation === 'portrait' ? selectedDevice.height : selectedDevice.width
 
-  // Charger les utilisateurs disponibles
+  // ✅ Charger les utilisateurs disponibles UNE SEULE FOIS au montage
   useEffect(() => {
-    loadUsers()
+    let isMounted = true
+    const loadData = async () => {
+      if (isMounted) {
+        await loadUsers()
+      }
+    }
+    loadData()
+    return () => { isMounted = false }
   }, [])
 
-  // Auto-login si déjà un utilisateur sélectionné
+  // ✅ Auto-login si déjà un utilisateur sélectionné (MAIS UNE SEULE FOIS)
   useEffect(() => {
-    if (selectedUser && !mobileToken) {
+    if (selectedUser && !mobileToken && !hasAutoLoggedIn) {
+      setHasAutoLoggedIn(true)
       loginAsUser(selectedUser.email)
     }
-  }, [selectedUser])
+  }, [selectedUser, mobileToken, hasAutoLoggedIn])
 
-  // Charger les données quand on est connecté
+  // ✅ Charger les données quand on est connecté
   useEffect(() => {
-    if (mobileToken && currentScreen !== 'login') {
+    let isMounted = true
+    if (mobileToken && currentScreen !== 'login' && isMounted) {
       loadApplications()
     }
+    return () => { isMounted = false }
   }, [mobileToken, currentScreen])
 
   const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -241,6 +252,7 @@ export default function MobileEmulatorPage() {
     addLog('Déconnexion de l\'utilisateur', 'info')
     setMobileToken(null)
     setSelectedUser(null)
+    setHasAutoLoggedIn(false) // ✅ Réinitialiser le flag pour permettre un nouveau login
     setCurrentScreen('login')
     setApplications([])
   }
@@ -248,6 +260,7 @@ export default function MobileEmulatorPage() {
   const switchUser = (user: User) => {
     addLog(`Changement d'utilisateur vers ${user.email}`, 'info')
     logout()
+    setHasAutoLoggedIn(false) // ✅ Réinitialiser le flag pour permettre un nouveau login
     setSelectedUser(user)
     setShowUserSwitcher(false)
     setTimeout(() => loginAsUser(user.email, 'password123'), 100)
