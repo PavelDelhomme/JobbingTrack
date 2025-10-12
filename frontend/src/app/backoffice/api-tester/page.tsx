@@ -171,7 +171,7 @@ export default function APITesterPage() {
                     type="text"
                     value={endpoint}
                     onChange={(e) => setEndpoint(e.target.value)}
-                    placeholder="/api/v1/service/endpoint"
+                    placeholder="/api/v1/applications"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                   />
                 </div>
