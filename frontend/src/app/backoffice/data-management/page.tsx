@@ -1,470 +1,970 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { applicationService, companyService, contactService, authService, interviewService, followUpService, callService, eventService } from '@/lib/api'
+
+interface Table {
+  name: string
+  count?: number
+}
+
+interface TableData {
+  columns: string[]
+  rows: any[]
+  total: number
+}
+
+interface DBTest {
+  name: string
+  status: 'pending' | 'running' | 'success' | 'error'
+  result?: string
+  error?: string
+  duration?: number
+}
+
+const TABLES = [
+  { name: 'User', icon: '👤', description: 'Utilisateurs' },
+  { name: 'Company', icon: '🏢', description: 'Entreprises' },
+  { name: 'Application', icon: '📝', description: 'Candidatures' },
+  { name: 'Contact', icon: '👥', description: 'Contacts' },
+  { name: 'Interview', icon: '📅', description: 'Entretiens' },
+  { name: 'Call', icon: '📞', description: 'Appels' },
+  { name: 'FollowUp', icon: '📧', description: 'Relances' },
+  { name: 'Notification', icon: '🔔', description: 'Notifications' },
+  { name: 'EmailLog', icon: '📬', description: 'Logs Emails' },
+  { name: 'Activity', icon: '📊', description: 'Activités' },
+  { name: 'Document', icon: '📄', description: 'Documents' },
+  { name: 'Reminder', icon: '⏰', description: 'Rappels' },
+  { name: 'MessageTemplate', icon: '📋', description: 'Templates' },
+]
 
 export default function DataManagementPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'export' | 'import' | 'bulk'>('export')
+  const { token } = useAuth()
+  const [activeTab, setActiveTab] = useState<'browse' | 'export' | 'import' | 'operations' | 'tests'>('browse')
+  const [selectedTable, setSelectedTable] = useState<string>('User')
+  const [tableData, setTableData] = useState<TableData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [limit] = useState(50)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingRow, setEditingRow] = useState<any>(null)
+  const [newRowData, setNewRowData] = useState<Record<string, any>>({})
+  
+  // Tests DB
+  const [dbTests, setDbTests] = useState<DBTest[]>([
+    { name: 'Connexion PostgreSQL', status: 'pending' },
+    { name: 'Schéma Prisma Auth Service', status: 'pending' },
+    { name: 'Schéma Prisma Application Service', status: 'pending' },
+    { name: 'Schéma Prisma Call Service', status: 'pending' },
+    { name: 'Schéma Prisma Notification Service', status: 'pending' },
+    { name: 'Test Migration (dry-run)', status: 'pending' },
+  ])
+  const [runningDBTests, setRunningDBTests] = useState(false)
 
-  if (authLoading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </AdminLayout>
-    )
+  useEffect(() => {
+    if (token && selectedTable && activeTab === 'browse') {
+      fetchTableData()
+    }
+  }, [token, selectedTable, page, activeTab])
+
+  const fetchTableData = async () => {
+    setLoading(true)
+    try {
+      // Appeler directement les endpoints des services selon la table
+      let endpoint = ''
+      let dataKey = ''
+      
+      switch (selectedTable) {
+        case 'User':
+          endpoint = 'http://localhost:8080/api/v1/auth/users'
+          dataKey = 'users'
+          break
+        case 'Company':
+          endpoint = `http://localhost:8080/api/v1/companies?page=${page}&limit=${limit}`
+          dataKey = 'companies'
+          break
+        case 'Application':
+          endpoint = `http://localhost:8080/api/v1/applications?page=${page}&limit=${limit}`
+          dataKey = 'applications'
+          break
+        case 'Contact':
+          endpoint = `http://localhost:8080/api/v1/contacts?page=${page}&limit=${limit}`
+          dataKey = 'contacts'
+          break
+        case 'Interview':
+          endpoint = `http://localhost:8080/api/v1/interviews?page=${page}&limit=${limit}`
+          dataKey = 'interviews'
+          break
+        case 'Call':
+          endpoint = `http://localhost:8080/api/v1/calls?page=${page}&limit=${limit}`
+          dataKey = 'calls'
+          break
+        case 'FollowUp':
+          endpoint = `http://localhost:8080/api/v1/followups?page=${page}&limit=${limit}`
+          dataKey = 'followups'
+          break
+        case 'Notification':
+          endpoint = `http://localhost:8080/api/v1/notifications?page=${page}&limit=${limit}`
+          dataKey = 'notifications'
+          break
+        case 'EmailLog':
+          endpoint = `http://localhost:8080/api/v1/notifications/emails/logs?page=${page}&limit=${limit}`
+          dataKey = 'emailLogs'
+          break
+        case 'Activity':
+          endpoint = `http://localhost:8080/api/v1/events?page=${page}&limit=${limit}`
+          dataKey = 'events'
+          break
+        default:
+          throw new Error(`Table ${selectedTable} non supportée`)
+      }
+
+      console.log('Fetching data from:', endpoint)
+
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Data received:', data)
+
+      // Extraire les données selon le format de réponse
+      const items = data[dataKey] || data.data || []
+      
+      if (items.length === 0) {
+        console.log(`Aucune donnée trouvée pour la table ${selectedTable}`)
+        setTableData({
+          columns: [],
+          rows: [],
+          total: 0
+        })
+      } else {
+        // Extraire les colonnes du premier élément
+        const columns = Object.keys(items[0])
+        
+        console.log(`✅ ${items.length} enregistrements chargés pour ${selectedTable}`)
+        console.log('Colonnes:', columns)
+        
+        setTableData({
+          columns,
+          rows: items,
+          total: data.total || data.pagination?.total || items.length
+        })
+      }
+    } catch (error: any) {
+      console.error(`❌ Erreur chargement ${selectedTable}:`, error)
+      const errorMsg = error.message || 'Erreur inconnue'
+      
+      // Afficher un message plus détaillé
+      setTableData({
+        columns: [],
+        rows: [],
+        total: 0
+      })
+      
+      // Toast d'erreur au lieu d'une alerte bloquante
+      console.error('Détails:', {
+        table: selectedTable,
+        error: errorMsg,
+        response: error.response
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const exportData = async (format: 'json' | 'csv') => {
+    try {
+      // Pour l'export, on récupère toutes les données sans pagination
+      let endpoint = ''
+      let dataKey = ''
+      
+      switch (selectedTable) {
+        case 'User':
+          endpoint = 'http://localhost:8080/api/v1/auth/users'
+          dataKey = 'users'
+          break
+        case 'Company':
+          endpoint = 'http://localhost:8080/api/v1/companies?limit=10000'
+          dataKey = 'companies'
+          break
+        case 'Application':
+          endpoint = 'http://localhost:8080/api/v1/applications?limit=10000'
+          dataKey = 'applications'
+          break
+        case 'Contact':
+          endpoint = 'http://localhost:8080/api/v1/contacts?limit=10000'
+          dataKey = 'contacts'
+          break
+        case 'Call':
+          endpoint = 'http://localhost:8080/api/v1/calls?limit=10000'
+          dataKey = 'calls'
+          break
+        default:
+          alert(`Export non supporté pour ${selectedTable}`)
+          return
+      }
+
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'export')
+      }
+
+      const data = await response.json()
+      const items = data[dataKey] || data.data || []
+
+      if (items.length === 0) {
+        alert('Aucune donnée à exporter')
+        return
+      }
+
+      if (format === 'json') {
+        // Export JSON
+        const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' })
+        const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+        a.download = `${selectedTable}_export_${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+        window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+        alert(`✅ ${items.length} enregistrements exportés en JSON`)
+      } else {
+        // Export CSV
+        const headers = Object.keys(items[0])
+        const csv = [
+          headers.join(','),
+          ...items.map((item: any) => 
+            headers.map(header => {
+              const value = item[header]
+              if (value === null || value === undefined) return ''
+              if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
+              return `"${String(value).replace(/"/g, '""')}"`
+            }).join(',')
+          )
+        ].join('\n')
+
+        const blob = new Blob([csv], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${selectedTable}_export_${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        alert(`✅ ${items.length} enregistrements exportés en CSV`)
+      }
+    } catch (error: any) {
+      console.error('Erreur export:', error)
+      alert(`❌ Erreur: ${error.message}`)
+    }
+  }
+
+  const deleteRow = async (id: string) => {
+    if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer cet enregistrement ?\n\nCette action est irréversible.')) return
+
+    try {
+      let endpoint = ''
+      
+      switch (selectedTable) {
+        case 'User':
+          endpoint = `http://localhost:8080/api/v1/auth/users/${id}`
+          break
+        case 'Company':
+          endpoint = `http://localhost:8080/api/v1/companies/${id}`
+          break
+        case 'Application':
+          endpoint = `http://localhost:8080/api/v1/applications/${id}`
+          break
+        case 'Contact':
+          endpoint = `http://localhost:8080/api/v1/contacts/${id}`
+          break
+        case 'Interview':
+          endpoint = `http://localhost:8080/api/v1/interviews/${id}`
+          break
+        case 'Call':
+          endpoint = `http://localhost:8080/api/v1/calls/${id}`
+          break
+        case 'FollowUp':
+          endpoint = `http://localhost:8080/api/v1/followups/${id}`
+          break
+        case 'Notification':
+          endpoint = `http://localhost:8080/api/v1/notifications/${id}`
+          break
+        default:
+          alert(`Suppression non supportée pour la table ${selectedTable}`)
+      return
+    }
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        alert('✅ Enregistrement supprimé avec succès')
+        fetchTableData()
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de la suppression')
+      }
+    } catch (error: any) {
+      alert(`❌ Erreur: ${error.message}`)
+    }
+  }
+
+  const bulkDelete = async () => {
+    if (!confirm('⚠️ ATTENTION : Voulez-vous vraiment effectuer une suppression en masse ?')) return
+    
+    alert('Fonctionnalité de suppression en masse à implémenter avec sélection de lignes')
+  }
+
+  const renderCellValue = (value: any): string => {
+    if (value === null || value === undefined) return '-'
+    if (typeof value === 'boolean') return value ? '✓' : '✗'
+    if (typeof value === 'object') return JSON.stringify(value)
+    if (typeof value === 'string' && value.length > 50) return value.substring(0, 47) + '...'
+    return String(value)
+  }
+
+  // Fonctions pour les Tests DB
+  const runDBTests = async () => {
+    setRunningDBTests(true)
+    
+    setDbTests(prev => prev.map(test => ({ ...test, status: 'pending' as const, result: undefined, error: undefined, duration: undefined })))
+
+    // Test 1: Connexion PostgreSQL
+    await runSingleTest(0, async () => {
+      const response = await fetch('http://localhost:8080/api/v1/admin/test-db/connection', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+      return await response.json()
+    })
+
+    // Test 2-5: Schémas Prisma
+    const services = ['auth', 'application', 'call', 'notification']
+    for (let i = 0; i < services.length; i++) {
+      await runSingleTest(i + 1, async () => {
+        const response = await fetch(`http://localhost:8080/api/v1/admin/test-db/schema/${services[i]}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      })
+    }
+
+    // Test 6: Migration dry-run
+    await runSingleTest(5, async () => {
+      const response = await fetch('http://localhost:8080/api/v1/admin/test-db/migration-test', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+      return await response.json()
+    })
+
+    setRunningDBTests(false)
+  }
+
+  const runSingleTest = async (index: number, testFn: () => Promise<any>) => {
+    setDbTests(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], status: 'running' }
+      return updated
+    })
+
+    const startTime = Date.now()
+    
+    try {
+      const result = await testFn()
+      const duration = Date.now() - startTime
+
+      setDbTests(prev => {
+        const updated = [...prev]
+        updated[index] = {
+          ...updated[index],
+          status: 'success',
+          result: result.message || result.details || 'OK',
+          duration
+        }
+        return updated
+      })
+    } catch (error: any) {
+      const duration = Date.now() - startTime
+      
+      setDbTests(prev => {
+        const updated = [...prev]
+        updated[index] = {
+          ...updated[index],
+          status: 'error',
+          error: error.message || 'Erreur inconnue',
+          duration
+        }
+        return updated
+      })
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  const runSingleDBTest = async (index: number) => {
+    const testFunctions = [
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/connection', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      },
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/schema/auth', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      },
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/schema/application', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      },
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/schema/call', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      },
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/schema/notification', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      },
+      async () => {
+        const response = await fetch('http://localhost:8080/api/v1/admin/test-db/migration-test', {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
+        return await response.json()
+      }
+    ]
+
+    await runSingleTest(index, testFunctions[index])
   }
 
   return (
     <AdminLayout>
-      <div>
+    <div className="space-y-6">
         {/* Header */}
-        <div className="mb-8">
+        <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             💾 Gestion des Données
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Import, export et opérations en masse sur les données
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Interface complète de gestion de base de données
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        {/* Onglets */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
-            <TabButton
-              active={activeTab === 'export'}
-              onClick={() => setActiveTab('export')}
-              icon="📤"
-              label="Export"
-            />
-            <TabButton
-              active={activeTab === 'import'}
-              onClick={() => setActiveTab('import')}
-              icon="📥"
-              label="Import"
-            />
-            <TabButton
-              active={activeTab === 'bulk'}
-              onClick={() => setActiveTab('bulk')}
-              icon="⚡"
-              label="Opérations en masse"
-            />
+            {['browse', 'export', 'import', 'operations', 'tests'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === tab
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                {tab === 'browse' && '📊 Parcourir'}
+                {tab === 'export' && '📤 Export'}
+                {tab === 'import' && '📥 Import'}
+                {tab === 'operations' && '⚙️ Opérations'}
+                {tab === 'tests' && '🧪 Tests DB'}
+              </button>
+            ))}
           </nav>
         </div>
 
-        {/* Content */}
-        {activeTab === 'export' && <ExportPanel />}
-        {activeTab === 'import' && <ImportPanel />}
-        {activeTab === 'bulk' && <BulkOperationsPanel />}
-      </div>
-    </AdminLayout>
-  )
-}
-
-function TabButton({ active, onClick, icon, label }: {
-  active: boolean
-  onClick: () => void
-  icon: string
-  label: string
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-        active
-          ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-      }`}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </button>
-  )
-}
-
-function ExportPanel() {
-  const handleExport = async (type: string) => {
-    try {
-      let data: any[] = []
-      let filename = ''
-
-      switch (type) {
-        case 'applications':
-          const appsResponse = await applicationService.getAll()
-          data = appsResponse.data.applications || []
-          filename = 'candidatures'
-          break
-        case 'companies':
-          const companiesResponse = await companyService.getAll()
-          data = companiesResponse.data.companies || []
-          filename = 'entreprises'
-          break
-        case 'users':
-          const usersResponse = await authService.getAllUsers()
-          data = usersResponse.data.users || []
-          filename = 'utilisateurs'
-          break
-        case 'contacts':
-          const contactsResponse = await contactService.getAll()
-          data = contactsResponse.data.contacts || []
-          filename = 'contacts'
-          break
-        case 'interviews':
-          const interviewsResponse = await interviewService.getAll()
-          data = interviewsResponse.data.interviews || []
-          filename = 'entretiens'
-          break
-        case 'followups':
-          const followupsResponse = await followUpService.getAll()
-          data = followupsResponse.data.followups || []
-          filename = 'relances'
-          break
-        case 'calls':
-          const callsResponse = await callService.getAll()
-          data = callsResponse.data.calls || []
-          filename = 'appels'
-          break
-        case 'events':
-          const eventsResponse = await eventService.getAll()
-          data = eventsResponse.data.events || []
-          filename = 'evenements'
-          break
-      }
-
-      // Créer et télécharger le fichier JSON
-      const json = JSON.stringify(data, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${filename}_${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      alert(`✅ Export de ${data.length} ${filename} réussi !`)
-    } catch (error) {
-      console.error('Erreur export:', error)
-      alert('❌ Erreur lors de l\'export')
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          💾 Export des données
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Exportez vos données au format JSON pour sauvegarde ou migration
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ExportCard
-            icon="📝"
-            title="Candidatures"
-            description="Exporter toutes les candidatures"
-            onClick={() => handleExport('applications')}
-          />
-          <ExportCard
-            icon="🏢"
-            title="Entreprises"
-            description="Exporter toutes les entreprises"
-            onClick={() => handleExport('companies')}
-          />
-          <ExportCard
-            icon="👥"
-            title="Utilisateurs"
-            description="Exporter tous les utilisateurs"
-            onClick={() => handleExport('users')}
-          />
-          <ExportCard
-            icon="👤"
-            title="Contacts"
-            description="Exporter tous les contacts"
-            onClick={() => handleExport('contacts')}
-          />
-          <ExportCard
-            icon="🎯"
-            title="Entretiens"
-            description="Exporter tous les entretiens"
-            onClick={() => handleExport('interviews')}
-          />
-          <ExportCard
-            icon="🔔"
-            title="Relances"
-            description="Exporter toutes les relances"
-            onClick={() => handleExport('followups')}
-          />
-          <ExportCard
-            icon="📞"
-            title="Appels"
-            description="Exporter tous les appels"
-            onClick={() => handleExport('calls')}
-          />
-          <ExportCard
-            icon="📅"
-            title="Événements"
-            description="Exporter tous les événements"
-            onClick={() => handleExport('events')}
-          />
-        </div>
-      </div>
-
-      {/* Export All */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              💾 Export complet
-            </h4>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              Exporter toutes les données du système en un seul fichier
-            </p>
-          </div>
-          <button
-            onClick={() => alert('Export complet en cours...')}
-            className="px-4 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg text-sm font-medium"
-          >
-            Exporter tout
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ImportPanel() {
-  const [file, setFile] = useState<File | null>(null)
-  const [importType, setImportType] = useState('applications')
-
-  const handleImport = async () => {
-    if (!file) {
-      alert('Veuillez sélectionner un fichier')
-      return
-    }
-
-    try {
-      const text = await file.text()
-      const data = JSON.parse(text)
-
-      alert(`✅ Fichier lu: ${data.length} entrées trouvées\n\n⚠️ Fonction d'import à implémenter dans le backend`)
-    } catch (error) {
-      console.error('Erreur import:', error)
-      alert('❌ Erreur lors de la lecture du fichier')
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          📥 Importer des données
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Importez des données au format JSON (sauvegarde ou migration)
-        </p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Type de données
-            </label>
-            <select
-              value={importType}
-              onChange={(e) => setImportType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
-            >
-              <option value="applications">Candidatures</option>
-              <option value="companies">Entreprises</option>
-              <option value="users">Utilisateurs</option>
-              <option value="contacts">Contacts</option>
-              <option value="interviews">Entretiens</option>
-              <option value="followups">Relances</option>
-              <option value="calls">Appels</option>
-              <option value="events">Événements</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Fichier JSON
-            </label>
-            <input
-              type="file"
-              accept=".json"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400"
-            />
-          </div>
-
-          <button
-            onClick={handleImport}
-            disabled={!file}
-            className="w-full px-4 py-3 bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 text-white rounded-lg font-medium disabled:opacity-50"
-          >
-            📥 Importer les données
-          </button>
-        </div>
-      </div>
-
-      {/* Warning */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <p className="font-semibold text-yellow-900 dark:text-yellow-100">Attention</p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              L'import de données peut écraser les données existantes. Assurez-vous d'avoir une sauvegarde avant de continuer.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function BulkOperationsPanel() {
-  const [selectedOperation, setSelectedOperation] = useState('')
-
-  const operations = [
-    {
-      id: 'delete-inactive-users',
-      title: 'Supprimer utilisateurs inactifs',
-      description: 'Supprimer tous les utilisateurs inactifs depuis plus de 6 mois',
-      danger: true
-    },
-    {
-      id: 'archive-old-applications',
-      title: 'Archiver vieilles candidatures',
-      description: 'Archiver les candidatures de plus d\'un an',
-      danger: false
-    },
-    {
-      id: 'clean-duplicates',
-      title: 'Nettoyer doublons',
-      description: 'Rechercher et supprimer les entreprises en doublon',
-      danger: true
-    },
-    {
-      id: 'update-statuses',
-      title: 'Mettre à jour statuts',
-      description: 'Mettre à jour automatiquement les statuts obsolètes',
-      danger: false
-    },
-  ]
-
-  const executeOperation = (opId: string) => {
-    if (confirm(`⚠️ Exécuter l'opération "${operations.find(o => o.id === opId)?.title}" ?\n\nCette action ne peut pas être annulée.`)) {
-      alert(`Opération "${opId}" en cours...\n\n(Simulation - à implémenter dans le backend)`)
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          ⚡ Opérations en masse
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Exécutez des opérations sur plusieurs enregistrements à la fois
-        </p>
-
-        <div className="space-y-4">
-          {operations.map((op) => (
-            <div
-              key={op.id}
-              className={`p-4 border-2 rounded-lg ${
-                op.danger
-                  ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                  : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className={`font-semibold mb-1 ${
-                    op.danger ? 'text-red-900 dark:text-red-100' : 'text-gray-900 dark:text-gray-100'
-                  }`}>
-                    {op.danger && '⚠️ '}{op.title}
-                  </h4>
-                  <p className={`text-sm ${
-                    op.danger ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {op.description}
-                  </p>
+        {/* Onglet Parcourir */}
+        {activeTab === 'browse' && (
+          <div className="grid grid-cols-12 gap-6">
+            {/* Sidebar - Liste des tables */}
+            <div className="col-span-3">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3">Tables</h3>
+                <div className="space-y-1">
+                  {TABLES.map(table => (
+                    <button
+                      key={table.name}
+                      onClick={() => {
+                        setSelectedTable(table.name)
+                        setPage(1)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        selectedTable === table.name
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <span className="mr-2">{table.icon}</span>
+                      {table.description}
+                    </button>
+                  ))}
                 </div>
-                <button
-                  onClick={() => executeOperation(op.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    op.danger
-                      ? 'bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white'
-                      : 'bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white'
-                  }`}
+              </div>
+          </div>
+
+            {/* Contenu principal */}
+            <div className="col-span-9 space-y-4">
+              {/* Actions */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex justify-between items-center">
+                <div className="flex gap-2">
+            <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                  />
+                  <button
+                    onClick={fetchTableData}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                  >
+                    🔍 Rechercher
+                  </button>
+          </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    ➕ Nouveau
+                  </button>
+          <button
+                    onClick={fetchTableData}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+                    🔄 Rafraîchir
+          </button>
+        </div>
+      </div>
+
+              {/* Table de données */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {TABLES.find(t => t.name === selectedTable)?.icon} Table : {selectedTable}
+                    </h2>
+                    {tableData && tableData.rows.length > 0 && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {tableData.total} enregistrement{tableData.total > 1 ? 's' : ''} • {tableData.columns.length} colonne{tableData.columns.length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                  {tableData && tableData.rows.length > 0 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Affichage de {((page - 1) * limit) + 1} à {Math.min(page * limit, tableData.total)} sur {tableData.total}
+                    </div>
+                  )}
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-400">Chargement des données...</p>
+                  </div>
+                ) : tableData && tableData.rows.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                          {tableData.columns.map(col => (
+                            <th
+                              key={col}
+                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {tableData.rows.map((row, idx) => (
+                          <tr key={row.id || idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            {tableData.columns.map(col => (
+                              <td key={col} className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                <div className="max-w-xs truncate" title={renderCellValue(row[col])}>
+                                  {renderCellValue(row[col])}
+                                </div>
+                              </td>
+                            ))}
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                onClick={() => {
+                                  setEditingRow(row)
+                                  setShowEditModal(true)
+                                }}
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                                title="Éditer cet enregistrement"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => deleteRow(row.id)}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                title="Supprimer cet enregistrement"
+                              >
+                                🗑️
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 text-4xl mb-4">📭</div>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {tableData === null 
+                        ? `Sélectionnez une table pour voir les données`
+                        : `Aucune donnée dans la table ${selectedTable}`
+                      }
+                    </p>
+                    {tableData !== null && (
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        ➕ Créer le premier enregistrement
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {tableData && tableData.total > limit && (
+                  <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-center gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      Précédent
+                    </button>
+                    <span className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                      Page {page}
+                    </span>
+                    <button
+                      onClick={() => setPage(p => p + 1)}
+                      disabled={page * limit >= tableData.total}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      Suivant
+                    </button>
+          </div>
+                )}
+        </div>
+      </div>
+    </div>
+        )}
+
+        {/* Onglet Export */}
+        {activeTab === 'export' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              📤 Exporter les Données
+            </h2>
+        <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Table à exporter
+                </label>
+                <select
+                  value={selectedTable}
+                  onChange={(e) => setSelectedTable(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                 >
-                  Exécuter
+                  {TABLES.map(table => (
+                    <option key={table.name} value={table.name}>
+                      {table.icon} {table.description}
+                    </option>
+                  ))}
+                </select>
+                </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => exportData('json')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  📄 Exporter en JSON
+                </button>
+                <button
+                  onClick={() => exportData('csv')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  📊 Exporter en CSV
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* Onglet Import */}
+        {activeTab === 'import' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              📥 Importer des Données
+            </h2>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                <input
+                  type="file"
+                  accept=".json,.csv"
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer text-gray-600 dark:text-gray-400"
+                >
+                  <div className="text-4xl mb-2">📁</div>
+                  <p>Cliquez pour sélectionner un fichier</p>
+                  <p className="text-sm mt-1">JSON ou CSV acceptés</p>
+                </label>
+              </div>
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  ⚠️ <strong>Attention :</strong> L'import de données peut écraser des enregistrements existants. Assurez-vous d'avoir une sauvegarde.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet Opérations */}
+        {activeTab === 'operations' && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              ⚙️ Opérations en Masse
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={bulkDelete}
+                className="w-full px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-left"
+              >
+                🗑️ Suppression en masse
+              </button>
+              <button
+                onClick={() => alert('Fonction à implémenter')}
+                className="w-full px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-left"
+              >
+                📝 Mise à jour en masse
+              </button>
+              <button
+                onClick={() => alert('Fonction à implémenter')}
+                className="w-full px-4 py-3 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-left"
+              >
+                🔄 Synchronisation des données
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet Tests DB */}
+        {activeTab === 'tests' && (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    🧪 Tests de Base de Données
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Vérification de la connexion PostgreSQL, des schémas Prisma et des migrations
+                  </p>
+                </div>
+                <button
+                  onClick={runDBTests}
+                  disabled={runningDBTests}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center disabled:opacity-50"
+                >
+                  {runningDBTests ? '🔄 Tests en cours...' : '▶️ Lancer tous les tests'}
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {dbTests.map((test, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      test.status === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : test.status === 'error'
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        : test.status === 'running'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <span className="text-2xl">
+                          {test.status === 'success' && '✅'}
+                          {test.status === 'error' && '❌'}
+                          {test.status === 'running' && <span className="animate-spin">🔄</span>}
+                          {test.status === 'pending' && '⏳'}
+                        </span>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {test.name}
+                          </div>
+                          {test.result && (
+                            <div className="text-sm text-green-700 dark:text-green-400 mt-1">
+                              ✓ {test.result}
+                            </div>
+                          )}
+                          {test.error && (
+                            <div className="text-sm text-red-700 dark:text-red-400 mt-1">
+                              ✗ {test.error}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {test.duration && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {test.duration}ms
+                          </div>
+                        )}
+                        <button
+                          onClick={() => runSingleDBTest(index)}
+                          disabled={test.status === 'running' || runningDBTests}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            test.status === 'running' || runningDBTests
+                              ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                              : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                          }`}
+                          title="Relancer ce test uniquement"
+                        >
+                          {test.status === 'running' ? '⏳' : '▶️'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  💡 <strong>Note :</strong> Ces tests vérifient que la base de données et tous les schémas Prisma sont correctement configurés. Cliquez sur "▶️ Lancer tous les tests" pour une vérification complète, ou sur le bouton ▶️ de chaque test pour le lancer individuellement.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* SQL Console (pour les super admins) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          🛠️ Console SQL (Super Admin uniquement)
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Exécutez des requêtes SQL directement sur la base de données
-        </p>
-
-        <textarea
-          rows={6}
-          placeholder="SELECT * FROM users WHERE role = 'ADMIN';"
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 font-mono text-sm mb-4"
-        />
-
+      {/* Modal Créer */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              ➕ Créer un enregistrement - {selectedTable}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Fonctionnalité à implémenter : formulaire dynamique basé sur le schéma de la table
+            </p>
+            <div className="flex justify-end gap-2">
         <button
-          onClick={() => alert('⚠️ Cette fonctionnalité est désactivée pour des raisons de sécurité')}
-          className="px-4 py-2 bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg text-sm font-medium"
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg"
         >
-          ▶️ Exécuter la requête
+                Fermer
         </button>
-
-        <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Attention:</strong> L'exécution de requêtes SQL directes peut endommager les données. Utilisez avec précaution.
-          </p>
         </div>
       </div>
     </div>
-  )
-}
+      )}
 
-function ExportCard({ icon, title, description, onClick }: {
-  icon: string
-  title: string
-  description: string
-  onClick: () => void
-}) {
-  return (
+      {/* Modal Éditer */}
+      {showEditModal && editingRow && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              ✏️ Modifier l'enregistrement
+            </h2>
+            <div className="space-y-3">
+              {Object.keys(editingRow).map(key => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {key}
+                  </label>
+                  <input
+                    type="text"
+                    value={renderCellValue(editingRow[key])}
+                    disabled={key === 'id' || key === 'createdAt' || key === 'updatedAt'}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg"
+              >
+                Annuler
+              </button>
     <button
-      onClick={onClick}
-      className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left"
+                onClick={() => alert('Fonction de sauvegarde à implémenter')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
     >
-      <div className="text-3xl mb-2">{icon}</div>
-      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{title}</h4>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+                Enregistrer
     </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   )
 }
-
-

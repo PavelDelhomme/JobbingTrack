@@ -17,20 +17,12 @@ interface ServiceStatus {
   lastChecked?: string
 }
 
-interface DBTest {
-  name: string
-  status: 'pending' | 'running' | 'success' | 'error'
-  result?: string
-  error?: string
-  duration?: number
-}
-
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'services' | 'logs' | 'tests'>('services')
+  const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
   const [services, setServices] = useState<ServiceStatus[]>([
     { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 8080, status: 'testing' },
     { name: 'Auth Service', url: `${API_GATEWAY_URL}/api/v1/auth/health`, port: 3001, status: 'testing' },
@@ -51,17 +43,6 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<string>('all')
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [logLines, setLogLines] = useState(100)
-  
-  // Tests DB
-  const [dbTests, setDbTests] = useState<DBTest[]>([
-    { name: 'Connexion PostgreSQL', status: 'pending' },
-    { name: 'Schéma Prisma Auth Service', status: 'pending' },
-    { name: 'Schéma Prisma Application Service', status: 'pending' },
-    { name: 'Schéma Prisma Call Service', status: 'pending' },
-    { name: 'Schéma Prisma Notification Service', status: 'pending' },
-    { name: 'Test Migration (dry-run)', status: 'pending' },
-  ])
-  const [runningDBTests, setRunningDBTests] = useState(false)
 
   useEffect(() => {
     if (token) {
@@ -158,84 +139,6 @@ export default function ServicesPage() {
     }
   }
 
-  const runDBTests = async () => {
-    setRunningDBTests(true)
-    
-    // Réinitialiser les tests
-    setDbTests(prev => prev.map(test => ({ ...test, status: 'pending' as const })))
-
-    // Test 1: Connexion PostgreSQL
-    await runSingleTest(0, async () => {
-      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/admin/test-db/connection`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      return response.data
-    })
-
-    // Test 2-5: Schémas Prisma
-    const services = ['auth', 'application', 'call', 'notification']
-    for (let i = 0; i < services.length; i++) {
-      await runSingleTest(i + 1, async () => {
-        const response = await axios.get(`${API_GATEWAY_URL}/api/v1/admin/test-db/schema/${services[i]}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        return response.data
-      })
-    }
-
-    // Test 6: Migration dry-run
-    await runSingleTest(5, async () => {
-      const response = await axios.post(`${API_GATEWAY_URL}/api/v1/admin/test-db/migration-test`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      return response.data
-    })
-
-    setRunningDBTests(false)
-  }
-
-  const runSingleTest = async (index: number, testFn: () => Promise<any>) => {
-    setDbTests(prev => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], status: 'running' }
-      return updated
-    })
-
-    const startTime = Date.now()
-    
-    try {
-      const result = await testFn()
-      const duration = Date.now() - startTime
-
-      setDbTests(prev => {
-        const updated = [...prev]
-        updated[index] = {
-          ...updated[index],
-          status: 'success',
-          result: result.message || 'OK',
-          duration
-        }
-        return updated
-      })
-    } catch (error: any) {
-      const duration = Date.now() - startTime
-      
-      setDbTests(prev => {
-        const updated = [...prev]
-        updated[index] = {
-          ...updated[index],
-          status: 'error',
-          error: error.response?.data?.error || error.message,
-          duration
-        }
-        return updated
-      })
-    }
-
-    // Petit délai entre les tests
-    await new Promise(resolve => setTimeout(resolve, 500))
-  }
-
   const onlineCount = services.filter(s => s.status === 'online').length
   const offlineCount = services.filter(s => s.status === 'offline').length
   const averageResponseTime = services
@@ -284,22 +187,13 @@ export default function ServicesPage() {
                   {loadingLogs ? '🔄 Chargement...' : '🔄 Rafraîchir'}
                 </button>
               )}
-              {activeTab === 'tests' && (
-                <button
-                  onClick={runDBTests}
-                  disabled={runningDBTests}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center disabled:opacity-50"
-                >
-                  {runningDBTests ? '🔄 Tests en cours...' : '▶️ Lancer les tests'}
-                </button>
-              )}
             </div>
           </div>
 
           {/* Onglets */}
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
-              {['services', 'logs', 'tests'].map(tab => (
+              {['services', 'logs'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
@@ -311,10 +205,12 @@ export default function ServicesPage() {
                 >
                   {tab === 'services' && '🔧 Services'}
                   {tab === 'logs' && '📋 Logs'}
-                  {tab === 'tests' && '🧪 Tests DB'}
                 </button>
               ))}
             </nav>
+            <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              💡 Les Tests DB sont maintenant dans <strong>Administration → Gestion Données → Onglet Tests DB</strong>
+            </div>
           </div>
         </div>
 
@@ -406,67 +302,6 @@ export default function ServicesPage() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'tests' && (
-          <div className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                🧪 Tests de Base de Données
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Vérification de la connexion PostgreSQL, des schémas Prisma et des migrations
-              </p>
-
-              <div className="space-y-3">
-                {dbTests.map((test, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border ${
-                      test.status === 'success'
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                        : test.status === 'error'
-                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                        : test.status === 'running'
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                        : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">
-                          {test.status === 'success' && '✅'}
-                          {test.status === 'error' && '❌'}
-                          {test.status === 'running' && '🔄'}
-                          {test.status === 'pending' && '⏳'}
-                        </span>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {test.name}
-                          </div>
-                          {test.result && (
-                            <div className="text-sm text-green-700 dark:text-green-400 mt-1">
-                              {test.result}
-                            </div>
-                          )}
-                          {test.error && (
-                            <div className="text-sm text-red-700 dark:text-red-400 mt-1">
-                              {test.error}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {test.duration && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {test.duration}ms
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}

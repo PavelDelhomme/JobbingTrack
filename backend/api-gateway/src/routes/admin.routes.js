@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const advancedController = require('../controllers/admin-advanced.controller');
 const dbTestController = require('../controllers/db-test.controller');
+const dataManagementController = require('../controllers/data-management.controller');
 const logsController = require('../controllers/logs.controller');
 const trashController = require('../controllers/trash.controller');
 const archiveController = require('../controllers/archive.controller');
@@ -78,6 +79,15 @@ router.get('/test-db/connection', authenticate, dbTestController.testConnection)
 router.get('/test-db/schema/:serviceName', authenticate, dbTestController.testSchema);
 router.post('/test-db/migration-test', authenticate, dbTestController.testMigration);
 router.get('/test-db/tables', authenticate, dbTestController.listTables);
+
+// Routes gestion de données (admin uniquement)
+router.get('/data/tables', authenticate, dataManagementController.listTables);
+router.get('/data/:tableName', authenticate, dataManagementController.getTableData);
+router.post('/data/:tableName', authenticate, dataManagementController.createRecord);
+router.put('/data/:tableName/:id', authenticate, dataManagementController.updateRecord);
+router.delete('/data/:tableName/:id', authenticate, dataManagementController.deleteRecord);
+router.get('/export/:tableName', authenticate, dataManagementController.exportTable);
+router.post('/data/:tableName/bulk', authenticate, dataManagementController.bulkOperation);
 
 module.exports = router;
 
