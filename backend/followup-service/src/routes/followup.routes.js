@@ -23,6 +23,8 @@ router.use(authenticate);
 
 router.post('/', createValidation, controller.createFollowup);
 router.get('/', controller.getFollowups);
+router.get('/stats', controller.getStats);
+router.get('/suggestions', controller.getSuggestions);
 router.get('/:id', param('id').isString(), controller.getFollowup);
 router.put('/:id', updateValidation, controller.updateFollowup);
 router.delete('/:id', param('id').isString(), controller.deleteFollowup);

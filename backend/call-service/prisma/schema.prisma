@@ -45,6 +45,7 @@ model User {
   documents    Document[]
   templates    MessageTemplate[]
   applications Application[]
+  calls        Call[]
 }
 
 // Modèle Entreprise
@@ -114,6 +115,7 @@ model Interview {
 // ✅ NOUVEAU - Modèle Appel Téléphonique
 model Call {
   id             String     @id @default(cuid())
+  userId         String     // ✅ Ajout pour filtrer par utilisateur
   applicationId  String // ⚠️ OBLIGATOIRE - Lié à une candidature
   contactId      String? // Optionnel - Contact appelé
   type           CallType   @default(OUTGOING)
@@ -124,9 +126,11 @@ model Call {
   notes          String?
   outcome        String? // Résultat de l'appel
   followUpNeeded Boolean    @default(false)
+  phoneNumber    String? // Numéro de téléphone utilisé
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
 }
@@ -355,6 +359,10 @@ enum ActivityType {
   FOLLOWUP_SENT
   CONTACT_ADDED
   NOTE_ADDED
+  CALL_MADE
+  CALL_COMPLETED
+  CALL_SCHEDULED
+  CALL_CANCELLED
 }
 
 enum UserRole {

@@ -3,24 +3,24 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { callService } from '@/lib/api'
-import CreateCallModal from '@/components/CreateCallModal'
+import Link from 'next/link'
 
 interface Call {
   id: string
+  userId: string
   applicationId: string
   contactId?: string
-  type: string
-  status: string
+  type: 'OUTGOING' | 'INCOMING' | 'MISSED'
   scheduledDate?: string
   callDate?: string
   duration?: number
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_ANSWER' | 'VOICEMAIL' | 'RESCHEDULED'
   notes?: string
   outcome?: string
   followUpNeeded: boolean
   phoneNumber?: string
   createdAt: string
+  updatedAt: string
   application?: {
     id: string
     position: string
@@ -34,236 +34,444 @@ interface Call {
     firstName: string
     lastName: string
     position?: string
-    company?: {
-      id: string
-      name: string
-    }
+    phone?: string
+    email?: string
   }
 }
 
+interface Stats {
+  total: number
+  completed: number
+  scheduled: number
+  completionRate: string
+  averageDuration: number
+  byType: Record<string, number>
+  byOutcome: Record<string, number>
+}
+
+const CALL_TYPES = {
+  OUTGOING: { label: 'Sortant', icon: '📞', color: 'blue' },
+  INCOMING: { label: 'Entrant', icon: '📱', color: 'green' },
+  MISSED: { label: 'Manqué', icon: '❌', color: 'red' },
+}
+
+const CALL_STATUS = {
+  SCHEDULED: { label: 'Planifié', color: 'yellow' },
+  COMPLETED: { label: 'Terminé', color: 'green' },
+  CANCELLED: { label: 'Annulé', color: 'gray' },
+  NO_ANSWER: { label: 'Pas de réponse', color: 'orange' },
+  VOICEMAIL: { label: 'Message vocal', color: 'purple' },
+  RESCHEDULED: { label: 'Replanifié', color: 'blue' },
+}
+
 export default function CallsPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
+  const { token } = useAuth()
   const [calls, setCalls] = useState<Call[]>([])
+  const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState({
+    status: '',
+    type: '',
+    applicationId: '',
+    contactId: '',
+    search: ''
+  })
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [authLoading, isAuthenticated, router])
-
-  useEffect(() => {
-    if (isAuthenticated) {
+    if (token) {
       fetchCalls()
+      fetchStats()
     }
-  }, [isAuthenticated])
+  }, [token, page, filters])
 
   const fetchCalls = async () => {
     try {
-      const response = await callService.getAll()
-      setCalls(response.data.calls || [])
-    } catch (error) {
-      console.error('Erreur chargement appels:', error)
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '20',
+        ...(filters.status && { status: filters.status }),
+        ...(filters.type && { type: filters.type }),
+        ...(filters.applicationId && { applicationId: filters.applicationId }),
+        ...(filters.contactId && { contactId: filters.contactId }),
+      })
+
+      const response = await fetch(`http://localhost:8080/api/v1/calls?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) throw new Error('Erreur lors du chargement des appels')
+
+      const data = await response.json()
+      setCalls(data.calls || [])
+      setTotalPages(data.pagination?.pages || 1)
+      setError(null)
+    } catch (err: any) {
+      setError(err.message)
+      console.error('Erreur:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCallCreated = () => {
-    fetchCalls()
-    setShowCreateModal(false)
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/calls/stats/overview', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data.stats)
+      }
+    } catch (err) {
+      console.error('Erreur stats:', err)
+    }
   }
 
-  const handleDeleteCall = async (callId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appel ?')) {
-      return
-    }
+  const deleteCall = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet appel ?')) return
 
     try {
-      await callService.delete(callId)
-      fetchCalls()
-    } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur lors de la suppression')
+      const response = await fetch(`http://localhost:8080/api/v1/calls/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) throw new Error('Erreur lors de la suppression')
+
+      await fetchCalls()
+      await fetchStats()
+    } catch (err: any) {
+      alert(err.message)
     }
   }
 
-  if (authLoading || loading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </AdminLayout>
-    )
+  const completeCall = async (id: string) => {
+    const duration = prompt('Durée de l\'appel (en secondes) :')
+    const outcome = prompt('Résultat de l\'appel :')
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/v1/calls/${id}/complete`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          duration: duration ? parseInt(duration) : null,
+          outcome
+        })
+      })
+
+      if (!response.ok) throw new Error('Erreur lors de la complétion')
+
+      await fetchCalls()
+      await fetchStats()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return 'N/A'
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes}m ${secs}s`
+  }
+
+  const formatDate = (date?: string) => {
+    if (!date) return 'Non défini'
+    return new Date(date).toLocaleString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
     <AdminLayout>
-      <div>
+      <div className="space-y-6">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               📞 Gestion des Appels
             </h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Gérez vos appels téléphoniques professionnels
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Gérez et suivez tous vos appels téléphoniques
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary px-4 py-2 rounded-lg flex items-center"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            ➕ Nouvel appel
+            ➕ Nouvel Appel
           </button>
         </div>
 
-        {/* Calls Table */}
-        <div className="table-container">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="table-header">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Candidature
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Durée
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {calls.map((call) => (
-                <tr key={call.id} className="table-row">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {call.application?.position || 'Candidature inconnue'}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {call.application?.company.name || 'Entreprise inconnue'}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {call.contact ? (
-                      <div>
-                        <div className="font-medium">
-                          {call.contact.firstName} {call.contact.lastName}
-                        </div>
-                        {call.contact.position && (
-                          <div className="text-gray-600 dark:text-gray-400">{call.contact.position}</div>
-                        )}
-                        {call.contact.company?.name && (
-                          <div className="text-gray-600 dark:text-gray-400">{call.contact.company.name}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 dark:text-gray-500">Aucun contact</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <CallTypeBadge type={call.type} />
-                  </td>
-                  <td className="px-6 py-4">
-                    <CallStatusBadge status={call.status} />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {call.callDate
-                      ? new Date(call.callDate).toLocaleString('fr-FR')
-                      : call.scheduledDate
-                      ? new Date(call.scheduledDate).toLocaleString('fr-FR')
-                      : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {call.duration ? `${call.duration} min` : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    <button
-                      onClick={() => alert('Détails à implémenter')}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
-                    >
-                      Voir
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCall(call.id)}
-                      className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                    >
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {calls.length === 0 && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              📞 Aucun appel enregistré
+        {/* Statistiques */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <div className="text-gray-600 dark:text-gray-400 text-sm">Total</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.total}
+              </div>
             </div>
-          )}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <div className="text-gray-600 dark:text-gray-400 text-sm">Terminés</div>
+              <div className="text-3xl font-bold text-green-600">
+                {stats.completed}
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <div className="text-gray-600 dark:text-gray-400 text-sm">Planifiés</div>
+              <div className="text-3xl font-bold text-yellow-600">
+                {stats.scheduled}
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <div className="text-gray-600 dark:text-gray-400 text-sm">Taux complétion</div>
+              <div className="text-3xl font-bold text-blue-600">
+                {stats.completionRate}%
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+              <div className="text-gray-600 dark:text-gray-400 text-sm">Durée moy.</div>
+              <div className="text-3xl font-bold text-purple-600">
+                {Math.floor(stats.averageDuration / 60)}m
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filtres */}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Statut
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">Tous les statuts</option>
+                {Object.entries(CALL_STATUS).map(([key, value]) => (
+                  <option key={key} value={key}>{value.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Type
+              </label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">Tous les types</option>
+                {Object.entries(CALL_TYPES).map(([key, value]) => (
+                  <option key={key} value={key}>{value.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Recherche
+              </label>
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                placeholder="Rechercher..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Modal de création d'appel */}
-        <CreateCallModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onCallCreated={handleCallCreated}
-        />
+        {/* Liste des appels */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-gray-600 dark:text-gray-400">Chargement...</div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        ) : calls.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+            <p className="text-gray-600 dark:text-gray-400">Aucun appel trouvé</p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Candidature / Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Durée
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Résultat
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {calls.map((call) => {
+                  const typeInfo = CALL_TYPES[call.type]
+                  const statusInfo = CALL_STATUS[call.status]
+                  
+                  return (
+                    <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
+                          {typeInfo.icon} {typeInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {call.application?.company.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {call.application?.position}
+                        </div>
+                        {call.contact && (
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            Contact: {call.contact.firstName} {call.contact.lastName}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {formatDate(call.callDate || call.scheduledDate)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {formatDuration(call.duration)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                        <div className="max-w-xs truncate">{call.outcome || '-'}</div>
+                        {call.followUpNeeded && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mt-1">
+                            ⚠️ Relance requise
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end gap-2">
+                          {call.status === 'SCHEDULED' && (
+                            <button
+                              onClick={() => completeCall(call.id)}
+                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                              title="Marquer comme terminé"
+                            >
+                              ✓
+                            </button>
+                          )}
+                          <Link
+                            href={`/backoffice/calls/${call.id}`}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            👁️
+                          </Link>
+                          <button
+                            onClick={() => deleteCall(call.id)}
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Précédent
+            </button>
+            <span className="px-4 py-2 text-gray-700 dark:text-gray-300">
+              Page {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Suivant
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Modal Créer un appel - À implémenter */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              Nouvel Appel
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Formulaire de création à implémenter
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
-
-function CallTypeBadge({ type }: { type: string }) {
-  const typeColors: Record<string, string> = {
-    OUTBOUND: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    INBOUND: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    FOLLOWUP: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-    INQUIRY: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    SCHEDULED: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-    COLD_CALL: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-  }
-
-  return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeColors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}>
-      {type}
-    </span>
-  )
-}
-
-function CallStatusBadge({ status }: { status: string }) {
-  const statusColors: Record<string, string> = {
-    PLANNED: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    MISSED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    CANCELLED: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-    NO_ANSWER: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    BUSY: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    LEFT_MESSAGE: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  }
-
-  return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}>
-      {status}
-    </span>
-  )
-}
-
