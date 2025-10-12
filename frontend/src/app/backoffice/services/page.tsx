@@ -17,21 +17,22 @@ interface ServiceStatus {
   lastChecked?: string
 }
 
-interface LogEntry {
-  timestamp: string
-  level: string
-  message: string
-  service?: string
+interface DBTest {
+  name: string
+  status: 'pending' | 'running' | 'success' | 'error'
+  result?: string
+  error?: string
+  duration?: number
 }
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 export default function ServicesPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { token, user } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'services' | 'logs' | 'tests'>('services')
   const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'testing' },
+    { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 8080, status: 'testing' },
     { name: 'Auth Service', url: `${API_GATEWAY_URL}/api/v1/auth/health`, port: 3001, status: 'testing' },
     { name: 'Application Service', url: `${API_GATEWAY_URL}/api/v1/applications/health`, port: 3002, status: 'testing' },
     { name: 'Company Service', url: `${API_GATEWAY_URL}/api/v1/companies/health`, port: 3003, status: 'testing' },
@@ -46,21 +47,27 @@ export default function ServicesPage() {
   ])
   const [testing, setTesting] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logs, setLogs] = useState<string[]>([])
   const [selectedService, setSelectedService] = useState<string>('all')
   const [loadingLogs, setLoadingLogs] = useState(false)
+  const [logLines, setLogLines] = useState(100)
+  
+  // Tests DB
+  const [dbTests, setDbTests] = useState<DBTest[]>([
+    { name: 'Connexion PostgreSQL', status: 'pending' },
+    { name: 'Schéma Prisma Auth Service', status: 'pending' },
+    { name: 'Schéma Prisma Application Service', status: 'pending' },
+    { name: 'Schéma Prisma Call Service', status: 'pending' },
+    { name: 'Schéma Prisma Notification Service', status: 'pending' },
+    { name: 'Test Migration (dry-run)', status: 'pending' },
+  ])
+  const [runningDBTests, setRunningDBTests] = useState(false)
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [authLoading, isAuthenticated, router])
-
-  useEffect(() => {
-    if (isAuthenticated) {
+    if (token) {
       testAllServices()
     }
-  }, [isAuthenticated])
+  }, [token])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -78,10 +85,10 @@ export default function ServicesPage() {
   }, [autoRefresh, activeTab])
 
   useEffect(() => {
-    if (activeTab === 'logs') {
+    if (activeTab === 'logs' && token) {
       fetchLogs()
     }
-  }, [activeTab, selectedService])
+  }, [activeTab, selectedService, token])
 
   const testService = async (service: ServiceStatus): Promise<ServiceStatus> => {
     const startTime = Date.now()
@@ -89,7 +96,7 @@ export default function ServicesPage() {
       const response = await axios.get(service.url, { 
         timeout: 5000,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       })
       const responseTime = Date.now() - startTime
@@ -121,121 +128,112 @@ export default function ServicesPage() {
     setTesting(false)
   }
 
-  const testSingleService = async (index: number) => {
-    setServices(prev => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], status: 'testing' }
-      return updated
-    })
-
-    const result = await testService(services[index])
-    
-    setServices(prev => {
-      const updated = [...prev]
-      updated[index] = result
-      return updated
-    })
-  }
-
   const fetchLogs = async () => {
     setLoadingLogs(true)
     try {
+      const serviceSlug = selectedService === 'all' 
+        ? 'all'
+        : selectedService.toLowerCase().replace(' service', '').replace(' ', '-')
+      
       const endpoint = selectedService === 'all' 
-        ? `${API_GATEWAY_URL}/api/v1/admin/logs/all`
-        : `${API_GATEWAY_URL}/api/v1/admin/logs/${selectedService}`
+        ? `${API_GATEWAY_URL}/api/v1/admin/logs/all?lines=${logLines}`
+        : `${API_GATEWAY_URL}/api/v1/admin/logs/${serviceSlug}?lines=${logLines}`
 
       const response = await axios.get(endpoint, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        headers: { 'Authorization': `Bearer ${token}` },
         timeout: 10000
       })
 
-      if (response.data.success) {
-        setLogs(response.data.logs || [])
+      if (response.data.success && response.data.logs) {
+        // Les logs sont retournés comme un tableau de strings
+        setLogs(Array.isArray(response.data.logs) ? response.data.logs : [])
+      } else {
+        setLogs([])
       }
     } catch (error: any) {
       console.error('Erreur chargement logs:', error)
-      setLogs([])
+      setLogs([`Erreur: ${error.message}`])
     } finally {
       setLoadingLogs(false)
     }
   }
 
-  const restartService = async (serviceName: string, index: number) => {
-    if (!confirm(`🔄 Voulez-vous vraiment redémarrer le service "${serviceName}" ?\n\nCela peut prendre quelques secondes.`)) {
-      return
-    }
+  const runDBTests = async () => {
+    setRunningDBTests(true)
+    
+    // Réinitialiser les tests
+    setDbTests(prev => prev.map(test => ({ ...test, status: 'pending' as const })))
 
-    try {
-      setServices(prev => {
-        const updated = [...prev]
-        updated[index] = { ...updated[index], status: 'testing' }
-        return updated
+    // Test 1: Connexion PostgreSQL
+    await runSingleTest(0, async () => {
+      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/admin/test-db/connection`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
+      return response.data
+    })
 
-      const response = await axios.post(
-        `${API_GATEWAY_URL}/api/v1/admin/services/restart`,
-        { serviceName: serviceName.toLowerCase().replace(' service', '').replace(' ', '-') },
-        {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          timeout: 30000
-        }
-      )
-
-      if (response.data.success) {
-        alert(`✅ Service "${serviceName}" redémarré avec succès !`)
-        setTimeout(() => testSingleService(index), 3000)
-      } else {
-        alert(`❌ Erreur : ${response.data.error}`)
-        setServices(prev => {
-          const updated = [...prev]
-          updated[index] = { ...updated[index], status: 'offline' }
-          return updated
+    // Test 2-5: Schémas Prisma
+    const services = ['auth', 'application', 'call', 'notification']
+    for (let i = 0; i < services.length; i++) {
+      await runSingleTest(i + 1, async () => {
+        const response = await axios.get(`${API_GATEWAY_URL}/api/v1/admin/test-db/schema/${services[i]}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         })
-      }
-    } catch (error: any) {
-      alert(`❌ Erreur lors du redémarrage : ${error.message}`)
-      setServices(prev => {
-        const updated = [...prev]
-        updated[index] = { ...updated[index], status: 'offline' }
-        return updated
+        return response.data
       })
     }
+
+    // Test 6: Migration dry-run
+    await runSingleTest(5, async () => {
+      const response = await axios.post(`${API_GATEWAY_URL}/api/v1/admin/test-db/migration-test`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      return response.data
+    })
+
+    setRunningDBTests(false)
   }
 
-  const stopService = async (serviceName: string, index: number) => {
-    if (!confirm(`⚠️ ATTENTION : Arrêter le service "${serviceName}" ?\n\nCe service ne sera plus accessible jusqu'à son redémarrage manuel.`)) {
-      return
-    }
+  const runSingleTest = async (index: number, testFn: () => Promise<any>) => {
+    setDbTests(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], status: 'running' }
+      return updated
+    })
 
+    const startTime = Date.now()
+    
     try {
-      setServices(prev => {
+      const result = await testFn()
+      const duration = Date.now() - startTime
+
+      setDbTests(prev => {
         const updated = [...prev]
-        updated[index] = { ...updated[index], status: 'testing' }
+        updated[index] = {
+          ...updated[index],
+          status: 'success',
+          result: result.message || 'OK',
+          duration
+        }
         return updated
       })
-
-      const response = await axios.post(
-        `${API_GATEWAY_URL}/api/v1/admin/services/stop`,
-        { serviceName: serviceName.toLowerCase().replace(' service', '').replace(' ', '-') },
-        {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          timeout: 30000
-        }
-      )
-
-      if (response.data.success) {
-        alert(`🛑 Service "${serviceName}" arrêté`)
-        setServices(prev => {
-          const updated = [...prev]
-          updated[index] = { ...updated[index], status: 'offline', error: 'Service arrêté manuellement' }
-          return updated
-        })
-      } else {
-        alert(`❌ Erreur : ${response.data.error}`)
-      }
     } catch (error: any) {
-      alert(`❌ Erreur lors de l'arrêt : ${error.message}`)
+      const duration = Date.now() - startTime
+      
+      setDbTests(prev => {
+        const updated = [...prev]
+        updated[index] = {
+          ...updated[index],
+          status: 'error',
+          error: error.response?.data?.error || error.message,
+          duration
+        }
+        return updated
+      })
     }
+
+    // Petit délai entre les tests
+    await new Promise(resolve => setTimeout(resolve, 500))
   }
 
   const onlineCount = services.filter(s => s.status === 'online').length
@@ -243,16 +241,6 @@ export default function ServicesPage() {
   const averageResponseTime = services
     .filter(s => s.responseTime)
     .reduce((acc, s) => acc + (s.responseTime || 0), 0) / (services.filter(s => s.responseTime).length || 1)
-
-  if (authLoading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </AdminLayout>
-    )
-  }
 
   return (
     <AdminLayout>
@@ -296,42 +284,36 @@ export default function ServicesPage() {
                   {loadingLogs ? '🔄 Chargement...' : '🔄 Rafraîchir'}
                 </button>
               )}
+              {activeTab === 'tests' && (
+                <button
+                  onClick={runDBTests}
+                  disabled={runningDBTests}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center disabled:opacity-50"
+                >
+                  {runningDBTests ? '🔄 Tests en cours...' : '▶️ Lancer les tests'}
+                </button>
+              )}
             </div>
           </div>
 
           {/* Onglets */}
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('services')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'services'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                🔧 Services
-              </button>
-              <button
-                onClick={() => setActiveTab('logs')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'logs'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                📋 Logs
-              </button>
-              <button
-                onClick={() => setActiveTab('tests')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'tests'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                🧪 Tests DB
-              </button>
+              {['services', 'logs', 'tests'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {tab === 'services' && '🔧 Services'}
+                  {tab === 'logs' && '📋 Logs'}
+                  {tab === 'tests' && '🧪 Tests DB'}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
@@ -339,7 +321,7 @@ export default function ServicesPage() {
         {/* Contenu des onglets */}
         {activeTab === 'services' && (
           <>
-            {/* Overall Stats */}
+            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Services Total</p>
@@ -359,49 +341,131 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            {/* Services List */}
+            {/* Services Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {services.map((service, index) => (
-                <ServiceCard
-                  key={service.name}
-                  service={service}
-                  onTest={() => testSingleService(index)}
-                  onRestart={() => restartService(service.name, index)}
-                  onStop={() => stopService(service.name, index)}
-                />
+                <ServiceCard key={service.name} service={service} />
               ))}
             </div>
           </>
         )}
 
         {activeTab === 'logs' && (
-          <LogsViewer
-            logs={logs}
-            services={services}
-            selectedService={selectedService}
-            onServiceChange={setSelectedService}
-            loading={loadingLogs}
-          />
+          <div className="space-y-4">
+            {/* Contrôles */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Service :
+                </label>
+                <select
+                  value={selectedService}
+                  onChange={(e) => setSelectedService(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="all">Tous les services</option>
+                  {services.map(service => (
+                    <option key={service.name} value={service.name}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Lignes :
+                </label>
+                <input
+                  type="number"
+                  value={logLines}
+                  onChange={(e) => setLogLines(parseInt(e.target.value))}
+                  min="10"
+                  max="1000"
+                  step="50"
+                  className="w-24 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
+
+            {/* Affichage des logs */}
+            <div className="bg-gray-900 rounded-lg shadow p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
+              {loadingLogs ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  Aucun log disponible
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {logs.map((log, index) => (
+                    <div key={index} className="text-green-400 hover:bg-gray-800 px-2 py-1 rounded">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === 'tests' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">🧪 Tests de connexion DB</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Fonctionnalité à venir : tests automatiques de connexion aux bases de données et vérification de l'intégrité des schémas Prisma.
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <span className="text-2xl mr-3">✅</span>
-                <span className="text-sm text-gray-700 dark:text-gray-300">Test de connexion PostgreSQL</span>
-              </div>
-              <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <span className="text-2xl mr-3">✅</span>
-                <span className="text-sm text-gray-700 dark:text-gray-300">Vérification des schémas Prisma</span>
-              </div>
-              <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                <span className="text-2xl mr-3">✅</span>
-                <span className="text-sm text-gray-700 dark:text-gray-300">Test des migrations</span>
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                🧪 Tests de Base de Données
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Vérification de la connexion PostgreSQL, des schémas Prisma et des migrations
+              </p>
+
+              <div className="space-y-3">
+                {dbTests.map((test, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      test.status === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : test.status === 'error'
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                        : test.status === 'running'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">
+                          {test.status === 'success' && '✅'}
+                          {test.status === 'error' && '❌'}
+                          {test.status === 'running' && '🔄'}
+                          {test.status === 'pending' && '⏳'}
+                        </span>
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {test.name}
+                          </div>
+                          {test.result && (
+                            <div className="text-sm text-green-700 dark:text-green-400 mt-1">
+                              {test.result}
+                            </div>
+                          )}
+                          {test.error && (
+                            <div className="text-sm text-red-700 dark:text-red-400 mt-1">
+                              {test.error}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {test.duration && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {test.duration}ms
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -411,12 +475,7 @@ export default function ServicesPage() {
   )
 }
 
-function ServiceCard({ service, onTest, onRestart, onStop }: {
-  service: ServiceStatus
-  onTest: () => void
-  onRestart: () => void
-  onStop: () => void
-}) {
+function ServiceCard({ service }: { service: ServiceStatus }) {
   const statusColors = {
     online: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
     offline: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
@@ -430,166 +489,39 @@ function ServiceCard({ service, onTest, onRestart, onStop }: {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {service.name}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Port {service.port}</p>
-          </div>
-          <div className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[service.status]}`}>
-            {statusIcons[service.status]} {service.status.toUpperCase()}
-          </div>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {service.name}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Port {service.port}</p>
         </div>
-
-        <div className="space-y-2 mb-4">
-          {service.responseTime && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">{service.responseTime}ms</span>
-            </div>
-          )}
-          {service.version && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Version:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">{service.version}</span>
-            </div>
-          )}
-          {service.lastChecked && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Dernier test:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">{service.lastChecked}</span>
-            </div>
-          )}
+        <div className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[service.status]}`}>
+          {statusIcons[service.status]} {service.status.toUpperCase()}
         </div>
+      </div>
 
-        {service.error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-xs text-red-800 dark:text-red-400">{service.error}</p>
+      <div className="space-y-2">
+        {service.responseTime && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{service.responseTime}ms</span>
           </div>
         )}
-
-        <div className="space-y-2">
-          <div className="flex space-x-2">
-            <button
-              onClick={onTest}
-              className="flex-1 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 text-sm rounded-lg transition-colors font-medium"
-            >
-              🧪 Tester
-            </button>
-            <button
-              onClick={onRestart}
-              className="flex-1 px-3 py-2 bg-orange-50 dark:bg-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-400 text-sm rounded-lg transition-colors font-medium"
-              title="Redémarrer le service"
-            >
-              🔄 Redémarrer
-            </button>
+        {service.lastChecked && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Dernier test:</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{service.lastChecked}</span>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={onStop}
-              className="flex-1 px-3 py-2 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 text-sm rounded-lg transition-colors font-medium"
-              title="Arrêter le service"
-            >
-              🛑 Arrêter
-            </button>
-            <a
-              href={service.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-900/80 text-gray-700 dark:text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center"
-              title="Ouvrir l'URL du service"
-            >
-              🔗
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LogsViewer({ logs, services, selectedService, onServiceChange, loading }: {
-  logs: LogEntry[]
-  services: ServiceStatus[]
-  selectedService: string
-  onServiceChange: (service: string) => void
-  loading: boolean
-}) {
-  const levelColors: Record<string, string> = {
-    error: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20',
-    warn: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
-    info: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20',
-    debug: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20',
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Sélecteur de service */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Filtrer par service :
-        </label>
-        <select
-          value={selectedService}
-          onChange={(e) => onServiceChange(e.target.value)}
-          className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-        >
-          <option value="all">Tous les services</option>
-          {services.map(service => (
-            <option key={service.name} value={service.name.toLowerCase().replace(' service', '').replace(' ', '-')}>
-              {service.name}
-            </option>
-          ))}
-        </select>
+        )}
       </div>
 
-      {/* Liste des logs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            📋 Logs {selectedService !== 'all' ? `- ${selectedService}` : ''}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {logs.length} entrées
-          </p>
+      {service.error && (
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-xs text-red-800 dark:text-red-400">{service.error}</p>
         </div>
-        
-        <div className="p-4 max-h-[600px] overflow-y-auto font-mono text-sm">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              Aucun log disponible
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {logs.slice(0, 200).map((log, index) => (
-                <div key={index} className="flex gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-900/50 rounded">
-                  <span className="text-gray-500 dark:text-gray-500 shrink-0">
-                    {log.timestamp}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${levelColors[log.level] || levelColors.info}`}>
-                    {log.level?.toUpperCase() || 'INFO'}
-                  </span>
-                  {log.service && (
-                    <span className="text-purple-600 dark:text-purple-400 shrink-0">
-                      [{log.service}]
-                    </span>
-                  )}
-                  <span className="text-gray-700 dark:text-gray-300 break-all">
-                    {log.message}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

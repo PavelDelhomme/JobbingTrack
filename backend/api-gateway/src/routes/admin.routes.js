@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const advancedController = require('../controllers/admin-advanced.controller');
+const dbTestController = require('../controllers/db-test.controller');
 const logsController = require('../controllers/logs.controller');
 const trashController = require('../controllers/trash.controller');
 const archiveController = require('../controllers/archive.controller');
@@ -71,6 +72,12 @@ router.get('/stats/global', authenticate, advancedController.getGlobalStats);
 router.get('/logs/admin', authenticate, advancedController.getAdminLogs);
 router.post('/users/:userId/anonymize', authenticate, advancedController.anonymizeUser);
 router.get('/monitoring/performance', authenticate, advancedController.getPerformanceMetrics);
+
+// Routes tests DB (admin uniquement)
+router.get('/test-db/connection', authenticate, dbTestController.testConnection);
+router.get('/test-db/schema/:serviceName', authenticate, dbTestController.testSchema);
+router.post('/test-db/migration-test', authenticate, dbTestController.testMigration);
+router.get('/test-db/tables', authenticate, dbTestController.listTables);
 
 module.exports = router;
 
