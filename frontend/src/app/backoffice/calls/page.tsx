@@ -123,7 +123,7 @@ export default function CallsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/calls/stats/overview', {
+      const response = await fetch('http://localhost:3000/api/v1/calls/stats/overview', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

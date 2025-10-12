@@ -71,7 +71,7 @@ import axios from 'axios'
 
 type DeviceType = 'iphone-14' | 'iphone-14-pro-max' | 'pixel-7' | 'samsung-s23' | 'ipad'
 type OrientationType = 'portrait' | 'landscape'
-type MobileScreen = 'login' | 'home' | 'applications' | 'companies' | 'contacts' | 'interviews' | 'profile' | 'settings'
+type MobileScreen = 'login' | 'home' | 'applications' | 'companies' | 'contacts' | 'interviews' | 'profile' | 'settings' | 'admin-backoffice'
 
 interface Device {
   id: DeviceType
@@ -125,6 +125,9 @@ export default function MobileEmulatorPage() {
   const [loadingData, setLoadingData] = useState(false)
   const [touchEffect, setTouchEffect] = useState<{ x: number; y: number } | null>(null)
   const [showUserSwitcher, setShowUserSwitcher] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [logs, setLogs] = useState<Array<{ time: string; type: 'info' | 'error' | 'success'; message: string }>>([])
+  const [appRunning, setAppRunning] = useState(true)
 
   const width = orientation === 'portrait' ? selectedDevice.width : selectedDevice.height
   const height = orientation === 'portrait' ? selectedDevice.height : selectedDevice.width
@@ -148,16 +151,24 @@ export default function MobileEmulatorPage() {
     }
   }, [mobileToken, currentScreen])
 
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const time = new Date().toLocaleTimeString('fr-FR')
+    setLogs(prevLogs => [{ time, type, message }, ...prevLogs.slice(0, 49)]) // Garder max 50 logs
+  }
+
   const loadUsers = async () => {
     try {
+      addLog('Chargement des utilisateurs...', 'info')
       const response = await axios.get(`${API_URL}/api/v1/auth/users`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       })
       if (response.data.success) {
         setUsers(response.data.users || [])
+        addLog(`${response.data.users?.length || 0} utilisateurs chargés`, 'success')
       }
     } catch (error) {
       console.error('Erreur chargement utilisateurs:', error)
+      addLog('Erreur chargement utilisateurs, utilisation de données de test', 'error')
       // Créer des utilisateurs de test
       setUsers([
         { id: '1', email: 'user1@jobbingtrack.com', firstName: 'Pavel', lastName: 'Delhomme', role: 'SUPER_ADMIN' },
@@ -169,6 +180,7 @@ export default function MobileEmulatorPage() {
 
   const loginAsUser = async (email: string, password: string = 'password123') => {
     setLoadingData(true)
+    addLog(`Tentative de connexion pour ${email}`, 'info')
     try {
       const response = await axios.post(`${API_URL}/api/v1/auth/login`, {
         email,
@@ -179,9 +191,11 @@ export default function MobileEmulatorPage() {
         const user = users.find(u => u.email === email)
         if (user) setSelectedUser(user)
         setCurrentScreen('home')
+        addLog(`Connexion réussie pour ${email}`, 'success')
       }
     } catch (error: any) {
       console.error('Erreur login:', error)
+      addLog(`Erreur de connexion: ${error.message}`, 'error')
       alert(`Erreur de connexion: ${error.message}`)
     } finally {
       setLoadingData(false)
@@ -191,15 +205,18 @@ export default function MobileEmulatorPage() {
   const loadApplications = async () => {
     if (!mobileToken) return
     setLoadingData(true)
+    addLog('Chargement des candidatures...', 'info')
     try {
       const response = await axios.get(`${API_URL}/api/v1/applications`, {
         headers: { Authorization: `Bearer ${mobileToken}` }
       })
       if (response.data.success) {
         setApplications(response.data.applications || [])
+        addLog(`${response.data.applications?.length || 0} candidatures chargées`, 'success')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur chargement candidatures:', error)
+      addLog(`Erreur chargement candidatures: ${error.message}`, 'error')
     } finally {
       setLoadingData(false)
     }
@@ -221,6 +238,7 @@ export default function MobileEmulatorPage() {
   }
 
   const logout = () => {
+    addLog('Déconnexion de l\'utilisateur', 'info')
     setMobileToken(null)
     setSelectedUser(null)
     setCurrentScreen('login')
@@ -228,6 +246,7 @@ export default function MobileEmulatorPage() {
   }
 
   const switchUser = (user: User) => {
+    addLog(`Changement d'utilisateur vers ${user.email}`, 'info')
     logout()
     setSelectedUser(user)
     setShowUserSwitcher(false)
@@ -236,6 +255,33 @@ export default function MobileEmulatorPage() {
 
   const toggleOrientation = () => {
     setOrientation(orientation === 'portrait' ? 'landscape' : 'portrait')
+    addLog(`Orientation changée: ${orientation === 'portrait' ? 'paysage' : 'portrait'}`, 'info')
+  }
+
+  const restartApp = () => {
+    addLog('Redémarrage de l\'application...', 'info')
+    setAppRunning(false)
+    logout()
+    setTimeout(() => {
+      setAppRunning(true)
+      addLog('Application redémarrée', 'success')
+    }, 1000)
+  }
+
+  const stopApp = () => {
+    addLog('Arrêt de l\'application', 'info')
+    setAppRunning(false)
+    logout()
+  }
+
+  const startApp = () => {
+    addLog('Démarrage de l\'application', 'success')
+    setAppRunning(true)
+  }
+
+  const clearLogs = () => {
+    setLogs([])
+    addLog('Logs effacés', 'info')
   }
 
   return (
@@ -370,10 +416,103 @@ export default function MobileEmulatorPage() {
               <option value="offline">📵 Hors ligne</option>
             </select>
 
+            {/* Contrôles de l'application */}
+            <div className="flex items-center gap-2 border-l border-gray-300 dark:border-gray-600 pl-4 ml-2">
+              {appRunning ? (
+                <>
+                  <button
+                    onClick={restartApp}
+                    className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors flex items-center gap-2"
+                    title="Redémarrer l'application"
+                  >
+                    <span className="text-lg">🔄</span>
+                  </button>
+                  <button
+                    onClick={stopApp}
+                    className="px-3 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800 transition-colors flex items-center gap-2"
+                    title="Arrêter l'application"
+                  >
+                    <span className="text-lg">⏹️</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={startApp}
+                  className="px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 transition-colors flex items-center gap-2"
+                  title="Démarrer l'application"
+                >
+                  <span className="text-lg">▶️</span>
+                </button>
+              )}
+            </div>
+
+            {/* Bouton logs */}
+            <button
+              onClick={() => setShowLogs(!showLogs)}
+              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                showLogs
+                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <span className="text-xl">📋</span>
+              <span className="text-sm font-medium">Logs {logs.length > 0 && `(${logs.length})`}</span>
+            </button>
+
             {/* Centre de notifications mobile */}
             <MobileNotificationCenter />
           </div>
         </div>
+
+        {/* Panneau de logs */}
+        {showLogs && (
+          <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span>📋</span>
+                  Logs de l'émulateur
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={clearLogs}
+                    className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    Effacer
+                  </button>
+                  <button
+                    onClick={() => setShowLogs(false)}
+                    className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs space-y-1">
+                {logs.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">Aucun log disponible</p>
+                ) : (
+                  logs.map((log, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-2 p-2 rounded ${
+                        log.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' :
+                        log.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' :
+                        'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <span className="text-gray-500 dark:text-gray-400 shrink-0">{log.time}</span>
+                      <span className="shrink-0">
+                        {log.type === 'error' ? '❌' : log.type === 'success' ? '✅' : 'ℹ️'}
+                      </span>
+                      <span className="flex-1">{log.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Emulator Area */}
         <div className="flex-1 p-8 overflow-auto">
@@ -431,7 +570,24 @@ export default function MobileEmulatorPage() {
                       paddingTop: '44px'
                     }}
                   >
-                    {/* Touch Effect */}
+                    {/* App Stopped Overlay */}
+                    {!appRunning && (
+                      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <div className="text-6xl mb-4 animate-pulse">⏸️</div>
+                          <p className="text-xl font-semibold mb-2">Application arrêtée</p>
+                          <p className="text-sm text-gray-300 mb-4">Cliquez sur le bouton de démarrage pour relancer</p>
+                          <button
+                            onClick={startApp}
+                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                          >
+                            ▶️ Démarrer l'application
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Touch Effect */}
                     {touchEffect && (
                       <div
                         className="absolute pointer-events-none z-50"
@@ -462,7 +618,7 @@ export default function MobileEmulatorPage() {
 
                         // Ajouter un indicateur de scroll subtil
                         if (scrollHeight > clientHeight) {
-                          e.currentTarget.style.setProperty('--scroll-indicator-opacity', Math.min(scrollTop / 50, 1));
+                          e.currentTarget.style.setProperty('--scroll-indicator-opacity', String(Math.min(scrollTop / 50, 1)));
                         }
                       }}
                     >
@@ -770,7 +926,7 @@ function MobileApp({
         </div>
 
         {/* Bottom Navigation */}
-        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />
+        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} selectedUser={selectedUser} />
       </div>
     )
   }
@@ -848,7 +1004,52 @@ function MobileApp({
           )}
         </div>
 
-        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />
+        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} selectedUser={selectedUser} />
+      </div>
+    )
+  }
+
+  // Écran Admin Backoffice (Super Admin uniquement)
+  if (currentScreen === 'admin-backoffice') {
+    return (
+      <div className={`${bgClass} w-full h-full flex flex-col`}>
+        {/* Header avec option de retour */}
+        <div className={`${cardClass} border-b p-3 flex items-center justify-between`}>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentScreen('home')}
+              className="text-xl hover:scale-110 transition-transform duration-200"
+            >
+              ←
+            </button>
+            <h1 className="text-lg font-bold">Admin Backoffice</h1>
+          </div>
+          <button
+            onClick={() => {
+              // Basculer en plein écran web
+              window.open('http://localhost:8080/backoffice', '_blank')
+            }}
+            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+          >
+            🖥️ Version Web
+          </button>
+        </div>
+        
+        {/* Iframe du backoffice web adapté au mobile */}
+        <div className="flex-1 overflow-hidden relative">
+          <iframe
+            src="http://localhost:8080/backoffice"
+            className="w-full h-full border-0"
+            style={{
+              transform: 'scale(1)',
+              transformOrigin: 'top left',
+            }}
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            title="Admin Backoffice"
+          />
+        </div>
+        
+        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} selectedUser={selectedUser} />
       </div>
     )
   }
@@ -881,15 +1082,16 @@ function MobileApp({
           </p>
         </div>
       </div>
-      <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />
+      <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} selectedUser={selectedUser} />
     </div>
   )
 }
 
-function BottomNav({ currentScreen, setCurrentScreen, isDarkMode }: {
+function BottomNav({ currentScreen, setCurrentScreen, isDarkMode, selectedUser }: {
   currentScreen: MobileScreen
   setCurrentScreen: (screen: MobileScreen) => void
   isDarkMode: boolean
+  selectedUser?: User | null
 }) {
   const navItems = [
     { screen: 'home' as MobileScreen, icon: '🏠', label: 'Accueil' },
@@ -897,17 +1099,23 @@ function BottomNav({ currentScreen, setCurrentScreen, isDarkMode }: {
     { screen: 'interviews' as MobileScreen, icon: '📅', label: 'Entretiens' },
     { screen: 'profile' as MobileScreen, icon: '👤', label: 'Profil' },
   ]
+  // Ajouter le backoffice pour les Super Admin
+  const isAdmin = selectedUser?.role === 'SUPER_ADMIN' || selectedUser?.role === 'ADMIN'
+  
+  if (isAdmin && currentScreen !== 'login') {
+    navItems.push({ screen: 'admin-backoffice' as MobileScreen, icon: '⚙️', label: 'Admin' })
+  }
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-t flex justify-around p-2`}>
+    <div className={`${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} border-t flex justify-around p-2 backdrop-blur-sm sticky bottom-0 left-0 right-0 z-30 shadow-lg`}>
       {navItems.map(item => (
         <button
           key={item.screen}
           onClick={() => setCurrentScreen(item.screen)}
-          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg ${
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-200 ${
             currentScreen === item.screen
-              ? 'text-blue-600'
-              : 'text-gray-500 dark:text-gray-400'
+              ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 transform scale-110'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
         >
           <span className="text-xl">{item.icon}</span>

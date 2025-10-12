@@ -35,6 +35,8 @@ model Application {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    Company               @relation(fields: [companyId], references: [id])
   platform   Platform?             @relation(fields: [platformId], references: [id])
   interviews Interview[]
   followUps  FollowUp[]
@@ -151,12 +153,13 @@ model User {
   lastName  String
   phone     String?
   profilePicture String?
-  role      String   @default('USER')
+  role      String   @default("USER")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   applications Application[]
+  contacts     Contact[]
 }
 
 model Company {
@@ -172,6 +175,7 @@ model Company {
   updatedAt   DateTime @updatedAt
 
   applications Application[]
+  contacts     Contact[]
 }
 
 model Contact {

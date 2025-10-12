@@ -129,7 +129,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '⚙️',
       isCollapsible: true,
       items: [
-        { name: 'Services & Tests', href: '/backoffice/services', icon: '🔧' },
+        { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
         { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
         { name: 'Configuration', href: '/backoffice/settings', icon: '⚙️' },
@@ -221,9 +221,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <span className={`transition-all ${isSectionActive(section) ? 'font-bold' : ''}`}>
                       {section.label}
                     </span>
-                    {isSectionActive(section) && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    )}
                   </div>
                   {section.isCollapsible && (
                     <span className={`transform transition-transform ${expandedSections[section.id] ? 'rotate-90' : ''}`}>

@@ -242,12 +242,17 @@ export default function BackofficePage() {
                 value="12/12"
                 icon="✅"
                 status="success"
+                // Ajoute l'action de redirection au clic
+                onClick={() => window.location.href = '/backoffice/services'}
+                className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
               />
               <SystemMetric
                 label="Base de données"
                 value="PostgreSQL 15"
                 icon="🗄️"
                 status="success"
+                onClick={() => router.push('/backoffice/settings?tab=database')}
+                className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
               />
               <SystemMetric
                 label="Cache"
@@ -378,11 +383,13 @@ function QuickActionButton({ href, icon, title, description, color }: {
   )
 }
 
-function SystemMetric({ label, value, icon, status }: {
+function SystemMetric({ label, value, icon, status, onClick, className }: {
   label: string
   value: string
   icon: string
   status?: 'success' | 'warning' | 'error'
+  onClick?: () => void
+  className?: string
 }) {
   const statusColors = {
     success: 'text-green-600 dark:text-green-400',
@@ -391,7 +398,10 @@ function SystemMetric({ label, value, icon, status }: {
   }
 
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+    <div 
+      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${onClick ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors' : ''} ${className}`}
+      onClick={onClick}
+    >
       <div className="flex items-center space-x-3">
         <span className="text-xl">{icon}</span>
         <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
