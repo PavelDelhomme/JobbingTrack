@@ -1,7 +1,70 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+
+// Styles CSS personnalisés pour l'émulateur mobile
+const mobileEmulatorStyles = `
+  /* Masquer les barres de défilement sur tous les navigateurs */
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Indicateur de scroll subtil pour le contenu qui dépasse */
+  .scroll-indicator {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 60%;
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(59, 130, 246, 0.3) 20%,
+      rgba(59, 130, 246, 0.6) 50%,
+      rgba(59, 130, 246, 0.3) 80%,
+      transparent 100%);
+    border-radius: 1px;
+    opacity: var(--scroll-indicator-opacity, 0);
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  /* Animation de rebond pour les éléments interactifs */
+  @keyframes mobileBounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-3px);
+    }
+    60% {
+      transform: translateY(-2px);
+    }
+  }
+
+  .mobile-bounce {
+    animation: mobileBounce 1s infinite;
+  }
+
+  /* Effet de vibration pour les interactions */
+  @keyframes mobileVibrate {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-1px); }
+    50% { transform: translateX(1px); }
+    75% { transform: translateX(-1px); }
+    100% { transform: translateX(0); }
+  }
+
+  .mobile-vibrate {
+    animation: mobileVibrate 0.1s ease-in-out;
+  }
+`
 import AdminLayout from '@/components/AdminLayout'
+import MobileNotificationCenter from '@/app/backoffice/components/MobileNotificationCenter'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import axios from 'axios'
@@ -146,12 +209,12 @@ export default function MobileEmulatorPage() {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    
-    // Effet tactile
+
+    // Effet tactile amélioré
     setTouchEffect({ x, y })
-    setTimeout(() => setTouchEffect(null), 300)
-    
-    // Vibration simulée
+    setTimeout(() => setTouchEffect(null), 200)
+
+    // Vibration simulée plus réaliste
     if (navigator.vibrate) {
       navigator.vibrate(10)
     }
@@ -168,7 +231,7 @@ export default function MobileEmulatorPage() {
     logout()
     setSelectedUser(user)
     setShowUserSwitcher(false)
-    setTimeout(() => loginAsUser(user.email), 100)
+    setTimeout(() => loginAsUser(user.email, 'password123'), 100)
   }
 
   const toggleOrientation = () => {
@@ -177,6 +240,7 @@ export default function MobileEmulatorPage() {
 
   return (
     <AdminLayout>
+      <style jsx>{mobileEmulatorStyles}</style>
       <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-950">
         {/* Toolbar */}
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
@@ -305,6 +369,9 @@ export default function MobileEmulatorPage() {
               <option value="slow">📶 3G Lent</option>
               <option value="offline">📵 Hors ligne</option>
             </select>
+
+            {/* Centre de notifications mobile */}
+            <MobileNotificationCenter />
           </div>
         </div>
 
@@ -338,18 +405,26 @@ export default function MobileEmulatorPage() {
                 {/* Screen */}
                 <div className={`relative overflow-hidden ${showDeviceFrame ? 'rounded-[2.5rem]' : 'rounded-lg shadow-2xl'} ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
                   {/* Status Bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-11 ${isDarkMode ? 'bg-black' : 'bg-white'} z-20 flex items-center justify-between px-6 text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                    <span>9:41</span>
-                    <div className="flex items-center gap-1">
-                      <span>{networkSpeed === 'fast' ? '📶' : networkSpeed === 'slow' ? '📶📶' : '📵'}</span>
-                      <span>🔋</span>
+                  <div className={`absolute top-0 left-0 right-0 h-11 ${isDarkMode ? 'bg-black/90 backdrop-blur-sm' : 'bg-white/90 backdrop-blur-sm'} z-20 flex items-center justify-between px-6 text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">9:41</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs">📶</span>
+                        <span className={`text-xs ${networkSpeed === 'fast' ? 'text-green-500' : networkSpeed === 'slow' ? 'text-yellow-500' : 'text-red-500'}`}>
+                          {networkSpeed === 'fast' ? 'LTE' : networkSpeed === 'slow' ? '3G' : '✕'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🔋</span>
+                      <span className="text-xs">100%</span>
+                      <div className="w-4 h-2 bg-green-500 rounded-sm"></div>
                     </div>
                   </div>
 
-                  {/* App Content */}
+                  {/* App Content Container - Scrollable */}
                   <div
-                    onClick={handleScreenTouch}
-                    className="relative"
+                    className="relative overflow-hidden"
                     style={{
                       width: `${width}px`,
                       height: `${height}px`,
@@ -366,24 +441,55 @@ export default function MobileEmulatorPage() {
                           transform: 'translate(-50%, -50%)'
                         }}
                       >
-                        <div className="w-16 h-16 rounded-full bg-blue-500 opacity-30 animate-ping"></div>
+                        <div className="w-12 h-12 rounded-full bg-blue-500 opacity-40 animate-pulse"></div>
+                        <div className="absolute inset-0 w-12 h-12 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
                       </div>
                     )}
 
-                    {/* Screen Content */}
-                    <MobileApp
-                      currentScreen={currentScreen}
-                      setCurrentScreen={setCurrentScreen}
-                      selectedUser={selectedUser}
-                      mobileToken={mobileToken}
-                      applications={applications}
-                      loadingData={loadingData}
-                      isDarkMode={isDarkMode}
-                      loginAsUser={loginAsUser}
-                      logout={logout}
-                      width={width}
-                      height={height - 44}
-                    />
+                    {/* Scrollable Content Area */}
+                    <div
+                      className="h-full overflow-y-auto overflow-x-hidden relative"
+                      style={{
+                        // Style pour simuler le comportement mobile
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none', // Firefox
+                        msOverflowStyle: 'none', // IE/Edge
+                      }}
+                      onScroll={(e) => {
+                        const scrollTop = e.currentTarget.scrollTop;
+                        const scrollHeight = e.currentTarget.scrollHeight;
+                        const clientHeight = e.currentTarget.clientHeight;
+
+                        // Ajouter un indicateur de scroll subtil
+                        if (scrollHeight > clientHeight) {
+                          e.currentTarget.style.setProperty('--scroll-indicator-opacity', Math.min(scrollTop / 50, 1));
+                        }
+                      }}
+                    >
+                      <MobileApp
+                        currentScreen={currentScreen}
+                        setCurrentScreen={setCurrentScreen}
+                        selectedUser={selectedUser}
+                        mobileToken={mobileToken}
+                        applications={applications}
+                        loadingData={loadingData}
+                        isDarkMode={isDarkMode}
+                        loginAsUser={loginAsUser}
+                        logout={logout}
+                        width={width}
+                        height={height - 44}
+                        onTouchStart={(x, y) => {
+                          setTouchEffect({ x, y });
+                          // Vibration simulée
+                          if (navigator.vibrate) {
+                            navigator.vibrate(10);
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          setTimeout(() => setTouchEffect(null), 200);
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Home Indicator (iOS) */}
@@ -445,7 +551,21 @@ export default function MobileEmulatorPage() {
 }
 
 // Composant de l'application mobile simulée
-function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken, applications, loadingData, isDarkMode, loginAsUser, logout, width, height }: {
+function MobileApp({
+  currentScreen,
+  setCurrentScreen,
+  selectedUser,
+  mobileToken,
+  applications,
+  loadingData,
+  isDarkMode,
+  loginAsUser,
+  logout,
+  width,
+  height,
+  onTouchStart,
+  onTouchEnd
+}: {
   currentScreen: MobileScreen
   setCurrentScreen: (screen: MobileScreen) => void
   selectedUser: User | null
@@ -457,49 +577,122 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
   logout: () => void
   width: number
   height: number
+  onTouchStart?: (x: number, y: number) => void
+  onTouchEnd?: () => void
 }) {
-  const [loginEmail, setLoginEmail] = useState('user1@jobbingtrack.com')
+  // État local pour les champs de formulaire
+  const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('password123')
+
+  // Mettre à jour les champs de login quand l'utilisateur sélectionné change
+  useEffect(() => {
+    if (selectedUser) {
+      setLoginEmail(selectedUser.email)
+      setLoginPassword('password123') // Mot de passe par défaut
+    } else {
+      setLoginEmail('user1@jobbingtrack.com') // Utilisateur par défaut
+      setLoginPassword('password123')
+    }
+  }, [selectedUser])
 
   const bgClass = isDarkMode ? 'bg-gray-950' : 'bg-gray-50'
   const textClass = isDarkMode ? 'text-gray-100' : 'text-gray-900'
   const cardClass = isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
 
+  // Gestionnaire d'événements tactiles pour simuler l'utilisation mobile
+  const handleTouchStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (onTouchStart) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      onTouchStart(x, y)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (onTouchEnd) {
+      onTouchEnd()
+    }
+  }
+
   if (currentScreen === 'login') {
     return (
-      <div className={`${bgClass} ${textClass} w-full h-full flex flex-col items-center justify-center p-8`}>
-        <div className="text-6xl mb-4">🎯</div>
+      <div
+        className={`${bgClass} ${textClass} w-full h-full flex flex-col items-center justify-center p-8`}
+        onClick={handleTouchStart}
+        onMouseUp={handleTouchEnd}
+        onMouseLeave={handleTouchEnd}
+      >
+        <div className="text-6xl mb-4 animate-bounce">🎯</div>
         <h1 className="text-3xl font-bold mb-2">JobbingTrack</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Suivez vos candidatures facilement</p>
-        
+
         <div className="w-full max-w-sm space-y-4">
-          <input
-            type="email"
-            value={loginEmail}
-            onChange={(e) => setLoginEmail(e.target.value)}
-            placeholder="Email"
-            className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
-          />
-          <input
-            type="password"
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
-            placeholder="Mot de passe"
-            className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'}`}
-          />
+          <div className="relative">
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              placeholder="Email"
+              className={`w-full px-4 py-3 pr-12 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                selectedUser
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600'
+                  : isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+              }`}
+            />
+            {selectedUser && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                Pré-rempli
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="Mot de passe"
+              className={`w-full px-4 py-3 pr-12 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                selectedUser
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600'
+                  : isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
+              }`}
+            />
+            {selectedUser && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                Pré-rempli
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => loginAsUser(loginEmail, loginPassword)}
             disabled={loadingData}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transform transition-all duration-200 hover:scale-105 active:scale-95"
           >
             {loadingData ? '🔄 Connexion...' : 'Se connecter'}
           </button>
         </div>
         
         <div className="mt-8 text-xs text-gray-500 dark:text-gray-400 text-center">
-          <p>Comptes de test :</p>
-          <p>user1@jobbingtrack.com • user2@jobbingtrack.com • user3@jobbingtrack.com</p>
-          <p className="mt-1">Mot de passe : password123</p>
+          {selectedUser ? (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="font-medium text-blue-800 dark:text-blue-300">
+                Utilisateur sélectionné : {selectedUser.firstName} {selectedUser.lastName}
+              </p>
+              <p className="mt-1">Les champs de connexion sont automatiquement pré-remplis.</p>
+              <p className="mt-1 text-green-600 dark:text-green-400 font-medium">
+                {loadingData ? '🔄 Connexion en cours...' : '✅ Prêt à se connecter'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <p>Comptes de test :</p>
+              <p>user1@jobbingtrack.com • user2@jobbingtrack.com • user3@jobbingtrack.com</p>
+              <p className="mt-1">Mot de passe : password123</p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -507,12 +700,22 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
 
   if (currentScreen === 'home') {
     return (
-      <div className={`${bgClass} w-full h-full flex flex-col`}>
+      <div
+        className={`${bgClass} w-full h-full flex flex-col`}
+        onClick={handleTouchStart}
+        onMouseUp={handleTouchEnd}
+        onMouseLeave={handleTouchEnd}
+      >
         {/* Header */}
         <div className={`${cardClass} border-b p-4`}>
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold">Bonjour {selectedUser?.firstName} 👋</h1>
-            <button onClick={logout} className="text-2xl">🚪</button>
+            <button
+              onClick={logout}
+              className="text-2xl hover:scale-110 transition-transform duration-200"
+            >
+              🚪
+            </button>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Gérez vos candidatures en un coup d'œil
@@ -521,11 +724,11 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
 
         {/* Stats */}
         <div className="p-4 grid grid-cols-2 gap-3">
-          <div className={`${cardClass} border p-4 rounded-lg`}>
+          <div className={`${cardClass} border p-4 rounded-lg hover:shadow-lg transition-all duration-200`}>
             <p className="text-3xl font-bold text-blue-600">{applications.length}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Candidatures</p>
           </div>
-          <div className={`${cardClass} border p-4 rounded-lg`}>
+          <div className={`${cardClass} border p-4 rounded-lg hover:shadow-lg transition-all duration-200`}>
             <p className="text-3xl font-bold text-green-600">{applications.filter(a => a.status === 'INTERVIEW_SCHEDULED').length}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Entretiens</p>
           </div>
@@ -537,28 +740,28 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setCurrentScreen('applications')}
-              className="bg-blue-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-blue-700"
+              className="bg-blue-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-blue-700 transform transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <span className="text-3xl">📝</span>
               <span className="text-sm font-medium">Candidatures</span>
             </button>
             <button
               onClick={() => setCurrentScreen('companies')}
-              className="bg-purple-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-purple-700"
+              className="bg-purple-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-purple-700 transform transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <span className="text-3xl">🏢</span>
               <span className="text-sm font-medium">Entreprises</span>
             </button>
             <button
               onClick={() => setCurrentScreen('contacts')}
-              className="bg-green-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-green-700"
+              className="bg-green-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-green-700 transform transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <span className="text-3xl">👤</span>
               <span className="text-sm font-medium">Contacts</span>
             </button>
             <button
               onClick={() => setCurrentScreen('interviews')}
-              className="bg-orange-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-orange-700"
+              className="bg-orange-600 text-white p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-orange-700 transform transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <span className="text-3xl">📅</span>
               <span className="text-sm font-medium">Entretiens</span>
@@ -574,41 +777,71 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
 
   if (currentScreen === 'applications') {
     return (
-      <div className={`${bgClass} w-full h-full flex flex-col`}>
+      <div
+        className={`${bgClass} w-full h-full flex flex-col`}
+        onClick={handleTouchStart}
+        onMouseUp={handleTouchEnd}
+        onMouseLeave={handleTouchEnd}
+      >
         {/* Header */}
         <div className={`${cardClass} border-b p-4`}>
           <div className="flex items-center gap-3">
-            <button onClick={() => setCurrentScreen('home')} className="text-2xl">←</button>
+            <button
+              onClick={() => setCurrentScreen('home')}
+              className="text-2xl hover:scale-110 transition-transform duration-200"
+            >
+              ←
+            </button>
             <h1 className="text-xl font-bold">Mes Candidatures</h1>
           </div>
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 mobile-scroll relative">
+          {/* Indicateur de scroll subtil */}
+          <div className="scroll-indicator"></div>
           {loadingData ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chargement...</p>
             </div>
           ) : applications.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-4xl mb-2">📭</p>
+              <p className="text-4xl mb-2 animate-bounce">📭</p>
               <p className="text-gray-500 dark:text-gray-400">Aucune candidature</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Les candidatures apparaîtront ici</p>
             </div>
           ) : (
             applications.map((app, index) => (
-              <div key={index} className={`${cardClass} border p-4 rounded-lg`}>
+              <div
+                key={index}
+                className={`${cardClass} border p-4 rounded-lg hover:shadow-lg transition-all duration-200 cursor-pointer`}
+                onClick={() => {
+                  // Simulation d'ouverture de détail (pourrait ouvrir un modal ou une autre vue)
+                  console.log('Ouverture candidature:', app.id);
+                }}
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-semibold">{app.position}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{app.company.name}</p>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{app.position}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{app.company.name}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded text-xs ${
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ml-2 ${
                     app.status === 'INTERVIEW_SCHEDULED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
                     app.status === 'SENT' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
                     'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                   }`}>
-                    {app.status}
+                    {app.status.replace('_', ' ')}
                   </span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>📅 {new Date().toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1">
+                      <span>👁️</span>
+                      <span>Voir détails</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             ))
@@ -622,15 +855,31 @@ function MobileApp({ currentScreen, setCurrentScreen, selectedUser, mobileToken,
 
   // Autres écrans
   return (
-    <div className={`${bgClass} w-full h-full flex flex-col`}>
+    <div
+      className={`${bgClass} w-full h-full flex flex-col`}
+      onClick={handleTouchStart}
+      onMouseUp={handleTouchEnd}
+      onMouseLeave={handleTouchEnd}
+    >
       <div className={`${cardClass} border-b p-4`}>
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentScreen('home')} className="text-2xl">←</button>
+          <button
+            onClick={() => setCurrentScreen('home')}
+            className="text-2xl hover:scale-110 transition-transform duration-200"
+          >
+            ←
+          </button>
           <h1 className="text-xl font-bold capitalize">{currentScreen}</h1>
         </div>
       </div>
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-500 dark:text-gray-400">Écran en développement</p>
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-6xl mb-4 animate-pulse">🚧</p>
+          <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Écran en développement</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+            Cette fonctionnalité sera bientôt disponible
+          </p>
+        </div>
       </div>
       <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isDarkMode={isDarkMode} />
     </div>

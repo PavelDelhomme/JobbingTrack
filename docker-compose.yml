@@ -329,7 +329,7 @@ services:
       - JWT_SECRET=your-secret-key-change-in-production-2025
       - AUTH_SERVICE_URL=http://auth-service:3001
       - APPLICATION_SERVICE_URL=http://application-service:3002
-      - FOLLOWUP_SERVICE_URL=http://followup-service:3012
+      - FOLLOWUP_SERVICE_URL=http://followup-service:3010
       - NOTIFICATION_SERVICE_URL=http://notification-service:3006
     depends_on:
       postgres:
@@ -337,27 +337,6 @@ services:
       auth-service:
         condition: service_started
 
-  # Service de gestion des règles
-  rule-service:
-    build:
-      context: ./backend/rule-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-rule-service
-    ports:
-      - "3014:3014"
-    networks:
-      - jobbingtrack-network
-    environment:
-      - NODE_ENV=development
-      - PORT=3014
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=your-secret-key-change-in-production-2025
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      postgres:
-        condition: service_healthy
-      auth-service:
-        condition: service_started
 
   # Frontend
   frontend:

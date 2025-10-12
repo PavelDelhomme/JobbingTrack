@@ -140,7 +140,8 @@ const createFollowup = async (req, res, next) => {
         type,
         scheduledDate: new Date(scheduledDate),
         subject,
-        message
+        message,
+        status: 'PENDING_FOLLOWUP' // ✅ NOUVEAU - Statut par défaut
       },
       include: {
         application: {
