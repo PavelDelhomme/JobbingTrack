@@ -40,11 +40,14 @@ model User {
   entityHash String    @default("")
   lastSyncAt DateTime?
 
-  contacts     Contact[]
-  reminders    Reminder[]
-  documents    Document[]
-  templates    MessageTemplate[]
-  applications Application[]
+  contacts            Contact[]
+  reminders           Reminder[]
+  documents           Document[]
+  templates           MessageTemplate[]
+  applications        Application[]
+  notifications       Notification[]
+  emailLogs           EmailLog[]
+  automatedReminders  AutomatedReminder[]
 }
 
 // Modèle Entreprise
@@ -268,6 +271,60 @@ model Activity {
   contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
 }
 
+// ✅ NOUVEAU - Modèle Notification
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  link        String? // URL à ouvrir lors du clic
+  relatedId   String? // ID de l'entité liée (application, interview, etc.)
+  relatedType String? // Type de l'entité liée
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ✅ NOUVEAU - Modèle Email Log
+model EmailLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  to         String
+  from       String
+  subject    String
+  body       String      @db.Text
+  status     EmailStatus @default(PENDING)
+  sentAt     DateTime?
+  errorMsg   String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+  
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ✅ NOUVEAU - Modèle Rappel Automatique
+model AutomatedReminder {
+  id             String             @id @default(cuid())
+  userId         String
+  type           ReminderType
+  title          String
+  description    String?
+  triggerType    ReminderTriggerType
+  triggerValue   Json? // Configuration du déclencheur
+  relatedId      String? // ID de l'entité liée
+  relatedType    String? // Type de l'entité liée
+  isActive       Boolean            @default(true)
+  lastTriggeredAt DateTime?
+  nextTriggerAt   DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 // ENUMS
 
 enum JobType {
@@ -377,4 +434,31 @@ enum CallStatus {
   NO_ANSWER // Pas de réponse
   VOICEMAIL // Message vocal laissé
   RESCHEDULED // Replanifié
+}
+
+// ✅ NOUVEAUX ENUMS pour les notifications
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  REMINDER
+  APPLICATION_UPDATE
+  INTERVIEW_REMINDER
+  FOLLOWUP_DUE
+  CALL_SCHEDULED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum ReminderTriggerType {
+  DATE // À une date précise
+  DELAY // X jours avant/après un événement
+  RECURRING // Récurrent (quotidien, hebdomadaire, etc.)
+  CONDITION // Basé sur une condition
 }

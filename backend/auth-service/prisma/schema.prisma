@@ -272,7 +272,7 @@ model Activity {
 // ✅ NOUVEAU - Modèle pour les tokens de réinitialisation de mot de passe
 model PasswordResetToken {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  userId    String
   token     String   @unique @db.VarChar(255)
   expiresAt DateTime
   used      Boolean  @default(false)

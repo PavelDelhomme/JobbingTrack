@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
+const advancedController = require('../controllers/admin-advanced.controller');
 const logsController = require('../controllers/logs.controller');
 const trashController = require('../controllers/trash.controller');
 const archiveController = require('../controllers/archive.controller');
@@ -62,6 +63,14 @@ router.post('/archive/:type/:id/unarchive', authenticate, archiveController.unar
 router.post('/test-data/generate', authenticate, testDataController.generateTestData);
 router.post('/test-data/clear', authenticate, testDataController.clearTestData);
 router.get('/test-data/status', authenticate, testDataController.getTestDataStatus);
+
+// Routes fonctionnalités avancées (admin uniquement)
+router.get('/duplicates/:entityType', authenticate, advancedController.findDuplicates);
+router.post('/duplicates/merge', authenticate, advancedController.mergeDuplicates);
+router.get('/stats/global', authenticate, advancedController.getGlobalStats);
+router.get('/logs/admin', authenticate, advancedController.getAdminLogs);
+router.post('/users/:userId/anonymize', authenticate, advancedController.anonymizeUser);
+router.get('/monitoring/performance', authenticate, advancedController.getPerformanceMetrics);
 
 module.exports = router;
 
