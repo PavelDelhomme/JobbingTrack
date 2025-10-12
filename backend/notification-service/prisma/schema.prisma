@@ -1,0 +1,94 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+}
+
+datasource db {
+}
+
+// Modèle Utilisateur
+
+  // Champs pour reset password
+
+  // Champs administratifs
+
+
+  // Champs de synchronisation
+
+
+// Modèle Entreprise
+
+
+// Modèle Plateforme de Candidature
+
+
+// Modèle Plateforme de Candidature
+
+
+// Modèle Candidature
+
+
+// Modèle Entretien
+
+
+// ✅ NOUVEAU - Modèle Appel Téléphonique
+
+
+// Modèle Contact
+
+
+// Modèle Relance
+
+
+// ✅ NOUVEAU - Table de liaison Application-Contact
+// Permet de lier plusieurs contacts à une candidature
+
+
+
+// Modèle Document
+
+
+// Table de liaison Application-Document
+
+
+
+// Modèle Rappel
+
+
+// Modèle Template de Message
+
+
+// Modèle Activité (pour l'historique)
+
+
+// ✅ NOUVEAU - Modèle Notification
+model Notification {
+  
+
+// ✅ NOUVEAU - Modèle Email Log
+  
+
+// ✅ NOUVEAU - Modèle Rappel Automatique
+  
+
+// ENUMS
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ✅ NOUVEAUX ENUMS pour les appels
+
+
+// ✅ NOUVEAUX ENUMS pour les notifications
+
+

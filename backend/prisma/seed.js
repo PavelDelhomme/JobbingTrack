@@ -1,4 +1,3 @@
-# Script de seed pour Prisma
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
@@ -20,9 +19,43 @@ async function main() {
   await prisma.company.deleteMany()
   await prisma.user.deleteMany()
 
+  // Créer des plateformes de candidature
+  const platforms = await Promise.all([
+    prisma.platform.create({
+      data: {
+        name: 'LinkedIn',
+        website: 'https://linkedin.com',
+        description: 'Réseau professionnel pour la recherche d\'emploi'
+      }
+    }),
+    prisma.platform.create({
+      data: {
+        name: 'Indeed',
+        website: 'https://indeed.com',
+        description: 'Moteur de recherche d\'emploi'
+      }
+    }),
+    prisma.platform.create({
+      data: {
+        name: 'Welcome to the Jungle',
+        website: 'https://wttj.co',
+        description: 'Plateforme française de recherche d\'emploi'
+      }
+    }),
+    prisma.platform.create({
+      data: {
+        name: 'Site entreprise',
+        website: null,
+        description: 'Candidature directe sur le site de l\'entreprise'
+      }
+    })
+  ])
+
+  console.log('✅ Plateformes créées:', platforms.length)
+
   // Créer un utilisateur de test
   const hashedPassword = await bcrypt.hash('password123', 10)
-  
+
   const testUser = await prisma.user.create({
     data: {
       email: 'pavel@jobbingtrack.com',
@@ -68,26 +101,32 @@ async function main() {
 
   console.log('✅ Entreprises créées:', companies.length)
 
-  // Créer des candidatures de test
+  // Créer des candidatures de test avec les nouveaux états
   const applications = await Promise.all([
     prisma.application.create({
       data: {
         userId: testUser.id,
         companyId: companies[0].id,
+        platformId: platforms[0].id, // LinkedIn
         position: 'Software Engineer',
         description: 'Développement d\'applications web avec React et Node.js',
         location: 'Remote',
         type: 'FULL_TIME',
-        status: 'SENT',
+        status: 'NO_RESPONSE', // "Aucune réponse"
         applicationDate: new Date('2024-01-15'),
-        source: 'LinkedIn',
         jobUrl: 'https://careers.google.com/jobs/software-engineer',
-        notes: 'Candidature envoyée via LinkedIn. Poste très intéressant!',
+        notes: 'Candidature envoyée via LinkedIn. Poste très intéressant! Aucune réponse reçue après 2 semaines.',
         activities: {
-          create: {
-            type: 'APPLICATION_CREATED',
-            description: 'Candidature créée pour Software Engineer chez Google'
-          }
+          create: [
+            {
+              type: 'APPLICATION_CREATED',
+              description: 'Candidature créée pour Software Engineer chez Google'
+            },
+            {
+              type: 'STATUS_CHANGED',
+              description: 'Statut changé vers NO_RESPONSE après délai'
+            }
+          ]
         }
       }
     }),
@@ -95,13 +134,13 @@ async function main() {
       data: {
         userId: testUser.id,
         companyId: companies[1].id,
+        platformId: platforms[3].id, // Site entreprise
         position: 'Frontend Developer',
         description: 'Développement d\'interfaces utilisateur modernes',
         location: 'Paris, France',
         type: 'FULL_TIME',
-        status: 'INTERVIEW_SCHEDULED',
+        status: 'FIRST_INTERVIEW_PENDING', // "1er entretien en attente"
         applicationDate: new Date('2024-01-10'),
-        source: 'Site entreprise',
         jobUrl: 'https://careers.microsoft.com/frontend-dev',
         notes: 'Entretien technique prévu la semaine prochaine',
         activities: {
@@ -112,7 +151,7 @@ async function main() {
             },
             {
               type: 'STATUS_CHANGED',
-              description: 'Statut changé vers INTERVIEW_SCHEDULED'
+              description: 'Statut changé vers FIRST_INTERVIEW_PENDING'
             }
           ]
         }
@@ -122,25 +161,20 @@ async function main() {
       data: {
         userId: testUser.id,
         companyId: companies[2].id,
+        platformId: platforms[2].id, // Welcome to the Jungle
         position: 'Full Stack Developer',
-        description: 'Développement complet d\'une plateforme SaaS',
+        description: 'Développement full stack avec Node.js et Vue.js',
         location: 'Paris, France',
         type: 'FULL_TIME',
-        status: 'REJECTED',
-        applicationDate: new Date('2024-01-05'),
-        source: 'Indeed',
-        notes: 'Profil intéressant mais ils cherchent plus d\'expérience',
+        status: 'CANDIDATE_PENDING', // "Candidaté et en attente"
+        applicationDate: new Date('2024-01-20'),
+        jobUrl: 'https://startup-inc.wttj.co/job/fullstack-dev',
+        notes: 'Startup en croissance, poste très motivant!',
         activities: {
-          create: [
-            {
-              type: 'APPLICATION_CREATED',
-              description: 'Candidature créée pour Full Stack Developer chez Startup Inc'
-            },
-            {
-              type: 'STATUS_CHANGED',
-              description: 'Statut changé vers REJECTED'
-            }
-          ]
+          create: {
+            type: 'APPLICATION_CREATED',
+            description: 'Candidature créée pour Full Stack Developer chez Startup Inc'
+          }
         }
       }
     })
@@ -148,127 +182,11 @@ async function main() {
 
   console.log('✅ Candidatures créées:', applications.length)
 
-  // Créer des entretiens de test
-  await prisma.interview.create({
-    data: {
-      applicationId: applications[1].id,
-      type: 'TECHNICAL',
-      scheduledAt: new Date('2024-02-01T14:00:00Z'),
-      duration: 60,
-      location: 'Visioconférence',
-      meetingUrl: 'https://teams.microsoft.com/join/123456',
-      interviewer: 'Sarah Johnson, Tech Lead',
-      status: 'SCHEDULED',
-      notes: 'Entretien technique sur React et TypeScript'
-    }
-  })
-
-  // Créer des contacts de test
-  await Promise.all([
-    prisma.contact.create({
-      data: {
-        userId: testUser.id,
-        companyId: companies[0].id,
-        firstName: 'John',
-        lastName: 'Smith',
-        position: 'Engineering Manager',
-        email: 'john.smith@google.com',
-        phone: '+1-555-0123',
-        linkedinUrl: 'https://linkedin.com/in/johnsmith',
-        notes: 'Très sympa lors de notre échange sur LinkedIn'
-      }
-    }),
-    prisma.contact.create({
-      data: {
-        userId: testUser.id,
-        companyId: companies[1].id,
-        firstName: 'Marie',
-        lastName: 'Dubois',
-        position: 'HR Manager',
-        email: 'marie.dubois@microsoft.com',
-        notes: 'Contact RH principal pour le suivi'
-      }
-    })
-  ])
-
-  // Créer des templates de message
-  await Promise.all([
-    prisma.messageTemplate.create({
-      data: {
-        userId: testUser.id,
-        name: 'Relance après candidature',
-        subject: 'Suivi de ma candidature - {{position}}',
-        content: `Bonjour,
-
-Je me permets de revenir vers vous concernant ma candidature pour le poste de {{position}} que j'ai envoyée le {{applicationDate}}.
-
-Je reste très intéressé par cette opportunité et serais ravi d'échanger avec vous sur mon profil.
-
-Cordialement,
-{{firstName}} {{lastName}}`,
-        type: 'FOLLOWUP',
-        variables: ['position', 'applicationDate', 'firstName', 'lastName']
-      }
-    }),
-    prisma.messageTemplate.create({
-      data: {
-        userId: testUser.id,
-        name: 'Remerciement après entretien',
-        subject: 'Merci pour l\'entretien - {{position}}',
-        content: `Bonjour {{interviewer}},
-
-Je vous remercie pour le temps que vous m'avez accordé lors de notre entretien pour le poste de {{position}}.
-
-Notre échange m'a conforté dans mon intérêt pour ce poste et votre équipe.
-
-Je reste à votre disposition pour tout complément d'information.
-
-Cordialement,
-{{firstName}} {{lastName}}`,
-        type: 'THANK_YOU',
-        variables: ['interviewer', 'position', 'firstName', 'lastName']
-      }
-    })
-  ])
-
-  // Créer des rappels
-  await Promise.all([
-    prisma.reminder.create({
-      data: {
-        userId: testUser.id,
-        title: 'Relancer Google',
-        description: 'Faire un suivi de la candidature Software Engineer',
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Dans 7 jours
-        type: 'APPLICATION_FOLLOWUP',
-        relatedId: applications[0].id
-      }
-    }),
-    prisma.reminder.create({
-      data: {
-        userId: testUser.id,
-        title: 'Préparer entretien Microsoft',
-        description: 'Revoir les concepts React et TypeScript',
-        dueDate: new Date('2024-01-31T10:00:00Z'),
-        type: 'INTERVIEW',
-        relatedId: applications[1].id
-      }
-    })
-  ])
-
   console.log('✅ Données de test créées avec succès!')
   console.log('')
   console.log('🔐 Compte de test:')
   console.log('   Email: pavel@jobbingtrack.com')
   console.log('   Mot de passe: password123')
-  console.log('')
-  console.log('📊 Données créées:')
-  console.log('   - 1 utilisateur')
-  console.log('   - 3 entreprises')
-  console.log('   - 3 candidatures')
-  console.log('   - 1 entretien')
-  console.log('   - 2 contacts')
-  console.log('   - 2 templates de message')
-  console.log('   - 2 rappels')
 }
 
 main()

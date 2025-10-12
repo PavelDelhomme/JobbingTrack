@@ -1,0 +1,58 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modèles spécifiques au Workflow Service
+// Le Workflow Service gère les workflows et règles métier
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  trigger     String   // Type d'événement qui déclenche le workflow
+  conditions  Json?    // Conditions à vérifier
+  actions     Json     // Actions à exécuter
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  executions WorkflowExecution[]
+  rules      WorkflowRule[]
+}
+
+model WorkflowRule {
+  id         String   @id @default(cuid())
+  workflowId String
+  name       String
+  condition  Json     // Condition à vérifier
+  action     Json     // Action à exécuter
+  priority   Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowExecution {
+  id         String   @id @default(cuid())
+  workflowId String
+  status     String   // PENDING, RUNNING, COMPLETED, FAILED
+  triggerData Json    // Données de l'événement déclencheur
+  result     Json?    // Résultat de l'exécution
+  error      String?  // Erreur si échec
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
