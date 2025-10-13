@@ -149,6 +149,56 @@ export const dashboardService = {
     getStats: () => apiClient.get('/dashboard/stats'),
 };
 
+export const searchService = {
+    // Recherche globale
+    globalSearch: (query: string, modules?: string[], limit?: number) => {
+        const params = new URLSearchParams({ query });
+        if (modules && modules.length > 0) {
+            params.append('modules', modules.join(','));
+        }
+        if (limit) {
+            params.append('limit', limit.toString());
+        }
+        return apiClient.get(`/search?${params.toString()}`);
+    },
+
+    // Recherche avancée
+    advancedSearch: (data: {
+        query: string;
+        modules?: string[];
+        filters?: any;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+        limit?: number;
+        offset?: number;
+    }) => apiClient.post('/search/advanced', data),
+
+    // Recherche par similarité (suggestions)
+    similaritySearch: (query: string, modules?: string[], limit?: number) => {
+        const params = new URLSearchParams({ query });
+        if (modules && modules.length > 0) {
+            params.append('modules', modules.join(','));
+        }
+        if (limit) {
+            params.append('limit', limit.toString());
+        }
+        return apiClient.get(`/search/similar?${params.toString()}`);
+    },
+
+    // Recherche par tags
+    tagSearch: (tags: string | string[], modules?: string[], limit?: number) => {
+        const tagString = Array.isArray(tags) ? tags.join(',') : tags;
+        const params = new URLSearchParams({ tags: tagString });
+        if (modules && modules.length > 0) {
+            params.append('modules', modules.join(','));
+        }
+        if (limit) {
+            params.append('limit', limit.toString());
+        }
+        return apiClient.get(`/search/tags?${params.toString()}`);
+    }
+};
+
 // ✅ Admin Service - Gestion avancée
 export const adminService = {
     // Gestion des services

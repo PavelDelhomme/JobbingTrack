@@ -1,6 +1,7 @@
 'use client'
 
 import './globals.css'
+import './styles/customization.css'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth'
 import { ThemeProvider } from '@/lib/theme'
@@ -15,7 +16,8 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="JobbingTrack - Plateforme de gestion des candidatures" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>

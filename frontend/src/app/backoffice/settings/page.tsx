@@ -1,442 +1,698 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import AdminLayout from '@/components/AdminLayout'
-import { useAuth } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react';
+import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar } from 'lucide-react';
+import { useCustomization } from '@/hooks/useCustomization';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 export default function SettingsPage() {
-  const { isAuthenticated, isAdmin, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'system' | 'database' | 'services' | 'security'>('system')
+  const { settings, saveSettings, resetSettings, isLoading } = useCustomization();
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [authLoading, isAuthenticated, router])
+  // Mettre à jour les paramètres locaux
+  const updateLocalSettings = (updates: Partial<typeof localSettings>) => {
+    const newSettings = { ...localSettings, ...updates };
+    setLocalSettings(newSettings);
+    setHasChanges(JSON.stringify(newSettings) !== JSON.stringify(settings));
+  };
 
-  if (authLoading) {
+  // Sauvegarder les paramètres
+  const handleSave = async () => {
+    await saveSettings(localSettings);
+    setHasChanges(false);
+  };
+
+  // Réinitialiser aux paramètres par défaut
+  const handleReset = async () => {
+    await resetSettings();
+    setLocalSettings(settings);
+    setHasChanges(false);
+  };
+
+  if (isLoading) {
     return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </AdminLayout>
-    )
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Chargement des paramètres...</span>
+      </div>
+    );
   }
 
   return (
-    <AdminLayout>
-      <div>
-        {/* Header - Responsive */}
-        <div className="mb-4 md:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
-            ⚙️ Configuration & Administration Système
-          </h1>
-          <p className="mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
-            Paramètres avancés et outils d'administration
-          </p>
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Paramètres de personnalisation</h1>
+          <p className="text-gray-600">Personnalisez votre expérience JobbingTrack</p>
         </div>
-
-        {/* Tabs - Scrollables sur mobile */}
-        <div className="mb-4 md:mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-          <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
-            <TabButton
-              active={activeTab === 'system'}
-              onClick={() => setActiveTab('system')}
-              icon="🖥️"
-              label="Système"
-            />
-            <TabButton
-              active={activeTab === 'database'}
-              onClick={() => setActiveTab('database')}
-              icon="🗄️"
-              label="Base de données"
-            />
-            <TabButton
-              active={activeTab === 'services'}
-              onClick={() => setActiveTab('services')}
-              icon="🔧"
-              label="Services"
-            />
-            <TabButton
-              active={activeTab === 'security'}
-              onClick={() => setActiveTab('security')}
-              icon="🔐"
-              label="Sécurité"
-            />
-          </nav>
-        </div>
-
-        {/* Content - Responsive */}
-        <div className="space-y-3 md:space-y-4 lg:space-y-6">
-          {activeTab === 'system' && <SystemPanel />}
-          {activeTab === 'database' && <DatabasePanel />}
-          {activeTab === 'services' && <ServicesPanel />}
-          {activeTab === 'security' && <SecurityPanel />}
-        </div>
-      </div>
-    </AdminLayout>
-  )
-}
-
-function TabButton({ active, onClick, icon, label }: {
-  active: boolean
-  onClick: () => void
-  icon: string
-  label: string
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`py-2 sm:py-3 md:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 whitespace-nowrap ${
-        active
-          ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-      }`}
-    >
-      <span className="text-sm sm:text-base">{icon}</span>
-      <span>{label}</span>
-    </button>
-  )
-}
-
-function SystemPanel() {
-  const systemInfo = {
-    version: '1.0.0',
-    nodeVersion: 'v20.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    uptime: '2h 34m',
-    memory: '1.2GB / 4GB',
-    cpu: '23%'
-  }
-
-  return (
-    <div className="space-y-3 md:space-y-4 lg:space-y-6">
-      {/* System Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-          🖥️ Informations système
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <InfoRow label="Version" value={systemInfo.version} />
-          <InfoRow label="Node.js" value={systemInfo.nodeVersion} />
-          <InfoRow label="Environnement" value={systemInfo.environment} />
-          <InfoRow label="Uptime" value={systemInfo.uptime} />
-          <InfoRow label="Mémoire" value={systemInfo.memory} />
-          <InfoRow label="CPU" value={systemInfo.cpu} />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            className="text-gray-600"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Réinitialiser
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Sauvegarder
+          </Button>
         </div>
       </div>
 
-      {/* System Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-          ⚙️ Actions système
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <ActionCard
-            icon="🔄"
-            title="Redémarrer services"
-            description="Redémarrer tous les microservices"
-            onClick={() => alert('⚠️ Cette action nécessite des privilèges Docker')}
-          />
-          <ActionCard
-            icon="🧹"
-            title="Nettoyer cache"
-            description="Vider le cache Redis"
-            onClick={() => alert('Cache nettoyé (simulation)')}
-          />
-          <ActionCard
-            icon="📊"
-            title="Générer rapport"
-            description="Rapport d'état système complet"
-            onClick={() => alert('Génération du rapport...')}
-          />
-          <ActionCard
-            icon="💾"
-            title="Backup système"
-            description="Sauvegarder la configuration"
-            onClick={() => alert('Backup en cours...')}
-          />
+      {/* Onglets de paramètres */}
+      <Tabs defaultValue="appearance" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="appearance" className="flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Apparence</span>
+          </TabsTrigger>
+          <TabsTrigger value="layout" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" />
+            <span className="hidden sm:inline">Disposition</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="accessibility" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">Accessibilité</span>
+          </TabsTrigger>
+          <TabsTrigger value="data" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Données</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            <span className="hidden sm:inline">Intégrations</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Onglet Apparence */}
+        <TabsContent value="appearance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Thème et couleurs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Sélecteur de thème */}
+              <div className="space-y-2">
+                <Label>Thème</Label>
+                <Select
+                  value={localSettings.theme}
+                  onValueChange={(value: 'light' | 'dark' | 'auto') =>
+                    updateLocalSettings({ theme: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Clair</SelectItem>
+                    <SelectItem value="dark">Sombre</SelectItem>
+                    <SelectItem value="auto">Automatique</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sélecteur de couleur principale */}
+              <div className="space-y-2">
+                <Label>Couleur principale</Label>
+                <div className="flex gap-2">
+                  {[
+                    '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
+                    '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => updateLocalSettings({ primaryColor: color })}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        localSettings.primaryColor === color
+                          ? 'border-gray-900 dark:border-gray-100 scale-110'
+                          : 'border-gray-300 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+                <Input
+                  type="color"
+                  value={localSettings.primaryColor}
+                  onChange={(e) => updateLocalSettings({ primaryColor: e.target.value })}
+                  className="w-20 h-10"
+                />
+              </div>
+
+              {/* Sélecteur de couleur d'accent */}
+              <div className="space-y-2">
+                <Label>Couleur d'accent</Label>
+                <div className="flex gap-2">
+                  {[
+                    '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                    '#EC4899', '#06B6D4', '#84CC16', '#F97316'
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => updateLocalSettings({ accentColor: color })}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        localSettings.accentColor === color
+                          ? 'border-gray-900 dark:border-gray-100 scale-110'
+                          : 'border-gray-300 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+                <Input
+                  type="color"
+                  value={localSettings.accentColor}
+                  onChange={(e) => updateLocalSettings({ accentColor: e.target.value })}
+                  className="w-20 h-10"
+                />
+              </div>
+
+              {/* Aperçu des couleurs */}
+              <div className="p-4 border rounded-lg">
+                <Label className="mb-2 block">Aperçu</Label>
+                <div className="flex gap-2">
+                  <div
+                    className="w-16 h-8 rounded"
+                    style={{ backgroundColor: localSettings.primaryColor }}
+                  />
+                  <div
+                    className="w-16 h-8 rounded"
+                    style={{ backgroundColor: localSettings.accentColor }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Disposition */}
+        <TabsContent value="layout" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layout className="h-5 w-5" />
+                Disposition et affichage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Mode compact */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Mode compact</Label>
+                  <p className="text-sm text-gray-600">Réduit les espacements et la taille du texte</p>
+                </div>
+                <Switch
+                  checked={localSettings.compactMode}
+                  onCheckedChange={(checked) => updateLocalSettings({ compactMode: checked })}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Affichage des animations */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Animations</Label>
+                  <p className="text-sm text-gray-600">Active les animations et transitions</p>
+                </div>
+                <Switch
+                  checked={localSettings.showAnimations}
+                  onCheckedChange={(checked) => updateLocalSettings({ showAnimations: checked })}
+                />
+              </div>
+
+              <Separator />
+
+              {/* Disposition du tableau de bord */}
+              <div className="space-y-2">
+                <Label>Disposition du tableau de bord</Label>
+                <Select
+                  value={localSettings.dashboardLayout}
+                  onValueChange={(value: 'grid' | 'list' | 'kanban') =>
+                    updateLocalSettings({ dashboardLayout: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="grid">Grille</SelectItem>
+                    <SelectItem value="list">Liste</SelectItem>
+                    <SelectItem value="kanban">Kanban</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Éléments par page */}
+              <div className="space-y-2">
+                <Label>Éléments par page</Label>
+                <Select
+                  value={localSettings.itemsPerPage.toString()}
+                  onValueChange={(value) => updateLocalSettings({ itemsPerPage: parseInt(value) })}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Notifications */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Préférences de notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Notifications activées */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Notifications activées</Label>
+                  <p className="text-sm text-gray-600">Recevoir les notifications de l'application</p>
+                </div>
+                <Switch
+                  checked={localSettings.notifications.enabled}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      notifications: { ...localSettings.notifications, enabled: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
+              {/* Son des notifications */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Son des notifications</Label>
+                  <p className="text-sm text-gray-600">Jouer un son lors des notifications</p>
+                </div>
+                <Switch
+                  checked={localSettings.notifications.sound}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      notifications: { ...localSettings.notifications, sound: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
+              {/* Position des notifications */}
+              <div className="space-y-2">
+                <Label>Position des notifications</Label>
+                <Select
+                  value={localSettings.notifications.position}
+                  onValueChange={(value: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left') =>
+                    updateLocalSettings({
+                      notifications: { ...localSettings.notifications, position: value }
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top-right">Haut droite</SelectItem>
+                    <SelectItem value="top-left">Haut gauche</SelectItem>
+                    <SelectItem value="bottom-right">Bas droite</SelectItem>
+                    <SelectItem value="bottom-left">Bas gauche</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Durée d'affichage */}
+              <div className="space-y-2">
+                <Label>Durée d'affichage (secondes)</Label>
+                <Select
+                  value={localSettings.notifications.duration.toString()}
+                  onValueChange={(value) =>
+                    updateLocalSettings({
+                      notifications: { ...localSettings.notifications, duration: parseInt(value) }
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3000">3 secondes</SelectItem>
+                    <SelectItem value="5000">5 secondes</SelectItem>
+                    <SelectItem value="10000">10 secondes</SelectItem>
+                    <SelectItem value="0">Jusqu'à fermeture</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Accessibilité */}
+        <TabsContent value="accessibility" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Options d'accessibilité
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Contraste élevé */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Contraste élevé</Label>
+                  <p className="text-sm text-gray-600">Améliore la visibilité des éléments</p>
+                </div>
+                <Switch
+                  checked={localSettings.accessibility.highContrast}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      accessibility: { ...localSettings.accessibility, highContrast: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
+              {/* Texte agrandi */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Texte agrandi</Label>
+                  <p className="text-sm text-gray-600">Augmente la taille du texte</p>
+                </div>
+                <Switch
+                  checked={localSettings.accessibility.largeText}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      accessibility: { ...localSettings.accessibility, largeText: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
+              {/* Réduire les animations */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Réduire les animations</Label>
+                  <p className="text-sm text-gray-600">Désactive les animations pour les utilisateurs sensibles</p>
+                </div>
+                <Switch
+                  checked={localSettings.accessibility.reduceMotion}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      accessibility: { ...localSettings.accessibility, reduceMotion: checked }
+                    })
+                  }
+                />
+              </div>
+
+              <Separator />
+
+              {/* Indicateurs de focus */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Indicateurs de focus</Label>
+                  <p className="text-sm text-gray-600">Améliore la visibilité du focus clavier</p>
+                </div>
+                <Switch
+                  checked={localSettings.accessibility.focusIndicators}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      accessibility: { ...localSettings.accessibility, focusIndicators: checked }
+                    })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Données et confidentialité */}
+        <TabsContent value="data" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Données et confidentialité
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Langue */}
+              <div className="space-y-2">
+                <Label>Langue</Label>
+                <Select
+                  value={localSettings.language}
+                  onValueChange={(value) => updateLocalSettings({ language: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                    <SelectItem value="de">Deutsch</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Format de date */}
+              <div className="space-y-2">
+                <Label>Format de date</Label>
+                <Select
+                  value={localSettings.dateFormat}
+                  onValueChange={(value) => updateLocalSettings({ dateFormat: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Format d'heure */}
+              <div className="space-y-2">
+                <Label>Format d'heure</Label>
+                <Select
+                  value={localSettings.timeFormat}
+                  onValueChange={(value: '12h' | '24h') => updateLocalSettings({ timeFormat: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">24 heures</SelectItem>
+                    <SelectItem value="12h">12 heures (AM/PM)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Durée de rétention du cache */}
+              <div className="space-y-2">
+                <Label>Durée de rétention du cache (jours)</Label>
+                <Select
+                  value={localSettings.dataRetention.cacheDuration.toString()}
+                  onValueChange={(value) =>
+                    updateLocalSettings({
+                      dataRetention: { ...localSettings.dataRetention, cacheDuration: parseInt(value) }
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 jour</SelectItem>
+                    <SelectItem value="3">3 jours</SelectItem>
+                    <SelectItem value="7">7 jours</SelectItem>
+                    <SelectItem value="30">30 jours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Mode hors ligne */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Mode hors ligne activé</Label>
+                  <p className="text-sm text-gray-600">Permet de travailler sans connexion internet</p>
+                </div>
+                <Switch
+                  checked={localSettings.dataRetention.offlineMode}
+                  onCheckedChange={(checked) =>
+                    updateLocalSettings({
+                      dataRetention: { ...localSettings.dataRetention, offlineMode: checked }
+                    })
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Onglet Intégrations */}
+        <TabsContent value="integrations" className="space-y-6">
+          <div className="grid gap-6">
+            {/* Intégration LinkedIn */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Linkedin className="h-5 w-5 text-blue-600" />
+                  LinkedIn
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Connectez votre compte LinkedIn pour importer automatiquement votre profil professionnel,
+                    rechercher des entreprises et gérer votre réseau professionnel.
+                  </p>
+                </div>
+
+                {/* Placeholder pour le composant LinkedInIntegration */}
+                <div className="p-8 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                  <Linkedin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 mb-4">
+                    L'intégration LinkedIn sera disponible ici une fois configurée.
+                  </p>
+                  <Button variant="outline">
+                    Configurer LinkedIn
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Intégration Calendrier */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-green-600" />
+                  Calendrier externe
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Synchronisez vos entretiens avec Google Calendar ou Outlook Calendar
+                    pour une meilleure gestion de votre emploi du temps.
+                  </p>
+                </div>
+
+                {/* Placeholder pour le composant CalendarIntegration */}
+                <div className="p-8 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 mb-4">
+                    L'intégration calendrier sera disponible ici une fois configurée.
+                  </p>
+                  <Button variant="outline">
+                    Configurer Calendrier
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informations sur les intégrations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>À propos des intégrations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 text-sm">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-1">Sécurité et confidentialité</h4>
+                    <p className="text-blue-700">
+                      Toutes les intégrations respectent les conditions d'utilisation des plateformes tierces.
+                      Vos données sont chiffrées et ne sont utilisées que pour améliorer votre expérience.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <h4 className="font-medium text-green-900 mb-1">Synchronisation automatique</h4>
+                    <p className="text-green-700">
+                      Les données sont synchronisées en temps réel. Vous pouvez activer ou désactiver
+                      chaque intégration selon vos besoins.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <h4 className="font-medium text-orange-900 mb-1">Gestion des permissions</h4>
+                    <p className="text-orange-700">
+                      Vous contrôlez entièrement les permissions accordées à chaque plateforme.
+                      Vous pouvez révoquer l'accès à tout moment.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Indicateur de modifications non sauvegardées */}
+      {hasChanges && (
+        <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            Modifications non sauvegardées
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  )
+  );
 }
-
-function DatabasePanel() {
-  return (
-    <div className="space-y-3 md:space-y-4 lg:space-y-6">
-      {/* Database Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-          Informations base de données
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-white">
-          <InfoRow label="Type" value="PostgreSQL 15" />
-          <InfoRow label="Hôte" value="localhost:5432" />
-          <InfoRow label="Database" value="jobbingtrack" />
-          <InfoRow label="Connexions actives" value="12" />
-          <InfoRow label="Taille DB" value="245 MB" />
-          <InfoRow label="Tables" value="18" />
-        </div>
-      </div>
-
-      {/* Database Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-white mb-4">
-          Gestion base de données
-        </h3>
-        <div className="grid grid-cols-2 gap-4 dark:text-white">
-          <ActionCard
-            icon="💾"
-            title="Backup DB"
-            description="Sauvegarder la base de données"
-            onClick={() => alert('Backup en cours...')}
-            color="blue"
-          />
-          <ActionCard
-            icon="⚡"
-            title="Migrations"
-            description="Exécuter les migrations Prisma"
-            onClick={() => alert('Migrations...')}
-            color="green"
-          />
-          <ActionCard
-            icon="🌱"
-            title="Seed data"
-            description="Peupler avec données de test"
-            onClick={() => alert('Seeding...')}
-            color="yellow"
-          />
-          <ActionCard
-            icon="⚠️"
-            title="Reset DB"
-            description="⚠️ DANGER: Réinitialiser la DB"
-            onClick={() => {
-              if (confirm('⚠️ ATTENTION: Voulez-vous vraiment réinitialiser la base de données ? Toutes les données seront perdues !')) {
-                alert('Reset DB (simulation - action bloquée pour sécurité)')
-              }
-            }}
-            color="red"
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ServicesPanel() {
-  return (
-    <div className="space-y-3 md:space-y-4 lg:space-y-6">
-      {/* Services Config */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-          Configuration des services
-        </h3>
-        <div className="space-y-4 text-white dark:text-gray-100 dark:bg-gray-800">
-          <ServiceConfigRow 
-            name="API Gateway" 
-            port={3000} 
-            status="running" 
-            memory="128 MB"
-          />
-          <ServiceConfigRow 
-            name="Auth Service" 
-            port={3001} 
-            status="running" 
-            memory="256 MB"
-          />
-          <ServiceConfigRow 
-            name="Application Service" 
-            port={3002} 
-            status="running" 
-            memory="512 MB"
-          />
-          <ServiceConfigRow 
-            name="Company Service" 
-            port={3003} 
-            status="running" 
-            memory="256 MB"
-          />
-        </div>
-      </div>
-
-      {/* Service Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          🔧 Actions services
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <ActionCard
-            icon="🔄"
-            title="Rebuild services"
-            description="Reconstruire tous les services"
-            onClick={() => alert('Rebuild en cours...')}
-          />
-          <ActionCard
-            icon="📋"
-            title="View logs"
-            description="Voir les logs en temps réel"
-            onClick={() => window.location.href = '/backoffice/logs'}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SecurityPanel() {
-  return (
-    <div className="space-y-3 md:space-y-4 lg:space-y-6">
-      {/* Security Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 md:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 md:mb-4">
-          🔐 Paramètres de sécurité
-        </h3>
-        <div className="space-y-4">
-          <SecurityOption
-            label="JWT Secret"
-            value={"*".repeat(32)}
-            description="Clé secrète pour les tokens JWT"
-          />
-          <SecurityOption
-            label="Session Timeout"
-            value="7 jours"
-            description="Durée de validité des sessions"
-          />
-          <SecurityOption
-            label="Rate Limiting"
-            value="1000 req/15min"
-            description="Limite de requêtes par IP"
-          />
-          <SecurityOption
-            label="CORS Origins"
-            value="localhost:5173, localhost:8081"
-            description="Origines autorisées"
-          />
-        </div>
-      </div>
-
-      {/* Security Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Actions de sécurité
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <ActionCard
-            icon="🔑"
-            title="Rotate JWT Secret"
-            description="Générer nouvelle clé JWT"
-            onClick={() => alert('Rotation JWT...')}
-            color="yellow"
-          />
-          <ActionCard
-            icon="🚫"
-            title="Révoquer tokens"
-            description="Révoquer tous les tokens actifs"
-            onClick={() => {
-              if (confirm('Révoquer tous les tokens ? Tous les utilisateurs devront se reconnecter.')) {
-                alert('Révocation des tokens (simulation)')
-              }
-            }}
-            color="red"
-          />
-          <ActionCard
-            icon="📊"
-            title="Audit log"
-            description="Consulter l'audit de sécurité"
-            onClick={() => alert('Audit log...')}
-          />
-          <ActionCard
-            icon="🛡️"
-            title="Scan sécurité"
-            description="Scanner les vulnérabilités"
-            onClick={() => alert('Scan de sécurité...')}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({ label, value }: { label: string, value: string }) {
-  return (
-    <div className="flex justify-between py-2 gap-2">
-      <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{label}:</span>
-      <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 text-right flex-shrink-0">{value}</span>
-    </div>
-  )
-}
-
-function ServiceConfigRow({ name, port, status, memory }: {
-  name: string
-  port: number
-  status: string
-  memory: string
-}) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 sm:p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-      <div className="flex-1 min-w-0">
-        <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{name}</h4>
-        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Port: {port}</p>
-      </div>
-      <div className="flex items-center space-x-2 sm:space-x-4">
-        <span className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">RAM: {memory}</span>
-        <span className={`px-2 py-1 rounded text-[10px] sm:text-xs font-medium whitespace-nowrap ${
-          status === 'running' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-        }`}>
-          {status}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function SecurityOption({ label, value, description }: {
-  label: string
-  value: string
-  description: string
-}) {
-  return (
-    <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <div className="flex justify-between items-start mb-2 gap-2">
-        <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{label}</h4>
-        <button className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-800 dark:hover:text-blue-300 flex-shrink-0">
-          ✏️ Modifier
-        </button>
-      </div>
-      <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-100 mb-1 font-mono truncate">{value}</p>
-      <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{description}</p>
-    </div>
-  )
-}
-
-function ActionCard({ icon, title, description, onClick, color = 'blue' }: {
-  icon: string
-  title: string
-  description: string
-  onClick: () => void
-  color?: 'blue' | 'green' | 'yellow' | 'red'
-}) {
-  const colors = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700',
-    green: 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700',
-    yellow: 'bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
-    red: 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      className={`p-3 sm:p-4 border rounded-lg text-left transition-colors ${colors[color]}`}
-    >
-      <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{icon}</div>
-      <h4 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1 text-gray-900 dark:text-gray-100 truncate">{title}</h4>
-      <p className="text-[10px] sm:text-xs opacity-80 text-gray-600 dark:text-gray-400 line-clamp-2">{description}</p>
-    </button>
-  )
-}
-
-
