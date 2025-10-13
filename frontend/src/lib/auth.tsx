@@ -49,16 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let storedToken = null
       if (typeof window !== 'undefined') {
         storedToken = getCookieValue('token')
-        console.log('DEBUG - Token from cookie:', storedToken)
+        // Debug logs uniquement en développement strict
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true') {
+          console.log('🔐 Auth Debug - Token from cookie:', storedToken);
+        }
 
         // Si trouvé dans les cookies, synchroniser avec localStorage
         if (storedToken) {
-          localStorage.setItem('token', storedToken)
-          console.log('DEBUG - Token synchronized to localStorage')
+          localStorage.setItem('token', storedToken);
+          if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true') {
+            console.log('🔐 Auth Debug - Token synchronized to localStorage');
+          }
         } else {
           // Sinon vérifier localStorage
-          storedToken = localStorage.getItem('token')
-          console.log('DEBUG - Token from localStorage:', storedToken)
+          storedToken = localStorage.getItem('token');
+          if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true') {
+            console.log('🔐 Auth Debug - Token from localStorage:', storedToken);
+          }
         }
       }
 

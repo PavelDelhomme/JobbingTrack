@@ -88,11 +88,20 @@ jobs:
     - name: Install dependencies
       run: cd frontend && npm ci
 
+    - name: Install Playwright browsers
+      run: cd frontend && npx playwright install --with-deps
+
     - name: Run frontend linting
       run: cd frontend && npm run lint || echo "Linting skipped - no lint script configured"
 
     - name: Run frontend tests
       run: cd frontend && npm test || echo "Tests skipped - no test script configured"
+
+    - name: Run Playwright tests
+      run: cd frontend && npm run test:e2e
+      continue-on-error: true  # Ne pas faire échouer le build si les tests e2e échouent
+      env:
+        CI: true
 
     - name: Build frontend
       run: cd frontend && npm run build
