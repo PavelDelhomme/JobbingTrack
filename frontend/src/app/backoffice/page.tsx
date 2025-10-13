@@ -9,57 +9,12 @@ import { dashboardService, applicationService, authService, companyService } fro
 export default function BackofficePage() {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState({
-    totalApplications: 0,
-    totalCompanies: 0,
-    totalInterviews: 0,
-    totalUsers: 0,
-    activeUsers: 0,
-    recentApplications: 0
-  })
-  const [loadingStats, setLoadingStats] = useState(true)
-  const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login')
     }
   }, [loading, isAuthenticated, router])
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [appsResponse, usersResponse, companiesResponse] = await Promise.all([
-          applicationService.getAll().catch(() => ({ data: { total: 0, applications: [] } })),
-          authService.getAllUsers().catch(() => ({ data: { users: [] } })),
-          companyService.getAll().catch(() => ({ data: { companies: [] } }))
-        ])
-        
-        setStats({
-          totalApplications: appsResponse.data.total || appsResponse.data.applications?.length || 0,
-          totalUsers: usersResponse.data.users?.length || 0,
-          activeUsers: usersResponse.data.users?.filter((u: any) => u.isActive)?.length || 0,
-          totalCompanies: companiesResponse.data.companies?.length || 0,
-          totalInterviews: 0,
-          recentApplications: appsResponse.data.applications?.filter((a: any) => {
-            const createdDate = new Date(a.createdAt)
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            return createdDate > weekAgo
-          }).length || 0
-        })
-        setSystemStatus('healthy')
-      } catch (error) {
-        console.error('Erreur chargement stats:', error)
-        setSystemStatus('degraded')
-      } finally {
-        setLoadingStats(false)
-      }
-    }
-
-    if (isAuthenticated) {
-      fetchStats()
-    }
-  }, [isAuthenticated])
 
   if (loading) {
     return (

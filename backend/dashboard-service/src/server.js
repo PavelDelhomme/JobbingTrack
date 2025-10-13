@@ -1,79 +1,57 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const logger = require('./utils/logger');
-
-const dashboardRoutes = require('./routes/dashboard.routes');
-const errorHandler = require('./middlewares/errorHandler');
-const notFound = require('./middlewares/notFound');
 
 const app = express();
-const PORT = process.env.PORT || 3007;
+const PORT = process.env.PORT || 3000;
 
-// Configuration des middlewares
-app.use(helmet());
+// Middleware
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: ['http://localhost:8080', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Rate limiting spécifique à l'auth - TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
-// const authLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 50, // Plus restrictif pour l'auth
-//   message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
-// });
-// app.use('/api/v1/dashboard', authLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.json({
     status: 'OK',
     service: 'dashboard-service',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
     version: '1.0.0'
   });
 });
 
-// Test route - directement dans le serveur principal
-app.get('/api/v1/dashboard/test', (req, res) => {
+// API routes avec données mockées
+app.get('/api/v1/dashboard-service', (req, res) => {
+  // Données mockées pour l'interface d'administration
+  const mockData = {
+    contact: { contacts: [], total: 0 },
+    interview: { interviews: [], total: 0 },
+    notification: { notifications: [], total: 0 },
+    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
+    call: { calls: [], total: 0 },
+    profile: { profiles: [], total: 0 },
+    event: { events: [], total: 0 },
+    followup: { followups: [], total: 0 }
+  };
+
   res.json({
     success: true,
-    message: 'Test route fonctionne'
+    ...mockData.dashboard-service,
+    message: 'Données de démonstration'
   });
 });
 
-// Routes du routeur
-app.use('/api/v1/dashboard', dashboardRoutes);
-
-// ✅ TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
-// Middlewares d'erreur
-// app.use(notFound);
-// app.use(errorHandler);
-
-const server = app.listen(PORT, () => {
-  logger.info(`📊 Dashboard Service démarré sur le port ${PORT}`);
-  logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
-});
-
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal reçu: fermeture du Dashboard Service');
-  server.close(() => {
-    logger.info('Dashboard Service fermé');
-    process.exit(0);
+app.post('/api/v1/dashboard-service', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Fonctionnalité en cours d\'implémentation'
   });
 });
 
-process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Rejection:', err);
-  process.exit(1);
+// Démarrage
+app.listen(PORT, () => {
+  console.log(`🚀 dashboard-service démarré sur le port ${PORT}`);
 });
 
 module.exports = app;

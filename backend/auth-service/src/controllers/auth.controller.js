@@ -18,7 +18,7 @@ const register = async (req, res, next) => {
       });
     }
 
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { email, password, firstName, lastName, phone, role } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
@@ -32,6 +32,10 @@ const register = async (req, res, next) => {
       });
     }
 
+    // Valider le rôle
+    const validRoles = ['USER', 'ADMIN', 'SUPER_ADMIN', 'TESTER'];
+    const userRole = validRoles.includes(role) ? role : 'USER';
+
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -42,7 +46,8 @@ const register = async (req, res, next) => {
         password: hashedPassword,
         firstName,
         lastName,
-        phone
+        phone,
+        role: userRole
       }
     });
 
@@ -116,6 +121,15 @@ const login = async (req, res, next) => {
 
     // Retourner la réponse (sans le mot de passe)
     const { password: _, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
+
+    // ✅ Configurer le cookie avec le token
+    res.cookie('token', token, {
+      httpOnly: false, // Permettre la lecture côté client
+      secure: false, // Désactivé en développement
+      sameSite: 'lax', // Politique SameSite
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours en millisecondes
+      path: '/'
+    });
 
     res.json({
       success: true,
@@ -224,6 +238,14 @@ const refreshToken = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
+    // ✅ Supprimer le cookie de token
+    res.clearCookie('token', {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      path: '/'
+    });
+
     res.json({
       success: true,
       message: 'Déconnexion réussie'

@@ -19,7 +19,8 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('firstName').notEmpty(),
-  body('lastName').notEmpty()
+  body('lastName').notEmpty(),
+  body('role').optional().isIn(['USER', 'ADMIN', 'SUPER_ADMIN', 'TESTER'])
 ], authController.register);
 
 router.post('/login', [

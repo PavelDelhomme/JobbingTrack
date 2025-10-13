@@ -13,6 +13,15 @@ const mobileEmulatorStyles = `
     scrollbar-width: none;
   }
 
+  /* Masquer les barres de défilement pour la navigation */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Indicateur de scroll subtil pour le contenu qui dépasse */
   .scroll-indicator {
     position: absolute;
@@ -108,7 +117,7 @@ const DEVICES: Device[] = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export default function MobileEmulatorPage() {
-  const { user: adminUser } = useAuth()
+  const { user: adminUser, loading: authLoading, isAuthenticated } = useAuth()
   const [selectedDevice, setSelectedDevice] = useState<Device>(DEVICES[0])
   const [orientation, setOrientation] = useState<OrientationType>('portrait')
   const [scale, setScale] = useState(0.8)
@@ -133,6 +142,33 @@ export default function MobileEmulatorPage() {
   const width = orientation === 'portrait' ? selectedDevice.width : selectedDevice.height
   const height = orientation === 'portrait' ? selectedDevice.height : selectedDevice.width
 
+  // ✅ Vérification d'authentification
+  if (authLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600">Vérification de l'authentification...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <AdminLayout>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
+            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
   // ✅ Charger les utilisateurs disponibles UNE SEULE FOIS au montage
   useEffect(() => {
     let isMounted = true
@@ -144,6 +180,13 @@ export default function MobileEmulatorPage() {
     loadData()
     return () => { isMounted = false }
   }, [])
+
+  // ✅ Recharger les utilisateurs quand l'utilisateur admin change (après suppression)
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUsers()
+    }
+  }, [isAuthenticated])
 
   // ✅ Auto-login si déjà un utilisateur sélectionné (MAIS UNE SEULE FOIS)
   useEffect(() => {
@@ -170,21 +213,29 @@ export default function MobileEmulatorPage() {
   const loadUsers = async () => {
     try {
       addLog('Chargement des utilisateurs...', 'info')
+      // Récupérer les vrais utilisateurs de la base de données
       const response = await axios.get(`${API_URL}/api/v1/auth/users`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       })
-      if (response.data.success) {
-        setUsers(response.data.users || [])
-        addLog(`${response.data.users?.length || 0} utilisateurs chargés`, 'success')
+
+      if (response.data.success && response.data.users) {
+        // Filtrer les utilisateurs actifs et non supprimés
+        const activeUsers = response.data.users.filter((user: any) =>
+          user.isActive && !user.isDeleted && !user.isArchived
+        )
+        setUsers(activeUsers)
+        addLog(`${activeUsers.length} utilisateurs chargés depuis la base de données`, 'success')
+      } else {
+        throw new Error('Aucun utilisateur trouvé')
       }
     } catch (error) {
       console.error('Erreur chargement utilisateurs:', error)
       addLog('Erreur chargement utilisateurs, utilisation de données de test', 'error')
-      // Créer des utilisateurs de test
+      // Fallback sur les utilisateurs de test si l'API ne fonctionne pas
       setUsers([
-        { id: '1', email: 'user1@jobbingtrack.test', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
-        { id: '2', email: 'user2@jobbingtrack.test', firstName: 'Marie', lastName: 'Martin', role: 'ADMIN' },
-        { id: '3', email: 'user3@jobbingtrack.test', firstName: 'Thomas', lastName: 'Bernard', role: 'USER' },
+        { id: '1', email: 'admin@jobbingtrack.test', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
+        { id: '2', email: 'admin@jobbingtrack.test', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
+        { id: '3', email: 'redacted@example.invalid', firstName: 'Test', lastName: 'User', role: 'USER' },
       ])
     }
   }
@@ -301,10 +352,11 @@ export default function MobileEmulatorPage() {
     <AdminLayout>
       <style jsx>{mobileEmulatorStyles}</style>
       <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-950">
-        {/* Toolbar */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Device Selector */}
+        {/* Toolbar - Responsive */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-2 sm:p-4">
+          {/* Première ligne - Contrôles principaux */}
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            {/* Device Selector - Compact */}
             <div className="flex-shrink-0">
               <select
                 value={selectedDevice.id}
@@ -312,53 +364,55 @@ export default function MobileEmulatorPage() {
                   const device = DEVICES.find(d => d.id === e.target.value)
                   if (device) setSelectedDevice(device)
                 }}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               >
                 {DEVICES.map(device => (
                   <option key={device.id} value={device.id}>
-                    {device.icon} {device.name} ({device.os})
+                    {device.icon} {device.name.split(' ')[0]}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* User Switcher */}
-            <div className="relative">
+            {/* User Switcher - Compact */}
+            <div className="relative flex-1 min-w-0">
               <button
                 onClick={() => setShowUserSwitcher(!showUserSwitcher)}
-                className="px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-2"
+                className="w-full px-2 sm:px-3 py-1 sm:py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-1 sm:gap-2"
               >
-                <span className="text-xl">👤</span>
-                <span className="text-sm font-medium">
-                  {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : 'Choisir utilisateur'}
-                </span>
+                <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                  <span className="text-base sm:text-lg">👤</span>
+                  <span className="text-xs sm:text-sm font-medium truncate">
+                    {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
+                  </span>
+                </div>
                 <span className="text-xs">▼</span>
               </button>
 
               {showUserSwitcher && (
-                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 min-w-[250px]">
+                <div className="absolute top-full left-0 mt-1 sm:mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-xs sm:max-w-sm">
                   <div className="p-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
                       Basculer vers un utilisateur :
                     </p>
                     {users.map(user => (
                       <button
                         key={user.id}
                         onClick={() => switchUser(user)}
-                        className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                        className={`w-full text-left px-2 py-1 sm:py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
                           selectedUser?.id === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
                             {user.firstName[0]}{user.lastName[0]}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {user.email} • {user.role}
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {user.email}
                             </p>
                           </div>
                         </div>
@@ -369,92 +423,103 @@ export default function MobileEmulatorPage() {
               )}
             </div>
 
-            {/* Controls */}
-            <button
-              onClick={toggleOrientation}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <span className="text-xl">{orientation === 'portrait' ? '📱' : '🔄'}</span>
-              <span className="text-sm font-medium dark:text-gray-200">
-                {orientation === 'portrait' ? 'Portrait' : 'Paysage'}
-              </span>
-            </button>
+            {/* Centre de notifications mobile */}
+            <MobileNotificationCenter />
+          </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Zoom:</span>
-              <input
-                type="range"
-                min="0.5"
-                max="1"
-                step="0.05"
-                value={scale}
-                onChange={(e) => setScale(parseFloat(e.target.value))}
-                className="w-32"
-              />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-12">
-                {Math.round(scale * 100)}%
-              </span>
+          {/* Deuxième ligne - Contrôles secondaires compacts */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between">
+            {/* Orientation + Zoom + Cadre */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={toggleOrientation}
+                className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
+              >
+                <span className="text-base sm:text-lg">{orientation === 'portrait' ? '📱' : '🔄'}</span>
+              </button>
+
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Z:</span>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="1"
+                  step="0.05"
+                  value={scale}
+                  onChange={(e) => setScale(parseFloat(e.target.value))}
+                  className="w-12 sm:w-16"
+                />
+                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 w-6 sm:w-8 text-center">
+                  {Math.round(scale * 100)}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setShowDeviceFrame(!showDeviceFrame)}
+                className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors ${
+                  showDeviceFrame
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                }`}
+                title={showDeviceFrame ? 'Masquer le cadre' : 'Afficher le cadre'}
+              >
+                <span className="text-sm sm:text-base">📱</span>
+              </button>
             </div>
 
-            <button
-              onClick={() => setShowDeviceFrame(!showDeviceFrame)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                showDeviceFrame
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              <span className="text-xl mr-2">📱</span>
-              <span className="text-sm font-medium">Cadre</span>
-            </button>
+            {/* Mode sombre + Réseau */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                }`}
+                title={isDarkMode ? 'Mode clair' : 'Mode sombre'}
+              >
+                <span className="text-sm sm:text-base">{isDarkMode ? '🌙' : '☀️'}</span>
+              </button>
 
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                isDarkMode
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              <span className="text-xl">{isDarkMode ? '🌙' : '☀️'}</span>
-            </button>
-
-            <select
-              value={networkSpeed}
-              onChange={(e) => setNetworkSpeed(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            >
-              <option value="fast">📶 4G Rapide</option>
-              <option value="slow">📶 3G Lent</option>
-              <option value="offline">📵 Hors ligne</option>
-            </select>
+              <select
+                value={networkSpeed}
+                onChange={(e) => setNetworkSpeed(e.target.value as any)}
+                className="px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 dark:border-gray-600 rounded text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                title="Vitesse réseau"
+              >
+                <option value="fast">📶</option>
+                <option value="slow">📶</option>
+                <option value="offline">📵</option>
+              </select>
+            </div>
 
             {/* Contrôles de l'application */}
-            <div className="flex items-center gap-2 border-l border-gray-300 dark:border-gray-600 pl-4 ml-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {appRunning ? (
                 <>
                   <button
                     onClick={restartApp}
-                    className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors flex items-center gap-2"
+                    className="px-1 sm:px-2 py-1 sm:py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
                     title="Redémarrer l'application"
                   >
-                    <span className="text-lg">🔄</span>
+                    <span className="text-xs sm:text-sm">🔄</span>
                   </button>
                   <button
                     onClick={stopApp}
-                    className="px-3 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800 transition-colors flex items-center gap-2"
+                    className="px-1 sm:px-2 py-1 sm:py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
                     title="Arrêter l'application"
                   >
-                    <span className="text-lg">⏹️</span>
+                    <span className="text-xs sm:text-sm">⏹️</span>
                   </button>
                 </>
               ) : (
                 <button
                   onClick={startApp}
-                  className="px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 transition-colors flex items-center gap-2"
+                  className="px-1 sm:px-2 py-1 sm:py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
                   title="Démarrer l'application"
                 >
-                  <span className="text-lg">▶️</span>
+                  <span className="text-xs sm:text-sm">▶️</span>
                 </button>
               )}
             </div>
@@ -462,18 +527,107 @@ export default function MobileEmulatorPage() {
             {/* Bouton logs */}
             <button
               onClick={() => setShowLogs(!showLogs)}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+              className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors flex items-center gap-1 ${
                 showLogs
                   ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
+              title="Afficher/masquer les logs"
             >
-              <span className="text-xl">📋</span>
-              <span className="text-sm font-medium">Logs {logs.length > 0 && `(${logs.length})`}</span>
+              <span className="text-xs sm:text-sm">📋</span>
+              {logs.length > 0 && <span className="text-xs">({logs.length})</span>}
             </button>
+          </div>
+        </div>
 
-            {/* Centre de notifications mobile */}
-            <MobileNotificationCenter />
+        {/* Section Monitoring - Mobile First */}
+        <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-3 sm:p-6">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
+              <span className="text-2xl">📊</span>
+              Monitoring en temps réel
+            </h2>
+
+            {/* Métriques principales */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">12</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Services actifs</div>
+              </div>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">98%</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Disponibilité</div>
+              </div>
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">145ms</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Temps de réponse</div>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3 sm:p-4 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-400">2.1K</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Requêtes/min</div>
+              </div>
+            </div>
+
+            {/* Graphiques miniatures */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              {/* Graphique CPU */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation CPU</h3>
+                <div className="h-16 sm:h-20 flex items-end justify-between gap-1">
+                  {[...Array(12)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-blue-500 rounded-t min-h-[4px]"
+                      style={{ height: `${Math.random() * 60 + 20}%`, width: '6px' }}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <span>0%</span>
+                  <span>75%</span>
+                </div>
+              </div>
+
+              {/* Graphique Mémoire */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation Mémoire</h3>
+                <div className="h-16 sm:h-20 flex items-end justify-between gap-1">
+                  {[...Array(12)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-green-500 rounded-t min-h-[4px]"
+                      style={{ height: `${Math.random() * 40 + 30}%`, width: '6px' }}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <span>512MB</span>
+                  <span>1.2GB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Activité récente */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activité récente</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Application Service redémarré</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 2min</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Nouvelle candidature créée</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 5min</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Entretien planifié</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 8min</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -528,7 +682,7 @@ export default function MobileEmulatorPage() {
         )}
 
         {/* Emulator Area */}
-        <div className="flex-1 p-8 overflow-auto">
+        <div className="flex-1 p-3 sm:p-8 overflow-auto">
           <div className="flex justify-center items-start min-h-full">
             <div
               style={{
@@ -1114,27 +1268,30 @@ function BottomNav({ currentScreen, setCurrentScreen, isDarkMode, selectedUser }
   ]
   // Ajouter le backoffice pour les Super Admin
   const isAdmin = selectedUser?.role === 'SUPER_ADMIN' || selectedUser?.role === 'ADMIN'
-  
+
   if (isAdmin && currentScreen !== 'login') {
     navItems.push({ screen: 'admin-backoffice' as MobileScreen, icon: '⚙️', label: 'Admin' })
   }
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} border-t flex justify-around p-2 backdrop-blur-sm sticky bottom-0 left-0 right-0 z-30 shadow-lg`}>
-      {navItems.map(item => (
-        <button
-          key={item.screen}
-          onClick={() => setCurrentScreen(item.screen)}
-          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-200 ${
-            currentScreen === item.screen
-              ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 transform scale-110'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-        >
-          <span className="text-xl">{item.icon}</span>
-          <span className="text-xs font-medium">{item.label}</span>
-        </button>
-      ))}
+    <div className={`${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} border-t backdrop-blur-sm sticky bottom-0 left-0 right-0 z-30 shadow-lg`}>
+      {/* Navigation scrollable horizontalement */}
+      <div className="flex overflow-x-auto scrollbar-hide p-2 gap-1">
+        {navItems.map(item => (
+          <button
+            key={item.screen}
+            onClick={() => setCurrentScreen(item.screen)}
+            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 flex-shrink-0 ${
+              currentScreen === item.screen
+                ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 transform scale-110'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+            }`}
+          >
+            <span className="text-xl">{item.icon}</span>
+            <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

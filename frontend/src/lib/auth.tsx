@@ -33,26 +33,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ✅ Charger le token et profil au démarrage
   useEffect(() => {
-    // Vérifier localStorage en priorité
-    let storedToken = localStorage.getItem('token')
-    
-    // Si pas dans localStorage, vérifier les cookies
-    if (!storedToken && typeof window !== 'undefined') {
-      const cookies = document.cookie.split(';')
-      const tokenCookie = cookies.find(c => c.trim().startsWith('token='))
-      if (tokenCookie) {
-        storedToken = tokenCookie.split('=')[1]
-        // Synchroniser avec localStorage
-        localStorage.setItem('token', storedToken)
+    const initializeAuth = async () => {
+      // Attendre que localStorage et les cookies soient disponibles
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Fonction pour extraire la valeur d'un cookie
+      const getCookieValue = (name: string) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop()?.split(';').shift()
+        return null
+      }
+
+      // Vérifier d'abord les cookies (plus fiable)
+      let storedToken = null
+      if (typeof window !== 'undefined') {
+        storedToken = getCookieValue('token')
+        console.log('DEBUG - Token from cookie:', storedToken)
+
+        // Si trouvé dans les cookies, synchroniser avec localStorage
+        if (storedToken) {
+          localStorage.setItem('token', storedToken)
+          console.log('DEBUG - Token synchronized to localStorage')
+        } else {
+          // Sinon vérifier localStorage
+          storedToken = localStorage.getItem('token')
+          console.log('DEBUG - Token from localStorage:', storedToken)
+        }
+      }
+
+      if (storedToken) {
+        setToken(storedToken)
+        await loadUserProfile(storedToken)
+      } else {
+        setLoading(false)
       }
     }
-    
-    if (storedToken) {
-      setToken(storedToken)
-      loadUserProfile(storedToken)
-    } else {
-      setLoading(false)
-    }
+
+    initializeAuth()
   }, [])
 
   const loadUserProfile = async (authToken: string) => {
@@ -82,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // ✅ Sauvegarder aussi dans les cookies pour le middleware Next.js
         if (typeof window !== 'undefined') {
-          document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+          document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax; secure=false`
         }
         
         router.push('/backoffice')

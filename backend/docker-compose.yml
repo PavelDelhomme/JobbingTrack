@@ -33,6 +33,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # Service de statistiques Docker
+  docker-stats-service:
+    build:
+      context: ./docker-stats-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-docker-stats
+    ports:
+      - "3015:3015"
+    environment:
+      - NODE_ENV=development
+      - PORT=3015
+    volumes:
+      # ✅ Monter le socket Docker pour accéder aux statistiques
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+
   # API Gateway
   api-gateway:
     build:
@@ -44,6 +61,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
       - AUTH_SERVICE_URL=http://auth-service:3001
       - APPLICATION_SERVICE_URL=http://application-service:3002
       - COMPANY_SERVICE_URL=http://company-service:3003
@@ -58,11 +76,10 @@ services:
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
       - JWT_SECRET=your-secret-key-change-in-production-2025
     volumes:
-      # ✅ Monter le socket Docker pour pouvoir contrôler les conteneurs
-      - /var/run/docker.sock:/var/run/docker.sock
       # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
       - ./docker-compose.yml:/app/docker-compose.yml:ro
     depends_on:
+      - docker-stats-service
       - auth-service
       - application-service
       - company-service
