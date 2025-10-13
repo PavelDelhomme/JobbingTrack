@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
 import Breadcrumb from './Breadcrumb'
 import { GlobalSearch } from './GlobalSearch'
+import { OfflineActions } from './OfflineActions'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -373,6 +374,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {/* Recherche globale */}
               <div className="hidden lg:block max-w-md flex-1">
                 <GlobalSearch className="w-full" />
+              </div>
+
+              {/* Actions offline - Version compacte */}
+              <div className="hidden md:block">
+                <OfflineActions compact={true} showStats={false} />
               </div>
 
               {/* Email - Caché sur mobile */}

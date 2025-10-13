@@ -49,35 +49,36 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        {/* Theme Toggle - Position absolue sur mobile */}
-        <div className="absolute top-4 right-4 sm:static sm:flex sm:justify-end">
-          <button
-            onClick={toggleTheme}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
-              actualTheme === 'dark'
-                ? 'bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-700'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-            }`}
-            title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-          >
-            <span className="text-xl sm:text-2xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
-            <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-              {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
-            </span>
-          </button>
-        </div>
 
         {/* Card principale avec shadow et bordure */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           {/* Header avec gradient */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 px-6 sm:px-8 py-8 sm:py-10 text-center">
-            <div className="text-5xl sm:text-6xl mb-3 sm:mb-4 animate-bounce">🎯</div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">
-              JobbingTrack
-            </h2>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-blue-100">
-              Backoffice Administrateur
-            </p>
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 px-6 sm:px-8 py-8 sm:py-10">
+            {/* Header avec logo et bouton thème compact */}
+            <div className="flex justify-between items-start mb-6 sm:mb-8">
+              <div className="text-4xl sm:text-5xl animate-bounce">🎯</div>
+              <button
+                onClick={toggleTheme}
+                className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                  actualTheme === 'dark'
+                    ? 'bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-700'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                }`}
+                title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              >
+                <span className="text-lg sm:text-xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
+              </button>
+            </div>
+
+            {/* Titre centré */}
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">
+                JobbingTrack
+              </h2>
+              <p className="mt-2 sm:mt-3 text-sm sm:text-base text-blue-100">
+                Backoffice Administrateur
+              </p>
+            </div>
           </div>
 
           {/* Formulaire */}

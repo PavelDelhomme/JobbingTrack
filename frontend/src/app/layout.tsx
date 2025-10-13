@@ -5,6 +5,7 @@ import './styles/customization.css'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth'
 import { ThemeProvider } from '@/lib/theme'
+import { OfflineNotification } from '@/components/OfflineNotification'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           <AuthProvider>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
               {children}
+              {/* OfflineNotification temporairement désactivé pour éviter boucle infinie */}
             </div>
           </AuthProvider>
         </ThemeProvider>

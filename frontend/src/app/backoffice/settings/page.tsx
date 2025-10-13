@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar } from 'lucide-react';
+import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar, Wifi } from 'lucide-react';
 import { useCustomization } from '@/hooks/useCustomization';
+import { OfflineStatus } from '@/components/OfflineStatus';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -474,6 +475,9 @@ export default function SettingsPage() {
 
         {/* Onglet Données et confidentialité */}
         <TabsContent value="data" className="space-y-6">
+          {/* Support Offline */}
+          <OfflineStatus showDetails={true} />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
