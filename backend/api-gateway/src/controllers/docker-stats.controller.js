@@ -25,6 +25,32 @@ const CONTAINER_MAPPING = {
 };
 
 /**
+ * Mapping des slugs de services vers les vrais noms de services pour les logs
+ */
+const SERVICE_SLUG_TO_NAME = {
+  'api-gateway': 'api-gateway',
+  'auth': 'auth-service',
+  'applications': 'application-service',
+  'companies': 'company-service',
+  'contacts': 'contact-service',
+  'interviews': 'interview-service',
+  'notifications': 'notification-service',
+  'dashboard': 'dashboard-service',
+  'calls': 'call-service',
+  'profile': 'profile-service',
+  'events': 'event-service',
+  'followups': 'followup-service',
+  'frontend': 'frontend',
+};
+
+/**
+ * Mapping inverse des services vers les noms de conteneurs
+ */
+const SERVICE_TO_CONTAINER = Object.fromEntries(
+  Object.entries(CONTAINER_MAPPING).map(([container, service]) => [service, container])
+);
+
+/**
  * Récupère les statistiques Docker de tous les conteneurs
  */
 async function getAllDockerStats(req, res) {
@@ -93,9 +119,7 @@ async function getDockerStatsByService(req, res) {
     const { serviceName } = req.params;
 
     // Trouver le nom du conteneur correspondant
-    const containerName = Object.keys(CONTAINER_MAPPING).find(
-      key => CONTAINER_MAPPING[key] === serviceName
-    );
+    const containerName = SERVICE_TO_CONTAINER[serviceName];
 
     if (!containerName) {
       return res.status(404).json({
@@ -189,9 +213,7 @@ async function getContainerInfo(req, res) {
     const { serviceName } = req.params;
 
     // Trouver le nom du conteneur
-    const containerName = Object.keys(CONTAINER_MAPPING).find(
-      key => CONTAINER_MAPPING[key] === serviceName
-    );
+    const containerName = SERVICE_TO_CONTAINER[serviceName];
 
     if (!containerName) {
       return res.status(404).json({

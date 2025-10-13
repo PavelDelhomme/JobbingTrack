@@ -223,18 +223,18 @@ export default function CallsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               📞 Gestion des Appels
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Gérez et suivez tous vos appels téléphoniques
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center whitespace-nowrap"
           >
             ➕ Nouvel Appel
           </button>
@@ -338,107 +338,181 @@ export default function CallsPage() {
             <p className="text-gray-600 dark:text-gray-400">Aucun appel trouvé</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Candidature / Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Durée
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Statut
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Résultat
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {calls.map((call) => {
-                  const typeInfo = CALL_TYPES[call.type]
-                  const statusInfo = CALL_STATUS[call.status]
-                  
-                  return (
-                    <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
-                          {typeInfo.icon} {typeInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {call.application?.company.name}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {call.application?.position}
-                        </div>
-                        {call.contact && (
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
-                            Contact: {call.contact.firstName} {call.contact.lastName}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {formatDate(call.callDate || call.scheduledDate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {formatDuration(call.duration)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                        <div className="max-w-xs truncate">{call.outcome || '-'}</div>
-                        {call.followUpNeeded && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mt-1">
-                            ⚠️ Relance requise
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Candidature / Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Durée
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Résultat
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {calls.map((call) => {
+                    const typeInfo = CALL_TYPES[call.type]
+                    const statusInfo = CALL_STATUS[call.status]
+
+                    return (
+                      <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
+                            {typeInfo.icon} {typeInfo.label}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-2">
-                          {call.status === 'SCHEDULED' && (
-                            <button
-                              onClick={() => completeCall(call.id)}
-                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                              title="Marquer comme terminé"
-                            >
-                              ✓
-                            </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {call.application?.company.name}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {call.application?.position}
+                          </div>
+                          {call.contact && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Contact: {call.contact.firstName} {call.contact.lastName}
+                            </div>
                           )}
-                          <Link
-                            href={`/backoffice/calls/${call.id}`}
-                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            👁️
-                          </Link>
-                          <button
-                            onClick={() => deleteCall(call.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            🗑️
-                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                          {formatDate(call.callDate || call.scheduledDate)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                          {formatDuration(call.duration)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                          <div className="max-w-xs truncate">{call.outcome || '-'}</div>
+                          {call.followUpNeeded && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mt-1">
+                              ⚠️ Relance requise
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            {call.status === 'SCHEDULED' && (
+                              <button
+                                onClick={() => completeCall(call.id)}
+                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                title="Marquer comme terminé"
+                              >
+                                ✓
+                              </button>
+                            )}
+                            <Link
+                              href={`/backoffice/calls/${call.id}`}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              👁️
+                            </Link>
+                            <button
+                              onClick={() => deleteCall(call.id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {calls.map((call) => {
+                const typeInfo = CALL_TYPES[call.type]
+                const statusInfo = CALL_STATUS[call.status]
+
+                return (
+                  <div key={call.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="h-10 w-10 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-lg">
+                          📞
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 text-${typeInfo.color}-800 dark:text-${typeInfo.color}-300`}>
+                              {typeInfo.icon} {typeInfo.label}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30 text-${statusInfo.color}-800 dark:text-${statusInfo.color}-300`}>
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {call.application?.company.name} - {call.application?.position}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      <p>📅 {formatDate(call.callDate || call.scheduledDate)}</p>
+                      <p>⏱️ {formatDuration(call.duration)}</p>
+                      {call.contact && (
+                        <p>👤 {call.contact.firstName} {call.contact.lastName}</p>
+                      )}
+                      {call.outcome && (
+                        <p>📝 {call.outcome}</p>
+                      )}
+                      {call.followUpNeeded && (
+                        <p className="text-orange-600 dark:text-orange-400">⚠️ Relance requise</p>
+                      )}
+                    </div>
+
+                    <div className="ml-13 flex gap-2">
+                      {call.status === 'SCHEDULED' && (
+                        <button
+                          onClick={() => completeCall(call.id)}
+                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                          title="Marquer comme terminé"
+                        >
+                          ✓ Terminer
+                        </button>
+                      )}
+                      <Link
+                        href={`/backoffice/calls/${call.id}`}
+                        className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm text-center"
+                      >
+                        Voir détails
+                      </Link>
+                      <button
+                        onClick={() => deleteCall(call.id)}
+                        className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
