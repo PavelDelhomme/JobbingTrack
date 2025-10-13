@@ -10,7 +10,7 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public'
+      url: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public'
     }
   }
 });

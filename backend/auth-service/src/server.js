@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
 
 const authRoutes = require('./routes/auth.routes');
@@ -29,6 +30,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+app.use(cookieParser()); // ✅ Middleware pour gérer les cookies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

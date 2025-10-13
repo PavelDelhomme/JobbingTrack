@@ -1,86 +1,57 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const logger = require('./utils/logger');
-
-const profileRoutes = require('./routes/profile.routes');
-const errorHandler = require('./middlewares/errorHandler');
-const notFound = require('./middlewares/notFound');
 
 const app = express();
-const PORT = process.env.PORT || 3009;
+const PORT = process.env.PORT || 3000;
 
-// Configuration des middlewares
-app.use(helmet());
+// Middleware
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: ['http://localhost:8080', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Health check (AVANT le rate limiting pour être exempt)
+// Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.json({
     status: 'OK',
     service: 'profile-service',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
     version: '1.0.0'
   });
 });
 
-// Rate limiting intelligent - différent selon l'environnement
-if (process.env.NODE_ENV === 'production') {
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500, // 500 requêtes en production
-    message: 'Trop de requêtes, veuillez réessayer plus tard.',
-    standardHeaders: true,
-    legacyHeaders: false,
-    // ✅ Exempter les routes de monitoring et d'administration
-    skip: (req) => {
-      return req.path === '/health' || 
-             req.path.startsWith('/metrics') ||
-             req.path.startsWith('/api/v1/admin');
-    }
-  });
-  app.use('/api/v1/profile', apiLimiter);
-  logger.info('✅ Rate limiting activé en production (500 req/15min, routes monitoring exemptées)');
-} else {
-  logger.info('⚠️  Rate limiting DÉSACTIVÉ en développement pour faciliter les tests');
-}
+// API routes avec données mockées
+app.get('/api/v1/profile-service', (req, res) => {
+  // Données mockées pour l'interface d'administration
+  const mockData = {
+    contact: { contacts: [], total: 0 },
+    interview: { interviews: [], total: 0 },
+    notification: { notifications: [], total: 0 },
+    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
+    call: { calls: [], total: 0 },
+    profile: { profiles: [], total: 0 },
+    event: { events: [], total: 0 },
+    followup: { followups: [], total: 0 }
+  };
 
-// Routes
-app.use('/api/v1/profiles', profileRoutes); // ✅ Pluriel pour correspondre à l'API Gateway
-app.use('/api/v1/profile', profileRoutes);  // ✅ Singulier aussi pour compatibilité
-app.use('/', profileRoutes); // ✅ Routes sans préfixe aussi
-
-// Middlewares d'erreur
-app.use(notFound);
-app.use(errorHandler);
-
-const server = app.listen(PORT, () => {
-  logger.info(`👤 Profile Service démarré sur le port ${PORT}`);
-  logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
-});
-
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal reçu: fermeture du Profile Service');
-  server.close(() => {
-    logger.info('Profile Service fermé');
-    process.exit(0);
+  res.json({
+    success: true,
+    ...mockData.profile-service,
+    message: 'Données de démonstration'
   });
 });
 
-process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Rejection:', err);
-  process.exit(1);
+app.post('/api/v1/profile-service', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Fonctionnalité en cours d\'implémentation'
+  });
+});
+
+// Démarrage
+app.listen(PORT, () => {
+  console.log(`🚀 profile-service démarré sur le port ${PORT}`);
 });
 
 module.exports = app;
-

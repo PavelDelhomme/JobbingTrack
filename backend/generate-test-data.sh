@@ -46,11 +46,17 @@ esac
 echo ""
 echo -e "${YELLOW}⚠️  Cette opération va générer des données dans la base de données${NC}"
 echo ""
-read -p "Continuer ? (o/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Oo]$ ]]; then
-    echo "Opération annulée"
-    exit 0
+
+# En mode automatique (pour Makefile), continuer sans confirmation
+if [ "$AUTO_GENERATE" = "true" ]; then
+    echo -e "${GREEN}🔄 Mode automatique activé${NC}"
+else
+    read -p "Continuer ? (o/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Oo]$ ]]; then
+        echo "Opération annulée"
+        exit 0
+    fi
 fi
 
 # Exécuter le script de génération
@@ -58,16 +64,17 @@ echo ""
 echo -e "${BLUE}🔄 Génération en cours...${NC}"
 echo ""
 
-cd "$(dirname "$0")"
-
-# Via Docker si disponible
+# Toujours via Docker (nécessaire pour accéder à PostgreSQL)
 if docker compose ps | grep -q "jobbingtrack-auth-service"; then
     echo -e "${BLUE}🐳 Exécution via Docker...${NC}"
-    docker compose exec -T auth-service node /app/../generate-test-data.js "$CONFIG"
+    # Copier le script dans le conteneur et l'exécuter
+    SCRIPT_PATH="$(dirname "$0")/generate-test-data.js"
+    docker cp "$SCRIPT_PATH" jobbingtrack-auth-service:/app/generate-test-data.js
+    docker compose exec -T auth-service node generate-test-data.js "$CONFIG"
 else
-    # Directement avec Node.js
-    echo -e "${BLUE}💻 Exécution locale...${NC}"
-    node generate-test-data.js "$CONFIG"
+    echo -e "${RED}❌ Service auth-service non disponible${NC}"
+    echo "Veuillez démarrer les services avec 'make up' avant de générer les données de test"
+    exit 1
 fi
 
 echo ""

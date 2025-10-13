@@ -2,9 +2,12 @@
 // Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
+  provider = "prisma-client-js"
 }
 
 datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Modèle Utilisateur
@@ -64,31 +67,50 @@ datasource db {
 
 // ✅ NOUVEAU - Modèle Notification
 model Notification {
-  
+  id          String   @id @default(cuid())
+  userId      String?
+  type        String
+  title       String
+  message     String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("notifications")
+}
 
 // ✅ NOUVEAU - Modèle Email Log
-  
+model EmailLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  to          String
+  subject     String
+  body        String?
+  status      String   @default("PENDING")
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
 
-// ✅ NOUVEAU - Modèle Rappel Automatique
+  @@map("email_logs")
+}
   
 
 // ENUMS
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
 
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  DELIVERED
+}
 
-
-
-
-
-
-
-
-
-
-
-
-// ✅ NOUVEAUX ENUMS pour les appels
-
-
-// ✅ NOUVEAUX ENUMS pour les notifications
-
-
+enum ReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}

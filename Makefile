@@ -1,6 +1,6 @@
 # Makefile pour JobbingTrack Microservices (FullStack)
 
-.PHONY: help build up down logs clean dev test migrate test-all test-services test-auth test-integration test-load full-dev full-up full-down full-logs full-clean full-health
+.PHONY: help build up up-service up-backoffice down down-backoffice logs clean dev test migrate test-all test-services test-auth test-integration test-load full-dev full-up full-down full-logs full-clean full-health
 
 # Couleurs
 GREEN := \033[0;32m
@@ -13,7 +13,9 @@ RESET := \033[0m
 # Variables
 BACKEND_DIR = backend
 COMPOSE_FILE = backend/docker-compose.yml
+FRONTEND_COMPOSE_FILE = frontend/docker-compose.frontend.yml
 SERVICES = api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service
+BACKOFFICE_SERVICES = postgres redis auth-service dashboard-service api-gateway
 
 # Aide
 help:
@@ -21,8 +23,12 @@ help:
 	@echo ""
 	@echo "  🏗️  INFRASTRUCTURE:"
 	@echo "    build              - Construire toutes les images Docker"
-	@echo "    up                 - Démarrer tous les services"
-	@echo "    down               - Arrêter tous les services"
+	@echo "    up                 - Démarrer TOUS les services (backend + infra)"
+	@echo "    full-up            - Démarrer TOUT (backend + frontend) - même que 'make up'"
+	@echo "    up-service         - Démarrer un/plusieurs services (ex: make up-service SERVICE=auth-service)"
+	@echo "    up-backoffice      - Démarrer le backoffice (auth, dashboard, api-gateway, frontend)"
+	@echo "    down               - Arrêter TOUS les services (backend + frontend)"
+	@echo "    down-backoffice    - Arrêter uniquement le backoffice"
 	@echo "    logs               - Voir les logs de TOUS les services"
 	@echo "    logs-<service>     - Logs d'un service spécifique (ex: logs-auth-service)"
 	@echo "    logs-backend       - Logs des services backend uniquement"
@@ -47,6 +53,7 @@ help:
 	@echo ""
 	@echo "  🗄️  BASE DE DONNÉES:"
 	@echo "    migrate            - Exécuter les migrations"
+	@echo "    generate-test-data - Générer des données de test réalistes"
 	@echo ""
 
 # ===== INFRASTRUCTURE =====
@@ -58,13 +65,62 @@ build:
 
 # Démarrer tous les services
 up:
-	@echo "🚀 Démarrage des microservices..."
+	@echo "🚀 Démarrage de TOUS les microservices..."
 	docker compose -f $(COMPOSE_FILE) up -d
+	@echo "$(BLUE)🌐 Démarrage du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml up -d
+	@echo "$(GREEN)✅ Tous les services sont démarrés !$(NC)"
+	@echo "$(BLUE)📍 Accès:$(NC)"
+	@echo "   - Frontend:    http://localhost:8080"
+	@echo "   - API Gateway: http://localhost:3000"
+
+# Démarrer TOUT (backend + frontend) - même que 'make up'
+full-up: up
+
+# Démarrer un ou plusieurs services spécifiques
+# Usage: make up-service SERVICE=auth-service
+# Usage: make up-service SERVICE="auth-service api-gateway"
+up-service:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Erreur: Veuillez spécifier SERVICE$(NC)"; \
+		echo "$(YELLOW)💡 Exemple: make up-service SERVICE=auth-service$(NC)"; \
+		echo "$(YELLOW)💡 Exemple: make up-service SERVICE=\"auth-service api-gateway\"$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)🚀 Démarrage du/des service(s): $(SERVICE)$(NC)"
+	@docker compose -f $(COMPOSE_FILE) up -d $(SERVICE)
+	@echo "$(GREEN)✅ Service(s) $(SERVICE) démarré(s) !$(NC)"
+
+# Démarrer le backoffice (auth, dashboard backend, api-gateway + frontend)
+up-backoffice:
+	@echo "$(BLUE)🎯 Démarrage du backoffice (auth, dashboard, api-gateway, frontend)...$(NC)"
+	@echo "$(YELLOW)📦 Démarrage des services backend...$(NC)"
+	@docker compose -f $(COMPOSE_FILE) up -d $(BACKOFFICE_SERVICES)
+	@echo "$(YELLOW)🌐 Démarrage du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml up -d
+	@echo ""
+	@echo "$(GREEN)✅ Backoffice démarré avec succès !$(NC)"
+	@echo "$(BLUE)📍 Accès:$(NC)"
+	@echo "   - Frontend:    http://localhost:8080"
+	@echo "   - API Gateway: http://localhost:3000"
+	@echo "   - Auth:        http://localhost:3001"
+	@echo "   - Dashboard:   http://localhost:3007"
 
 # Arrêter tous les services
 down:
-	@echo "🛑 Arrêt des microservices..."
+	@echo "🛑 Arrêt de TOUS les microservices..."
 	docker compose -f $(COMPOSE_FILE) down
+	@echo "$(BLUE)🛑 Arrêt du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml down 2>/dev/null || true
+	@echo "$(GREEN)✅ Tous les services sont arrêtés !$(NC)"
+
+# Arrêter uniquement le backoffice
+down-backoffice:
+	@echo "$(BLUE)🛑 Arrêt du backoffice...$(NC)"
+	@docker compose -f $(COMPOSE_FILE) stop $(BACKOFFICE_SERVICES)
+	@echo "$(BLUE)🛑 Arrêt du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml down 2>/dev/null || true
+	@echo "$(GREEN)✅ Backoffice arrêté !$(NC)"
 
 # Voir les logs
 logs:
@@ -83,9 +139,12 @@ status:
 
 # Nettoyer
 clean:
-	@echo "🧹 Nettoyage des conteneurs et volumes..."
-	docker compose -f $(COMPOSE_FILE) down -v
+	@echo "🧹 Nettoyage des conteneurs, volumes et images du projet..."
+	docker compose -f $(COMPOSE_FILE) down -v --remove-orphans
 	docker system prune -f
+	@echo "🗑️ Suppression des images Docker du projet JobbingTrack..."
+	docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | grep -E "(jobbingtrack|backend-|frontend-)" | awk 'NR>1 {print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
+	@echo "$(GREEN)✅ Nettoyage du projet terminé ! (Images de base préservées)$(NC)"
 
 # ===== TESTS AUTOMATISÉS (DOSSIER tests/) =====
 
@@ -99,6 +158,11 @@ test-automated:
 		echo "$(YELLOW)💡 Créez le dossier tests/ avec les scripts automatisés$(NC)"; \
 		exit 1; \
 	fi
+
+# Génération de données de test
+generate-test-data:
+	@echo "$(BLUE)🎲 Génération de données de test...$(NC)"
+	@AUTO_GENERATE=true ./backend/generate-test-data.sh standard
 
 # Tests workflow utilisateur complet
 test-workflow:

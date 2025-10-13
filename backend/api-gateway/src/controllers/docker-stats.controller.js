@@ -1,6 +1,4 @@
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+const axios = require('axios');
 
 /**
  * Mapping des noms de conteneurs Docker vers les noms de services
@@ -55,59 +53,113 @@ const SERVICE_TO_CONTAINER = Object.fromEntries(
  */
 async function getAllDockerStats(req, res) {
   try {
-    // Récupérer les stats de tous les conteneurs
-    const { stdout } = await execPromise(
-      'docker stats --no-stream --format "{{.Container}}|{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.NetIO}}|{{.BlockIO}}"'
-    );
+    // URL du service Docker stats
+    const dockerStatsUrl = process.env.DOCKER_STATS_SERVICE_URL || 'http://docker-stats-service:3015';
 
-    const lines = stdout.trim().split('\n');
-    const stats = {};
+    try {
+      // Appeler le service Docker stats pour toutes les statistiques
+      const response = await axios.get(`${dockerStatsUrl}/stats`, {
+        timeout: 5000,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
 
-    for (const line of lines) {
-      if (!line) continue;
+      if (response.data.success && response.data.stats) {
+        res.json({
+          success: true,
+          stats: response.data.stats,
+          count: response.data.count,
+          realStats: true
+        });
+      } else {
+        throw new Error('Réponse invalide du service Docker stats');
+      }
 
-      const [containerId, containerName, cpuPerc, memUsage, memPerc, netIO, blockIO] = line.split('|');
-      
-      // Trouver le nom du service correspondant
-      const serviceName = CONTAINER_MAPPING[containerName] || containerName;
+    } catch (serviceError) {
+      console.error('Erreur appel service Docker stats globales:', serviceError.message);
 
-      // Parser la mémoire (ex: "45.5MiB / 512MiB")
-      const memParts = memUsage.split(' / ');
-      const memUsed = memParts[0] || 'N/A';
-      const memLimit = memParts[1] || 'N/A';
+      // Fallback : retourner des stats simulées si le service n'est pas disponible
+      const stats = {};
+      for (const [serviceName, containerName] of Object.entries(SERVICE_TO_CONTAINER)) {
+        stats[serviceName] = {
+          containerId: 'mock123456789',
+          containerName: containerName,
+          serviceName,
+          cpu: (Math.random() * 15).toFixed(2),
+          cpuPercent: `${(Math.random() * 15).toFixed(1)}%`,
+          memoryUsed: `${(Math.random() * 50 + 20).toFixed(1)}MiB`,
+          memoryLimit: '512MiB',
+          memoryPercent: `${(Math.random() * 20 + 5).toFixed(1)}`,
+          memoryUsage: `${(Math.random() * 50 + 20).toFixed(1)}MiB / 512MiB`,
+          networkIO: `${(Math.random() * 1000 + 100).toFixed(0)}kB / ${(Math.random() * 500 + 50).toFixed(0)}kB`,
+          blockIO: `${(Math.random() * 100 + 10).toFixed(0)}kB / ${(Math.random() * 50 + 5).toFixed(0)}kB`,
+          timestamp: new Date().toISOString(),
+          simulated: true,
+          fallback: true
+        };
+      }
 
-      stats[serviceName] = {
-        containerId: containerId.substring(0, 12),
-        containerName,
-        cpu: cpuPerc.replace('%', ''),
-        cpuPercent: cpuPerc,
-        memoryUsed: memUsed,
-        memoryLimit: memLimit,
-        memoryPercent: memPerc.replace('%', ''),
-        memoryUsage: memUsage,
-        networkIO: netIO,
-        blockIO: blockIO,
-        timestamp: new Date().toISOString()
-      };
+      res.json({
+        success: true,
+        stats,
+        count: Object.keys(stats).length,
+        fallback: true,
+        message: 'Service Docker stats non disponible, données simulées'
+      });
     }
-
-    res.json({
-      success: true,
-      stats,
-      count: Object.keys(stats).length
-    });
 
   } catch (error) {
     console.error('Erreur récupération stats Docker:', error);
-    
-    // Si Docker n'est pas accessible, retourner des stats simulées
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message,
-      stats: {},
-      fallback: true,
-      message: 'Docker stats non disponibles - utilisez docker avec les permissions appropriées'
+      message: 'Impossible de récupérer les statistiques'
     });
+  }
+}
+
+/**
+ * Lit les statistiques CPU et mémoire depuis les cgroups
+ */
+async function readCgroupStats(containerId) {
+  try {
+    // Construire les chemins vers les fichiers cgroups
+    const cpuPath = `/sys/fs/cgroup/cpu/docker/${containerId}/cpuacct.stat`;
+    const memoryPath = `/sys/fs/cgroup/memory/docker/${containerId}/memory.stat`;
+
+    // Lire les statistiques CPU
+    const cpuStats = await fs.readFile(cpuPath, 'utf8');
+    const cpuUser = cpuStats.match(/user (\d+)/)?.[1] || '0';
+    const cpuSystem = cpuStats.match(/system (\d+)/)?.[1] || '0';
+
+    // Lire les statistiques mémoire
+    const memoryStats = await fs.readFile(memoryPath, 'utf8');
+    const cache = memoryStats.match(/cache (\d+)/)?.[1] || '0';
+    const rss = memoryStats.match(/rss (\d+)/)?.[1] || '0';
+    const totalRss = (parseInt(rss) + parseInt(cache)).toString();
+
+    // Obtenir les limites mémoire
+    const memoryLimitPath = `/sys/fs/cgroup/memory/docker/${containerId}/memory.limit_in_bytes`;
+    const memoryLimit = await fs.readFile(memoryLimitPath, 'utf8');
+
+    const memUsedBytes = parseInt(totalRss);
+    const memLimitBytes = parseInt(memoryLimit.trim());
+    const memUsagePercent = ((memUsedBytes / memLimitBytes) * 100).toFixed(1);
+
+    // Calculer l'utilisation CPU (approximation basée sur les ticks)
+    const totalCpuTicks = parseInt(cpuUser) + parseInt(cpuSystem);
+    // Note: Ceci est une approximation. Pour des stats CPU précises en temps réel,
+    // il faudrait calculer la différence sur une période
+
+    return {
+      cpuTicks: totalCpuTicks,
+      memoryUsedBytes: memUsedBytes,
+      memoryLimitBytes: memLimitBytes,
+      memoryUsagePercent: memUsagePercent
+    };
+  } catch (error) {
+    throw new Error(`Impossible de lire les statistiques cgroup pour ${containerId}: ${error.message}`);
   }
 }
 
@@ -118,45 +170,66 @@ async function getDockerStatsByService(req, res) {
   try {
     const { serviceName } = req.params;
 
-    // Trouver le nom du conteneur correspondant
-    const containerName = SERVICE_TO_CONTAINER[serviceName];
-
-    if (!containerName) {
+    // Vérifier que le service existe
+    if (!SERVICE_TO_CONTAINER[serviceName]) {
       return res.status(404).json({
         success: false,
         error: 'Service non trouvé'
       });
     }
 
-    // Récupérer les stats du conteneur spécifique
-    const { stdout } = await execPromise(
-      `docker stats ${containerName} --no-stream --format "{{.Container}}|{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}|{{.NetIO}}|{{.BlockIO}}"`
-    );
+    // URL du service Docker stats
+    const dockerStatsUrl = process.env.DOCKER_STATS_SERVICE_URL || 'http://docker-stats-service:3015';
 
-    const [containerId, name, cpuPerc, memUsage, memPerc, netIO, blockIO] = stdout.trim().split('|');
+    try {
+      // Appeler le service Docker stats
+      const response = await axios.get(`${dockerStatsUrl}/stats/${serviceName}`, {
+        timeout: 5000,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
 
-    // Parser la mémoire
-    const memParts = memUsage.split(' / ');
-    const memUsed = memParts[0] || 'N/A';
-    const memLimit = memParts[1] || 'N/A';
-
-    res.json({
-      success: true,
-      stats: {
-        containerId: containerId.substring(0, 12),
-        containerName: name,
-        serviceName,
-        cpu: cpuPerc.replace('%', ''),
-        cpuPercent: cpuPerc,
-        memoryUsed: memUsed,
-        memoryLimit: memLimit,
-        memoryPercent: memPerc.replace('%', ''),
-        memoryUsage: memUsage,
-        networkIO: netIO,
-        blockIO: blockIO,
-        timestamp: new Date().toISOString()
+      if (response.data.success && response.data.stats) {
+        res.json({
+          success: true,
+          stats: response.data.stats,
+          realStats: true
+        });
+      } else {
+        throw new Error('Réponse invalide du service Docker stats');
       }
-    });
+
+    } catch (serviceError) {
+      console.error(`Erreur appel service Docker stats pour ${serviceName}:`, serviceError.message);
+
+      // Fallback : retourner des données simulées si le service Docker stats n'est pas disponible
+      const containerName = SERVICE_TO_CONTAINER[serviceName];
+
+      const mockStats = {
+        containerId: 'mock123456789',
+        containerName: containerName,
+        serviceName,
+        cpu: (Math.random() * 15).toFixed(2),
+        cpuPercent: `${(Math.random() * 15).toFixed(1)}%`,
+        memoryUsed: `${(Math.random() * 50 + 20).toFixed(1)}MiB`,
+        memoryLimit: '512MiB',
+        memoryPercent: `${(Math.random() * 20 + 5).toFixed(1)}`,
+        memoryUsage: `${(Math.random() * 50 + 20).toFixed(1)}MiB / 512MiB`,
+        networkIO: `${(Math.random() * 1000 + 100).toFixed(0)}kB / ${(Math.random() * 500 + 50).toFixed(0)}kB`,
+        blockIO: `${(Math.random() * 100 + 10).toFixed(0)}kB / ${(Math.random() * 50 + 5).toFixed(0)}kB`,
+        timestamp: new Date().toISOString(),
+        simulated: true,
+        fallback: true,
+        message: 'Service Docker stats non disponible, données simulées'
+      };
+
+      res.json({
+        success: true,
+        stats: mockStats,
+        fallback: true
+      });
+    }
 
   } catch (error) {
     console.error('Erreur récupération stats Docker:', error);

@@ -31,7 +31,7 @@ interface LogEntry {
   message: string
 }
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 const SERVICE_CONFIGS: Record<string, { name: string; port: number; url: string; description: string }> = {
   'api-gateway': { name: 'API Gateway', port: 8080, url: `${API_GATEWAY_URL}/health`, description: 'Point d\'entrée unique pour toutes les requêtes' },

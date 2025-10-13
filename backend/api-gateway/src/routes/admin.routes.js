@@ -51,6 +51,7 @@ router.get('/docker/stats/:serviceName', authenticate, dockerStatsController.get
 router.get('/docker/stats/:serviceName/history', authenticate, dockerStatsController.getDockerStatsHistory);
 router.get('/docker/info/:serviceName', authenticate, dockerStatsController.getContainerInfo);
 
+
 // Routes des logs (admin uniquement)
 router.get('/logs/services', authenticate, logsController.getAvailableServices);
 router.get('/logs/all', authenticate, logsController.getAllLogs);

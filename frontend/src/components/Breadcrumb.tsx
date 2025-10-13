@@ -52,7 +52,7 @@ export default function Breadcrumb({ items = [], className = '' }: BreadcrumbPro
           'archives': 'Archives',
           'trash': 'Corbeille',
           'users': 'Utilisateurs',
-          'services': 'Services & Tests',
+          'services': 'Services',
           'data-management': 'Gestion Données',
           'settings': 'Configuration',
           'api-tester': 'Testeur API',
