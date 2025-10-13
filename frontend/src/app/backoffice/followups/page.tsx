@@ -97,9 +97,9 @@ export default function FollowUpsPage() {
     <AdminLayout>
       <div>
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               📧 Gestion des Relances
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
@@ -108,14 +108,14 @@ export default function FollowUpsPage() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary px-4 py-2 rounded-lg flex items-center"
+            className="btn-primary px-4 py-2 rounded-lg flex items-center whitespace-nowrap"
           >
             ➕ Nouvelle relance
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard
             title="Total"
             value={followups.length}
@@ -147,43 +147,168 @@ export default function FollowUpsPage() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex space-x-4">
+        <div className="mb-6 flex flex-wrap gap-2">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Toutes ({followups.length})
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'pending' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'pending' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             En attente ({followups.filter(f => !f.completed).length})
           </button>
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'completed' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'completed' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Complétées ({followups.filter(f => f.completed).length})
           </button>
         </div>
 
-        {/* FollowUps List */}
-        <div className="space-y-4">
-          {filteredFollowups.map((followup) => (
-            <FollowUpCard
-              key={followup.id}
-              followup={followup}
-              onMarkAsCompleted={() => handleMarkAsCompleted(followup.id)}
-              onDelete={() => handleDeleteFollowup(followup.id)}
-            />
-          ))}
+        {/* FollowUps Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Plateforme
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Sujet
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Statut
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Date prévue
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Date d'envoi
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredFollowups.map((followup) => (
+                  <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4">
+                      <FollowUpPlatformBadge platform={followup.platform} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {followup.subject}
+                      </div>
+                      {followup.message && (
+                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-xs">
+                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...' : ''}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <FollowUpStatusBadge status={followup.status} completed={followup.completed} />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {new Date(followup.scheduledDate).toLocaleString('fr-FR')}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {followup.sentAt ? new Date(followup.sentAt).toLocaleString('fr-FR') : '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                      {!followup.completed ? (
+                        <button
+                          onClick={() => handleMarkAsCompleted(followup.id)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 mr-4"
+                        >
+                          ✓ Terminer
+                        </button>
+                      ) : (
+                        <span className="text-green-600 dark:text-green-400 mr-4">✓</span>
+                      )}
+                      <button
+                        onClick={() => handleDeleteFollowup(followup.id)}
+                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredFollowups.map((followup) => (
+              <div key={followup.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="h-10 w-10 rounded-lg bg-yellow-500 dark:bg-yellow-600 flex items-center justify-center text-white text-lg">
+                      📧
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <FollowUpPlatformBadge platform={followup.platform} />
+                        <FollowUpStatusBadge status={followup.status} completed={followup.completed} />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+                        {followup.subject}
+                      </h3>
+                      {followup.message && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...' : ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  <p>📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR')}</p>
+                  {followup.sentAt && (
+                    <p>📤 Envoyée : {new Date(followup.sentAt).toLocaleString('fr-FR')}</p>
+                  )}
+                  {followup.response && (
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-900 dark:text-green-100">
+                      💬 Réponse : {followup.response}
+                    </div>
+                  )}
+                </div>
+
+                <div className="ml-13 flex gap-2">
+                  {!followup.completed ? (
+                    <button
+                      onClick={() => handleMarkAsCompleted(followup.id)}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    >
+                      ✓ Terminer
+                    </button>
+                  ) : (
+                    <div className="flex-1 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-lg text-center text-sm">
+                      ✓ Complétée
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleDeleteFollowup(followup.id)}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {filteredFollowups.length === 0 && (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-              <p className="text-gray-500 dark:text-gray-400">
-                📧 Aucune relance trouvée
-              </p>
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              📧 Aucune relance trouvée
             </div>
           )}
         </div>
@@ -192,88 +317,6 @@ export default function FollowUpsPage() {
   )
 }
 
-function FollowUpCard({ followup, onMarkAsCompleted, onDelete }: {
-  followup: FollowUp
-  onMarkAsCompleted: () => void
-  onDelete: () => void
-}) {
-  const platformIcons: Record<string, string> = {
-    EMAIL: '📧',
-    LINKEDIN: '💼',
-    PHONE: '📞',
-    SMS: '💬',
-    IN_PERSON: '🤝',
-  }
-
-  const isPending = !followup.completed
-  const isPast = new Date(followup.scheduledDate) < new Date()
-
-  return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 ${
-      isPending && isPast ? 'border-red-600 dark:border-red-500' : isPending ? 'border-yellow-600 dark:border-yellow-500' : 'border-green-600 dark:border-green-500'
-    }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-3 flex-1">
-          <div className="text-3xl">
-            {platformIcons[followup.platform] || '📧'}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {followup.subject}
-              </h3>
-              <FollowUpStatusBadge status={followup.status} completed={followup.completed} />
-            </div>
-            {followup.message && (
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-400">
-                {followup.message.substring(0, 150)}{followup.message.length > 150 ? '...' : ''}
-              </p>
-            )}
-            <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-              <span>
-                📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR')}
-              </span>
-              {followup.sentAt && (
-                <span>
-                  📤 Envoyée : {new Date(followup.sentAt).toLocaleString('fr-FR')}
-                </span>
-              )}
-              {followup.completedAt && (
-                <span className="text-green-600 dark:text-green-400">
-                  ✅ Complétée : {new Date(followup.completedAt).toLocaleString('fr-FR')}
-                </span>
-              )}
-            </div>
-            {followup.response && (
-              <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-                <p className="text-sm text-green-900 dark:text-green-100">
-                  <strong>💬 Réponse :</strong> {followup.response}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col space-y-2">
-          {isPending && (
-            <button
-              onClick={onMarkAsCompleted}
-              className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 font-medium whitespace-nowrap"
-            >
-              ✓ Marquer complétée
-            </button>
-          )}
-          <button
-            onClick={onDelete}
-            className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
-          >
-            🗑️ Supprimer
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function FollowUpStatusBadge({ status, completed }: { status: string, completed: boolean }) {
   if (completed) {
@@ -297,6 +340,30 @@ function FollowUpStatusBadge({ status, completed }: { status: string, completed:
   return (
     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
       {status}
+    </span>
+  )
+}
+
+function FollowUpPlatformBadge({ platform }: { platform: string }) {
+  const platformIcons: Record<string, string> = {
+    EMAIL: '📧',
+    LINKEDIN: '💼',
+    PHONE: '📞',
+    SMS: '💬',
+    IN_PERSON: '🤝',
+  }
+
+  const platformLabels: Record<string, string> = {
+    EMAIL: 'Email',
+    LINKEDIN: 'LinkedIn',
+    PHONE: 'Téléphone',
+    SMS: 'SMS',
+    IN_PERSON: 'Présentiel',
+  }
+
+  return (
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+      {platformIcons[platform] || '📧'} {platformLabels[platform] || platform}
     </span>
   )
 }

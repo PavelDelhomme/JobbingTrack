@@ -406,26 +406,42 @@ export default function AnalyticsPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 md:gap-4">
                 {[
-                  { name: 'API Gateway', status: 'online', responseTime: 45 },
-                  { name: 'Auth Service', status: 'online', responseTime: 89 },
-                  { name: 'Application Service', status: 'online', responseTime: 156 },
-                  { name: 'Company Service', status: 'online', responseTime: 102 },
-                  { name: 'Contact Service', status: 'online', responseTime: 98 },
-                  { name: 'Interview Service', status: 'online', responseTime: 134 },
+                  { name: 'API Gateway', slug: 'api-gateway', status: 'online', responseTime: 45 },
+                  { name: 'Auth Service', slug: 'auth', status: 'online', responseTime: 89 },
+                  { name: 'Application Service', slug: 'applications', status: 'online', responseTime: 156 },
+                  { name: 'Company Service', slug: 'companies', status: 'online', responseTime: 102 },
+                  { name: 'Contact Service', slug: 'contacts', status: 'online', responseTime: 98 },
+                  { name: 'Interview Service', slug: 'interviews', status: 'online', responseTime: 134 },
+                  { name: 'Notification Service', slug: 'notifications', status: 'online', responseTime: 112 },
+                  { name: 'Dashboard Service', slug: 'dashboard', status: 'online', responseTime: 145 },
+                  { name: 'Call Service', slug: 'calls', status: 'online', responseTime: 98 },
+                  { name: 'Profile Service', slug: 'profile', status: 'online', responseTime: 134 },
+                  { name: 'Event Service', slug: 'events', status: 'online', responseTime: 167 },
+                  { name: 'FollowUp Service', slug: 'followups', status: 'online', responseTime: 123 },
+                  { name: 'Frontend', slug: 'frontend', status: 'online', responseTime: 89 },
                 ].map((service, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 sm:p-3 md:p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <button
+                    key={index}
+                    onClick={() => router.push(`/backoffice/services/${service.slug}`)}
+                    className="flex items-center justify-between p-2 sm:p-3 md:p-4 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                  >
                     <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                       <span className="text-xl sm:text-2xl flex-shrink-0">
                         {service.status === 'online' ? '✅' : '❌'}
                       </span>
-                      <span className="text-xs sm:text-sm md:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+                      <span className="text-xs sm:text-sm md:text-base font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {service.name}
                       </span>
                     </div>
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0 ml-2">
-                      {service.responseTime}ms
-                    </span>
-                  </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
+                        {service.responseTime}ms
+                      </span>
+                      <span className="text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        →
+                      </span>
+                    </div>
+                  </button>
                 ))}
               </div>
             </div>

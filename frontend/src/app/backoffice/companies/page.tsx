@@ -114,22 +114,187 @@ export default function CompaniesPage() {
           />
         </div>
 
-        {/* Companies Grid */}
-        {filteredCompanies.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            Aucune entreprise trouvée
+        {/* Companies Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Entreprise
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Secteur
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Localisation
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Taille
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Statistiques
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredCompanies.map((company) => (
+                  <tr
+                    key={company.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                    onClick={(e) => {
+                      // Ne pas déclencher si on clique sur les boutons d'action
+                      if ((e.target as HTMLElement).closest('button')) return
+                      window.location.href = `/backoffice/companies/${company.id}`
+                    }}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-lg">
+                          🏢
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {company.name}
+                          </div>
+                          {company.website && (
+                            <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">
+                              {company.website}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {company.industry || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {company.location || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {company.size || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      {company._count && (
+                        <div className="flex space-x-3">
+                          <span>📝 {company._count.applications} candidatures</span>
+                          <span>👤 {company._count.contacts} contacts</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.location.href = `/backoffice/companies/${company.id}?edit=true`
+                        }}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 mr-4"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteCompany(company.id)
+                        }}
+                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {filteredCompanies.map((company) => (
-              <CompanyCard
+              <div
                 key={company.id}
-                company={company}
-                onDelete={() => handleDeleteCompany(company.id)}
-              />
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                onClick={() => window.location.href = `/backoffice/companies/${company.id}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center flex-1">
+                    <div className="h-10 w-10 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-lg mr-3">
+                      🏢
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{company.name}</h3>
+                      {company.industry && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{company.industry}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {company.location && (
+                    <p>📍 {company.location}</p>
+                  )}
+                  {company.size && (
+                    <p>👥 {company.size} employés</p>
+                  )}
+                  {company.website && (
+                    <a
+                      href={company.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block truncate"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      🔗 {company.website}
+                    </a>
+                  )}
+                </div>
+
+                {company._count && (
+                  <div className="ml-13 flex space-x-4 mb-3 text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      📝 {company._count.applications} candidatures
+                    </span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      👤 {company._count.contacts} contacts
+                    </span>
+                  </div>
+                )}
+
+                <div className="ml-13 flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      window.location.href = `/backoffice/companies/${company.id}?edit=true`
+                    }}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteCompany(company.id)
+                    }}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
-        )}
+
+          {filteredCompanies.length === 0 && (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              Aucune entreprise trouvée
+            </div>
+          )}
+        </div>
 
         {/* Create Company Modal */}
         {showCreateModal && (
@@ -146,84 +311,6 @@ export default function CompaniesPage() {
   )
 }
 
-function CompanyCard({ company, onDelete }: {
-  company: Company
-  onDelete: () => void
-}) {
-  return (
-    <Link href={`/backoffice/companies/${company.id}`}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all p-6 cursor-pointer hover:scale-[1.02]">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-              {company.name}
-            </h3>
-            {company.industry && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{company.industry}</p>
-            )}
-          </div>
-          <div className="h-12 w-12 rounded-lg bg-blue-500 dark:bg-blue-600 flex items-center justify-center text-white text-2xl">
-            🏢
-          </div>
-        </div>
-
-        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {company.location && (
-            <p>📍 {company.location}</p>
-          )}
-          {company.size && (
-            <p>👥 {company.size} employés</p>
-          )}
-          {company.website && (
-            <a
-              href={company.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block truncate"
-              onClick={(e) => e.stopPropagation()}
-            >
-              🔗 {company.website}
-            </a>
-          )}
-        </div>
-
-        {company._count && (
-          <div className="flex space-x-4 mb-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">
-              📝 {company._count.applications} candidatures
-            </span>
-            <span className="text-gray-600 dark:text-gray-400">
-              👤 {company._count.contacts} contacts
-            </span>
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              window.location.href = `/backoffice/companies/${company.id}?edit=true`
-            }}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
-          >
-            ✏️ Modifier
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onDelete()
-            }}
-            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium"
-          >
-            🗑️ Supprimer
-          </button>
-        </div>
-      </div>
-    </Link>
-  )
-}
 
 function CreateCompanyModal({ onClose, onSuccess }: {
   onClose: () => void

@@ -32,6 +32,25 @@ const SERVICE_MAP = {
 };
 
 /**
+ * Mapping des slugs de services vers les vrais noms de services pour les logs
+ */
+const SERVICE_SLUG_TO_NAME = {
+  'api-gateway': 'api-gateway',
+  'auth': 'auth-service',
+  'applications': 'application-service',
+  'companies': 'company-service',
+  'contacts': 'contact-service',
+  'interviews': 'interview-service',
+  'notifications': 'notification-service',
+  'dashboard': 'dashboard-service',
+  'calls': 'call-service',
+  'profile': 'profile-service',
+  'events': 'event-service',
+  'followups': 'followup-service',
+  'frontend': 'frontend',
+};
+
+/**
  * Récupérer les logs d'un service
  */
 const getServiceLogs = async (req, res) => {
@@ -54,8 +73,8 @@ const getServiceLogs = async (req, res) => {
       });
     }
 
-    // Mapper le nom du service
-    const dockerServiceName = SERVICE_MAP[serviceName] || serviceName;
+    // Mapper le nom du service (utiliser le mapping slug -> nom complet)
+    const dockerServiceName = SERVICE_SLUG_TO_NAME[serviceName] || SERVICE_MAP[serviceName] || serviceName;
     const containerName = `jobbingtrack-${dockerServiceName}`;
 
     logger.info(`📋 Admin ${req.user.email} consulte les logs de: ${dockerServiceName}`);
@@ -183,8 +202,8 @@ const streamServiceLogs = async (req, res) => {
       });
     }
 
-    // Mapper le nom du service
-    const dockerServiceName = SERVICE_MAP[serviceName] || serviceName;
+    // Mapper le nom du service (utiliser le mapping slug -> nom complet)
+    const dockerServiceName = SERVICE_SLUG_TO_NAME[serviceName] || SERVICE_MAP[serviceName] || serviceName;
     const containerName = `jobbingtrack-${dockerServiceName}`;
 
     logger.info(`📋 Admin ${req.user.email} stream les logs de: ${dockerServiceName}`);
