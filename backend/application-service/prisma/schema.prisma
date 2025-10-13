@@ -7,10 +7,103 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle de base pour éviter les erreurs
-model HealthCheck {
+// Modèle Application pour le service des candidatures
+model Application {
+  id              String   @id @default(cuid())
+  userId          String
+  companyId       String
+  position        String
+  description     String?
+  location        String?
+  type            JobType  @default(FULL_TIME)
+  salary          String?
+  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime @default(now())
+  jobUrl          String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  archivedAt      DateTime?
+  archivedBy      String?
+  archivedReason  String?
+  isArchived      Boolean  @default(false)
+  platformId      String?
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id])
+  platform Platform? @relation(fields: [platformId], references: [id])
+
+  @@map("applications")
+}
+
+// Modèle Company pour les entreprises
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  website     String?
+  industry    String?
+  size        CompanySize?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  applications Application[]
+
+  @@map("companies")
+}
+
+// Modèle Platform pour les plateformes de recrutement
+model Platform {
   id        String   @id @default(cuid())
-  service   String
-  status    String
-  timestamp DateTime @default(now())
+  name      String   @unique
+  url       String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  applications Application[]
+
+  @@map("platforms")
+}
+
+// Modèle User (simplifié pour ce service)
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+
+  // Relations
+  applications Application[]
+
+  @@map("users")
+}
+
+// Enums
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum ApplicationStatus {
+  CANDIDATE_PENDING
+  NO_RESPONSE
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP
+  FIRST_INTERVIEW_PENDING
+  OTHER_INTERVIEW_PENDING
+  ACCEPTED_AFTER_INTERVIEW
+  REJECTED_WITHOUT_INTERVIEW
+  REJECTED_AFTER_INTERVIEW
+}
+
+enum CompanySize {
+  STARTUP
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
 }

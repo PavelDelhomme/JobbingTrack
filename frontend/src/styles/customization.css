@@ -1,0 +1,332 @@
+/* Styles de personnalisation pour JobbingTrack */
+
+/* Variables CSS personnalisées pour les couleurs */
+:root {
+  --primary-color: #3B82F6;
+  --accent-color: #10B981;
+  --animation-duration: 150ms;
+}
+
+/* Thème haute contraste */
+.high-contrast {
+  --primary-color: #0000FF;
+  --accent-color: #FF0000;
+}
+
+.high-contrast * {
+  border-color: #000 !important;
+  color: #000 !important;
+  background: #fff !important;
+}
+
+.high-contrast .bg-gray-50 {
+  background: #fff !important;
+}
+
+.high-contrast .text-gray-600 {
+  color: #000 !important;
+}
+
+/* Texte agrandi */
+.large-text {
+  font-size: 120% !important;
+}
+
+.large-text h1 {
+  font-size: 2.5rem !important;
+}
+
+.large-text h2 {
+  font-size: 2rem !important;
+}
+
+.large-text h3 {
+  font-size: 1.5rem !important;
+}
+
+.large-text .text-sm {
+  font-size: 1rem !important;
+}
+
+.large-text .text-xs {
+  font-size: 0.875rem !important;
+}
+
+/* Réduction des animations */
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Animations activées */
+.animations-enabled {
+  /* Animations par défaut activées */
+}
+
+/* Mode compact */
+.compact-mode {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.25rem;
+}
+
+.compact-mode .p-4 {
+  padding: var(--spacing-sm) !important;
+}
+
+.compact-mode .p-6 {
+  padding: var(--spacing-md) !important;
+}
+
+.compact-mode .p-8 {
+  padding: var(--spacing-lg) !important;
+}
+
+.compact-mode .m-4 {
+  margin: var(--spacing-sm) !important;
+}
+
+.compact-mode .m-6 {
+  margin: var(--spacing-md) !important;
+}
+
+.compact-mode .gap-4 {
+  gap: var(--spacing-sm) !important;
+}
+
+.compact-mode .gap-6 {
+  gap: var(--spacing-md) !important;
+}
+
+/* Indicateurs de focus améliorés */
+.focus-indicators *:focus {
+  outline: 3px solid var(--accent-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* Position des notifications */
+.notifications-top-right {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+}
+
+.notifications-top-left {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+}
+
+.notifications-bottom-right {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+}
+
+.notifications-bottom-left {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 9999;
+}
+
+/* Styles pour les couleurs personnalisées */
+.custom-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.custom-primary-text {
+  color: var(--primary-color) !important;
+}
+
+.custom-accent {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+}
+
+.custom-accent-text {
+  color: var(--accent-color) !important;
+}
+
+/* Animations personnalisées */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Classes d'animation conditionnelles */
+.animate-slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Responsive design pour les paramètres personnalisés */
+@media (max-width: 768px) {
+  .compact-mode {
+    --spacing-xs: 0.125rem;
+    --spacing-sm: 0.25rem;
+    --spacing-md: 0.5rem;
+    --spacing-lg: 0.75rem;
+  }
+
+  .large-text {
+    font-size: 110% !important;
+  }
+}
+
+/* Styles pour les états de chargement personnalisés */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Styles pour les tooltips personnalisés */
+.tooltip-custom {
+  position: relative;
+}
+
+.tooltip-custom:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.2s ease-in forwards;
+}
+
+/* Styles pour les badges personnalisés */
+.badge-custom {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.badge-custom-accent {
+  background-color: var(--accent-color);
+}
+
+/* Styles pour les cartes personnalisées */
+.card-custom {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  transition: all var(--animation-duration);
+}
+
+.card-custom:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Styles pour les boutons personnalisés */
+.btn-custom {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--animation-duration);
+}
+
+.btn-custom:hover {
+  background-color: var(--primary-color);
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-custom-accent {
+  background-color: var(--accent-color);
+}
+
+.btn-custom-outline {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-custom-outline:hover {
+  background-color: var(--primary-color);
+  color: white;
+}

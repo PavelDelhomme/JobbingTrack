@@ -12,10 +12,11 @@ RESET := \033[0m
 
 # Variables
 BACKEND_DIR = backend
-COMPOSE_FILE = backend/docker-compose.yml
+COMPOSE_FILE = docker-compose.yml
 FRONTEND_COMPOSE_FILE = frontend/docker-compose.frontend.yml
 SERVICES = api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service
 BACKOFFICE_SERVICES = postgres redis auth-service dashboard-service api-gateway
+FULL_SERVICES = postgres redis auth-service application-service company-service contact-service interview-service notification-service dashboard-service api-gateway
 
 # Aide
 help:
@@ -62,11 +63,13 @@ help:
 build:
 	@echo "🔨 Construction des images Docker..."
 	docker compose -f $(COMPOSE_FILE) build
+	@echo "$(BLUE)🔨 Construction du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml build
 
 # Démarrer tous les services
 up:
 	@echo "🚀 Démarrage de TOUS les microservices..."
-	docker compose -f $(COMPOSE_FILE) up -d
+	docker compose -f $(COMPOSE_FILE) up -d $(FULL_SERVICES)
 	@echo "$(BLUE)🌐 Démarrage du frontend...$(NC)"
 	@cd frontend && docker compose -f docker-compose.frontend.yml up -d
 	@echo "$(GREEN)✅ Tous les services sont démarrés !$(NC)"
@@ -98,7 +101,6 @@ up-backoffice:
 	@docker compose -f $(COMPOSE_FILE) up -d $(BACKOFFICE_SERVICES)
 	@echo "$(YELLOW)🌐 Démarrage du frontend...$(NC)"
 	@cd frontend && docker compose -f docker-compose.frontend.yml up -d
-	@echo ""
 	@echo "$(GREEN)✅ Backoffice démarré avec succès !$(NC)"
 	@echo "$(BLUE)📍 Accès:$(NC)"
 	@echo "   - Frontend:    http://localhost:8080"
@@ -130,7 +132,9 @@ logs:
 # Mode développement
 dev:
 	@echo "🔧 Démarrage en mode développement..."
-	docker compose -f $(COMPOSE_FILE) up --build
+	docker compose -f $(COMPOSE_FILE) up --build $(FULL_SERVICES)
+	@echo "$(BLUE)🌐 Démarrage du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml up --build -d
 
 # Statut des services
 status:
@@ -141,6 +145,8 @@ status:
 clean:
 	@echo "🧹 Nettoyage des conteneurs, volumes et images du projet..."
 	docker compose -f $(COMPOSE_FILE) down -v --remove-orphans
+	@echo "$(BLUE)🛑 Arrêt du frontend...$(NC)"
+	@cd frontend && docker compose -f docker-compose.frontend.yml down -v 2>/dev/null || true
 	docker system prune -f
 	@echo "🗑️ Suppression des images Docker du projet JobbingTrack..."
 	docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}" | grep -E "(jobbingtrack|backend-|frontend-)" | awk 'NR>1 {print $$3}' | xargs -r docker rmi -f 2>/dev/null || true

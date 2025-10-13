@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { useTheme } from '@/lib/theme'
 import Breadcrumb from './Breadcrumb'
+import { GlobalSearch } from './GlobalSearch'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -100,6 +101,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
+        { name: 'Recherche globale', href: '/backoffice/search', icon: '🔍' },
         { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
         { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
@@ -341,7 +343,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-1">
               {/* ✅ Bouton hamburger pour mobile */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -368,6 +370,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="flex items-center space-x-2 lg:space-x-4">
+              {/* Recherche globale */}
+              <div className="hidden lg:block max-w-md flex-1">
+                <GlobalSearch className="w-full" />
+              </div>
+
               {/* Email - Caché sur mobile */}
               <span className="hidden md:inline text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
 
@@ -387,6 +394,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </span>
               </button>
             </div>
+          </div>
+
+          {/* Barre de recherche mobile */}
+          <div className="lg:hidden px-4 pb-3">
+            <GlobalSearch className="w-full" />
           </div>
         </div>
 

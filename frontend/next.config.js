@@ -22,7 +22,16 @@ const nextConfig = {
             poll: 1000,
             aggregateTimeout: 300,
         };
+        // ✅ Ignorer les erreurs de fichiers manquants pour éviter les erreurs 404
+        config.resolve.fallback = {
+            ...config.resolve.fallback,
+            fs: false,
+        };
         return config;
+    },
+    // ✅ Configuration pour éviter les erreurs de fichiers manquants
+    images: {
+        unoptimized: true,
     },
 };
 

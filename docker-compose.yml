@@ -338,6 +338,19 @@ services:
         condition: service_started
 
 
+  # Application mobile Flutter
+  flutter-mobile:
+    build:
+      context: ./flutter-mobile-app
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-flutter-mobile
+    ports:
+      - "8090:8080"  # Interface web de l'émulateur Flutter
+    environment:
+      - NODE_ENV=development
+    networks:
+      - jobbingtrack-network
+
   # Frontend
   frontend:
     build:

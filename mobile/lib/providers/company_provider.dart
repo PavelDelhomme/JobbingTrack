@@ -1,0 +1,26 @@
+import 'package:flutter/foundation.dart';
+import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
+
+class CompanyProvider with ChangeNotifier {
+  List<Company> _companies = [];
+  bool _isLoading = false;
+
+  List<Company> get companies => _companies;
+  bool get isLoading => _isLoading;
+
+  Future<void> loadCompanies() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _companies = await ApiService.getCompanies();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+}

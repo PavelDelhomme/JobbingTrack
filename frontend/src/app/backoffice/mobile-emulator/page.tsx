@@ -81,6 +81,7 @@ import axios from 'axios'
 type DeviceType = 'iphone-14' | 'iphone-14-pro-max' | 'pixel-7' | 'samsung-s23' | 'ipad'
 type OrientationType = 'portrait' | 'landscape'
 type MobileScreen = 'login' | 'home' | 'applications' | 'companies' | 'contacts' | 'interviews' | 'profile' | 'settings' | 'admin-backoffice'
+type EmulatorType = 'web' | 'flutter'
 
 interface Device {
   id: DeviceType
@@ -117,6 +118,7 @@ const DEVICES: Device[] = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export default function MobileEmulatorPage() {
+  // ✅ HOOKS - Tous les hooks doivent être déclarés en premier
   const { user: adminUser, loading: authLoading, isAuthenticated } = useAuth()
   const [selectedDevice, setSelectedDevice] = useState<Device>(DEVICES[0])
   const [orientation, setOrientation] = useState<OrientationType>('portrait')
@@ -124,7 +126,7 @@ export default function MobileEmulatorPage() {
   const [showDeviceFrame, setShowDeviceFrame] = useState(true)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [networkSpeed, setNetworkSpeed] = useState<'fast' | 'slow' | 'offline'>('fast')
-  
+
   // Mobile app state
   const [currentScreen, setCurrentScreen] = useState<MobileScreen>('login')
   const [users, setUsers] = useState<User[]>([])
@@ -137,12 +139,54 @@ export default function MobileEmulatorPage() {
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState<Array<{ time: string; type: 'info' | 'error' | 'success'; message: string }>>([])
   const [appRunning, setAppRunning] = useState(true)
-  const [hasAutoLoggedIn, setHasAutoLoggedIn] = useState(false) // ✅ Flag pour éviter les auto-login répétés
+  const [hasAutoLoggedIn, setHasAutoLoggedIn] = useState(false)
+  const [emulatorType, setEmulatorType] = useState<EmulatorType>('web')
+  const [showMonitoring, setShowMonitoring] = useState(true)
 
+  // ✅ Calculs après les hooks
   const width = orientation === 'portrait' ? selectedDevice.width : selectedDevice.height
   const height = orientation === 'portrait' ? selectedDevice.height : selectedDevice.width
 
-  // ✅ Vérification d'authentification
+  // ✅ FONCTIONS UTILES
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const time = new Date().toLocaleTimeString('fr-FR')
+    setLogs(prevLogs => [{ time, type, message }, ...prevLogs.slice(0, 49)])
+  }
+
+  // ✅ HOOKS - Tous les hooks doivent être déclarés ici
+  useEffect(() => {
+    let isMounted = true
+    const loadData = async () => {
+      if (isMounted) {
+        await loadUsers()
+      }
+    }
+    loadData()
+    return () => { isMounted = false }
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUsers()
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (selectedUser && !mobileToken && !hasAutoLoggedIn) {
+      setHasAutoLoggedIn(true)
+      loginAsUser(selectedUser.email)
+    }
+  }, [selectedUser, mobileToken, hasAutoLoggedIn])
+
+  useEffect(() => {
+    let isMounted = true
+    if (mobileToken && currentScreen !== 'login' && isMounted) {
+      loadApplications()
+    }
+    return () => { isMounted = false }
+  }, [mobileToken, currentScreen])
+
+  // ✅ Vérification d'authentification (après tous les hooks)
   if (authLoading) {
     return (
       <AdminLayout>
@@ -167,47 +211,6 @@ export default function MobileEmulatorPage() {
         </div>
       </AdminLayout>
     )
-  }
-
-  // ✅ Charger les utilisateurs disponibles UNE SEULE FOIS au montage
-  useEffect(() => {
-    let isMounted = true
-    const loadData = async () => {
-      if (isMounted) {
-        await loadUsers()
-      }
-    }
-    loadData()
-    return () => { isMounted = false }
-  }, [])
-
-  // ✅ Recharger les utilisateurs quand l'utilisateur admin change (après suppression)
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadUsers()
-    }
-  }, [isAuthenticated])
-
-  // ✅ Auto-login si déjà un utilisateur sélectionné (MAIS UNE SEULE FOIS)
-  useEffect(() => {
-    if (selectedUser && !mobileToken && !hasAutoLoggedIn) {
-      setHasAutoLoggedIn(true)
-      loginAsUser(selectedUser.email)
-    }
-  }, [selectedUser, mobileToken, hasAutoLoggedIn])
-
-  // ✅ Charger les données quand on est connecté
-  useEffect(() => {
-    let isMounted = true
-    if (mobileToken && currentScreen !== 'login' && isMounted) {
-      loadApplications()
-    }
-    return () => { isMounted = false }
-  }, [mobileToken, currentScreen])
-
-  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-    const time = new Date().toLocaleTimeString('fr-FR')
-    setLogs(prevLogs => [{ time, type, message }, ...prevLogs.slice(0, 49)]) // Garder max 50 logs
   }
 
   const loadUsers = async () => {
@@ -352,283 +355,785 @@ export default function MobileEmulatorPage() {
     <AdminLayout>
       <style jsx>{mobileEmulatorStyles}</style>
       <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-950">
-        {/* Toolbar - Responsive */}
+        {/* Toolbar - Responsive et Mobile-First */}
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-2 sm:p-4">
-          {/* Première ligne - Contrôles principaux */}
-          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-            {/* Device Selector - Compact */}
-            <div className="flex-shrink-0">
-              <select
-                value={selectedDevice.id}
-                onChange={(e) => {
-                  const device = DEVICES.find(d => d.id === e.target.value)
-                  if (device) setSelectedDevice(device)
-                }}
-                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                {DEVICES.map(device => (
-                  <option key={device.id} value={device.id}>
-                    {device.icon} {device.name.split(' ')[0]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* User Switcher - Compact */}
-            <div className="relative flex-1 min-w-0">
-              <button
-                onClick={() => setShowUserSwitcher(!showUserSwitcher)}
-                className="w-full px-2 sm:px-3 py-1 sm:py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-1 sm:gap-2"
-              >
-                <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-                  <span className="text-base sm:text-lg">👤</span>
-                  <span className="text-xs sm:text-sm font-medium truncate">
-                    {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
-                  </span>
-                </div>
-                <span className="text-xs">▼</span>
-              </button>
-
-              {showUserSwitcher && (
-                <div className="absolute top-full left-0 mt-1 sm:mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-xs sm:max-w-sm">
-                  <div className="p-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
-                      Basculer vers un utilisateur :
-                    </p>
-                    {users.map(user => (
-                      <button
-                        key={user.id}
-                        onClick={() => switchUser(user)}
-                        className={`w-full text-left px-2 py-1 sm:py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
-                          selectedUser?.id === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                            {user.firstName[0]}{user.lastName[0]}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {user.firstName} {user.lastName}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                              {user.email}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Centre de notifications mobile */}
-            <MobileNotificationCenter />
-          </div>
-
-          {/* Deuxième ligne - Contrôles secondaires compacts */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between">
-            {/* Orientation + Zoom + Cadre */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={toggleOrientation}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
-              >
-                <span className="text-base sm:text-lg">{orientation === 'portrait' ? '📱' : '🔄'}</span>
-              </button>
-
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Z:</span>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="1"
-                  step="0.05"
-                  value={scale}
-                  onChange={(e) => setScale(parseFloat(e.target.value))}
-                  className="w-12 sm:w-16"
-                />
-                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 w-6 sm:w-8 text-center">
-                  {Math.round(scale * 100)}
-                </span>
+          {/* Version Mobile - Contrôles essentiels en colonnes */}
+          <div className="block lg:hidden space-y-3">
+            {/* Première rangée - Sélection appareil et utilisateur */}
+            <div className="flex items-center gap-2">
+              {/* Emulator Type Selector - Mobile */}
+              <div className="flex-shrink-0">
+                <select
+                  value={emulatorType}
+                  onChange={(e) => {
+                    const newType = e.target.value as EmulatorType
+                    setEmulatorType(newType)
+                    addLog(`Émulateur basculé vers: ${newType === 'flutter' ? 'Flutter' : 'Web'}`, 'info')
+                  }}
+                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium"
+                >
+                  <option value="web">🌐 Web</option>
+                  <option value="flutter">🚀 Flutter</option>
+                </select>
               </div>
 
-              <button
-                onClick={() => setShowDeviceFrame(!showDeviceFrame)}
-                className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors ${
-                  showDeviceFrame
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-                title={showDeviceFrame ? 'Masquer le cadre' : 'Afficher le cadre'}
-              >
-                <span className="text-sm sm:text-base">📱</span>
-              </button>
-            </div>
-
-            {/* Mode sombre + Réseau */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors ${
-                  isDarkMode
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-                title={isDarkMode ? 'Mode clair' : 'Mode sombre'}
-              >
-                <span className="text-sm sm:text-base">{isDarkMode ? '🌙' : '☀️'}</span>
-              </button>
-
-              <select
-                value={networkSpeed}
-                onChange={(e) => setNetworkSpeed(e.target.value as any)}
-                className="px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 dark:border-gray-600 rounded text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                title="Vitesse réseau"
-              >
-                <option value="fast">📶</option>
-                <option value="slow">📶</option>
-                <option value="offline">📵</option>
-              </select>
-            </div>
-
-            {/* Contrôles de l'application */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {appRunning ? (
-                <>
-                  <button
-                    onClick={restartApp}
-                    className="px-1 sm:px-2 py-1 sm:py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
-                    title="Redémarrer l'application"
-                  >
-                    <span className="text-xs sm:text-sm">🔄</span>
-                  </button>
-                  <button
-                    onClick={stopApp}
-                    className="px-1 sm:px-2 py-1 sm:py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-                    title="Arrêter l'application"
-                  >
-                    <span className="text-xs sm:text-sm">⏹️</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={startApp}
-                  className="px-1 sm:px-2 py-1 sm:py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
-                  title="Démarrer l'application"
+              {/* Device Selector - Mobile */}
+              <div className="flex-shrink-0">
+                <select
+                  value={selectedDevice.id}
+                  onChange={(e) => {
+                    const device = DEVICES.find(d => d.id === e.target.value)
+                    if (device) setSelectedDevice(device)
+                  }}
+                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 >
-                  <span className="text-xs sm:text-sm">▶️</span>
+                  {DEVICES.map(device => (
+                    <option key={device.id} value={device.id}>
+                      {device.icon} {device.name.split(' ')[0]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* User Switcher - Mobile compact */}
+              <div className="relative flex-1 min-w-0">
+                <button
+                  onClick={() => setShowUserSwitcher(!showUserSwitcher)}
+                  className="w-full px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-1"
+                >
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-sm">👤</span>
+                    <span className="text-xs font-medium truncate">
+                      {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
+                    </span>
+                  </div>
+                  <span className="text-xs">▼</span>
                 </button>
-              )}
+
+                {showUserSwitcher && (
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-xs">
+                    <div className="p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
+                        Basculer vers un utilisateur :
+                      </p>
+                      {users.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => switchUser(user)}
+                          className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
+                            selectedUser?.id === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                              {user.firstName[0]}{user.lastName[0]}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {user.firstName} {user.lastName}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Bouton logs */}
-            <button
-              onClick={() => setShowLogs(!showLogs)}
-              className={`px-2 sm:px-3 py-1 sm:py-2 rounded transition-colors flex items-center gap-1 ${
-                showLogs
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-              title="Afficher/masquer les logs"
-            >
-              <span className="text-xs sm:text-sm">📋</span>
-              {logs.length > 0 && <span className="text-xs">({logs.length})</span>}
-            </button>
+            {/* Deuxième rangée - Contrôles de visualisation */}
+            <div className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={toggleOrientation}
+                  className="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
+                >
+                  <span className="text-sm">{orientation === 'portrait' ? '📱' : '🔄'}</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Z:</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="1"
+                    step="0.05"
+                    value={scale}
+                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                    className="w-12"
+                  />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-6 text-center">
+                    {Math.round(scale * 100)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowDeviceFrame(!showDeviceFrame)}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    showDeviceFrame
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={showDeviceFrame ? 'Masquer le cadre' : 'Afficher le cadre'}
+                >
+                  <span className="text-sm">📱</span>
+                </button>
+
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={isDarkMode ? 'Mode clair' : 'Mode sombre'}
+                >
+                  <span className="text-sm">{isDarkMode ? '🌙' : '☀️'}</span>
+                </button>
+
+                <select
+                  value={networkSpeed}
+                  onChange={(e) => setNetworkSpeed(e.target.value as any)}
+                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  title="Vitesse réseau"
+                >
+                  <option value="fast">📶</option>
+                  <option value="slow">📶</option>
+                  <option value="offline">📵</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Troisième rangée - Contrôles d'application et monitoring */}
+            <div className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-1">
+                {emulatorType === 'flutter' ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        fetch('http://localhost:8090/api/reload', { method: 'POST' })
+                          .then(() => addLog('Rechargement Flutter demandé', 'info'))
+                          .catch(err => addLog(`Erreur rechargement: ${err.message}`, 'error'));
+                      }}
+                      className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      title="Recharger Flutter"
+                    >
+                      <span className="text-xs">🔄</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        fetch('http://localhost:8090/api/hot-restart', { method: 'POST' })
+                          .then(() => addLog('Hot restart Flutter demandé', 'info'))
+                          .catch(err => addLog(`Erreur hot restart: ${err.message}`, 'error'));
+                      }}
+                      className="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                      title="Hot Restart Flutter"
+                    >
+                      <span className="text-xs">⚡</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        addLog('Ouverture Dev Menu Flutter', 'info');
+                      }}
+                      className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                      title="Menu développeur Flutter"
+                    >
+                      <span className="text-xs">⚙️</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {appRunning ? (
+                      <>
+                        <button
+                          onClick={restartApp}
+                          className="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                          title="Redémarrer l'application"
+                        >
+                          <span className="text-xs">🔄</span>
+                        </button>
+                        <button
+                          onClick={stopApp}
+                          className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                          title="Arrêter l'application"
+                        >
+                          <span className="text-xs">⏹️</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={startApp}
+                        className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                        title="Démarrer l'application"
+                      >
+                        <span className="text-xs">▶️</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowMonitoring(!showMonitoring)}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    showMonitoring
+                      ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={showMonitoring ? 'Masquer le monitoring' : 'Afficher le monitoring'}
+                >
+                  <span className="text-xs">📊</span>
+                </button>
+
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+                    showLogs
+                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title="Afficher/masquer les logs"
+                >
+                  <span className="text-xs">📋</span>
+                  {logs.length > 0 && <span className="text-xs">({logs.length})</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Version Desktop - Contrôles organisés en lignes */}
+          <div className="hidden lg:block">
+            {/* Première ligne - Contrôles principaux */}
+            <div className="flex items-center gap-3 mb-3">
+              {/* Emulator Type Selector */}
+              <div className="flex-shrink-0">
+                <select
+                  value={emulatorType}
+                  onChange={(e) => {
+                    const newType = e.target.value as EmulatorType
+                    setEmulatorType(newType)
+                    addLog(`Émulateur basculé vers: ${newType === 'flutter' ? 'Flutter' : 'Web'}`, 'info')
+                  }}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium"
+                >
+                  <option value="web">🌐 Web</option>
+                  <option value="flutter">🚀 Flutter</option>
+                </select>
+              </div>
+
+              {/* Device Selector */}
+              <div className="flex-shrink-0">
+                <select
+                  value={selectedDevice.id}
+                  onChange={(e) => {
+                    const device = DEVICES.find(d => d.id === e.target.value)
+                    if (device) setSelectedDevice(device)
+                  }}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  {DEVICES.map(device => (
+                    <option key={device.id} value={device.id}>
+                      {device.icon} {device.name.split(' ')[0]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* User Switcher */}
+              <div className="relative flex-1 min-w-0 max-w-md">
+                <button
+                  onClick={() => setShowUserSwitcher(!showUserSwitcher)}
+                  className="w-full px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg">👤</span>
+                    <span className="text-sm font-medium truncate">
+                      {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
+                    </span>
+                  </div>
+                  <span className="text-sm">▼</span>
+                </button>
+
+                {showUserSwitcher && (
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-sm">
+                    <div className="p-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
+                        Basculer vers un utilisateur :
+                      </p>
+                      {users.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => switchUser(user)}
+                          className={`w-full text-left px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
+                            selectedUser?.id === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                              {user.firstName[0]}{user.lastName[0]}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {user.firstName} {user.lastName}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Centre de notifications */}
+              <MobileNotificationCenter />
+            </div>
+
+            {/* Deuxième ligne - Contrôles de visualisation */}
+            <div className="flex items-center gap-3 justify-between">
+              {/* Orientation + Zoom + Cadre */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleOrientation}
+                  className="px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
+                >
+                  <span className="text-lg">{orientation === 'portrait' ? '📱' : '🔄'}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Zoom:</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="1"
+                    step="0.05"
+                    value={scale}
+                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                    className="w-16"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-8 text-center">
+                    {Math.round(scale * 100)}%
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setShowDeviceFrame(!showDeviceFrame)}
+                  className={`px-3 py-2 rounded transition-colors ${
+                    showDeviceFrame
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={showDeviceFrame ? 'Masquer le cadre' : 'Afficher le cadre'}
+                >
+                  <span className="text-base">📱</span>
+                </button>
+              </div>
+
+              {/* Mode sombre + Réseau */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className={`px-3 py-2 rounded transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={isDarkMode ? 'Mode clair' : 'Mode sombre'}
+                >
+                  <span className="text-base">{isDarkMode ? '🌙' : '☀️'}</span>
+                </button>
+
+                <select
+                  value={networkSpeed}
+                  onChange={(e) => setNetworkSpeed(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  title="Vitesse réseau"
+                >
+                  <option value="fast">📶 Rapide</option>
+                  <option value="slow">📶 Lent</option>
+                  <option value="offline">📵 Hors ligne</option>
+                </select>
+              </div>
+
+              {/* Contrôles de l'application */}
+              <div className="flex items-center gap-2">
+                {emulatorType === 'flutter' ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        fetch('http://localhost:8090/api/reload', { method: 'POST' })
+                          .then(() => addLog('Rechargement Flutter demandé', 'info'))
+                          .catch(err => addLog(`Erreur rechargement: ${err.message}`, 'error'));
+                      }}
+                      className="px-2 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      title="Recharger Flutter"
+                    >
+                      <span className="text-sm">🔄</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        fetch('http://localhost:8090/api/hot-restart', { method: 'POST' })
+                          .then(() => addLog('Hot restart Flutter demandé', 'info'))
+                          .catch(err => addLog(`Erreur hot restart: ${err.message}`, 'error'));
+                      }}
+                      className="px-2 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                      title="Hot Restart Flutter"
+                    >
+                      <span className="text-sm">⚡</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        addLog('Ouverture Dev Menu Flutter', 'info');
+                      }}
+                      className="px-2 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                      title="Menu développeur Flutter"
+                    >
+                      <span className="text-sm">⚙️</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {appRunning ? (
+                      <>
+                        <button
+                          onClick={restartApp}
+                          className="px-2 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                          title="Redémarrer l'application"
+                        >
+                          <span className="text-sm">🔄</span>
+                        </button>
+                        <button
+                          onClick={stopApp}
+                          className="px-2 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                          title="Arrêter l'application"
+                        >
+                          <span className="text-sm">⏹️</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={startApp}
+                        className="px-2 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                        title="Démarrer l'application"
+                      >
+                        <span className="text-sm">▶️</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Boutons monitoring et logs */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowMonitoring(!showMonitoring)}
+                  className={`px-3 py-2 rounded transition-colors ${
+                    showMonitoring
+                      ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={showMonitoring ? 'Masquer le monitoring' : 'Afficher le monitoring'}
+                >
+                  <span className="text-sm">📊</span>
+                </button>
+
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className={`px-3 py-2 rounded transition-colors flex items-center gap-1 ${
+                    showLogs
+                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title="Afficher/masquer les logs"
+                >
+                  <span className="text-sm">📋</span>
+                  {logs.length > 0 && <span className="text-xs">({logs.length})</span>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Section Monitoring - Mobile First */}
-        <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-3 sm:p-6">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
-              <span className="text-2xl">📊</span>
-              Monitoring en temps réel
-            </h2>
+        {/* Layout principal avec émulateur et monitoring côte à côte */}
+        <div className="flex-1 flex flex-col lg:flex-row">
+          {/* Emulator Area */}
+          <div className="flex-1 p-3 sm:p-8 overflow-auto">
+            <div className="flex justify-center items-start min-h-full">
+              <div
+                style={{
+                  width: showDeviceFrame ? width + 40 : width,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top center',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {/* Device Frame */}
+                <div className={`relative ${showDeviceFrame ? (isDarkMode ? 'bg-gray-900' : 'bg-gray-800') : ''} ${showDeviceFrame ? 'rounded-[3rem] p-3 shadow-2xl' : ''}`}>
+                  {showDeviceFrame && (
+                    <>
+                      {/* Notch (pour iOS) */}
+                      {selectedDevice.os === 'iOS' && orientation === 'portrait' && (
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-3xl z-10"></div>
+                      )}
+                      {/* Power Button */}
+                      <div className={`absolute ${orientation === 'portrait' ? 'right-0 top-32' : 'top-0 right-32'} w-1 h-16 bg-gray-700 rounded-l`}></div>
+                      {/* Volume Buttons */}
+                      <div className={`absolute ${orientation === 'portrait' ? 'left-0 top-24' : 'top-0 left-24'} w-1 h-12 bg-gray-700 rounded-r`}></div>
+                      <div className={`absolute ${orientation === 'portrait' ? 'left-0 top-40' : 'top-0 left-40'} w-1 h-12 bg-gray-700 rounded-r`}></div>
+                    </>
+                  )}
 
-            {/* Métriques principales */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">12</div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Services actifs</div>
-              </div>
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">98%</div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Disponibilité</div>
-              </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 sm:p-4 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">145ms</div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Temps de réponse</div>
-              </div>
-              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3 sm:p-4 text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-orange-600 dark:text-orange-400">2.1K</div>
-                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Requêtes/min</div>
-              </div>
-            </div>
+                  {/* Screen */}
+                  <div className={`relative overflow-hidden ${showDeviceFrame ? 'rounded-[2.5rem]' : 'rounded-lg shadow-2xl'} ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+                    {/* Status Bar */}
+                    <div className={`absolute top-0 left-0 right-0 h-11 ${isDarkMode ? 'bg-black/90 backdrop-blur-sm' : 'bg-white/90 backdrop-blur-sm'} z-20 flex items-center justify-between px-6 text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">9:41</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs">📶</span>
+                          <span className={`text-xs ${networkSpeed === 'fast' ? 'text-green-500' : networkSpeed === 'slow' ? 'text-yellow-500' : 'text-red-500'}`}>
+                            {networkSpeed === 'fast' ? 'LTE' : networkSpeed === 'slow' ? '3G' : '✕'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">🔋</span>
+                        <span className="text-xs">100%</span>
+                        <div className="w-4 h-2 bg-green-500 rounded-sm"></div>
+                      </div>
+                    </div>
 
-            {/* Graphiques miniatures */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {/* Graphique CPU */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation CPU</h3>
-                <div className="h-16 sm:h-20 flex items-end justify-between gap-1">
-                  {[...Array(12)].map((_, i) => (
+                    {/* App Content Container - Scrollable */}
                     <div
-                      key={i}
-                      className="bg-blue-500 rounded-t min-h-[4px]"
-                      style={{ height: `${Math.random() * 60 + 20}%`, width: '6px' }}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  <span>0%</span>
-                  <span>75%</span>
-                </div>
-              </div>
+                      className="relative overflow-hidden"
+                      style={{
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        paddingTop: '44px'
+                      }}
+                    >
+                      {/* App Stopped Overlay */}
+                      {!appRunning && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center">
+                          <div className="text-center text-white">
+                            <div className="text-6xl mb-4 animate-pulse">⏸️</div>
+                            <p className="text-xl font-semibold mb-2">Application arrêtée</p>
+                            <p className="text-sm text-gray-300 mb-4">Cliquez sur le bouton de démarrage pour relancer</p>
+                            <button
+                              onClick={startApp}
+                              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                            >
+                              ▶️ Démarrer l'application
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-              {/* Graphique Mémoire */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation Mémoire</h3>
-                <div className="h-16 sm:h-20 flex items-end justify-between gap-1">
-                  {[...Array(12)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-green-500 rounded-t min-h-[4px]"
-                      style={{ height: `${Math.random() * 40 + 30}%`, width: '6px' }}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  <span>512MB</span>
-                  <span>1.2GB</span>
-                </div>
-              </div>
-            </div>
+                      {/* Touch Effect */}
+                      {touchEffect && emulatorType === 'web' && (
+                        <div
+                          className="absolute pointer-events-none z-50"
+                          style={{
+                            left: touchEffect.x,
+                            top: touchEffect.y,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        >
+                          <div className="w-12 h-12 rounded-full bg-blue-500 opacity-40 animate-pulse"></div>
+                          <div className="absolute inset-0 w-12 h-12 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
+                        </div>
+                      )}
 
-            {/* Activité récente */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activité récente</h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Application Service redémarré</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 2min</span>
+                      {/* Content Area - Switch between Web and React Native */}
+                      {emulatorType === 'react-native' ? (
+                        // React Native via iframe
+                        <iframe
+                          src="http://localhost:8090"
+                          className="w-full h-full border-0"
+                          style={{
+                            transform: 'scale(1)',
+                            transformOrigin: 'top left',
+                          }}
+                          title="React Native App"
+                        />
+                      ) : (
+                        // Web version
+                        <div
+                          className="h-full overflow-y-auto overflow-x-hidden relative"
+                          style={{
+                            // Style pour simuler le comportement mobile
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'none', // Firefox
+                            msOverflowStyle: 'none', // IE/Edge
+                          }}
+                          onScroll={(e) => {
+                            const scrollTop = e.currentTarget.scrollTop;
+                            const scrollHeight = e.currentTarget.scrollHeight;
+                            const clientHeight = e.currentTarget.clientHeight;
+
+                            // Ajouter un indicateur de scroll subtil
+                            if (scrollHeight > clientHeight) {
+                              e.currentTarget.style.setProperty('--scroll-indicator-opacity', String(Math.min(scrollTop / 50, 1)));
+                            }
+                          }}
+                        >
+                          <MobileApp
+                            currentScreen={currentScreen}
+                            setCurrentScreen={setCurrentScreen}
+                            selectedUser={selectedUser}
+                            mobileToken={mobileToken}
+                            applications={applications}
+                            loadingData={loadingData}
+                            isDarkMode={isDarkMode}
+                            loginAsUser={loginAsUser}
+                            logout={logout}
+                            width={width}
+                            height={height - 44}
+                            onTouchStart={(x, y) => {
+                              setTouchEffect({ x, y });
+                              // Vibration simulée
+                              if (navigator.vibrate) {
+                                navigator.vibrate(10);
+                              }
+                            }}
+                            onTouchEnd={() => {
+                              setTimeout(() => setTouchEffect(null), 200);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Home Indicator (iOS) */}
+                    {showDeviceFrame && selectedDevice.os === 'iOS' && orientation === 'portrait' && (
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white opacity-50 rounded-full"></div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Nouvelle candidature créée</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 5min</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Entretien planifié</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 8min</span>
+
+                {/* Device Info */}
+                <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                  <p className="font-medium">
+                    {selectedDevice.name} - {width}x{height}px - {orientation === 'portrait' ? 'Portrait' : 'Paysage'}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Monitoring Panel - Desktop Only */}
+          {showMonitoring && (
+            <div className="hidden lg:block w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-6 overflow-y-auto">
+              <div className="sticky top-0 bg-white dark:bg-gray-900 pb-4 mb-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <span className="text-2xl">📊</span>
+                    Monitoring en temps réel
+                  </h2>
+                  <button
+                    onClick={() => setShowMonitoring(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Masquer le monitoring"
+                  >
+                    <span className="text-lg">←</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Métriques principales */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">8</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Services actifs</div>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">95%</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Disponibilité</div>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">120ms</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</div>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 text-center">
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">1.8K</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Requêtes/min</div>
+                </div>
+              </div>
+
+              {/* Graphiques miniatures */}
+              <div className="grid grid-cols-1 gap-4 mb-6">
+                {/* Graphique CPU */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation CPU</h3>
+                  <div className="h-20 flex items-end justify-between gap-1">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-blue-500 rounded-t min-h-[4px]"
+                        style={{ height: `${Math.random() * 60 + 20}%`, width: '6px' }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <span>0%</span>
+                    <span>75%</span>
+                  </div>
+                </div>
+
+                {/* Graphique Mémoire */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation Mémoire</h3>
+                  <div className="h-20 flex items-end justify-between gap-1">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-green-500 rounded-t min-h-[4px]"
+                        style={{ height: `${Math.random() * 40 + 30}%`, width: '6px' }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <span>512MB</span>
+                    <span>1.2GB</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activité récente */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activité récente</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-600 dark:text-gray-400">Application Service redémarré</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 2min</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-gray-600 dark:text-gray-400">Nouvelle candidature créée</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 5min</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-gray-600 dark:text-gray-400">Entretien planifié</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 8min</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Panneau de logs */}
@@ -754,8 +1259,8 @@ export default function MobileEmulatorPage() {
                       </div>
                     )}
 
-                  {/* Touch Effect */}
-                    {touchEffect && (
+                    {/* Touch Effect */}
+                    {touchEffect && emulatorType === 'web' && (
                       <div
                         className="absolute pointer-events-none z-50"
                         style={{
@@ -769,50 +1274,64 @@ export default function MobileEmulatorPage() {
                       </div>
                     )}
 
-                    {/* Scrollable Content Area */}
-                    <div
-                      className="h-full overflow-y-auto overflow-x-hidden relative"
-                      style={{
-                        // Style pour simuler le comportement mobile
-                        WebkitOverflowScrolling: 'touch',
-                        scrollbarWidth: 'none', // Firefox
-                        msOverflowStyle: 'none', // IE/Edge
-                      }}
-                      onScroll={(e) => {
-                        const scrollTop = e.currentTarget.scrollTop;
-                        const scrollHeight = e.currentTarget.scrollHeight;
-                        const clientHeight = e.currentTarget.clientHeight;
+                    {/* Content Area - Switch between Web and React Native */}
+                    {emulatorType === 'react-native' ? (
+                      // React Native via iframe
+                      <iframe
+                        src="http://localhost:8090"
+                        className="w-full h-full border-0"
+                        style={{
+                          transform: 'scale(1)',
+                          transformOrigin: 'top left',
+                        }}
+                        title="React Native App"
+                      />
+                    ) : (
+                      // Web version
+                      <div
+                        className="h-full overflow-y-auto overflow-x-hidden relative"
+                        style={{
+                          // Style pour simuler le comportement mobile
+                          WebkitOverflowScrolling: 'touch',
+                          scrollbarWidth: 'none', // Firefox
+                          msOverflowStyle: 'none', // IE/Edge
+                        }}
+                        onScroll={(e) => {
+                          const scrollTop = e.currentTarget.scrollTop;
+                          const scrollHeight = e.currentTarget.scrollHeight;
+                          const clientHeight = e.currentTarget.clientHeight;
 
-                        // Ajouter un indicateur de scroll subtil
-                        if (scrollHeight > clientHeight) {
-                          e.currentTarget.style.setProperty('--scroll-indicator-opacity', String(Math.min(scrollTop / 50, 1)));
-                        }
-                      }}
-                    >
-                      <MobileApp
-                        currentScreen={currentScreen}
-                        setCurrentScreen={setCurrentScreen}
-                        selectedUser={selectedUser}
-                        mobileToken={mobileToken}
-                        applications={applications}
-                        loadingData={loadingData}
-                        isDarkMode={isDarkMode}
-                        loginAsUser={loginAsUser}
-                        logout={logout}
-                        width={width}
-                        height={height - 44}
-                        onTouchStart={(x, y) => {
-                          setTouchEffect({ x, y });
-                          // Vibration simulée
-                          if (navigator.vibrate) {
-                            navigator.vibrate(10);
+                          // Ajouter un indicateur de scroll subtil
+                          if (scrollHeight > clientHeight) {
+                            e.currentTarget.style.setProperty('--scroll-indicator-opacity', String(Math.min(scrollTop / 50, 1)));
                           }
                         }}
-                        onTouchEnd={() => {
-                          setTimeout(() => setTouchEffect(null), 200);
-                        }}
-                      />
-                    </div>
+                      >
+                        <MobileApp
+                          currentScreen={currentScreen}
+                          setCurrentScreen={setCurrentScreen}
+                          selectedUser={selectedUser}
+                          mobileToken={mobileToken}
+                          applications={applications}
+                          loadingData={loadingData}
+                          isDarkMode={isDarkMode}
+                          loginAsUser={loginAsUser}
+                          logout={logout}
+                          width={width}
+                          height={height - 44}
+                          onTouchStart={(x, y) => {
+                            setTouchEffect({ x, y });
+                            // Vibration simulée
+                            if (navigator.vibrate) {
+                              navigator.vibrate(10);
+                            }
+                          }}
+                          onTouchEnd={() => {
+                            setTimeout(() => setTouchEffect(null), 200);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Home Indicator (iOS) */}
@@ -837,11 +1356,16 @@ export default function MobileEmulatorPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-start gap-2">
-                <span className="text-xl">🎯</span>
+                <span className="text-xl">{emulatorType === 'flutter' ? '🚀' : '🌐'}</span>
                 <div>
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">Émulateur Mobile Complet</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    {emulatorType === 'flutter' ? 'Flutter Natif' : 'Émulateur Mobile Web'}
+                  </p>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    Testez l'application avec différents utilisateurs et appareils
+                    {emulatorType === 'flutter'
+                      ? 'Exécute du vrai code Flutter dans un conteneur avec Hot Reload'
+                      : 'Testez l\'application avec différents utilisateurs et appareils'
+                    }
                   </p>
                 </div>
               </div>
@@ -859,9 +1383,14 @@ export default function MobileEmulatorPage() {
               <div className="flex items-start gap-2">
                 <span className="text-xl">📱</span>
                 <div>
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">Retour tactile</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    {emulatorType === 'flutter' ? 'Code Flutter' : 'Retour tactile'}
+                  </p>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    Cliquez sur l'écran pour simuler des interactions tactiles
+                    {emulatorType === 'flutter'
+                      ? 'Application Flutter complète avec Hot Reload et Material Design'
+                      : 'Cliquez sur l\'écran pour simuler des interactions tactiles'
+                    }
                   </p>
                 </div>
               </div>
