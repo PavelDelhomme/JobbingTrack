@@ -23,20 +23,20 @@ export default function ServicesPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
   const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'online', responseTime: 45, version: '1.0.0' },
-    { name: 'Auth Service', url: `http://localhost:3001/api/v1/auth/health`, port: 3001, status: 'online', responseTime: 89, version: '1.0.0' },
-    { name: 'Application Service', url: `http://localhost:3002/api/v1/applications/health`, port: 3002, status: 'online', responseTime: 156, version: '1.0.0' },
-    { name: 'Company Service', url: `http://localhost:3003/api/v1/companies/health`, port: 3003, status: 'online', responseTime: 102, version: '1.0.0' },
-    { name: 'Contact Service', url: `http://localhost:3004/api/v1/contacts/health`, port: 3004, status: 'online', responseTime: 98, version: '1.0.0' },
-    { name: 'Interview Service', url: `http://localhost:3005/api/v1/interviews/health`, port: 3005, status: 'online', responseTime: 134, version: '1.0.0' },
-    { name: 'Notification Service', url: `http://localhost:3006/api/v1/notifications/health`, port: 3006, status: 'online', responseTime: 112, version: '1.0.0' },
-    { name: 'Dashboard Service', url: `http://localhost:3007/api/v1/dashboard/health`, port: 3007, status: 'online', responseTime: 145, version: '1.0.0' },
-    { name: 'Call Service', url: `http://localhost:3008/api/v1/calls/health`, port: 3008, status: 'online', responseTime: 98, version: '1.0.0' },
-    { name: 'Profile Service', url: `http://localhost:3009/api/v1/profile/health`, port: 3009, status: 'online', responseTime: 134, version: '1.0.0' },
-    { name: 'Event Service', url: `http://localhost:3011/api/v1/events/health`, port: 3011, status: 'online', responseTime: 167, version: '1.0.0' },
-    { name: 'FollowUp Service', url: `http://localhost:3012/api/v1/followups/health`, port: 3012, status: 'online', responseTime: 123, version: '1.0.0' },
-    { name: 'Frontend', url: `http://localhost:8080/api/health`, port: 8080, status: 'online', responseTime: 89, version: '1.0.0' },
-    { name: 'Base de données', url: `${API_GATEWAY_URL}/api/v1/applications`, port: 0, status: 'online', responseTime: 45, version: 'PostgreSQL 15' }
+    { name: 'API Gateway', url: `${API_GATEWAY_URL}/api/v1/health`, port: 3000, status: 'online', responseTime: 45, version: '1.0.0' },
+    { name: 'Auth Service', url: `${API_GATEWAY_URL}/api/v1/auth/health`, port: 3000, status: 'testing', responseTime: 89, version: '1.0.0' },
+    { name: 'Application Service', url: `${API_GATEWAY_URL}/api/v1/applications/health`, port: 3000, status: 'testing', responseTime: 156, version: '1.0.0' },
+    { name: 'Company Service', url: `${API_GATEWAY_URL}/api/v1/companies/health`, port: 3000, status: 'testing', responseTime: 102, version: '1.0.0' },
+    { name: 'Contact Service', url: `${API_GATEWAY_URL}/api/v1/contacts/health`, port: 3000, status: 'testing', responseTime: 98, version: '1.0.0' },
+    { name: 'Interview Service', url: `${API_GATEWAY_URL}/api/v1/interviews/health`, port: 3000, status: 'testing', responseTime: 134, version: '1.0.0' },
+    { name: 'Notification Service', url: `${API_GATEWAY_URL}/api/v1/notifications/health`, port: 3000, status: 'testing', responseTime: 112, version: '1.0.0' },
+    { name: 'Dashboard Service', url: `${API_GATEWAY_URL}/api/v1/dashboard/health`, port: 3000, status: 'testing', responseTime: 145, version: '1.0.0' },
+    { name: 'Call Service', url: `${API_GATEWAY_URL}/api/v1/calls/health`, port: 3000, status: 'testing', responseTime: 98, version: '1.0.0' },
+    { name: 'Profile Service', url: `${API_GATEWAY_URL}/api/v1/profile/health`, port: 3000, status: 'testing', responseTime: 134, version: '1.0.0' },
+    { name: 'Event Service', url: `${API_GATEWAY_URL}/api/v1/events/health`, port: 3000, status: 'testing', responseTime: 167, version: '1.0.0' },
+    { name: 'FollowUp Service', url: `${API_GATEWAY_URL}/api/v1/followups/health`, port: 3000, status: 'testing', responseTime: 123, version: '1.0.0' },
+    { name: 'Frontend', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'testing', responseTime: 89, version: '1.0.0' },
+    { name: 'Base de données', url: `${API_GATEWAY_URL}/api/v1/applications`, port: 0, status: 'testing', responseTime: 45, version: 'PostgreSQL 15' }
   ])
 
   const [loading, setLoading] = useState(false)
@@ -117,22 +117,26 @@ export default function ServicesPage() {
       } else {
         // Test normal pour les services
         // Déterminer si le service nécessite une authentification
-        const requiresAuth = !service.url.includes('frontend') && service.name !== 'API Gateway'
+        const requiresAuth = service.name !== 'Frontend' && service.name !== 'API Gateway'
 
-        response = await axios.get(service.url, {
+        // Configuration de la requête
+        const config = {
           timeout: 5000,
-          headers: requiresAuth && token ? { 'Authorization': `Bearer ${token}` } : undefined
-        })
+          headers: requiresAuth && token ? { 'Authorization': `Bearer ${token}` } : undefined,
+          validateStatus: (status: number) => status < 500 // Accepter les erreurs 4xx comme réponses valides
+        }
+
+        response = await axios.get(service.url, config)
         responseTime = Date.now() - startTime
 
         setServices(prev => {
           const updated = [...prev]
           updated[index] = {
             ...updated[index],
-            status: 'online',
+            status: response.status >= 200 && response.status < 400 ? 'online' : 'offline',
             responseTime,
-            version: response.data.version || '1.0.0',
-            error: undefined
+            version: response.data?.version || '1.0.0',
+            error: response.status >= 400 ? `HTTP ${response.status}: ${response.statusText}` : undefined
           }
           return updated
         })
@@ -140,38 +144,17 @@ export default function ServicesPage() {
     } catch (error: any) {
       const responseTime = Date.now() - startTime
 
-      // Si le service n'est pas accessible sur le port spécifié, essayer d'autres ports communs
-      if (error.code === 'ECONNREFUSED' && service.port > 3000) {
-        // Réessayer avec des ports alternatifs pour les services backend
-        const alternativePorts = [3000, 8080, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012]
+      // Gestion spécifique des erreurs
+      let errorMessage = 'Service inaccessible'
 
-        for (const altPort of alternativePorts) {
-          if (altPort !== service.port) {
-            try {
-              const altUrl = service.url.replace(`:${service.port}`, `:${altPort}`)
-              const altResponse = await axios.get(altUrl, {
-                timeout: 2000,
-                headers: service.url.includes('frontend') ? undefined : { 'Authorization': `Bearer ${token}` }
-              })
-
-              setServices(prev => {
-                const updated = [...prev]
-                updated[index] = {
-                  ...updated[index],
-                  url: altUrl,
-                  status: 'online',
-                  responseTime,
-                  version: altResponse.data.version || '1.0.0',
-                  error: undefined
-                }
-                return updated
-              })
-              return
-            } catch (altError) {
-              // Continuer avec le prochain port
-            }
-          }
-        }
+      if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'Connexion refusée - service non démarré'
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = 'Timeout - service lent à répondre'
+      } else if (error.code === 'ENOTFOUND') {
+        errorMessage = 'Service non trouvé'
+      } else if (error.message) {
+        errorMessage = error.message
       }
 
       setServices(prev => {
@@ -179,7 +162,7 @@ export default function ServicesPage() {
         updated[index] = {
           ...updated[index],
           status: 'offline',
-          error: error.message || 'Service inaccessible',
+          error: errorMessage,
           responseTime: responseTime,
           version: undefined
         }
@@ -355,8 +338,7 @@ export default function ServicesPage() {
                 <div
                   key={index}
                   onClick={() => {
-                    setSelectedService(service)
-                    fetchServiceLogs(service)
+                    router.push(`/backoffice/services/${service.name.toLowerCase().replace(/\s+/g, '-')}`)
                   }}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
                 >
@@ -408,9 +390,20 @@ export default function ServicesPage() {
                     <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Cliquer pour détails</span>
-                        <span className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const serviceIndex = services.findIndex(s => s.name === service.name)
+                              testService(service, serviceIndex)
+                            }}
+                            disabled={loading || service.status === 'testing'}
+                            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {service.status === 'testing' ? '🔄' : '🧪'}
+                          </button>
                           <span>👁️</span>
-                        </span>
+                        </div>
                       </div>
                     </div>
                   </div>

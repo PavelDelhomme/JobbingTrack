@@ -491,14 +491,64 @@ export default function DataManagementPage() {
     <AdminLayout>
     <div className="space-y-4 md:space-y-6">
         {/* Header - Responsive */}
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
-            💾 Gestion des Données
-          </h1>
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
-            Interface complète de gestion de base de données
-          </p>
-        </div>
+        <div className="mb-4 md:mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4 md:mb-6">
+            {/* Titre avec boutons intégrés */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">
+                    💾 Gestion des Données
+                  </h1>
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
+                    Interface complète de gestion de base de données
+                  </p>
+                </div>
+
+                {/* Boutons principaux intégrés au titre */}
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-3 sm:px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap"
+                  >
+                    ➕ Nouveau
+                  </button>
+                  <button
+                    onClick={fetchTableData}
+                    className="px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
+                  >
+                    🔄 Rafraîchir
+                  </button>
+                  <AdvancedDataExporter
+                    data={{
+                      [selectedTable.toLowerCase()]: tableData?.rows || []
+                    }}
+                    className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
+                  >
+                    📤 Exporter
+                  </AdvancedDataExporter>
+                  <button
+                    onClick={() => {
+                      // Tester l'exporteur avec les données fictives
+                      const testData = {
+                        user: [
+                          { id: '1', email: 'redacted@example.invalid', firstName: 'Test', lastName: 'User', role: 'USER', is_active: true },
+                          { id: '2', email: 'redacted@example.invalid', firstName: 'Admin', lastName: 'User', role: 'ADMIN', is_active: false }
+                        ],
+                        company: [
+                          { id: '1', name: 'Test Company', sector: 'Tech', size: 'startup', is_active: true },
+                          { id: '2', name: 'Another Company', sector: 'Finance', size: 'entreprise', is_active: true }
+                        ]
+                      }
+                    }}
+                    className="px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 whitespace-nowrap"
+                  >
+                    🧪 Test
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
         {/* Onglets - Scrollables sur mobile */}
         <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -1058,6 +1108,7 @@ export default function DataManagementPage() {
           fetchTableData(); // Recharger les données
         }}
       />
+    </div>
     </AdminLayout>
   )
 }
