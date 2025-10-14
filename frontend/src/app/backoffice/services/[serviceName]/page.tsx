@@ -475,8 +475,11 @@ export default function ServiceDetailPage() {
                 />
                 <ActionButton
                   icon="📊"
-                  label="Métriques détaillées"
-                  onClick={() => router.push('/backoffice/analytics')}
+                  label="Métriques avancées"
+                  onClick={() => {
+                    // Rester sur la même page mais afficher plus de métriques
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
                   color="purple"
                 />
               </div>

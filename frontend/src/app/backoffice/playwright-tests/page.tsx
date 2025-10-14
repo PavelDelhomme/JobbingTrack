@@ -57,7 +57,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 
@@ -591,7 +590,7 @@ export default function PlaywrightTestsPage() {
 
                 <div>
                   <Label className="text-sm">Statut</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -606,7 +605,7 @@ export default function PlaywrightTestsPage() {
 
                 <div>
                   <Label className="text-sm">Navigateur</Label>
-                  <Select value={browserFilter} onValueChange={setBrowserFilter}>
+                  <Select value={browserFilter} onValueChange={(value) => setBrowserFilter(value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
