@@ -71,17 +71,64 @@ const mobileEmulatorStyles = `
   .mobile-vibrate {
     animation: mobileVibrate 0.1s ease-in-out;
   }
+
+  /* Slider personnalisé moderne */
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  .slider::-webkit-slider-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #E5E7EB, #D1D5DB);
+  }
+
+  .slider::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  .slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #E5E7EB, #D1D5DB);
+    border: none;
+  }
 `
 import AdminLayout from '@/components/AdminLayout'
 import MobileNotificationCenter from '@/app/backoffice/components/MobileNotificationCenter'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
+import { isMobileEmulator } from '@/lib/utils'
 import axios from 'axios'
 
 type DeviceType = 'iphone-14' | 'iphone-14-pro-max' | 'pixel-7' | 'samsung-s23' | 'ipad'
 type OrientationType = 'portrait' | 'landscape'
 type MobileScreen = 'login' | 'home' | 'applications' | 'companies' | 'contacts' | 'interviews' | 'profile' | 'settings' | 'admin-backoffice'
-type EmulatorType = 'web' | 'flutter'
+type EmulatorType = 'web' | 'flutter' | 'react-native'
 
 interface Device {
   id: DeviceType
@@ -105,6 +152,89 @@ interface Application {
   position: string
   company: { name: string }
   status: string
+}
+
+interface RealTimeMetrics {
+  activeServices: number;
+  availability: number;
+  responseTime: number;
+  requestsPerMinute: number;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  status: 'running' | 'stopped' | 'warning' | 'error';
+  uptime: string;
+  cpu: number;
+  memory: number;
+  lastRestart?: string;
+}
+
+// Services système simulés
+const SYSTEM_SERVICES: Service[] = [
+  { id: 'api-gateway', name: 'API Gateway', status: 'running', uptime: '15j 4h 23m', cpu: 12, memory: 45 },
+  { id: 'auth-service', name: 'Service d\'Authentification', status: 'running', uptime: '15j 4h 23m', cpu: 8, memory: 32 },
+  { id: 'application-service', name: 'Service des Candidatures', status: 'running', uptime: '15j 4h 23m', cpu: 15, memory: 67 },
+  { id: 'company-service', name: 'Service des Entreprises', status: 'running', uptime: '15j 4h 23m', cpu: 10, memory: 28 },
+  { id: 'contact-service', name: 'Service des Contacts', status: 'running', uptime: '15j 4h 23m', cpu: 7, memory: 25 },
+  { id: 'interview-service', name: 'Service des Entretiens', status: 'running', uptime: '15j 4h 23m', cpu: 9, memory: 31 },
+  { id: 'notification-service', name: 'Service de Notifications', status: 'running', uptime: '15j 4h 23m', cpu: 6, memory: 22 },
+  { id: 'dashboard-service', name: 'Service du Tableau de Bord', status: 'running', uptime: '15j 4h 23m', cpu: 11, memory: 38 },
+  { id: 'workflow-service', name: 'Service de Workflow', status: 'running', uptime: '15j 4h 23m', cpu: 13, memory: 42 },
+  { id: 'scheduler-service', name: 'Service de Planification', status: 'running', uptime: '15j 4h 23m', cpu: 5, memory: 18 },
+  { id: 'event-service', name: 'Service des Événements', status: 'warning', uptime: '15j 4h 23m', cpu: 18, memory: 55, lastRestart: 'Il y a 2h' },
+  { id: 'followup-service', name: 'Service de Relance', status: 'running', uptime: '15j 4h 23m', cpu: 4, memory: 16 },
+];
+
+// Hook pour le monitoring en temps réel
+function useRealTimeMonitoring() {
+  const [metrics, setMetrics] = useState<RealTimeMetrics>({
+    activeServices: 8,
+    availability: 95,
+    responseTime: 120,
+    requestsPerMinute: 1800
+  });
+
+  useEffect(() => {
+    if (!isMobileEmulator()) return;
+
+    const interval = setInterval(() => {
+      setMetrics(prev => ({
+        activeServices: Math.max(6, Math.min(12, prev.activeServices + Math.floor(Math.random() * 3) - 1)),
+        availability: Math.max(90, Math.min(99.9, prev.availability + (Math.random() * 2) - 1)),
+        responseTime: Math.max(80, Math.min(300, prev.responseTime + Math.floor(Math.random() * 40) - 20)),
+        requestsPerMinute: Math.max(1500, Math.min(2500, prev.requestsPerMinute + Math.floor(Math.random() * 200) - 100))
+      }));
+    }, 3000); // Mise à jour toutes les 3 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return metrics;
+}
+
+// Hook pour les services temps réel
+function useRealTimeServices() {
+  const [services, setServices] = useState<Service[]>(SYSTEM_SERVICES);
+
+  useEffect(() => {
+    if (!isMobileEmulator()) return;
+
+    const interval = setInterval(() => {
+      setServices(prev => prev.map(service => ({
+        ...service,
+        cpu: Math.max(1, Math.min(25, service.cpu + Math.floor(Math.random() * 6) - 3)),
+        memory: Math.max(10, Math.min(80, service.memory + Math.floor(Math.random() * 8) - 4)),
+        status: Math.random() > 0.95 ? (Math.random() > 0.5 ? 'warning' : 'error') : service.status,
+        uptime: service.status === 'running' ? service.uptime : `${Math.floor(Math.random() * 24)}h ${Math.floor(Math.random() * 60)}m`
+      })));
+    }, 2000); // Mise à jour toutes les 2 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return services;
 }
 
 const DEVICES: Device[] = [
@@ -142,6 +272,11 @@ export default function MobileEmulatorPage() {
   const [hasAutoLoggedIn, setHasAutoLoggedIn] = useState(false)
   const [emulatorType, setEmulatorType] = useState<EmulatorType>('web')
   const [showMonitoring, setShowMonitoring] = useState(true)
+  const [showServicesModal, setShowServicesModal] = useState(false)
+
+  // Monitoring en temps réel
+  const realTimeMetrics = useRealTimeMonitoring()
+  const realTimeServices = useRealTimeServices()
 
   // ✅ Calculs après les hooks
   const width = orientation === 'portrait' ? selectedDevice.width : selectedDevice.height
@@ -360,7 +495,7 @@ export default function MobileEmulatorPage() {
           {/* Version Mobile - Contrôles essentiels en colonnes */}
           <div className="block lg:hidden space-y-3">
             {/* Première rangée - Sélection appareil et utilisateur */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-stretch gap-2">
               {/* Emulator Type Selector - Mobile */}
               <div className="flex-shrink-0">
                 <select
@@ -370,7 +505,7 @@ export default function MobileEmulatorPage() {
                     setEmulatorType(newType)
                     addLog(`Émulateur basculé vers: ${newType === 'flutter' ? 'Flutter' : 'Web'}`, 'info')
                   }}
-                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium"
+                  className="h-8 px-2 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium"
                 >
                   <option value="web">🌐 Web</option>
                   <option value="flutter">🚀 Flutter</option>
@@ -385,7 +520,7 @@ export default function MobileEmulatorPage() {
                     const device = DEVICES.find(d => d.id === e.target.value)
                     if (device) setSelectedDevice(device)
                   }}
-                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="h-8 px-2 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 >
                   {DEVICES.map(device => (
                     <option key={device.id} value={device.id}>
@@ -395,23 +530,23 @@ export default function MobileEmulatorPage() {
                 </select>
               </div>
 
-              {/* User Switcher - Mobile compact */}
+              {/* User Switcher - Mobile compact et étendu */}
               <div className="relative flex-1 min-w-0">
                 <button
                   onClick={() => setShowUserSwitcher(!showUserSwitcher)}
-                  className="w-full px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-1"
+                  className="w-full h-8 px-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-1"
                 >
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-sm">👤</span>
-                    <span className="text-xs font-medium truncate">
+                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                    <span className="text-sm flex-shrink-0">👤</span>
+                    <span className="text-xs font-medium truncate text-left">
                       {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
                     </span>
                   </div>
-                  <span className="text-xs">▼</span>
+                  <span className="text-xs flex-shrink-0">▼</span>
                 </button>
 
                 {showUserSwitcher && (
-                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-xs">
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-64 max-w-[calc(100vw-2rem)]">
                     <div className="p-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
                         Basculer vers un utilisateur :
@@ -420,12 +555,12 @@ export default function MobileEmulatorPage() {
                         <button
                           key={user.id}
                           onClick={() => switchUser(user)}
-                          className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ${
                             selectedUser?.id === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                               {user.firstName[0]}{user.lastName[0]}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -446,18 +581,18 @@ export default function MobileEmulatorPage() {
             </div>
 
             {/* Deuxième rangée - Contrôles de visualisation */}
-            <div className="flex items-center gap-2 justify-between">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3 justify-between flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={toggleOrientation}
-                  className="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="h-8 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                   title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
                 >
                   <span className="text-sm">{orientation === 'portrait' ? '📱' : '🔄'}</span>
                 </button>
 
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">Z:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">Zoom:</span>
                   <input
                     type="range"
                     min="0.5"
@@ -465,18 +600,18 @@ export default function MobileEmulatorPage() {
                     step="0.05"
                     value={scale}
                     onChange={(e) => setScale(parseFloat(e.target.value))}
-                    className="w-12"
+                    className="w-16 h-2"
                   />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-6 text-center">
-                    {Math.round(scale * 100)}
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-8 text-center">
+                    {Math.round(scale * 100)}%
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowDeviceFrame(!showDeviceFrame)}
-                  className={`px-2 py-1 rounded transition-colors ${
+                  className={`h-8 px-3 rounded transition-colors ${
                     showDeviceFrame
                       ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -488,7 +623,7 @@ export default function MobileEmulatorPage() {
 
                 <button
                   onClick={() => setIsDarkMode(!isDarkMode)}
-                  className={`px-2 py-1 rounded transition-colors ${
+                  className={`h-8 px-3 rounded transition-colors ${
                     isDarkMode
                       ? 'bg-gray-800 text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -501,19 +636,19 @@ export default function MobileEmulatorPage() {
                 <select
                   value={networkSpeed}
                   onChange={(e) => setNetworkSpeed(e.target.value as any)}
-                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="h-8 px-3 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   title="Vitesse réseau"
                 >
-                  <option value="fast">📶</option>
-                  <option value="slow">📶</option>
-                  <option value="offline">📵</option>
+                  <option value="fast">📶 Rapide</option>
+                  <option value="slow">📶 Lent</option>
+                  <option value="offline">📵 Hors ligne</option>
                 </select>
               </div>
             </div>
 
             {/* Troisième rangée - Contrôles d'application et monitoring */}
-            <div className="flex items-center gap-2 justify-between">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3 justify-between flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 {emulatorType === 'flutter' ? (
                   <>
                     <button
@@ -522,10 +657,10 @@ export default function MobileEmulatorPage() {
                           .then(() => addLog('Rechargement Flutter demandé', 'info'))
                           .catch(err => addLog(`Erreur rechargement: ${err.message}`, 'error'));
                       }}
-                      className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      className="h-8 px-3 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                       title="Recharger Flutter"
                     >
-                      <span className="text-xs">🔄</span>
+                      <span className="text-sm">🔄</span>
                     </button>
                     <button
                       onClick={() => {
@@ -533,19 +668,19 @@ export default function MobileEmulatorPage() {
                           .then(() => addLog('Hot restart Flutter demandé', 'info'))
                           .catch(err => addLog(`Erreur hot restart: ${err.message}`, 'error'));
                       }}
-                      className="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                      className="h-8 px-3 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
                       title="Hot Restart Flutter"
                     >
-                      <span className="text-xs">⚡</span>
+                      <span className="text-sm">⚡</span>
                     </button>
                     <button
                       onClick={() => {
                         addLog('Ouverture Dev Menu Flutter', 'info');
                       }}
-                      className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                      className="h-8 px-3 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                       title="Menu développeur Flutter"
                     >
-                      <span className="text-xs">⚙️</span>
+                      <span className="text-sm">⚙️</span>
                     </button>
                   </>
                 ) : (
@@ -554,55 +689,55 @@ export default function MobileEmulatorPage() {
                       <>
                         <button
                           onClick={restartApp}
-                          className="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                          className="h-8 px-3 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
                           title="Redémarrer l'application"
                         >
-                          <span className="text-xs">🔄</span>
+                          <span className="text-sm">🔄</span>
                         </button>
                         <button
                           onClick={stopApp}
-                          className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                          className="h-8 px-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
                           title="Arrêter l'application"
                         >
-                          <span className="text-xs">⏹️</span>
+                          <span className="text-sm">⏹️</span>
                         </button>
                       </>
                     ) : (
                       <button
                         onClick={startApp}
-                        className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                        className="h-8 px-3 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
                         title="Démarrer l'application"
                       >
-                        <span className="text-xs">▶️</span>
+                        <span className="text-sm">▶️</span>
                       </button>
                     )}
                   </>
                 )}
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowMonitoring(!showMonitoring)}
-                  className={`px-2 py-1 rounded transition-colors ${
+                  className={`h-8 px-3 rounded transition-colors ${
                     showMonitoring
                       ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}
                   title={showMonitoring ? 'Masquer le monitoring' : 'Afficher le monitoring'}
                 >
-                  <span className="text-xs">📊</span>
+                  <span className="text-sm">📊</span>
                 </button>
 
                 <button
                   onClick={() => setShowLogs(!showLogs)}
-                  className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+                  className={`h-8 px-3 rounded transition-colors flex items-center gap-1 ${
                     showLogs
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}
                   title="Afficher/masquer les logs"
                 >
-                  <span className="text-xs">📋</span>
+                  <span className="text-sm">📋</span>
                   {logs.length > 0 && <span className="text-xs">({logs.length})</span>}
                 </button>
               </div>
@@ -611,8 +746,8 @@ export default function MobileEmulatorPage() {
 
           {/* Version Desktop - Contrôles organisés en lignes */}
           <div className="hidden lg:block">
-            {/* Première ligne - Contrôles principaux */}
-            <div className="flex items-center gap-3 mb-3">
+            {/* Première ligne - Contrôles principaux responsive */}
+            <div className="flex items-center gap-3 justify-between flex-wrap">
               {/* Emulator Type Selector */}
               <div className="flex-shrink-0">
                 <select
@@ -622,7 +757,7 @@ export default function MobileEmulatorPage() {
                     setEmulatorType(newType)
                     addLog(`Émulateur basculé vers: ${newType === 'flutter' ? 'Flutter' : 'Web'}`, 'info')
                   }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium"
+                  className="h-10 px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 text-gray-900 dark:text-gray-100 font-medium min-w-[120px] shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="web">🌐 Web</option>
                   <option value="flutter">🚀 Flutter</option>
@@ -637,7 +772,7 @@ export default function MobileEmulatorPage() {
                     const device = DEVICES.find(d => d.id === e.target.value)
                     if (device) setSelectedDevice(device)
                   }}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="h-10 px-4 py-2 text-sm border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 text-gray-900 dark:text-gray-100 min-w-[140px] shadow-sm hover:shadow-md transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   {DEVICES.map(device => (
                     <option key={device.id} value={device.id}>
@@ -651,19 +786,19 @@ export default function MobileEmulatorPage() {
               <div className="relative flex-1 min-w-0 max-w-md">
                 <button
                   onClick={() => setShowUserSwitcher(!showUserSwitcher)}
-                  className="w-full px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center justify-between gap-2"
+                  className="w-full h-10 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-200 hover:to-blue-300 dark:hover:from-blue-800 dark:hover:to-blue-700 transition-all duration-200 flex items-center justify-between gap-2 shadow-sm hover:shadow-md border-2 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg">👤</span>
-                    <span className="text-sm font-medium truncate">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-lg flex-shrink-0 animate-pulse">👤</span>
+                    <span className="text-sm font-medium truncate text-left">
                       {selectedUser ? `${selectedUser.firstName[0]}${selectedUser.lastName[0]}` : '👤'}
                     </span>
                   </div>
-                  <span className="text-sm">▼</span>
+                  <span className="text-sm flex-shrink-0 transform transition-transform duration-200 hover:scale-110">▼</span>
                 </button>
 
                 {showUserSwitcher && (
-                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-full max-w-sm">
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 w-80 max-w-[calc(100vw-2rem)]">
                     <div className="p-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1">
                         Basculer vers un utilisateur :
@@ -677,7 +812,7 @@ export default function MobileEmulatorPage() {
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                               {user.firstName[0]}{user.lastName[0]}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -696,24 +831,26 @@ export default function MobileEmulatorPage() {
                 )}
               </div>
 
-              {/* Centre de notifications */}
-              <MobileNotificationCenter />
+              {/* Centre de notifications - Responsive */}
+              <div className="flex-shrink-0">
+                <MobileNotificationCenter />
+              </div>
             </div>
 
             {/* Deuxième ligne - Contrôles de visualisation */}
-            <div className="flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3 justify-between flex-wrap">
               {/* Orientation + Zoom + Cadre */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={toggleOrientation}
-                  className="px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="h-10 px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md border-2 border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-500"
                   title={orientation === 'portrait' ? 'Passer en paysage' : 'Passer en portrait'}
                 >
-                  <span className="text-lg">{orientation === 'portrait' ? '📱' : '🔄'}</span>
+                  <span className="text-lg transform transition-transform duration-200 hover:scale-110">{orientation === 'portrait' ? '📱' : '🔄'}</span>
                 </button>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Zoom:</span>
+                <div className="flex items-center gap-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-3 border-2 border-gray-200 dark:border-gray-600 shadow-sm">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Zoom:</span>
                   <input
                     type="range"
                     min="0.5"
@@ -721,31 +858,31 @@ export default function MobileEmulatorPage() {
                     step="0.05"
                     value={scale}
                     onChange={(e) => setScale(parseFloat(e.target.value))}
-                    className="w-16"
+                    className="w-24 h-3 bg-gradient-to-r from-blue-200 to-blue-400 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-8 text-center">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300 w-12 text-center bg-white dark:bg-gray-800 rounded-lg py-1 shadow-sm">
                     {Math.round(scale * 100)}%
                   </span>
                 </div>
 
                 <button
                   onClick={() => setShowDeviceFrame(!showDeviceFrame)}
-                  className={`px-3 py-2 rounded transition-colors ${
+                  className={`h-10 px-4 py-2 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md border-2 ${
                     showDeviceFrame
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                      ? 'bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:from-blue-200 hover:to-blue-300 dark:hover:from-blue-800 dark:hover:to-blue-700'
+                      : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600'
                   }`}
                   title={showDeviceFrame ? 'Masquer le cadre' : 'Afficher le cadre'}
                 >
-                  <span className="text-base">📱</span>
+                  <span className="text-base transform transition-transform duration-200 hover:scale-110">📱</span>
                 </button>
               </div>
 
               {/* Mode sombre + Réseau */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setIsDarkMode(!isDarkMode)}
-                  className={`px-3 py-2 rounded transition-colors ${
+                  className={`h-10 px-3 py-2 rounded transition-colors ${
                     isDarkMode
                       ? 'bg-gray-800 text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -758,7 +895,7 @@ export default function MobileEmulatorPage() {
                 <select
                   value={networkSpeed}
                   onChange={(e) => setNetworkSpeed(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="h-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   title="Vitesse réseau"
                 >
                   <option value="fast">📶 Rapide</option>
@@ -768,7 +905,7 @@ export default function MobileEmulatorPage() {
               </div>
 
               {/* Contrôles de l'application */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {emulatorType === 'flutter' ? (
                   <>
                     <button
@@ -777,7 +914,7 @@ export default function MobileEmulatorPage() {
                           .then(() => addLog('Rechargement Flutter demandé', 'info'))
                           .catch(err => addLog(`Erreur rechargement: ${err.message}`, 'error'));
                       }}
-                      className="px-2 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      className="h-10 px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                       title="Recharger Flutter"
                     >
                       <span className="text-sm">🔄</span>
@@ -788,7 +925,7 @@ export default function MobileEmulatorPage() {
                           .then(() => addLog('Hot restart Flutter demandé', 'info'))
                           .catch(err => addLog(`Erreur hot restart: ${err.message}`, 'error'));
                       }}
-                      className="px-2 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                      className="h-10 px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
                       title="Hot Restart Flutter"
                     >
                       <span className="text-sm">⚡</span>
@@ -797,7 +934,7 @@ export default function MobileEmulatorPage() {
                       onClick={() => {
                         addLog('Ouverture Dev Menu Flutter', 'info');
                       }}
-                      className="px-2 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                      className="h-10 px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                       title="Menu développeur Flutter"
                     >
                       <span className="text-sm">⚙️</span>
@@ -809,14 +946,14 @@ export default function MobileEmulatorPage() {
                       <>
                         <button
                           onClick={restartApp}
-                          className="px-2 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                          className="h-10 px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
                           title="Redémarrer l'application"
                         >
                           <span className="text-sm">🔄</span>
                         </button>
                         <button
                           onClick={stopApp}
-                          className="px-2 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                          className="h-10 px-3 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
                           title="Arrêter l'application"
                         >
                           <span className="text-sm">⏹️</span>
@@ -825,7 +962,7 @@ export default function MobileEmulatorPage() {
                     ) : (
                       <button
                         onClick={startApp}
-                        className="px-2 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                        className="h-10 px-3 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
                         title="Démarrer l'application"
                       >
                         <span className="text-sm">▶️</span>
@@ -836,10 +973,10 @@ export default function MobileEmulatorPage() {
               </div>
 
               {/* Boutons monitoring et logs */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setShowMonitoring(!showMonitoring)}
-                  className={`px-3 py-2 rounded transition-colors ${
+                  className={`h-10 px-3 py-2 rounded transition-colors ${
                     showMonitoring
                       ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -851,7 +988,7 @@ export default function MobileEmulatorPage() {
 
                 <button
                   onClick={() => setShowLogs(!showLogs)}
-                  className={`px-3 py-2 rounded transition-colors flex items-center gap-1 ${
+                  className={`h-10 px-3 py-2 rounded transition-colors flex items-center gap-1 ${
                     showLogs
                       ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -865,6 +1002,60 @@ export default function MobileEmulatorPage() {
             </div>
           </div>
         </div>
+
+        {/* Panneau de logs - Entre la barre d'outils et l'émulateur */}
+        {showLogs && (
+          <div className="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 p-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span className="text-2xl animate-pulse">📋</span>
+                  Logs de l'émulateur
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={clearLogs}
+                    className="px-3 py-2 text-sm bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 font-medium shadow-sm hover:shadow-md"
+                  >
+                    🗑️ Effacer
+                  </button>
+                  <button
+                    onClick={() => setShowLogs(false)}
+                    className="px-3 py-2 text-sm bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/20 dark:to-red-800/30 hover:from-red-200 hover:to-red-300 dark:hover:from-red-800/40 dark:hover:to-red-700/50 rounded-lg transition-all duration-200 text-red-700 dark:text-red-300 font-medium shadow-sm hover:shadow-md"
+                  >
+                    ❌ Fermer
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl p-4 max-h-80 overflow-y-auto font-mono text-xs space-y-2 border border-gray-200 dark:border-gray-700 shadow-inner">
+                {logs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2 animate-bounce">📭</div>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Aucun log disponible</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Les logs apparaîtront ici en temps réel</p>
+                  </div>
+                ) : (
+                  logs.map((log, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
+                        log.type === 'error' ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800' :
+                        log.type === 'success' ? 'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' :
+                        'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                      }`}
+                    >
+                      <span className="text-gray-500 dark:text-gray-400 shrink-0 font-medium">{log.time}</span>
+                      <span className="shrink-0 text-lg">
+                        {log.type === 'error' ? '❌' : log.type === 'success' ? '✅' : 'ℹ️'}
+                      </span>
+                      <span className="flex-1 leading-relaxed">{log.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Layout principal avec émulateur et monitoring côte à côte */}
         <div className="flex-1 flex flex-col lg:flex-row">
@@ -1052,43 +1243,62 @@ export default function MobileEmulatorPage() {
                 </div>
               </div>
 
-              {/* Métriques principales */}
+              {/* Métriques principales - Temps réel */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">8</div>
+                <button
+                  onClick={() => setShowServicesModal(true)}
+                  className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer w-full"
+                >
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 animate-pulse">
+                    {realTimeMetrics.activeServices}
+                  </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Services actifs</div>
-                </div>
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">95%</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Cliquez pour voir la liste</div>
+                </button>
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center transition-all duration-300 hover:scale-105">
+                  <div className={`text-3xl font-bold ${realTimeMetrics.availability > 98 ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'} animate-pulse`}>
+                    {realTimeMetrics.availability.toFixed(1)}%
+                  </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Disponibilité</div>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">120ms</div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 text-center transition-all duration-300 hover:scale-105">
+                  <div className={`text-3xl font-bold ${realTimeMetrics.responseTime < 150 ? 'text-green-600 dark:text-green-400' : realTimeMetrics.responseTime < 250 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'} animate-pulse`}>
+                    {realTimeMetrics.responseTime}ms
+                  </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</div>
                 </div>
-                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">1.8K</div>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 text-center transition-all duration-300 hover:scale-105">
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 animate-pulse">
+                    {(realTimeMetrics.requestsPerMinute / 1000).toFixed(1)}K
+                  </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Requêtes/min</div>
                 </div>
               </div>
 
-              {/* Graphiques miniatures */}
+              {/* Graphiques miniatures - Temps réel */}
               <div className="grid grid-cols-1 gap-4 mb-6">
                 {/* Graphique CPU */}
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation CPU</h3>
                   <div className="h-20 flex items-end justify-between gap-1">
-                    {[...Array(12)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-blue-500 rounded-t min-h-[4px]"
-                        style={{ height: `${Math.random() * 60 + 20}%`, width: '6px' }}
-                      />
-                    ))}
+                    {[...Array(12)].map((_, i) => {
+                      const cpuValue = Math.max(20, Math.min(80, realTimeMetrics.activeServices * 8 + Math.sin(Date.now() / 1000 + i) * 10 + 30));
+                      return (
+                        <div
+                          key={i}
+                          className="bg-blue-500 rounded-t min-h-[4px] transition-all duration-500"
+                          style={{
+                            height: `${cpuValue}%`,
+                            width: '6px',
+                            opacity: 0.8 + (cpuValue / 100) * 0.2
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
                     <span>0%</span>
-                    <span>75%</span>
+                    <span>80%</span>
                   </div>
                 </div>
 
@@ -1096,13 +1306,20 @@ export default function MobileEmulatorPage() {
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Utilisation Mémoire</h3>
                   <div className="h-20 flex items-end justify-between gap-1">
-                    {[...Array(12)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-green-500 rounded-t min-h-[4px]"
-                        style={{ height: `${Math.random() * 40 + 30}%`, width: '6px' }}
-                      />
-                    ))}
+                    {[...Array(12)].map((_, i) => {
+                      const memValue = Math.max(30, Math.min(70, (realTimeMetrics.requestsPerMinute / 2500) * 60 + Math.cos(Date.now() / 1500 + i) * 5 + 40));
+                      return (
+                        <div
+                          key={i}
+                          className="bg-green-500 rounded-t min-h-[4px] transition-all duration-500"
+                          style={{
+                            height: `${memValue}%`,
+                            width: '6px',
+                            opacity: 0.8 + (memValue / 100) * 0.2
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                   <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
                     <span>512MB</span>
@@ -1111,24 +1328,37 @@ export default function MobileEmulatorPage() {
                 </div>
               </div>
 
-              {/* Activité récente */}
+              {/* Activité récente - Dynamique */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Activité récente</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 text-sm">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Application Service redémarré</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 2min</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${realTimeMetrics.activeServices > 9 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {realTimeMetrics.activeServices > 9 ? 'Tous les services opérationnels' : `${realTimeMetrics.activeServices} services actifs`}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Maintenant</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Nouvelle candidature créée</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 5min</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${realTimeMetrics.availability > 98 ? 'bg-green-500' : realTimeMetrics.availability > 95 ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Disponibilité système : {realTimeMetrics.availability.toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Maintenant</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-gray-600 dark:text-gray-400">Entretien planifié</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Il y a 8min</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${realTimeMetrics.responseTime < 150 ? 'bg-green-500' : realTimeMetrics.responseTime < 250 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Temps de réponse : {realTimeMetrics.responseTime}ms
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Maintenant</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Trafic : {(realTimeMetrics.requestsPerMinute / 1000).toFixed(1)}K req/min
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Maintenant</span>
                   </div>
                 </div>
               </div>
@@ -1136,220 +1366,7 @@ export default function MobileEmulatorPage() {
           )}
         </div>
 
-        {/* Panneau de logs */}
-        {showLogs && (
-          <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span>📋</span>
-                  Logs de l'émulateur
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={clearLogs}
-                    className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
-                  >
-                    Effacer
-                  </button>
-                  <button
-                    onClick={() => setShowLogs(false)}
-                    className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-3 max-h-64 overflow-y-auto font-mono text-xs space-y-1">
-                {logs.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">Aucun log disponible</p>
-                ) : (
-                  logs.map((log, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-start gap-2 p-2 rounded ${
-                        log.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' :
-                        log.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' :
-                        'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <span className="text-gray-500 dark:text-gray-400 shrink-0">{log.time}</span>
-                      <span className="shrink-0">
-                        {log.type === 'error' ? '❌' : log.type === 'success' ? '✅' : 'ℹ️'}
-                      </span>
-                      <span className="flex-1">{log.message}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Emulator Area */}
-        <div className="flex-1 p-3 sm:p-8 overflow-auto">
-          <div className="flex justify-center items-start min-h-full">
-            <div
-              style={{
-                width: showDeviceFrame ? width + 40 : width,
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {/* Device Frame */}
-              <div className={`relative ${showDeviceFrame ? (isDarkMode ? 'bg-gray-900' : 'bg-gray-800') : ''} ${showDeviceFrame ? 'rounded-[3rem] p-3 shadow-2xl' : ''}`}>
-                {showDeviceFrame && (
-                  <>
-                    {/* Notch (pour iOS) */}
-                    {selectedDevice.os === 'iOS' && orientation === 'portrait' && (
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-3xl z-10"></div>
-                    )}
-                    {/* Power Button */}
-                    <div className={`absolute ${orientation === 'portrait' ? 'right-0 top-32' : 'top-0 right-32'} w-1 h-16 bg-gray-700 rounded-l`}></div>
-                    {/* Volume Buttons */}
-                    <div className={`absolute ${orientation === 'portrait' ? 'left-0 top-24' : 'top-0 left-24'} w-1 h-12 bg-gray-700 rounded-r`}></div>
-                    <div className={`absolute ${orientation === 'portrait' ? 'left-0 top-40' : 'top-0 left-40'} w-1 h-12 bg-gray-700 rounded-r`}></div>
-                  </>
-                )}
-
-                {/* Screen */}
-                <div className={`relative overflow-hidden ${showDeviceFrame ? 'rounded-[2.5rem]' : 'rounded-lg shadow-2xl'} ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-                  {/* Status Bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-11 ${isDarkMode ? 'bg-black/90 backdrop-blur-sm' : 'bg-white/90 backdrop-blur-sm'} z-20 flex items-center justify-between px-6 text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">9:41</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs">📶</span>
-                        <span className={`text-xs ${networkSpeed === 'fast' ? 'text-green-500' : networkSpeed === 'slow' ? 'text-yellow-500' : 'text-red-500'}`}>
-                          {networkSpeed === 'fast' ? 'LTE' : networkSpeed === 'slow' ? '3G' : '✕'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">🔋</span>
-                      <span className="text-xs">100%</span>
-                      <div className="w-4 h-2 bg-green-500 rounded-sm"></div>
-                    </div>
-                  </div>
-
-                  {/* App Content Container - Scrollable */}
-                  <div
-                    className="relative overflow-hidden"
-                    style={{
-                      width: `${width}px`,
-                      height: `${height}px`,
-                      paddingTop: '44px'
-                    }}
-                  >
-                    {/* App Stopped Overlay */}
-                    {!appRunning && (
-                      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <div className="text-6xl mb-4 animate-pulse">⏸️</div>
-                          <p className="text-xl font-semibold mb-2">Application arrêtée</p>
-                          <p className="text-sm text-gray-300 mb-4">Cliquez sur le bouton de démarrage pour relancer</p>
-                          <button
-                            onClick={startApp}
-                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
-                          >
-                            ▶️ Démarrer l'application
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Touch Effect */}
-                    {touchEffect && emulatorType === 'web' && (
-                      <div
-                        className="absolute pointer-events-none z-50"
-                        style={{
-                          left: touchEffect.x,
-                          top: touchEffect.y,
-                          transform: 'translate(-50%, -50%)'
-                        }}
-                      >
-                        <div className="w-12 h-12 rounded-full bg-blue-500 opacity-40 animate-pulse"></div>
-                        <div className="absolute inset-0 w-12 h-12 rounded-full bg-blue-400 opacity-20 animate-ping"></div>
-                      </div>
-                    )}
-
-                    {/* Content Area - Switch between Web and React Native */}
-                    {emulatorType === 'react-native' ? (
-                      // React Native via iframe
-                      <iframe
-                        src="http://localhost:8090"
-                        className="w-full h-full border-0"
-                        style={{
-                          transform: 'scale(1)',
-                          transformOrigin: 'top left',
-                        }}
-                        title="React Native App"
-                      />
-                    ) : (
-                      // Web version
-                      <div
-                        className="h-full overflow-y-auto overflow-x-hidden relative"
-                        style={{
-                          // Style pour simuler le comportement mobile
-                          WebkitOverflowScrolling: 'touch',
-                          scrollbarWidth: 'none', // Firefox
-                          msOverflowStyle: 'none', // IE/Edge
-                        }}
-                        onScroll={(e) => {
-                          const scrollTop = e.currentTarget.scrollTop;
-                          const scrollHeight = e.currentTarget.scrollHeight;
-                          const clientHeight = e.currentTarget.clientHeight;
-
-                          // Ajouter un indicateur de scroll subtil
-                          if (scrollHeight > clientHeight) {
-                            e.currentTarget.style.setProperty('--scroll-indicator-opacity', String(Math.min(scrollTop / 50, 1)));
-                          }
-                        }}
-                      >
-                        <MobileApp
-                          currentScreen={currentScreen}
-                          setCurrentScreen={setCurrentScreen}
-                          selectedUser={selectedUser}
-                          mobileToken={mobileToken}
-                          applications={applications}
-                          loadingData={loadingData}
-                          isDarkMode={isDarkMode}
-                          loginAsUser={loginAsUser}
-                          logout={logout}
-                          width={width}
-                          height={height - 44}
-                          onTouchStart={(x, y) => {
-                            setTouchEffect({ x, y });
-                            // Vibration simulée
-                            if (navigator.vibrate) {
-                              navigator.vibrate(10);
-                            }
-                          }}
-                          onTouchEnd={() => {
-                            setTimeout(() => setTouchEffect(null), 200);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Home Indicator (iOS) */}
-                  {showDeviceFrame && selectedDevice.os === 'iOS' && orientation === 'portrait' && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white opacity-50 rounded-full"></div>
-                  )}
-                </div>
-              </div>
-
-              {/* Device Info */}
-              <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                <p className="font-medium">
-                  {selectedDevice.name} - {width}x{height}px - {orientation === 'portrait' ? 'Portrait' : 'Paysage'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Info Panel */}
         <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4">
@@ -1398,6 +1415,125 @@ export default function MobileEmulatorPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Services actifs */}
+      {showServicesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">🔧</span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Services Système</h2>
+                    <p className="text-blue-100 dark:text-blue-200 text-sm">
+                      {realTimeServices.filter(s => s.status === 'running').length} services actifs sur {realTimeServices.length} total
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowServicesModal(false)}
+                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+                >
+                  <span className="text-xl">✕</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {realTimeServices.map((service) => (
+                  <div
+                    key={service.id}
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${
+                      service.status === 'running'
+                        ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 border-green-200 dark:border-green-700'
+                        : service.status === 'warning'
+                        ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/30 border-yellow-200 dark:border-yellow-700'
+                        : 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/30 border-red-200 dark:border-red-700'
+                    }`}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full animate-pulse ${
+                          service.status === 'running' ? 'bg-green-500' :
+                          service.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}></div>
+                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${
+                          service.status === 'running' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                          service.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        }`}>
+                          {service.status === 'running' ? '🟢 Actif' : service.status === 'warning' ? '🟡 Avertissement' : '🔴 Erreur'}
+                        </span>
+                      </div>
+                      {service.lastRestart && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Redémarré {service.lastRestart}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Service Info */}
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{service.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Service ID: {service.id}</p>
+
+                    {/* Stats */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">CPU</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                service.cpu < 30 ? 'bg-green-500' : service.cpu < 60 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${Math.min(service.cpu, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-8 text-right">
+                            {service.cpu}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Mémoire</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                service.memory < 40 ? 'bg-green-500' : service.memory < 70 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${Math.min(service.memory, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-8 text-right">
+                            {service.memory}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Uptime */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Temps de fonctionnement</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{service.uptime}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

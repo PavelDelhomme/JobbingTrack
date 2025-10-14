@@ -35,7 +35,7 @@ interface SearchIndexState {
 
 export function useSearchIndex() {
   const { getCache } = useOfflineSync();
-  const { preloadAll, isCacheFresh, smartPreload, isPreloading: isPreloadingData } = useSearchPreloader({
+  const { preloadAll, isCacheFresh, smartPreload, isPreloading: isPreloadingData, preloadEntity } = useSearchPreloader({
     enabled: true,
     priorityEntities: ['applications', 'companies', 'contacts', 'interviews', 'calls'],
     preloadOnAppStart: true,

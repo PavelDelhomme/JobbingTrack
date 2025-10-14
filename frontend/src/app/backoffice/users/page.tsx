@@ -72,7 +72,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:8080/api/v1/auth/users', {
+      const response = await fetch('http://localhost:3000/api/v1/auth/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -95,7 +95,7 @@ export default function UsersPage() {
   const fetchUserEmailLogs = async (userId: string) => {
     setLoadingLogs(true)
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/notifications/emails/logs?userId=${userId}`, {
+      const response = await fetch(`http://localhost:3000/api/v1/notifications/emails/logs?userId=${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -125,7 +125,7 @@ export default function UsersPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
+      const response = await fetch('http://localhost:3000/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -168,7 +168,7 @@ export default function UsersPage() {
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/auth/users/${userId}/role`, {
+      const response = await fetch(`http://localhost:3000/api/v1/auth/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -187,7 +187,7 @@ export default function UsersPage() {
 
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/auth/users/${userId}/status`, {
+      const response = await fetch(`http://localhost:3000/api/v1/auth/users/${userId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -208,7 +208,7 @@ export default function UsersPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.')) return
 
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/auth/users/${userId}`, {
+      const response = await fetch(`http://localhost:3000/api/v1/auth/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -229,7 +229,7 @@ export default function UsersPage() {
 
   const sendPasswordReset = async (email: string) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/forgot-password', {
+      const response = await fetch('http://localhost:3000/api/v1/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

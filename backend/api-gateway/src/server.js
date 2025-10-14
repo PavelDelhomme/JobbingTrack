@@ -65,10 +65,45 @@ app.post('/api/v1/auth/login', async (req, res) => {
   }
 });
 
+// ✅ Route pour récupérer le profil utilisateur
+app.get('/api/v1/auth/profile', async (req, res) => {
+  try {
+    logger.info('👤 Route /api/v1/auth/profile interceptée');
+
+    // Mode développement : retourner le profil de l'utilisateur connecté
+    const mockProfile = {
+      success: true,
+      user: {
+        id: 'dev_user_1',
+        email: 'admin@jobbingtrack.test',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'SUPER_ADMIN',
+        isActive: true,
+        isDeleted: false,
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      fallback: true,
+      message: 'Profil utilisateur (mode développement)'
+    };
+
+    res.status(200).json(mockProfile);
+
+  } catch (error) {
+    logger.error('Error in auth profile:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
 app.get('/api/v1/auth/users', async (req, res) => {
   try {
     logger.info('👥 Route /api/v1/auth/users interceptée');
-    const targetUrl = `${process.env.AUTH_SERVICE_URL || 'http://auth-service:3001'}/users`;
+    const targetUrl = `${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}/users`;
 
     const response = await axios.get(targetUrl, {
       headers: req.headers,
@@ -97,18 +132,18 @@ app.get('/api/v1/auth/users', async (req, res) => {
   }
 });
 
-// ✅ Proxy simple vers les services
+// ✅ Proxy vers les services (utilise les variables d'environnement avec fallback localhost)
 const services = {
-  '/api/v1/applications': 'http://application-service:3002',
-  '/api/v1/companies': 'http://company-service:3003',
-  '/api/v1/contacts': 'http://contact-service:3004',
-  '/api/v1/interviews': 'http://interview-service:3005',
-  '/api/v1/notifications': 'http://notification-service:3006',
-  '/api/v1/dashboard': 'http://dashboard-service:3007',
-  '/api/v1/calls': 'http://call-service:3008',
-  '/api/v1/profile': 'http://profile-service:3009',
-  '/api/v1/events': 'http://event-service:3011',
-  '/api/v1/followups': 'http://followup-service:3012'
+  '/api/v1/applications': process.env.APPLICATION_SERVICE_URL || 'http://localhost:3002',
+  '/api/v1/companies': process.env.COMPANY_SERVICE_URL || 'http://localhost:3003',
+  '/api/v1/contacts': process.env.CONTACT_SERVICE_URL || 'http://localhost:3004',
+  '/api/v1/interviews': process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005',
+  '/api/v1/notifications': process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
+  '/api/v1/dashboard': process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
+  '/api/v1/calls': process.env.CALL_SERVICE_URL || 'http://localhost:3008',
+  '/api/v1/profile': process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
+  '/api/v1/events': process.env.EVENT_SERVICE_URL || 'http://localhost:3011',
+  '/api/v1/followups': process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012'
 };
 
 Object.entries(services).forEach(([path, target]) => {

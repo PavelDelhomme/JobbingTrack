@@ -62,17 +62,18 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - APPLICATION_SERVICE_URL=http://application-service:3002
-      - COMPANY_SERVICE_URL=http://company-service:3003
-      - CONTACT_SERVICE_URL=http://contact-service:3004
-      - INTERVIEW_SERVICE_URL=http://interview-service:3005
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
-      - DASHBOARD_SERVICE_URL=http://dashboard-service:3007
-      - CALL_SERVICE_URL=http://call-service:3008
-      - PROFILE_SERVICE_URL=http://profile-service:3009
-      - EVENT_SERVICE_URL=http://event-service:3011
-      - FOLLOWUP_SERVICE_URL=http://followup-service:3012
+      - AUTH_SERVICE_URL=http://localhost:3001
+      # ✅ En développement local, utiliser localhost pour vitesse
+      - APPLICATION_SERVICE_URL=http://localhost:3002
+      - COMPANY_SERVICE_URL=http://localhost:3003
+      - CONTACT_SERVICE_URL=http://localhost:3004
+      - INTERVIEW_SERVICE_URL=http://localhost:3005
+      - NOTIFICATION_SERVICE_URL=http://localhost:3006
+      - DASHBOARD_SERVICE_URL=http://localhost:3007
+      - CALL_SERVICE_URL=http://localhost:3008
+      - PROFILE_SERVICE_URL=http://localhost:3009
+      - EVENT_SERVICE_URL=http://localhost:3011
+      - FOLLOWUP_SERVICE_URL=http://localhost:3012
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
       - JWT_SECRET=your-secret-key-change-in-production-2025
     volumes:

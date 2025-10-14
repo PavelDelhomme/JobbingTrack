@@ -21,16 +21,28 @@ const authenticate = (req, res, next) => {
       });
     }
 
+    // ✅ En mode développement, accepter les tokens mock
+    if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token-')) {
+      // Token de développement valide - créer un utilisateur mock
+      req.user = {
+        id: 'dev_user_1',
+        email: 'admin@jobbingtrack.test',
+        role: 'SUPER_ADMIN'
+      };
+      return next();
+    }
+
+    // Pour les vrais tokens JWT, décoder normalement
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production-2025');
-    
+
     // ✅ Créer l'objet user avec toutes les infos du JWT
     req.user = {
       id: decoded.userId,
       email: decoded.email,
       role: decoded.role // ✅ Extraire le rôle
     };
-    
+
     next();
   } catch (error) {
     return res.status(401).json({

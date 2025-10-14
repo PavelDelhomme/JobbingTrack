@@ -344,11 +344,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-            <div className="flex items-center gap-4 flex-1">
+            {/* Section gauche - Navigation et titre */}
+            <div className="flex items-center gap-2 lg:gap-4 flex-1 min-w-0">
               {/* ✅ Bouton hamburger pour mobile */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="lg:hidden text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
                 aria-label="Toggle menu"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,34 +361,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </svg>
               </button>
 
-              <h1 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Backoffice Administrateur
+              {/* Titre - Responsive */}
+              <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
+                <span className="hidden sm:inline">Backoffice Administrateur</span>
+                <span className="sm:hidden">Admin</span>
               </h1>
 
               {/* Fil d'Ariane pour la navigation - Caché sur très petits écrans */}
-              <div className="hidden md:block">
+              <div className="hidden lg:block flex-shrink-0">
                 <Breadcrumb />
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 lg:space-x-4">
-              {/* Recherche globale */}
-              <div className="hidden lg:block max-w-md flex-1">
+            {/* Section droite - Actions et contrôles */}
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
+              {/* Recherche globale - Masquée sur très petits écrans */}
+              <div className="hidden sm:block max-w-xs lg:max-w-md flex-1">
                 <GlobalSearch className="w-full" />
               </div>
 
-              {/* Actions offline - Version compacte */}
-              <div className="hidden md:block">
-                <OfflineActions compact={true} showStats={false} />
-              </div>
 
-              {/* Email - Caché sur mobile */}
-              <span className="hidden md:inline text-sm text-gray-500 dark:text-gray-400">{user?.email}</span>
 
-              {/* Theme Toggle - Version compacte sur mobile */}
+              {/* Email - Caché sur petits écrans moyens */}
+              <span className="hidden lg:inline text-sm text-gray-500 dark:text-gray-400 max-w-32 lg:max-w-none truncate" title={user?.email}>
+                {user?.email}
+              </span>
+
+              {/* Theme Toggle - Toujours visible mais compact sur mobile */}
               <button
                 onClick={toggleTheme}
-                className={`flex items-center gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
+                className={`flex items-center gap-1 sm:gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
                   actualTheme === 'dark'
                     ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -402,8 +405,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
 
-          {/* Barre de recherche mobile */}
-          <div className="lg:hidden px-4 pb-3">
+          {/* Barre de recherche mobile - Seulement sur très petits écrans */}
+          <div className="sm:hidden px-4 pb-3">
             <GlobalSearch className="w-full" />
           </div>
         </div>

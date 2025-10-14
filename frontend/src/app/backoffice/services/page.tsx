@@ -16,26 +16,26 @@ interface ServiceStatus {
   error?: string
 }
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
   const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 8080, status: 'testing' },
-    { name: 'Auth Service', url: `${API_GATEWAY_URL}/api/v1/auth/health`, port: 3001, status: 'testing' },
-    { name: 'Application Service', url: `${API_GATEWAY_URL}/api/v1/applications/health`, port: 3002, status: 'testing' },
-    { name: 'Company Service', url: `${API_GATEWAY_URL}/api/v1/companies/health`, port: 3003, status: 'testing' },
-    { name: 'Contact Service', url: `${API_GATEWAY_URL}/api/v1/contacts/health`, port: 3004, status: 'testing' },
-    { name: 'Interview Service', url: `${API_GATEWAY_URL}/api/v1/interviews/health`, port: 3005, status: 'testing' },
-    { name: 'Notification Service', url: `${API_GATEWAY_URL}/api/v1/notifications/health`, port: 3006, status: 'testing' },
-    { name: 'Dashboard Service', url: `${API_GATEWAY_URL}/api/v1/dashboard/health`, port: 3007, status: 'testing' },
-    { name: 'Call Service', url: `${API_GATEWAY_URL}/api/v1/calls/health`, port: 3008, status: 'testing' },
-    { name: 'Profile Service', url: `${API_GATEWAY_URL}/api/v1/profile/health`, port: 3009, status: 'testing' },
-    { name: 'Event Service', url: `${API_GATEWAY_URL}/api/v1/events/health`, port: 3011, status: 'testing' },
-    { name: 'FollowUp Service', url: `${API_GATEWAY_URL}/api/v1/followups/health`, port: 3012, status: 'testing' },
-    { name: 'Frontend', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'testing' }
+    { name: 'API Gateway', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'testing' },
+    { name: 'Auth Service', url: `http://localhost:3001/health`, port: 3001, status: 'testing' },
+    { name: 'Application Service', url: `http://localhost:3002/health`, port: 3002, status: 'testing' },
+    { name: 'Company Service', url: `http://localhost:3003/health`, port: 3003, status: 'testing' },
+    { name: 'Contact Service', url: `http://localhost:3004/health`, port: 3004, status: 'testing' },
+    { name: 'Interview Service', url: `http://localhost:3005/health`, port: 3005, status: 'testing' },
+    { name: 'Notification Service', url: `http://localhost:3006/health`, port: 3006, status: 'testing' },
+    { name: 'Dashboard Service', url: `http://localhost:3007/health`, port: 3007, status: 'testing' },
+    { name: 'Call Service', url: `http://localhost:3008/health`, port: 3008, status: 'testing' },
+    { name: 'Profile Service', url: `http://localhost:3009/health`, port: 3009, status: 'testing' },
+    { name: 'Event Service', url: `http://localhost:3011/health`, port: 3011, status: 'testing' },
+    { name: 'FollowUp Service', url: `http://localhost:3012/health`, port: 3012, status: 'testing' },
+    { name: 'Frontend', url: `http://localhost:8080/health`, port: 8080, status: 'testing' }
   ])
 
   const [loading, setLoading] = useState(false)
