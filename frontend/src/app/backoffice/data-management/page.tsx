@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Edit, Trash2 } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
+import { AdvancedEditModal } from '@/components/AdvancedEditModal'
+import { AdvancedDataExporter } from '@/components/AdvancedDataExporter'
 import { useAuth } from '@/lib/auth'
 
 interface Table {
@@ -581,6 +584,43 @@ export default function DataManagementPage() {
                   >
                     🔄 <span className="hidden sm:inline">Rafraîchir</span>
                   </button>
+                  <div className="flex gap-2">
+                    <AdvancedDataExporter
+                      data={{
+                        [selectedTable.toLowerCase()]: tableData?.rows || []
+                      }}
+                      className="flex-1 sm:flex-none"
+                    />
+                    {/* Bouton de test pour ajouter des données fictives */}
+                    <button
+                      onClick={() => {
+                        // Ajouter des données de test pour vérifier l'exporteur
+                        const testData = {
+                          user: [
+                            { id: '1', email: 'redacted@example.invalid', firstName: 'Test', lastName: 'User', role: 'USER', is_active: true },
+                            { id: '2', email: 'redacted@example.invalid', firstName: 'Admin', lastName: 'User', role: 'ADMIN', is_active: false }
+                          ],
+                          company: [
+                            { id: '1', name: 'Test Company', sector: 'Tech', size: 'startup', is_active: true },
+                            { id: '2', name: 'Another Company', sector: 'Finance', size: 'entreprise', is_active: true }
+                          ]
+                        };
+
+                        // Mettre à jour les données fictives pour tester
+                        console.log('Données de test ajoutées:', testData);
+
+                        // Tester l'exporteur avec les données fictives
+                        if (window.testExportData) {
+                          window.testExportData.data = testData;
+                          console.log('Exporteur mis à jour avec données de test');
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
+                      title="Ajouter des données de test"
+                    >
+                      🧪 Test
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -643,17 +683,17 @@ export default function DataManagementPage() {
                                   setEditingRow(row)
                                   setShowEditModal(true)
                                 }}
-                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                                className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-all duration-200 hover:scale-110 mr-2"
                                 title="Éditer cet enregistrement"
                               >
-                                ✏️
+                                <Edit className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => deleteRow(row.id)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                className="h-8 w-8 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center transition-all duration-200 hover:scale-110"
                                 title="Supprimer cet enregistrement"
                               >
-                                🗑️
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </td>
                           </tr>
@@ -711,41 +751,76 @@ export default function DataManagementPage() {
         {/* Onglet Export */}
         {activeTab === 'export' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              📤 Exporter les Données
-            </h2>
-        <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Table à exporter
-                </label>
-                <select
-                  value={selectedTable}
-                  onChange={(e) => setSelectedTable(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                >
-                  {TABLES.map(table => (
-                    <option key={table.name} value={table.name}>
-                      {table.icon} {table.description}
-                    </option>
-                  ))}
-                </select>
-                </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => exportData('json')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  📄 Exporter en JSON
-                </button>
-                <button
-                  onClick={() => exportData('csv')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  📊 Exporter en CSV
-                </button>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span className="text-2xl">📤</span>
+                  Export avancé des données
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Exportez vos données dans différents formats avec sélection précise
+                </p>
               </div>
+              <AdvancedDataExporter
+                data={{
+                  [selectedTable.toLowerCase()]: tableData?.rows || []
+                }}
+                className="ml-4"
+              />
             </div>
+
+            {/* Sélecteur de table pour l'export */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Table à prévisualiser
+              </label>
+              <select
+                value={selectedTable}
+                onChange={(e) => setSelectedTable(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              >
+                {TABLES.map(table => (
+                  <option key={table.name} value={table.name}>
+                    {table.icon} {table.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Aperçu des données disponibles */}
+            {tableData && tableData.rows.length > 0 && (
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  📊 Aperçu des données - {tableData.total} enregistrement{tableData.total > 1 ? 's' : ''}
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {tableData.columns.length}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">Colonnes</div>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {Math.round(tableData.rows.length / 1024 * 100) / 100} KB
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">Taille estimée</div>
+                  </div>
+                  <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      {new Set(tableData.rows.map(r => r.status)).size}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">Statuts uniques</div>
+                  </div>
+                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                      {tableData.rows.filter(r => r.is_active !== false).length}
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">Éléments actifs</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -926,45 +1001,63 @@ export default function DataManagementPage() {
     </div>
       )}
 
-      {/* Modal Éditer */}
-      {showEditModal && editingRow && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-              ✏️ Modifier l'enregistrement
-            </h2>
-            <div className="space-y-3">
-              {Object.keys(editingRow).map(key => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {key}
-                  </label>
-                  <input
-                    type="text"
-                    value={renderCellValue(editingRow[key])}
-                    disabled={key === 'id' || key === 'createdAt' || key === 'updatedAt'}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg"
-              >
-                Annuler
-              </button>
-    <button
-                onClick={() => alert('Fonction de sauvegarde à implémenter')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-    >
-                Enregistrer
-    </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Éditer avancée */}
+      <AdvancedEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        rowData={editingRow}
+        tableName={selectedTable}
+        onSave={async (updatedData) => {
+          // Implémenter la logique de sauvegarde
+          let endpoint = '';
+
+          switch (selectedTable) {
+            case 'User':
+              endpoint = `http://localhost:8080/api/v1/auth/users/${updatedData.id}`;
+              break;
+            case 'Company':
+              endpoint = `http://localhost:8080/api/v1/companies/${updatedData.id}`;
+              break;
+            case 'Application':
+              endpoint = `http://localhost:8080/api/v1/applications/${updatedData.id}`;
+              break;
+            case 'Contact':
+              endpoint = `http://localhost:8080/api/v1/contacts/${updatedData.id}`;
+              break;
+            case 'Interview':
+              endpoint = `http://localhost:8080/api/v1/interviews/${updatedData.id}`;
+              break;
+            case 'Call':
+              endpoint = `http://localhost:8080/api/v1/calls/${updatedData.id}`;
+              break;
+            case 'FollowUp':
+              endpoint = `http://localhost:8080/api/v1/followups/${updatedData.id}`;
+              break;
+            case 'Notification':
+              endpoint = `http://localhost:8080/api/v1/notifications/${updatedData.id}`;
+              break;
+            default:
+              throw new Error(`Table ${selectedTable} non supportée pour la modification`);
+          }
+
+          const response = await fetch(endpoint, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const result = await response.json();
+          alert('✅ Enregistrement modifié avec succès');
+          fetchTableData(); // Recharger les données
+        }}
+      />
     </AdminLayout>
   )
 }

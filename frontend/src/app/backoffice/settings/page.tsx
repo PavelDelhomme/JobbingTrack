@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar, Wifi } from 'lucide-react';
+import AdminLayout from '@/components/AdminLayout';
 import { useCustomization } from '@/hooks/useCustomization';
 import { OfflineStatus } from '@/components/OfflineStatus';
+import { LinkedInIntegration } from '@/components/LinkedInIntegration';
+import { CalendarIntegration } from '@/components/CalendarIntegration';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -49,32 +52,33 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Paramètres de personnalisation</h1>
-          <p className="text-gray-600">Personnalisez votre expérience JobbingTrack</p>
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* En-tête */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Paramètres de personnalisation</h1>
+            <p className="text-gray-600">Personnalisez votre expérience JobbingTrack</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              className="text-gray-600"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Réinitialiser
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            className="text-gray-600"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Réinitialiser
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Sauvegarder
-          </Button>
-        </div>
-      </div>
 
       {/* Onglets de paramètres */}
       <Tabs defaultValue="appearance" className="w-full">
@@ -120,18 +124,11 @@ export default function SettingsPage() {
                 <Label>Thème</Label>
                 <Select
                   value={localSettings.theme}
-                  onValueChange={(value: 'light' | 'dark' | 'auto') =>
-                    updateLocalSettings({ theme: value })
-                  }
+                  onChange={(e) => updateLocalSettings({ theme: e.target.value as 'light' | 'dark' | 'auto' })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Clair</SelectItem>
-                    <SelectItem value="dark">Sombre</SelectItem>
-                    <SelectItem value="auto">Automatique</SelectItem>
-                  </SelectContent>
+                  <option value="light">Clair</option>
+                  <option value="dark">Sombre</option>
+                  <option value="auto">Automatique</option>
                 </Select>
               </div>
 
@@ -229,7 +226,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.compactMode}
-                  onCheckedChange={(checked) => updateLocalSettings({ compactMode: checked })}
+                  onChange={(e) => updateLocalSettings({ compactMode: e.target.checked })}
                 />
               </div>
 
@@ -243,7 +240,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.showAnimations}
-                  onCheckedChange={(checked) => updateLocalSettings({ showAnimations: checked })}
+                  onChange={(e) => updateLocalSettings({ showAnimations: e.target.checked })}
                 />
               </div>
 
@@ -254,18 +251,11 @@ export default function SettingsPage() {
                 <Label>Disposition du tableau de bord</Label>
                 <Select
                   value={localSettings.dashboardLayout}
-                  onValueChange={(value: 'grid' | 'list' | 'kanban') =>
-                    updateLocalSettings({ dashboardLayout: value })
-                  }
+                  onChange={(e) => updateLocalSettings({ dashboardLayout: e.target.value as 'grid' | 'list' | 'kanban' })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grille</SelectItem>
-                    <SelectItem value="list">Liste</SelectItem>
-                    <SelectItem value="kanban">Kanban</SelectItem>
-                  </SelectContent>
+                  <option value="grid">Grille</option>
+                  <option value="list">Liste</option>
+                  <option value="kanban">Kanban</option>
                 </Select>
               </div>
 
@@ -276,17 +266,12 @@ export default function SettingsPage() {
                 <Label>Éléments par page</Label>
                 <Select
                   value={localSettings.itemsPerPage.toString()}
-                  onValueChange={(value) => updateLocalSettings({ itemsPerPage: parseInt(value) })}
+                  onChange={(e) => updateLocalSettings({ itemsPerPage: parseInt(e.target.value) })}
                 >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
                 </Select>
               </div>
             </CardContent>
@@ -311,9 +296,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.notifications.enabled}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, enabled: checked }
+                      notifications: { ...localSettings.notifications, enabled: e.target.checked }
                     })
                   }
                 />
@@ -329,9 +314,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.notifications.sound}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, sound: checked }
+                      notifications: { ...localSettings.notifications, sound: e.target.checked }
                     })
                   }
                 />
@@ -344,21 +329,16 @@ export default function SettingsPage() {
                 <Label>Position des notifications</Label>
                 <Select
                   value={localSettings.notifications.position}
-                  onValueChange={(value: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left') =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, position: value }
+                      notifications: { ...localSettings.notifications, position: e.target.value as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' }
                     })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="top-right">Haut droite</SelectItem>
-                    <SelectItem value="top-left">Haut gauche</SelectItem>
-                    <SelectItem value="bottom-right">Bas droite</SelectItem>
-                    <SelectItem value="bottom-left">Bas gauche</SelectItem>
-                  </SelectContent>
+                  <option value="top-right">Haut droite</option>
+                  <option value="top-left">Haut gauche</option>
+                  <option value="bottom-right">Bas droite</option>
+                  <option value="bottom-left">Bas gauche</option>
                 </Select>
               </div>
 
@@ -369,21 +349,16 @@ export default function SettingsPage() {
                 <Label>Durée d'affichage (secondes)</Label>
                 <Select
                   value={localSettings.notifications.duration.toString()}
-                  onValueChange={(value) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, duration: parseInt(value) }
+                      notifications: { ...localSettings.notifications, duration: parseInt(e.target.value) }
                     })
                   }
                 >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3000">3 secondes</SelectItem>
-                    <SelectItem value="5000">5 secondes</SelectItem>
-                    <SelectItem value="10000">10 secondes</SelectItem>
-                    <SelectItem value="0">Jusqu'à fermeture</SelectItem>
-                  </SelectContent>
+                  <option value="3000">3 secondes</option>
+                  <option value="5000">5 secondes</option>
+                  <option value="10000">10 secondes</option>
+                  <option value="0">Jusqu'à fermeture</option>
                 </Select>
               </div>
             </CardContent>
@@ -408,9 +383,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.highContrast}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, highContrast: checked }
+                      accessibility: { ...localSettings.accessibility, highContrast: e.target.checked }
                     })
                   }
                 />
@@ -426,9 +401,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.largeText}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, largeText: checked }
+                      accessibility: { ...localSettings.accessibility, largeText: e.target.checked }
                     })
                   }
                 />
@@ -444,9 +419,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.reduceMotion}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, reduceMotion: checked }
+                      accessibility: { ...localSettings.accessibility, reduceMotion: e.target.checked }
                     })
                   }
                 />
@@ -462,9 +437,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.focusIndicators}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, focusIndicators: checked }
+                      accessibility: { ...localSettings.accessibility, focusIndicators: e.target.checked }
                     })
                   }
                 />
@@ -491,17 +466,12 @@ export default function SettingsPage() {
                 <Label>Langue</Label>
                 <Select
                   value={localSettings.language}
-                  onValueChange={(value) => updateLocalSettings({ language: value })}
+                  onChange={(e) => updateLocalSettings({ language: e.target.value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
-                    <SelectItem value="de">Deutsch</SelectItem>
-                  </SelectContent>
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="de">Deutsch</option>
                 </Select>
               </div>
 
@@ -512,16 +482,11 @@ export default function SettingsPage() {
                 <Label>Format de date</Label>
                 <Select
                   value={localSettings.dateFormat}
-                  onValueChange={(value) => updateLocalSettings({ dateFormat: value })}
+                  onChange={(e) => updateLocalSettings({ dateFormat: e.target.value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                  </SelectContent>
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                 </Select>
               </div>
 
@@ -532,15 +497,10 @@ export default function SettingsPage() {
                 <Label>Format d'heure</Label>
                 <Select
                   value={localSettings.timeFormat}
-                  onValueChange={(value: '12h' | '24h') => updateLocalSettings({ timeFormat: value })}
+                  onChange={(e) => updateLocalSettings({ timeFormat: e.target.value as '12h' | '24h' })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24h">24 heures</SelectItem>
-                    <SelectItem value="12h">12 heures (AM/PM)</SelectItem>
-                  </SelectContent>
+                  <option value="24h">24 heures</option>
+                  <option value="12h">12 heures (AM/PM)</option>
                 </Select>
               </div>
 
@@ -551,21 +511,16 @@ export default function SettingsPage() {
                 <Label>Durée de rétention du cache (jours)</Label>
                 <Select
                   value={localSettings.dataRetention.cacheDuration.toString()}
-                  onValueChange={(value) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      dataRetention: { ...localSettings.dataRetention, cacheDuration: parseInt(value) }
+                      dataRetention: { ...localSettings.dataRetention, cacheDuration: parseInt(e.target.value) }
                     })
                   }
                 >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 jour</SelectItem>
-                    <SelectItem value="3">3 jours</SelectItem>
-                    <SelectItem value="7">7 jours</SelectItem>
-                    <SelectItem value="30">30 jours</SelectItem>
-                  </SelectContent>
+                  <option value="1">1 jour</option>
+                  <option value="3">3 jours</option>
+                  <option value="7">7 jours</option>
+                  <option value="30">30 jours</option>
                 </Select>
               </div>
 
@@ -579,9 +534,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.dataRetention.offlineMode}
-                  onCheckedChange={(checked) =>
+                  onChange={(e) =>
                     updateLocalSettings({
-                      dataRetention: { ...localSettings.dataRetention, offlineMode: checked }
+                      dataRetention: { ...localSettings.dataRetention, offlineMode: e.target.checked }
                     })
                   }
                 />
@@ -697,6 +652,7 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

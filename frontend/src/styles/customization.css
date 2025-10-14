@@ -330,3 +330,377 @@
   background-color: var(--primary-color);
   color: white;
 }
+
+/* Variables CSS personnalisées étendues */
+:root {
+  /* Couleurs par défaut */
+  --primary-color: #3B82F6;
+  --accent-color: #10B981;
+  --animation-duration: 150ms;
+  --items-per-page: 20;
+  --cache-duration: 7d;
+  --sync-frequency: 5m;
+  --notification-duration: 5000ms;
+}
+
+/* Classes pour les modes d'accessibilité */
+.high-contrast {
+  filter: contrast(1.5) brightness(1.2);
+}
+
+.large-text {
+  font-size: 120% !important;
+}
+
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+.animations-enabled {
+  animation-duration: var(--animation-duration);
+}
+
+.compact-mode {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.25rem;
+}
+
+.compact-mode .p-4 {
+  padding: var(--spacing-sm) !important;
+}
+
+.compact-mode .p-6 {
+  padding: var(--spacing-md) !important;
+}
+
+.compact-mode .p-8 {
+  padding: var(--spacing-lg) !important;
+}
+
+.sidebar-collapsed {
+  --sidebar-width: 4rem;
+}
+
+/* Notifications */
+.notifications-enabled .notification {
+  display: block;
+}
+
+.notification-sound-enabled .notification {
+  /* Styles pour les notifications avec son */
+}
+
+/* Positions des notifications */
+[data-notification-position="top-right"] .notification-container {
+  top: 1rem;
+  right: 1rem;
+}
+
+[data-notification-position="top-left"] .notification-container {
+  top: 1rem;
+  left: 1rem;
+}
+
+[data-notification-position="bottom-right"] .notification-container {
+  bottom: 1rem;
+  right: 1rem;
+}
+
+[data-notification-position="bottom-left"] .notification-container {
+  bottom: 1rem;
+  left: 1rem;
+}
+
+/* Mode hors ligne */
+.offline-mode {
+  opacity: 0.8;
+}
+
+.offline-mode::after {
+  content: "⚡ Mode hors ligne";
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #F59E0B;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  z-index: 9999;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Dispositions du tableau de bord */
+[data-dashboard-layout="grid"] .dashboard-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+[data-dashboard-layout="list"] .dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+[data-dashboard-layout="kanban"] .dashboard-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+/* Indicateurs de focus améliorés */
+.focus-indicators *:focus {
+  outline: 3px solid var(--accent-color) !important;
+  outline-offset: 2px !important;
+}
+
+/* Styles pour les éléments par page */
+.items-per-page-10 .pagination-limit {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.items-per-page-20 .pagination-limit {
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.items-per-page-50 .pagination-limit {
+  max-height: 2000px;
+  overflow-y: auto;
+}
+
+/* Styles pour les couleurs personnalisées */
+.color-primary {
+  color: var(--primary-color) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.border-primary {
+  border-color: var(--primary-color) !important;
+}
+
+.color-accent {
+  color: var(--accent-color) !important;
+}
+
+.bg-accent {
+  background-color: var(--accent-color) !important;
+}
+
+.border-accent {
+  border-color: var(--accent-color) !important;
+}
+
+/* Animations personnalisées */
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Classes d'animation */
+.slide-in-top {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.slide-in-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Transitions fluides */
+* {
+  transition: background-color var(--animation-duration) ease,
+              border-color var(--animation-duration) ease,
+              color var(--animation-duration) ease,
+              opacity var(--animation-duration) ease,
+              transform var(--animation-duration) ease;
+}
+
+/* États hover améliorés */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Styles pour les langues */
+[lang="fr"] .date-display::after {
+  content: " (FR)";
+}
+
+[lang="en"] .date-display::after {
+  content: " (EN)";
+}
+
+[lang="es"] .date-display::after {
+  content: " (ES)";
+}
+
+[lang="de"] .date-display::after {
+  content: " (DE)";
+}
+
+/* Formats de date */
+[data-date-format="DD/MM/YYYY"] .date-display {
+  /* Styles pour le format français */
+}
+
+[data-date-format="MM/DD/YYYY"] .date-display {
+  /* Styles pour le format américain */
+}
+
+[data-date-format="YYYY-MM-DD"] .date-display {
+  /* Styles pour le format ISO */
+}
+
+/* Formats d'heure */
+[data-time-format="12h"] .time-display {
+  /* Styles pour le format 12h avec AM/PM */
+}
+
+[data-time-format="24h"] .time-display {
+  /* Styles pour le format 24h */
+}
+
+/* Responsive pour les paramètres personnalisés */
+@media (max-width: 768px) {
+  .compact-mode {
+    --spacing-xs: 0.125rem;
+    --spacing-sm: 0.25rem;
+    --spacing-md: 0.5rem;
+    --spacing-lg: 0.75rem;
+  }
+
+  .sidebar-collapsed {
+    --sidebar-width: 0px;
+  }
+}
+
+/* Thèmes personnalisés */
+.theme-custom {
+  --primary-50: rgba(59, 130, 246, 0.05);
+  --primary-100: rgba(59, 130, 246, 0.1);
+  --primary-200: rgba(59, 130, 246, 0.2);
+  --primary-300: rgba(59, 130, 246, 0.3);
+  --primary-400: rgba(59, 130, 246, 0.4);
+  --primary-500: var(--primary-color);
+  --primary-600: #2563EB;
+  --primary-700: #1D4ED8;
+  --primary-800: #1E40AF;
+  --primary-900: #1E3A8A;
+
+  --accent-50: rgba(16, 185, 129, 0.05);
+  --accent-100: rgba(16, 185, 129, 0.1);
+  --accent-200: rgba(16, 185, 129, 0.2);
+  --accent-300: rgba(16, 185, 129, 0.3);
+  --accent-400: rgba(16, 185, 129, 0.4);
+  --accent-500: var(--accent-color);
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-800: #065F46;
+  --accent-900: #064E3B;
+}
+
+/* Préchargement des styles */
+.customization-loading {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.customization-loaded {
+  opacity: 1;
+}

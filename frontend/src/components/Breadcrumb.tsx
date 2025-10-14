@@ -54,7 +54,7 @@ export default function Breadcrumb({ items = [], className = '' }: BreadcrumbPro
           'users': 'Utilisateurs',
           'services': 'Services',
           'data-management': 'Gestion Données',
-          'settings': 'Configuration',
+          'settings': 'Paramètres',
           'api-tester': 'Testeur API',
           'test-data': 'Données de Test',
           'mobile-emulator': 'Émulateur Mobile',
