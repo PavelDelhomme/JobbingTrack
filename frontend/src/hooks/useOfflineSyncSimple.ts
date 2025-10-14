@@ -28,7 +28,7 @@ interface OfflineSyncState {
 
 export function useOfflineSync() {
   const [state, setState] = useState<OfflineSyncState>({
-    isOnline: navigator.onLine,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     pendingOperations: [],
     cache: new Map(),
     isSyncing: false,
@@ -224,7 +224,7 @@ export function useOfflineSync() {
   // Vider complètement les données offline
   const clearAllOfflineData = useCallback(() => {
     setState({
-      isOnline: navigator.onLine,
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
       pendingOperations: [],
       cache: new Map(),
       isSyncing: false,

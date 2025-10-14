@@ -16,14 +16,14 @@ COLOR_SUPPORTED := $(shell echo $$TERM | grep -q color && echo "1" || echo "0")
 
 # Définir les couleurs avec fallback
 ifeq ($(COLOR_SUPPORTED),1)
-  GREEN := \033[0;32m
-  RED := \033[0;31m
-  YELLOW := \033[1;33m
-  BLUE := \033[0;34m
+GREEN := \033[0;32m
+RED := \033[0;31m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
   PURPLE := \033[0;35m
   CYAN := \033[0;36m
   BOLD := \033[1m
-  NC := \033[0m
+NC := \033[0m
 else
   GREEN :=
   RED :=
@@ -34,6 +34,16 @@ else
   BOLD :=
   NC :=
 endif
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+# Variables de configuration
+BACKEND_DIR = backend
+FRONTEND_DIR = frontend
+SCRIPTS_DIR = scripts
+TESTS_DIR = tests
 
 .PHONY: help build up down clean dev test migrate logs status install setup
 
@@ -110,9 +120,9 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	$(call print_message,$(GREEN),🚀 Démarrage complet de JobbingTrack...)
 	$(call print_message,$(BLUE),📦 Backend + Frontend + Base de données)
 
-	# Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
+  # Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
 	$(call print_message,$(YELLOW),🏗️ Démarrage de l'infrastructure...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d postgres redis
+	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d postgres redis
 
 	# Attendre que PostgreSQL soit prêt avec vérification
 	$(call wait_for_postgres)
@@ -169,8 +179,14 @@ clean: ## Nettoyer complètement (containers, volumes, images)
 # Mode développement
 dev: ## Mode développement avec hot reload
 	$(call print_message,$(BLUE),🔧 Mode développement JobbingTrack...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up --build
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up --build
+	$(call print_message,$(YELLOW),⚡ Démarrage rapide sans reconstruction...)
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
+	$(call print_message,$(GREEN),✅ Mode développement démarré)
+	@echo ""
+	@echo "$(CYAN)🌐 Accès:$(NC)"
+	@echo "  Frontend: $(GREEN)http://localhost:8080$(NC)"
+	@echo "  API:      $(GREEN)http://localhost:3000$(NC)"
 
 # ============================================================================
 # VÉRIFICATIONS
@@ -377,7 +393,7 @@ check-health: ## Vérification santé préventive de tous les composants
 		echo "   $(GREEN)✅ Docker installé$(NC)"; \
 		if docker info &> /dev/null; then \
 			echo "   $(GREEN)✅ Docker daemon actif$(NC)"; \
-		else \
+	else \
 			echo "   $(RED)❌ Docker daemon inactif$(NC)"; \
 		fi \
 	else \
@@ -406,7 +422,7 @@ check-health: ## Vérification santé préventive de tous les composants
 	@for port in 3000 3001 3002 3003 3004 3005 3006 3007 8080 5432 6379; do \
 		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
 			echo "   $(RED)❌ Port $$port occupé$(NC)"; \
-		else \
+	else \
 			echo "   $(GREEN)✅ Port $$port libre$(NC)"; \
 		fi \
 	done
