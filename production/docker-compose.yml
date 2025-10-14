@@ -1,0 +1,370 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis pour le cache et les sessions
+  redis:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - jobbingtrack-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Gateway (port interne)
+  api-gateway:
+    image: votre-registry/jobbingtrack-api-gateway:latest
+    container_name: jobbingtrack-api-gateway-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DOCKER_STATS_SERVICE_URL: http://docker-stats:3015
+      AUTH_SERVICE_URL: http://auth-service:3001
+      APPLICATION_SERVICE_URL: http://application-service:3002
+      COMPANY_SERVICE_URL: http://company-service:3003
+      CONTACT_SERVICE_URL: http://contact-service:3004
+      INTERVIEW_SERVICE_URL: http://interview-service:3005
+      NOTIFICATION_SERVICE_URL: http://notification-service:3006
+      DASHBOARD_SERVICE_URL: http://dashboard-service:3007
+      CALL_SERVICE_URL: http://call-service:3008
+      PROFILE_SERVICE_URL: http://profile-service:3009
+      EVENT_SERVICE_URL: http://event-service:3011
+      FOLLOWUP_SERVICE_URL: http://followup-service:3012
+      WORKFLOW_SERVICE_URL: http://workflow-service:3013
+      ALLOWED_ORIGINS: https://${DOMAIN},https://www.${DOMAIN}
+      JWT_SECRET: ${JWT_SECRET}
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - docker_stats:/app/data
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      - postgres
+      - redis
+
+  # Service d'authentification
+  auth-service:
+    image: votre-registry/jobbingtrack-auth-service:latest
+    container_name: jobbingtrack-auth-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      FRONTEND_URL: https://${DOMAIN}
+      API_URL: https://${DOMAIN}
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Service des candidatures
+  application-service:
+    image: votre-registry/jobbingtrack-application-service:latest
+    container_name: jobbingtrack-application-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des entreprises
+  company-service:
+    image: votre-registry/jobbingtrack-company-service:latest
+    container_name: jobbingtrack-company-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des contacts
+  contact-service:
+    image: votre-registry/jobbingtrack-contact-service:latest
+    container_name: jobbingtrack-contact-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des entretiens
+  interview-service:
+    image: votre-registry/jobbingtrack-interview-service:latest
+    container_name: jobbingtrack-interview-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des notifications
+  notification-service:
+    image: votre-registry/jobbingtrack-notification-service:latest
+    container_name: jobbingtrack-notification-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Service du dashboard
+  dashboard-service:
+    image: votre-registry/jobbingtrack-dashboard-service:latest
+    container_name: jobbingtrack-dashboard-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des appels téléphoniques
+  call-service:
+    image: votre-registry/jobbingtrack-call-service:latest
+    container_name: jobbingtrack-call-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service de gestion des profils et CVs
+  profile-service:
+    image: votre-registry/jobbingtrack-profile-service:latest
+    container_name: jobbingtrack-profile-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service des événements globaux
+  event-service:
+    image: votre-registry/jobbingtrack-event-service:latest
+    container_name: jobbingtrack-event-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3011
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service dédié aux relances
+  followup-service:
+    image: votre-registry/jobbingtrack-followup-service:latest
+    container_name: jobbingtrack-followup-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3012
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      NOTIFICATION_SERVICE_URL: http://notification-service:3006
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service de gestion des workflows
+  workflow-service:
+    image: votre-registry/jobbingtrack-workflow-service:latest
+    container_name: jobbingtrack-workflow-service-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3013
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Service de statistiques Docker (optionnel en prod)
+  docker-stats-service:
+    image: votre-registry/jobbingtrack-docker-stats:latest
+    container_name: jobbingtrack-docker-stats-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3015
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+
+  # Monitoring avec Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jobbingtrack-prometheus-prod
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - jobbingtrack-network
+
+  # Grafana pour les dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jobbingtrack-grafana-prod
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-dashboards:/var/lib/grafana/dashboards
+    networks:
+      - jobbingtrack-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  docker_stats:
+    driver: local
+
+networks:
+  jobbingtrack-network:
+    driver: bridge
+    name: jobbingtrack-prod

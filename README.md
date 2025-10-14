@@ -19,7 +19,11 @@
 - [🧪 Tests & Qualité](#-tests--qualité)
 - [📱 Applications](#-applications)
 - [🗺️ Roadmap Complète](#%EF%B8%8F-roadmap-complète)
-- [📚 Documentation Technique](#-documentation-technique)
+- [📚 Documentation Centralisée](#-documentation-centralisée)
+- [🏗️ Structure du Projet](#%EF%B8%8F-structure-du-projet)
+- [🛠️ Outils de Développement](#%EF%B8%8F-outils-de-développement)
+- [🚀 Déploiement](#-déploiement)
+- [📞 Support & Contribution](#-support--contribution)
 
 ---
 
@@ -673,6 +677,168 @@ git push origin feat/nouvelle-fonctionnalite
 ## 📄 Licence
 
 Ce projet est sous licence **MIT**. Voir [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 📚 Documentation Centralisée
+
+Toute la documentation détaillée de JobbingTrack est organisée dans le dossier [`docs/`](./docs/) pour une consultation facile et structurée.
+
+### 📖 **Documentation du Projet**
+- **[Vue d'Ensemble](./docs/README.md)** - Documentation complète organisée
+- **[Documentation du Projet](./docs/project/README.md)** - Organisation et spécifications techniques
+- **[Historique des Versions](./docs/project/changelog.md)** - Toutes les modifications et versions
+
+### 📋 **Guides Pratiques**
+- **[Guides Complets](./docs/guides/README.md)** - Tous les guides d'utilisation et développement
+- **[Guide de Démarrage](./GUIDE-DEVELOPPEMENT.md)** - Instructions pour les développeurs
+
+### 🚀 **Déploiement**
+- **[Guide de Déploiement](./docs/deployment/README.md)** - Déploiement en production complet
+- **[Documentation Déploiement PDF](./docs/deployment/production.md)** - Version PDF du guide
+
+### 📡 **API et Intégration**
+- **[Documentation API](./docs/api/README.md)** - Guide complet de l'API REST
+- **[Exemples d'Utilisation](./docs/api/examples.md)** - Cas d'usage concrets
+
+### 🔧 **Outils de Développement**
+- **[Makefiles Organisés](./docs/makefiles/README.md)** - Structure et utilisation des Makefiles
+- **[Configuration des Couleurs](./docs/makefiles/colors.md)** - Guide des couleurs dans les Makefiles
+- **[Scripts Utilitaires](./docs/scripts/README.md)** - Tous les scripts organisés par catégories
+
+### 🔧 **Documentation Technique Avancée**
+- **[Documentation Technique](./docs/technical/README.md)** - Documentation approfondie pour experts
+
+---
+
+## 🏗️ Structure du Projet
+
+```
+JobbingTrack/
+├── 📄 README.md                    # ← Documentation principale (ce fichier)
+├── 📚 docs/                       # ← Toute la documentation organisée
+│   ├── README.md                  # Vue d'ensemble de la documentation
+│   ├── SPEC-TECHNIQUE-JOBBINGTRACK.md
+│   ├── STATUT-PROJET.md
+│   ├── ORGANISATION.md
+│   ├── CHANGELOG.md
+│   ├── guides/                    # Guides pratiques
+│   ├── api/                       # Documentation API
+│   ├── deployment/                # Guides de déploiement
+│   └── technical/                 # Documentation technique avancée
+│
+├── 🛠️ scripts/                    # Scripts organisés par catégories
+│   ├── README.md                  # Documentation des scripts
+│   ├── database/                  # Scripts base de données
+│   ├── deployment/                # Scripts de déploiement
+│   ├── system/                    # Scripts système et configuration
+│   ├── testing/                   # Scripts de tests
+│   ├── setup/                     # Scripts de configuration
+│   ├── monitoring/                # Scripts de surveillance
+│   └── utils/                     # Utilitaires généraux
+│
+├── 📦 makefiles/                  # Makefiles modulaires
+│   ├── README.md                  # Documentation des Makefiles
+│   ├── README-COLORS.md           # Guide des couleurs
+│   ├── .make_colors              # Configuration des couleurs
+│   ├── shared/                    # Fonctions communes
+│   ├── root/                      # Makefile principal
+│   ├── backend/                   # Makefile backend
+│   ├── frontend/                  # Makefile frontend
+│   └── tests/                     # Makefile tests
+│
+├── 📊 data/                       # Données et fichiers de configuration
+│   ├── README.md                  # Documentation des données
+│   └── sql/                       # Scripts SQL
+│
+├── 🔧 backend/                    # Code source backend
+├── 🎨 frontend/                   # Code source frontend
+├── 🧪 tests/                      # Tests automatisés
+└── 📱 mobile/                     # Application mobile
+```
+
+---
+
+## 🛠️ Outils de Développement
+
+### 🎨 **Makefiles avec Couleurs**
+```bash
+# Utilisation depuis n'importe quel répertoire
+./make.sh help              # Aide complète avec couleurs
+make help                  # Même chose avec alias
+
+# Commandes préventives (nouvelles)
+make diagnose              # Diagnostic complet du système
+make check-health          # Vérification santé préventive
+make backup               # Sauvegarde complète
+make clean-logs           # Nettoyage automatique
+```
+
+### 🛠️ **Scripts Utilitaires**
+```bash
+# Surveillance et maintenance
+./scripts/monitoring/health-monitor.sh 60    # Surveillance temps réel
+./scripts/monitoring/auto-backup.sh         # Sauvegarde automatique
+./scripts/system/pre-flight-check.sh        # Vérifications pré-vol
+
+# Diagnostic et dépannage
+./scripts/system/network-diagnostic.sh      # Diagnostic réseau
+./scripts/system/diagnose-colors.sh         # Problèmes de couleurs
+./scripts/system/smart-clean.sh            # Nettoyage intelligent
+```
+
+### 🎯 **Commandes Préventives**
+```bash
+# Avant toute opération importante
+make pre-flight           # Vérifications complètes
+make check-ready         # Vérifier que tout est prêt
+make check-deps          # Vérifier les dépendances
+
+# Maintenance quotidienne
+make check-health        # Vérification santé rapide
+make clean-logs         # Nettoyage automatique
+```
+
+---
+
+## 🚀 Déploiement
+
+### 🏭 **Production**
+- **[Guide Complet](./docs/deployment/README.md)** - Déploiement serveur avec Portainer
+- **[Configuration Nginx](./docs/deployment/README.md#configuration-nginx-proxy-manager)** - Reverse proxy et SSL
+- **[Variables d'Environnement](./docs/deployment/README.md#variables-denvironnement)** - Configuration production
+
+### 📦 **Docker et Containers**
+- **Docker Compose** pour le développement local
+- **Portainer** pour la gestion en production
+- **Nginx Proxy Manager** pour le reverse proxy SSL
+- **Monitoring intégré** avec Prometheus et Grafana
+
+### 🔒 **Sécurité**
+- Certificats SSL automatiques avec Let's Encrypt
+- Authentification JWT sécurisée
+- Rate limiting et protection anti-abus
+- Audit et logs de sécurité
+
+---
+
+## 📞 Support & Contribution
+
+### 🆘 **Support**
+- **Documentation** : Toute la documentation est dans [`docs/`](./docs/)
+- **Issues GitHub** : [Signaler un bug](https://github.com/PavelDelhomme/JobbingTrack/issues)
+- **Discussions** : [Questions et suggestions](https://github.com/PavelDelhomme/JobbingTrack/discussions)
+
+### 🤝 **Contribution**
+1. **Lire la documentation** : [`docs/README.md`](./docs/README.md)
+2. **Comprendre l'architecture** : [`docs/SPEC-TECHNIQUE-JOBBINGTRACK.md`](./docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)
+3. **Suivre les standards** : [`docs/guides/README.md`](./docs/guides/README.md)
+4. **Ouvrir une Pull Request** avec une description détaillée
+
+### 📚 **Ressources Additionnelles**
+- **Makefile Colors** : [`makefiles/README-COLORS.md`](./makefiles/README-COLORS.md)
+- **Scripts Utils** : [`scripts/README.md`](./scripts/README.md)
+- **Tests** : [`tests/README.md`](./tests/README.md)
 
 ---
 
