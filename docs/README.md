@@ -1,142 +1,198 @@
-# 📚 Documentation Centralisée - JobbingTrack
+# 📚 Documentation JobbingTrack
 
-Cette section contient **TOUTE** la documentation organisée de JobbingTrack, centralisée pour une consultation facile et structurée.
+Documentation complète de la plateforme JobbingTrack - Plateforme de Gestion de Candidatures Professionnelles.
 
-## 📂 Structure de la Documentation
+## 🏗️ Structure de la Documentation
 
 ```
-docs/
-├── README.md                      # ← Vue d'ensemble (ce fichier)
-├── project/                       # Documentation du projet
-│   └── README.md                  # Organisation et spécifications
-├── makefiles/                     # Documentation des Makefiles
-│   └── README.md                  # Structure et utilisation
-├── scripts/                       # Documentation des scripts
-│   └── README.md                  # Scripts organisés par catégories
-├── deployment/                    # Documentation déploiement
-│   └── README.md                  # Guide de déploiement complet
-├── api/                           # Documentation API
-│   └── README.md                  # Guide de l'API REST
-├── guides/                        # Guides pratiques
-│   └── README.md                  # Tous les guides d'utilisation
-└── technical/                     # Documentation technique avancée
-    └── README.md                  # Documentation pour experts
+/docs/
+├── 📄 README.md                    # Ce fichier - Vue d'ensemble
+├── 📁 technical/                   # Documentation technique détaillée
+│   ├── architecture.md            # Architecture microservices
+│   ├── database.md                # Schémas de base de données
+│   ├── api.md                     # Documentation API REST
+│   ├── security.md                # Sécurité et authentification
+│   ├── deployment.md              # Déploiement et DevOps
+│   └── performance.md             # Optimisations et performances
+├── 📁 deployment/                  # Guides de déploiement
+│   ├── development.md             # Environnement de développement
+│   ├── production.md              # Déploiement en production
+│   └── docker.md                  # Configuration Docker
+├── 📁 api/                        # Documentation API
+│   ├── v1/                        # Version actuelle de l'API
+│   └── endpoints.md               # Liste complète des endpoints
+├── 📁 guides/                     # Guides utilisateur
+│   ├── getting-started.md         # Guide de démarrage
+│   ├── administration.md          # Guide administrateur
+│   └── troubleshooting.md         # Résolution de problèmes
+└── 📁 scripts/                    # Documentation des scripts
+    ├── makefiles.md               # Guide des Makefiles
+    └── automation.md              # Scripts d'automatisation
 ```
 
-## 🎯 Objectif de cette Organisation
+## 🚀 Démarrage Rapide
 
-### ✅ **Centralisation**
-- **Un seul point d'entrée** pour toute la documentation
-- **Navigation intuitive** avec structure claire
-- **Pas de duplication** d'informations
+### Installation et Configuration
 
-### ✅ **Accessibilité**
-- **Consultation facile** depuis le README principal
-- **Liens directs** vers chaque section
-- **Recherche simplifiée** par catégorie
+1. **Prérequis** :
+   ```bash
+   # Docker et Docker Compose
+   docker --version && docker-compose --version
 
-### ✅ **Maintenance**
-- **Mise à jour centralisée** des références
-- **Évolution cohérente** de la documentation
-- **Contrôle de qualité** unifié
+   # Node.js 20+ (pour développement local)
+   node --version
+   ```
 
-## 📚 Sections de Documentation
+2. **Installation** :
+   ```bash
+   # Cloner le repository
+   git clone https://github.com/PavelDelhomme/JobbingTrack.git
+   cd JobbingTrack
 
-### 📖 **Documentation du Projet**
-- **[Documentation du Projet](./project/README.md)** - Organisation et spécifications techniques
-- **[Historique des Versions](./project/changelog.md)** - Toutes les modifications et versions
+   # Installation automatique
+   make install
+   ```
 
-### 📦 **Makefiles Organisés**
-- **[Documentation des Makefiles](./makefiles/README.md)** - Structure et utilisation des Makefiles
-- **[Configuration des Couleurs](./makefiles/colors.md)** - Guide des couleurs dans les Makefiles
+3. **Démarrage** :
+   ```bash
+   # Démarrer tout le projet
+   make up
 
-### 🛠️ **Scripts Utilitaires**
-- **[Documentation des Scripts](./scripts/README.md)** - Tous les scripts organisés par catégories
-- **Scripts de surveillance**, sauvegarde, diagnostic, etc.
+   # Ou avec reconstruction
+   make start-all
+   ```
 
-### 🚀 **Déploiement**
-- **[Guide de Déploiement](./deployment/README.md)** - Déploiement en production complet
-- **Configuration Nginx**, SSL, monitoring, etc.
+### Accès à l'Application
 
-### 📡 **API et Intégration**
-- **[Documentation API](./api/README.md)** - Guide complet de l'API REST
-- **Endpoints**, schémas, exemples d'utilisation
+- **Frontend** : http://localhost:8080
+- **API Gateway** : http://localhost:3000
+- **API Documentation** : http://localhost:3000/api-docs
 
-### 📋 **Guides Pratiques**
-- **[Guides Complets](./guides/README.md)** - Tous les guides d'utilisation et développement
-- **Installation**, contribution, débogage, etc.
+### Identifiants de Connexion
 
-### 🔧 **Documentation Technique**
-- **[Documentation Technique](./technical/README.md)** - Documentation approfondie pour experts
-- **Architecture**, sécurité, performance, opérations
+```
+📧 Email : admin@jobbingtrack.com
+🔐 Mot de passe : SuperAdmin123!
+```
 
-## 💡 Utilisation
+## 🛠️ Développement
 
-### **Consultation**
+### Commandes Principales
+
 ```bash
-# Consulter la documentation centralisée
-cat docs/README.md              # Vue d'ensemble
-cat docs/project/README.md     # Documentation projet
-cat docs/makefiles/README.md   # Documentation Makefiles
-cat docs/scripts/README.md     # Documentation scripts
+# Développement
+make dev              # Mode développement avec hot reload
+make build            # Construire toutes les images
+
+# Tests
+make test-all         # Tous les tests
+make test-e2e         # Tests end-to-end Playwright
+make test-services    # Tests de santé des services
+
+# Maintenance
+make logs             # Logs en temps réel
+make status           # État des services
+make clean            # Nettoyage complet
+
+# Diagnostic
+make diagnose         # Diagnostic complet
+make fix              # Correction automatique
+make health           # Vérification santé
 ```
 
-### **Navigation**
-- **Liens internes** entre les sections
-- **Références croisées** vers d'autres documents
-- **Table des matières** dans chaque section
+### Structure du Projet
 
-### **Contribution**
-- **Ajout de contenu** dans la section appropriée
-- **Mise à jour** des liens de navigation
-- **Respect** de la structure organisée
+```
+JobbingTrack/
+├── 📁 backend/                    # Microservices backend
+│   ├── 📁 api-gateway/           # Point d'entrée API
+│   ├── 📁 auth-service/          # Authentification JWT
+│   ├── 📁 application-service/   # Gestion des candidatures
+│   ├── 📁 company-service/       # Gestion des entreprises
+│   ├── 📁 contact-service/       # Carnet d'adresses
+│   ├── 📁 interview-service/     # Gestion des entretiens
+│   ├── 📁 notification-service/  # Emails et notifications
+│   └── 📁 dashboard-service/     # Analytics et métriques
+├── 📁 frontend/                  # Interface Next.js
+│   ├── 📁 src/
+│   │   ├── 📁 app/              # Pages et composants
+│   │   ├── 📁 components/       # Composants réutilisables
+│   │   ├── 📁 hooks/            # Hooks personnalisés
+│   │   └── 📁 lib/              # Utilitaires et services
+│   └── 📁 tests/                # Tests Playwright E2E
+├── 📁 scripts/                   # Scripts d'automatisation
+├── 📁 makefiles/                 # Sous-Makefiles organisés
+└── 📄 Makefile                   # Point d'entrée unifié
+```
 
-## 🔄 Maintenance
+## 🎯 Fonctionnalités Clés
 
-### **Ajout de Nouvelle Documentation**
-1. **Déterminer la catégorie** appropriée
-2. **Créer le fichier** dans le sous-dossier correspondant
-3. **Ajouter la référence** dans ce README
-4. **Mettre à jour** les liens de navigation
+### ✅ Implémentées
 
-### **Mise à Jour**
-- **Réviser** le contenu existant
-- **Ajouter** les nouvelles informations
-- **Corriger** les liens cassés
-- **Améliorer** la structure
+- **🔍 Recherche Globale** : Indexation côté client avec recherche intelligente
+- **📱 PWA** : Application progressive avec mode hors ligne
+- **🎨 Personnalisation** : Thèmes, couleurs et préférences utilisateur
+- **🔗 Intégrations** : LinkedIn API et calendriers externes
+- **🧪 Tests E2E** : Suite complète de tests automatisés
+- **🔒 Sécurité** : Authentification JWT, rôles et permissions
+- **📊 Analytics** : Métriques temps réel et tableaux de bord
 
-### **Qualité**
-- **Clarté** et simplicité du langage
-- **Exemples** concrets et testés
-- **Références** aux sources officielles
-- **Format** cohérent
+### 🚀 En Développement
 
-## 📞 Support
+- **🤖 IA/ML** : Analyse intelligente des candidatures
+- **📱 App Mobile** : Applications iOS/Android natives
+- **🔄 Synchronisation** : Sync multi-appareils avancée
+- **📈 Reporting** : Rapports avancés et exports
 
-### **Questions**
-- **Documentation générale** : Consulter ce fichier
-- **Documentation spécifique** : Consulter les sections spécialisées
-- **Problèmes** : Consulter les guides de dépannage
+## 🔧 Architecture Technique
 
-### **Contribution**
-- **Améliorations** : Bienvenues dans chaque section
-- **Corrections** : Signaler les erreurs ou imprécisions
-- **Ajouts** : Proposer de nouveaux guides ou sections
+### Backend (Microservices)
+- **Node.js 20** + **Express.js** - Runtime et framework
+- **PostgreSQL 15** - Base de données relationnelle
+- **Redis 7** - Cache et sessions
+- **Prisma ORM** - Mapping objet-relationnel
+- **Docker Compose** - Orchestration
 
-## 🔗 Liens Utiles
+### Frontend (Next.js)
+- **Next.js 14** - Framework React avec App Router
+- **TypeScript** - Typage statique
+- **Tailwind CSS** - Framework CSS
+- **Zustand** - Gestion d'état
+- **React Query** - Gestion des requêtes API
 
-### **Documentation Externe**
-- **README Principal** : [`../README.md`](../README.md) - Vue d'ensemble du projet
-- **Code Source Backend** : [`../../backend/README.md`](../../backend/README.md)
-- **Code Source Frontend** : [`../../frontend/README.md`](../../frontend/README.md)
-- **Tests** : [`../../tests/README.md`](../../tests/README.md)
+### DevOps & Monitoring
+- **Docker** - Containerisation
+- **Prometheus + Grafana** - Monitoring
+- **GitHub Actions** - CI/CD
+- **Playwright** - Tests E2E
 
-### **Outils**
-- **Makefiles** : [`./makefiles/README.md`](./makefiles/README.md)
-- **Scripts** : [`./scripts/README.md`](./scripts/README.md)
-- **API** : [`./api/README.md`](./api/README.md)
+## 📚 Guides Détaillés
+
+### Pour Développeurs
+- **[Guide de Développement](./technical/development.md)** - Environnement et workflows
+- **[Architecture](./technical/architecture.md)** - Design et patterns
+- **[API](./api/v1/README.md)** - Documentation des endpoints
+
+### Pour Administrateurs
+- **[Guide d'Administration](./guides/administration.md)** - Configuration et maintenance
+- **[Déploiement](./deployment/production.md)** - Mise en production
+- **[Sécurité](./technical/security.md)** - Bonnes pratiques
+
+### Pour Utilisateurs
+- **[Guide de Démarrage](./guides/getting-started.md)** - Premiers pas
+- **[Fonctionnalités](./technical/features.md)** - Guide complet des features
+
+## 🆘 Support et Aide
+
+### Problèmes Courants
+- **[Résolution de Problèmes](./guides/troubleshooting.md)** - Guide de dépannage
+- **`make fix`** - Correction automatique des problèmes
+- **`make diagnose`** - Diagnostic complet du système
+
+### Contact
+- **GitHub Issues** : https://github.com/PavelDelhomme/JobbingTrack/issues
+- **Documentation** : https://github.com/PavelDelhomme/JobbingTrack/wiki
 
 ---
 
-**📚 Cette documentation centralisée constitue la référence complète et organisée de JobbingTrack.**
-
+**🎯 JobbingTrack** - Votre plateforme de gestion de candidatures intelligente et moderne !

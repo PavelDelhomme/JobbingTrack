@@ -112,25 +112,25 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 
 	# Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
 	$(call print_message,$(YELLOW),🏗️ Démarrage de l'infrastructure...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml up -d postgres redis
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d postgres redis
 
 	# Attendre que PostgreSQL soit prêt avec vérification
 	$(call wait_for_postgres)
 
 	# Créer l'utilisateur admin une fois PostgreSQL prêt
 	$(call print_message,$(YELLOW),👤 Création de l'utilisateur administrateur...)
-	@cd ../$(BACKEND_DIR) && bash ../$(SCRIPTS_DIR)/database/create-admin-user.sh
+	@cd $(BACKEND_DIR) && bash $(SCRIPTS_DIR)/database/create-admin-user.sh
 
 	# Démarrer le reste des services backend
 	$(call print_message,$(YELLOW),🌐 Démarrage des services backend...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
 
 	# Attendre que les services soient prêts
 	@sleep 10
 
 	# Démarrer le frontend
 	$(call print_message,$(YELLOW),🖥️ Démarrage du frontend...)
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
 
 	$(call print_message,$(GREEN),✅ JobbingTrack démarré avec succès !)
 	@echo ""
@@ -145,8 +145,8 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 # Arrêter tout le projet
 down: ## Arrêter tout le projet proprement
 	$(call print_message,$(RED),🛑 Arrêt complet de JobbingTrack...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml down 2>/dev/null || true
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml down 2>/dev/null || true
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml down 2>/dev/null || true
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml down 2>/dev/null || true
 	$(call print_message,$(GREEN),✅ Tous les services arrêtés)
 
 # ============================================================================
@@ -169,8 +169,8 @@ clean: ## Nettoyer complètement (containers, volumes, images)
 # Mode développement
 dev: ## Mode développement avec hot reload
 	$(call print_message,$(BLUE),🔧 Mode développement JobbingTrack...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml up --build
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up --build
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up --build
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up --build
 
 # ============================================================================
 # VÉRIFICATIONS
@@ -187,7 +187,7 @@ check-deps: ## Vérifier que toutes les dépendances sont installées
 # Créer l'utilisateur admin
 create-admin: ## Créer l'utilisateur administrateur
 	$(call print_message,$(BLUE),👤 Création de l'utilisateur administrateur...)
-	@bash ../$(SCRIPTS_DIR)/database/create-admin-user.sh
+	@bash $(SCRIPTS_DIR)/database/create-admin-user.sh
 
 # ============================================================================
 # DIAGNOSTIC ET CORRECTION
@@ -196,7 +196,7 @@ create-admin: ## Créer l'utilisateur administrateur
 # Diagnostic et correction automatique
 fix: ## Diagnostic et correction automatique
 	$(call print_message,$(YELLOW),🔧 Diagnostic et correction automatique...)
-	@bash ../$(SCRIPTS_DIR)/deployment/diagnostic-fix.sh full
+	@bash $(SCRIPTS_DIR)/deployment/diagnostic-fix.sh full
 
 # ============================================================================
 # DÉMARRAGE AVEC RECONSTRUCTION
@@ -204,7 +204,7 @@ fix: ## Diagnostic et correction automatique
 
 # Démarrer avec reconstruction
 start-all: ## Démarrer avec reconstruction complète
-	@bash ../$(SCRIPTS_DIR)/deployment/start-all.sh
+	@bash $(SCRIPTS_DIR)/deployment/start-all.sh
 
 # ============================================================================
 # RECONSTRUCTION COMPLÈTE
@@ -224,8 +224,8 @@ rebuild: ## Reconstruction complète
 # Construire toutes les images
 build: ## Construire toutes les images Docker
 	$(call print_message,$(BLUE),🔨 Construction des images Docker...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml build --parallel
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml build --parallel
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml build --parallel
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml build --parallel
 
 # ============================================================================
 # MIGRATIONS
@@ -234,7 +234,7 @@ build: ## Construire toutes les images Docker
 # Appliquer les migrations
 migrate: ## Appliquer les migrations de base de données
 	$(call print_message,$(BLUE),🗄️ Application des migrations...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml exec auth-service npx prisma migrate deploy
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml exec auth-service npx prisma migrate deploy
 
 # ============================================================================
 # LOGS ET STATUT
@@ -243,17 +243,17 @@ migrate: ## Appliquer les migrations de base de données
 # Logs de tous les services
 logs: ## Logs en temps réel de tous les services
 	$(call print_message,$(BLUE),📋 Logs en temps réel...)
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f &
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml logs -f &
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f &
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml logs -f &
 
 # Statut des services
 status: ## État de tous les services
 	$(call print_message,$(BLUE),📊 Statut des services:)
 	@echo "$(YELLOW)Backend:$(NC)"
-	@cd ../$(BACKEND_DIR) && docker compose -f docker-compose.yml ps
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml ps
 	@echo ""
 	@echo "$(YELLOW)Frontend:$(NC)"
-	@cd ../$(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml ps 2>/dev/null || echo "   Frontend non démarré"
+	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml ps 2>/dev/null || echo "   Frontend non démarré"
 
 # ============================================================================
 # TESTS
@@ -262,17 +262,17 @@ status: ## État de tous les services
 # Tests complets
 test-all: ## Tous les tests (unitaires + E2E + intégration)
 	$(call print_message,$(PURPLE),🧪 Exécution de tous les tests...)
-	@cd ../$(TESTS_DIR) && $(MAKE) test-all
+	@cd $(TESTS_DIR) && $(MAKE) test-all
 
 # Tests E2E
 test-e2e: ## Tests end-to-end Playwright
 	$(call print_message,$(PURPLE),🎭 Tests end-to-end Playwright...)
-	@cd ../$(FRONTEND_DIR) && npm run test:e2e
+	@cd $(FRONTEND_DIR) && npm run test:e2e
 
 # Tests de santé
 test-services: ## Tests de santé des microservices
 	$(call print_message,$(BLUE),🏥 Tests de santé des services...)
-	@cd ../$(BACKEND_DIR) && ./test-services.sh
+	@cd $(BACKEND_DIR) && ./test-services.sh
 
 # ============================================================================
 # VÉRIFICATION SANTÉ
@@ -291,19 +291,19 @@ health: ## Vérification de la santé de tous les services
 # Appeler les sous-Makefiles avec délégation
 %-backend: ## Déléguer aux commandes backend (ex: make build-backend)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -backend,,$@) (backend uniquement))
-	@cd ../$(BACKEND_DIR) && $(MAKE) $(subst -backend,,$@)
+	@cd $(BACKEND_DIR) && $(MAKE) $(subst -backend,,$@)
 
 %-frontend: ## Déléguer aux commandes frontend (ex: make build-frontend)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -frontend,,$@) (frontend uniquement))
-	@cd ../$(FRONTEND_DIR) && $(MAKE) $(subst -frontend,,$@)
+	@cd $(FRONTEND_DIR) && $(MAKE) $(subst -frontend,,$@)
 
 %-tests: ## Déléguer aux commandes de tests (ex: make test-all-tests)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -tests,,$@) (tests uniquement))
-	@cd ../$(TESTS_DIR) && $(MAKE) $(subst -tests,,$@)
+	@cd $(TESTS_DIR) && $(MAKE) $(subst -tests,,$@)
 
 %-scripts: ## Déléguer aux scripts utilitaires (ex: make diagnostic-scripts)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -scripts,,$@) (scripts uniquement))
-	@bash ../$(SCRIPTS_DIR)/$(subst -scripts,,$@).sh
+	@bash $(SCRIPTS_DIR)/$(subst -scripts,,$@).sh
 
 # ============================================================================
 # COMMANDES CONTEXTUELLES
@@ -312,22 +312,22 @@ health: ## Vérification de la santé de tous les services
 # Aide backend
 help-backend: ## Aide pour les commandes backend
 	$(call print_message,$(BLUE),📚 Commandes Backend (microservices):)
-	@cd ../$(BACKEND_DIR) && $(MAKE) help
+	@cd $(BACKEND_DIR) && $(MAKE) help
 
 # Aide frontend
 help-frontend: ## Aide pour les commandes frontend
 	$(call print_message,$(BLUE),📚 Commandes Frontend (Next.js):)
-	@cd ../$(FRONTEND_DIR) && $(MAKE) help
+	@cd $(FRONTEND_DIR) && $(MAKE) help
 
 # Aide tests
 help-tests: ## Aide pour les commandes de tests
 	$(call print_message,$(BLUE),📚 Commandes de Tests:)
-	@cd ../$(TESTS_DIR) && $(MAKE) help
+	@cd $(TESTS_DIR) && $(MAKE) help
 
 # Aide scripts
 help-scripts: ## Aide pour les scripts utilitaires
 	$(call print_message,$(BLUE),📚 Scripts utilitaires:)
-	@bash ../$(SCRIPTS_DIR)/deployment/diagnostic-fix.sh help
+	@bash $(SCRIPTS_DIR)/deployment/diagnostic-fix.sh help
 
 # ============================================================================
 # VARIABLES D'ENVIRONNEMENT
