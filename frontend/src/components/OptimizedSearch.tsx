@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Filter, X, Clock, TrendingUp, Zap, Database } from 'lucide-react';
+import { Search, Filter, X, Clock, TrendingUp, Zap, Database, Settings, Users, Bell, Archive, Trash2, Calendar, FileText } from 'lucide-react';
 import { useSearchIndex } from '@/hooks/useSearchIndex';
 import { searchService } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -25,21 +25,24 @@ export function OptimizedSearch({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOnlineSearch, setIsOnlineSearch] = useState(false);
   const [selectedModules, setSelectedModules] = useState<string[]>([
-    'applications', 'companies', 'contacts', 'interviews', 'calls'
+    'applications', 'companies', 'contacts', 'interviews', 'calls',
+    'users', 'events', 'notifications', 'archives', 'trash'
   ]);
-  const [searchMode, setSearchMode] = useState<'online' | 'offline' | 'hybrid'>('hybrid');
+  const [searchMode, setSearchMode] = useState<'online' | 'offline' | 'hybrid'>('online');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    dateRange: '',
+    status: '',
+    priority: ''
+  });
 
   const {
     search,
-    quickSearch,
     isIndexing,
     stats,
-    buildSearchIndex,
-    getIndexStats
+    buildSearchIndex
   } = useSearchIndex();
 
   // Charger les recherches récentes
@@ -50,19 +53,7 @@ export function OptimizedSearch({
     }
   }, []);
 
-  // Recherche en temps réel avec debounce
-  const debouncedSearch = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    return (searchQuery: string) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        performSearch(searchQuery);
-      }, 300);
-    };
-  }, []);
-
-  // Effectuer la recherche
+  // Recherche simple et directe (pas de debounce complexe)
   const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setResults([]);
@@ -72,76 +63,18 @@ export function OptimizedSearch({
     setIsLoading(true);
 
     try {
-      if (searchMode === 'online') {
-        // Recherche uniquement en ligne
-        const response = await searchService.globalSearch(
-          searchQuery,
-          selectedModules.length > 0 ? selectedModules : undefined,
-          20
-        );
+      // Recherche en ligne directe (mode par défaut)
+      const response = await searchService.globalSearch(
+        searchQuery,
+        selectedModules.length > 0 ? selectedModules : undefined,
+        20
+      );
 
-        if (response.data.success) {
-          setResults(response.data.results.flatMap((r: any) => r.results || []));
-          setIsOnlineSearch(true);
-        }
-      } else if (searchMode === 'offline' && enableOfflineSearch) {
-        // Recherche uniquement offline
-        const offlineResults = search(searchQuery, {
-          types: selectedModules,
-          limit: 50
-        });
-
-        setResults(offlineResults);
-        setIsOnlineSearch(false);
+      if (response.data.success) {
+        const searchResults = response.data.results.flatMap((r: any) => r.results || []);
+        setResults(searchResults.slice(0, 20)); // Limiter à 20 résultats
       } else {
-        // Mode hybride : online + offline
-        try {
-          // Recherche en ligne
-          const response = await searchService.globalSearch(
-            searchQuery,
-            selectedModules.length > 0 ? selectedModules : undefined,
-            20
-          );
-
-          if (response.data.success) {
-            const onlineResults = response.data.results.flatMap((r: any) => r.results || []);
-
-            // Recherche offline pour complémenter
-            if (enableOfflineSearch) {
-              const offlineResults = search(searchQuery, {
-                types: selectedModules,
-                limit: 30
-              });
-
-              // Fusionner les résultats (éviter les doublons)
-              const combinedResults = [...onlineResults];
-              offlineResults.forEach(offlineResult => {
-                const exists = combinedResults.find(r =>
-                  r.id === offlineResult.id && r.type === offlineResult.type
-                );
-                if (!exists) {
-                  combinedResults.push(offlineResult);
-                }
-              });
-
-              setResults(combinedResults.slice(0, 50));
-            } else {
-              setResults(onlineResults);
-            }
-
-            setIsOnlineSearch(true);
-          }
-        } catch (error) {
-          // Fallback vers la recherche offline si l'API échoue
-          if (enableOfflineSearch) {
-            const offlineResults = search(searchQuery, {
-              types: selectedModules,
-              limit: 50
-            });
-            setResults(offlineResults);
-            setIsOnlineSearch(false);
-          }
-        }
+        setResults([]);
       }
 
       // Sauvegarder la recherche récente
@@ -155,12 +88,12 @@ export function OptimizedSearch({
     } finally {
       setIsLoading(false);
     }
-  }, [search, searchService, selectedModules, searchMode, enableOfflineSearch, recentSearches]);
+  }, [searchService, selectedModules, recentSearches]);
 
   // Gestionnaire de changement de requête
   const handleSearchChange = (searchQuery: string) => {
     setQuery(searchQuery);
-    debouncedSearch(searchQuery);
+    performSearch(searchQuery);
   };
 
   // Gestionnaire de sélection de résultat
@@ -170,16 +103,49 @@ export function OptimizedSearch({
     }
   };
 
+  // Recherche avancée manuelle
+  const handleAdvancedSearch = async () => {
+    if (!query.trim()) return;
+
+    setIsLoading(true);
+
+    try {
+      // Recherche avec tous les modules disponibles pour une recherche complète
+      const allModules = ['applications', 'companies', 'contacts', 'interviews', 'calls',
+                         'users', 'events', 'notifications', 'archives', 'trash'];
+      const response = await searchService.globalSearch(
+        query,
+        selectedModules.length > 0 ? selectedModules : allModules,
+        100 // Plus de résultats pour la recherche avancée
+      );
+
+      if (response.data.success) {
+        const searchResults = response.data.results.flatMap((r: any) => r.results || []);
+        setResults(searchResults.slice(0, 100));
+      }
+    } catch (error) {
+      console.error('Erreur lors de la recherche avancée:', error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Obtenir l'icône du module
   const getModuleIcon = (module: string) => {
-    const icons: Record<string, string> = {
-      applications: '📋',
-      companies: '🏢',
-      contacts: '👥',
-      interviews: '📅',
-      calls: '📞'
+    const iconMap: Record<string, React.ReactNode> = {
+      applications: <FileText className="h-3 w-3" />,
+      companies: <Database className="h-3 w-3" />,
+      contacts: <Users className="h-3 w-3" />,
+      interviews: <Calendar className="h-3 w-3" />,
+      calls: <Bell className="h-3 w-3" />,
+      users: <Users className="h-3 w-3" />,
+      events: <Calendar className="h-3 w-3" />,
+      notifications: <Bell className="h-3 w-3" />,
+      archives: <Archive className="h-3 w-3" />,
+      trash: <Trash2 className="h-3 w-3" />
     };
-    return icons[module] || '🔍';
+    return iconMap[module] || <Search className="h-3 w-3" />;
   };
 
   // Obtenir le label du module
@@ -189,7 +155,12 @@ export function OptimizedSearch({
       companies: 'Entreprises',
       contacts: 'Contacts',
       interviews: 'Entretiens',
-      calls: 'Appels'
+      calls: 'Appels',
+      users: 'Utilisateurs',
+      events: 'Événements',
+      notifications: 'Notifications',
+      archives: 'Archives',
+      trash: 'Corbeille'
     };
     return labels[module] || module;
   };
@@ -222,137 +193,161 @@ export function OptimizedSearch({
             {/* Contrôles de recherche */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Recherche intelligente..."
+                  placeholder="Rechercher dans tous les modules..."
                   value={query}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 pr-20"
+                  className="pl-10 pr-10"
                 />
                 {query && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleSearchChange('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 )}
               </div>
 
-              {/* Mode de recherche */}
+              {/* Mode de recherche simple */}
               <div className="flex gap-1">
                 <Button
-                  variant={searchMode === 'online' ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setSearchMode('online')}
+                  onClick={() => buildSearchIndex()}
+                  disabled={isIndexing}
                   className="text-xs"
                 >
-                  🌐 En ligne
+                  {isIndexing ? '🔄' : '⚡'} Index
                 </Button>
+
                 <Button
-                  variant={searchMode === 'offline' ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setSearchMode('offline')}
-                  disabled={!enableOfflineSearch}
-                  className="text-xs"
+                  onClick={handleAdvancedSearch}
+                  disabled={isLoading || !query.trim()}
+                  className={`text-xs ${Object.values(searchFilters).some(filter => filter !== '') ? 'border-primary bg-primary/10' : ''}`}
                 >
-                  💾 Hors ligne
+                  🔍 Avancé
+                  {Object.values(searchFilters).some(filter => filter !== '') && (
+                    <span className="ml-1 text-primary">●</span>
+                  )}
                 </Button>
+
                 <Button
-                  variant={searchMode === 'hybrid' ? 'default' : 'outline'}
+                  variant="ghost"
                   size="sm"
-                  onClick={() => setSearchMode('hybrid')}
+                  onClick={() => setShowAdvanced(!showAdvanced)}
                   className="text-xs"
                 >
-                  ⚡ Hybride
+                  <Settings className="h-3 w-3" />
                 </Button>
               </div>
             </div>
 
-            {/* Sélecteurs de modules et options avancées */}
+            {/* Sélecteurs de modules */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">Modules:</span>
-              {['applications', 'companies', 'contacts', 'interviews', 'calls'].map((module) => (
+              <span className="text-sm font-medium text-foreground">Modules:</span>
+              {['applications', 'companies', 'contacts', 'interviews', 'calls', 'users', 'events', 'notifications', 'archives', 'trash'].map((module) => (
                 <Badge
                   key={module}
                   variant={selectedModules.includes(module) ? "default" : "outline"}
-                  className="cursor-pointer text-xs"
+                  className="cursor-pointer text-xs hover:bg-accent transition-colors"
                   onClick={() => setSelectedModules(prev =>
                     prev.includes(module)
                       ? prev.filter(m => m !== module)
                       : [...prev, module]
                   )}
                 >
-                  {getModuleIcon(module)} {getModuleLabel(module)}
+                  <span className="flex items-center gap-1">
+                    {getModuleIcon(module)}
+                    {getModuleLabel(module)}
+                  </span>
                 </Badge>
               ))}
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-xs"
-              >
-                {showAdvanced ? 'Options ▲' : 'Options ▼'}
-              </Button>
             </div>
 
-            {/* Options avancées */}
+            {/* Options avancées simples */}
             {showAdvanced && (
-              <div className="p-3 bg-gray-50 rounded-lg space-y-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <Database className={`h-3 w-3 ${stats.isPreloading ? 'animate-pulse text-orange-600' : 'text-blue-600'}`} />
-                    <span>Index: {stats.totalEntries} entrées</span>
+                    <Database className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                    <span className="text-muted-foreground">Index: {stats.totalEntries} entrées</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Zap className="h-3 w-3 text-green-600" />
-                    <span>Mode: {searchMode === 'online' ? 'API' : searchMode === 'offline' ? 'Index' : 'Mixte'}</span>
+                    <TrendingUp className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                    <span className="text-muted-foreground">Résultats: {results.length}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-3 w-3 text-purple-600" />
-                    <span>Résultats: {results.length}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => buildSearchIndex(true)}
-                    disabled={isIndexing || stats.isPreloading}
-                    className="text-xs"
-                  >
-                    {isIndexing ? 'Indexation...' : stats.isPreloading ? 'Préchargement...' : 'Réindexer'}
-                  </Button>
                 </div>
 
-                {/* Informations de préchargement */}
-                {stats.isPreloading && (
-                  <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                    📦 Préchargement des données en cours...
+                {/* Filtres avancés */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-border">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground">Période</label>
+                    <select
+                      value={searchFilters.dateRange}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded-md text-foreground"
+                    >
+                      <option value="">Toutes les dates</option>
+                      <option value="today">Aujourd'hui</option>
+                      <option value="week">Cette semaine</option>
+                      <option value="month">Ce mois</option>
+                      <option value="year">Cette année</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground">Statut</label>
+                    <select
+                      value={searchFilters.status}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded-md text-foreground"
+                    >
+                      <option value="">Tous les statuts</option>
+                      <option value="active">Actif</option>
+                      <option value="pending">En attente</option>
+                      <option value="completed">Terminé</option>
+                      <option value="archived">Archivé</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground">Priorité</label>
+                    <select
+                      value={searchFilters.priority}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, priority: e.target.value }))}
+                      className="w-full px-2 py-1 text-xs bg-background border border-input rounded-md text-foreground"
+                    >
+                      <option value="">Toutes les priorités</option>
+                      <option value="high">Élevée</option>
+                      <option value="medium">Moyenne</option>
+                      <option value="low">Faible</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Indicateur de filtres actifs */}
+                {Object.values(searchFilters).some(filter => filter !== '') && (
+                  <div className="flex items-center gap-2 pt-2">
+                    <Badge variant="secondary" className="text-xs">
+                      Filtres actifs
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchFilters({ dateRange: '', status: '', priority: '' })}
+                      className="text-xs h-6 px-2"
+                    >
+                      Effacer les filtres
+                    </Button>
                   </div>
                 )}
-
-                {/* Couverture de l'index */}
-                <div className="text-xs">
-                  <div className="flex justify-between items-center mb-1">
-                    <span>Couverture de l'index:</span>
-                    <span className="font-medium">
-                      {Math.round((stats.totalEntries / (Object.keys(stats.coverage).length * 50)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="flex gap-1">
-                    {Object.entries(stats.coverage).map(([type, count]) => (
-                      <div key={type} className="flex-1 text-center">
-                        <div className="text-xs text-gray-600">{type}</div>
-                        <div className={`text-xs font-medium ${count > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {count}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -365,10 +360,10 @@ export function OptimizedSearch({
           <CardContent className="p-0">
             {/* Recherches récentes */}
             {query.length < 2 && recentSearches.length > 0 && (
-              <div className="p-3 border-b">
+              <div className="p-3 border-b border-border">
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium">Recherches récentes</span>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Recherches récentes</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {recentSearches.map((search, index) => (
@@ -377,7 +372,7 @@ export function OptimizedSearch({
                       variant="outline"
                       size="sm"
                       onClick={() => handleSearchChange(search)}
-                      className="text-xs h-7"
+                      className="text-xs h-7 hover:bg-accent transition-colors"
                     >
                       {search}
                     </Button>
@@ -389,22 +384,18 @@ export function OptimizedSearch({
             {/* État de chargement */}
             {isLoading && (
               <div className="p-6 text-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-sm text-gray-600">
-                  {searchMode === 'online' ? 'Recherche en ligne...' :
-                   searchMode === 'offline' ? 'Recherche dans l\'index...' :
-                   'Recherche hybride...'}
-                </p>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Recherche en cours...</p>
               </div>
             )}
 
             {/* Aucun résultat */}
             {!isLoading && query.length >= 2 && results.length === 0 && (
               <div className="p-6 text-center">
-                <Search className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-gray-600 mb-1">Aucun résultat trouvé</p>
-                <p className="text-xs text-gray-500">
-                  Essayez avec des termes différents ou vérifiez les modules sélectionnés
+                <Search className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-foreground mb-1">Aucun résultat trouvé</p>
+                <p className="text-xs text-muted-foreground">
+                  Essayez avec des termes différents ou sélectionnez plus de modules
                 </p>
               </div>
             )}
@@ -413,38 +404,27 @@ export function OptimizedSearch({
             {!isLoading && results.length > 0 && (
               <>
                 {/* Statistiques des résultats */}
-                <div className="p-3 bg-gray-50 border-b">
+                <div className="p-3 bg-muted/30 border-b border-border">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="font-medium">
+                      <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="font-medium text-foreground">
                         {results.length} résultat{results.length > 1 ? 's' : ''} trouvé{results.length > 1 ? 's' : ''}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {isOnlineSearch && (
-                        <Badge variant="default" className="text-xs">
-                          🌐 En ligne
-                        </Badge>
-                      )}
-                      {searchMode === 'hybrid' && (
-                        <Badge variant="secondary" className="text-xs">
-                          ⚡ Hybride
-                        </Badge>
-                      )}
-                      {searchMode === 'offline' && (
-                        <Badge variant="outline" className="text-xs">
-                          💾 Index
-                        </Badge>
-                      )}
-                    </div>
+                    <Badge variant="default" className="text-xs">
+                      🌐 En ligne
+                    </Badge>
                   </div>
 
                   {/* Répartition par module */}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {Object.entries(resultStats).map(([module, count]) => (
-                      <Badge key={module} variant="outline" className="text-xs">
-                        {getModuleIcon(module)} {count}
+                      <Badge key={module} variant="outline" className="text-xs hover:bg-accent transition-colors">
+                        <span className="flex items-center gap-1">
+                          {getModuleIcon(module)}
+                          {count}
+                        </span>
                       </Badge>
                     ))}
                   </div>
@@ -457,14 +437,14 @@ export function OptimizedSearch({
                     return (
                       <div
                         key={`${result.type}_${result.id}_${index}`}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                        className="p-3 hover:bg-accent/50 cursor-pointer border-b border-border last:border-b-0 transition-colors"
                         onClick={() => handleResultClick(result)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm">{getModuleIcon(formatted.module)}</span>
-                              <h4 className="font-medium text-sm truncate">
+                              <span className="text-muted-foreground">{getModuleIcon(formatted.module)}</span>
+                              <h4 className="font-medium text-sm text-foreground truncate">
                                 {formatted.title}
                               </h4>
                               <Badge variant="outline" className="text-xs">
@@ -473,40 +453,17 @@ export function OptimizedSearch({
                             </div>
 
                             {formatted.subtitle && (
-                              <p className="text-xs text-gray-600 truncate mb-1">
+                              <p className="text-xs text-muted-foreground truncate mb-1">
                                 {formatted.subtitle}
                               </p>
                             )}
 
                             {formatted.details && (
-                              <p className="text-xs text-gray-500 truncate">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {formatted.details}
                               </p>
                             )}
-
-                            {/* Surlignage des termes de recherche */}
-                            {result.highlights && result.highlights.length > 0 && (
-                              <div className="mt-1">
-                                {result.highlights.map((highlight, i) => (
-                                  <span
-                                    key={i}
-                                    className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded"
-                                  >
-                                    {highlight}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </div>
-
-                          {/* Score de pertinence (si recherche offline) */}
-                          {!isOnlineSearch && result.score && (
-                            <div className="ml-2 text-right">
-                              <div className="text-xs text-gray-500">
-                                Score: {(result.score * 100).toFixed(0)}%
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -522,9 +479,9 @@ export function OptimizedSearch({
       <Alert>
         <Zap className="h-4 w-4" />
         <AlertDescription className="text-xs">
-          <strong>Recherche optimisée :</strong> Index côté client pour des recherches instantanées,
-          cache intelligent pour les performances, et mode hybride pour combiner les avantages
-          de la recherche en ligne et hors ligne.
+          <strong>Recherche complète :</strong> Support du mode sombre, recherche dans 10 modules différents
+          (candidatures, entreprises, contacts, entretiens, appels, utilisateurs, événements, notifications, archives, corbeille).
+          Interface moderne avec recherche avancée manuelle et filtres avancés (date, statut, priorité).
         </AlertDescription>
       </Alert>
     </div>

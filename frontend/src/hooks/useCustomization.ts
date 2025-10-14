@@ -168,17 +168,14 @@ export function useCustomization() {
   useEffect(() => {
     if (isLoading) return;
 
-    // Appliquer le thème
+    // Appliquer tous les paramètres
     applyTheme(settings);
-
-    // Appliquer les couleurs personnalisées
     applyCustomColors(settings);
-
-    // Appliquer les préférences d'accessibilité
     applyAccessibility(settings);
-
-    // Appliquer les animations
     applyAnimations(settings);
+    applyLayout(settings);
+    applyNotifications(settings);
+    applyLanguage(settings);
 
   }, [settings, isLoading]);
 
@@ -261,6 +258,77 @@ function applyAnimations(settings: CustomizationSettings) {
     root.classList.add('animations-enabled');
   } else {
     root.classList.remove('animations-enabled');
+  }
+}
+
+// Fonction pour appliquer la disposition
+function applyLayout(settings: CustomizationSettings) {
+  const root = document.documentElement;
+
+  if (settings.compactMode) {
+    root.classList.add('compact-mode');
+  } else {
+    root.classList.remove('compact-mode');
+  }
+
+  if (settings.sidebarCollapsed) {
+    root.classList.add('sidebar-collapsed');
+  } else {
+    root.classList.remove('sidebar-collapsed');
+  }
+
+  // Appliquer la disposition du tableau de bord
+  root.setAttribute('data-dashboard-layout', settings.dashboardLayout);
+
+  // Appliquer les éléments par page
+  root.style.setProperty('--items-per-page', settings.itemsPerPage.toString());
+}
+
+// Fonction pour appliquer les notifications
+function applyNotifications(settings: CustomizationSettings) {
+  const root = document.documentElement;
+
+  if (settings.notifications.enabled) {
+    root.classList.add('notifications-enabled');
+  } else {
+    root.classList.remove('notifications-enabled');
+  }
+
+  // Appliquer la position des notifications
+  root.setAttribute('data-notification-position', settings.notifications.position);
+
+  // Appliquer la durée des notifications
+  root.style.setProperty('--notification-duration', `${settings.notifications.duration}ms`);
+
+  // Appliquer le son des notifications
+  if (settings.notifications.sound) {
+    root.classList.add('notification-sound-enabled');
+  } else {
+    root.classList.remove('notification-sound-enabled');
+  }
+}
+
+// Fonction pour appliquer la langue et les préférences locales
+function applyLanguage(settings: CustomizationSettings) {
+  const root = document.documentElement;
+
+  // Appliquer la langue
+  root.setAttribute('lang', settings.language);
+
+  // Appliquer le format de date
+  root.setAttribute('data-date-format', settings.dateFormat);
+
+  // Appliquer le format d'heure
+  root.setAttribute('data-time-format', settings.timeFormat);
+
+  // Appliquer les préférences de rétention des données
+  root.style.setProperty('--cache-duration', `${settings.dataRetention.cacheDuration}d`);
+  root.style.setProperty('--sync-frequency', `${settings.dataRetention.syncFrequency}m`);
+
+  if (settings.dataRetention.offlineMode) {
+    root.classList.add('offline-mode');
+  } else {
+    root.classList.remove('offline-mode');
   }
 }
 

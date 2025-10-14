@@ -8,6 +8,7 @@ import { useTheme } from '@/lib/theme'
 import Breadcrumb from './Breadcrumb'
 import { GlobalSearch } from './GlobalSearch'
 import { OfflineActions } from './OfflineActions'
+import { SettingsPopup } from './SettingsPopup'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -15,8 +16,9 @@ interface AdminLayoutProps {
 
 interface NavItem {
   name: string
-  href: string
+  href?: string
   icon: string
+  onClick?: () => void
 }
 
 interface NavSection {
@@ -32,6 +34,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     data: true,
@@ -57,19 +60,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     setIsSidebarOpen(false)
   }, [pathname])
 
-  // Auto-expand sections qui contiennent l'élément actif
+  // Auto-expand sections qui contiennent l'élément actif (seulement si pas explicitement fermé)
   useEffect(() => {
-    const newExpandedSections = { ...expandedSections }
+    // Ne pas auto-expand si l'utilisateur a fermé des sections
+    const hasUserInteracted = Object.values(expandedSections).some(expanded => expanded === false)
 
-    sections.forEach(section => {
-      if (isSectionActive(section) && section.isCollapsible) {
-        newExpandedSections[section.id] = true
+    if (!hasUserInteracted) {
+      const newExpandedSections = { ...expandedSections }
+
+      sections.forEach(section => {
+        if (isSectionActive(section) && section.isCollapsible) {
+          newExpandedSections[section.id] = true
+        }
+      })
+
+      if (JSON.stringify(newExpandedSections) !== JSON.stringify(expandedSections)) {
+        setExpandedSections(newExpandedSections)
+        localStorage.setItem('expandedSections', JSON.stringify(newExpandedSections))
       }
-    })
-
-    if (JSON.stringify(newExpandedSections) !== JSON.stringify(expandedSections)) {
-      setExpandedSections(newExpandedSections)
-      localStorage.setItem('expandedSections', JSON.stringify(newExpandedSections))
     }
   }, [pathname, expandedSections])
 
@@ -102,7 +110,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        { name: 'Recherche globale', href: '/backoffice/search', icon: '🔍' },
+        { name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },
         { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
         { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
@@ -142,7 +150,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
         { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
-        { name: 'Configuration', href: '/backoffice/settings', icon: '⚙️' },
+        { name: 'Paramètres', href: '#', icon: '⚙️', onClick: () => setIsSettingsOpen(true) },
       ]
     },
     {
@@ -267,18 +275,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       const isActive = pathname === item.href
                       const activeItem = getActiveItemInSection(section)
 
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          className={`
-                            flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
-                            ${isActive
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
-                              : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
-                            }
-                          `}
-                        >
+                      const content = (
+                        <>
                           {/* Indicateur visuel pour l'élément actif */}
                           {isActive && (
                             <>
@@ -305,7 +303,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                             </div>
                           )}
-                        </Link>
+                        </>
+                      )
+
+                      return (
+                        item.onClick ? (
+                          <button
+                            key={item.name}
+                            onClick={item.onClick}
+                            className={`
+                              flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group w-full text-left
+                              ${isActive
+                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
+                                : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
+                              }
+                            `}
+                          >
+                            {content}
+                          </button>
+                        ) : item.href ? (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className={`
+                              flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
+                              ${isActive
+                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
+                                : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
+                              }
+                            `}
+                          >
+                            {content}
+                          </Link>
+                        ) : null
                       )
                     })}
                   </div>
@@ -417,6 +447,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </main>
         </div>
       </div>
+
+      {/* Popup des paramètres */}
+      <SettingsPopup
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   )
 }
