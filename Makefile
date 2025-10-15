@@ -119,9 +119,9 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@echo "🏗️ Démarrage de l'infrastructure..."
 	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"
 
-	# Démarrer les services système (stats, déploiement, sécurité)
+	# Démarrer les services système (stats, déploiement, sécurité, métriques)
 	@echo "🔧 Démarrage des services système..."
-	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service >/dev/null 2>&1 && echo "✅ Services système démarrés"
+	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"
 
 	# Attendre que PostgreSQL soit prêt avec vérification
 	@$(call wait_for_postgres)
@@ -569,16 +569,16 @@ check-disk: ## Vérifier l'espace disque disponible
 # GESTION DES SERVICES SPECIFIQUES
 # ============================================================================
 
-# Démarrer seulement les services système (stats, déploiement, sécurité)
+# Démarrer seulement les services système (stats, déploiement, sécurité, métriques)
 start-system: ## Démarrer seulement les services système
 	@echo "🔧 Démarrage des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service
 	@echo "✅ Services système démarrés"
 
 # Arrêter seulement les services système
 stop-system: ## Arrêter seulement les services système
 	@echo "⏹️ Arrêt des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop docker-stats-service deployment-service security-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop docker-stats-service deployment-service security-service system-metrics-service
 	@echo "✅ Services système arrêtés"
 
 # Redémarrer seulement les services système
@@ -587,7 +587,7 @@ restart-system: stop-system start-system ## Redémarrer seulement les services s
 # Logs des services système
 logs-system: ## Logs des services système uniquement
 	@echo "📋 Logs des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f docker-stats-service deployment-service security-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f docker-stats-service deployment-service security-service system-metrics-service
 
 # Démarrer seulement le service de déploiement
 start-deployment: ## Démarrer seulement le service de déploiement
@@ -622,6 +622,23 @@ stop-security: ## Arrêter seulement le service de sécurité
 logs-security: ## Logs du service de sécurité
 	@echo "📋 Logs du service de sécurité..."
 	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f security-service
+
+# Démarrer seulement le service de métriques système
+start-metrics: ## Démarrer seulement le service de métriques système
+	@echo "📊 Démarrage du service de métriques système..."
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d system-metrics-service
+	@echo "✅ Service de métriques système démarré"
+
+# Arrêter seulement le service de métriques système
+stop-metrics: ## Arrêter seulement le service de métriques système
+	@echo "⏹️ Arrêt du service de métriques système..."
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop system-metrics-service
+	@echo "✅ Service de métriques système arrêté"
+
+# Logs du service de métriques système
+logs-metrics: ## Logs du service de métriques système
+	@echo "📋 Logs du service de métriques système..."
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f system-metrics-service
 
 # ============================================================================
 # WORKFLOW RECOMMANDE

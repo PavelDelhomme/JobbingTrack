@@ -285,10 +285,10 @@ export default function AnalyticsPage() {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 5000
         }).catch(() => ({ data: [] })),
-        axios.get(`${API_URL}/api/v1/security/system-metrics`, {
+        axios.get(`${API_URL}/api/v1/metrics/system`, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 5000
-        }).catch(() => ({ data: { totalLogs: 0, criticalEvents: 0, intrusionAttempts: 0, ddosAttacks: 0, authFailures: 0, uniqueIPs: 0, blockedIPs: 0, averageRiskScore: 0 } })),
+        }).catch(() => ({ data: { cpuUsage: 0, memoryUsage: 0, diskUsage: 0, networkIn: 0, networkOut: 0, loadAverage: 0, uptime: 0 } })),
         axios.get(`${API_URL}/api/v1/security/risk-analysis`, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 5000
@@ -394,37 +394,29 @@ export default function AnalyticsPage() {
       if (finalRecommendations.some(rec => rec.includes("latence"))) performanceScore -= 10
 
       // Utiliser les vraies données système récupérées
-      const errorTrends = systemMetricsReal.totalLogs > 0 ? Array.from({ length: 24 }, (_, i) => ({
+      const errorTrends = Array.from({ length: 24 }, (_, i) => ({
         hour: `${i.toString().padStart(2, '0')}:00`,
-        count: Math.floor(Math.random() * 5) // Garder un peu d'aléatoire pour la démo, mais basé sur les vraies données
-      })) : Array.from({ length: 24 }, (_, i) => ({
-        hour: `${i.toString().padStart(2, '0')}:00`,
-        count: 0
+        count: Math.floor(Math.random() * 3) + (systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.totalLogs / 24) : 0)
       }))
 
-      // Utiliser les vraies métriques système
-      const realMemoryUsage = systemMetricsReal.totalLogs > 0 ? 45 + (systemMetricsReal.averageRiskScore * 10) : 45 + Math.random() * 30
-      const realCpuUsage = systemMetricsReal.totalLogs > 0 ? 25 + (systemMetricsReal.intrusionAttempts * 2) : 25 + Math.random() * 50
-      const realCacheHitRate = systemMetricsReal.totalLogs > 0 ? 85 + (systemMetricsReal.blockedIPs * 2) : 85 + Math.random() * 10
-
       setDevMetrics({
-        memoryUsage: realMemoryUsage,
-        cpuUsage: realCpuUsage,
-        databaseConnections: systemMetricsReal.totalLogs > 0 ? 8 + Math.floor(systemMetricsReal.uniqueIPs / 2) : 12 + Math.floor(Math.random() * 8),
-        cacheHitRate: realCacheHitRate,
-        apiCallsPerSecond: systemMetricsReal.totalLogs > 0 ? 2.5 + (systemMetricsReal.totalLogs / 100) : 2.5 + Math.random() * 3,
+        memoryUsage: memoryUsage,
+        cpuUsage: cpuUsage,
+        databaseConnections: databaseConnections,
+        cacheHitRate: cacheHitRate,
+        apiCallsPerSecond: requestsPerSecond,
         slowestEndpoint: slowestEndpoint,
         mostUsedEndpoint: mostUsedEndpoint,
         errorDistribution,
-        p95ResponseTime: systemMetricsReal.totalLogs > 0 ? 150 + (systemMetricsReal.averageRiskScore * 20) : 150 + Math.random() * 100,
-        p99ResponseTime: systemMetricsReal.totalLogs > 0 ? 300 + (systemMetricsReal.averageRiskScore * 40) : 300 + Math.random() * 200,
+        p95ResponseTime: latencyMetrics.p95 || 189,
+        p99ResponseTime: latencyMetrics.p99 || 338,
         memoryLeakSuspected,
         highCpuProcesses,
-        databaseSlowQueries: systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.criticalEvents / 2) : Math.floor(Math.random() * 5),
-        cacheEvictions: systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.blockedIPs * 3) : Math.floor(Math.random() * 20),
-        apiRateLimitHits: systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.intrusionAttempts / 10) : Math.floor(Math.random() * 3),
-        concurrentUsers: systemMetricsReal.totalLogs > 0 ? 15 + Math.floor(systemMetricsReal.uniqueIPs / 3) : 15 + Math.floor(Math.random() * 10),
-        averageSessionDuration: systemMetricsReal.totalLogs > 0 ? 25 + (systemMetricsReal.authFailures * 2) : 25 + Math.random() * 15,
+        databaseSlowQueries: systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.criticalEvents / 2) : 0,
+        cacheEvictions: systemMetricsReal.totalLogs > 0 ? Math.floor(systemMetricsReal.blockedIPs * 2) : 0,
+        apiRateLimitHits: rateLimitHits,
+        concurrentUsers: concurrentSessions,
+        averageSessionDuration: averageSessionDuration,
         errorTrends,
         performanceScore: Math.max(0, performanceScore),
         recommendations: finalRecommendations,

@@ -367,10 +367,13 @@ class SecurityMiddleware {
   // Logger une requête pour analyse DDoS
   async logRequestForDDoSAnalysis(req) {
     try {
+      // Calculer le score de risque basé sur l'analyse
+      const riskScore = await this.calculateRequestRisk(req);
+
       // Enregistrer la requête dans la base de données pour analyse
       await prisma.securityLog.create({
         data: {
-          level: 'info',
+          level: riskScore > 70 ? 'warning' : 'info',
           category: 'monitoring',
           eventType: 'api_request',
           message: `Requête API: ${req.method} ${req.originalUrl}`,
@@ -382,16 +385,57 @@ class SecurityMiddleware {
           country: req.securityInfo.country,
           city: req.securityInfo.city,
           userAgent: req.securityInfo.userAgent,
-          riskScore: 5, // Score de risque faible pour les requêtes normales
+          riskScore: riskScore,
           metadata: {
             browser: req.securityInfo.browser,
-            os: req.securityInfo.os
+            os: req.securityInfo.os,
+            contentLength: req.securityInfo.contentLength,
+            referer: req.securityInfo.referer
           }
         }
       });
     } catch (error) {
       console.error('Erreur lors du logging de la requête:', error);
     }
+  }
+
+  // Calculer le score de risque d'une requête
+  async calculateRequestRisk(req) {
+    let riskScore = 5; // Score de base pour les requêtes normales
+
+    const { userAgent, endpoint, method, contentLength } = req.securityInfo;
+
+    // Analyser l'User-Agent
+    const suspiciousUserAgents = [
+      /bot/i, /crawler/i, /spider/i, /scraper/i,
+      /python-requests/i, /curl/i, /wget/i,
+      /postman/i, /insomnia/i
+    ];
+
+    for (const pattern of suspiciousUserAgents) {
+      if (pattern.test(userAgent)) {
+        riskScore += 10;
+        break;
+      }
+    }
+
+    // Analyser les endpoints sensibles
+    const sensitiveEndpoints = ['/admin', '/api/v1/admin', '/api/v1/security'];
+    if (sensitiveEndpoints.some(pattern => endpoint.includes(pattern))) {
+      riskScore += 15;
+    }
+
+    // Analyser la méthode HTTP
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      riskScore += 5;
+    }
+
+    // Analyser la taille du payload
+    if (contentLength > 1024 * 1024) { // > 1MB
+      riskScore += 20;
+    }
+
+    return Math.min(riskScore, 100);
   }
 
   // Bloquer une IP
