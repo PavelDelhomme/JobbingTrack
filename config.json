@@ -1,0 +1,29 @@
+{
+  "node": {
+    "version": "20.19.5"
+  },
+  "docker": {
+    "buildkit": 1,
+    "compose_cli_build": 1
+  },
+  "backend": {
+    "postgres_password": "jobbingtrack123",
+    "jwt_secret": "your-secret-key-change-in-production-2025",
+    "jwt_refresh_secret": "your-refresh-secret-change-too-2025"
+  },
+  "frontend": {
+    "api_url": "http://localhost:3000",
+    "auth_service_url": "http://localhost:3001"
+  },
+  "smtp": {
+    "host": "smtp.ovh.net",
+    "port": 587,
+    "user": "candidatures@example.invalid",
+    "pass": "V**Uw61^3*bz5c2AFrx&2d&%",
+    "from": "JobbingTrack <candidatures@example.invalid>"
+  },
+  "urls": {
+    "frontend": "http://localhost:8080",
+    "allowed_origins": "http://localhost:8080,http://localhost:3000"
+  }
+}

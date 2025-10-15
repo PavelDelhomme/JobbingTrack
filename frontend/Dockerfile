@@ -1,5 +1,5 @@
 # frontend/Dockerfile - VERSION FINALE SANS AUTO-INIT
-FROM node:20-alpine AS base
+FROM node:20.20.0-alpine AS base
 RUN apk add --no-cache libc6-compat curl dumb-init
 WORKDIR /app
 
