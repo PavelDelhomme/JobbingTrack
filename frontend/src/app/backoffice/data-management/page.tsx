@@ -524,9 +524,7 @@ export default function DataManagementPage() {
                       [selectedTable.toLowerCase()]: tableData?.rows || []
                     }}
                     className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
-                  >
-                    📤 Exporter
-                  </AdvancedDataExporter>
+                  />
                   <button
                     onClick={() => {
                       // Tester l'exporteur avec les données fictives
@@ -659,11 +657,7 @@ export default function DataManagementPage() {
                         // Mettre à jour les données fictives pour tester
                         console.log('Données de test ajoutées:', testData);
 
-                        // Tester l'exporteur avec les données fictives
-                        if (window.testExportData) {
-                          window.testExportData.data = testData;
-                          console.log('Exporteur mis à jour avec données de test');
-                        }
+                        // Données de test ajoutées pour l'exporteur
                       }}
                       className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
                       title="Ajouter des données de test"

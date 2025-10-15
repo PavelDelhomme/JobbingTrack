@@ -49,6 +49,18 @@ export default function UsersPage() {
   // Email logs
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
   const [loadingLogs, setLoadingLogs] = useState(false)
+
+  // États pour l'édition des détails utilisateur
+  const [editMode, setEditMode] = useState(false)
+  const [editUserForm, setEditUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN',
+    isActive: true
+  })
+  const [savingUser, setSavingUser] = useState(false)
   
   // Forms
   const [createForm, setCreateForm] = useState({
@@ -253,9 +265,66 @@ export default function UsersPage() {
     setShowDetailModal(false)
   }
 
+  const saveUserChanges = async () => {
+    if (!selectedUser) return
+
+    setSavingUser(true)
+    try {
+      // Mettre à jour les informations de base
+      const response = await fetch(`http://localhost:3000/api/v1/auth/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: editUserForm.firstName,
+          lastName: editUserForm.lastName,
+          email: editUserForm.email,
+          phone: editUserForm.phone || undefined
+        })
+      })
+
+      if (!response.ok) throw new Error('Erreur lors de la mise à jour du profil')
+
+      // Mettre à jour le rôle si nécessaire
+      if (editUserForm.role !== selectedUser.role) {
+        await updateUserRole(selectedUser.id, editUserForm.role)
+      }
+
+      // Mettre à jour le statut si nécessaire
+      if (editUserForm.isActive !== selectedUser.isActive) {
+        await toggleUserStatus(selectedUser.id, editUserForm.isActive)
+      }
+
+      // Recharger les utilisateurs
+      await fetchUsers()
+
+      // Fermer le mode édition
+      setEditMode(false)
+      setSelectedUser(null)
+      setShowDetailModal(false)
+
+      alert('✅ Utilisateur mis à jour avec succès !')
+    } catch (err: any) {
+      alert(`❌ ${err.message}`)
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
   const openUserDetail = (user: User) => {
     setSelectedUser(user)
     setDetailTab('info')
+    setEditMode(false)
+    setEditUserForm({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone || '',
+      role: user.role,
+      isActive: user.isActive
+    })
     setShowDetailModal(true)
     if (detailTab === 'logs') {
       fetchUserEmailLogs(user.id)
@@ -268,14 +337,24 @@ export default function UsersPage() {
     }
   }, [detailTab])
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return 'Date inconnue'
+
+    try {
+      const parsedDate = new Date(date)
+      if (isNaN(parsedDate.getTime())) {
+        return 'Date invalide'
+      }
+      return parsedDate.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      return 'Date inconnue'
+    }
   }
 
   return (
@@ -637,7 +716,7 @@ export default function UsersPage() {
       )}
 
       {/* Modal Détail Utilisateur */}
-      {showDetailModal && selectedUser && (
+      {showDetailModal && selectedUser && editMode !== undefined && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
@@ -645,21 +724,47 @@ export default function UsersPage() {
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl">
-                    {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                    {editMode ? editUserForm.firstName[0] + editUserForm.lastName[0] : selectedUser.firstName[0] + selectedUser.lastName[0]}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {selectedUser.firstName} {selectedUser.lastName}
+                      {editMode ? `${editUserForm.firstName} ${editUserForm.lastName}` : `${selectedUser.firstName} ${selectedUser.lastName}`}
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400">{selectedUser.email}</p>
+                    <p className="text-gray-600 dark:text-gray-400">{editMode ? editUserForm.email : selectedUser.email}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                >
-                  ✕
-                </button>
+                <div className="flex gap-2">
+                  {editMode ? (
+                    <>
+                      <button
+                        onClick={() => setEditMode(false)}
+                        className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={saveUserChanges}
+                        disabled={savingUser}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
+                      >
+                        {savingUser ? 'Sauvegarde...' : '💾 Sauvegarder'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      ✏️ Modifier
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* Onglets */}
@@ -690,31 +795,97 @@ export default function UsersPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Prénom</label>
-                      <div className="text-gray-900 dark:text-gray-100">{selectedUser.firstName}</div>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editUserForm.firstName}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, firstName: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.firstName}</div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Nom</label>
-                      <div className="text-gray-900 dark:text-gray-100">{selectedUser.lastName}</div>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editUserForm.lastName}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, lastName: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.lastName}</div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
-                      <div className="text-gray-900 dark:text-gray-100">{selectedUser.email}</div>
+                      {editMode ? (
+                        <input
+                          type="email"
+                          value={editUserForm.email}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.email}</div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Téléphone</label>
-                      <div className="text-gray-900 dark:text-gray-100">{selectedUser.phone || '-'}</div>
+                      {editMode ? (
+                        <input
+                          type="tel"
+                          value={editUserForm.phone}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })}
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.phone || '-'}</div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Rôle</label>
-                      <div className="text-gray-900 dark:text-gray-100">
-                        {ROLES[selectedUser.role].icon} {ROLES[selectedUser.role].label}
-                      </div>
+                      {editMode ? (
+                        <select
+                          value={editUserForm.role}
+                          onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as any })}
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        >
+                          {Object.entries(ROLES).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {value.icon} {value.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">
+                          {ROLES[selectedUser.role].icon} {ROLES[selectedUser.role].label}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Statut</label>
-                      <div className="text-gray-900 dark:text-gray-100">
-                        {selectedUser.isActive ? '✓ Actif' : '✕ Inactif'}
-                      </div>
+                      {editMode ? (
+                        <div className="mt-1">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={editUserForm.isActive}
+                              onChange={(e) => setEditUserForm({ ...editUserForm, isActive: e.target.checked })}
+                              className="mr-2"
+                            />
+                            <span className="text-sm text-gray-900 dark:text-gray-100">
+                              {editUserForm.isActive ? '✓ Actif' : '✕ Inactif'}
+                            </span>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">
+                          {selectedUser.isActive ? '✓ Actif' : '✕ Inactif'}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Créé le</label>

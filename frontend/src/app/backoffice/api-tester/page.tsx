@@ -298,13 +298,13 @@ export default function APITesterPage() {
 
   const manageCookies = (response: any) => {
     // Extraire et gérer les cookies de la réponse
-    const setCookies = response.headers?.['set-cookie']
-    if (setCookies) {
-      setCookies.forEach((cookieStr: string) => {
+    const setCookieHeaders = response.headers?.['set-cookie']
+    if (setCookieHeaders) {
+      setCookieHeaders.forEach((cookieStr: string) => {
         const cookie = parseCookie(cookieStr)
         if (cookie) {
-          setCookies(prev => {
-            const existingIndex = prev.findIndex(c => c.name === cookie.name && c.domain === cookie.domain)
+          setCookies((prev: any) => {
+            const existingIndex = prev.findIndex((c: any) => c.name === cookie.name && c.domain === cookie.domain)
             if (existingIndex >= 0) {
               const updated = [...prev]
               updated[existingIndex] = cookie

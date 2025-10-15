@@ -590,7 +590,7 @@ export default function PlaywrightTestsPage() {
 
                 <div>
                   <Label className="text-sm">Statut</Label>
-                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
+                  <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -605,7 +605,7 @@ export default function PlaywrightTestsPage() {
 
                 <div>
                   <Label className="text-sm">Navigateur</Label>
-                  <Select value={browserFilter} onValueChange={(value) => setBrowserFilter(value)}>
+                  <Select value={browserFilter} onChange={(e) => setBrowserFilter(e.target.value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>

@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { applicationService, authService, companyService } from '@/lib/api'
+import { Settings, BarChart3, PieChart, TrendingUp, Users, Building2, FileText, Activity, Eye, EyeOff } from 'lucide-react'
 
 interface Statistics {
   applications: {
@@ -32,12 +33,46 @@ interface Statistics {
   }
 }
 
+interface CustomizationSettings {
+  showApplications: boolean
+  showUsers: boolean
+  showCompanies: boolean
+  showPerformance: boolean
+  showTimeline: boolean
+  showDeveloper: boolean
+  showSecurity: boolean
+  viewType: 'cards' | 'charts' | 'table'
+  chartType: 'bar' | 'pie' | 'line'
+}
+
+const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
+  showApplications: true,
+  showUsers: true,
+  showCompanies: true,
+  showPerformance: true,
+  showTimeline: true,
+  showDeveloper: false,
+  showSecurity: false,
+  viewType: 'cards',
+  chartType: 'bar'
+}
+
 export default function StatisticsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month')
+
+  // États pour la personnalisation
+  const [showCustomization, setShowCustomization] = useState(false)
+  const [customization, setCustomization] = useState<CustomizationSettings>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('statistics-customization')
+      return saved ? { ...DEFAULT_CUSTOMIZATION, ...JSON.parse(saved) } : DEFAULT_CUSTOMIZATION
+    }
+    return DEFAULT_CUSTOMIZATION
+  })
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -50,6 +85,22 @@ export default function StatisticsPage() {
       fetchStatistics()
     }
   }, [isAuthenticated, period])
+
+  // Sauvegarder les paramètres de personnalisation
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('statistics-customization', JSON.stringify(customization))
+    }
+  }, [customization])
+
+  // Fonctions de personnalisation
+  const updateCustomization = (updates: Partial<CustomizationSettings>) => {
+    setCustomization(prev => ({ ...prev, ...updates }))
+  }
+
+  const resetCustomization = () => {
+    setCustomization(DEFAULT_CUSTOMIZATION)
+  }
 
   const fetchStatistics = async () => {
     try {
@@ -120,7 +171,7 @@ export default function StatisticsPage() {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
         </div>
       </AdminLayout>
     )
@@ -129,7 +180,7 @@ export default function StatisticsPage() {
   if (!stats) {
     return (
       <AdminLayout>
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           Erreur de chargement des statistiques
         </div>
       </AdminLayout>
@@ -247,7 +298,7 @@ export default function StatisticsPage() {
             </div>
 
             <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Par secteur</h4>
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Par secteur</h4>
               <div className="space-y-2">
                 {Object.entries(stats.companies.byIndustry).slice(0, 5).map(([industry, count]) => (
                   <ProgressBar
@@ -278,9 +329,9 @@ export default function StatisticsPage() {
               </div>
             </div>
             <div className="space-y-4">
-              <div 
+              <div
                 onClick={() => router.push('/backoffice/analytics')}
-                className="p-3 sm:p-4 bg-blue-50 rounded-lg dark:bg-gray-700 cursor-pointer hover:bg-blue-100 dark:hover:bg-gray-600 transition-colors group"
+                className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group"
                 title="Cliquer pour voir les détails dans Analytics"
               >
                 <div className="flex justify-between items-center mb-2">
@@ -290,9 +341,9 @@ export default function StatisticsPage() {
                     <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                   </span>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-2">
+                <div className="w-full bg-blue-200 dark:bg-blue-900/30 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
                     style={{ width: `${Math.min(100, (stats.performance.averageResponseTime / 500) * 100)}%` }}
                   />
                 </div>
@@ -310,9 +361,9 @@ export default function StatisticsPage() {
                     <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                   </span>
                 </div>
-                <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-2">
+                <div className="w-full bg-green-200 dark:bg-green-900/30 rounded-full h-2">
                   <div
-                    className="bg-green-600 dark:bg-green-500 h-2 rounded-full transition-all"
+                    className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
                     style={{ width: `${stats.performance.successRate}%` }}
                   />
                 </div>
@@ -330,9 +381,9 @@ export default function StatisticsPage() {
                     <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                   </span>
                 </div>
-                <div className="w-full bg-red-200 dark:bg-red-800 rounded-full h-2">
+                <div className="w-full bg-red-200 dark:bg-red-900/30 rounded-full h-2">
                   <div
-                    className="bg-red-600 dark:bg-red-500 h-2 rounded-full transition-all"
+                    className="bg-red-600 dark:bg-red-400 h-2 rounded-full transition-all"
                     style={{ width: `${stats.performance.errorRate}%` }}
                   />
                 </div>
@@ -357,7 +408,7 @@ export default function StatisticsPage() {
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
+                        className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full"
                         style={{ width: `${(count / stats.applications.total) * 100}%` }}
                       />
                     </div>
@@ -420,10 +471,10 @@ function ProgressBar({ label, value, max, color }: {
   color: 'blue' | 'green' | 'purple' | 'orange'
 }) {
   const colors = {
-    blue: 'bg-blue-600 dark:bg-blue-500',
-    green: 'bg-green-600 dark:bg-green-500',
-    purple: 'bg-purple-600 dark:bg-purple-500',
-    orange: 'bg-orange-600 dark:bg-orange-500'
+    blue: 'bg-blue-600 dark:bg-blue-400',
+    green: 'bg-green-600 dark:bg-green-400',
+    purple: 'bg-purple-600 dark:bg-purple-400',
+    orange: 'bg-orange-600 dark:bg-orange-400'
   }
 
   const percentage = (value / max) * 100
@@ -454,10 +505,10 @@ function SummaryItem({ icon, label, value, trend, trendUp, onClick, clickable }:
   clickable?: boolean
 }) {
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg ${
-        clickable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group' : ''
+      className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 ${
+        clickable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors group' : ''
       }`}
       title={clickable ? "Cliquer pour voir les détails" : undefined}
     >

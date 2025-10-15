@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/hooks/auth'
-import { companyService, applicationService } from '@/lib/api'
+import { companyService, applicationService, apiClient } from '@/lib/api'
 
 interface Company {
   id: string
@@ -67,7 +67,8 @@ export default function CompanyDetailPage() {
 
   const fetchCompanyApplications = async () => {
     try {
-      const response = await applicationService.getByCompany(companyId)
+      // Utiliser une requête personnalisée pour obtenir les candidatures par entreprise
+      const response = await apiClient.get(`/applications?companyId=${companyId}`)
       setApplications(response.data.applications || [])
     } catch (error) {
       console.error('Erreur chargement candidatures:', error)

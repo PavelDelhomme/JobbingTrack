@@ -61,7 +61,7 @@ export function useOfflineSync() {
       if (cacheData) {
         const cacheObj = JSON.parse(cacheData);
         const cacheMap = new Map(Object.entries(cacheObj));
-        setState(prev => ({ ...prev, cache: cacheMap }));
+        setState((prev: any) => ({ ...prev, cache: cacheMap }));
       }
 
       // Charger la dernière synchronisation
@@ -211,13 +211,13 @@ export function useOfflineSync() {
     const now = Date.now();
     const newCache = new Map();
 
-    for (const [key, cached] of state.cache.entries()) {
+    state.cache.forEach((cached, key) => {
       if (!cached.expiresAt || cached.expiresAt > now) {
         newCache.set(key, cached);
       }
-    }
+    });
 
-    setState(prev => ({ ...prev, cache: newCache }));
+    setState((prev: any) => ({ ...prev, cache: newCache }));
     saveToStorage();
   }, [state.cache, saveToStorage]);
 
@@ -257,7 +257,7 @@ export function useOfflineSync() {
     stats: {
       pendingCount: state.pendingOperations.length,
       cacheSize: state.cache.size,
-      totalSize: JSON.stringify([...state.cache.values()]).length
+      totalSize: JSON.stringify(Array.from(state.cache.values())).length
     }
   };
 }

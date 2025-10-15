@@ -90,7 +90,7 @@ export default function FormField(props: FormFieldProps) {
 
       case 'select':
         return (
-          <Select value={props.value} onValueChange={props.onChange} disabled={props.disabled}>
+          <Select value={props.value} onChange={(e) => props.onChange?.(e.target.value)} disabled={props.disabled}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={props.placeholder} />
             </SelectTrigger>
@@ -109,7 +109,7 @@ export default function FormField(props: FormFieldProps) {
           <div className="flex items-center space-x-2">
             <Switch
               checked={props.value}
-              onCheckedChange={props.onChange}
+              onChange={(e) => props.onChange?.(e.target.checked)}
               disabled={props.disabled}
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">

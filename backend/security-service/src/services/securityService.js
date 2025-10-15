@@ -14,14 +14,14 @@ class SecurityService {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      // Récupérer les logs de sécurité récents
+      // Récupérer les logs de sécurité récents (données réelles collectées)
       const securityLogs = await this.getSecurityLogs({
         startDate,
         category,
         limit: 1000
       });
 
-      // Analyser les métriques
+      // Analyser les métriques à partir des vraies données collectées
       const metrics = await this.analyzeSecurityMetrics(securityLogs);
 
       return {
@@ -517,14 +517,14 @@ class SecurityService {
         take: 1000
       });
 
-      // Calculer les métriques à partir des vraies données
+      // Calculer les métriques à partir des vraies données collectées
       const totalLogs = recentLogs.length;
       const criticalEvents = recentLogs.filter(log => log.level === 'critical').length;
       const intrusionAttempts = recentLogs.filter(log => log.category === 'intrusion').length;
       const ddosAttacks = recentLogs.filter(log => log.category === 'ddos').length;
       const authFailures = recentLogs.filter(log => log.eventType === 'login_attempt' && log.level === 'warning').length;
 
-      // Calculer les métriques système basées sur les logs
+      // Calculer les métriques système basées sur les logs réels
       const uniqueIPs = new Set(recentLogs.map(log => log.sourceIP)).size;
       const blockedIPs = recentLogs.filter(log => log.isBlocked).length;
 
@@ -627,83 +627,78 @@ class SecurityService {
     }
   }
 
-  // Enregistrer automatiquement des événements de sécurité réalistes
-  async recordRealSecurityEvents() {
+  // Analyser et enregistrer les vraies données de sécurité
+  async analyzeAndRecordSecurityData() {
     try {
-      // Simuler des événements de sécurité réalistes basés sur l'activité système
-      const events = await this.generateRealSecurityEvents();
-      for (const event of events) {
-        await prisma.securityLog.create({ data: event });
+      // Récupérer les données de sécurité récentes pour analyse
+      const recentLogs = await prisma.securityLog.findMany({
+        where: {
+          timestamp: {
+            gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
+          }
+        },
+        orderBy: { timestamp: 'desc' },
+        take: 1000
+      });
+
+      // Analyser les patterns d'attaques
+      const attackAnalysis = this.analyzeAttackPatterns(recentLogs);
+
+      // Créer des alertes si nécessaire
+      if (attackAnalysis.criticalThreats > 0) {
+        await this.createSecurityAlert({
+          level: 'critical',
+          title: 'Activité d\'attaque critique détectée',
+          description: `${attackAnalysis.criticalThreats} menaces critiques détectées dans la dernière heure`,
+          category: 'threat_analysis',
+          source: 'security-analyzer',
+          metadata: attackAnalysis
+        });
       }
-      logger.info(`Événements de sécurité réalistes enregistrés: ${events.length}`);
+
+      logger.info(`Analyse de sécurité terminée: ${recentLogs.length} logs analysés`);
     } catch (error) {
-      logger.error('Erreur lors de l\'enregistrement des événements de sécurité:', error);
+      logger.error('Erreur lors de l\'analyse des données de sécurité:', error);
     }
   }
 
-  // Générer des événements de sécurité réalistes
-  async generateRealSecurityEvents() {
-    const events = [];
-    const now = new Date();
+  // Analyser les patterns d'attaques dans les logs
+  analyzeAttackPatterns(logs) {
+    const analysis = {
+      totalLogs: logs.length,
+      criticalThreats: 0,
+      intrusionAttempts: 0,
+      suspiciousIPs: new Set(),
+      attackTypes: {},
+      countries: {}
+    };
 
-    // Événements d'authentification
-    for (let i = 0; i < 5; i++) {
-      events.push({
-        level: Math.random() > 0.8 ? 'warning' : 'info',
-        category: 'authentication',
-        eventType: Math.random() > 0.7 ? 'login_success' : 'login_attempt',
-        message: Math.random() > 0.5 ? 'Connexion réussie' : 'Tentative de connexion',
-        sourceIP: this.getRandomIP(),
-        country: this.getRandomCountry(),
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        riskScore: Math.random() > 0.8 ? 25 : 5
-      });
-    }
+    logs.forEach(log => {
+      if (log.level === 'critical' || log.level === 'error') {
+        analysis.criticalThreats++;
 
-    // Événements d'intrusion (plus rares)
-    if (Math.random() > 0.7) {
-      events.push({
-        level: 'error',
-        category: 'intrusion',
-        eventType: 'suspicious_activity',
-        message: 'Activité suspecte détectée',
-        sourceIP: this.getRandomIP(),
-        country: this.getRandomCountry(),
-        userAgent: 'python-requests/2.25.1',
-        riskScore: 70
-      });
-    }
+        if (log.category === 'intrusion') {
+          analysis.intrusionAttempts++;
+        }
 
-    // Événements système
-    events.push({
-      level: 'info',
-      category: 'monitoring',
-      eventType: 'system_check',
-      message: 'Vérification système automatique',
-      sourceIP: '127.0.0.1',
-      country: 'Local',
-      riskScore: 0
+        if (log.sourceIP) {
+          analysis.suspiciousIPs.add(log.sourceIP);
+        }
+
+        if (log.country) {
+          analysis.countries[log.country] = (analysis.countries[log.country] || 0) + 1;
+        }
+      }
+
+      // Compter les types d'attaques
+      if (log.category) {
+        analysis.attackTypes[log.category] = (analysis.attackTypes[log.category] || 0) + 1;
+      }
     });
 
-    return events.map(event => ({
-      ...event,
-      timestamp: new Date(now.getTime() - Math.random() * 60 * 60 * 1000) // Dernière heure
-    }));
-  }
+    analysis.suspiciousIPs = Array.from(analysis.suspiciousIPs);
 
-  // Générer une IP aléatoire réaliste
-  getRandomIP() {
-    const ips = [
-      '192.168.1.100', '10.0.0.50', '203.0.113.1', '198.51.100.1',
-      '172.16.0.1', '192.168.100.1', '10.10.10.1', '203.0.113.195'
-    ];
-    return ips[Math.floor(Math.random() * ips.length)];
-  }
-
-  // Générer un pays aléatoire réaliste
-  getRandomCountry() {
-    const countries = ['FR', 'US', 'GB', 'DE', 'CA', 'AU', 'JP', 'CN', 'RU', 'BR'];
-    return countries[Math.floor(Math.random() * countries.length)];
+    return analysis;
   }
 
   // Analyser les risques de sécurité en temps réel

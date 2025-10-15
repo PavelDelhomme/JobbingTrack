@@ -121,16 +121,16 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
     };
   };
 
-  const getFieldValue = (key: string, value: any): string | number | boolean => {
+  const getFieldValue = (key: string, value: any): string | number | readonly string[] | undefined => {
     if (value === null || value === undefined) return '';
-    if (typeof value === 'boolean') return value;
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
     if (typeof value === 'number') return value;
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
   };
 
   const handleInputChange = (key: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       [key]: value
     }));
@@ -428,7 +428,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <button
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, is_active: true, is_deleted: false, is_archived: false }));
+                      setFormData((prev: any) => ({ ...prev, is_active: true, is_deleted: false, is_archived: false }));
                     }}
                     className="h-12 px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg flex flex-col items-center justify-center gap-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
                   >
@@ -438,7 +438,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
 
                   <button
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, is_active: false }));
+                      setFormData((prev: any) => ({ ...prev, is_active: false }));
                     }}
                     className="h-12 px-3 py-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-lg flex flex-col items-center justify-center gap-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
                   >
@@ -448,7 +448,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
 
                   <button
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, is_archived: true }));
+                      setFormData((prev: any) => ({ ...prev, is_archived: true }));
                     }}
                     className="h-12 px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg flex flex-col items-center justify-center gap-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
                   >
@@ -458,7 +458,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
 
                   <button
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, is_archived: false }));
+                      setFormData((prev: any) => ({ ...prev, is_archived: false }));
                     }}
                     className="h-12 px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg flex flex-col items-center justify-center gap-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
                   >

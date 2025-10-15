@@ -52,6 +52,38 @@ check_docker_compose() {
     fi
 }
 
+# Fonction de vérification des services de métriques
+check_metrics_services() {
+    echo -e "${BLUE}📊 Vérification des services de métriques...${NC}"
+
+    local issues=0
+
+    # Vérifier Metrics Aggregator
+    if curl -s --max-time 3 "http://localhost:3014/api/v1/health" > /dev/null 2>&1; then
+        echo -e "   ✅ Metrics Aggregator (port 3014)"
+    else
+        echo -e "   ❌ Metrics Aggregator (port 3014)"
+        ((issues++))
+    fi
+
+    # Vérifier Prometheus
+    if curl -s --max-time 3 "http://localhost:9090/-/healthy" > /dev/null 2>&1; then
+        echo -e "   ✅ Prometheus (port 9090)"
+    else
+        echo -e "   ❌ Prometheus (port 9090)"
+        ((issues++))
+    fi
+
+    # Vérifier cAdvisor
+    if curl -s --max-time 3 "http://localhost:8080/api/v1.3/docker/" > /dev/null 2>&1; then
+        echo -e "   ✅ cAdvisor (port 8080)"
+    else
+        echo -e "   ⚠️ cAdvisor (port 8080) - Peut nécessiter des privilèges système"
+    fi
+
+    return $issues
+}
+
 # Fonction de nettoyage
 cleanup() {
     echo -e "${YELLOW}🧹 Nettoyage des conteneurs problématiques...${NC}"
@@ -96,6 +128,10 @@ start_services() {
     # Démarrer les autres services
     docker-compose up -d
 
+    # Démarrer les services de métriques
+    echo -e "${BLUE}📊 Démarrage des services de métriques...${NC}"
+    docker-compose up -d cadvisor metrics-aggregator-service prometheus 2>/dev/null || echo -e "${YELLOW}⚠️ Certains services de métriques nécessitent des privilèges spéciaux${NC}"
+
     echo -e "${GREEN}✅ Services démarrés${NC}"
 }
 
@@ -131,6 +167,11 @@ full_check() {
         echo -e "   ❌ Frontend (port 8080)"
         ((issues++))
     fi
+
+    # Vérifier les services de métriques
+    echo ""
+    echo "📊 Vérification des services de métriques:"
+    check_metrics_services || ((issues++))
 
     # Vérifier la base de données
     echo ""

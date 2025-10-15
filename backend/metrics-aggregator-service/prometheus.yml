@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Le job qui scrape lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scraping du Metrics Aggregator Service
+  - job_name: 'metrics-aggregator'
+    static_configs:
+      - targets: ['metrics-aggregator:3014']
+    scrape_interval: 10s
+
+  # Scraping de cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+  # Scraping des services backend (si ils exposent des métriques)
+  - job_name: 'backend-services'
+    static_configs:
+      - targets:
+          - 'auth-service:3001'
+          - 'application-service:3002'
+          - 'company-service:3003'
+          - 'contact-service:3004'
+          - 'interview-service:3005'
+          - 'notification-service:3006'
+          - 'dashboard-service:3007'
+          - 'call-service:3008'
+          - 'event-service:3009'
+          - 'followup-service:3010'
+          - 'profile-service:3011'
+          - 'workflow-service:3013'
+    scrape_interval: 15s
+    metrics_path: '/metrics'  # Les services doivent exposer des métriques sur /metrics
