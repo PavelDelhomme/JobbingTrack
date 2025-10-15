@@ -384,11 +384,11 @@ export default function AnalyticsPage() {
 
       // Calculer le score de performance depuis les vraies données
       let performanceScore = 100
-      if (systemMetricsReal && systemMetricsReal.errorRate > 5) performanceScore -= 20
-      if (systemMetricsReal && systemMetricsReal.averageResponseTime > 200) performanceScore -= 15
+      if (errorRate > 5) performanceScore -= 20
+      if (averageResponseTime > 200) performanceScore -= 15
       if (memoryUsage > 80) performanceScore -= 10
       if (cpuUsage > 70) performanceScore -= 10
-      if (cacheHitRate < 80) performanceScore -= 5
+      if (cacheHitRate < 85) performanceScore -= 5
 
       if (finalRecommendations.some(rec => rec.includes("erreur élevé"))) performanceScore -= 15
       if (finalRecommendations.some(rec => rec.includes("latence"))) performanceScore -= 10
