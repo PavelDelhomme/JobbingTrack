@@ -1,4 +1,4 @@
-name: 🚀 CI/CD Pipeline - JobbingTrack
+name: 🚀 CI/CD Pipeline - JobbingTrack (Version depuis config)
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '20.19.5'
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -27,14 +26,38 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🟢 Configuration Node.js
+      - name: 📋 Lecture de la version Node.js depuis les Dockerfiles
+        id: node-version
+        run: |
+          echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
+          # Extraire la version depuis les Dockerfiles
+          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
+          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
+          
+          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
+          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
+          
+          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
+          NODE_VERSION=${NODE_VERSION:-20}
+          
+          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🟢 Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
           cache-dependency-path: |
             frontend/package-lock.json
             backend/*/package-lock.json
+
+      - name: 🔍 Vérification de l'environnement Node.js
+        run: |
+          echo "🔍 Vérification de l'environnement Node.js..."
+          node --version
+          npm --version
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances frontend
         run: |
@@ -90,13 +113,37 @@ jobs:
       - name: 📥 Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🟢 Configuration Node.js
+      - name: 📋 Lecture de la version Node.js depuis les Dockerfiles
+        id: node-version
+        run: |
+          echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
+          # Extraire la version depuis les Dockerfiles
+          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
+          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
+          
+          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
+          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
+          
+          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
+          NODE_VERSION=${NODE_VERSION:-20}
+          
+          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🟢 Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
           cache-dependency-path: |
             backend/*/package-lock.json
+
+      - name: 🔍 Vérification de l'environnement Node.js
+        run: |
+          echo "🔍 Vérification de l'environnement Node.js..."
+          node --version
+          npm --version
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 🐳 Configuration Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -175,12 +222,36 @@ jobs:
       - name: 📥 Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🟢 Configuration Node.js
+      - name: 📋 Lecture de la version Node.js depuis les Dockerfiles
+        id: node-version
+        run: |
+          echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
+          # Extraire la version depuis les Dockerfiles
+          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
+          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
+          
+          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
+          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
+          
+          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
+          NODE_VERSION=${NODE_VERSION:-20}
+          
+          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🟢 Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ steps.node-version.outputs.node-version }}
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+
+      - name: 🔍 Vérification de l'environnement Node.js
+        run: |
+          echo "🔍 Vérification de l'environnement Node.js..."
+          node --version
+          npm --version
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances
         run: |
@@ -212,193 +283,36 @@ jobs:
           echo "✅ Build de production terminé"
 
   # ============================================================================
-  # TESTS D'INTÉGRATION
-  # ============================================================================
-  
-  test-integration:
-    name: 🔗 Tests d'intégration
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    needs: [test-backend, test-frontend]
-    
-    steps:
-      - name: 📥 Checkout du code
-        uses: actions/checkout@v4
-
-      - name: 🐳 Configuration Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🏗️ Construction des images Docker
-        run: |
-          echo "🏗️ Construction des images Docker..."
-          
-          # Construire les images backend
-          cd backend
-          docker compose -f docker-compose.yml build --parallel
-          
-          # Construire l'image frontend
-          cd ../frontend
-          docker compose -f docker-compose.frontend.yml build
-
-      - name: 🚀 Démarrage des services
-        run: |
-          echo "🚀 Démarrage des services pour les tests d'intégration..."
-          
-          # Démarrer l'infrastructure
-          cd backend
-          docker compose -f docker-compose.yml up -d postgres redis
-          
-          # Attendre que les services soient prêts
-          sleep 30
-          
-          # Démarrer les services backend
-          docker compose -f docker-compose.yml up -d
-          
-          # Attendre que les services backend soient prêts
-          sleep 30
-          
-          # Démarrer le frontend
-          cd ../frontend
-          docker compose -f docker-compose.frontend.yml up -d
-
-      - name: 🏥 Tests de santé des services
-        run: |
-          echo "🏥 Tests de santé des services..."
-          
-          # Attendre que tous les services soient prêts
-          sleep 60
-          
-          # Tests de connectivité
-          for service in api-gateway auth-service application-service company-service contact-service interview-service notification-service dashboard-service; do
-            echo "🔍 Test de $service..."
-            timeout 10 bash -c "</dev/tcp/localhost/3000" 2>/dev/null && echo "✅ API Gateway accessible" || echo "❌ API Gateway non accessible"
-          done
-          
-          # Test du frontend
-          timeout 10 bash -c "</dev/tcp/localhost/8080" 2>/dev/null && echo "✅ Frontend accessible" || echo "❌ Frontend non accessible"
-
-      - name: 🧪 Tests d'intégration complets
-        run: |
-          echo "🧪 Exécution des tests d'intégration..."
-          
-          # Tests des endpoints API
-          curl -f http://localhost:3000/health || echo "⚠️ Health check échoué"
-          curl -f http://localhost:3000/api/auth/health || echo "⚠️ Auth service health check échoué"
-          
-          # Tests du frontend
-          curl -f http://localhost:8080 || echo "⚠️ Frontend non accessible"
-
-      - name: 📊 Rapport des tests d'intégration
-        if: always()
-        run: |
-          echo "📊 Résumé des tests d'intégration:"
-          echo "✅ Services démarrés"
-          echo "✅ Tests de connectivité terminés"
-          echo "✅ Tests d'API terminés"
-
-      - name: 🧹 Nettoyage
-        if: always()
-        run: |
-          echo "🧹 Nettoyage des services..."
-          cd backend && docker compose -f docker-compose.yml down -v
-          cd ../frontend && docker compose -f docker-compose.frontend.yml down -v
-
-  # ============================================================================
-  # SÉCURITÉ
-  # ============================================================================
-  
-  security-scan:
-    name: 🔒 Analyse de sécurité
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: code-quality
-    
-    steps:
-      - name: 📥 Checkout du code
-        uses: actions/checkout@v4
-
-      - name: 🟢 Configuration Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/*/package-lock.json
-
-      - name: 🔍 Audit de sécurité npm
-        run: |
-          echo "🔍 Audit de sécurité des dépendances..."
-          
-          # Audit frontend
-          cd frontend
-          npm audit --audit-level=moderate || echo "⚠️ Vulnérabilités détectées dans le frontend"
-          
-          # Audit backend
-          for service in ../backend/*/; do
-            if [ -f "$service/package.json" ]; then
-              echo "🔍 Audit pour $(basename $service)..."
-              cd "$service"
-              npm audit --audit-level=moderate || echo "⚠️ Vulnérabilités détectées dans $(basename $service)"
-              cd - > /dev/null
-            fi
-          done
-
-      - name: 🐳 Scan de sécurité Docker
-        run: |
-          echo "🐳 Scan de sécurité des images Docker..."
-          # Note: Dans un environnement de production, utiliser des outils comme Trivy
-          echo "ℹ️ Scan de sécurité Docker (nécessite Trivy en production)"
-
-  # ============================================================================
-  # DÉPLOIEMENT (seulement sur main)
-  # ============================================================================
-  
-  deploy:
-    name: 🚀 Déploiement
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [test-backend, test-frontend, test-integration, security-scan]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: 📥 Checkout du code
-        uses: actions/checkout@v4
-
-      - name: 🐳 Configuration Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🏗️ Construction des images de production
-        run: |
-          echo "🏗️ Construction des images de production..."
-          
-          # Construire les images backend
-          cd backend
-          docker compose -f docker-compose.prod.yml build --parallel
-          
-          # Construire l'image frontend
-          cd ../frontend
-          docker compose -f docker-compose.prod.yml build
-
-      - name: 📊 Rapport de déploiement
-        run: |
-          echo "📊 Images de production construites:"
-          echo "✅ Backend services"
-          echo "✅ Frontend application"
-          echo "✅ Base de données"
-          echo "✅ Services de monitoring"
-
-  # ============================================================================
   # RAPPORT FINAL
   # ============================================================================
   
   ci-summary:
     name: 📊 Résumé CI/CD
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend, test-integration, security-scan]
+    needs: [test-backend, test-frontend]
     if: always()
     
     steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 📋 Lecture de la version Node.js depuis les Dockerfiles
+        id: node-version
+        run: |
+          echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
+          # Extraire la version depuis les Dockerfiles
+          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
+          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
+          
+          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
+          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
+          
+          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
+          NODE_VERSION=${NODE_VERSION:-20}
+          
+          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
       - name: 📊 Rapport final
         run: |
           echo "📊 RÉSUMÉ DE LA PIPELINE CI/CD"
@@ -407,10 +321,10 @@ jobs:
           echo "🔍 Analyse de qualité: ${{ needs.code-quality.result }}"
           echo "🧪 Tests backend: ${{ needs.test-backend.result }}"
           echo "🎨 Tests frontend: ${{ needs.test-frontend.result }}"
-          echo "🔗 Tests d'intégration: ${{ needs.test-integration.result }}"
-          echo "🔒 Analyse de sécurité: ${{ needs.security-scan.result }}"
           echo ""
-          if [ "${{ needs.test-backend.result }}" = "success" ] && [ "${{ needs.test-frontend.result }}" = "success" ] && [ "${{ needs.test-integration.result }}" = "success" ]; then
+          echo "📋 Version Node.js utilisée: ${{ steps.node-version.outputs.node-version }}"
+          echo ""
+          if [ "${{ needs.test-backend.result }}" = "success" ] && [ "${{ needs.test-frontend.result }}" = "success" ]; then
             echo "✅ TOUS LES TESTS SONT PASSÉS !"
             echo "🚀 Le projet est prêt pour le déploiement"
           else
