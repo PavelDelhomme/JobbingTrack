@@ -88,3 +88,38 @@ Cette documentation est mise à jour automatiquement avec chaque version majeure
 Pour toute question sur la documentation :
 - **Issues GitHub** : [Signaler un problème](https://github.com/OWNER/JobbingTrack/issues)
 - **Discussions** : [Questions générales](https://github.com/OWNER/JobbingTrack/discussions)
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète
+- **[État du Projet](./STATUT-PROJET.md)** - Fonctionnalités et roadmap
+
+### 📖 **Guides Pratiques**
+- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
+- **[Guide de Développement](./guides/getting-started.md)** - Développement et contribution
+- **[Guide d'Administration](./guides/administration.md)** - Administration système
+
+### 🚀 **Déploiement**
+- **[Guide de Déploiement](./deployment/README.md)** - Production complète
+- **[Configuration Nginx](./deployment/README.md#configuration-nginx-proxy-manager)** - Reverse proxy SSL
+
+### 📡 **API**
+- **[Documentation API](./api/README.md)** - Guide complet REST API
+- **[Exemples d'Utilisation](./api/examples.md)** - Cas pratiques
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles Organisés](./../makefiles/README.md)** - Commandes automatisées
+- **[Scripts Utilitaires](./../scripts/README.md)** - Outils organisés
+- **[Tests Automatisés](./../tests/README.md)** - Suite de tests complète
+
+### 🔧 **Documentation Technique**
+- **[Documentation Technique Avancée](./technical/README.md)** - Guide expert
+
+### 📁 **Structure du Projet**
+- **[Backend](../../backend/README.md)** - Architecture microservices
+- **[Frontend](../../frontend/README.md)** - Dashboard Next.js
+- **[Mobile](../../mobile/README.md)** - Application React Native

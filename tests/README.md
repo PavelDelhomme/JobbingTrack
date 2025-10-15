@@ -60,25 +60,25 @@ tests/
 ### Tests Automatisés Complets
 ```bash
 # Tous les tests automatisés
-./tests/automated-tests.sh
+make test-all
 
 # Tests d'application spécifiques
-./tests/application-tests.sh
+make test-application
 
 # Tests d'authentification
-./tests/auth-tests.sh
+make test-auth
 ```
 
 ### Tests End-to-End
 ```bash
 # Tests e2e avec interface graphique
-npx playwright test --ui
+make test-e2e-ui
 
 # Tests headless (CI/CD)
-npx playwright test
+make test-e2e
 
 # Tests spécifiques
-npx playwright test login.spec.ts
+make test-e2e-specific
 ```
 
 ### Tests de Développement
@@ -86,11 +86,11 @@ npx playwright test login.spec.ts
 # Tests de santé rapides
 make test-services
 
-# Tests unitaires (lorsque implémentés)
-npm run test
+# Tests unitaires frontend
+make test-frontend
 
-# Coverage (lorsque implémenté)
-npm run test:coverage
+# Tests automatisés complets
+make test-all
 ```
 
 ## 📊 Données de Test
@@ -201,3 +201,48 @@ Voir la [documentation principale](../../README.md) pour :
 - **Données cohérentes** : Utiliser les fixtures fournies
 - **Assertions claires** : Messages d'erreur explicites
 - **Nettoyage automatique** : Cleanup après chaque test
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
+- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🚀 **Démarrage Rapide**
+- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
+- **[Guide de Développement](../../docs/guides/getting-started.md)** - Développement et tests
+
+### 🧪 **Tests et Qualité**
+- **[Tests Automatisés](#lancement-des-tests)** - Suite complète organisée
+- **[Tests de Santé](#tests-de-santé)** - Vérification services
+- **[Tests d'Intégration](#tests-dintégration)** - Workflows complets
+- **[Tests End-to-End](#tests-end-to-end-e2e)** - Interface utilisateur
+
+### 📊 **Données de Test**
+- **[Données de Test](#données-de-test)** - Utilisateurs, entreprises, candidatures
+- **[Fixtures E2E](./e2e/fixtures/test-data.ts)** - Données réutilisables
+- **[Helpers de Test](./e2e/utils/test-helpers.ts)** - Fonctions utilitaires
+
+### 🔧 **Configuration**
+- **[Playwright Config](./e2e/playwright.config.ts)** - Configuration E2E
+- **[Variables d'Environnement](#configuration)** - Configuration tests
+- **[Scripts de Test](./automated-tests.sh)** - Automatisation complète
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
+- **[CI/CD](../../README.md#pipeline-cicd)** - Intégration continue
+- **[Monitoring](../../docs/technical/README.md#monitoring)** - Métriques et alertes
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles](../../makefiles/README.md)** - Commandes automatisées
+- **[Scripts de Test](../../scripts/README.md)** - Outils spécialisés
+- **[Données SQL](../data/README.md)** - Configuration base de données
+
+### 📁 **Structure du Projet**
+- **[Backend](../../backend/README.md)** - Architecture microservices
+- **[Frontend](../../frontend/README.md)** - Dashboard Next.js
+- **[Mobile](../../mobile/README.md)** - Application React Native
+- **[API](../../docs/api/README.md)** - Documentation API complète

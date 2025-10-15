@@ -169,16 +169,16 @@ const newApp = await apiClient.post('/applications', data)
 
 ```bash
 # Tests des hooks
-npm run test hooks
+make test-hooks
 
 # Tests des intégrations
-npm run test integrations
+make test-integrations
 
 # Tests de l'API client
-npm run test api
+make test-api
 
 # Tests unitaires complets
-npm run test lib
+make test-lib
 ```
 
 ## 🔄 Migration Legacy
@@ -201,3 +201,45 @@ Certains fichiers sont conservés pour compatibilité :
 - **Error boundaries** pour la gestion d'erreurs
 - **Performance monitoring** intégré
 - **Debug mode** avec variables d'environnement
+
+---
+
+## 🧭 Navigation
+
+### 🔧 **Librairie Frontend**
+- **[Accueil Frontend](../../README.md)** - Vue d'ensemble du dashboard
+- **[Hooks Personnalisés](./hooks/README.md)** - Gestion d'état et effets
+- **[Intégrations Externes](./integrations/README.md)** - Services externes
+
+### 🎨 **Composants Frontend**
+- **[Composants Charts](../components/charts/README.md)** - Graphiques SVG performants
+- **[Composants Widgets](../components/widgets/README.md)** - Métriques et KPIs
+- **[Composants Layout](../components/layout/README.md)** - Mise en page responsive
+- **[Composants Forms](../components/forms/README.md)** - Formulaires génériques
+- **[Composants Modals](../components/modals/README.md)** - Modales spécialisées
+- **[Composants Integrations](../components/integrations/README.md)** - Intégrations externes
+- **[Composants UI](../components/ui/README.md)** - Composants de base shadcn/ui
+- **[Features Spécialisés](../components/features/README.md)** - Composants métier avancés
+
+### 📚 **Documentation Centrale**
+- **[Accueil Projet](../../../README.md)** - Vue d'ensemble complète
+- **[Documentation Organisée](../../../docs/README.md)** - Documentation structurée
+- **[Spécifications Techniques](../../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🧪 **Tests et Qualité**
+- **[Tests Frontend](../../README.md#tests)** - Tests unitaires et e2e
+- **[Tests Automatisés](../../../tests/README.md)** - Suite complète
+- **[Tests d'Intégration](../../../tests/README.md#tests-dintegration)** - Workflows complets
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../../docs/deployment/README.md)** - Production complète
+- **[Variables d'Environnement](../../../README.md#variables-denvironnement)** - Configuration
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles](../../../makefiles/README.md)** - Commandes automatisées
+- **[Scripts Frontend](../../../scripts/README.md)** - Outils spécialisés
+
+### 📁 **Structure du Projet**
+- **[Backend](../../../backend/README.md)** - Architecture microservices
+- **[Mobile](../../../mobile/README.md)** - Application React Native
+- **[API](../../../docs/api/README.md)** - Documentation API complète
