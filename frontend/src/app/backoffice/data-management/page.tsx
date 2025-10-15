@@ -5,7 +5,7 @@ import { Edit, Trash2 } from 'lucide-react'
 import AdminLayout from '@/components/AdminLayout'
 import { AdvancedEditModal } from '@/components/AdvancedEditModal'
 import { AdvancedDataExporter } from '@/components/AdvancedDataExporter'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 
 interface Table {
   name: string

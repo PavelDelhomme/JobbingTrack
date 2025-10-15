@@ -1,6 +1,49 @@
+## 🧭 Navigation Centrale
+
+### 📖 **Documentation du Projet**
+- **[Accueil](../../../README.md)** | **[Documentation Centralisée](../README.md)**
+
+### 🚀 **Démarrage Rapide**
+- **[Guide Installation](../../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../guides/getting-started.md)**
+
+### 📡 **API & Intégration**
+- **[Documentation API](../api/v1/endpoints.md)** | **[API Technique](../technical/api.md)**
+
+### 🚀 **Déploiement**
+- **[Guide Déploiement](../deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](../technical/deployment.md)**
+
+### 🛠️ **Outils Développement**
+- **[Scripts et Makefiles](../scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
+
+### 🔧 **Documentation Technique**
+- **[Architecture](../technical/architecture.md)** | **[Base de Données](../technical/database.md)** | **[Sécurité](../technical/security.md)** | **[Performance](../technical/performance.md)**
+
+---
+
 # 🚀 Guide de Démarrage JobbingTrack
 
 Guide complet pour bien démarrer avec JobbingTrack - votre plateforme de gestion de candidatures professionnelles.
+
+## 🧭 Navigation Centrale
+
+### 📖 **Documentation du Projet**
+- **[Accueil](../../../README.md)** | **[Documentation Centralisée](../README.md)**
+
+### 🚀 **Démarrage Rapide**
+- **[Guide Installation](../../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Administration](./administration.md)**
+
+### 📡 **API & Intégration**
+- **[Documentation API](../api/v1/endpoints.md)** | **[Documentation Technique](../technical/api.md)**
+
+### 🚀 **Déploiement**
+- **[Guide Déploiement](../deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](../technical/deployment.md)**
+
+### 🛠️ **Outils Développement**
+- **[Scripts et Makefiles](../scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
+
+---
+
+## 📋 Prérequis
 
 ## 📋 Prérequis
 

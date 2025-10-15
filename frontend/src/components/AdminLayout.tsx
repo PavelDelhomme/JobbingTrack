@@ -3,7 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 import { useTheme } from '@/lib/theme'
 import Breadcrumb from './Breadcrumb'
 import { GlobalSearch } from './GlobalSearch'

@@ -1,145 +1,40 @@
-# 🎨 Frontend - Dashboard Web Next.js
+# 🔗 Frontend - Redirection Documentation
 
-Interface d'administration moderne développée avec Next.js 14, TypeScript et Tailwind CSS.
+**📚 La documentation complète du frontend est disponible dans la [documentation centralisée](../docs/README.md)**
 
-## 📁 Structure
+## 🚀 Accès Rapide
 
-```
-frontend/
-├── src/
-│   ├── components/        # Composants réutilisables organisés
-│   │   ├── charts/       # Graphiques (LineChart, BarChart, PieChart)
-│   │   ├── widgets/      # Widgets de métriques (MetricCard, etc.)
-│   │   ├── layout/       # Composants de mise en page
-│   │   ├── forms/        # Composants de formulaire génériques
-│   │   ├── modals/       # Modales spécialisées
-│   │   ├── integrations/ # Intégrations externes
-│   │   ├── features/     # Composants spécifiques (AdminLayout)
-│   │   └── ui/           # Composants UI de base (shadcn/ui)
-│   ├── lib/              # Utilitaires et hooks
-│   │   ├── hooks/        # Hooks React (useAuth, useTheme)
-│   │   └── integrations/ # Services d'intégration
-│   ├── app/              # Pages Next.js (App Router)
-│   └── styles/           # Styles globaux
-├── public/               # Assets statiques
-└── tests/               # Tests Playwright e2e
-```
+### 🎨 **Composants et Interface**
+- **[Composants Charts](../docs/technical/frontend.md#composants-charts)** - Graphiques SVG performants
+- **[Composants Widgets](../docs/technical/frontend.md#composants-widgets)** - Métriques et KPIs
+- **[Architecture Frontend](../docs/technical/architecture.md#frontend)** - Structure Next.js
 
-## 🚀 Démarrage Rapide
+### 🧪 **Tests et Qualité**
+- **[Tests Frontend](../tests/README.md#tests-frontend)** - Tests unitaires et e2e
+- **[Tests d'Intégration](../tests/README.md#tests-dintegration)** - Workflows complets
 
-```bash
-# Développement avec hot reload
-make dev
-
-# Build de production
-make build-frontend
-
-# Tests
-make test-frontend
-```
-
-## 🎯 Fonctionnalités
-
-### ✅ Implémenté
-- **Architecture modulaire** avec composants réutilisables
-- **Système de thème** sombre/clair automatique
-- **Composants de graphique** SVG natifs performants
-- **Widgets de métriques** avec indicateurs de tendance
-- **Formulaires génériques** avec validation intégrée
-- **Tests e2e** avec Playwright
-
-### 🔄 En Développement
-- **Pages du backoffice** avec toutes les fonctionnalités CRUD
-- **Intégration temps réel** avec les services backend
-- **Optimisations performance** (SSG, ISR)
-- **PWA** avec service worker
-
-## 📊 Composants Disponibles
-
-### Charts
-- `LineChart` - Graphiques en ligne avec grille
-- `BarChart` - Graphiques à barres avec valeurs
-- `PieChart` - Graphiques circulaires avec légende
-
-### Widgets
-- `MetricCard` - Cartes de métriques avec tendances
-- `SystemMetricsWidget` - Widget système complet
-- `BusinessMetricsWidget` - Widget métier avec graphiques
-
-### Layout
-- `DashboardGrid` - Grille responsive adaptative
-- `DashboardSection` - Sections avec header et actions
-
-### Forms
-- `FormModal` - Modales de formulaire configurables
-- `FormField` - Champs de formulaire génériques
-
-## 🧪 Tests
-
-```bash
-# Tests unitaires
-make test-frontend
-
-# Tests e2e Playwright
-make test-e2e
-
-# Tests complets
-make test-all
-```
-
-## 🎨 Thèmes
-
-Le système supporte automatiquement :
-- **Mode sombre/clair** selon les préférences système
-- **Thème manuel** configurable par l'utilisateur
-- **Persistance** des préférences utilisateur
-
-## 📚 Documentation
-
-Voir le fichier principal [README.md](../../README.md) pour l'architecture complète et les guides de développement.
+### 📦 **Déploiement**
+- **[Guide Déploiement](../docs/deployment/README.md)** - Production complète
+- **[Configuration Frontend](../docs/technical/deployment.md#frontend)** - Variables d'environnement
 
 ---
 
 ## 🧭 Navigation
 
-### 📚 **Documentation Centrale**
-- **[Accueil](../../README.md)** - Vue d'ensemble du projet
-- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
-- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+### 📚 **Documentation du Projet**
+- **[Accueil](../../README.md)** | **[Documentation Centralisée](../docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
-- **[Guide de Développement](../../docs/guides/getting-started.md)** - Développement frontend
+- **[Guide Installation](../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
 
-### 🎨 **Composants et Architecture**
-- **[Composants Charts](./src/components/charts/README.md)** - Graphiques SVG performants
-- **[Composants Widgets](./src/components/widgets/README.md)** - Métriques et KPIs
-- **[Composants Layout](./src/components/layout/README.md)** - Mise en page responsive
-- **[Composants Forms](./src/components/forms/README.md)** - Formulaires génériques
-- **[Composants Modals](./src/components/modals/README.md)** - Modales spécialisées
-- **[Composants Integrations](./src/components/integrations/README.md)** - Intégrations externes
+### 📡 **API & Intégration**
+- **[Documentation API](../docs/api/v1/endpoints.md)** | **[API Technique](../docs/technical/api.md)**
 
-### 🔧 **Librairie et Hooks**
-- **[Librairie Frontend](./src/lib/README.md)** - Hooks et services organisés
-- **[Composants UI](./src/components/ui/README.md)** - Composants de base shadcn/ui
-- **[Features Spécialisés](./src/components/features/README.md)** - Composants métier avancés
+### 🚀 **Déploiement**
+- **[Guide Déploiement](../docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](../docs/technical/deployment.md)**
 
-### 🧪 **Tests et Qualité**
-- **[Tests Frontend](#tests)** - Tests unitaires et e2e
-- **[Tests Automatisés](../../tests/README.md)** - Suite complète
-- **[Tests d'Intégration](../../tests/README.md#tests-dintegration)** - Workflows complets
+### 🛠️ **Outils Développement**
+- **[Scripts et Makefiles](../docs/scripts/makefiles.md)** | **[Documentation Technique](../docs/technical/README.md)**
 
-### 📦 **Déploiement**
-- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
-- **[Configuration Docker](./docker-compose.frontend.yml)** - Conteneurisation
-- **[Variables d'Environnement](../../README.md#variables-denvironnement)** - Configuration
-
-### 🛠️ **Outils de Développement**
-- **[Makefiles](../../makefiles/README.md)** - Commandes automatisées
-- **[Scripts Frontend](../../scripts/README.md)** - Outils spécialisés
-- **[Next.js Config](./next.config.js)** - Configuration framework
-
-### 📁 **Structure du Projet**
-- **[Backend](../../backend/README.md)** - Architecture microservices
-- **[Mobile](../../mobile/README.md)** - Application React Native
-- **[API](../../docs/api/README.md)** - Documentation API complète
+### 🔧 **Documentation Technique**
+- **[Architecture](../docs/technical/architecture.md)** | **[Base de Données](../docs/technical/database.md)** | **[Sécurité](../docs/technical/security.md)** | **[Performance](../docs/technical/performance.md)**

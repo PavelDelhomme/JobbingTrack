@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/hooks/auth';
 import {
   Play,
   Square,

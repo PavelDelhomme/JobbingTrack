@@ -2,14 +2,25 @@
 
 > **Version 1.0.1** | **Architecture Microservices** | **Next.js** | **React Native** | **PostgreSQL** | **Docker**
 
-[![Version](https://img.shields.io/badge/Version-v1.0.1-green.svg)](VERSION)
+[![Version](https://img.shields.io/badge/Version-v1.0.1-green.svg)](VERSION.md)
 [![Status](https://img.shields.io/badge/Status-STABLE-brightgreen.svg)]()
 [![Backend](https://img.shields.io/badge/Backend-Node.js-blue.svg)]()
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js-black.svg)]()
 [![Mobile](https://img.shields.io/badge/Mobile-React_Native-blue.svg)]()
 [![Database](https://img.shields.io/badge/Database-PostgreSQL-blue.svg)]()
 
-## 📋 Table des Matières
+## 🧭 Navigation Rapide
+
+### 📚 **[Documentation Centralisée](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
+- **[Vue d'ensemble](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)** | **[Spécifications](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** | **[État du Projet](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/STATUT-PROJET.md)** | **[Historique Versions](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/VERSION.md)**
+
+### 🚀 **[Démarrage Rapide](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)**
+- **[Installation](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Configuration](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/README.md#variables-denvironnement)**
+
+### 🏗️ **Architecture**
+- **[Backend](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/backend/README.md)** | **[Frontend](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/frontend/README.md)** | **[Mobile](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/mobile/README.md)**
+
+### 📋 Table des Matières
 
 - [🎯 Vision & Contexte](#-vision--contexte)
 - [🏗️ Architecture Technique](#%EF%B8%8F-architecture-technique)
@@ -678,38 +689,6 @@ git push origin feat/nouvelle-fonctionnalite
 
 Ce projet est sous licence **MIT**. Voir [LICENSE](LICENSE) pour plus de détails.
 
----
-
-## 📚 Documentation Centralisée
-
-Toute la documentation détaillée de JobbingTrack est organisée dans le dossier [`docs/`](./docs/) pour une consultation facile et structurée.
-
-### 📖 **Documentation du Projet**
-- **[Vue d'Ensemble](./docs/README.md)** - Documentation complète organisée
-- **[Documentation du Projet](./docs/project/README.md)** - Organisation et spécifications techniques
-- **[Historique des Versions](./docs/project/changelog.md)** - Toutes les modifications et versions
-
-### 📋 **Guides Pratiques**
-- **[Guides Complets](./docs/guides/README.md)** - Tous les guides d'utilisation et développement
-- **[Guide de Démarrage](./GUIDE-DEVELOPPEMENT.md)** - Instructions pour les développeurs
-
-### 🚀 **Déploiement**
-- **[Guide de Déploiement](./docs/deployment/README.md)** - Déploiement en production complet
-- **[Documentation Déploiement PDF](./docs/deployment/production.md)** - Version PDF du guide
-
-### 📡 **API et Intégration**
-- **[Documentation API](./docs/api/README.md)** - Guide complet de l'API REST
-- **[Exemples d'Utilisation](./docs/api/examples.md)** - Cas d'usage concrets
-
-### 🔧 **Outils de Développement**
-- **[Makefiles Organisés](./docs/makefiles/README.md)** - Structure et utilisation des Makefiles
-- **[Configuration des Couleurs](./docs/makefiles/colors.md)** - Guide des couleurs dans les Makefiles
-- **[Scripts Utilitaires](./docs/scripts/README.md)** - Tous les scripts organisés par catégories
-
-### 🔧 **Documentation Technique Avancée**
-- **[Documentation Technique](./docs/technical/README.md)** - Documentation approfondie pour experts
-
----
 
 ## 🏗️ Structure du Projet
 

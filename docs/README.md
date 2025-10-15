@@ -2,6 +2,28 @@
 
 Documentation complète et organisée de JobbingTrack, structurée pour une consultation facile.
 
+## 🧭 Navigation Centrale
+
+### 📖 **Documentation du Projet**
+- **[Accueil](../../README.md)** | **[Guide Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Historique Versions](../../VERSION.md)**
+
+### 🚀 **Démarrage Rapide**
+- **[Guide Développement](./guides/getting-started.md)** | **[Guide Administration](./guides/administration.md)**
+
+### 📡 **API & Intégration**
+- **[Documentation API](./api/v1/endpoints.md)** | **[Documentation Technique](./technical/api.md)**
+
+### 🚀 **Déploiement**
+- **[Guide Déploiement](./deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](./technical/deployment.md)**
+
+### 🛠️ **Outils Développement**
+- **[Scripts et Makefiles](./scripts/makefiles.md)** | **[Documentation Technique](./technical/README.md)**
+
+### 🔧 **Documentation Technique**
+- **[Architecture](./technical/architecture.md)** | **[Base de Données](./technical/database.md)** | **[Sécurité](./technical/security.md)** | **[Performance](./technical/performance.md)**
+
+---
+
 ## 📁 Structure de la Documentation
 
 ```
