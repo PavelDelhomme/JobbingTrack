@@ -114,8 +114,23 @@ endef
 # Vérifie les dépendances système
 define check_dependencies
 	@echo "🔍 Vérification des dépendances..."
-	@$(call check_command,docker)
-	@$(call check_command,docker-compose)
+	@echo "🐳 Vérification de Docker..."
+	@if ! command -v docker &> /dev/null; then \
+		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
+		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
+		exit 1; \
+	fi
+	@echo "✅ Docker trouvé: $$(docker --version)"
+	@echo "🐳 Vérification de Docker Compose..."
+	@if command -v docker-compose &> /dev/null; then \
+		echo "✅ docker-compose trouvé: $$(docker-compose --version)"; \
+	elif docker compose version &> /dev/null; then \
+		echo "✅ docker compose trouvé: $$(docker compose version)"; \
+	else \
+		echo "❌ Docker Compose n'est pas disponible"; \
+		echo "💡 Installez Docker Compose ou utilisez 'docker compose' (Docker v2+)"; \
+		exit 1; \
+	fi
 	@echo "✅ Toutes les dépendances sont installées"
 endef
 

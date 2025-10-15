@@ -117,11 +117,19 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 
 	# Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
 	@echo "🏗️ Démarrage de l'infrastructure..."
-	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"
+	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \
+	else \
+		docker compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \
+	fi
 
 	# Démarrer les services système (stats, déploiement, sécurité, métriques)
 	@echo "🔧 Démarrage des services système..."
-	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"
+	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+	else \
+		docker compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+	fi
 
 	# Attendre que PostgreSQL soit prêt avec vérification
 	@$(call wait_for_postgres)
@@ -132,14 +140,22 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 
 	# Démarrer le reste des services backend
 	@echo "🌐 Démarrage des services backend..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"
+	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"; \
+	else \
+		docker compose -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"; \
+	fi
 
 	# Attendre que les services soient prêts
 	@sleep 15
 
 	# Démarrer le frontend
 	@echo "🖥️ Démarrage du frontend..."
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"
+	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \
+	else \
+		docker compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \
+	fi
 
 	@echo ""
 	@echo "✅ JobbingTrack démarré avec succès !"
@@ -185,24 +201,46 @@ down: ## Arrêter tout le projet proprement
 
 	# Lister et arrêter les services backend
 	@echo "📦 Services backend:"
-	@cd $(BACKEND_DIR) && SERVICES=$$(docker compose -f docker-compose.yml ps -q 2>/dev/null); \
-	if [ -n "$$SERVICES" ]; then \
-		docker compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
-		echo "⏹️ Arrêt des services backend..."; \
-		docker compose -f docker-compose.yml down >/dev/null 2>&1 && echo "✅ Services backend arrêtés"; \
+	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		SERVICES=$$(docker-compose -f docker-compose.yml ps -q 2>/dev/null); \
+		if [ -n "$$SERVICES" ]; then \
+			docker-compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			echo "⏹️ Arrêt des services backend..."; \
+			docker-compose -f docker-compose.yml down >/dev/null 2>&1 && echo "✅ Services backend arrêtés"; \
+		else \
+			echo "   ✅ Aucun service backend en cours"; \
+		fi; \
 	else \
-		echo "   ✅ Aucun service backend en cours"; \
+		SERVICES=$$(docker compose -f docker-compose.yml ps -q 2>/dev/null); \
+		if [ -n "$$SERVICES" ]; then \
+			docker compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			echo "⏹️ Arrêt des services backend..."; \
+			docker compose -f docker-compose.yml down >/dev/null 2>&1 && echo "✅ Services backend arrêtés"; \
+		else \
+			echo "   ✅ Aucun service backend en cours"; \
+		fi; \
 	fi
 
 	# Lister et arrêter les services frontend
 	@echo "🖥️ Services frontend:"
-	@cd $(FRONTEND_DIR) && SERVICES=$$(docker compose -f docker-compose.frontend.yml ps -q 2>/dev/null); \
-	if [ -n "$$SERVICES" ]; then \
-		docker compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
-		echo "⏹️ Arrêt des services frontend..."; \
-		docker compose -f docker-compose.frontend.yml down >/dev/null 2>&1 && echo "✅ Services frontend arrêtés"; \
+	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		SERVICES=$$(docker-compose -f docker-compose.frontend.yml ps -q 2>/dev/null); \
+		if [ -n "$$SERVICES" ]; then \
+			docker-compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			echo "⏹️ Arrêt des services frontend..."; \
+			docker-compose -f docker-compose.frontend.yml down >/dev/null 2>&1 && echo "✅ Services frontend arrêtés"; \
+		else \
+			echo "   ✅ Aucun service frontend en cours"; \
+		fi; \
 	else \
-		echo "   ✅ Aucun service frontend en cours"; \
+		SERVICES=$$(docker compose -f docker-compose.frontend.yml ps -q 2>/dev/null); \
+		if [ -n "$$SERVICES" ]; then \
+			docker compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			echo "⏹️ Arrêt des services frontend..."; \
+			docker compose -f docker-compose.frontend.yml down >/dev/null 2>&1 && echo "✅ Services frontend arrêtés"; \
+		else \
+			echo "   ✅ Aucun service frontend en cours"; \
+		fi; \
 	fi
 
 	@echo "✅ Tous les services arrêtés"
@@ -225,16 +263,29 @@ clean: ## Nettoyer complètement (containers, volumes, images)
 # ============================================================================
 
 # Mode développement
-dev: ## Mode développement avec hot reload
+dev: check-deps ## Mode développement avec hot reload
 	@echo "🔧 Mode développement JobbingTrack..."
 	@echo "⚡ Démarrage rapide sans reconstruction..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
+	@echo "🐳 Démarrage des services backend..."
+	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.yml up -d; \
+	else \
+		docker compose -f docker-compose.yml up -d; \
+	fi
+	@echo "🐳 Démarrage des services frontend..."
+	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.frontend.yml up -d; \
+	else \
+		docker compose -f docker-compose.frontend.yml up -d; \
+	fi
 	@echo "✅ Mode développement démarré"
 	@echo ""
 	@echo "🌐 Accès:"
 	@echo "  Frontend: http://localhost:8080"
 	@echo "  API:      http://localhost:3000"
+	@echo ""
+	@echo "📊 Vérification du statut..."
+	@$(MAKE) status
 
 # ============================================================================
 # VERIFICATIONS
