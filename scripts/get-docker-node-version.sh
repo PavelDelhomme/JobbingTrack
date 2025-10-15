@@ -11,7 +11,7 @@ FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile 2>/dev/null | sed 's/.*
 # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
 NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
 
-# Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
-NODE_VERSION=${NODE_VERSION:-20}
+# Si aucune version trouvée, utiliser 20.19.5 (version LTS stable disponible)
+NODE_VERSION=${NODE_VERSION:-20.19.5}
 
 echo "$NODE_VERSION"
