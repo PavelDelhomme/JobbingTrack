@@ -22,7 +22,7 @@
 ## 🧭 Navigation
 
 ### 📚 **Documentation du Projet**
-- **[Accueil](../../README.md)** | **[Documentation Centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
+- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**

@@ -5,7 +5,7 @@
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/frontend-dashboard/docs/guides/getting-started.md)**
@@ -31,7 +31,7 @@ Guide complet pour bien démarrer avec JobbingTrack - votre plateforme de gestio
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Administration](./administration.md)**

@@ -5,22 +5,22 @@ Documentation complète et organisée de JobbingTrack, structurée pour une cons
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](../../README.md)** | **[Guide Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Historique Versions](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/VERSION.md)**
+- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Guide Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Historique Versions](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/VERSION.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** | **[Guide Administration](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/administration.md)**
+- **📥 [Guide Développement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-developpement.pdf)** | **📥 [Guide Administration PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/administration.pdf)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/api/v1/endpoints.md)** | **[Documentation Technique](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/api.md)**
+- **📥 [Documentation API PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/api.pdf)** | **📥 [Documentation Technique PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-technique.pdf)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/deployment.md)**
+- **📥 [Guide Déploiement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/GUIDE-PORTAINER.pdf)** | **📥 [Documentation Déploiement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/technical-deployment.pdf)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/scripts/makefiles.md)** | **[Documentation Technique](./technical/README.md)**
+- **📥 [Scripts et Makefiles PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/makefiles.pdf)** | **📥 [Documentation Technique PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-technique.pdf)**
 
 ### 🔧 **Documentation Technique**
-- **[Architecture](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/architecture.md)** | **[Base de Données](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/database.md)** | **[Sécurité](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/security.md)** | **[Performance](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/performance.md)**
+- **📥 [Architecture PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/architecture.pdf)** | **📥 [Base de Données PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/database.pdf)** | **📥 [Sécurité PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/security.pdf)** | **📥 [Performance PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/performance.pdf)**
 
 ---
 
@@ -116,32 +116,28 @@ Pour toute question sur la documentation :
 ## 🧭 Navigation
 
 ### 📚 **Documentation Centrale**
-- **[Accueil](../../README.md)** - Vue d'ensemble du projet
-- **[Spécifications Techniques](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète
-- **[État du Projet](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/STATUT-PROJET.md)** - Fonctionnalités et roadmap
+- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md)** - Vue d'ensemble du projet
+- **📥 [Documentation Complète PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/documentation-complete.pdf)** - Architecture complète
+- **📥 [Guide Démarrage Rapide PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-demarrage-rapide.pdf)** - Installation express
 
 ### 📖 **Guides Pratiques**
-- **[Guide de Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
-- **[Guide de Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** - Développement et contribution
-- **[Guide d'Administration](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/administration.md)** - Administration système
+- **📥 [Guide de Développement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-developpement.pdf)** - Développement et contribution
+- **📥 [Guide d'Administration PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/administration.pdf)** - Administration système
+- **📥 [Guide Mobile PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-mobile.pdf)** - Application mobile
 
 ### 🚀 **Déploiement**
-- **[Guide de Déploiement](./deployment/README.md)** - Production complète
-- **[Configuration Nginx](./deployment/README.md#configuration-nginx-proxy-manager)** - Reverse proxy SSL
+- **📥 [Guide Déploiement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/GUIDE-PORTAINER.pdf)** - Production complète
+- **📥 [Documentation Déploiement PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/technical-deployment.pdf)** - Configuration avancée
 
-### 📡 **API**
-- **[Documentation API](./api/README.md)** - Guide complet REST API
-- **[Exemples d'Utilisation](./api/examples.md)** - Cas pratiques
+### 📡 **API & Technique**
+- **📥 [Documentation API PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/api.pdf)** - Guide complet REST API
+- **📥 [Documentation Technique PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-technique.pdf)** - Guide expert
 
 ### 🛠️ **Outils de Développement**
-- **[Makefiles Organisés](./../makefiles/README.md)** - Commandes automatisées
-- **[Scripts Utilitaires](./../scripts/README.md)** - Outils organisés
-- **[Tests Automatisés](./../tests/README.md)** - Suite de tests complète
+- **📥 [Scripts et Makefiles PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/makefiles.pdf)** - Commandes automatisées
+- **📥 [Architecture PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/architecture.pdf)** - Architecture système
+- **📥 [Base de Données PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/database.pdf)** - Configuration BDD
 
-### 🔧 **Documentation Technique**
-- **[Documentation Technique Avancée](./technical/README.md)** - Guide expert
-
-### 📁 **Structure du Projet**
-- **[Backend](../../backend/README.md)** - Architecture microservices
-- **[Frontend](../../frontend/README.md)** - Dashboard Next.js
-- **[Mobile](../../mobile/README.md)** - Application React Native
+### 🔧 **Sécurité & Performance**
+- **📥 [Sécurité PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/security.pdf)** - Sécurité système
+- **📥 [Performance PDF](https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/performance.pdf)** - Optimisation
