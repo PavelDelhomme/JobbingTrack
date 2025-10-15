@@ -1,198 +1,90 @@
-# 📚 Documentation JobbingTrack
+# 📚 Documentation Centralisée
 
-Documentation complète de la plateforme JobbingTrack - Plateforme de Gestion de Candidatures Professionnelles.
+Documentation complète et organisée de JobbingTrack, structurée pour une consultation facile.
 
-## 🏗️ Structure de la Documentation
-
-```
-/docs/
-├── 📄 README.md                    # Ce fichier - Vue d'ensemble
-├── 📁 technical/                   # Documentation technique détaillée
-│   ├── architecture.md            # Architecture microservices
-│   ├── database.md                # Schémas de base de données
-│   ├── api.md                     # Documentation API REST
-│   ├── security.md                # Sécurité et authentification
-│   ├── deployment.md              # Déploiement et DevOps
-│   └── performance.md             # Optimisations et performances
-├── 📁 deployment/                  # Guides de déploiement
-│   ├── development.md             # Environnement de développement
-│   ├── production.md              # Déploiement en production
-│   └── docker.md                  # Configuration Docker
-├── 📁 api/                        # Documentation API
-│   ├── v1/                        # Version actuelle de l'API
-│   └── endpoints.md               # Liste complète des endpoints
-├── 📁 guides/                     # Guides utilisateur
-│   ├── getting-started.md         # Guide de démarrage
-│   ├── administration.md          # Guide administrateur
-│   └── troubleshooting.md         # Résolution de problèmes
-└── 📁 scripts/                    # Documentation des scripts
-    ├── makefiles.md               # Guide des Makefiles
-    └── automation.md              # Scripts d'automatisation
-```
-
-## 🚀 Démarrage Rapide
-
-### Installation et Configuration
-
-1. **Prérequis** :
-   ```bash
-   # Docker et Docker Compose
-   docker --version && docker-compose --version
-
-   # Node.js 20+ (pour développement local)
-   node --version
-   ```
-
-2. **Installation** :
-   ```bash
-   # Cloner le repository
-   git clone https://github.com/OWNER/JobbingTrack.git
-   cd JobbingTrack
-
-   # Installation automatique
-   make install
-   ```
-
-3. **Démarrage** :
-   ```bash
-   # Démarrer tout le projet
-   make up
-
-   # Ou avec reconstruction
-   make start-all
-   ```
-
-### Accès à l'Application
-
-- **Frontend** : http://localhost:8080
-- **API Gateway** : http://localhost:3000
-- **API Documentation** : http://localhost:3000/api-docs
-
-### Identifiants de Connexion
+## 📁 Structure de la Documentation
 
 ```
-📧 Email : admin@jobbingtrack.test
-🔐 Mot de passe : SuperAdmin123!
+docs/
+├── README.md                    # ← Vue d'ensemble (ce fichier)
+├── SPEC-TECHNIQUE-JOBBINGTRACK.md  # Spécifications techniques complètes
+├── STATUT-PROJET.md                # État actuel et roadmap
+├── ORGANISATION.md                 # Organisation du développement
+├── CHANGELOG.md                    # Historique des versions
+│
+├── guides/                         # Guides pratiques et tutoriels
+│   ├── README.md                   # Liste des guides disponibles
+│   ├── getting-started.md          # Démarrage rapide
+│   └── administration.md           # Guide d'administration
+│
+├── api/                           # Documentation API REST
+│   ├── README.md                  # Guide API complet
+│   └── examples.md               # Exemples d'utilisation
+│
+├── deployment/                    # Guides de déploiement
+│   ├── README.md                 # Déploiement en production
+│   └── production.md             # Configuration production détaillée
+│
+├── makefiles/                     # Documentation Makefiles
+│   ├── README.md                 # Guide des Makefiles
+│   └── colors.md                 # Configuration des couleurs
+│
+├── scripts/                       # Documentation des scripts
+│   └── README.md                 # Guide des scripts organisés
+│
+└── technical/                     # Documentation technique avancée
+    └── README.md                 # Documentation pour experts
 ```
 
-## 🛠️ Développement
+## 🎯 Guides Essentiels
 
-### Commandes Principales
+### 🚀 **Démarrage**
+- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation et premier lancement
+- **[Guide de Développement](./guides/getting-started.md)** - Développement et contribution
 
-```bash
-# Développement
-make dev              # Mode développement avec hot reload
-make build            # Construire toutes les images
+### 🏗️ **Architecture**
+- **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète détaillée
+- **[État du Projet](./STATUT-PROJET.md)** - Fonctionnalités implémentées et roadmap
 
-# Tests
-make test-all         # Tous les tests
-make test-e2e         # Tests end-to-end Playwright
-make test-services    # Tests de santé des services
+### 📡 **API**
+- **[Documentation API](./api/README.md)** - Guide complet de l'API REST
+- **[Exemples d'Utilisation](./api/examples.md)** - Cas pratiques avec code
 
-# Maintenance
-make logs             # Logs en temps réel
-make status           # État des services
-make clean            # Nettoyage complet
+### 🚀 **Déploiement**
+- **[Guide de Déploiement](./deployment/README.md)** - Production avec Portainer
+- **[Configuration Nginx](./deployment/README.md#configuration-nginx-proxy-manager)** - Reverse proxy SSL
 
-# Diagnostic
-make diagnose         # Diagnostic complet
-make fix              # Correction automatique
-make health           # Vérification santé
-```
+### 🛠️ **Outils**
+- **[Makefiles](./makefiles/README.md)** - Commandes automatisées organisées
+- **[Scripts](./scripts/README.md)** - Utilitaires organisés par catégories
 
-### Structure du Projet
+## 📖 Lecture Recommandée
 
-```
-JobbingTrack/
-├── 📁 backend/                    # Microservices backend
-│   ├── 📁 api-gateway/           # Point d'entrée API
-│   ├── 📁 auth-service/          # Authentification JWT
-│   ├── 📁 application-service/   # Gestion des candidatures
-│   ├── 📁 company-service/       # Gestion des entreprises
-│   ├── 📁 contact-service/       # Carnet d'adresses
-│   ├── 📁 interview-service/     # Gestion des entretiens
-│   ├── 📁 notification-service/  # Emails et notifications
-│   └── 📁 dashboard-service/     # Analytics et métriques
-├── 📁 frontend/                  # Interface Next.js
-│   ├── 📁 src/
-│   │   ├── 📁 app/              # Pages et composants
-│   │   ├── 📁 components/       # Composants réutilisables
-│   │   ├── 📁 hooks/            # Hooks personnalisés
-│   │   └── 📁 lib/              # Utilitaires et services
-│   └── 📁 tests/                # Tests Playwright E2E
-├── 📁 scripts/                   # Scripts d'automatisation
-├── 📁 makefiles/                 # Sous-Makefiles organisés
-└── 📄 Makefile                   # Point d'entrée unifié
-```
+### Pour Débuter
+1. **[README Principal](../../README.md)** - Vue d'ensemble du projet
+2. **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation
+3. **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Comprendre l'architecture
 
-## 🎯 Fonctionnalités Clés
+### Pour Développer
+1. **[Guide de Développement](./guides/getting-started.md)** - Contribution et développement
+2. **[Documentation API](./api/README.md)** - Intégration avec les services
+3. **[Makefiles](./makefiles/README.md)** - Outils de développement
 
-### ✅ Implémentées
+### Pour Déployer
+1. **[Guide de Déploiement](./deployment/README.md)** - Mise en production complète
+2. **[Documentation Technique](./technical/README.md)** - Aspects avancés
 
-- **🔍 Recherche Globale** : Indexation côté client avec recherche intelligente
-- **📱 PWA** : Application progressive avec mode hors ligne
-- **🎨 Personnalisation** : Thèmes, couleurs et préférences utilisateur
-- **🔗 Intégrations** : LinkedIn API et calendriers externes
-- **🧪 Tests E2E** : Suite complète de tests automatisés
-- **🔒 Sécurité** : Authentification JWT, rôles et permissions
-- **📊 Analytics** : Métriques temps réel et tableaux de bord
+## 🔄 Maintenance
 
-### 🚀 En Développement
+Cette documentation est mise à jour automatiquement avec chaque version majeure. Pour contribuer :
 
-- **🤖 IA/ML** : Analyse intelligente des candidatures
-- **📱 App Mobile** : Applications iOS/Android natives
-- **🔄 Synchronisation** : Sync multi-appareils avancée
-- **📈 Reporting** : Rapports avancés et exports
+1. **Lire les spécifications** pour comprendre l'architecture
+2. **Suivre les guides** pour les bonnes pratiques
+3. **Utiliser les outils** documentés pour le développement
+4. **Suivre la roadmap** pour les nouvelles fonctionnalités
 
-## 🔧 Architecture Technique
+## 📞 Support
 
-### Backend (Microservices)
-- **Node.js 20** + **Express.js** - Runtime et framework
-- **PostgreSQL 15** - Base de données relationnelle
-- **Redis 7** - Cache et sessions
-- **Prisma ORM** - Mapping objet-relationnel
-- **Docker Compose** - Orchestration
-
-### Frontend (Next.js)
-- **Next.js 14** - Framework React avec App Router
-- **TypeScript** - Typage statique
-- **Tailwind CSS** - Framework CSS
-- **Zustand** - Gestion d'état
-- **React Query** - Gestion des requêtes API
-
-### DevOps & Monitoring
-- **Docker** - Containerisation
-- **Prometheus + Grafana** - Monitoring
-- **GitHub Actions** - CI/CD
-- **Playwright** - Tests E2E
-
-## 📚 Guides Détaillés
-
-### Pour Développeurs
-- **[Guide de Développement](./technical/development.md)** - Environnement et workflows
-- **[Architecture](./technical/architecture.md)** - Design et patterns
-- **[API](./api/v1/README.md)** - Documentation des endpoints
-
-### Pour Administrateurs
-- **[Guide d'Administration](./guides/administration.md)** - Configuration et maintenance
-- **[Déploiement](./deployment/production.md)** - Mise en production
-- **[Sécurité](./technical/security.md)** - Bonnes pratiques
-
-### Pour Utilisateurs
-- **[Guide de Démarrage](./guides/getting-started.md)** - Premiers pas
-- **[Fonctionnalités](./technical/features.md)** - Guide complet des features
-
-## 🆘 Support et Aide
-
-### Problèmes Courants
-- **[Résolution de Problèmes](./guides/troubleshooting.md)** - Guide de dépannage
-- **`make fix`** - Correction automatique des problèmes
-- **`make diagnose`** - Diagnostic complet du système
-
-### Contact
-- **GitHub Issues** : https://github.com/OWNER/JobbingTrack/issues
-- **Documentation** : https://github.com/OWNER/JobbingTrack/wiki
-
----
-
-**🎯 JobbingTrack** - Votre plateforme de gestion de candidatures intelligente et moderne !
+Pour toute question sur la documentation :
+- **Issues GitHub** : [Signaler un problème](https://github.com/OWNER/JobbingTrack/issues)
+- **Discussions** : [Questions générales](https://github.com/OWNER/JobbingTrack/discussions)

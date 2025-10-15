@@ -50,6 +50,46 @@ services:
     networks:
       - jobbingtrack-network
 
+  # Service de gestion des déploiements
+  deployment-service:
+    build:
+      context: ./deployment-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-deployment-service
+    ports:
+      - "3016:3016"
+    environment:
+      - NODE_ENV=development
+      - PORT=3016
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=deployment
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+
+  # Service de sécurité et surveillance
+  security-service:
+    build:
+      context: ./security-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-security-service
+    ports:
+      - "3017:3017"
+    environment:
+      - NODE_ENV=development
+      - PORT=3017
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=security
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+
   # API Gateway
   api-gateway:
     build:
@@ -74,6 +114,7 @@ services:
       - PROFILE_SERVICE_URL=http://localhost:3009
       - EVENT_SERVICE_URL=http://localhost:3011
       - FOLLOWUP_SERVICE_URL=http://localhost:3012
+      - DEPLOYMENT_SERVICE_URL=http://localhost:3016
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
       - JWT_SECRET=your-secret-key-change-in-production-2025
     volumes:

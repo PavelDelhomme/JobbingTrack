@@ -92,7 +92,22 @@ router.post('/duplicates/merge', authenticate, advancedController.mergeDuplicate
 router.get('/stats/global', authenticate, advancedController.getGlobalStats);
 router.get('/logs/admin', authenticate, advancedController.getAdminLogs);
 router.post('/users/:userId/anonymize', authenticate, advancedController.anonymizeUser);
+
+// Routes de monitoring avancées (admin uniquement)
 router.get('/monitoring/performance', authenticate, advancedController.getPerformanceMetrics);
+router.get('/monitoring/system', authenticate, advancedController.getSystemMetrics);
+router.get('/monitoring/endpoints', authenticate, advancedController.getEndpointMetrics);
+router.get('/monitoring/system/detailed', authenticate, advancedController.getDetailedSystemMetrics);
+router.get('/monitoring/users', authenticate, advancedController.getUserMetrics);
+router.get('/monitoring/security', authenticate, advancedController.getSecurityMetrics);
+router.get('/monitoring/devops', authenticate, advancedController.getDevOpsMetrics);
+router.get('/monitoring/recommendations', authenticate, advancedController.getRecommendations);
+router.get('/monitoring/alerts', authenticate, advancedController.getPerformanceAlerts);
+
+// Routes sécurité avancées (admin uniquement)
+router.get('/security/vulnerabilities', authenticate, advancedController.getVulnerabilities);
+router.get('/security/logs', authenticate, advancedController.getSecurityLogs);
+router.get('/security/metrics', authenticate, advancedController.getSecurityMetrics);
 
 // Routes tests DB (admin uniquement)
 router.get('/test-db/connection', authenticate, dbTestController.testConnection);

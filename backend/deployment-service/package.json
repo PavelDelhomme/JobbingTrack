@@ -1,0 +1,35 @@
+{
+  "name": "deployment-service",
+  "version": "1.0.0",
+  "description": "Service de gestion et suivi des déploiements CI/CD",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "prisma": "^5.0.0",
+    "@prisma/client": "^5.0.0",
+    "dotenv": "^16.0.3",
+    "node-cron": "^3.0.2",
+    "axios": "^1.4.0",
+    "winston": "^3.8.2",
+    "joi": "^17.9.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22",
+    "jest": "^29.5.0"
+  },
+  "keywords": [
+    "deployment",
+    "ci-cd",
+    "monitoring",
+    "rollback"
+  ],
+  "author": "JobbingTrack Team",
+  "license": "MIT"
+}
