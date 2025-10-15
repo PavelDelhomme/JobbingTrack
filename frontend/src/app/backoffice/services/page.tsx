@@ -50,8 +50,28 @@ export default function ServicesPage() {
 
   const [services, setServices] = useState<ServiceStatus[]>([])
 
+  // Charger les maintenances
+  const loadMaintenances = async () => {
+    try {
+      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/maintenance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.data.success) {
+        const maintenanceMap: {[key: string]: any} = {}
+        response.data.maintenances.forEach((m: any) => {
+          maintenanceMap[m.serviceName] = m
+        })
+        setMaintenances(maintenanceMap)
+      }
+    } catch (error) {
+      console.error('Erreur chargement maintenances:', error)
+    }
+  }
+
   // Initialiser les services avec les vraies URLs et utiliser les métriques du service
   useEffect(() => {
+    loadMaintenances()
+
     if (metrics && metrics.services) {
       const updatedServices = REAL_SERVICES.map(service => {
         const serviceMetrics = metrics.services[service.name.toLowerCase().replace(' ', '-').replace(/[^a-z0-9-]/g, '')] ||
@@ -96,13 +116,14 @@ export default function ServicesPage() {
       }))
       setServices(initialServices)
     }
-  }, [metrics])
+  }, [metrics, token])
 
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshInterval, setRefreshInterval] = useState(10)
   const [selectedService, setSelectedService] = useState<ServiceStatus | null>(null)
   const [serviceLogs, setServiceLogs] = useState<string[]>([])
+  const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
 
   // Vérification d'authentification
   if (!token || !user) {
@@ -400,6 +421,37 @@ export default function ServicesPage() {
     }
   }
 
+  // Fonctions pour gérer la maintenance
+  const activateMaintenance = async (service: ServiceStatus) => {
+    try {
+      const serviceName = service.serviceType
+      await axios.post(`${API_GATEWAY_URL}/api/v1/maintenance/${serviceName}/activate`, {
+        message: `Maintenance activée pour ${service.name}`
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      await loadMaintenances()
+    } catch (error) {
+      console.error('Erreur activation maintenance:', error)
+    }
+  }
+
+  const deactivateMaintenance = async (service: ServiceStatus) => {
+    try {
+      const serviceName = service.serviceType
+      await axios.post(`${API_GATEWAY_URL}/api/v1/maintenance/${serviceName}/deactivate`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      await loadMaintenances()
+    } catch (error) {
+      console.error('Erreur désactivation maintenance:', error)
+    }
+  }
+
+  const getServiceMaintenance = (service: ServiceStatus) => {
+    return service.serviceType ? maintenances[service.serviceType] : undefined
+  }
+
   return (
     <AdminLayout>
       <div>
@@ -530,7 +582,11 @@ export default function ServicesPage() {
                     setSelectedService(service)
                     fetchServiceLogs(service)
                   }}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
+                  className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border ${
+                    getServiceMaintenance(service)?.isActive
+                      ? 'border-red-300 dark:border-red-600 bg-red-50/50 dark:bg-red-900/10'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                  }`}
                 >
                   <div className="p-4 sm:p-6">
                     <div className="flex items-start justify-between mb-3">
@@ -542,17 +598,24 @@ export default function ServicesPage() {
                           {service.port ? `Port ${service.port}` : 'Base de données'}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
-                        service.status === 'online'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : service.status === 'testing'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {service.status === 'online' ? '✅ En ligne' :
-                         service.status === 'testing' ? '🔄 Test...' :
-                         '❌ Hors ligne'}
-                      </span>
+                      <div className="flex items-center gap-2 ml-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          service.status === 'online'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : service.status === 'testing'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {service.status === 'online' ? '✅ En ligne' :
+                           service.status === 'testing' ? '🔄 Test...' :
+                           '❌ Hors ligne'}
+                        </span>
+                        {getServiceMaintenance(service)?.isActive && (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 text-xs font-medium rounded-full">
+                            🔧 Maintenance
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -581,6 +644,31 @@ export default function ServicesPage() {
                       <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>Cliquer pour détails</span>
                         <div className="flex items-center gap-2">
+                          {/* Contrôles de maintenance */}
+                          {getServiceMaintenance(service)?.isActive ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deactivateMaintenance(service)
+                              }}
+                              className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded transition-colors"
+                              title="Désactiver la maintenance"
+                            >
+                              🔧
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                activateMaintenance(service)
+                              }}
+                              className="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded transition-colors"
+                              title="Activer la maintenance"
+                            >
+                              🔧
+                            </button>
+                          )}
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation()

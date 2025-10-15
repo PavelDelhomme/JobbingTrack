@@ -2,28 +2,29 @@
 
 import { useState, useEffect, useRef } from 'react'
 import io from 'socket.io-client'
+import { Socket } from 'socket.io-client'
 
 interface SystemMetrics {
   cpu: {
-    usage: number
-    cores: number
+    usage: number | string
+    cores: number | string
     model: string
   }
   memory: {
-    total: number
-    used: number
-    free: number
-    usage: number
+    total: number | string
+    used: number | string
+    free: number | string
+    usage: number | string
   }
   load: {
-    average: number
-    cores: number[]
+    average: number | string
+    cores: number[] | string
   }
   disk: Array<{
     mount: string
-    total: number
-    used: number
-    usage: number
+    total: number | string
+    used: number | string
+    usage: number | string
   }>
 }
 
@@ -31,31 +32,31 @@ interface ServiceMetrics {
   name: string
   url: string
   port: number
-  status: 'online' | 'offline' | 'testing'
-  responseTime?: number
+  status: string
+  responseTime?: number | string
   version?: string
   error?: string
   health?: {
     status: string
-    responseTime: number
+    responseTime: number | string
     version?: string
     error?: string
   }
   lastCheck: string
   metrics?: {
     memory?: {
-      usage: number
-      limit: number
-      percentage: number
+      usage: number | string
+      limit: number | string
+      percentage: number | string
     }
     cpu?: {
-      usage: number
-      system: number
-      percentage: number
+      usage: number | string
+      system: number | string
+      percentage: number | string
     }
     network?: {
-      rx_bytes: number
-      tx_bytes: number
+      rx_bytes: number | string
+      tx_bytes: number | string
     }
   }
 }
@@ -63,18 +64,18 @@ interface ServiceMetrics {
 interface ContainerMetrics {
   [containerName: string]: {
     memory: {
-      usage: number
-      limit: number
-      percentage: number
+      usage: number | string
+      limit: number | string
+      percentage: number | string
     }
     cpu: {
-      usage: number
-      system: number
-      percentage: number
+      usage: number | string
+      system: number | string
+      percentage: number | string
     }
     network: {
-      rx_bytes: number
-      tx_bytes: number
+      rx_bytes: number | string
+      tx_bytes: number | string
     }
     status: string
   }
@@ -92,66 +93,530 @@ export function useMetrics() {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const socketRef = useRef<any>(null)
+  const socketRef = useRef<any | null>(null)
+  const connectionAttempts = useRef(0)
+  const maxConnectionAttempts = 3
+
+  // Initialiser avec des métriques N/A
+  useEffect(() => {
+    setMetrics(generateNAMetrics())
+    setIsLoading(false)
+  }, [])
 
   useEffect(() => {
-    // Connexion au Metrics Aggregator Service
-    const socket = io('http://localhost:3014', {
-      transports: ['websocket'],
-      timeout: 5000,
-      forceNew: true
-    })
+    // Vérification côté client uniquement
+    if (typeof window === 'undefined') {
+      return
+    }
 
-    socketRef.current = socket
+    let mounted = true
 
-    socket.on('connect', () => {
-      console.log('[METRICS] Connecté au service de métriques')
-      setIsConnected(true)
-      setError(null)
-    })
+    // Importation dymanyique de socket.io-client
+    const initSocket = async () => {
+      try {
+        // Importation dynamique
+        const io = (await import('socket.io-client')).default
 
-    socket.on('disconnect', () => {
-      console.log('[METRICS] Déconnecté du service de métriques')
-      setIsConnected(false)
-    })
+        if (!mounted) return
 
-    socket.on('metrics-update', (data: MetricsData) => {
-      setMetrics(data)
-    })
+        const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
 
-    socket.on('connect_error', (err: Error) => {
-      console.error('[METRICS] Erreur de connexion:', err)
-      setError('Impossible de se connecter au service de métriques')
-      setIsConnected(false)
-    })
+        // Vérifier si les WebSockets sont désactivés
+        const disableWebSocket = process.env.NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET === 'true'
+
+        if (disableWebSocket) {
+          console.log('[METRICS] WebSocket désactivé par configuration')
+          setIsConnected(false)
+          setIsLoading(false)
+          fetchMetricsFallback()
+          return
+        }
+
+        // Connecion au Metrics Aggregator Service avec gestion d'erreur améliorée
+        const socket = io(metricsUrl, {
+          transports: ['websocket', 'polling'],
+          timeout: 3000,
+          forceNew: true,
+          reconnection: false, // Désactiver la reconnexion automatique pour éviter le spam
+          reconnectionAttempts: 0,
+        })
+
+        socket.on('connect', () => {
+          if (!mounted) return
+          connectionAttempts.current = 0
+          console.log('[METRICS] ✅ Connecté au service de métriques')
+          setIsConnected(true)
+          setIsLoading(false)
+          setError(null)
+        })
+
+        socket.on('disconnect', (reason: string) => {
+          if (!mounted) return
+          console.log('[METRICS] ❌ Déconnecté du service de métriques:', reason)
+          setIsConnected(false)
+          // Fallback automatique vers HTTP après déconnexion
+          if (reason !== 'io client disconnect') {
+            setTimeout(() => {
+              if (!mounted) return
+              fetchMetricsFallback()
+            }, 1000)
+          }
+        })
+
+        socket.on('metrics-update', (data: MetricsData) => {
+          if (!mounted) return
+          console.log('[METRICS] 📊 Mise à jour reçue')
+          setMetrics(data)
+          setIsLoading(false)
+        })
+
+        socket.on('connect_error', (err: Error) => {
+          if (!mounted) return
+          connectionAttempts.current++
+
+          // Seulement logger les premières tentatives pour éviter le spam
+          if (connectionAttempts.current <= maxConnectionAttempts) {
+            console.warn(`[METRICS] ⚠️ Erreur de connexion WebSocket (tentative ${connectionAttempts.current}/${maxConnectionAttempts})`)
+          }
+
+          if (connectionAttempts.current >= maxConnectionAttempts) {
+            console.warn('[METRICS] ❌ Abandon de la connexion WebSocket après plusieurs tentatives')
+          setError('Mode dégradé - Connexion WebSocket non disponible')
+          setIsConnected(false)
+          setIsLoading(false)
+            // Passage automatique en mode HTTP
+            fetchMetricsFallback()
+          }
+        })
+
+        socket.on('error', (err: Error) => {
+          if (!mounted) return
+          // Ne pas logger les erreurs de socket pour éviter le spam
+          console.warn('[METRICS] ⚠️ Erreur socket détectée')
+        })
+
+      } catch (err) {
+        if (!mounted) return
+        console.error('[METRICS] ❌ Erreur lors du chargement de socket.io-client:', err)
+        setError('Erreur lors du chargement de la bibliothèque socket.io-client')
+        setIsLoading(false)
+      }
+    }
+
+    initSocket()
 
     // Nettoyage à la déconnexion
     return () => {
-      socket.close()
-      socketRef.current = null
+      mounted = false
+      if (socketRef.current) {
+        console.log('[METRICS] 🔌 Nettoyage de la connexion socket')
+        socketRef.current.close()
+        socketRef.current = null
+      }
     }
   }, [])
 
   const refreshMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:3014/api/v1/metrics')
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`)
+
       if (response.ok) {
         const data = await response.json()
         setMetrics(data)
         setError(null)
+        console.log('[METRICS] 🔄 Métriques rafraîchies')
       } else {
         throw new Error(`Erreur HTTP ${response.status}`)
       }
     } catch (err) {
-      console.error('[METRICS] Erreur lors du rafraîchissement:', err)
+      console.error('[METRICS] ⚠️ Erreur lors du rafraîchissement:', err)
       setError('Erreur lors du rafraîchissement des métriques')
     }
   }
+
+
+  // Fonction pour générer des métriques avec valeurs N/A
+  const generateNAMetrics = () => ({
+    services: {
+      'api-gateway': {
+        name: 'API Gateway',
+        url: 'http://localhost:3000',
+        port: 3000,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'auth-service': {
+        name: 'Auth Service',
+        url: 'http://localhost:3001',
+        port: 3001,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'application-service': {
+        name: 'Application Service',
+        url: 'http://localhost:3002',
+        port: 3002,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'company-service': {
+        name: 'Company Service',
+        url: 'http://localhost:3003',
+        port: 3003,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'contact-service': {
+        name: 'Contact Service',
+        url: 'http://localhost:3004',
+        port: 3004,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'interview-service': {
+        name: 'Interview Service',
+        url: 'http://localhost:3005',
+        port: 3005,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'notification-service': {
+        name: 'Notification Service',
+        url: 'http://localhost:3006',
+        port: 3006,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'dashboard-service': {
+        name: 'Dashboard Service',
+        url: 'http://localhost:3007',
+        port: 3007,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'call-service': {
+        name: 'Call Service',
+        url: 'http://localhost:3008',
+        port: 3008,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'event-service': {
+        name: 'Event Service',
+        url: 'http://localhost:3009',
+        port: 3009,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'followup-service': {
+        name: 'FollowUp Service',
+        url: 'http://localhost:3010',
+        port: 3010,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'profile-service': {
+        name: 'Profile Service',
+        url: 'http://localhost:3011',
+        port: 3011,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      },
+      'workflow-service': {
+        name: 'Workflow Service',
+        url: 'http://localhost:3013',
+        port: 3013,
+        status: 'N/A' as 'N/A',
+        responseTime: 'N/A' as any,
+        version: 'N/A',
+        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        lastCheck: new Date().toISOString()
+      }
+    },
+    system: {
+      cpu: { usage: 'N/A' as any, cores: 'N/A' as any, model: 'N/A' },
+      memory: { total: 'N/A' as any, used: 'N/A' as any, free: 'N/A' as any, usage: 'N/A' as any },
+      load: { average: 'N/A' as any, cores: 'N/A' as any },
+      disk: [{ mount: 'N/A', total: 'N/A' as any, used: 'N/A' as any, usage: 'N/A' as any }]
+    },
+    containers: {
+      'api-gateway': {
+        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
+        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
+        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        status: 'N/A' as 'N/A'
+      },
+      'auth-service': {
+        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
+        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
+        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        status: 'N/A' as 'N/A'
+      },
+      'application-service': {
+        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
+        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
+        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        status: 'N/A' as 'N/A'
+      },
+      'postgres': {
+        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
+        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
+        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        status: 'N/A' as 'N/A'
+      },
+      'redis': {
+        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
+        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
+        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        status: 'N/A' as 'N/A'
+      }
+    },
+    timestamp: new Date().toISOString()
+  })
+
+  // Fonction pour récupérer les métriques système via HTTP avec retry intelligent
+  const fetchMetricsFallback = async (retryCount = 0) => {
+    const maxRetries = 2
+
+    try {
+      // Essayer d'abord le service de métriques agrégateur
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`)
+
+      if (response.ok) {
+        const data = await response.json()
+
+        // Fusionner les nouvelles données avec les données N/A existantes
+        setMetrics(prevMetrics => {
+          if (!prevMetrics) return data
+
+          const updatedMetrics = { ...prevMetrics }
+
+          // Mettre à jour les services avec les vraies données
+          if (data.services) {
+            Object.keys(data.services).forEach(serviceKey => {
+              if (data.services[serviceKey]) {
+                updatedMetrics.services[serviceKey] = {
+                  ...updatedMetrics.services[serviceKey],
+                  ...data.services[serviceKey]
+                }
+              }
+            })
+          }
+
+          // Mettre à jour les métriques système
+          if (data.system) {
+            updatedMetrics.system = {
+              ...updatedMetrics.system,
+              ...data.system
+            }
+          }
+
+          // Mettre à jour les conteneurs
+          if (data.containers) {
+            updatedMetrics.containers = {
+              ...updatedMetrics.containers,
+              ...data.containers
+            }
+          }
+
+          updatedMetrics.timestamp = data.timestamp || new Date().toISOString()
+          return updatedMetrics
+        })
+
+        setError(null)
+        console.log('[METRICS] 📊 Métriques récupérées depuis le service agrégateur')
+        return
+      }
+    } catch (err) {
+      if (retryCount < maxRetries) {
+        console.warn(`[METRICS] ⚠️ Service de métriques agrégateur non disponible (tentative ${retryCount + 1}/${maxRetries + 1})`)
+        // Attendre avant de retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+        return fetchMetricsFallback(retryCount + 1)
+      }
+      console.warn('[METRICS] ⚠️ Service de métriques agrégateur non disponible après tous les retries')
+    }
+
+    try {
+      // Fallback vers le service de métriques système
+      const systemMetricsUrl = 'http://localhost:3018'
+      const response = await fetch(`${systemMetricsUrl}/api/v1/metrics/system`)
+
+      if (response.ok) {
+        const responseData = await response.json()
+
+        if (responseData.success && responseData.data) {
+          const systemData = responseData.data
+          console.log('[METRICS] 📊 Métriques système récupérées')
+
+          // Fusionner les métriques système avec les données N/A existantes
+          setMetrics(prevMetrics => {
+            if (!prevMetrics) {
+              return {
+                services: generateNAMetrics().services,
+                system: systemData,
+                containers: generateNAMetrics().containers,
+                timestamp: new Date().toISOString()
+              }
+            }
+
+            return {
+              ...prevMetrics,
+              system: {
+                ...prevMetrics.system,
+                ...systemData
+              },
+              timestamp: new Date().toISOString()
+            }
+          })
+
+          // Essayer de récupérer les métriques des services depuis l'agrégateur
+          try {
+            const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+            const fullResponse = await fetch(`${metricsUrl}/api/v1/metrics`)
+
+            if (fullResponse.ok) {
+              const fullData = await fullResponse.json()
+
+              // Fusionner les services aussi
+              setMetrics(prevMetrics => {
+                if (!prevMetrics) return fullData
+
+                const updatedMetrics = { ...prevMetrics }
+
+                // Mettre à jour les services
+                if (fullData.services) {
+                  Object.keys(fullData.services).forEach(serviceKey => {
+                    if (fullData.services[serviceKey]) {
+                      updatedMetrics.services[serviceKey] = {
+                        ...updatedMetrics.services[serviceKey],
+                        ...fullData.services[serviceKey]
+                      }
+                    }
+                  })
+                }
+
+                // Mettre à jour les conteneurs
+                if (fullData.containers) {
+                  updatedMetrics.containers = {
+                    ...updatedMetrics.containers,
+                    ...fullData.containers
+                  }
+                }
+
+                return updatedMetrics
+              })
+
+              setError(null)
+              console.log('[METRICS] 📊 Métriques complètes récupérées')
+              return
+            }
+          } catch (err) {
+            console.warn('[METRICS] ⚠️ Service agrégateur non disponible pour les services')
+          }
+
+          setError('Métriques des services non disponibles')
+          return
+        }
+      }
+    } catch (err) {
+      // Seulement logger si c'est une erreur inattendue
+      if (retryCount === 0) {
+        console.warn('[METRICS] ⚠️ Service de métriques système non disponible')
+      }
+    }
+
+    // Dernier fallback : essayer de récupérer depuis cAdvisor
+    try {
+      const cadvisorUrl = 'http://localhost:8080'
+      const response = await fetch(`${cadvisorUrl}/api/v1.3/docker/`)
+
+      if (response.ok) {
+        const containersData = await response.json()
+        console.log('[METRICS] 📊 Métriques cAdvisor récupérées')
+
+        // Fusionner les métriques cAdvisor avec les données N/A existantes
+        setMetrics(prevMetrics => {
+          if (!prevMetrics) {
+            return {
+              services: {},
+              system: {
+                cpu: { usage: 0, cores: 1, model: 'Unknown' },
+                memory: { total: 0, used: 0, free: 0, usage: 0 },
+                load: { average: 0, cores: [] },
+                disk: []
+              },
+              containers: containersData,
+              timestamp: new Date().toISOString()
+            }
+          }
+
+          return {
+            ...prevMetrics,
+            containers: {
+              ...prevMetrics.containers,
+              ...containersData
+            },
+            timestamp: new Date().toISOString()
+          }
+        })
+        setError(null)
+        return
+      }
+    } catch (err) {
+      // Silencieux pour cAdvisor - souvent non disponible en développement
+    }
+
+    // Si tous les fallbacks échouent, garder les métriques N/A existantes
+    console.warn('[METRICS] ⚠️ Aucun service de métriques disponible - fonctionnement avec valeurs N/A')
+    setError('Services de métriques non disponibles - affichage des valeurs N/A')
+  }
+
 
   return {
     metrics,
     isConnected,
     error,
-    refreshMetrics
+    refreshMetrics,
+    fetchMetricsFallback,
+    isLoading,
   }
 }

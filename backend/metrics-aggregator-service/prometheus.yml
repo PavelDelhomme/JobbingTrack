@@ -24,21 +24,81 @@ scrape_configs:
       - targets: ['cadvisor:8080']
     scrape_interval: 10s
 
-  # Scraping des services backend (si ils exposent des métriques)
-  - job_name: 'backend-services'
+  # Scraping des services backend avec métriques Prometheus
+  - job_name: 'api-gateway'
     static_configs:
-      - targets:
-          - 'auth-service:3001'
-          - 'application-service:3002'
-          - 'company-service:3003'
-          - 'contact-service:3004'
-          - 'interview-service:3005'
-          - 'notification-service:3006'
-          - 'dashboard-service:3007'
-          - 'call-service:3008'
-          - 'event-service:3009'
-          - 'followup-service:3010'
-          - 'profile-service:3011'
-          - 'workflow-service:3013'
+      - targets: ['api-gateway:3000']
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:3001']
     scrape_interval: 15s
-    metrics_path: '/metrics'  # Les services doivent exposer des métriques sur /metrics
+    metrics_path: '/metrics'
+
+  - job_name: 'application-service'
+    static_configs:
+      - targets: ['application-service:3002']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'company-service'
+    static_configs:
+      - targets: ['company-service:3003']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'contact-service'
+    static_configs:
+      - targets: ['contact-service:3004']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'interview-service'
+    static_configs:
+      - targets: ['interview-service:3005']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:3006']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'dashboard-service'
+    static_configs:
+      - targets: ['dashboard-service:3007']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'call-service'
+    static_configs:
+      - targets: ['call-service:3008']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'event-service'
+    static_configs:
+      - targets: ['event-service:3009']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'followup-service'
+    static_configs:
+      - targets: ['followup-service:3010']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'profile-service'
+    static_configs:
+      - targets: ['profile-service:3011']
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+
+  - job_name: 'workflow-service'
+    static_configs:
+      - targets: ['workflow-service:3013']
+    scrape_interval: 15s
+    metrics_path: '/metrics'

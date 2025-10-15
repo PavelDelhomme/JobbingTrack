@@ -36,24 +36,24 @@ services:
     networks:
       - jobbingtrack-network
 
-  # cAdvisor pour la surveillance des conteneurs (optionnel)
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:v0.47.2
-  #   container_name: jobbingtrack-cadvisor
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:ro
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /dev/disk/:/dev/disk:ro
-  #   devices:
-  #     - /dev/kmsg:/dev/kmsg:rw
-  #   privileged: true
-  #   networks:
-  #     - jobbingtrack-network
-  #   restart: unless-stopped
+  # cAdvisor pour la surveillance des conteneurs
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: jobbingtrack-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg:rw
+    privileged: true
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
 
   # Prometheus pour les métriques avancées (optionnel)
   prometheus:

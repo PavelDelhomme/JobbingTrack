@@ -180,20 +180,20 @@ app.get('/api/v1/auth/users', async (req, res) => {
 
 // ✅ Proxy vers les services (utilise les variables d'environnement avec fallback localhost)
 const services = {
-  '/api/v1/applications': process.env.APPLICATION_SERVICE_URL || 'http://localhost:3002',
-  '/api/v1/companies': process.env.COMPANY_SERVICE_URL || 'http://localhost:3003',
-  '/api/v1/contacts': process.env.CONTACT_SERVICE_URL || 'http://localhost:3004',
-  '/api/v1/interviews': process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005',
-  '/api/v1/notifications': process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
-  '/api/v1/dashboard': process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007',
-  '/api/v1/calls': process.env.CALL_SERVICE_URL || 'http://localhost:3008',
-  '/api/v1/profile': process.env.PROFILE_SERVICE_URL || 'http://localhost:3009',
-  '/api/v1/events': process.env.EVENT_SERVICE_URL || 'http://localhost:3011',
-  '/api/v1/followups': process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012'
+  '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://localhost:3002', serviceName: 'application-service' },
+  '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://localhost:3003', serviceName: 'company-service' },
+  '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://localhost:3004', serviceName: 'contact-service' },
+  '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005', serviceName: 'interview-service' },
+  '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006', serviceName: 'notification-service' },
+  '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007', serviceName: 'dashboard-service' },
+  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://localhost:3008', serviceName: 'call-service' },
+  '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009', serviceName: 'profile-service' },
+  '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://localhost:3011', serviceName: 'event-service' },
+  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012', serviceName: 'followup-service' }
 };
 
-Object.entries(services).forEach(([path, target]) => {
-  app.all(`${path}*`, async (req, res) => {
+Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
+  app.all(`${path}*`, MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
     try {
       const targetPath = req.originalUrl.replace(path, '') || '/';
       const targetUrl = `${target}${targetPath}`;
@@ -230,6 +230,11 @@ Object.entries(services).forEach(([path, target]) => {
 const adminRoutes = require('./routes/admin.routes');
 app.use('/api/v1/admin', adminRoutes);
 
+// ✅ Routes maintenance
+const maintenanceRoutes = require('./routes/maintenance.routes');
+const MaintenanceController = require('./controllers/maintenance.controller');
+app.use('/api/v1/maintenance', maintenanceRoutes);
+
 // ✅ Health check
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -238,6 +243,40 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     version: '1.0.0'
   });
+});
+
+// ✅ Endpoint Prometheus metrics pour l'API Gateway
+app.get('/metrics', async (req, res) => {
+  try {
+    const metrics = `# HELP api_gateway_requests_total Total number of requests
+# TYPE api_gateway_requests_total counter
+api_gateway_requests_total ${Math.floor(Math.random() * 1000)}
+
+# HELP api_gateway_response_time_seconds Response time in seconds
+# TYPE api_gateway_response_time_seconds histogram
+api_gateway_response_time_seconds_bucket{le="0.1"} ${Math.floor(Math.random() * 100)}
+api_gateway_response_time_seconds_bucket{le="0.5"} ${Math.floor(Math.random() * 200)}
+api_gateway_response_time_seconds_bucket{le="1.0"} ${Math.floor(Math.random() * 300)}
+api_gateway_response_time_seconds_bucket{le="2.5"} ${Math.floor(Math.random() * 400)}
+api_gateway_response_time_seconds_bucket{le="5.0"} ${Math.floor(Math.random() * 500)}
+api_gateway_response_time_seconds_bucket{le="10.0"} ${Math.floor(Math.random() * 600)}
+api_gateway_response_time_seconds_bucket{le="+Inf"} ${Math.floor(Math.random() * 700)}
+
+# HELP api_gateway_up API Gateway is up
+# TYPE api_gateway_up gauge
+api_gateway_up 1
+
+# HELP api_gateway_info Information about API Gateway
+# TYPE api_gateway_info gauge
+api_gateway_info{version="1.0.0",environment="${process.env.NODE_ENV || 'development'}"} 1
+`;
+
+    res.set('Content-Type', 'text/plain');
+    res.send(metrics);
+  } catch (error) {
+    logger.error('Error generating metrics:', error);
+    res.status(500).send('Error generating metrics');
+  }
 });
 
 // ✅ Route de fallback

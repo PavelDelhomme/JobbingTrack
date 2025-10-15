@@ -17,7 +17,7 @@ FRONTEND_DIR = frontend
 SCRIPTS_DIR = scripts
 TESTS_DIR = tests
 
-.PHONY: help build up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop
+.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services
 
 # ============================================================================
 # COMMANDES PRINCIPALES
@@ -40,6 +40,10 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  make fix             - Diagnostic + correction automatique"
 	@echo "  make clean-conflicts - Nettoyer automatiquement les conflits"
 	@echo "  make create-admin    - Créer l'utilisateur administrateur"
+	@echo "  make docker-exec <container> - Accès shell à un conteneur Docker"
+	@echo "  make test-socket [container] - Tester l'installation de socket.io-client"
+	@echo "  make fix-webpack [options] - Corriger les problèmes de chunks webpack"
+	@echo "  make verify-services - Vérifier le démarrage de tous les services"
 	@echo ""
 	@echo "📊 SURVEILLANCE:"
 	@echo "  make status          - État de tous les services"
@@ -61,6 +65,7 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  make dev             - Mode développement avec hot reload + métriques"
 	@echo "  make build           - Construire toutes les images"
 	@echo "  make build-system    - Construire seulement les services système"
+	@echo "  make frontend-rebuild - Reconstruire le frontend sans cache"
 	@echo "  make migrate         - Appliquer les migrations BDD"
 	@echo ""
 	@echo "🎯 GESTION SERVICES:"
@@ -171,6 +176,14 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	else \
 		docker compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \
 	fi
+
+	# Attendre que le frontend soit prêt
+	@echo "⏳ Attente que le frontend soit prêt..."
+	@sleep 20
+
+	# Vérifier que tous les services démarrent correctement
+	@echo "🔍 Vérification du démarrage des services..."
+	@bash $(SCRIPTS_DIR)/utilities/verify-services.sh --verbose
 
 	@echo ""
 	@echo "✅ JobbingTrack démarré avec succès !"
@@ -386,6 +399,16 @@ build-system: ## Construire seulement les services système
 	@echo "🔨 Construction des services système..."
 	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml build docker-stats-service deployment-service security-service
 
+# Reconstruire le frontend sans cache
+frontend-rebuild: ## Reconstruire le frontend sans cache avec sortie détaillée
+	@echo "🔨 Reconstruction complète du frontend sans cache..."
+	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
+		docker-compose -f docker-compose.frontend.yml build --no-cache --progress=plain; \
+	else \
+		docker compose -f docker-compose.frontend.yml build --no-cache --progress=plain; \
+	fi
+	@echo "✅ Frontend reconstruit avec succès"
+
 # ============================================================================
 # MIGRATIONS
 # ============================================================================
@@ -478,6 +501,30 @@ health: ## Vérification de la santé de tous les services
 %-scripts: ## Déléguer aux scripts utilitaires (ex: make diagnostic-scripts)
 	@echo "🔧 Exécution: $(subst -scripts,,$@) (scripts uniquement)"
 	@bash $(SCRIPTS_DIR)/$(subst -scripts,,$@).sh
+
+# ============================================================================
+# GESTION DES CONTENEURS DOCKER
+# ============================================================================
+
+# Accès shell à un conteneur Docker
+docker-exec: ## Accès shell interactif à un conteneur Docker (usage: make docker-exec <nom_conteneur>)
+	@bash $(SCRIPTS_DIR)/utilities/docker-exec.sh $(wordlist 2, 100, $(MAKECMDGOALS))
+
+# Test et diagnostic de socket.io-client
+test-socket: ## Tester l'installation de socket.io-client dans le conteneur frontend
+	@bash $(SCRIPTS_DIR)/utilities/test-socket-io.sh $(wordlist 2, 100, $(MAKECMDGOALS))
+
+# Correction des problèmes de chunks webpack
+fix-webpack: ## Diagnostiquer et corriger les problèmes de chunks webpack manquants
+	@bash $(SCRIPTS_DIR)/utilities/fix-webpack-chunks.sh $(wordlist 2, 100, $(MAKECMDGOALS))
+
+# Vérification complète du démarrage des services
+verify-services: ## Vérifier que tous les services démarrent correctement
+	@bash $(SCRIPTS_DIR)/utilities/verify-services.sh $(wordlist 2, 100, $(MAKECMDGOALS))
+
+# Règle pour ignorer les arguments non-cible
+%:
+	@:
 
 # ============================================================================
 # COMMANDES CONTEXTUELLES

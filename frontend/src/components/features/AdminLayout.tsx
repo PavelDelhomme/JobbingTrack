@@ -9,6 +9,8 @@ import Breadcrumb from './Breadcrumb'
 import { GlobalSearch } from './GlobalSearch'
 import { OfflineActions } from './OfflineActions'
 import { SettingsPopup } from './SettingsPopup'
+import { ProfilePopup } from './ProfilePopup'
+import { QuickMenuPopup } from './QuickMenuPopup'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -35,6 +37,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
+  const [isProfileOpen, setIsProfileOpen] = useState(false) // ✅ État pour la popup du profil
+  const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     security: true,
@@ -359,23 +363,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="border-t border-gray-800 dark:border-gray-900 bg-gray-900 dark:bg-gray-950 flex-shrink-0 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-white">
-                    {user?.firstName} {user?.lastName}
-                  </p>
-                  <p className="text-xs text-gray-400">{user?.role}</p>
-                </div>
+                <button
+                  onClick={() => setIsProfileOpen(true)}
+                  className="flex items-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+                  title="Ouvrir le profil"
+                >
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-white">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400">{user?.role}</p>
+                  </div>
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsSettingsOpen(true)}
-                  className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-800"
-                  title="Paramètres"
+                  className="text-gray-400 hover:text-white transition-all duration-200 p-1.5 rounded-lg hover:bg-gray-800 hover:scale-105"
+                  title="Paramètres & Configuration"
                 >
-                  ⚙️
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
                 </button>
                 <button
                   onClick={logout}
@@ -432,10 +445,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
 
 
-              {/* Email - Caché sur petits écrans moyens */}
-              <span className="hidden lg:inline text-sm text-gray-500 dark:text-gray-400 max-w-32 lg:max-w-none truncate" title={user?.email}>
-                {user?.email}
-              </span>
+              {/* Email - Cliquable pour ouvrir le menu rapide - Caché sur petits écrans moyens */}
+              <button
+                onClick={() => setIsQuickMenuOpen(true)}
+                className="hidden lg:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                title="Menu rapide utilisateur"
+              >
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </div>
+                <span className="max-w-32 truncate">
+                  {user?.email}
+                </span>
+              </button>
 
               {/* Theme Toggle - Toujours visible mais compact sur mobile */}
               <button
@@ -472,6 +494,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <SettingsPopup
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Popup du profil utilisateur */}
+      <ProfilePopup
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
+
+      {/* Menu rapide utilisateur */}
+      <QuickMenuPopup
+        isOpen={isQuickMenuOpen}
+        onClose={() => setIsQuickMenuOpen(false)}
+        onSelectProfile={() => setIsProfileOpen(true)}
+        onSelectSettings={() => setIsSettingsOpen(true)}
       />
     </div>
   )

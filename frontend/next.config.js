@@ -2,11 +2,13 @@
 const nextConfig = {
     output: 'standalone',
     experimental: {
-        serverComponentsExternalPackages: [],
+        serverComponentsExternalPackages: ['socket.io-client'],
     },
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
         NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:3001',
+        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014',
+        NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET: process.env.NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET || 'false',
     },
     // ✅ Désactiver les messages de développement React DevTools
     compiler: {
@@ -23,19 +25,44 @@ const nextConfig = {
             },
         ];
     },
-    webpack: (config) => {
+    webpack: (config, { isServer }) => {
         config.watchOptions = {
             poll: 1000,
             aggregateTimeout: 300,
-        };
-        // ✅ Ignorer les erreurs de fichiers manquants pour éviter les erreurs 404
+        };if (isServer) {
+            config.externals = config.externals || [];
+            // Si config.externals est une fonction
+            if (typeof config.externals === 'function') {
+                const originalExternals = config.externals;
+                config.externals = async (context, request, callback) => {
+                    if (request === 'socket.io-client') {
+                        return callback(null, 'commonjs ' + request);
+                    }
+                    return originalExternals(context, request, callback);
+                };
+            } 
+            // Si config.externals est un tableau
+            else if (Array.isArray(config.externals)) {
+                config.externals.push('socket.io-client');
+            }
+            // Si config.externals est un objet
+            else {
+                config.externals['socket.io-client'] = 'socket.io-client';
+            }
+        }
+        
+        // Configuration fallback existante
         config.resolve.fallback = {
             ...config.resolve.fallback,
             fs: false,
+            net: false,
+            tls: false,
         };
+        
         return config;
     },
-    // ✅ Configuration pour éviter les erreurs de fichiers manquants
+    
+    // Configuration pour éviter les erreurs de fichiers manquants
     images: {
         unoptimized: true,
     },

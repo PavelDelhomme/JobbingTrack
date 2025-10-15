@@ -36,6 +36,7 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  $(YELLOW)make clean$(NC)           - Nettoyer TOUT (containers, volumes, images)"
 	@echo "  $(YELLOW)make rebuild$(NC)         - Reconstruire TOUT sans supprimer données"
 	@echo "  $(YELLOW)make fix$(NC)             - Diagnostic + correction automatique"
+	@echo "  $(YELLOW)make fix-frontend-deps$(NC) - Corriger les dépendances frontend"
 	@echo "  $(YELLOW)make clean-conflicts$(NC) - Nettoyer automatiquement les conflits"
 	@echo "  $(YELLOW)make create-admin$(NC)    - Créer l'utilisateur administrateur"
 	@echo ""
@@ -341,6 +342,14 @@ health: ## Vérification de la santé de tous les services
 %-frontend: ## Déléguer aux commandes frontend (ex: make build-frontend)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -frontend,,$@) (frontend uniquement))
 	@cd $(FRONTEND_DIR) && $(MAKE) $(subst -frontend,,$@)
+
+# Commande spécifique pour corriger les problèmes de dépendances frontend
+fix-frontend-deps: ## Corriger les problèmes de dépendances frontend (socket.io-client, etc.)
+	$(call print_message,$(YELLOW),🔧 Correction des dépendances frontend...)
+	@cd $(FRONTEND_DIR) && $(MAKE) clean-all
+	@cd $(FRONTEND_DIR) && $(MAKE) install-deps
+	@echo "$(GREEN)✅ Dépendances frontend corrigées$(NC)"
+	@echo "$(CYAN)💡 Le problème socket.io-client devrait être résolu$(NC)"
 
 %-tests: ## Déléguer aux commandes de tests (ex: make test-all-tests)
 	$(call print_message,$(BLUE),🔧 Exécution: $(subst -tests,,$@) (tests uniquement))
