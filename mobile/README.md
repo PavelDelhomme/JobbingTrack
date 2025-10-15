@@ -26,22 +26,21 @@ mobile/
 # Node.js 18+
 # Expo CLI installé globalement
 npm install -g @expo/cli
-
-# Ou avec npx
-npx @expo/cli install
 ```
 
 ### Installation et Lancement
 ```bash
 # Installation des dépendances
-npm install
+cd mobile && npm install
 
 # Démarrage en mode développement
-npx expo start
+cd mobile && npx expo start
 
-# Build de production
-npx expo build:android
-npx expo build:ios
+# Build de production Android
+cd mobile && npx expo build:android
+
+# Build de production iOS
+cd mobile && npx expo build:ios
 ```
 
 ## 🎯 Fonctionnalités
@@ -160,20 +159,22 @@ const location = await Location.getCurrentPositionAsync({})
 ### Tests Unitaires
 ```bash
 # Tests Jest
-npm run test
+cd mobile && npm run test
 
 # Tests avec coverage
-npm run test:coverage
+cd mobile && npm run test:coverage
 ```
 
 ### Tests d'Intégration
 ```bash
 # Tests Detox (e2e)
-npm run test:e2e
+cd mobile && npm run test:e2e
 
-# Tests sur simulateur
-npm run test:ios
-npm run test:android
+# Tests sur simulateur iOS
+cd mobile && npm run test:ios
+
+# Tests sur simulateur Android
+cd mobile && npm run test:android
 ```
 
 ## 📦 Déploiement
@@ -181,22 +182,22 @@ npm run test:android
 ### Build de Production
 ```bash
 # Android
-npx expo build:android
+cd mobile && npx expo build:android
 
 # iOS (nécessite compte développeur Apple)
-npx expo build:ios
+cd mobile && npx expo build:ios
 
 # Version EAS Build (recommandé)
-npx eas build --platform all
+cd mobile && npx eas build --platform all
 ```
 
 ### Publication Stores
 ```bash
 # Google Play Store
-npx eas submit --platform android
+cd mobile && npx eas submit --platform android
 
 # Apple App Store
-npx eas submit --platform ios
+cd mobile && npx eas submit --platform ios
 ```
 
 ## 🔒 Sécurité Mobile
@@ -246,3 +247,54 @@ Voir le [README principal](../../README.md) pour :
 - Architecture complète du projet
 - Guide de déploiement en production
 - Intégration avec les services backend
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
+- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🚀 **Démarrage Rapide**
+- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
+- **[Guide de Développement](../../docs/guides/getting-started.md)** - Développement mobile
+
+### 📱 **Architecture Mobile**
+- **[Structure des Écrans](#structure-des-écrans)** - Organisation des composants
+- **[Services Mobiles](#services)** - API et stockage local
+- **[Navigation Native](#navigation)** - React Navigation 6
+- **[État et Données](#état-et-données)** - Redux Toolkit et SQLite
+
+### 🔧 **Technologies**
+- **[React Native 0.72](#core)** - Framework mobile moderne
+- **[Expo SDK 49](#core)** - Outils de développement avancés
+- **[TypeScript](#core)** - Sécurité de type complète
+- **[Authentification Biométrique](#authentification)** - Sécurité renforcée
+
+### 🧪 **Tests et Qualité**
+- **[Tests Unitaires](#tests-unitaires)** - Jest et coverage
+- **[Tests d'Intégration](#tests-dintégration)** - Workflows complets
+- **[Tests E2E](#tests-dintégration)** - Navigation et interactions
+- **[Tests Automatisés](../../tests/README.md)** - Suite complète
+
+### 📦 **Déploiement**
+- **[Build de Production](#build-de-production)** - Android et iOS
+- **[Publication Stores](#publication-stores)** - Google Play et App Store
+- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
+
+### 🔒 **Sécurité**
+- **[Authentification Biométrique](#authentification-biométrique)** - Face ID / Touch ID
+- **[Stockage Sécurisé](#stockage-sécurisé)** - Chiffrement des données
+- **[Sécurité Mobile](../../docs/technical/README.md#securite-mobile)** - Bonnes pratiques
+
+### 🎨 **Design System**
+- **[Composants UI](#composants-ui)** - Interface cohérente
+- **[Responsive Design](#responsive-design)** - Adaptation écrans
+- **[Thème Sombre/Clair](#thème-sombreclair)** - Support automatique
+
+### 📁 **Structure du Projet**
+- **[Backend](../../backend/README.md)** - Architecture microservices
+- **[Frontend](../../frontend/README.md)** - Dashboard Next.js
+- **[API](../../docs/api/README.md)** - Documentation API complète

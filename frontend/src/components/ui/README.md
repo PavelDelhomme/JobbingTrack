@@ -119,13 +119,13 @@ module.exports = {
 
 ```bash
 # Tests des composants UI
-npm run test ui
+make test-ui
 
 # Tests d'accessibilité
-npm run test:a11y ui
+make test-a11y
 
 # Tests visuels avec capture d'écran
-npm run test:visual
+make test-visual
 ```
 
 ## 📚 Référence
@@ -133,3 +133,43 @@ npm run test:visual
 Basé sur [shadcn/ui](https://ui.shadcn.com/) - Collection de composants React accessibles et personnalisables construits sur Radix UI et stylés avec Tailwind CSS.
 
 Voir la [documentation complète](https://ui.shadcn.com/docs) pour plus d'informations sur l'utilisation et la personnalisation.
+
+---
+
+## 🧭 Navigation
+
+### 🎨 **Composants Frontend**
+- **[Accueil Frontend](../../README.md)** - Vue d'ensemble du dashboard
+- **[Composants Charts](../charts/README.md)** - Graphiques SVG performants
+- **[Composants Widgets](../widgets/README.md)** - Métriques et KPIs
+- **[Composants Layout](../layout/README.md)** - Mise en page responsive
+- **[Composants Forms](../forms/README.md)** - Formulaires génériques
+- **[Composants Modals](../modals/README.md)** - Modales spécialisées
+- **[Composants Integrations](../integrations/README.md)** - Intégrations externes
+- **[Features Spécialisés](../features/README.md)** - Composants métier avancés
+
+### 🔧 **Librairie et Hooks**
+- **[Librairie Frontend](../../lib/README.md)** - Hooks et services organisés
+
+### 📚 **Documentation Centrale**
+- **[Accueil Projet](../../../README.md)** - Vue d'ensemble complète
+- **[Documentation Organisée](../../../docs/README.md)** - Documentation structurée
+- **[Spécifications Techniques](../../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🧪 **Tests et Qualité**
+- **[Tests Frontend](../../README.md#tests)** - Tests unitaires et e2e
+- **[Tests Automatisés](../../../tests/README.md)** - Suite complète
+- **[Tests d'Intégration](../../../tests/README.md#tests-dintegration)** - Workflows complets
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../../docs/deployment/README.md)** - Production complète
+- **[Variables d'Environnement](../../../README.md#variables-denvironnement)** - Configuration
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles](../../../makefiles/README.md)** - Commandes automatisées
+- **[Scripts Frontend](../../../scripts/README.md)** - Outils spécialisés
+
+### 📁 **Structure du Projet**
+- **[Backend](../../../backend/README.md)** - Architecture microservices
+- **[Mobile](../../../mobile/README.md)** - Application React Native
+- **[API](../../../docs/api/README.md)** - Documentation API complète

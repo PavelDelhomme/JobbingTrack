@@ -127,13 +127,13 @@ Les modales utilisent automatiquement :
 
 ```bash
 # Tests des modales
-npm run test modals
+make test-frontend
 
 # Tests d'intégration
-npm run test:integration modals
+make test-integration
 
 # Tests e2e des workflows modaux
-npx playwright test modal-workflows.spec.ts
+make test-e2e-modal
 ```
 
 ## 🔄 Évolution
@@ -143,3 +143,43 @@ npx playwright test modal-workflows.spec.ts
 - **Animations personnalisables** avec Framer Motion
 - **Gestion d'état globale** avec Zustand
 - **Validation avancée** avec Yup/Zod
+
+---
+
+## 🧭 Navigation
+
+### 🎨 **Composants Frontend**
+- **[Accueil Frontend](../../README.md)** - Vue d'ensemble du dashboard
+- **[Composants Charts](../charts/README.md)** - Graphiques SVG performants
+- **[Composants Widgets](../widgets/README.md)** - Métriques et KPIs
+- **[Composants Layout](../layout/README.md)** - Mise en page responsive
+- **[Composants Forms](../forms/README.md)** - Formulaires génériques
+- **[Composants Integrations](../integrations/README.md)** - Intégrations externes
+
+### 🔧 **Librairie et Hooks**
+- **[Librairie Frontend](../../lib/README.md)** - Hooks et services organisés
+- **[Composants UI](../ui/README.md)** - Composants de base shadcn/ui
+- **[Features Spécialisés](../features/README.md)** - Composants métier avancés
+
+### 📚 **Documentation Centrale**
+- **[Accueil Projet](../../../README.md)** - Vue d'ensemble complète
+- **[Documentation Organisée](../../../docs/README.md)** - Documentation structurée
+- **[Spécifications Techniques](../../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🧪 **Tests et Qualité**
+- **[Tests Frontend](../../README.md#tests)** - Tests unitaires et e2e
+- **[Tests Automatisés](../../../tests/README.md)** - Suite complète
+- **[Tests d'Intégration](../../../tests/README.md#tests-dintegration)** - Workflows complets
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../../docs/deployment/README.md)** - Production complète
+- **[Variables d'Environnement](../../../README.md#variables-denvironnement)** - Configuration
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles](../../../makefiles/README.md)** - Commandes automatisées
+- **[Scripts Frontend](../../../scripts/README.md)** - Outils spécialisés
+
+### 📁 **Structure du Projet**
+- **[Backend](../../../backend/README.md)** - Architecture microservices
+- **[Mobile](../../../mobile/README.md)** - Application React Native
+- **[API](../../../docs/api/README.md)** - Documentation API complète

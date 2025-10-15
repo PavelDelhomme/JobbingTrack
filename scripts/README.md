@@ -152,3 +152,36 @@ scripts/
 ## 📚 Documentation Détaillée
 
 Chaque catégorie de scripts a sa propre documentation détaillée dans les sous-dossiers. Voir la [documentation principale](../../README.md) pour les références complètes.
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
+- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🛠️ **Scripts et Outils**
+- **[Scripts Database](./database/README.md)** - Gestion base de données
+- **[Scripts Deployment](./deployment/README.md)** - Déploiement et mises à jour
+- **[Scripts Monitoring](./monitoring/README.md)** - Surveillance système
+- **[Scripts Security](./security/README.md)** - Sécurité et protection
+- **[Scripts Setup](./setup/README.md)** - Configuration initiale
+- **[Scripts System](./system/README.md)** - Maintenance système
+- **[Scripts Testing](./testing/README.md)** - Tests automatisés
+
+### 🔧 **Commandes Automatisées**
+- **[Makefiles Organisés](../makefiles/README.md)** - Commandes système
+- **[Tests Automatisés](../tests/README.md)** - Suite de tests complète
+- **[Données SQL](../data/README.md)** - Configuration base de données
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
+- **[Variables d'Environnement](../../README.md#variables-denvironnement)** - Configuration
+
+### 📁 **Structure du Projet**
+- **[Backend](../backend/README.md)** - Architecture microservices
+- **[Frontend](../frontend/README.md)** - Dashboard Next.js
+- **[Mobile](../mobile/README.md)** - Application React Native
+- **[API](../../docs/api/README.md)** - Documentation API complète

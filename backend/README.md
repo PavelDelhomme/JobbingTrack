@@ -71,3 +71,41 @@ make test-services
 ## 🔐 Configuration
 
 Voir le fichier principal [README.md](../../README.md) pour la configuration complète des variables d'environnement et l'installation.
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
+- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🚀 **Démarrage Rapide**
+- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
+- **[Guide de Développement](../../docs/guides/getting-started.md)** - Développement backend
+
+### 🔧 **Architecture Microservices**
+- **[Services Disponibles](#-services-disponibles)** - Vue d'ensemble des 8 services
+- **[Monitoring](../../docs/technical/README.md#monitoring)** - Prometheus, Grafana, Jaeger
+- **[Sécurité](../../docs/technical/README.md#securite)** - Authentification et autorisation
+
+### 🧪 **Tests et Qualité**
+- **[Tests Automatisés](../../tests/README.md)** - Suite complète de tests
+- **[Tests de Santé](#tests)** - Vérification des services
+- **[Tests d'Intégration](../../tests/README.md#tests-dintegration)** - Workflows complets
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
+- **[Docker Compose](../../docs/technical/README.md#docker-compose)** - Orchestration
+- **[Variables d'Environnement](../../README.md#variables-denvironnement)** - Configuration
+
+### 🛠️ **Outils de Développement**
+- **[Makefiles](../../makefiles/README.md)** - Commandes automatisées
+- **[Scripts Backend](../../scripts/README.md)** - Outils spécialisés
+- **[Prisma](../../docs/technical/README.md#prisma-orm)** - Base de données
+
+### 📁 **Structure du Projet**
+- **[Frontend](../../frontend/README.md)** - Dashboard Next.js
+- **[Mobile](../../mobile/README.md)** - Application React Native
+- **[API](../../docs/api/README.md)** - Documentation API complète
