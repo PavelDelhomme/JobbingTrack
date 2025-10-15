@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 import Link from 'next/link'
 
 interface Call {

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 
 export default function AccessDeniedPage() {
   const { user, logout } = useAuth()

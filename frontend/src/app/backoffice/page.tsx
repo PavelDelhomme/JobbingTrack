@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'

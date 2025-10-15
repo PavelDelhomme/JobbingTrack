@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useCustomization } from '@/hooks/useCustomization'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { Save, RotateCcw, LogOut, User, Palette, Layout, Bell, Eye, Globe, Database, X, ChevronDown, Check } from 'lucide-react'
 

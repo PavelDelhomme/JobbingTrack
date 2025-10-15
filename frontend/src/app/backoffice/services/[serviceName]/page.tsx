@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
-import { useAuth } from '@/lib/auth'
+import { useAuth } from '@/lib/hooks/auth'
 import axios from 'axios'
 
 interface ServiceDetail {
