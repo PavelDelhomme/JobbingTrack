@@ -6,6 +6,11 @@ const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 const logger = require('./utils/logger');
 
+// ✅ Import des middlewares de sécurité personnalisés
+const { wafCheck } = require('./middleware/waf');
+const { intrusionDetection } = require('./middleware/intrusionDetector');
+const { authRateLimiter, adminRateLimiter } = require('./middleware/rateLimiter');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,9 +27,50 @@ app.use(cors({
   credentials: true
 }));
 
+// ✅ Middleware de sécurité de base
+app.use(helmet());
+
 // ✅ Middleware de base
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ✅ Middleware de sécurité personnalisés (ordre important)
+// 1. Détection d'intrusion (premier pour analyser toutes les requêtes)
+app.use(intrusionDetection);
+
+// 2. WAF (Web Application Firewall)
+if (process.env.WAF_ENABLED !== 'false') {
+  app.use(wafCheck);
+}
+
+// 3. Rate limiting général (après WAF pour éviter les faux positifs)
+if (process.env.RATE_LIMIT_ENABLED !== 'false') {
+  app.use(rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: parseInt(process.env.RATE_LIMIT_REQUESTS) || 100,
+    message: {
+      success: false,
+      error: 'Trop de requêtes',
+      retryAfter: 60,
+      message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      logger.warn('Rate limit général dépassé', {
+        ip: req.ip,
+        url: req.url,
+        userAgent: req.get('User-Agent')
+      });
+      res.status(429).json({
+        success: false,
+        error: 'Trop de requêtes',
+        retryAfter: 60,
+        message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
+      });
+    }
+  }));
+}
 
 // ✅ Routes d'authentification spécifiques (MODE DÉVELOPPEMENT)
 app.post('/api/v1/auth/login', async (req, res) => {

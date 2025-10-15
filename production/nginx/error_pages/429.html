@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trop de requêtes - JobbingTrack</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .icon {
+            font-size: 4rem;
+            color: #e67e22;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        p {
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .countdown {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3498db;
+            margin: 1rem 0;
+        }
+
+        .details {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            border-left: 4px solid #e67e22;
+            text-align: left;
+            margin: 1rem 0;
+        }
+
+        .button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        .button:hover {
+            background: #2980b9;
+        }
+
+        .button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            color: #bdc3c7;
+            font-size: 0.9rem;
+        }
+
+        .retry-info {
+            background: #e8f4f8;
+            padding: 0.5rem;
+            border-radius: 3px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">⏱️</div>
+        <h1>Trop de requêtes</h1>
+        <p>Vous avez effectué trop de requêtes dans un court laps de temps. Veuillez patienter avant de réessayer.</p>
+
+        <div class="countdown" id="countdown">60</div>
+
+        <div class="details">
+            <strong>Limite:</strong> 100 requêtes par minute<br>
+            <strong>Attendez:</strong> <span id="waitTime">60</span> secondes<br>
+            <strong>Heure:</strong> <span id="timestamp"></span>
+        </div>
+
+        <div class="retry-info">
+            💡 <strong>Conseil:</strong> Si vous utilisez un outil automatisé, réduisez la fréquence de vos requêtes.
+        </div>
+
+        <button id="retryButton" class="button" disabled onclick="window.location.reload()">
+            Réessayer (<span id="retryCountdown">60</span>s)
+        </button>
+
+        <div class="footer">
+            <p>JobbingTrack - Protection contre les abus</p>
+        </div>
+    </div>
+
+    <script>
+        let countdown = 60;
+        const countdownElement = document.getElementById('countdown');
+        const waitTimeElement = document.getElementById('waitTime');
+        const retryCountdownElement = document.getElementById('retryCountdown');
+        const retryButton = document.getElementById('retryButton');
+        const timestampElement = document.getElementById('timestamp');
+
+        timestampElement.textContent = new Date().toLocaleString('fr-FR');
+
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            waitTimeElement.textContent = countdown;
+            retryCountdownElement.textContent = countdown;
+
+            if (countdown <= 0) {
+                clearInterval(timer);
+                retryButton.disabled = false;
+                retryButton.classList.remove('disabled');
+                countdownElement.textContent = '0';
+            }
+        }, 1000);
+
+        // Vérifier l'en-tête Retry-After si disponible
+        const retryAfter = document.querySelector('meta[http-equiv="Retry-After"]');
+        if (retryAfter) {
+            const retryAfterValue = parseInt(retryAfter.content);
+            if (retryAfterValue && retryAfterValue > 0) {
+                countdown = retryAfterValue;
+            }
+        }
+    </script>
+</body>
+</html>

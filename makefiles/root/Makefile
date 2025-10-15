@@ -8,34 +8,6 @@
 include makefiles/shared/common.mk
 
 # ============================================================================
-# VÉRIFICATION ET CONFIGURATION DES COULEURS
-# ============================================================================
-
-# Vérifier si les couleurs sont supportées
-COLOR_SUPPORTED := $(shell echo $$TERM | grep -q color && echo "1" || echo "0")
-
-# Définir les couleurs avec fallback
-ifeq ($(COLOR_SUPPORTED),1)
-GREEN := \033[0;32m
-RED := \033[0;31m
-YELLOW := \033[1;33m
-BLUE := \033[0;34m
-  PURPLE := \033[0;35m
-  CYAN := \033[0;36m
-  BOLD := \033[1m
-NC := \033[0m
-else
-  GREEN :=
-  RED :=
-  YELLOW :=
-  BLUE :=
-  PURPLE :=
-  CYAN :=
-  BOLD :=
-  NC :=
-endif
-
-# ============================================================================
 # CONFIGURATION
 # ============================================================================
 
@@ -64,6 +36,7 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  $(YELLOW)make clean$(NC)           - Nettoyer TOUT (containers, volumes, images)"
 	@echo "  $(YELLOW)make rebuild$(NC)         - Reconstruire TOUT sans supprimer données"
 	@echo "  $(YELLOW)make fix$(NC)             - Diagnostic + correction automatique"
+	@echo "  $(YELLOW)make clean-conflicts$(NC) - Nettoyer automatiquement les conflits"
 	@echo "  $(YELLOW)make create-admin$(NC)    - Créer l'utilisateur administrateur"
 	@echo ""
 	@echo "$(BOLD)$(CYAN)📊 SURVEILLANCE:$(NC)"
@@ -117,47 +90,103 @@ help: ## Afficher l'aide complète organisée par catégories
 
 # Démarrer tout le projet
 up: check-deps ## Démarrer tout le projet (backend + frontend + base de données)
-	$(call print_message,$(GREEN),🚀 Démarrage complet de JobbingTrack...)
-	$(call print_message,$(BLUE),📦 Backend + Frontend + Base de données)
+	@echo "🚀 Démarrage complet de JobbingTrack..."
+	@echo "📦 Backend + Frontend + Base de données"
 
-  # Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
-	$(call print_message,$(YELLOW),🏗️ Démarrage de l'infrastructure...)
+	# Vérifier et gérer les services existants
+	$(call check_and_clean_existing_services)
+
+	# Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
+	@echo "🏗️ Démarrage de l'infrastructure..."
 	@cd $(BACKEND_DIR) && docker-compose -f docker-compose.yml up -d postgres redis
 
 	# Attendre que PostgreSQL soit prêt avec vérification
 	$(call wait_for_postgres)
 
 	# Créer l'utilisateur admin une fois PostgreSQL prêt
-	$(call print_message,$(YELLOW),👤 Création de l'utilisateur administrateur...)
+	@echo "👤 Création de l'utilisateur administrateur..."
 	@cd $(BACKEND_DIR) && bash $(SCRIPTS_DIR)/database/create-admin-user.sh
 
 	# Démarrer le reste des services backend
-	$(call print_message,$(YELLOW),🌐 Démarrage des services backend...)
+	@echo "🌐 Démarrage des services backend..."
 	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
 
 	# Attendre que les services soient prêts
 	@sleep 10
 
 	# Démarrer le frontend
-	$(call print_message,$(YELLOW),🖥️ Démarrage du frontend...)
+	@echo "🖥️ Démarrage du frontend..."
 	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
 
-	$(call print_message,$(GREEN),✅ JobbingTrack démarré avec succès !)
+	@echo "✅ JobbingTrack démarré avec succès !"
 	@echo ""
-	@echo "$(CYAN)🌐 Interfaces disponibles:$(NC)"
-	@echo "  Frontend:     $(GREEN)http://localhost:8080$(NC)"
-	@echo "  API Gateway:  $(GREEN)http://localhost:3000$(NC)"
+	@echo "🌐 Interfaces disponibles:"
+	@echo "  Frontend:     http://localhost:8080"
+	@echo "  API Gateway:  http://localhost:3000"
 	@echo ""
-	@echo "$(CYAN)🔑 Identifiants:$(NC)"
-	@echo "  Email:    $(YELLOW)admin@jobbingtrack.com$(NC)"
-	@echo "  Password: $(YELLOW)SuperAdmin123!$(NC)"
+	@echo "🔑 Identifiants:"
+	@echo "  Email:    admin@jobbingtrack.com"
+	@echo "  Password: SuperAdmin123!"
+
+# Nettoyer les conflits et redémarrer proprement
+clean-conflicts: ## Nettoyer automatiquement les conflits de ports et services
+	$(call print_message,$(YELLOW),🧹 Nettoyage automatique des conflits...)
+	@echo "$(BLUE)🔍 Recherche des conflits...$(NC)"
+
+	# Arrêter les services existants
+	$(call print_message,$(RED),🛑 Arrêt des services existants...)
+	@$(MAKE) down >/dev/null 2>&1 || true
+
+	# Attendre un peu que les ports se libèrent
+	@sleep 3
+
+	# Vérifier que les ports sont libres maintenant
+	@echo "$(BLUE)🔍 Vérification des ports après nettoyage...$(NC)"
+	@PORTS_STILL_OCCUPIED=0; \
+	for port in 5432 6379 8080; do \
+		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
+			echo "$(RED)❌ Port $$port toujours occupé$(NC)"; \
+			PORTS_STILL_OCCUPIED=1; \
+		else \
+			echo "$(GREEN)✅ Port $$port libre$(NC)"; \
+		fi \
+	done; \
+	\
+	if [ "$$PORTS_STILL_OCCUPIED" = "0" ]; then \
+		echo "$(GREEN)✅ Tous les conflits résolus$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️ Certains ports sont toujours occupés$(NC)"; \
+		echo "$(CYAN)💡 Essayez: kill -9 <PID> pour forcer la libération$(NC)"; \
+	fi
+
+	$(call print_message,$(GREEN),✅ Nettoyage terminé)
 
 # Arrêter tout le projet
 down: ## Arrêter tout le projet proprement
 	$(call print_message,$(RED),🛑 Arrêt complet de JobbingTrack...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml down 2>/dev/null || true
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml down 2>/dev/null || true
-	$(call print_message,$(GREEN),✅ Tous les services arrêtés)
+	@echo "$(YELLOW)🔍 Recherche des services à arrêter...$(NC)"
+
+	# Lister les services backend
+	@echo "$(BLUE)📦 Services backend:$(NC)"
+	@cd $(BACKEND_DIR) && if docker compose -f docker-compose.yml ps -q | grep -q .; then \
+		docker compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+		echo "$(YELLOW)⏹️ Arrêt des services backend...$(NC)"; \
+		docker compose -f docker-compose.yml down; \
+	else \
+		echo "   $(GREEN)✅ Aucun service backend en cours$(NC)"; \
+	fi
+
+	# Lister les services frontend
+	@echo "$(BLUE)🖥️ Services frontend:$(NC)"
+	@cd $(FRONTEND_DIR) && if docker compose -f docker-compose.frontend.yml ps -q | grep -q .; then \
+		docker compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+		echo "$(YELLOW)⏹️ Arrêt des services frontend...$(NC)"; \
+		docker compose -f docker-compose.frontend.yml down; \
+	else \
+		echo "   $(GREEN)✅ Aucun service frontend en cours$(NC)"; \
+	fi
+
+	@echo "$(GREEN)✅ Tous les services arrêtés$(NC)"
 
 # ============================================================================
 # NETTOYAGE ET MAINTENANCE
@@ -372,6 +401,15 @@ diagnose: check-deps check-health check-disk ## Diagnostic complet préventif
 	$(call print_message,$(BLUE),🔍 Diagnostic du système terminé)
 	@echo ""
 	@echo "$(CYAN)💡 Conseils:$(NC)"
+	@# Détecter automatiquement les problèmes et proposer des solutions
+	@if [ $$(docker ps | grep -c "jobbingtrack") -gt 0 ]; then \
+		echo "  • $(YELLOW)Conteneurs déjà démarrés détectés$(NC)"; \
+		echo "    $(CYAN)💡 Utilisez: $(GREEN)make clean-conflicts$(NC) puis $(GREEN)make up$(NC)"; \
+	else \
+		echo "  • $(GREEN)✅ Aucun conflit détecté$(NC)"; \
+		echo "    $(CYAN)💡 Vous pouvez utiliser: $(GREEN)make up$(NC)"; \
+	fi
+	@echo ""
 	@echo "  • Tous les systèmes sont opérationnels"
 	@echo "  • Espace disque suffisant disponible"
 	@echo "  • Toutes les dépendances sont installées"
@@ -417,15 +455,31 @@ check-health: ## Vérification santé préventive de tous les composants
 		echo "   $(GREEN)✅ Espace disque suffisant$(NC)"; \
 	fi
 
-	# Vérifier les ports disponibles
+	# Vérifier les ports disponibles et identifier les processus
 	@echo "$(BLUE)🌐 Ports réseau:$(NC)"
 	@for port in 3000 3001 3002 3003 3004 3005 3006 3007 8080 5432 6379; do \
 		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
-			echo "   $(RED)❌ Port $$port occupé$(NC)"; \
-	else \
+			PROCESS=$$(netstat -tuln 2>/dev/null | grep ":$$port " | head -1 | awk '{print $$7}' | cut -d'/' -f2); \
+			if [ -n "$$PROCESS" ]; then \
+				echo "   $(RED)❌ Port $$port occupé par: $$PROCESS$(NC)"; \
+			else \
+				echo "   $(RED)❌ Port $$port occupé (processus inconnu)$(NC)"; \
+			fi; \
+		else \
 			echo "   $(GREEN)✅ Port $$port libre$(NC)"; \
 		fi \
 	done
+
+	# Vérifier les conteneurs existants
+	@echo "$(BLUE)🐳 Conteneurs Docker:$(NC)"
+	@EXISTING_CONTAINERS=$$(docker ps | grep "jobbingtrack" | wc -l); \
+	if [ "$$EXISTING_CONTAINERS" -gt 0 ]; then \
+		echo "   $(YELLOW)⚠️ $$EXISTING_CONTAINERS conteneur(s) JobbingTrack déjà démarré(s)$(NC)"; \
+		docker ps | grep "jobbingtrack" | awk '{print "   • " $$NF " (" $$2 ")"}'; \
+		echo "$(CYAN)💡 Solution: 'make down' pour arrêter les services existants$(NC)"; \
+	else \
+		echo "   $(GREEN)✅ Aucun conteneur JobbingTrack en cours$(NC)"; \
+	fi
 
 	@echo ""
 	$(call print_message,$(GREEN),✅ Vérification santé terminée)

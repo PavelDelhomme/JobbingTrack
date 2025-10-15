@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Deployment {
+  id                String   @id @default(cuid())
+  version           String   @db.VarChar(50)
+  environment       String   @db.VarChar(20) // dev, staging, production
+  status            String   @db.VarChar(20) // pending, running, success, failed, rolled_back
+  startTime         DateTime @db.Timestamp
+  endTime           DateTime? @db.Timestamp
+  duration          Int?     // en secondes
+  commitHash        String?  @db.VarChar(40)
+  branch            String?  @db.VarChar(100)
+  triggeredBy       String?  @db.VarChar(100) // utilisateur ou système
+  rollbackFromId    String?  // référence vers le déploiement qui a été rollback
+  rollbackReason    String?  @db.Text
+  logs              Json?    // logs du déploiement
+  metrics           Json?    // métriques collectées pendant le déploiement
+
+  // Métriques de performance
+  buildTime         Int?     // temps de build en secondes
+  testTime          Int?     // temps d'exécution des tests en secondes
+  deployTime        Int?     // temps de déploiement en secondes
+
+  // Métriques d'impact
+  downtimeDuration  Int?     // durée d'indisponibilité en secondes
+  errorRate         Float?   // taux d'erreur après déploiement
+  responseTime      Float?   // temps de réponse moyen après déploiement
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  deploymentMetrics DeploymentMetric[]
+  rollbacks         Rollback[]
+
+  @@map("deployments")
+}
+
+model DeploymentMetric {
+  id                String   @id @default(cuid())
+  deploymentId      String
+  timestamp         DateTime @default(now())
+  metricType        String   @db.VarChar(50) // build_time, test_coverage, error_rate, response_time, etc.
+  value             Float
+  unit              String   @db.VarChar(20) // seconds, percentage, milliseconds, etc.
+  metadata          Json?    // informations supplémentaires
+
+  deployment        Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@map("deployment_metrics")
+}
+
+model Rollback {
+  id                String   @id @default(cuid())
+  deploymentId      String   // déploiement qui est rollbacké
+  previousDeploymentId String // déploiement vers lequel on fait le rollback
+  reason            String   @db.Text
+  triggeredBy       String?  @db.VarChar(100)
+  status            String   @db.VarChar(20) // initiated, running, completed, failed
+  startTime         DateTime @default(now())
+  endTime           DateTime?
+  duration          Int?     // en secondes
+
+  deployment        Deployment @relation(fields: [deploymentId], references: [id])
+
+  @@map("rollbacks")
+}

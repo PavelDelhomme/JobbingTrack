@@ -23,43 +23,48 @@ EMOJI_STOP := 🛑
 EMOJI_TEST := 🧪
 EMOJI_CLEAN := 🧹
 
-# Fonction pour afficher des messages colorés
+# Fonction pour afficher des messages (simplifiée pour compatibilité)
 define print_message
-	@echo "$(1)$(2)$(NC)"
+	@echo "$(2)"
 endef
 
-# Fonction pour afficher des sections
+# Fonction pour afficher des sections (simplifiée pour compatibilité)
 define print_section
 	@echo ""
-	@echo "$(BOLD)$(CYAN)═══════════════════════════════════════════════════$(NC)"
-	@echo "$(BOLD)$(CYAN)$(1)$(NC)"
-	@echo "$(BOLD)$(CYAN)═══════════════════════════════════════════════════$(NC)"
+	@echo "═══════════════════════════════════════════════════"
+	@echo "$(1)"
+	@echo "═══════════════════════════════════════════════════"
 endef
 
 # Fonction pour vérifier si une commande existe
 define check_command
 	@if ! command -v $(1) &> /dev/null; then \
-		$(call print_message,$(RED),$(EMOJI_ERROR) $(1) n'est pas installé); \
+		echo "❌ $(1) n'est pas installé"; \
 		exit 1; \
 	fi
 endef
 
 # Fonction pour attendre que PostgreSQL soit prêt
 define wait_for_postgres
-	@echo "$(BLUE)⏳ Attente de PostgreSQL...$(NC)"; \
-	MAX_ATTEMPTS=60; \
+	@echo "⏳ Attente de PostgreSQL..."; \
+	MAX_ATTEMPTS=30; \
 	ATTEMPT=0; \
 	while [ $$ATTEMPT -lt $$MAX_ATTEMPTS ]; do \
-		if docker compose exec postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1" > /dev/null 2>&1; then \
-			echo "$(GREEN)$(EMOJI_SUCCESS) PostgreSQL est accessible$(NC)"; \
+		POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
+		if [ -n "$$POSTGRES_CONTAINER" ] && docker exec $$POSTGRES_CONTAINER pg_isready -U jobbingtrack -d jobbingtrack >/dev/null 2>&1; then \
+			echo "✅ PostgreSQL est accessible"; \
 			break; \
 		fi; \
-		echo "$(YELLOW)⏳ PostgreSQL n'est pas encore prêt, tentative $$(($$ATTEMPT + 1))/$$MAX_ATTEMPTS...$(NC)"; \
-		sleep 2; \
+		echo "⏳ PostgreSQL n'est pas encore prêt, tentative $$(($$ATTEMPT + 1))/$$MAX_ATTEMPTS..."; \
+		sleep 3; \
 		ATTEMPT=$$(($$ATTEMPT + 1)); \
 	done; \
 	if [ $$ATTEMPT -eq $$MAX_ATTEMPTS ]; then \
-		echo "$(RED)$(EMOJI_ERROR) PostgreSQL n'est pas accessible après $$MAX_ATTEMPTS tentatives$(NC)"; \
+		echo "❌ PostgreSQL n'est pas accessible après $$MAX_ATTEMPTS tentatives"; \
+		echo "🔍 Vérification du statut du conteneur:"; \
+		docker ps -f name=jobbingtrack-postgres --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || echo "  Aucun conteneur PostgreSQL trouvé"; \
+		echo "🔍 Logs récents:"; \
+		docker logs --tail 10 jobbingtrack-postgres 2>/dev/null || echo "  Impossible de récupérer les logs"; \
 		exit 1; \
 	fi
 endef
@@ -100,16 +105,27 @@ MAKE_NC := $(NC)
 
 # Affiche l'aide d'un Makefile
 define show_help
-	@echo "$(BOLD)$(BLUE)📚 Aide - $(PROJECT_NAME)$(NC)"
-	@echo "$(CYAN)================================$(NC)"
+	@echo "📚 Aide - $(PROJECT_NAME)"
+	@echo "================================================================"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-20s$(NC) - %s\n", $$1, $$2}'
+		awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s - %s\n", $$1, $$2}'
 endef
 
 # Vérifie les dépendances système
 define check_dependencies
-	@echo "$(BLUE)🔍 Vérification des dépendances...$(NC)"
+	@echo "🔍 Vérification des dépendances..."
 	@$(call check_command,docker)
 	@$(call check_command,docker-compose)
-	@echo "$(GREEN)$(EMOJI_SUCCESS) Toutes les dépendances sont installées$(NC)"
+	@echo "✅ Toutes les dépendances sont installées"
+endef
+
+# Vérifie et nettoie les services existants qui peuvent causer des conflits
+define check_and_clean_existing_services
+	@# Vérifier les conteneurs existants uniquement (les ports sont gérés par Docker)
+	@EXISTING_CONTAINERS=$$(docker ps | grep -c "jobbingtrack" || echo "0"); \
+	if [ "$$EXISTING_CONTAINERS" -gt 0 ]; then \
+		echo "⚠️ $$EXISTING_CONTAINERS service(s) JobbingTrack déjà démarré(s)"; \
+		echo "💡 Utilisez 'make down' pour arrêter d'abord"; \
+		exit 1; \
+	fi
 endef
