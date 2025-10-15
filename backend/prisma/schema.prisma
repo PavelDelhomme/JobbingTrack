@@ -46,6 +46,7 @@ model User {
   reminders    Reminder[]
   documents    Document[]
   templates    MessageTemplate[]
+  maintenances ServiceMaintenance[]
 }
 
 // Modèle Entreprise
@@ -289,6 +290,24 @@ model Activity {
 
   application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Maintenance des Services
+model ServiceMaintenance {
+  id          String   @id @default(cuid())
+  serviceName String   @unique // Nom du service (ex: "auth-service", "application-service")
+  isActive    Boolean  @default(false) // Si le mode maintenance est activé
+  message     String? // Message personnalisé affiché pendant la maintenance
+  scheduledStart DateTime? // Date de début programmée
+  scheduledEnd   DateTime? // Date de fin programmée
+  activatedBy    String? // ID de l'utilisateur qui a activé la maintenance
+  activatedAt    DateTime @default(now())
+  deactivatedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations vers l'utilisateur qui a activé la maintenance (optionnel)
+  activator User? @relation(fields: [activatedBy], references: [id], onDelete: SetNull)
 }
 
 // ENUMS
