@@ -341,6 +341,7 @@ export default function AnalyticsPage() {
       const securityTrendsHourly = securityTrendsData.data || []
       const systemMetricsReal = systemMetricsData.data || {}
       const riskAnalysis = riskAnalysisData.data || {}
+      const realSystemMetrics = systemMetricsData.data || {}
 
       // Fallback vers les anciennes données si le service de sécurité n'est pas disponible
       const intrusionAttempts = securityOverview.intrusionAttempts || securityMetrics.data.metrics?.intrusions?.total || 0
