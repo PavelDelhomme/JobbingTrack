@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SystemMetric {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  metricType        String   @db.VarChar(50) // cpu_usage, memory_usage, disk_usage, etc.
+  value             Float
+  unit              String   @db.VarChar(20) // percentage, bytes, count, etc.
+  component         String   @db.VarChar(100) // cpu, memory, disk, network, etc.
+  metadata          Json?    // informations supplémentaires
+
+  createdAt         DateTime @default(now())
+
+  @@map("system_metrics")
+}
+
+model PerformanceMetric {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  endpoint          String   @db.VarChar(500)
+  method            String   @db.VarChar(10)
+  responseTime      Int      // en millisecondes
+  statusCode        Int
+  requestSize       Int?     // en bytes
+  responseSize      Int?     // en bytes
+  userAgent         String?  @db.Text
+  ipAddress         String?  @db.VarChar(45)
+  userId            String?  @db.VarChar(100)
+
+  createdAt         DateTime @default(now())
+
+  @@map("performance_metrics")
+}
+
+model ResourceMetric {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  cpuUsage          Float    // pourcentage
+  memoryUsage       Float    // pourcentage
+  memoryUsed        BigInt   // en bytes
+  memoryTotal       BigInt   // en bytes
+  diskUsage         Float?   // pourcentage
+  diskUsed          BigInt?  // en bytes
+  diskTotal         BigInt?  // en bytes
+  networkIn         BigInt?  // bytes reçus
+  networkOut        BigInt?  // bytes envoyés
+  loadAverage       Float?   // charge système
+
+  createdAt         DateTime @default(now())
+
+  @@map("resource_metrics")
+}

@@ -50,6 +50,26 @@ services:
     networks:
       - jobbingtrack-network
 
+  # Service de métriques système
+  system-metrics-service:
+    build:
+      context: ./system-metrics-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-system-metrics
+    ports:
+      - "3018:3018"
+    environment:
+      - NODE_ENV=development
+      - PORT=3018
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=metrics
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+
   # Service de gestion des déploiements
   deployment-service:
     build:
@@ -115,6 +135,7 @@ services:
       - EVENT_SERVICE_URL=http://localhost:3011
       - FOLLOWUP_SERVICE_URL=http://localhost:3012
       - DEPLOYMENT_SERVICE_URL=http://localhost:3016
+      - SYSTEM_METRICS_SERVICE_URL=http://localhost:3018
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
       - JWT_SECRET=your-secret-key-change-in-production-2025
     volumes:
