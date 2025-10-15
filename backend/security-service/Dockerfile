@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Installer OpenSSL pour Prisma
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copier les fichiers de dépendances
@@ -7,7 +10,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Installer les dépendances
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copier le code source
 COPY src ./src/

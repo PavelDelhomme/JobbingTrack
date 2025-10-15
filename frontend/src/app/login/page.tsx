@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
-import { useTheme } from '@/lib/theme';
+import { useTheme } from '@/lib/hooks/theme';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@jobbingtrack.test');
