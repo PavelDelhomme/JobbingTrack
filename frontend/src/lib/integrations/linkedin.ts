@@ -187,20 +187,34 @@ export class LinkedInService {
   }
 
   // Effectuer une requête API LinkedIn avec gestion automatique du token
-  private async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async apiRequest(endpoint: string, options: RequestInit & { body?: unknown } = {}): Promise<any> {
     if (!this.accessToken) {
       throw new Error('Non authentifié sur LinkedIn');
     }
 
     try {
+      // Convertir les headers RequestInit vers un objet simple compatible avec axios
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Ajouter les headers personnalisés en les convertissant
+      if (options.headers) {
+        if (options.headers instanceof Headers) {
+          options.headers.forEach((value, key) => {
+            headers[key] = value;
+          });
+        } else if (typeof options.headers === 'object') {
+          Object.assign(headers, options.headers);
+        }
+      }
+
       const response = await axios({
         url: `${LINKEDIN_API_BASE}${endpoint}`,
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          ...options.headers
-        },
-        ...options
+        headers,
+        method: options.method || 'GET',
+        data: options.body ? JSON.stringify(options.body as any) : undefined
       });
 
       return response.data;
@@ -326,7 +340,7 @@ export class LinkedInService {
 
     return this.apiRequest('/ugcPosts', {
       method: 'POST',
-      data: payload
+      body: payload as any
     });
   }
 
@@ -361,7 +375,7 @@ export class LinkedInService {
 
     return this.apiRequest('/people/invites', {
       method: 'POST',
-      data: payload
+      body: payload as any
     });
   }
 
@@ -385,7 +399,7 @@ export class LinkedInService {
   async acceptInvite(inviteId: string): Promise<any> {
     return this.apiRequest(`/people/invites/${inviteId}`, {
       method: 'PATCH',
-      data: { status: 'ACCEPTED' }
+      body: { status: 'ACCEPTED' } as any
     });
   }
 
@@ -393,7 +407,7 @@ export class LinkedInService {
   async declineInvite(inviteId: string): Promise<any> {
     return this.apiRequest(`/people/invites/${inviteId}`, {
       method: 'PATCH',
-      data: { status: 'DECLINED' }
+      body: { status: 'DECLINED' } as any
     });
   }
 }

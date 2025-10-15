@@ -24,7 +24,7 @@ export default function Breadcrumb({ items = [], className = '' }: BreadcrumbPro
 
     const pathSegments = pathname.split('/').filter(Boolean);
     const breadcrumbItems: BreadcrumbItem[] = [
-      { label: 'Accueil', href: '/', icon: '🏠' }
+      //{ label: 'Accueil', href: '/', icon: '🏠' }
     ];
 
     // Construire le chemin progressif

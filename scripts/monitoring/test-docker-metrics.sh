@@ -85,8 +85,21 @@ echo -e "${GREEN}✓ Authentification réussie${NC}"
 echo "Token: ${TOKEN:0:20}..."
 echo ""
 
-# Test des endpoints Docker
-echo "3. Test des endpoints Docker Stats..."
+# Test des services de métriques
+echo "3. Test des services de métriques..."
+echo ""
+
+# Metrics Aggregator
+test_endpoint "http://localhost:3014/api/v1/health" "Metrics Aggregator Health"
+
+# Prometheus
+test_endpoint "http://localhost:9090/-/healthy" "Prometheus Health"
+
+# cAdvisor
+test_endpoint "http://localhost:8080/api/v1.3/docker/" "cAdvisor API"
+
+echo ""
+echo "4. Test des endpoints Docker Stats (legacy)..."
 echo ""
 
 # Toutes les stats
@@ -117,12 +130,29 @@ else
 fi
 
 echo ""
+echo "5. Test des métriques temps réel..."
+echo ""
+
+# Tester la connexion WebSocket au Metrics Aggregator
+echo -n "Testing WebSocket connection to Metrics Aggregator... "
+if curl -s --max-time 3 "http://localhost:3014/api/v1/metrics" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ OK${NC}"
+else
+    echo -e "${RED}✗ FAILED${NC}"
+fi
+
+echo ""
 echo "==========================================="
 echo "🎉 Tests terminés !"
 echo ""
 echo "Pour voir les métriques dans l'interface:"
-echo "  1. Ouvrez http://localhost:3000/backoffice"
+echo "  1. Ouvrez http://localhost:8080/backoffice"
 echo "  2. Cliquez sur 'Gestion des Services'"
 echo "  3. Cliquez sur un service pour voir les détails"
+echo ""
+echo "Services de métriques disponibles:"
+echo "  📊 Metrics Aggregator: http://localhost:3014"
+echo "  📈 Prometheus:         http://localhost:9090"
+echo "  🐳 cAdvisor:           http://localhost:8080"
 echo ""
 

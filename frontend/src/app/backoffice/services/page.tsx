@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
+import { useMetrics } from '@/hooks/useMetrics'
 import axios from 'axios'
 
 interface ServiceStatus {
@@ -14,6 +15,7 @@ interface ServiceStatus {
   responseTime?: number
   version?: string
   error?: string
+  serviceType?: string
 }
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
@@ -21,23 +23,80 @@ const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:300
 export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
+  const { metrics, isConnected, error: metricsError } = useMetrics()
   const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
-  const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'API Gateway', url: `${API_GATEWAY_URL}/api/v1/health`, port: 3000, status: 'online', responseTime: 45, version: '1.0.0' },
-    { name: 'Auth Service', url: `${API_GATEWAY_URL}/api/v1/auth/health`, port: 3000, status: 'testing', responseTime: 89, version: '1.0.0' },
-    { name: 'Application Service', url: `${API_GATEWAY_URL}/api/v1/applications/health`, port: 3000, status: 'testing', responseTime: 156, version: '1.0.0' },
-    { name: 'Company Service', url: `${API_GATEWAY_URL}/api/v1/companies/health`, port: 3000, status: 'testing', responseTime: 102, version: '1.0.0' },
-    { name: 'Contact Service', url: `${API_GATEWAY_URL}/api/v1/contacts/health`, port: 3000, status: 'testing', responseTime: 98, version: '1.0.0' },
-    { name: 'Interview Service', url: `${API_GATEWAY_URL}/api/v1/interviews/health`, port: 3000, status: 'testing', responseTime: 134, version: '1.0.0' },
-    { name: 'Notification Service', url: `${API_GATEWAY_URL}/api/v1/notifications/health`, port: 3000, status: 'testing', responseTime: 112, version: '1.0.0' },
-    { name: 'Dashboard Service', url: `${API_GATEWAY_URL}/api/v1/dashboard/health`, port: 3000, status: 'testing', responseTime: 145, version: '1.0.0' },
-    { name: 'Call Service', url: `${API_GATEWAY_URL}/api/v1/calls/health`, port: 3000, status: 'testing', responseTime: 98, version: '1.0.0' },
-    { name: 'Profile Service', url: `${API_GATEWAY_URL}/api/v1/profile/health`, port: 3000, status: 'testing', responseTime: 134, version: '1.0.0' },
-    { name: 'Event Service', url: `${API_GATEWAY_URL}/api/v1/events/health`, port: 3000, status: 'testing', responseTime: 167, version: '1.0.0' },
-    { name: 'FollowUp Service', url: `${API_GATEWAY_URL}/api/v1/followups/health`, port: 3000, status: 'testing', responseTime: 123, version: '1.0.0' },
-    { name: 'Frontend', url: `${API_GATEWAY_URL}/health`, port: 3000, status: 'testing', responseTime: 89, version: '1.0.0' },
-    { name: 'Base de données', url: `${API_GATEWAY_URL}/api/v1/applications`, port: 0, status: 'testing', responseTime: 45, version: 'PostgreSQL 15' }
-  ])
+  // Configuration des vraies URLs des services
+  const REAL_SERVICES = [
+    { name: 'API Gateway', url: `${API_GATEWAY_URL}/api/v1/health`, port: 3000, serviceType: 'gateway' },
+    { name: 'Auth Service', url: 'http://localhost:3001/api/v1/auth/health', port: 3001, serviceType: 'auth' },
+    { name: 'Application Service', url: 'http://localhost:3002/api/v1/applications/health', port: 3002, serviceType: 'application' },
+    { name: 'Company Service', url: 'http://localhost:3003/api/v1/companies/health', port: 3003, serviceType: 'company' },
+    { name: 'Contact Service', url: 'http://localhost:3004/api/v1/contacts/health', port: 3004, serviceType: 'contact' },
+    { name: 'Interview Service', url: 'http://localhost:3005/api/v1/interviews/health', port: 3005, serviceType: 'interview' },
+    { name: 'Notification Service', url: 'http://localhost:3006/api/v1/notifications/health', port: 3006, serviceType: 'notification' },
+    { name: 'Dashboard Service', url: 'http://localhost:3007/api/v1/dashboard/health', port: 3007, serviceType: 'dashboard' },
+    { name: 'Call Service', url: 'http://localhost:3008/api/v1/calls/health', port: 3008, serviceType: 'call' },
+    { name: 'Event Service', url: 'http://localhost:3009/api/v1/events/health', port: 3009, serviceType: 'event' },
+    { name: 'FollowUp Service', url: 'http://localhost:3010/api/v1/followups/health', port: 3010, serviceType: 'followup' },
+    { name: 'Profile Service', url: 'http://localhost:3011/api/v1/profile/health', port: 3011, serviceType: 'profile' },
+    { name: 'Workflow Service', url: 'http://localhost:3013/api/v1/workflow/health', port: 3013, serviceType: 'workflow' },
+    { name: 'Metrics Aggregator', url: 'http://localhost:3014/api/v1/health', port: 3014, serviceType: 'metrics' },
+    { name: 'Frontend', url: 'http://localhost:3000/health', port: 3000, serviceType: 'frontend' },
+    { name: 'Base de données', url: 'http://localhost:5432', port: 5432, serviceType: 'database' },
+    { name: 'Redis', url: 'http://localhost:6379', port: 6379, serviceType: 'cache' },
+    { name: 'cAdvisor', url: 'http://localhost:8080/api/v1.3/docker/', port: 8080, serviceType: 'monitoring' },
+    { name: 'Prometheus', url: 'http://localhost:9090', port: 9090, serviceType: 'monitoring' }
+  ]
+
+  const [services, setServices] = useState<ServiceStatus[]>([])
+
+  // Initialiser les services avec les vraies URLs et utiliser les métriques du service
+  useEffect(() => {
+    if (metrics && metrics.services) {
+      const updatedServices = REAL_SERVICES.map(service => {
+        const serviceMetrics = metrics.services[service.name.toLowerCase().replace(' ', '-').replace(/[^a-z0-9-]/g, '')] ||
+                              metrics.services[service.name] ||
+                              metrics.services[service.serviceType]
+
+        if (serviceMetrics) {
+          return {
+            name: service.name,
+            url: service.url,
+            port: service.port,
+            serviceType: service.serviceType,
+            status: serviceMetrics.health?.status === 'online' ? 'online' as const :
+                   serviceMetrics.health?.status === 'offline' ? 'offline' as const : 'testing' as const,
+            responseTime: serviceMetrics.health?.responseTime,
+            version: serviceMetrics.health?.version || serviceMetrics.version || '1.0.0',
+            error: serviceMetrics.health?.error
+          }
+        }
+
+        return {
+          name: service.name,
+          url: service.url,
+          port: service.port,
+          serviceType: service.serviceType,
+          status: 'testing' as const,
+          responseTime: 0,
+          version: '1.0.0'
+        }
+      })
+      setServices(updatedServices)
+    } else {
+      // Fallback vers les vraies URLs si pas de métriques
+      const initialServices = REAL_SERVICES.map(service => ({
+        name: service.name,
+        url: service.url,
+        port: service.port,
+        serviceType: service.serviceType,
+        status: 'testing' as const,
+        responseTime: 0,
+        version: '1.0.0'
+      }))
+      setServices(initialServices)
+    }
+  }, [metrics])
 
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(false)
@@ -114,10 +173,42 @@ export default function ServicesPage() {
           }
           return updated
         })
+      } else if (service.name === 'Redis') {
+        // Test Redis
+        const redisResult = await testRedis()
+        responseTime = Date.now() - startTime
+
+        setServices(prev => {
+          const updated = [...prev]
+          updated[index] = {
+            ...updated[index],
+            status: redisResult.status as any,
+            responseTime,
+            version: 'Redis 7',
+            error: redisResult.status === 'offline' ? redisResult.message : undefined
+          }
+          return updated
+        })
+      } else if (service.name === 'cAdvisor') {
+        // Test cAdvisor
+        const cadvisorResult = await testCadvisor()
+        responseTime = Date.now() - startTime
+
+        setServices(prev => {
+          const updated = [...prev]
+          updated[index] = {
+            ...updated[index],
+            status: cadvisorResult.status as any,
+            responseTime,
+            version: 'cAdvisor v0.47.2',
+            error: cadvisorResult.status === 'offline' ? cadvisorResult.message : undefined
+          }
+          return updated
+        })
       } else {
-        // Test normal pour les services
+        // Test normal pour les services web
         // Déterminer si le service nécessite une authentification
-        const requiresAuth = service.name !== 'Frontend' && service.name !== 'API Gateway'
+        const requiresAuth = service.name !== 'Frontend' && service.name !== 'API Gateway' && service.name !== 'Metrics Aggregator'
 
         // Configuration de la requête
         const config = {
@@ -177,18 +268,51 @@ export default function ServicesPage() {
     .filter(s => s.responseTime)
     .reduce((acc, s) => acc + (s.responseTime || 0), 0) / (services.filter(s => s.responseTime).length || 1)
 
-  // Fonction pour récupérer les logs d'un service
+  // Fonction pour récupérer les logs d'un service (utilise les métriques)
   const fetchServiceLogs = async (service: ServiceStatus) => {
     try {
-      // Simulation de récupération de logs - en vrai, ça devrait venir de l'API
-      const mockLogs = [
-        `[${new Date().toISOString()}] INFO: Service ${service.name} opérationnel`,
-        `[${new Date(Date.now() - 1000 * 60).toISOString()}] INFO: Configuration chargée`,
-        `[${new Date(Date.now() - 1000 * 60 * 2).toISOString()}] INFO: Connexion à la base de données établie`,
-        `[${new Date(Date.now() - 1000 * 60 * 5).toISOString()}] INFO: Service ${service.name} prêt`,
-        `[${new Date(Date.now() - 1000 * 60 * 10).toISOString()}] INFO: Démarrage du service ${service.name}`,
-      ]
-      setServiceLogs(mockLogs)
+      if (metrics && metrics.services) {
+        // Chercher le service dans les métriques
+        const serviceKey = Object.keys(metrics.services).find(key =>
+          key.includes(service.name.toLowerCase().replace(' ', '-')) ||
+          key === service.serviceType
+        )
+
+        if (serviceKey && metrics.services[serviceKey]) {
+          const serviceData = metrics.services[serviceKey]
+
+          // Générer des logs basés sur les métriques
+          const logs = []
+
+          if (serviceData.health?.status) {
+            logs.push(`[${new Date().toISOString()}] INFO: Service ${service.name} ${serviceData.health.status}`)
+          }
+
+          if (serviceData.lastCheck) {
+            logs.push(`[${serviceData.lastCheck}] INFO: Dernière vérification effectuée`)
+          }
+
+          if (serviceData.metrics?.memory) {
+            const mem = serviceData.metrics.memory
+            logs.push(`[${new Date().toISOString()}] INFO: Mémoire utilisée: ${mem.percentage}% (${Math.round(mem.usage/1024/1024)}MB)`)
+          }
+
+          if (serviceData.metrics?.cpu) {
+            const cpu = serviceData.metrics.cpu
+            logs.push(`[${new Date().toISOString()}] INFO: CPU utilisé: ${cpu.percentage}%`)
+          }
+
+          if (logs.length === 0) {
+            logs.push(`[${new Date().toISOString()}] INFO: Service ${service.name} en cours de surveillance`)
+          }
+
+          setServiceLogs(logs)
+        } else {
+          setServiceLogs([`[${new Date().toISOString()}] INFO: Service ${service.name} - Métriques non disponibles`])
+        }
+      } else {
+        setServiceLogs([`[${new Date().toISOString()}] INFO: Service ${service.name} - En attente de données`])
+      }
     } catch (error) {
       console.error('Erreur récupération logs:', error)
       setServiceLogs(['Erreur lors de la récupération des logs'])
@@ -222,6 +346,60 @@ export default function ServicesPage() {
     }
   }
 
+  // Fonction pour tester Redis
+  const testRedis = async () => {
+    try {
+      // Redis n'a pas d'endpoint HTTP standard, on teste la connectivité réseau
+      const response = await axios.get('http://localhost:6379', {
+        timeout: 3000,
+        validateStatus: () => true // Accepter toutes les réponses
+      })
+
+      if (response.status === 200) {
+        return {
+          status: 'online',
+          message: 'Redis accessible'
+        }
+      } else {
+        return {
+          status: 'offline',
+          message: 'Redis non accessible'
+        }
+      }
+    } catch (error: any) {
+      return {
+        status: 'offline',
+        message: `Erreur Redis: ${error.message}`
+      }
+    }
+  }
+
+  // Fonction pour tester cAdvisor
+  const testCadvisor = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/v1.3/docker/', {
+        timeout: 5000
+      })
+
+      if (response.status === 200 && response.data) {
+        return {
+          status: 'online',
+          message: `cAdvisor accessible - ${Object.keys(response.data).length} conteneurs surveillés`
+        }
+      } else {
+        return {
+          status: 'offline',
+          message: 'cAdvisor non accessible'
+        }
+      }
+    } catch (error: any) {
+      return {
+        status: 'offline',
+        message: `Erreur cAdvisor: ${error.message}`
+      }
+    }
+  }
+
   return (
     <AdminLayout>
       <div>
@@ -236,6 +414,17 @@ export default function ServicesPage() {
               <p className="mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
                 Surveillez l'état et les performances de tous vos microservices
               </p>
+
+              {/* Indicateur de connexion au service de métriques */}
+              <div className="mt-2 flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className={`text-xs ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                  {isConnected ? 'Métriques en temps réel' : 'Service de métriques déconnecté'}
+                </span>
+                {metricsError && (
+                  <span className="text-xs text-red-600">({metricsError})</span>
+                )}
+              </div>
             </div>
 
             {/* Contrôles */}
@@ -338,7 +527,8 @@ export default function ServicesPage() {
                 <div
                   key={index}
                   onClick={() => {
-                    router.push(`/backoffice/services/${service.name.toLowerCase().replace(/\s+/g, '-')}`)
+                    setSelectedService(service)
+                    fetchServiceLogs(service)
                   }}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
                 >
@@ -469,6 +659,34 @@ export default function ServicesPage() {
 
               {/* Content */}
               <div className="p-6 max-h-[calc(90vh-140px)] overflow-y-auto">
+                {/* Métriques principales dans le modal */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Port</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedService.port}</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      {selectedService.responseTime ? `${selectedService.responseTime}ms` : 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Version</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedService.version || 'N/A'}</div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Statut</div>
+                    <div className={`text-sm font-bold ${
+                      selectedService.status === 'online' ? 'text-green-600' :
+                      selectedService.status === 'testing' ? 'text-blue-600' : 'text-red-600'
+                    }`}>
+                      {selectedService.status === 'online' ? '🟢 En ligne' :
+                       selectedService.status === 'testing' ? '🔄 Test' : '🔴 Hors ligne'}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Informations du service */}
                   <div className="space-y-4">
@@ -485,31 +703,12 @@ export default function ServicesPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">URL</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100 font-mono text-xs">{selectedService.url}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100 font-mono text-xs break-all">{selectedService.url}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Statut</span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            selectedService.status === 'online' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                            selectedService.status === 'testing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                            'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                          }`}>
-                            {selectedService.status === 'online' ? '🟢 En ligne' :
-                             selectedService.status === 'testing' ? '🔄 Test en cours' : '🔴 Hors ligne'}
-                          </span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Dernière vérification</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{new Date().toLocaleString('fr-FR')}</span>
                         </div>
-                        {selectedService.responseTime && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{selectedService.responseTime}ms</span>
-                          </div>
-                        )}
-                        {selectedService.version && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Version</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{selectedService.version}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -520,7 +719,6 @@ export default function ServicesPage() {
                         <button
                           onClick={() => {
                             testService(selectedService, services.findIndex(s => s.name === selectedService.name))
-                            setSelectedService(null)
                           }}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                         >
@@ -532,9 +730,86 @@ export default function ServicesPage() {
                           }}
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                         >
-                          🔗 Ouvrir dans un nouvel onglet
+                          🔗 Ouvrir dans un onglet
                         </button>
                       </div>
+                    </div>
+
+                    {/* Configuration du service */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Configuration</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Auto-refresh</span>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={autoRefresh}
+                              onChange={(e) => setAutoRefresh(e.target.checked)}
+                              className="rounded text-blue-600"
+                            />
+                            <span className="text-sm text-gray-900 dark:text-gray-100">
+                              {autoRefresh ? `Activé (${refreshInterval}s)` : 'Désactivé'}
+                            </span>
+                          </label>
+                        </div>
+                        {autoRefresh && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Intervalle (secondes)</span>
+                            <input
+                              type="number"
+                              value={refreshInterval}
+                              onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
+                              min="5"
+                              max="300"
+                              className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ressources système réelles */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Ressources système</h3>
+                      {metrics?.system ? (
+                        <div className="space-y-3">
+                          <div>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600 dark:text-gray-400">Mémoire</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {metrics.system.memory.used}MB / {metrics.system.memory.total}MB ({metrics.system.memory.usage}%)
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${metrics.system.memory.usage}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600 dark:text-gray-400">CPU</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {metrics.system.cpu.usage}% ({metrics.system.cpu.cores} cœurs)
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${metrics.system.cpu.usage}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600 dark:text-gray-400">Charge système</span>
+                              <span className="font-medium text-gray-900 dark:text-gray-100">
+                                {metrics.system.load.average}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Métriques système non disponibles
+                        </div>
+                      )}
                     </div>
                   </div>
 

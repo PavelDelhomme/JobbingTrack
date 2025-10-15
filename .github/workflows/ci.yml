@@ -9,7 +9,10 @@ on:
 jobs:
   # Tests de base et linting
   test-backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Remplacé par une image Docker Alpine custom plus légère
+    container:
+      image: alpine:3.19
+      options: --user 1001
     services:
       postgres:
         image: postgres:15-alpine

@@ -7,7 +7,7 @@ class MetricsService {
   // Récupérer les métriques système détaillées
   async getSystemMetrics() {
     try {
-      // Récupérer les métriques CPU, mémoire, etc.
+      // Récupérer les vraies métriques système
       const cpuUsage = await this.getCpuUsage();
       const memoryUsage = await this.getMemoryUsage();
       const diskUsage = await this.getDiskUsage();

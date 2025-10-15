@@ -29,4 +29,4 @@ export { OfflineStatus } from './OfflineStatus'
 export { OptimizedSearch } from './OptimizedSearch'
 
 // UI Components
-export * from './ui'
+export * from './ui/'

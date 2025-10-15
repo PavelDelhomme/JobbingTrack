@@ -160,8 +160,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
+        { name: 'Mon Profil', href: '/backoffice/profile', icon: '👤' },
         { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
-        { name: 'Paramètres', href: '#', icon: '⚙️', onClick: () => setIsSettingsOpen(true) },
       ]
     },
     {
@@ -369,13 +369,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <p className="text-xs text-gray-400">{user?.role}</p>
                 </div>
               </div>
-              <button
-                onClick={logout}
-                className="text-gray-400 hover:text-white transition-colors"
-                title="Déconnexion"
-              >
-                🚪
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-800"
+                  title="Paramètres"
+                >
+                  ⚙️
+                </button>
+                <button
+                  onClick={logout}
+                  className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-800"
+                  title="Déconnexion"
+                >
+                  🚪
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -71,9 +71,16 @@ clean_old_logs() {
     # Logs du système
     cleaned=$(find . -name "*.log" -type f -mtime +7 -delete 2>/dev/null | wc -l)
 
+    # Logs des métriques et monitoring
+    local metrics_logs=$(find . -path "*/monitoring/*" -name "*.log" -type f -mtime +3 -delete 2>/dev/null | wc -l)
+    cleaned=$((cleaned + metrics_logs))
+
     # Logs Docker
     if command -v docker >/dev/null 2>&1; then
         docker system prune -f >/dev/null 2>&1 || true
+        # Nettoyer aussi les logs des conteneurs de métriques
+        docker logs --tail 1000 jobbingtrack-metrics-aggregator 2>/dev/null | head -n 100 > /tmp/metrics-logs.tmp 2>/dev/null || true
+        docker logs --tail 1000 jobbingtrack-cadvisor 2>/dev/null | head -n 100 > /tmp/cadvisor-logs.tmp 2>/dev/null || true
     fi
 
     success "Logs nettoyés ($cleaned fichiers supprimés)"
@@ -134,6 +141,32 @@ clean_temp_files() {
     success "Fichiers temporaires nettoyés ($cleaned éléments)"
 }
 
+# Nettoyer les données de métriques anciennes
+clean_metrics_data() {
+    log "📊 Nettoyage des données de métriques anciennes..."
+
+    local cleaned=0
+
+    # Nettoyer les données Prometheus anciennes (> 7 jours)
+    if [ -d "prometheus_data" ]; then
+        log "🧹 Nettoyage des données Prometheus..."
+        find prometheus_data -name "*.db" -type f -mtime +7 -delete 2>/dev/null || true
+        local prometheus_cleaned=$(find prometheus_data -name "*.db" -type f -mtime +7 -delete 2>/dev/null | wc -l)
+        cleaned=$((cleaned + prometheus_cleaned))
+        success "Données Prometheus nettoyées ($prometheus_cleaned fichiers)"
+    fi
+
+    # Nettoyer les fichiers de logs de métriques
+    local metrics_files=$(find . -path "*/monitoring/*" -name "*metrics*" -type f -mtime +3 -delete 2>/dev/null | wc -l)
+    cleaned=$((cleaned + metrics_files))
+
+    if [ "$cleaned" -gt 0 ]; then
+        success "Données de métriques nettoyées ($cleaned éléments)"
+    else
+        success "Aucune donnée de métriques ancienne à nettoyer"
+    fi
+}
+
 # Nettoyer les dépendances inutiles
 clean_unused_dependencies() {
     log "📦 Nettoyage des dépendances inutiles..."
@@ -152,6 +185,13 @@ clean_unused_dependencies() {
         log "🐳 Nettoyage du cache Docker..."
         docker builder prune -f >/dev/null 2>&1 || true
         success "Cache Docker nettoyé"
+    fi
+
+    # Nettoyer les dépendances des services de métriques
+    if [ -d "backend/metrics-aggregator-service/node_modules" ]; then
+        log "📊 Nettoyage des dépendances de métriques..."
+        find backend/metrics-aggregator-service/node_modules -name "*.log" -delete 2>/dev/null || true
+        success "Dépendances de métriques nettoyées"
     fi
 }
 
@@ -192,6 +232,7 @@ generate_report() {
         echo "  ✅ Nettoyage des logs anciens"
         echo "  ✅ Nettoyage des sauvegardes anciennes"
         echo "  ✅ Nettoyage des fichiers temporaires"
+        echo "  ✅ Nettoyage des données de métriques"
         echo "  ✅ Nettoyage des dépendances inutiles"
         echo ""
         echo "ESPACE DISQUE:"
@@ -222,6 +263,7 @@ main() {
     clean_old_logs
     clean_old_backups
     clean_temp_files
+    clean_metrics_data
     clean_unused_dependencies
 
     # Analyser l'espace libéré
@@ -252,8 +294,10 @@ show_help() {
     echo "  • Logs anciens (> 7 jours)"
     echo "  • Sauvegardes anciennes (> KEEP_BACKUPS jours)"
     echo "  • Fichiers temporaires (*.tmp, .DS_Store, etc.)"
+    echo "  • Données de métriques anciennes (> 3-7 jours)"
     echo "  • Caches inutiles (node_modules/.cache, etc.)"
     echo "  • Cache Docker"
+    echo "  • Dépendances des services de métriques"
     echo ""
     echo "Ce qui est préservé:"
     echo "  • Données importantes (data/, scripts/)"

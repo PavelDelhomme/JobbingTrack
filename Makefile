@@ -17,7 +17,7 @@ FRONTEND_DIR = frontend
 SCRIPTS_DIR = scripts
 TESTS_DIR = tests
 
-.PHONY: help build up down clean dev test migrate logs status install setup
+.PHONY: help build up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop
 
 # ============================================================================
 # COMMANDES PRINCIPALES
@@ -30,7 +30,7 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "================================================================"
 	@echo ""
 	@echo "📦 DEMARRAGE RAPIDE:"
-	@echo "  make up              - Démarrer TOUT (backend + frontend + données)"
+	@echo "  make up              - Démarrer TOUT (backend + frontend + données + métriques)"
 	@echo "  make start-all       - Même que 'make up' avec reconstruction"
 	@echo "  make down            - Arrêter TOUT proprement"
 	@echo ""
@@ -44,10 +44,13 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "📊 SURVEILLANCE:"
 	@echo "  make status          - État de tous les services"
 	@echo "  make logs            - Logs en temps réel de tous les services"
-	@echo "  make logs-system     - Logs des services système uniquement"
+	@echo "  make logs-system     - Logs des services système"
 	@echo "  make logs-deployment - Logs du service de déploiement"
 	@echo "  make logs-security   - Logs du service de sécurité"
 	@echo "  make health          - Vérification santé de tous les services"
+	@echo "  make metrics-start   - Démarrer le système de métriques (cAdvisor + Metrics Aggregator)"
+	@echo "  make metrics-test    - Tester le système de métriques"
+	@echo "  make metrics-stop    - Arrêter le système de métriques"
 	@echo ""
 	@echo "🧪 TESTS:"
 	@echo "  make test-all        - Tous les tests (unitaires + E2E + intégration)"
@@ -55,13 +58,13 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  make test-services  - Tests de santé des microservices"
 	@echo ""
 	@echo "🏗️ DEVELOPPEMENT:"
-	@echo "  make dev             - Mode développement avec hot reload"
+	@echo "  make dev             - Mode développement avec hot reload + métriques"
 	@echo "  make build           - Construire toutes les images"
 	@echo "  make build-system    - Construire seulement les services système"
 	@echo "  make migrate         - Appliquer les migrations BDD"
 	@echo ""
 	@echo "🎯 GESTION SERVICES:"
-	@echo "  make start-system    - Démarrer services système (stats, déploiement, sécurité)"
+	@echo "  make start-system    - Démarrer services système (stats) + métriques"
 	@echo "  make start-deployment - Démarrer service de déploiement"
 	@echo "  make start-security  - Démarrer service de sécurité"
 	@echo "  make stop-system     - Arrêter services système"
@@ -123,12 +126,24 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 		docker compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \
 	fi
 
-	# Démarrer les services système (stats, déploiement, sécurité, métriques)
+	# Démarrer les services système (stats)
 	@echo "🔧 Démarrage des services système..."
 	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
-		docker-compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+		docker-compose -f docker-compose.yml up -d docker-stats-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
 	else \
-		docker compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+		docker compose -f docker-compose.yml up -d docker-stats-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+	fi
+
+	# Démarrer les services de métriques avec le fichier dédié
+	@echo "📊 Démarrage des services de métriques..."
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && if command -v docker-compose &> /dev/null; then \
+			docker-compose up -d >/dev/null 2>&1 && echo "✅ Services de métriques démarrés"; \
+		else \
+			docker compose up -d >/dev/null 2>&1 && echo "✅ Services de métriques démarrés"; \
+		fi; \
+	else \
+		echo "   Dossier monitoring non trouvé, démarrage des métriques ignoré"; \
 	fi
 
 	# Attendre que PostgreSQL soit prêt avec vérification
@@ -161,8 +176,14 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@echo "✅ JobbingTrack démarré avec succès !"
 	@echo ""
 	@echo "🌐 Interfaces disponibles:"
-	@echo "  Frontend:     http://localhost:8080"
-	@echo "  API Gateway:  http://localhost:3000"
+	@echo "  Frontend:           http://localhost:8080"
+	@echo "  API Gateway:        http://localhost:3000"
+	@echo "  Dashboard admin:    http://localhost:8080/backoffice"
+	@echo ""
+	@echo "📊 Services de métriques:"
+	@echo "  Metrics Aggregator: http://localhost:3014"
+	@echo "  cAdvisor:           http://localhost:8080/api/v1.3/docker/"
+	@echo "  Prometheus:         http://localhost:9090"
 	@echo ""
 	@echo "🔑 Identifiants:"
 	@echo "  Email:    admin@jobbingtrack.test"
@@ -243,6 +264,18 @@ down: ## Arrêter tout le projet proprement
 		fi; \
 	fi
 
+	# Nettoyer aussi les services de monitoring
+	@echo "🧹 Nettoyage des services de monitoring..."
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && if command -v docker-compose &> /dev/null; then \
+			docker-compose down >/dev/null 2>&1 || echo "   Aucun service de monitoring à arrêter"; \
+		else \
+			docker compose down >/dev/null 2>&1 || echo "   Aucun service de monitoring à arrêter"; \
+		fi; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
+
 	@echo "✅ Tous les services arrêtés"
 
 # ============================================================================
@@ -281,8 +314,14 @@ dev: check-deps ## Mode développement avec hot reload
 	@echo "✅ Mode développement démarré"
 	@echo ""
 	@echo "🌐 Accès:"
-	@echo "  Frontend: http://localhost:8080"
-	@echo "  API:      http://localhost:3000"
+	@echo "  Frontend:           http://localhost:8080"
+	@echo "  API:                http://localhost:3000"
+	@echo "  Dashboard admin:    http://localhost:8080/backoffice"
+	@echo ""
+	@echo "📊 Services de métriques:"
+	@echo "  Metrics Aggregator: http://localhost:3014"
+	@echo "  cAdvisor:           http://localhost:8080/api/v1.3/docker/"
+	@echo "  Prometheus:         http://localhost:9090"
 	@echo ""
 	@echo "📊 Vérification du statut..."
 	@$(MAKE) status
@@ -623,13 +662,25 @@ check-disk: ## Vérifier l'espace disque disponible
 # Démarrer seulement les services système (stats, déploiement, sécurité, métriques)
 start-system: ## Démarrer seulement les services système
 	@echo "🔧 Démarrage des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d docker-stats-service deployment-service security-service system-metrics-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d docker-stats-service
+	# Démarrer les services de métriques avec le fichier dédié
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && docker compose up -d; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
 	@echo "✅ Services système démarrés"
 
 # Arrêter seulement les services système
 stop-system: ## Arrêter seulement les services système
 	@echo "⏹️ Arrêt des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop docker-stats-service deployment-service security-service system-metrics-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop docker-stats-service
+	# Arrêter les services de métriques
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && docker compose stop; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
 	@echo "✅ Services système arrêtés"
 
 # Redémarrer seulement les services système
@@ -638,7 +689,13 @@ restart-system: stop-system start-system ## Redémarrer seulement les services s
 # Logs des services système
 logs-system: ## Logs des services système uniquement
 	@echo "📋 Logs des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f docker-stats-service deployment-service security-service system-metrics-service
+	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f docker-stats-service
+	# Logs des services de métriques
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && docker compose logs -f; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
 
 # Démarrer seulement le service de déploiement
 start-deployment: ## Démarrer seulement le service de déploiement
@@ -690,6 +747,40 @@ stop-metrics: ## Arrêter seulement le service de métriques système
 logs-metrics: ## Logs du service de métriques système
 	@echo "📋 Logs du service de métriques système..."
 	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f system-metrics-service
+
+# ============================================================================
+# SYSTEME DE METRIQUES
+# ============================================================================
+
+# Démarrer le système de métriques complet
+metrics-start: ## Démarrer le système de métriques (cAdvisor + Metrics Aggregator + Prometheus)
+	@echo "📊 Démarrage du système de métriques..."
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && docker compose up -d; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
+	@echo "✅ Système de métriques démarré"
+	@echo ""
+	@echo "📈 Services de métriques disponibles :"
+	@echo "  • Metrics Aggregator: http://localhost:3014"
+	@echo "  • cAdvisor:          http://localhost:8080"
+	@echo "  • Prometheus:        http://localhost:9090"
+
+# Tester le système de métriques
+metrics-test: ## Tester le système de métriques
+	@echo "🧪 Test du système de métriques..."
+	@bash $(SCRIPTS_DIR)/test-metrics-system.sh
+
+# Arrêter le système de métriques
+metrics-stop: ## Arrêter le système de métriques
+	@echo "⏹️ Arrêt du système de métriques..."
+	@if [ -d "monitoring" ]; then \
+		cd monitoring && docker compose stop; \
+	else \
+		echo "   Dossier monitoring non trouvé"; \
+	fi
+	@echo "✅ Système de métriques arrêté"
 
 # ============================================================================
 # WORKFLOW RECOMMANDE

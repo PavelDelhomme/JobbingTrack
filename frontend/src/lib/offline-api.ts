@@ -285,6 +285,6 @@ export const offlineSearchService = {
     if (limit) {
       params.append('limit', limit.toString());
     }
-    return offlineAPI.get(`/search?${params.toString()}`, { enableOffline: false });
+    return offlineAPI.get(`/search?${params.toString()}`, { entity: 'search', enableOffline: false });
   }
 };

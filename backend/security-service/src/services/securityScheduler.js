@@ -216,8 +216,8 @@ class SecurityScheduler {
         // Collecter des métriques système automatiques
         await this.collectSystemMetrics();
 
-        // Enregistrer des événements de sécurité réalistes
-        await securityService.recordRealSecurityEvents();
+        // Analyser les vraies données de sécurité
+        await securityService.analyzeAndRecordSecurityData();
       } catch (error) {
         logger.error('Erreur lors de l\'analyse des menaces en temps réel:', error);
       }

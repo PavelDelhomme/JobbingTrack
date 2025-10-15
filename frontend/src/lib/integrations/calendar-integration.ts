@@ -110,6 +110,10 @@ class CalendarIntegrationService {
 
       this.googleAccessToken = response.data.access_token;
 
+      if (!this.googleAccessToken) {
+        throw new Error('Aucun access token reçu de Google');
+      }
+
       // Sauvegarder les tokens
       if (typeof window !== 'undefined') {
         const tokens = {
@@ -143,6 +147,10 @@ class CalendarIntegrationService {
       this.microsoftAccessToken = response.data.access_token;
       this.microsoftRefreshToken = response.data.refresh_token;
 
+      if (!this.microsoftAccessToken) {
+        throw new Error('Aucun access token reçu de Microsoft');
+      }
+
       // Sauvegarder les tokens
       if (typeof window !== 'undefined') {
         const tokens = {
@@ -155,7 +163,7 @@ class CalendarIntegrationService {
 
       return {
         accessToken: this.microsoftAccessToken,
-        refreshToken: this.microsoftRefreshToken
+        refreshToken: this.microsoftRefreshToken || undefined
       };
     } catch (error) {
       console.error('Erreur échange Microsoft:', error);
@@ -182,6 +190,10 @@ class CalendarIntegrationService {
       this.microsoftAccessToken = response.data.access_token;
       if (response.data.refresh_token) {
         this.microsoftRefreshToken = response.data.refresh_token;
+      }
+
+      if (!this.microsoftAccessToken) {
+        throw new Error('Aucun access token reçu lors du rafraîchissement Microsoft');
       }
 
       // Mettre à jour le stockage

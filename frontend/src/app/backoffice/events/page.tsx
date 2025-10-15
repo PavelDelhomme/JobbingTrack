@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { eventService } from '@/lib/api'
+import { EventTypeBadge } from '@/components/EventTypeBadge'
 
 interface Event {
   id: string
