@@ -179,3 +179,32 @@ Pour ajouter de nouvelles commandes :
 2. **Suivre les conventions** de nommage et couleurs
 3. **Tester** les nouvelles commandes
 4. **Documenter** dans les fichiers appropriés
+
+---
+
+## 🧭 Navigation
+
+### 📚 **Documentation Centrale**
+- **[Accueil](../../README.md)** - Vue d'ensemble du projet
+- **[Documentation Organisée](../../docs/README.md)** - Documentation complète
+- **[Spécifications Techniques](../../docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture détaillée
+
+### 🛠️ **Makefiles Spécialisés**
+- **[Makefile Backend](./backend/Makefile)** - Commandes microservices
+- **[Makefile Frontend](./frontend/Makefile)** - Commandes Next.js
+- **[Makefile Tests](./tests/Makefile)** - Commandes de tests
+
+### 🔧 **Commandes Système**
+- **[Scripts Utilitaires](../scripts/README.md)** - Outils organisés par catégories
+- **[Tests Automatisés](../tests/README.md)** - Suite de tests complète
+- **[Données SQL](../data/README.md)** - Configuration base de données
+
+### 📦 **Déploiement**
+- **[Guide de Déploiement](../../docs/deployment/README.md)** - Production complète
+- **[Variables d'Environnement](../../README.md#variables-denvironnement)** - Configuration
+
+### 📁 **Structure du Projet**
+- **[Backend](../backend/README.md)** - Architecture microservices
+- **[Frontend](../frontend/README.md)** - Dashboard Next.js
+- **[Mobile](../mobile/README.md)** - Application React Native
+- **[API](../../docs/api/README.md)** - Documentation API complète
