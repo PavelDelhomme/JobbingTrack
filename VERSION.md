@@ -7,7 +7,7 @@ Status: STABLE
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](../README.md)** | **[Documentation Centralisée](../docs/README.md)**
+- **[Accueil](../README.md)** | **[Documentation Centralisée](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[Guide Installation](../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**

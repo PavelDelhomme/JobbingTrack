@@ -517,26 +517,32 @@ class SecurityService {
         take: 1000
       });
 
-      // Si pas de données récentes, générer des données de développement
-      if (recentLogs.length === 0 && process.env.NODE_ENV === 'development') {
-        logger.info('Aucune donnée récente trouvée, génération de données de développement...');
-        await this.generateDevelopmentData();
+      // Calculer les métriques à partir des vraies données
+      const totalLogs = recentLogs.length;
+      const criticalEvents = recentLogs.filter(log => log.level === 'critical').length;
+      const intrusionAttempts = recentLogs.filter(log => log.category === 'intrusion').length;
+      const ddosAttacks = recentLogs.filter(log => log.category === 'ddos').length;
+      const authFailures = recentLogs.filter(log => log.eventType === 'login_attempt' && log.level === 'warning').length;
 
-        // Récupérer à nouveau après génération
-        const newRecentLogs = await prisma.securityLog.findMany({
-          where: {
-            timestamp: {
-              gte: new Date(Date.now() - 60 * 60 * 1000)
-            }
-          },
-          orderBy: { timestamp: 'desc' },
-          take: 1000
-        });
+      // Calculer les métriques système basées sur les logs
+      const uniqueIPs = new Set(recentLogs.map(log => log.sourceIP)).size;
+      const blockedIPs = recentLogs.filter(log => log.isBlocked).length;
 
-        return this.calculateSystemMetrics(newRecentLogs);
-      }
+      const metrics = {
+        totalLogs,
+        criticalEvents,
+        intrusionAttempts,
+        ddosAttacks,
+        authFailures,
+        uniqueIPs,
+        blockedIPs,
+        averageRiskScore: totalLogs > 0 ? recentLogs.reduce((sum, log) => sum + (log.riskScore || 0), 0) / totalLogs : 0
+      };
 
-      return this.calculateSystemMetrics(recentLogs);
+      // Stocker les métriques en base de données pour l'historique
+      await this.storeSystemMetrics(metrics);
+
+      return metrics;
     } catch (error) {
       logger.error('Erreur lors de la récupération des métriques système:', error);
       return {

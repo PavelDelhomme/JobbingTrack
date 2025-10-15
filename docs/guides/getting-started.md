@@ -1,22 +1,22 @@
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](../../../README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](../../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../guides/getting-started.md)**
+- **[Guide Installation](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](../api/v1/endpoints.md)** | **[API Technique](../technical/api.md)**
+- **[Documentation API](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/api/v1/endpoints.md)** | **[API Technique](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/api.md)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](../deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](../technical/deployment.md)**
+- **[Guide Déploiement](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/deployment.md)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](../scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
+- **[Scripts et Makefiles](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
 
 ### 🔧 **Documentation Technique**
-- **[Architecture](../technical/architecture.md)** | **[Base de Données](../technical/database.md)** | **[Sécurité](../technical/security.md)** | **[Performance](../technical/performance.md)**
+- **[Architecture](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/architecture.md)** | **[Base de Données](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/database.md)** | **[Sécurité](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/security.md)** | **[Performance](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/performance.md)**
 
 ---
 
@@ -27,19 +27,19 @@ Guide complet pour bien démarrer avec JobbingTrack - votre plateforme de gestio
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](../../../README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](../../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Administration](./administration.md)**
+- **[Guide Installation](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Administration](./administration.md)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](../api/v1/endpoints.md)** | **[Documentation Technique](../technical/api.md)**
+- **[Documentation API](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/api/v1/endpoints.md)** | **[Documentation Technique](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/api.md)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](../deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](../technical/deployment.md)**
+- **[Guide Déploiement](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/deployment.md)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](../scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
+- **[Scripts et Makefiles](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
 
 ---
 
