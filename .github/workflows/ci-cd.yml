@@ -30,16 +30,7 @@ jobs:
         id: node-version
         run: |
           echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
-          # Extraire la version depuis les Dockerfiles
-          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
-          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
-          
-          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
-          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
-          
-          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
-          NODE_VERSION=${NODE_VERSION:-20}
-          
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
           echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
@@ -117,16 +108,7 @@ jobs:
         id: node-version
         run: |
           echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
-          # Extraire la version depuis les Dockerfiles
-          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
-          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
-          
-          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
-          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
-          
-          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
-          NODE_VERSION=${NODE_VERSION:-20}
-          
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
           echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
@@ -226,16 +208,7 @@ jobs:
         id: node-version
         run: |
           echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
-          # Extraire la version depuis les Dockerfiles
-          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
-          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
-          
-          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
-          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
-          
-          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
-          NODE_VERSION=${NODE_VERSION:-20}
-          
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
           echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
@@ -300,16 +273,7 @@ jobs:
         id: node-version
         run: |
           echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
-          # Extraire la version depuis les Dockerfiles
-          BACKEND_VERSION=$(grep -r "FROM node:" backend/*/Dockerfile | head -1 | sed 's/.*node:\([^-]*\).*/\1/')
-          FRONTEND_VERSION=$(grep "FROM node:" frontend/Dockerfile | sed 's/.*node:\([^-]*\).*/\1/')
-          
-          # Utiliser la version du frontend par défaut, ou backend si frontend non trouvé
-          NODE_VERSION=${FRONTEND_VERSION:-$BACKEND_VERSION}
-          
-          # Si aucune version trouvée, utiliser 20 (comme dans tes Dockerfiles)
-          NODE_VERSION=${NODE_VERSION:-20}
-          
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
           echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
           echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
 
