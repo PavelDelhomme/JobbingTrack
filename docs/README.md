@@ -5,22 +5,22 @@ Documentation complète et organisée de JobbingTrack, structurée pour une cons
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](../../README.md)** | **[Guide Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Historique Versions](../../VERSION.md)**
+- **[Accueil](../../README.md)** | **[Guide Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Historique Versions](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/VERSION.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Développement](./guides/getting-started.md)** | **[Guide Administration](./guides/administration.md)**
+- **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** | **[Guide Administration](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/administration.md)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](./api/v1/endpoints.md)** | **[Documentation Technique](./technical/api.md)**
+- **[Documentation API](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/api/v1/endpoints.md)** | **[Documentation Technique](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/api.md)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](./deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](./technical/deployment.md)**
+- **[Guide Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/deployment/GUIDE-PORTAINER.md)** | **[Documentation Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/deployment.md)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](./scripts/makefiles.md)** | **[Documentation Technique](./technical/README.md)**
+- **[Scripts et Makefiles](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/scripts/makefiles.md)** | **[Documentation Technique](./technical/README.md)**
 
 ### 🔧 **Documentation Technique**
-- **[Architecture](./technical/architecture.md)** | **[Base de Données](./technical/database.md)** | **[Sécurité](./technical/security.md)** | **[Performance](./technical/performance.md)**
+- **[Architecture](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/architecture.md)** | **[Base de Données](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/database.md)** | **[Sécurité](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/security.md)** | **[Performance](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/technical/performance.md)**
 
 ---
 
@@ -61,12 +61,12 @@ docs/
 ## 🎯 Guides Essentiels
 
 ### 🚀 **Démarrage**
-- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation et premier lancement
-- **[Guide de Développement](./guides/getting-started.md)** - Développement et contribution
+- **[Guide de Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** - Installation et premier lancement
+- **[Guide de Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** - Développement et contribution
 
 ### 🏗️ **Architecture**
-- **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète détaillée
-- **[État du Projet](./STATUT-PROJET.md)** - Fonctionnalités implémentées et roadmap
+- **[Spécifications Techniques](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète détaillée
+- **[État du Projet](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/STATUT-PROJET.md)** - Fonctionnalités implémentées et roadmap
 
 ### 📡 **API**
 - **[Documentation API](./api/README.md)** - Guide complet de l'API REST
@@ -84,11 +84,11 @@ docs/
 
 ### Pour Débuter
 1. **[README Principal](../../README.md)** - Vue d'ensemble du projet
-2. **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation
-3. **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Comprendre l'architecture
+2. **[Guide de Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** - Installation
+3. **[Spécifications Techniques](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Comprendre l'architecture
 
 ### Pour Développer
-1. **[Guide de Développement](./guides/getting-started.md)** - Contribution et développement
+1. **[Guide de Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** - Contribution et développement
 2. **[Documentation API](./api/README.md)** - Intégration avec les services
 3. **[Makefiles](./makefiles/README.md)** - Outils de développement
 
@@ -117,13 +117,13 @@ Pour toute question sur la documentation :
 
 ### 📚 **Documentation Centrale**
 - **[Accueil](../../README.md)** - Vue d'ensemble du projet
-- **[Spécifications Techniques](./SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète
-- **[État du Projet](./STATUT-PROJET.md)** - Fonctionnalités et roadmap
+- **[Spécifications Techniques](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md)** - Architecture complète
+- **[État du Projet](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/STATUT-PROJET.md)** - Fonctionnalités et roadmap
 
 ### 📖 **Guides Pratiques**
-- **[Guide de Démarrage Rapide](../../GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
-- **[Guide de Développement](./guides/getting-started.md)** - Développement et contribution
-- **[Guide d'Administration](./guides/administration.md)** - Administration système
+- **[Guide de Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** - Installation express
+- **[Guide de Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/getting-started.md)** - Développement et contribution
+- **[Guide d'Administration](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/guides/administration.md)** - Administration système
 
 ### 🚀 **Déploiement**
 - **[Guide de Déploiement](./deployment/README.md)** - Production complète

@@ -1,6 +1,6 @@
 # 🔗 Backend - Redirection Documentation
 
-**📚 La documentation complète du backend est disponible dans la [documentation centralisée](../docs/README.md)**
+**📚 La documentation complète du backend est disponible dans la [documentation centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
 
 ## 🚀 Accès Rapide
 
@@ -22,10 +22,10 @@
 ## 🧭 Navigation
 
 ### 📚 **Documentation du Projet**
-- **[Accueil](../../README.md)** | **[Documentation Centralisée](../docs/README.md)**
+- **[Accueil](../../README.md)** | **[Documentation Centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](../../GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
+- **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
 - **[Documentation API](../docs/api/v1/endpoints.md)** | **[API Technique](../docs/technical/api.md)**
