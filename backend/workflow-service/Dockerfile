@@ -1,4 +1,4 @@
-FROM node:20.20.0-alpine
+FROM node:20.19.5-alpine
 
 # Installer les dépendances système nécessaires pour Prisma
 RUN apk add --no-cache openssl
