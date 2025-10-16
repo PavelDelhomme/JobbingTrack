@@ -29,7 +29,9 @@ const nextConfig = {
         config.watchOptions = {
             poll: 1000,
             aggregateTimeout: 300,
-        };if (isServer) {
+        };
+
+        if (isServer) {
             config.externals = config.externals || [];
             // Si config.externals est une fonction
             if (typeof config.externals === 'function') {
@@ -40,7 +42,7 @@ const nextConfig = {
                     }
                     return originalExternals(context, request, callback);
                 };
-            } 
+            }
             // Si config.externals est un tableau
             else if (Array.isArray(config.externals)) {
                 config.externals.push('socket.io-client');

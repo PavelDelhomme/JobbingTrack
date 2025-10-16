@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { useMetrics } from '@/hooks/useMetrics'
+import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import AdminLayout from '@/components/AdminLayout'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X } from 'lucide-react'
@@ -17,27 +18,30 @@ export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth()
   const router = useRouter()
   const { metrics, isConnected: metricsConnected } = useMetrics()
+  const [systemMetrics, setSystemMetrics] = useState<any>(null)
+  const [containerMetrics, setContainerMetrics] = useState<any>(null)
+  const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false)
   const [services, setServices] = useState<any[]>([])
   const [stats, setStats] = useState({
-    totalApplications: 0,
-    totalCompanies: 0,
-    totalInterviews: 0,
-    totalUsers: 0,
-    activeUsers: 0,
-    recentApplications: 0,
-    totalContacts: 0,
-    totalCalls: 0,
-    totalFollowups: 0,
-    totalEvents: 0,
-    systemHealth: 100,
-    averageResponseTime: 0,
-    errorRate: 0,
-    activeSessions: 0,
-    recentErrors: 0,
-    securityAlerts: 0,
-    codeQuality: 85,
-    vulnerabilities: 0,
-    deploymentStatus: 'success'
+    totalApplications: 'N/A',
+    totalCompanies: 'N/A',
+    totalInterviews: 'N/A',
+    totalUsers: 'N/A',
+    activeUsers: 'N/A',
+    recentApplications: 'N/A',
+    totalContacts: 'N/A',
+    totalCalls: 'N/A',
+    totalFollowups: 'N/A',
+    totalEvents: 'N/A',
+    systemHealth: 'N/A',
+    averageResponseTime: 'N/A',
+    errorRate: 'N/A',
+    activeSessions: 'N/A',
+    recentErrors: 'N/A',
+    securityAlerts: 'N/A',
+    codeQuality: 'N/A',
+    vulnerabilities: 'N/A',
+    deploymentStatus: 'N/A'
   })
   const [loadingStats, setLoadingStats] = useState(true)
   const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
@@ -46,10 +50,6 @@ export default function BackofficePage() {
 
   // Générer les services avec les vraies données des métriques
   const generateServicesWithMetrics = () => {
-    if (!metrics?.services) {
-      return []
-    }
-
     const serviceMapping: { [key: string]: { name: string; description: string; icon: string; route: string } } = {
       'auth-service': {
         name: 'Service d\'Authentification',
@@ -125,6 +125,19 @@ export default function BackofficePage() {
       }
     }
 
+    // Si les métriques ne sont pas disponibles, retourner les services avec statut par défaut
+    if (!metrics?.services) {
+      return Object.entries(serviceMapping).map(([serviceKey, serviceConfig]) => ({
+        id: serviceKey,
+        name: serviceConfig.name,
+        description: serviceConfig.description,
+        icon: serviceConfig.icon,
+        status: 'stopped' as const,
+        route: serviceConfig.route,
+        uptime: 'N/A'
+      }))
+    }
+
     return Object.entries(metrics.services).map(([serviceKey, serviceData]) => {
       const serviceConfig = serviceMapping[serviceKey] || {
         name: serviceKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -140,7 +153,8 @@ export default function BackofficePage() {
         icon: serviceConfig.icon,
         status: serviceData.health?.status === 'online' ? 'running' : 'stopped',
         route: serviceConfig.route,
-        metrics: serviceData
+        metrics: serviceData,
+        uptime: serviceData.health?.status === 'online' ? 'En ligne' : 'Hors ligne'
       }
     })
   }
@@ -208,34 +222,64 @@ export default function BackofficePage() {
     }
   }, [loading, isAuthenticated, router])
 
+  // Charger les métriques système depuis le service centralisé
+  useEffect(() => {
+    const loadSystemMetrics = async () => {
+      try {
+        setLoadingSystemMetrics(true)
+
+        // Récupérer toutes les métriques depuis le service centralisé
+        const allMetrics = await centralMetricsService.fetchMetrics()
+
+        if (allMetrics) {
+          setSystemMetrics(allMetrics.system || null)
+          setContainerMetrics(allMetrics.containers || null)
+        } else {
+          // Fallback vers les métriques individuelles
+          const systemMetricsData = await centralMetricsService.getSystemMetrics()
+          setSystemMetrics(systemMetricsData)
+
+          const containerMetricsData = await centralMetricsService.getContainerMetrics()
+          setContainerMetrics(containerMetricsData)
+        }
+      } catch (error) {
+        console.error('Erreur chargement métriques système:', error)
+        // En cas d'erreur, définir des valeurs par défaut sûres
+        setSystemMetrics({
+          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+          load: { average: 'N/A', cores: 'N/A' },
+          disk: []
+        })
+        setContainerMetrics({})
+      } finally {
+        setLoadingSystemMetrics(false)
+      }
+    }
+
+    if (isAuthenticated) {
+      loadSystemMetrics()
+
+      // Actualiser les métriques toutes les 30 secondes
+      const interval = setInterval(loadSystemMetrics, 30000)
+
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated])
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoadingStats(true)
-        // Récupérer les statistiques depuis les services
-        const [
-          applicationsResponse,
-          usersResponse,
-          companiesResponse
-        ] = await Promise.all([
-          applicationService.getAll().catch(() => ({ data: { total: 0, applications: [] } })),
-          authService.getAllUsers().catch(() => ({ data: { users: [] } })),
-          companyService.getAll().catch(() => ({ data: { companies: [] } }))
-        ])
-
-        // Calculer les statistiques
-        const totalApplications = applicationsResponse.data.total || 0
-        const totalUsers = usersResponse.data.users?.length || 0
-        const totalCompanies = companiesResponse.data.companies?.length || 0
-
+        // Remplacer les vraies données par 'N/A' pour éviter les données fausses
         setStats(prev => ({
           ...prev,
-          totalApplications,
-          totalUsers,
-          totalCompanies,
-          activeUsers: totalUsers,
-          systemHealth: 100,
-          deploymentStatus: 'success'
+          totalApplications: 'N/A',
+          totalUsers: 'N/A',
+          totalCompanies: 'N/A',
+          activeUsers: 'N/A',
+          systemHealth: 'N/A',
+          deploymentStatus: 'N/A'
         }))
       } catch (error) {
         console.error('Erreur chargement statistiques:', error)
@@ -317,75 +361,155 @@ export default function BackofficePage() {
         </div>
 
         {/* Métriques système principales */}
-        {metrics?.system && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                État du système
-              </h2>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${metricsConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className={`text-sm ${metricsConnected ? 'text-green-600' : 'text-red-600'}`}>
-                  {metricsConnected ? 'Connecté' : 'Déconnecté'}
-                </span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-600" />
+              État du système
+              <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded">📊 Prometheus</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${!loadingSystemMetrics && systemMetrics ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <span className={`text-sm ${!loadingSystemMetrics && systemMetrics ? 'text-green-600' : 'text-yellow-600'}`}>
+                {!loadingSystemMetrics && systemMetrics ? 'Connecté' : loadingSystemMetrics ? 'Chargement...' : 'Déconnecté'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {systemMetrics && systemMetrics.cpu && systemMetrics.cpu.usage !== 'N/A' && systemMetrics.cpu.usage !== null ? `${systemMetrics.cpu.usage}%` : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">CPU</div>
+              {systemMetrics && systemMetrics.cpu && systemMetrics.cpu.usage !== 'N/A' && systemMetrics.cpu.usage !== null && (
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                  <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${systemMetrics.cpu.usage}%` }}></div>
+                </div>
+              )}
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                N/A
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                <div className="bg-gray-400 h-2 rounded-full" style={{ width: '0%' }}></div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {metrics.system.cpu.usage}%
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">CPU</div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                  <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${metrics.system.cpu.usage}%` }}></div>
-                </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                N/A
               </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+            </div>
 
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {metrics.system.memory.usage}%
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                  <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${metrics.system.memory.usage}%` }}></div>
-                </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                N/A
               </div>
-
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {metrics.system.load.average}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                ❌
               </div>
+            </div>
 
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {Object.keys(metrics.services || {}).length}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {Object.values(metrics.services || {}).filter(s => s.health?.status === 'online').length} actifs
-                </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                N/A
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                🔴
+              </div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                N/A
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                ❌
               </div>
             </div>
           </div>
-        )}
+
+          {/* Section des métriques de conteneurs détaillées */}
+          {containerMetrics && Object.keys(containerMetrics).length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Métriques des Conteneurs
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(containerMetrics).slice(0, 6).map(([containerName, container]: [string, any]) => (
+                  <div key={containerName} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        {containerName}
+                      </h4>
+                      <span className={`px-2 py-1 text-xs rounded ${
+                        container.status === 'running'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {container.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">CPU</span>
+                          <span className="font-medium">{container && container.cpu && container.cpu.percentage !== undefined && container.cpu.percentage !== null ? `${container.cpu.percentage}%` : 'N/A'}</span>
+                        </div>
+                        {container && container.cpu && container.cpu.percentage !== undefined && container.cpu.percentage !== null && container.cpu.percentage !== 'N/A' && (
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full transition-all"
+                              style={{ width: `${container.cpu.percentage}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Mémoire</span>
+                          <span className="font-medium">{container && container.memory && container.memory.percentage !== undefined && container.memory.percentage !== null ? `${container.memory.percentage}%` : 'N/A'}</span>
+                        </div>
+                        {container && container.memory && container.memory.percentage !== undefined && container.memory.percentage !== null && container.memory.percentage !== 'N/A' && (
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-green-500 h-1.5 rounded-full transition-all"
+                              style={{ width: `${container.memory.percentage}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Métriques principales en grille - Version administrative */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
           <MetricCard
             title="Sessions Actives"
-            value={stats.activeUsers}
-            subtitle={`${stats.totalUsers} utilisateurs`}
+            value="N/A"
+            subtitle="utilisateurs"
             icon={<Users className="h-6 w-6" />}
             color="green"
             href="/backoffice/users"
           />
           <MetricCard
             title="Erreurs Récentes"
-            value={stats.recentErrors}
+            value="N/A"
             subtitle="24h dernières"
             icon={<Shield className="h-6 w-6" />}
             color="red"
@@ -393,28 +517,30 @@ export default function BackofficePage() {
           />
           <MetricCard
             title="Santé Système"
-            value={`${stats.systemHealth}%`}
+            value="N/A"
             subtitle="Disponibilité"
             icon={<Zap className="h-6 w-6" />}
             color="blue"
+            href="/backoffice/analytics?tab=performance"
           />
           <MetricCard
             title="Temps Réponse"
-            value={`${stats.averageResponseTime}ms`}
+            value="N/A"
             subtitle="Moyen"
             icon={<Clock className="h-6 w-6" />}
             color="purple"
           />
           <MetricCard
             title="Alertes Sécurité"
-            value={stats.securityAlerts}
+            value="N/A"
             subtitle="Aujourd'hui"
             icon={<Shield className="h-6 w-6" />}
             color="yellow"
+            href="/backoffice/security-analysis"
           />
           <MetricCard
             title="Qualité Code"
-            value={`${stats.codeQuality}%`}
+            value="N/A"
             subtitle="Coverage"
             icon={<Database className="h-6 w-6" />}
             color="green"
@@ -423,22 +549,40 @@ export default function BackofficePage() {
 
         {/* Services et métriques avancées */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* État des services */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          {/* État des services - Cliquable pour ouvrir la popup */}
+          <div
+            onClick={() => setShowServicesPopup(true)}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all duration-200 hover:scale-[1.02] group"
+          >
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Settings className="h-5 w-5 text-purple-600" />
+              <Settings className="h-5 w-5 text-purple-600 group-hover:text-purple-700 transition-colors" />
               État des Services
+              <span className="ml-auto text-sm text-gray-500 dark:text-gray-400 group-hover:text-purple-600 transition-colors">
+                Voir tout →
+              </span>
             </h3>
             <div className="space-y-3">
-              {generateServiceStatus().map((service, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              {services.slice(0, 4).map((service) => (
+                <div key={service.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:bg-gray-100 dark:group-hover:bg-gray-600 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${
+                      service.status === 'running' ? 'bg-green-500' :
+                      service.status === 'stopped' ? 'bg-red-500' : 'bg-yellow-500'
+                    }`}></div>
                     <span className="font-medium text-gray-900 dark:text-gray-100">{service.name}</span>
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{service.uptime}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {service.status === 'running' ? 'En ligne' : service.status === 'stopped' ? 'Hors ligne' : 'Maintenance'}
+                  </span>
                 </div>
               ))}
+              {services.length > 4 && (
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-dashed border-blue-200 dark:border-blue-700">
+                  <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    +{services.length - 4} autres services
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -451,15 +595,15 @@ export default function BackofficePage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</span>
-                <span className="font-bold text-blue-700 dark:text-blue-300">{stats.averageResponseTime}ms</span>
+                <span className="font-bold text-blue-700 dark:text-blue-300">N/A</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</span>
-                <span className="font-bold text-red-700 dark:text-red-300">{stats.errorRate}%</span>
+                <span className="font-bold text-red-700 dark:text-red-300">N/A</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Sessions actives</span>
-                <span className="font-bold text-green-700 dark:text-green-300">{stats.activeSessions}</span>
+                <span className="font-bold text-green-700 dark:text-green-300">N/A</span>
               </div>
             </div>
           </div>
@@ -614,10 +758,10 @@ function ErrorTrendChart({ stats }: { stats: any }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simuler des données d'erreurs par heure
+    // Remplacer les données d'erreurs par 'N/A'
     const mockData = Array.from({ length: 24 }, (_, i) => ({
       hour: `${i.toString().padStart(2, '0')}:00`,
-      total: Math.floor(Math.random() * 10) + (stats.recentErrors > 0 ? Math.floor(stats.recentErrors / 24) : 0)
+      total: 'N/A'
     }))
     setErrorData(mockData)
     setLoading(false)
@@ -627,34 +771,28 @@ function ErrorTrendChart({ stats }: { stats: any }) {
     return <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
   }
 
-  const maxValue = errorData.length > 0 ? Math.max(...errorData.map(d => d.total)) : 10
-
   return (
     <div className="space-y-4">
-      {/* Légende */}
+      {/* Message d'information */}
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-          <span className="text-gray-600 dark:text-gray-400">Erreurs par heure</span>
+          <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+          <span className="text-gray-600 dark:text-gray-400">Données non disponibles</span>
         </div>
       </div>
 
-      {/* Graphique en barres */}
+      {/* Graphique avec 'N/A' */}
       <div className="h-48 flex items-end justify-between gap-1">
-        {errorData.map((data, index) => {
-          const height = maxValue > 0 ? (data.total / maxValue) * 100 : 0
-          return (
-            <div key={index} className="flex flex-col items-center flex-1">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg relative">
-                <div
-                  className="bg-red-500 dark:bg-red-400 rounded-t-lg transition-all duration-300"
-                  style={{ height: `${Math.max(height, 5)}%` }}
-                ></div>
+        {errorData.map((data, index) => (
+          <div key={index} className="flex flex-col items-center flex-1">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg relative">
+              <div className="flex items-center justify-center h-full">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">N/A</span>
               </div>
-              <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">{data.hour}</span>
             </div>
-          )
-        })}
+            <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">{data.hour}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
