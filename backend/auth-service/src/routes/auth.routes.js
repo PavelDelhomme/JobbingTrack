@@ -54,4 +54,25 @@ router.delete('/users/:id', authenticate, authController.deleteUser);
 router.get('/sessions/active', authenticate, authController.getActiveSessions);
 router.get('/security/metrics', authenticate, authController.getSecurityMetrics);
 
+// ✅ CUSTOMIZATION - Routes pour la personnalisation utilisateur
+router.get('/customization', authenticate, authController.getUserCustomization);
+
+router.put('/customization', authenticate, [
+  body('theme').optional().isIn(['light', 'dark', 'auto']),
+  body('language').optional().isLength({ min: 2, max: 5 }),
+  body('dashboardLayout').optional().isIn(['grid', 'list', 'kanban']),
+  body('primaryColor').optional().isHexColor(),
+  body('accentColor').optional().isHexColor(),
+  body('notifications').optional().isObject(),
+  body('metricsDisplay').optional().isObject(),
+  body('sidebarCollapsed').optional().isBoolean(),
+  body('compactMode').optional().isBoolean(),
+  body('showAnimations').optional().isBoolean(),
+  body('itemsPerPage').optional().isInt({ min: 5, max: 100 }),
+  body('autoRefresh').optional().isBoolean(),
+  body('refreshInterval').optional().isInt({ min: 5, max: 300 }),
+  body('accessibility').optional().isObject(),
+  body('dataRetention').optional().isObject()
+], authController.saveUserCustomization);
+
 module.exports = router;

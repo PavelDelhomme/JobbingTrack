@@ -40,4 +40,46 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   )
 }
 
-export { Badge, badgeVariants }
+// Badge spécifique pour indiquer la source des données
+const dataSourceBadgeVariants = cva(
+  "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+  {
+    variants: {
+      source: {
+        REAL: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+        SIMULATED: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+        FALLBACK: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+        MIXED: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      },
+    },
+  }
+)
+
+export interface DataSourceBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  source: "REAL" | "SIMULATED" | "FALLBACK" | "MIXED"
+}
+
+function DataSourceBadge({ className, source, ...props }: DataSourceBadgeProps) {
+  const getDisplayText = (source: string) => {
+    switch (source) {
+      case 'REAL':
+        return '✅ VRAI';
+      case 'SIMULATED':
+        return '🎲 SIMULÉ';
+      case 'FALLBACK':
+        return '⚠️ FALLBACK';
+      case 'MIXED':
+        return '🔄 MIXTE';
+      default:
+        return source;
+    }
+  };
+
+  return (
+    <div className={cn(dataSourceBadgeVariants({ source }), className)} {...props}>
+      {getDisplayText(source)}
+    </div>
+  )
+}
+
+export { Badge, badgeVariants, DataSourceBadge }

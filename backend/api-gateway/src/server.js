@@ -146,6 +146,322 @@ app.get('/api/v1/auth/profile', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/users/customization:
+ *   get:
+ *     summary: Récupérer la personnalisation utilisateur
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ */
+// ✅ Route pour récupérer la personnalisation utilisateur
+app.get('/api/v1/users/customization', async (req, res) => {
+  try {
+    logger.info('⚙️ Route /api/v1/users/customization interceptée');
+
+    // Mode développement : retourner des paramètres de personnalisation par défaut
+    const mockCustomization = {
+      success: true,
+      customization: {
+        theme: 'light',
+        language: 'fr',
+        dashboardLayout: 'default',
+        notifications: {
+          email: true,
+          push: true,
+          sms: false
+        },
+        features: {
+          analytics: true,
+          maintenance: true,
+          security: true
+        },
+        metrics: {
+          refreshInterval: 30000,
+          defaultView: 'system',
+          showContainers: true,
+          showServices: true
+        }
+      },
+      fallback: true,
+      message: 'Personnalisation utilisateur (mode développement)'
+    };
+
+    res.status(200).json(mockCustomization);
+
+  } catch (error) {
+    logger.error('Error in user customization:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// ✅ Route pour récupérer les logs d'un service
+app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+    const { lines = 50 } = req.query;
+
+    logger.info(`📋 Récupération des logs pour ${serviceName}`);
+
+    // Mode développement : retourner des logs mockés
+    const portMap = {
+      'api-gateway': 3000,
+      'auth-service': 3001,
+      'application-service': 3002,
+      'company-service': 3003,
+      'contact-service': 3004,
+      'interview-service': 3005,
+      'notification-service': 3006,
+      'dashboard-service': 3007,
+      'call-service': 3008,
+      'profile-service': 3009,
+      'event-service': 3011,
+      'followup-service': 3012,
+      'workflow-service': 3013,
+      'frontend': 8080,
+      'database': 5432,
+      'cache': 6379,
+      'monitoring': 9090
+    };
+
+    const servicePort = portMap[serviceName] || 3000;
+
+    const mockLogs = {
+      success: true,
+      serviceName: serviceName,
+      logs: [
+        `[${new Date().toISOString()}] INFO: Service ${serviceName} démarré`,
+        `[${new Date().toISOString()}] INFO: Configuration chargée`,
+        `[${new Date().toISOString()}] INFO: Connexion à la base de données établie`,
+        `[${new Date().toISOString()}] INFO: Service écoute sur le port ${servicePort}`,
+      ],
+      totalLines: parseInt(lines),
+      fallback: true,
+      message: `Logs du service ${serviceName} (mode développement)`
+    };
+
+    res.status(200).json(mockLogs);
+
+  } catch (error) {
+    logger.error(`Error getting logs for ${req.params.serviceName}:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des logs'
+    });
+  }
+});
+
+// ✅ Route pour redémarrer un service
+app.post('/api/v1/services/:serviceName/restart', async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+
+    logger.info(`🔄 Redémarrage du service ${serviceName}`);
+
+    // Mode développement : simuler le redémarrage
+    const mockRestart = {
+      success: true,
+      serviceName: serviceName,
+      action: 'restart',
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      message: `Service ${serviceName} redémarré avec succès (mode développement)`,
+      fallback: true
+    };
+
+    res.status(200).json(mockRestart);
+
+  } catch (error) {
+    logger.error(`Error restarting service ${req.params.serviceName}:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du redémarrage du service'
+    });
+  }
+});
+/*
+// ✅ Route pour récupérer l'état de tous les services
+app.get('/api/v1/services', async (req, res) => {
+  try {
+    logger.info('📋 Récupération de l\'état de tous les services');
+
+    // Mode développement : retourner la liste de tous les services
+    const allServices = {
+      success: true,
+      services: [
+        {
+          name: 'API Gateway',
+          serviceType: 'api-gateway',
+          status: 'running',
+          port: 3000,
+          url: 'http://localhost:3000',
+          containerName: 'jobbingtrack-api-gateway'
+        },
+        {
+          name: 'Service d\'Authentification',
+          serviceType: 'auth-service',
+          status: 'running',
+          port: 3001,
+          url: 'http://localhost:3001',
+          containerName: 'jobbingtrack-auth-service'
+        },
+        {
+          name: 'Service des Candidatures',
+          serviceType: 'application-service',
+          status: 'running',
+          port: 3002,
+          url: 'http://localhost:3002',
+          containerName: 'jobbingtrack-application-service'
+        },
+        {
+          name: 'Service des Entreprises',
+          serviceType: 'company-service',
+          status: 'running',
+          port: 3003,
+          url: 'http://localhost:3003',
+          containerName: 'jobbingtrack-company-service'
+        },
+        {
+          name: 'Service des Contacts',
+          serviceType: 'contact-service',
+          status: 'running',
+          port: 3004,
+          url: 'http://localhost:3004',
+          containerName: 'jobbingtrack-contact-service'
+        },
+        {
+          name: 'Service des Entretiens',
+          serviceType: 'interview-service',
+          status: 'running',
+          port: 3005,
+          url: 'http://localhost:3005',
+          containerName: 'jobbingtrack-interview-service'
+        },
+        {
+          name: 'Service de Notifications',
+          serviceType: 'notification-service',
+          status: 'running',
+          port: 3006,
+          url: 'http://localhost:3006',
+          containerName: 'jobbingtrack-notification-service'
+        },
+        {
+          name: 'Service du Tableau de Bord',
+          serviceType: 'dashboard-service',
+          status: 'running',
+          port: 3007,
+          url: 'http://localhost:3007',
+          containerName: 'jobbingtrack-dashboard-service'
+        },
+        {
+          name: 'Service des Appels',
+          serviceType: 'call-service',
+          status: 'running',
+          port: 3008,
+          url: 'http://localhost:3008',
+          containerName: 'jobbingtrack-call-service'
+        },
+        {
+          name: 'Service des Profils',
+          serviceType: 'profile-service',
+          status: 'running',
+          port: 3009,
+          url: 'http://localhost:3009',
+          containerName: 'jobbingtrack-profile-service'
+        },
+        {
+          name: 'Service des Événements',
+          serviceType: 'event-service',
+          status: 'running',
+          port: 3011,
+          url: 'http://localhost:3011',
+          containerName: 'jobbingtrack-event-service'
+        },
+        {
+          name: 'Service de Suivi',
+          serviceType: 'followup-service',
+          status: 'running',
+          port: 3012,
+          url: 'http://localhost:3012',
+          containerName: 'jobbingtrack-followup-service'
+        },
+        {
+          name: 'Service de Workflow',
+          serviceType: 'workflow-service',
+          status: 'running',
+          port: 3013,
+          url: 'http://localhost:3013',
+          containerName: 'jobbingtrack-workflow-service'
+        },
+        {
+          name: 'Frontend',
+          serviceType: 'frontend',
+          status: 'running',
+          port: 8080,
+          url: 'http://localhost:8080',
+          containerName: 'jobbingtrack-frontend'
+        },
+        {
+          name: 'Base de Données',
+          serviceType: 'database',
+          status: 'running',
+          port: 5432,
+          url: 'http://localhost:5432',
+          containerName: 'jobbingtrack-postgres'
+        },
+        {
+          name: 'Cache Redis',
+          serviceType: 'cache',
+          status: 'running',
+          port: 6379,
+          url: 'http://localhost:6379',
+          containerName: 'jobbingtrack-redis'
+        },
+        {
+          name: 'Prometheus',
+          serviceType: 'monitoring',
+          status: 'running',
+          port: 9090,
+          url: 'http://localhost:9090',
+          containerName: 'jobbingtrack-prometheus'
+        },
+        {
+          name: 'Grafana',
+          serviceType: 'monitoring',
+          status: 'running',
+          port: 3000,
+          url: 'http://localhost:4000',
+          containerName: 'jobbingtrack-grafana'
+        },
+        {
+          name: 'cAdvisor',
+          serviceType: 'monitoring',
+          status: 'running',
+          port: 8080,
+          url: 'http://localhost:8082',
+          containerName: 'jobbingtrack-cadvisor'
+        }
+      ],
+      total: 19,
+      fallback: true,
+      message: 'État de tous les services (mode développement)'
+    };
+
+    res.status(200).json(allServices);
+
+  } catch (error) {
+    logger.error('Error getting all services:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des services'
+    });
+  }
+});
+*/
 app.get('/api/v1/auth/users', async (req, res) => {
   try {
     logger.info('👥 Route /api/v1/auth/users interceptée');
@@ -230,10 +546,11 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
 const adminRoutes = require('./routes/admin.routes');
 app.use('/api/v1/admin', adminRoutes);
 
-// ✅ Routes maintenance
+// ✅ Routes maintenance (montées avant les routes proxy)
 const maintenanceRoutes = require('./routes/maintenance.routes');
 const MaintenanceController = require('./controllers/maintenance.controller');
 app.use('/api/v1/maintenance', maintenanceRoutes);
+
 
 // ✅ Health check
 app.get('/health', (req, res) => {

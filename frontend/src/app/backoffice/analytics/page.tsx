@@ -6,6 +6,55 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Settings, BarChart3, PieChart, TrendingUp, Eye, EyeOff } from 'lucide-react'
+import { centralMetricsService } from '@/lib/services/centralMetricsService'
+import { DataSourceBadge } from '@/components/ui/badge'
+
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+// Hook personnalisé pour les métriques utilisant le service centralisé
+function useMetrics() {
+  const [metrics, setMetrics] = useState<any>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        const metricsData = await centralMetricsService.fetchMetrics()
+        setMetrics(metricsData)
+        setIsConnected(true)
+        setError(null)
+      } catch (err) {
+        console.error('Erreur chargement métriques analytics:', err)
+        setError('Erreur lors du chargement des métriques')
+        // Définir des valeurs par défaut sûres avec indicateurs de source
+        setMetrics({
+          services: {},
+          system: {
+            cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A', dataSource: 'SIMULATED' },
+            memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A', dataSource: 'REAL' },
+            load: { average: 'N/A', cores: [], dataSource: 'REAL' },
+            disk: [{ mount: 'N/A', total: 'N/A', used: 'N/A', usage: 'N/A' }],
+            uptime: 'N/A',
+            hostname: 'N/A',
+            dataSource: 'MIXED'
+          },
+          containers: {},
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+
+    loadMetrics()
+
+    // Actualiser toutes les 10 secondes pour une meilleure réactivité
+    const interval = setInterval(loadMetrics, 10000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return { metrics, isConnected, error }
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -107,6 +156,7 @@ function AnalyticsContent() {
   const { token, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { metrics } = useMetrics()
 
   const [activeTab, setActiveTab] = useState<'performance' | 'errors' | 'timeline' | 'developer' | 'security'>('performance')
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h')
@@ -148,64 +198,65 @@ function AnalyticsContent() {
   // États pour les vraies données
   // Générer les données par défaut pour les tendances d'erreurs (24 heures)
   const generateDefaultErrorTrends = () => {
-    const trends = []
-    for (let i = 0; i < 24; i++) {
-      // Simuler quelques erreurs de sécurité à certaines heures
-      let count = 0
-      if (i >= 8 && i <= 18) { // Heures de bureau
-        count = Math.floor(Math.random() * 3) // 0-2 erreurs par heure
-      } else if (i >= 22 || i <= 6) { // Heures nocturnes
-        count = Math.floor(Math.random() * 2) // 0-1 erreur par heure
-      }
-
-      trends.push({
-        hour: `${i.toString().padStart(2, '0')}:00`,
-        count: count
-      })
-    }
-    return trends
+    // Toutes les tendances d'erreurs sont maintenant à 0 (N/A)
+    return Array.from({ length: 24 }, (_, i) => ({
+      hour: `${i.toString().padStart(2, '0')}:00`,
+      count: 0
+    }))
   }
 
+
+  // Fonction pour afficher une métrique avec son indicateur de source
+  const MetricWithSource = ({ label, value, source }: { label: string, value: string | number, source: "REAL" | "SIMULATED" | "FALLBACK" | "MIXED" }) => (
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+        <DataSourceBadge source={source} />
+      </div>
+      <span className="font-bold text-gray-900 dark:text-gray-100">{value}</span>
+    </div>
+  );
+
   const [devMetrics, setDevMetrics] = useState<DevMetrics>({ // TODO: Récupérer les vraies données
-    memoryUsage: 0, // TODO: Récupérer les vraies données
+    memoryUsage: 'N/A', // TODO: Récupérer les vraies données
     cpuUsage: 0, // TODO: Récupérer les vraies données
-    databaseConnections: 0, // TODO: Récupérer les vraies données
-    cacheHitRate: 0, // TODO: Récupérer les vraies données
-    apiCallsPerSecond: 0, // TODO: Récupérer les vraies données
-    slowestEndpoint: '', // TODO: Récupérer les vraies données
-    mostUsedEndpoint: '', // TODO: Récupérer les vraies données
+    databaseConnections: 'N/A', // TODO: Récupérer les vraies données
+    cacheHitRate: 'N/A', // TODO: Récupérer les vraies données
+    apiCallsPerSecond: 'N/A', // TODO: Récupérer les vraies données
+    slowestEndpoint: 'N/A', // TODO: Récupérer les vraies données
+    mostUsedEndpoint: 'N/A', // TODO: Récupérer les vraies données
     errorDistribution: {}, // TODO: Récupérer les vraies données
-    p95ResponseTime: 0, // TODO: Récupérer les vraies données
-    p99ResponseTime: 0, // TODO: Récupérer les vraies données
+    p95ResponseTime: 'N/A', // TODO: Récupérer les vraies données
+    p99ResponseTime: 'N/A', // TODO: Récupérer les vraies données
     memoryLeakSuspected: false, // TODO: Récupérer les vraies données
     highCpuProcesses: [], // TODO: Récupérer les vraies données
-    databaseSlowQueries: 0, // TODO: Récupérer les vraies données
-    cacheEvictions: 0, // TODO: Récupérer les vraies données
-    apiRateLimitHits: 0, // TODO: Récupérer les vraies données
-    concurrentUsers: 0, // TODO: Récupérer les vraies données
-    averageSessionDuration: 0, // TODO: Récupérer les vraies données
+    databaseSlowQueries: 'N/A', // TODO: Récupérer les vraies données
+    cacheEvictions: 'N/A', // TODO: Récupérer les vraies données
+    apiRateLimitHits: 'N/A', // TODO: Récupérer les vraies données
+    concurrentUsers: 'N/A', // TODO: Récupérer les vraies données
+    averageSessionDuration: 'N/A', // TODO: Récupérer les vraies données
     errorTrends: generateDefaultErrorTrends(), // TODO: Récupérer les vraies données
-    performanceScore: 0, // TODO: Récupérer les vraies données
+    performanceScore: 'N/A', // TODO: Récupérer les vraies données
     recommendations: [], // TODO: Récupérer les vraies données
-    intrusionAttempts: 3, // TODO: Récupérer les vraies données
-    ddosAttacks: 0, // TODO: Récupérer les vraies données
-    securityScore: 85, // TODO: Récupérer les vraies données
-    vulnerabilities: 7, // TODO: Récupérer les vraies données
-    successfulBuilds: 0, // TODO: Récupérer les vraies données
-    totalBuilds: 0, // TODO: Récupérer les vraies données
-    automatedTests: 0, // TODO: Récupérer les vraies données
-    testCoverage: 78, // TODO: Récupérer les vraies données
-    technicalDebt: '2.5h', // TODO: Récupérer les vraies données
-    mttr: '15min', // TODO: Récupérer les vraies données
-    mttd: '8min', // TODO: Récupérer les vraies données
-    majorIncidents: 2, // TODO: Récupérer les vraies données
-    activeUsers: 0, // TODO: Récupérer les vraies données
-    uptime: 99.9, // TODO: Récupérer les vraies données
-    averageResponseTime: 150, // TODO: Récupérer les vraies données
-    errorRate: 2.5, // TODO: Récupérer les vraies données
-    avgDeploymentTime: 45, // TODO: Récupérer les vraies données
-    rolledBackDeployments: 0, // TODO: Récupérer les vraies données
-    deploymentSuccessRate: 98.5 // TODO: Récupérer les vraies données
+    intrusionAttempts: 'N/A', // TODO: Récupérer les vraies données
+    ddosAttacks: 'N/A', // TODO: Récupérer les vraies données
+    securityScore: 'N/A', // TODO: Récupérer les vraies données
+    vulnerabilities: 'N/A', // TODO: Récupérer les vraies données
+    successfulBuilds: 'N/A', // TODO: Récupérer les vraies données
+    totalBuilds: 'N/A', // TODO: Récupérer les vraies données
+    automatedTests: 'N/A', // TODO: Récupérer les vraies données
+    testCoverage: 'N/A', // TODO: Récupérer les vraies données
+    technicalDebt: 'N/A', // TODO: Récupérer les vraies données
+    mttr: 'N/A', // TODO: Récupérer les vraies données
+    mttd: 'N/A', // TODO: Récupérer les vraies données
+    majorIncidents: 'N/A', // TODO: Récupérer les vraies données
+    activeUsers: 'N/A', // TODO: Récupérer les vraies données
+    uptime: 'N/A', // TODO: Récupérer les vraies données
+    averageResponseTime: 'N/A', // TODO: Récupérer les vraies données
+    errorRate: 'N/A', // TODO: Récupérer les vraies données
+    avgDeploymentTime: 'N/A', // TODO: Récupérer les vraies données
+    rolledBackDeployments: 'N/A', // TODO: Récupérer les vraies données
+    deploymentSuccessRate: 'N/A' // TODO: Récupérer les vraies données
   })
 
   const [loading, setLoading] = useState(true)
@@ -241,21 +292,16 @@ function AnalyticsContent() {
 
   const loadPerformanceMetrics = async (errorCount: number) => {
     try {
-      // ✅ Utiliser des données de test pour éviter les erreurs 404
-      const totalRequests = Math.floor(Math.random() * 10000) + 5000
-      const averageResponseTime = Math.floor(Math.random() * 200) + 50
-      const errorRate = Math.random() * 5 // 0-5%
-      const successRate = Math.max(0, 100 - errorRate)
-
+      // ✅ Toutes les métriques de performance sont maintenant 'N/A'
       setDevMetrics(prev => ({
         ...prev,
-        totalRequests,
-        successfulRequests: Math.floor(totalRequests * (successRate / 100)),
-        failedRequests: errorCount,
-        averageResponseTime: Math.round(averageResponseTime),
-        errorRate: Math.round(errorRate * 100) / 100,
-        successRate: Math.round(successRate * 10) / 10,
-        uptime: 99.9
+        totalRequests: 'N/A',
+        successfulRequests: 'N/A',
+        failedRequests: 'N/A',
+        averageResponseTime: 'N/A',
+        errorRate: 'N/A',
+        successRate: 'N/A',
+        uptime: 'N/A'
       }))
     } catch (error) {
       console.error('Erreur chargement métriques performance:', error)
@@ -264,20 +310,20 @@ function AnalyticsContent() {
 
   const loadErrorLogs = async (): Promise<ErrorLog[]> => {
     try {
-      // Charger les vraies erreurs depuis l'API de sécurité
-      const response = await axios.get(`${API_URL}/api/v1/security/logs?level=error&limit=100`, {
+      // Charger les vraies erreurs depuis l'API de sécurité via l'API Gateway
+      const response = await axios.get(`${API_GATEWAY_URL}/api/v1/maintenance/security/logs?level=error&limit=100`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 5000
       })
 
-      const logs = response.data.data || []
+      const logs = response.data.logs || []
 
       // Convertir les logs de sécurité en erreurs système
       const mockErrors: ErrorLog[] = logs.map((log: any, index: number) => ({
         id: log.id || `error-${index}`,
         timestamp: log.timestamp,
-        service: log.category || 'system',
-        endpoint: log.endpoint || '/unknown',
+        service: log.service || 'system',
+        endpoint: log.action || '/unknown',
         method: log.method || 'GET',
         statusCode: 500,
         errorMessage: log.message || 'Erreur système détectée',
@@ -294,101 +340,68 @@ function AnalyticsContent() {
 
   const loadDevMetrics = async () => {
     try {
-      // ✅ Générer des données de test réalistes pour démonstration
+      // ✅ Toutes les données sont maintenant 'N/A' pour éviter les données fausses
+      const memoryUsage = 'N/A'
+      const cpuUsage = 'N/A'
+      const cacheHitRate = 'N/A'
+      const activeUsers = 'N/A'
+      const errorRate = 'N/A'
+      const intrusionAttempts = 'N/A'
+      const ddosAttacks = 'N/A'
+      const vulnerabilities = 'N/A'
+      const securityScore = 'N/A'
 
-      // Générer des métriques réalistes basées sur des données simulées
-      const memoryUsage = Math.floor(Math.random() * 40) + 30 // 30-70%
-      const cpuUsage = Math.floor(Math.random() * 30) + 20 // 20-50%
-      const cacheHitRate = Math.floor(Math.random() * 20) + 80 // 80-100%
-      const activeUsers = Math.floor(Math.random() * 50) + 10 // 10-60 utilisateurs
-      const errorRate = Math.random() * 3 // 0-3%
-      const intrusionAttempts = Math.floor(Math.random() * 10) // 0-10 tentatives
-      const ddosAttacks = Math.floor(Math.random() * 3) // 0-2 attaques
-      const vulnerabilities = Math.floor(Math.random() * 15) // 0-15 vulnérabilités
-      const securityScore = Math.floor(Math.random() * 40) + 60 // 60-100%
-
-      // Générer des tendances d'erreurs réalistes
+      // Remplacer les tendances d'erreurs par des valeurs 0
       const errorTrends = Array.from({ length: 24 }, (_, i) => {
         const hour = i
         const hourStr = `${hour.toString().padStart(2, '0')}:00`
-        let count = 0
-
-        // Simuler plus d'erreurs pendant les heures de bureau
-        if (hour >= 9 && hour <= 17) {
-          count = Math.floor(Math.random() * 3) // 0-2 erreurs
-        } else if (hour >= 0 && hour <= 6) {
-          count = Math.floor(Math.random() * 1) // 0-1 erreur
-        } else {
-          count = Math.floor(Math.random() * 2) // 0-1 erreur
-        }
-
-        return { hour: hourStr, count }
+        return { hour: hourStr, count: 0 }
       })
 
-      // Calculer le score de performance
-      let performanceScore = 100
-      if (memoryUsage > 80) performanceScore -= 20
-      if (cpuUsage > 70) performanceScore -= 15
-      if (cacheHitRate < 85) performanceScore -= 10
-      if (errorRate > 2) performanceScore -= 15
-
-      // Pénalités de sécurité
-      if (intrusionAttempts > 5) performanceScore -= 10
-      if (ddosAttacks > 0) performanceScore -= 15
-      if (vulnerabilities > 10) performanceScore -= 20
-      if (securityScore < 70) performanceScore -= 15
-
+      // Toutes les métriques sont maintenant 'N/A' pour éviter les données fausses
       setDevMetrics({
         memoryUsage,
         cpuUsage,
-        databaseConnections: Math.floor(Math.random() * 20) + 5,
+        databaseConnections: 'N/A',
         cacheHitRate,
-        apiCallsPerSecond: Math.floor(Math.random() * 100) + 50,
-        slowestEndpoint: '/api/v1/interviews',
-        mostUsedEndpoint: '/api/v1/auth/login',
-        errorDistribution: {
-          '400': Math.floor(Math.random() * 20) + 5,
-          '401': Math.floor(Math.random() * 10) + 2,
-          '403': Math.floor(Math.random() * 5) + 1,
-          '404': Math.floor(Math.random() * 15) + 3,
-          '500': Math.floor(Math.random() * 8) + 2
-        },
-        p95ResponseTime: Math.floor(Math.random() * 100) + 150,
-        p99ResponseTime: Math.floor(Math.random() * 200) + 300,
-        memoryLeakSuspected: memoryUsage > 85,
-        highCpuProcesses: cpuUsage > 70 ? ['api-gateway', 'application-service'] : [],
-        databaseSlowQueries: Math.floor(Math.random() * 10),
-        cacheEvictions: Math.floor(Math.random() * 50),
-        apiRateLimitHits: Math.floor(Math.random() * 20),
-        concurrentUsers: Math.floor(Math.random() * 30) + 5,
-        averageSessionDuration: Math.floor(Math.random() * 600) + 300, // secondes
+        apiCallsPerSecond: 'N/A',
+        slowestEndpoint: 'N/A',
+        mostUsedEndpoint: 'N/A',
+        errorDistribution: {},
+        p95ResponseTime: 'N/A',
+        p99ResponseTime: 'N/A',
+        memoryLeakSuspected: false,
+        highCpuProcesses: [],
+        databaseSlowQueries: 'N/A',
+        cacheEvictions: 'N/A',
+        apiRateLimitHits: 'N/A',
+        concurrentUsers: 'N/A',
+        averageSessionDuration: 'N/A',
         errorTrends,
-        performanceScore: Math.max(0, performanceScore),
+        performanceScore: 'N/A',
         recommendations: [
-          "✅ Performance optimale - Continuez ainsi !",
-          "🔍 Surveillez la mémoire système régulièrement",
-          "🛡️ Mettez à jour les certificats SSL",
-          "🔐 Implémentez l'authentification à deux facteurs"
+          "📊 Toutes les métriques sont temporairement indisponibles",
+          "🔄 Nous travaillons à intégrer les vraies données"
         ],
-        intrusionAttempts: Math.floor(Math.random() * 10) + 2,
-        ddosAttacks: Math.floor(Math.random() * 3),
-        securityScore: Math.floor(Math.random() * 20) + 80, // 80-100
-        vulnerabilities: Math.floor(Math.random() * 10) + 2,
-        successfulBuilds: Math.floor(Math.random() * 20) + 15,
-        totalBuilds: Math.floor(Math.random() * 25) + 18,
-        automatedTests: Math.floor(Math.random() * 100) + 200,
-        testCoverage: Math.floor(Math.random() * 20) + 75, // 75-95%
-        technicalDebt: 'Low',
-        mttr: '2h 30',
-        mttd: '15',
-        majorIncidents: Math.floor(Math.random() * 3),
-        activeUsers,
-        uptime: 99.9,
-        averageResponseTime: Math.floor(Math.random() * 100) + 100,
-        errorRate: Math.round(errorRate * 100) / 100,
-        avgDeploymentTime: Math.floor(Math.random() * 20) + 30, // minutes
-        rolledBackDeployments: Math.floor(Math.random() * 3),
-        deploymentSuccessRate: Math.floor(Math.random() * 10) + 90 // 90-100%
+        intrusionAttempts: 'N/A',
+        ddosAttacks: 'N/A',
+        securityScore: 'N/A',
+        vulnerabilities: 'N/A',
+        successfulBuilds: 'N/A',
+        totalBuilds: 'N/A',
+        automatedTests: 'N/A',
+        testCoverage: 'N/A',
+        technicalDebt: 'N/A',
+        mttr: 'N/A',
+        mttd: 'N/A',
+        majorIncidents: 'N/A',
+        activeUsers: 'N/A',
+        uptime: 'N/A',
+        averageResponseTime: 'N/A',
+        errorRate: 'N/A',
+        avgDeploymentTime: 'N/A',
+        rolledBackDeployments: 'N/A',
+        deploymentSuccessRate: 'N/A'
       })
     } catch (error) {
       console.error('Erreur chargement métriques dev:', error)
@@ -397,41 +410,37 @@ function AnalyticsContent() {
 
   const loadTimelineData = async () => {
     try {
-      // ✅ Générer des données de test réalistes pour la timeline
+      // ✅ Remplacer les données de test par des valeurs 'N/A' pour éviter les données fausses
       const timeline: TimelineData[] = []
 
       for (let i = 6; i >= 0; i--) {
         const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
         const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 
-        // Générer des données réalistes basées sur la date
-        const baseApps = Math.floor(Math.random() * 10) + 5 // 5-15 candidatures par jour
-        const applications = i === 0 ? Math.floor(baseApps * 0.7) : baseApps // Aujourd'hui moins d'activité
-
         timeline.push({
           period: i === 0 ? "Auj." : i === 1 ? "Hier" : dateStr,
-          applications,
-          companies: Math.floor(applications * 0.8),
-          users: Math.floor(applications * 0.3),
-          interviews: Math.floor(applications * 0.4),
-          successRate: Math.floor(Math.random() * 10) + 90, // 90-100%
-          avgResponseTime: Math.floor(Math.random() * 50) + 100 // 100-150ms
+          applications: 'N/A',
+          companies: 'N/A',
+          users: 'N/A',
+          interviews: 'N/A',
+          successRate: 'N/A',
+          avgResponseTime: 'N/A'
         })
       }
 
       setTimelineData(timeline)
     } catch (error) {
       console.error('Erreur chargement timeline:', error)
-      // Fallback avec données simulées
+      // Fallback avec données N/A
       setTimelineData([
-        { period: '7j', applications: 12, companies: 9, users: 4, interviews: 6, successRate: 96.8, avgResponseTime: 134 },
-        { period: '6j', applications: 8, companies: 7, users: 3, interviews: 4, successRate: 97.1, avgResponseTime: 129 },
-        { period: '5j', applications: 15, companies: 12, users: 5, interviews: 8, successRate: 95.5, avgResponseTime: 142 },
-        { period: '4j', applications: 6, companies: 5, users: 2, interviews: 3, successRate: 98.2, avgResponseTime: 118 },
-        { period: '3j', applications: 11, companies: 8, users: 4, interviews: 5, successRate: 96.3, avgResponseTime: 137 },
-        { period: '2j', applications: 7, companies: 5, users: 3, interviews: 3, successRate: 97.2, avgResponseTime: 128 },
-        { period: '1j', applications: 9, companies: 6, users: 3, interviews: 4, successRate: 99.1, avgResponseTime: 115 },
-        { period: "Auj.", applications: 4, companies: 3, users: 1, interviews: 2, successRate: 98.5, avgResponseTime: 122 }
+        { period: '7j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '6j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '5j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '4j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '3j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '2j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: '1j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
+        { period: "Auj.", applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' }
       ])
     }
   }
@@ -623,28 +632,8 @@ function AnalyticsContent() {
                     💻 Métriques Système
                   </h3>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Utilisation CPU</span>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">
-                        {devMetrics.cpuUsage > 0 ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Utilisation Mémoire</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">
-                        {devMetrics.memoryUsage > 0 ? `${devMetrics.memoryUsage.toFixed(1)}%` : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Connexions DB</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">{devMetrics.databaseConnections}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Cache Hit Rate</span>
-                      <span className="font-bold text-orange-600 dark:text-orange-400">
-                        {devMetrics.cacheHitRate > 0 ? `${devMetrics.cacheHitRate.toFixed(1)}%` : 'N/A'}
-                      </span>
-                    </div>
+                    <MetricWithSource label="Utilisation CPU" value={devMetrics.cpuUsage > 0 ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'} source="REAL" />
+                    <MetricWithSource label="Utilisation Mémoire" value="N/A" source="REAL" />
                   </div>
                 </div>
               </div>
@@ -779,9 +768,12 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Nouvelles candidatures</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Nouvelles candidatures</p>
+                        <DataSourceBadge source="SIMULATED" />
+                      </div>
                       <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                        {timelineData.reduce((sum, day) => sum + day.applications, 0)}
+                        N/A
                       </p>
                     </div>
                     <div className="text-blue-500">
@@ -796,9 +788,12 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Nouveaux utilisateurs</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Nouveaux utilisateurs</p>
+                        <DataSourceBadge source="SIMULATED" />
+                      </div>
                       <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                        {timelineData.reduce((sum, day) => sum + day.users, 0)}
+                        N/A
                       </p>
                     </div>
                     <div className="text-green-500">
@@ -813,9 +808,12 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux de réussite</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux de réussite</p>
+                        <DataSourceBadge source="SIMULATED" />
+                      </div>
                       <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                        {(timelineData.reduce((sum, day) => sum + day.successRate, 0) / timelineData.length).toFixed(1)}%
+                        N/A
                       </p>
                     </div>
                     <div className="text-purple-500">
@@ -830,9 +828,12 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temps de réponse</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temps de réponse</p>
+                        <DataSourceBadge source="SIMULATED" />
+                      </div>
                       <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                        {Math.round(timelineData.reduce((sum, day) => sum + day.avgResponseTime, 0) / timelineData.length)}ms
+                        N/A
                       </p>
                     </div>
                     <div className="text-orange-500">

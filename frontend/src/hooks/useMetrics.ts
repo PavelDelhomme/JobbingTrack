@@ -237,174 +237,184 @@ export function useMetrics() {
 
 
   // Fonction pour générer des métriques avec valeurs N/A
-  const generateNAMetrics = () => ({
+  const generateNAMetrics = (): MetricsData => ({
     services: {
       'api-gateway': {
         name: 'API Gateway',
         url: 'http://localhost:3000',
         port: 3000,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
-        lastCheck: new Date().toISOString()
+        health: { status: 'N/A', responseTime: 'N/A' },
+        lastCheck: new Date().toISOString(),
+        metrics: {
+          memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+          cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+          network: { rx_bytes: 'N/A', tx_bytes: 'N/A' }
+        }
       },
       'auth-service': {
         name: 'Auth Service',
         url: 'http://localhost:3001',
         port: 3001,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
-        lastCheck: new Date().toISOString()
+        health: { status: 'N/A', responseTime: 'N/A' },
+        lastCheck: new Date().toISOString(),
+        metrics: {
+          memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+          cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+          network: { rx_bytes: 'N/A', tx_bytes: 'N/A' }
+        }
       },
       'application-service': {
         name: 'Application Service',
         url: 'http://localhost:3002',
         port: 3002,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'company-service': {
         name: 'Company Service',
         url: 'http://localhost:3003',
         port: 3003,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'contact-service': {
         name: 'Contact Service',
         url: 'http://localhost:3004',
         port: 3004,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'interview-service': {
         name: 'Interview Service',
         url: 'http://localhost:3005',
         port: 3005,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'notification-service': {
         name: 'Notification Service',
         url: 'http://localhost:3006',
         port: 3006,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'dashboard-service': {
         name: 'Dashboard Service',
         url: 'http://localhost:3007',
         port: 3007,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'call-service': {
         name: 'Call Service',
         url: 'http://localhost:3008',
         port: 3008,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'event-service': {
         name: 'Event Service',
         url: 'http://localhost:3009',
         port: 3009,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'followup-service': {
         name: 'FollowUp Service',
         url: 'http://localhost:3010',
         port: 3010,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'profile-service': {
         name: 'Profile Service',
         url: 'http://localhost:3011',
         port: 3011,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       },
       'workflow-service': {
         name: 'Workflow Service',
         url: 'http://localhost:3013',
         port: 3013,
-        status: 'N/A' as 'N/A',
-        responseTime: 'N/A' as any,
+        status: 'N/A',
+        responseTime: 'N/A',
         version: 'N/A',
-        health: { status: 'N/A' as any, responseTime: 'N/A' as any },
+        health: { status: 'N/A', responseTime: 'N/A' },
         lastCheck: new Date().toISOString()
       }
     },
     system: {
-      cpu: { usage: 'N/A' as any, cores: 'N/A' as any, model: 'N/A' },
-      memory: { total: 'N/A' as any, used: 'N/A' as any, free: 'N/A' as any, usage: 'N/A' as any },
-      load: { average: 'N/A' as any, cores: 'N/A' as any },
-      disk: [{ mount: 'N/A', total: 'N/A' as any, used: 'N/A' as any, usage: 'N/A' as any }]
+      cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+      memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+      load: { average: 'N/A', cores: 'N/A' },
+      disk: [{ mount: 'N/A', total: 'N/A', used: 'N/A', usage: 'N/A' }]
     },
     containers: {
       'api-gateway': {
-        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
-        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
-        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
-        status: 'N/A' as 'N/A'
+        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+        network: { rx_bytes: 'N/A', tx_bytes: 'N/A' },
+        status: 'N/A'
       },
       'auth-service': {
-        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
-        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
-        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+        network: { rx_bytes: 'N/A', tx_bytes: 'N/A' },
         status: 'N/A' as 'N/A'
       },
       'application-service': {
-        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
-        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
-        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+        network: { rx_bytes: 'N/A', tx_bytes: 'N/A' },
         status: 'N/A' as 'N/A'
       },
       'postgres': {
-        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
-        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
-        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+        network: { rx_bytes: 'N/A', tx_bytes: 'N/A' },
         status: 'N/A' as 'N/A'
       },
       'redis': {
-        memory: { usage: 'N/A' as any, limit: 'N/A' as any, percentage: 'N/A' as any },
-        cpu: { usage: 'N/A' as any, system: 'N/A' as any, percentage: 'N/A' as any },
-        network: { rx_bytes: 'N/A' as any, tx_bytes: 'N/A' as any },
+        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+        network: { rx_bytes: 'N/A', tx_bytes: 'N/A' },
         status: 'N/A' as 'N/A'
       }
     },

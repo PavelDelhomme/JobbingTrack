@@ -101,20 +101,33 @@ export function useCustomization() {
         const token = localStorage.getItem('token');
         if (token) {
           try {
-            const response = await fetch('/api/v1/users/customization', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/api/v1/users/customization`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
               },
+              // Timeout pour éviter les blocages
+              signal: AbortSignal.timeout(3000)
             });
 
             if (response.ok) {
               const userSettings = await response.json();
-              setSettings({ ...defaultSettings, ...userSettings });
+              if (userSettings.success && userSettings.customization) {
+                setSettings({ ...defaultSettings, ...userSettings.customization });
+              } else {
+                setSettings({ ...defaultSettings, ...userSettings });
+              }
               return;
+            } else if (response.status === 404) {
+              // Endpoint non disponible - utiliser uniquement localStorage
+              console.warn('Endpoint de personnalisation non disponible (404), utilisation du localStorage uniquement');
+            } else {
+              console.error(`Erreur ${response.status} lors du chargement des paramètres utilisateur:`, response.statusText);
             }
           } catch (error) {
-            console.error('Erreur lors du chargement des paramètres utilisateur:', error);
+            // Erreur de réseau ou timeout - utiliser uniquement localStorage
+            console.warn('Erreur de réseau lors du chargement des paramètres utilisateur, utilisation du localStorage uniquement:', error);
           }
         }
 
@@ -150,14 +163,28 @@ export function useCustomization() {
       // Sauvegarder sur le serveur si l'utilisateur est connecté
       const token = localStorage.getItem('token');
       if (token) {
-        await fetch('/api/v1/users/customization', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updatedSettings),
-        });
+        try {
+          const response = await fetch('/api/v1/users/customization', {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatedSettings),
+            // Timeout pour éviter les blocages
+            signal: AbortSignal.timeout(3000)
+          });
+
+          if (response.status === 404) {
+            // Endpoint non disponible - ignorer silencieusement
+            console.warn('Endpoint de personnalisation non disponible pour la sauvegarde (404)');
+          } else if (!response.ok) {
+            console.error(`Erreur ${response.status} lors de la sauvegarde des paramètres utilisateur:`, response.statusText);
+          }
+        } catch (error) {
+          // Erreur de réseau - ignorer silencieusement
+          console.warn('Erreur de réseau lors de la sauvegarde des paramètres utilisateur (ignorée):', error);
+        }
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);

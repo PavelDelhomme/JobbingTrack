@@ -1,0 +1,30 @@
+services:
+  simple-metrics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-simple-metrics
+    ports:
+      - "3014:3014"
+    environment:
+      - NODE_ENV=development
+      - PORT=3014
+      - FRONTEND_URL=http://localhost:3001
+    networks:
+      - jobbingtrack-metrics-network
+      - jobbingtrack-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3014/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  jobbingtrack-metrics-network:
+    driver: bridge
+    external: true
+  jobbingtrack-network:
+    driver: bridge
+    external: true

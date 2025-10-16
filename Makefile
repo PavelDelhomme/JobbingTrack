@@ -17,14 +17,14 @@ FRONTEND_DIR = frontend
 SCRIPTS_DIR = scripts
 TESTS_DIR = tests
 
-.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services
+.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics
 
 # ============================================================================
 # COMMANDES PRINCIPALES
 # ============================================================================
 
 # Aide complète avec organisation par catégories
-help: ## Afficher l'aide complète organisée par catégories
+help: ## Afficher l'aide organisée par catégories
 	@echo "================================================================"
 	@echo "🚀 JOBBINGTRACK - PLATEFORME DE GESTION DE CANDIDATURES"
 	@echo "================================================================"
@@ -44,6 +44,7 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  make test-socket [container] - Tester l'installation de socket.io-client"
 	@echo "  make fix-webpack [options] - Corriger les problèmes de chunks webpack"
 	@echo "  make verify-services - Vérifier le démarrage de tous les services"
+	@echo "  make start-simple-metrics - Démarrer le service de métriques simple"
 	@echo ""
 	@echo "📊 SURVEILLANCE:"
 	@echo "  make status          - État de tous les services"
@@ -68,44 +69,19 @@ help: ## Afficher l'aide complète organisée par catégories
 	@echo "  make frontend-rebuild - Reconstruire le frontend sans cache"
 	@echo "  make migrate         - Appliquer les migrations BDD"
 	@echo ""
-	@echo "🎯 GESTION SERVICES:"
-	@echo "  make start-system    - Démarrer services système (stats) + métriques"
-	@echo "  make start-deployment - Démarrer service de déploiement"
-	@echo "  make start-security  - Démarrer service de sécurité"
-	@echo "  make stop-system     - Arrêter services système"
-	@echo "  make stop-deployment - Arrêter service de déploiement"
-	@echo "  make stop-security   - Arrêter service de sécurité"
-	@echo "  make restart-system  - Redémarrer services système"
-	@echo ""
-	@echo "🔍 DIAGNOSTIC & PREVENTION:"
-	@echo "  make diagnose        - Diagnostic complet du système"
-	@echo "  make check-deps      - Vérifier toutes les dépendances"
-	@echo "  make check-health    - Vérification santé préventive"
-	@echo "  make backup          - Sauvegarde complète du projet"
-	@echo "  make clean-logs      - Nettoyer les anciens logs"
-	@echo "  make check-disk      - Vérifier l'espace disque"
-	@echo ""
-	@echo "📁 ORGANISATION:"
-	@echo "  📂 makefiles/     - Tous les sous-Makefiles organisés"
-	@echo "  📂 scripts/       - Tous les scripts utilitaires"
-	@echo "  📂 backend/      - Microservices backend"
-	@echo "  📂 frontend/     - Interface Next.js"
-	@echo ""
 	@echo "💡 EXEMPLES D'USAGE:"
 	@echo "  make up && make logs                    # Démarrer et surveiller"
 	@echo "  make fix && make create-admin          # Corriger et configurer"
 	@echo "  make test-e2e && make status           # Tester et vérifier"
 	@echo ""
-	@echo "⚠️ IMPORTANT:"
-	@echo "  • Utilisez 'make help-backend' pour les commandes backend uniquement"
-	@echo "  • Utilisez 'make help-frontend' pour les commandes frontend uniquement"
-	@echo "  • Utilisez 'make help-tests' pour les commandes de tests uniquement"
+	@echo "📖 COMMANDES UTILES:"
+	@echo "  • Démarrage:     make up"
+	@echo "  • Arrêt:         make down"
+	@echo "  • Nettoyage:     make clean"
+	@echo "  • Reconstruction: make frontend-rebuild"
+	@echo "  • Métriques:     make verify-services"
 	@echo ""
-	@echo "📖 GUIDES DETAILLES:"
-	@echo "  Backend:     make help-backend"
-	@echo "  Frontend:    make help-frontend"
-	@echo "  Tests:       make help-tests"
-	@echo "  Scripts:     make help-scripts"
+	@echo "✅ Utilisez 'make <commande>' pour exécuter une commande spécifique"
 
 # ============================================================================
 # DEMARRAGE ET ARRET
@@ -118,9 +94,9 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 
 	# Vérifier et gérer les services existants
 	@if [ $$(docker ps | grep -c "jobbingtrack") -gt 0 ]; then \
-		echo "⚠️ Services déjà démarrés détectés"; \
-		echo "💡 Utilisez 'make down' pour arrêter d'abord"; \
-		exit 1; \
+		echo "⚠️ Services déjà démarrés détectés - arrêt en cours..."; \
+		$(MAKE) down >/dev/null 2>&1 || true; \
+		sleep 3; \
 	fi
 
 	# Démarrer l'infrastructure d'abord (PostgreSQL + Redis)
@@ -194,7 +170,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@echo "  Dashboard admin:    http://localhost:8080/backoffice"
 	@echo ""
 	@echo "📊 Services de métriques:"
-	@echo "  Metrics Aggregator: http://localhost:3014"
+	@echo "  Simple Metrics: http://localhost:3014"
 	@echo "  cAdvisor:           http://localhost:8080/api/v1.3/docker/"
 	@echo "  Prometheus:         http://localhost:9090"
 	@echo ""
@@ -332,7 +308,7 @@ dev: check-deps ## Mode développement avec hot reload
 	@echo "  Dashboard admin:    http://localhost:8080/backoffice"
 	@echo ""
 	@echo "📊 Services de métriques:"
-	@echo "  Metrics Aggregator: http://localhost:3014"
+	@echo "  Simple Metrics: http://localhost:3014"
 	@echo "  cAdvisor:           http://localhost:8080/api/v1.3/docker/"
 	@echo "  Prometheus:         http://localhost:9090"
 	@echo ""
@@ -485,22 +461,58 @@ health: ## Vérification de la santé de tous les services
 # COMMANDES AVANCEES - DELEGATION AUX SOUS-MAKEFILES
 # ============================================================================
 
-# Appeler les sous-Makefiles avec délégation
+# Système de délégation amélioré pour permettre l'utilisation des commandes
+# des sous-Makefiles depuis n'importe quel répertoire du projet
+
+# Commandes backend disponibles depuis n'importe où
 %-backend: ## Déléguer aux commandes backend (ex: make build-backend)
-	@echo "🔧 Exécution: $(subst -backend,,$@) (backend uniquement)"
-	@cd $(BACKEND_DIR) && $(MAKE) $(subst -backend,,$@)
+	@echo "🔧 Exécution backend: $(subst -backend,,$@)"
+	@if [ -f "makefiles/backend/Makefile" ]; then \
+		cd makefiles/backend && $(MAKE) $(subst -backend,,$@); \
+	else \
+		echo "❌ Aucun Makefile backend trouvé dans makefiles/backend/"; \
+		echo "💡 Les commandes backend ne sont pas encore implémentées"; \
+	fi
 
+# Commandes frontend disponibles depuis n'importe où
 %-frontend: ## Déléguer aux commandes frontend (ex: make build-frontend)
-	@echo "🔧 Exécution: $(subst -frontend,,$@) (frontend uniquement)"
-	@cd $(FRONTEND_DIR) && $(MAKE) $(subst -frontend,,$@)
+	@echo "🔧 Exécution frontend: $(subst -frontend,,$@)"
+	@if [ -f "makefiles/frontend/Makefile" ]; then \
+		cd makefiles/frontend && $(MAKE) $(subst -frontend,,$@); \
+	else \
+		echo "❌ Aucun Makefile frontend trouvé dans makefiles/frontend/"; \
+		echo "💡 Les commandes frontend ne sont pas encore implémentées"; \
+	fi
 
+# Commandes tests disponibles depuis n'importe où
 %-tests: ## Déléguer aux commandes de tests (ex: make test-all-tests)
-	@echo "🔧 Exécution: $(subst -tests,,$@) (tests uniquement)"
-	@cd $(TESTS_DIR) && $(MAKE) $(subst -tests,,$@)
+	@echo "🔧 Exécution tests: $(subst -tests,,$@)"
+	@if [ -f "makefiles/tests/Makefile" ]; then \
+		cd makefiles/tests && $(MAKE) $(subst -tests,,$@); \
+	else \
+		echo "❌ Aucun Makefile tests trouvé dans makefiles/tests/"; \
+		echo "💡 Les commandes de tests ne sont pas encore implémentées"; \
+	fi
 
+# Commandes scripts disponibles depuis n'importe où
 %-scripts: ## Déléguer aux scripts utilitaires (ex: make diagnostic-scripts)
-	@echo "🔧 Exécution: $(subst -scripts,,$@) (scripts uniquement)"
-	@bash $(SCRIPTS_DIR)/$(subst -scripts,,$@).sh
+	@echo "🔧 Exécution scripts: $(subst -scripts,,$@)"
+	@if [ -f "scripts/$(subst -scripts,,$@).sh" ]; then \
+		bash scripts/$(subst -scripts,,$@).sh; \
+	else \
+		echo "❌ Script non trouvé: scripts/$(subst -scripts,,$@).sh"; \
+		echo "💡 Liste des scripts disponibles:"; \
+		ls scripts/*.sh | sed 's/scripts\///' | sed 's/\.sh//' | sed 's/^/   make ...-scripts /'; \
+	fi
+
+# Commandes root disponibles depuis n'importe où
+%-root: ## Déléguer aux commandes root (ex: make install-root)
+	@echo "🔧 Exécution root: $(subst -root,,$@)"
+	@if [ -f "makefiles/root/Makefile" ]; then \
+		cd makefiles/root && $(MAKE) $(subst -root,,$@); \
+	else \
+		echo "❌ Aucun Makefile root trouvé dans makefiles/root/"; \
+	fi
 
 # ============================================================================
 # GESTION DES CONTENEURS DOCKER
@@ -522,33 +534,59 @@ fix-webpack: ## Diagnostiquer et corriger les problèmes de chunks webpack manqu
 verify-services: ## Vérifier que tous les services démarrent correctement
 	@bash $(SCRIPTS_DIR)/utilities/verify-services.sh $(wordlist 2, 100, $(MAKECMDGOALS))
 
+# Démarrage du service de métriques simple
+start-simple-metrics: ## Démarrer le service de métriques simple
+	@bash $(SCRIPTS_DIR)/utilities/start-simple-metrics.sh $(wordlist 2, 100, $(MAKECMDGOALS))
+
 # Règle pour ignorer les arguments non-cible
 %:
 	@:
 
 # ============================================================================
-# COMMANDES CONTEXTUELLES
+# COMMANDES CONTEXTUELLES - AIDE POUR LES SOUS-MAKEFILES
 # ============================================================================
 
-# Aide backend
-help-backend: ## Aide pour les commandes backend
-	@echo "📚 Commandes Backend (microservices):"
-	@cd $(BACKEND_DIR) && $(MAKE) help
+# Aide backend - utilise le Makefile root qui a les couleurs
+help-backend: ## Aide pour les commandes backend disponibles depuis n'importe où
+	@echo "📚 Commandes Backend (accessibles depuis n'importe où avec -backend):"
+	@echo ""
+	@if [ -f "makefiles/backend/Makefile" ]; then \
+		cd makefiles/backend && $(MAKE) help 2>/dev/null || echo "   Makefile backend existe mais pas de cible help"; \
+	else \
+		echo "   Aucun Makefile backend trouvé"; \
+		echo "   💡 Utilisez: make <commande>-backend pour déléguer"; \
+	fi
 
-# Aide frontend
-help-frontend: ## Aide pour les commandes frontend
-	@echo "📚 Commandes Frontend (Next.js):"
-	@cd $(FRONTEND_DIR) && $(MAKE) help
+# Aide frontend - utilise le Makefile root qui a les couleurs
+help-frontend: ## Aide pour les commandes frontend disponibles depuis n'importe où
+	@echo "📚 Commandes Frontend (accessibles depuis n'importe où avec -frontend):"
+	@echo ""
+	@if [ -f "makefiles/frontend/Makefile" ]; then \
+		cd makefiles/frontend && $(MAKE) help 2>/dev/null || echo "   Makefile frontend existe mais pas de cible help"; \
+	else \
+		echo "   Aucun Makefile frontend trouvé"; \
+		echo "   💡 Utilisez: make <commande>-frontend pour déléguer"; \
+	fi
 
-# Aide tests
-help-tests: ## Aide pour les commandes de tests
-	@echo "📚 Commandes de Tests:"
-	@cd $(TESTS_DIR) && $(MAKE) help
+# Aide tests - utilise le Makefile root qui a les couleurs
+help-tests: ## Aide pour les commandes de tests disponibles depuis n'importe où
+	@echo "📚 Commandes de Tests (accessibles depuis n'importe où avec -tests):"
+	@echo ""
+	@if [ -f "makefiles/tests/Makefile" ]; then \
+		cd makefiles/tests && $(MAKE) help 2>/dev/null || echo "   Makefile tests existe mais pas de cible help"; \
+	else \
+		echo "   Aucun Makefile tests trouvé"; \
+		echo "   💡 Utilisez: make <commande>-tests pour déléguer"; \
+	fi
 
-# Aide scripts
-help-scripts: ## Aide pour les scripts utilitaires
-	@echo "📚 Scripts utilitaires:"
-	@bash $(SCRIPTS_DIR)/deployment/diagnostic-fix.sh help
+# Aide scripts - liste les scripts disponibles
+help-scripts: ## Aide pour les scripts utilitaires disponibles depuis n'importe où
+	@echo "📚 Scripts Utilitaires (accessibles depuis n'importe où avec -scripts):"
+	@echo ""
+	@echo "💡 Utilisez: make <nom-script>-scripts"
+	@echo ""
+	@echo "📋 Scripts disponibles:"
+	@ls scripts/*.sh 2>/dev/null | sed 's/scripts\///' | sed 's/\.sh//' | sed 's/^/   make /' | sed 's/$$/-scripts/' || echo "   Aucun script trouvé dans scripts/"
 
 # ============================================================================
 # VARIABLES D'ENVIRONNEMENT
@@ -810,7 +848,7 @@ metrics-start: ## Démarrer le système de métriques (cAdvisor + Metrics Aggreg
 	@echo "✅ Système de métriques démarré"
 	@echo ""
 	@echo "📈 Services de métriques disponibles :"
-	@echo "  • Metrics Aggregator: http://localhost:3014"
+	@echo "  • Simple Metrics: http://localhost:3014"
 	@echo "  • cAdvisor:          http://localhost:8080"
 	@echo "  • Prometheus:        http://localhost:9090"
 

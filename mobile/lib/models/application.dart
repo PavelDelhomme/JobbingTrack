@@ -1,3 +1,6 @@
+import 'user.dart';
+import 'company.dart';
+
 class Application {
   final String id;
   final String position;
@@ -70,50 +73,6 @@ class Application {
       'createdBy': createdBy.toJson(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-    };
-  }
-}
-
-class Company {
-  final String id;
-  final String name;
-  final String website;
-  final String industry;
-  final String size;
-  final String location;
-  final String description;
-
-  const Company({
-    required this.id,
-    required this.name,
-    required this.website,
-    required this.industry,
-    required this.size,
-    required this.location,
-    required this.description,
-  });
-
-  factory Company.fromJson(Map<String, dynamic> json) {
-    return Company(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      website: json['website'] ?? '',
-      industry: json['industry'] ?? '',
-      size: json['size'] ?? '',
-      location: json['location'] ?? '',
-      description: json['description'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'website': website,
-      'industry': industry,
-      'size': size,
-      'location': location,
-      'description': description,
     };
   }
 }

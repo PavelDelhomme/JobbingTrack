@@ -709,6 +709,124 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// ✅ CUSTOMIZATION - Gestion de la personnalisation utilisateur
+const getUserCustomization = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Rechercher les paramètres de personnalisation de l'utilisateur
+    let customization = await prisma.userCustomization.findUnique({
+      where: { userId }
+    });
+
+    if (!customization) {
+      // Créer des paramètres par défaut pour l'utilisateur
+      const defaultSettings = {
+        theme: 'auto',
+        language: 'fr',
+        dashboardLayout: 'grid',
+        primaryColor: '#3B82F6',
+        accentColor: '#10B981',
+        sidebarCollapsed: false,
+        compactMode: false,
+        showAnimations: true,
+        itemsPerPage: 20,
+        autoRefresh: true,
+        refreshInterval: 30,
+        notifications: {
+          enabled: true,
+          sound: true,
+          position: 'top-right',
+          duration: 5000
+        },
+        accessibility: {
+          highContrast: false,
+          largeText: false,
+          reduceMotion: false,
+          focusIndicators: true
+        },
+        dataRetention: {
+          cacheDuration: 7,
+          syncFrequency: 5,
+          offlineMode: true
+        }
+      };
+
+      // Créer les paramètres par défaut
+      customization = await prisma.userCustomization.create({
+        data: {
+          userId,
+          settings: defaultSettings
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: customization.settings
+    });
+
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des paramètres de personnalisation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des paramètres de personnalisation'
+    });
+  }
+};
+
+const saveUserCustomization = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const userId = req.user.id;
+    const customizationData = req.body;
+
+    // Rechercher les paramètres existants
+    let customization = await prisma.userCustomization.findUnique({
+      where: { userId }
+    });
+
+    if (customization) {
+      // Mettre à jour les paramètres existants
+      customization = await prisma.userCustomization.update({
+        where: { userId },
+        data: {
+          settings: customizationData,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      // Créer de nouveaux paramètres
+      customization = await prisma.userCustomization.create({
+        data: {
+          userId,
+          settings: customizationData
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: customization.settings,
+      message: 'Paramètres de personnalisation sauvegardés avec succès'
+    });
+
+  } catch (error) {
+    logger.error('Erreur lors de la sauvegarde des paramètres de personnalisation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la sauvegarde des paramètres de personnalisation'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -721,5 +839,7 @@ module.exports = {
   deleteUser,
   forgotPassword,
   verifyResetToken,
-  resetPassword
+  resetPassword,
+  getUserCustomization,
+  saveUserCustomization
 };
