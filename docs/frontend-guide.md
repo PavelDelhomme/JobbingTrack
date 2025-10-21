@@ -1,6 +1,6 @@
 # 🔗 Frontend - Redirection Documentation
 
-**📚 La documentation complète du frontend est disponible dans la [documentation centralisée](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
+**📚 La documentation complète du frontend est disponible dans la [documentation centralisée](https://github.com/OWNER/JobbingTrack/blob/main/docs/README.md)**
 
 ## 🚀 Accès Rapide
 
@@ -22,10 +22,10 @@
 ## 🧭 Navigation
 
 ### 📚 **Documentation du Projet**
-- **[Accueil](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/README.md)** | **[Documentation Centralisée](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/docs/README.md)**
+- **[Accueil](https://github.com/OWNER/JobbingTrack/blob/main/README.md)** | **[Documentation Centralisée](https://github.com/OWNER/JobbingTrack/blob/main/docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](https://github.com/OWNER/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
+- **[Guide Installation](https://github.com/OWNER/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
 - **[Documentation API](../docs/api/v1/endpoints.md)** | **[API Technique](../docs/technical/api.md)**

@@ -6,6 +6,52 @@
 
 > **Plateforme complète de gestion de candidatures et de recrutement** avec architecture microservices, monitoring intégré et déploiement automatisé.
 
+## 📚 Documentation Téléchargeable
+
+### 📖 **[Documentation Complète](https://github.com/OWNER/JobbingTrack/blob/main/README.md)**
+- Vue d'ensemble complète du projet JobbingTrack
+- Architecture technique détaillée
+- Guides de démarrage et d'utilisation
+- Documentation API complète
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/documentation-complete.pdf)**
+
+### 🚀 **[Guide de Démarrage Rapide](https://github.com/OWNER/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)**
+- Installation et configuration express
+- Premiers pas avec JobbingTrack
+- Configuration des services
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/guide-demarrage-rapide.pdf)**
+
+### 📋 **[Historique des Versions](https://github.com/OWNER/JobbingTrack/blob/main/VERSION.md)**
+- Évolution complète du projet
+- Fonctionnalités par version
+- Roadmap et planning
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/VERSION.pdf)**
+
+### 📖 **[Documentation Services](https://github.com/OWNER/JobbingTrack/blob/main/docs/services.md)**
+- Description détaillée de tous les services
+- Configuration et utilisation
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/services.pdf)**
+
+### 📋 **[Guide Makefile](https://github.com/OWNER/JobbingTrack/blob/main/docs/makefile-guide.md)**
+- Toutes les commandes disponibles
+- Guide d'utilisation détaillé
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/makefile-guide.pdf)**
+
+### 🏗️ **[Guide Architecture](https://github.com/OWNER/JobbingTrack/blob/main/docs/architecture-guide.md)**
+- Architecture technique complète
+- Diagrammes et schémas
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/architecture-guide.pdf)**
+
+### 🗄️ **[Guide Base de données](https://github.com/OWNER/JobbingTrack/blob/main/docs/database-guide.md)**
+- Configuration et utilisation PostgreSQL
+- Migrations et sauvegardes
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/database-guide.pdf)**
+
+### 🚀 **[Guide Déploiement](https://github.com/OWNER/JobbingTrack/blob/main/docs/deployment-production.md)**
+- Déploiement en production
+- Configuration Docker et Kubernetes
+- **📥 [Télécharger en PDF](https://github.com/OWNER/JobbingTrack/raw/main/docs/pdfs/deployment-production.pdf)**
+
 ## 📋 Table des matières
 
 - [🚀 Démarrage rapide](#-démarrage-rapide)
@@ -34,7 +80,7 @@
 
 ```bash
 # 1. Cloner le repository
-git clone https://github.com/yourusername/jobbingtrack.git
+git clone https://github.com/AdminJobbingTrack/jobbingtrack.git
 cd jobbingtrack
 
 # 2. Installer les dépendances système
@@ -72,43 +118,43 @@ make cadvisor # cAdvisor
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    JobbingTrack - Architecture                   │
+│                    JobbingTrack - Architecture                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  🌐 Frontend (React/Next.js)                                   │
-│     ├── Dashboard administrateur                               │
-│     ├── Interface de gestion des candidatures                  │
-│     └── API de gestion des services                            │
+│  🌐 Frontend (React/Next.js)                                    │
+│     ├── Dashboard administrateur                                │
+│     ├── Interface de gestion des candidatures                   │
+│     └── API de gestion des services                             │
 │                                                                 │
-│  🚪 API Gateway (Node.js)                                      │
-│     ├── Routage vers les microservices                         │
-│     ├── Authentification JWT                                   │
-│     └── Rate limiting                                          │
+│  🚪 API Gateway (Node.js)                                       │
+│     ├── Routage vers les microservices                          │
+│     ├── Authentification JWT                                    │
+│     └── Rate limiting                                           │
 │                                                                 │
-│  🗄️ Base de données (PostgreSQL)                              │
-│     ├── Tables utilisateurs, entreprises, candidatures         │
-│     ├── Relations et contraintes                               │
-│     └── Sauvegardes automatiques                               │
+│  🗄️ Base de données (PostgreSQL)                                │
+│     ├── Tables utilisateurs, entreprises, candidatures          │
+│     ├── Relations et contraintes                                │
+│     └── Sauvegardes automatiques                                │
 │                                                                 │
-│  💾 Cache (Redis)                                              │
-│     ├── Sessions utilisateur                                   │
-│     ├── Cache d'API                                            │
-│     └── Files temporaires                                      │
+│  💾 Cache (Redis)                                               │
+│     ├── Sessions utilisateur                                    │
+│     ├── Cache d'API                                             │
+│     └── Files temporaires                                       │
 │                                                                 │
-│  📊 Monitoring (Prometheus + Grafana + cAdvisor)              │
-│     ├── Métriques système et applicatives                      │
-│     ├── Dashboards de supervision                              │
-│     └── Alertes automatiques                                   │
+│  📊 Monitoring (Prometheus + Grafana + cAdvisor)                │
+│     ├── Métriques système et applicatives                       │
+│     ├── Dashboards de supervision                               │
+│     └── Alertes automatiques                                    │
 │                                                                 │
-│  🔧 Microservices métier                                       │
-│     ├── Authentification                                       │
-│     ├── Gestion des candidatures                               │
-│     ├── Gestion des entreprises                                │
-│     ├── Gestion des contacts                                   │
-│     ├── Gestion des entretiens                                 │
-│     ├── Notifications                                          │
-│     ├── Workflows                                              │
-│     └── Analytics                                              │
+│  🔧 Microservices métier                                        │
+│     ├── Authentification                                        │
+│     ├── Gestion des candidatures                                │
+│     ├── Gestion des entreprises                                 │
+│     ├── Gestion des contacts                                    │
+│     ├── Gestion des entretiens                                  │
+│     ├── Notifications                                           │
+│     ├── Workflows                                               │
+│     └── Analytics                                               │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
