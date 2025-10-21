@@ -1,0 +1,175 @@
+{
+  "profiles": {
+    "auth": {
+      "name": "Authentification",
+      "description": "Services liés à l'authentification et la gestion des utilisateurs",
+      "services": ["auth-service"],
+      "color": "#3b82f6",
+      "icon": "🔐",
+      "essential": false
+    },
+    "applications": {
+      "name": "Candidatures",
+      "description": "Services de gestion des candidatures et applications",
+      "services": ["application-service"],
+      "color": "#10b981",
+      "icon": "📋",
+      "essential": false
+    },
+    "companies": {
+      "name": "Entreprises",
+      "description": "Services de gestion des entreprises et contacts",
+      "services": ["company-service"],
+      "color": "#f59e0b",
+      "icon": "🏢",
+      "essential": false
+    },
+    "contacts": {
+      "name": "Contacts",
+      "description": "Services de gestion des contacts et relations",
+      "services": ["contact-service"],
+      "color": "#8b5cf6",
+      "icon": "👥",
+      "essential": false
+    },
+    "interviews": {
+      "name": "Entretiens",
+      "description": "Services de gestion des entretiens et rendez-vous",
+      "services": ["interview-service"],
+      "color": "#ef4444",
+      "icon": "🎤",
+      "essential": false
+    },
+    "notifications": {
+      "name": "Notifications",
+      "description": "Services de gestion des notifications et alertes",
+      "services": ["notification-service"],
+      "color": "#06b6d4",
+      "icon": "🔔",
+      "essential": false
+    },
+    "dashboard": {
+      "name": "Tableau de bord",
+      "description": "Services de tableau de bord et analytics",
+      "services": ["dashboard-service"],
+      "color": "#84cc16",
+      "icon": "📊",
+      "essential": false
+    },
+    "calls": {
+      "name": "Appels",
+      "description": "Services de gestion des appels téléphoniques",
+      "services": ["call-service"],
+      "color": "#f97316",
+      "icon": "📞",
+      "essential": false
+    },
+    "profiles": {
+      "name": "Profils",
+      "description": "Services de gestion des profils utilisateurs",
+      "services": ["profile-service"],
+      "color": "#ec4899",
+      "icon": "👤",
+      "essential": false
+    },
+    "events": {
+      "name": "Événements",
+      "description": "Services de gestion des événements et calendrier",
+      "services": ["event-service"],
+      "color": "#6366f1",
+      "icon": "📅",
+      "essential": false
+    },
+    "followups": {
+      "name": "Suivi",
+      "description": "Services de suivi et relance des candidatures",
+      "services": ["followup-service"],
+      "color": "#14b8a6",
+      "icon": "🔄",
+      "essential": false
+    },
+    "workflows": {
+      "name": "Workflows",
+      "description": "Services de gestion des workflows et processus",
+      "services": ["workflow-service"],
+      "color": "#f43f5e",
+      "icon": "⚙️",
+      "essential": false
+    },
+    "monitoring": {
+      "name": "Monitoring",
+      "description": "Services de surveillance et métriques système",
+      "services": ["metrics-aggregator", "cadvisor", "prometheus", "grafana"],
+      "color": "#6b7280",
+      "icon": "📈",
+      "essential": false,
+      "monitoring": true
+    },
+    "full": {
+      "name": "Complet",
+      "description": "Tous les services disponibles",
+      "services": [
+        "auth-service", "application-service", "company-service",
+        "contact-service", "interview-service", "notification-service",
+        "dashboard-service", "call-service", "profile-service",
+        "event-service", "followup-service", "workflow-service",
+        "metrics-aggregator", "cadvisor", "prometheus", "grafana"
+      ],
+      "color": "#059669",
+      "icon": "🚀",
+      "essential": false,
+      "complete": true
+    }
+  },
+  "service_groups": {
+    "essential": {
+      "name": "Services essentiels",
+      "description": "Services toujours démarrés (base du système)",
+      "services": ["postgres", "redis", "api-gateway", "frontend", "metrics-aggregator", "cadvisor"],
+      "color": "#dc2626",
+      "icon": "🔴",
+      "always_running": true
+    },
+    "business_logic": {
+      "name": "Logique métier",
+      "description": "Services contenant la logique métier principale",
+      "services": [
+        "auth-service", "application-service", "company-service",
+        "contact-service", "interview-service", "notification-service",
+        "dashboard-service", "call-service", "profile-service",
+        "event-service", "followup-service", "workflow-service"
+      ],
+      "color": "#2563eb",
+      "icon": "💼"
+    },
+    "monitoring": {
+      "name": "Surveillance",
+      "description": "Services de monitoring et métriques",
+      "services": ["prometheus", "grafana"],
+      "color": "#7c3aed",
+      "icon": "📊"
+    }
+  },
+  "dependencies": {
+    "postgres": [],
+    "redis": [],
+    "api-gateway": ["postgres", "redis"],
+    "frontend": ["api-gateway"],
+    "auth-service": ["postgres", "redis", "api-gateway"],
+    "application-service": ["postgres", "redis", "api-gateway"],
+    "company-service": ["postgres", "redis", "api-gateway"],
+    "contact-service": ["postgres", "redis", "api-gateway"],
+    "interview-service": ["postgres", "redis", "api-gateway"],
+    "notification-service": ["postgres", "redis", "api-gateway"],
+    "dashboard-service": ["postgres", "redis", "api-gateway"],
+    "call-service": ["postgres", "redis", "api-gateway"],
+    "profile-service": ["postgres", "redis", "api-gateway"],
+    "event-service": ["postgres", "redis", "api-gateway"],
+    "followup-service": ["postgres", "redis", "api-gateway"],
+    "workflow-service": ["postgres", "redis", "api-gateway"],
+    "metrics-aggregator": ["postgres"],
+    "cadvisor": [],
+    "prometheus": [],
+    "grafana": []
+  }
+}

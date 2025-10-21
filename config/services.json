@@ -1,0 +1,245 @@
+{
+  "services": {
+    "postgres": {
+      "essential": true,
+      "port": 5432,
+      "healthcheck": "/scripts/health/check-database.sh",
+      "description": "Base de données PostgreSQL",
+      "depends_on": [],
+      "networks": ["jobbingtrack"],
+      "volumes": ["postgres_data"],
+      "restart_policy": "unless-stopped"
+    },
+    "redis": {
+      "essential": true,
+      "port": 6379,
+      "healthcheck": "/scripts/health/check-redis.sh",
+      "description": "Cache Redis",
+      "depends_on": [],
+      "networks": ["jobbingtrack"],
+      "volumes": ["redis_data"],
+      "restart_policy": "unless-stopped"
+    },
+    "api-gateway": {
+      "essential": true,
+      "port": 3000,
+      "healthcheck": "http://localhost:3000/health",
+      "description": "API Gateway (cœur du système)",
+      "depends_on": ["postgres", "redis"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "frontend": {
+      "essential": true,
+      "port": 8080,
+      "healthcheck": "http://localhost:8080",
+      "description": "Interface utilisateur (dashboard)",
+      "depends_on": ["api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "auth-service": {
+      "essential": false,
+      "profile": "auth",
+      "port": 3001,
+      "healthcheck": "http://localhost:3001/health",
+      "description": "Service d'authentification",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "application-service": {
+      "essential": false,
+      "profile": "applications",
+      "port": 3002,
+      "healthcheck": "http://localhost:3002/health",
+      "description": "Service de gestion des candidatures",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "company-service": {
+      "essential": false,
+      "profile": "companies",
+      "port": 3003,
+      "healthcheck": "http://localhost:3003/health",
+      "description": "Service de gestion des entreprises",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "contact-service": {
+      "essential": false,
+      "profile": "contacts",
+      "port": 3004,
+      "healthcheck": "http://localhost:3004/health",
+      "description": "Service de gestion des contacts",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "interview-service": {
+      "essential": false,
+      "profile": "interviews",
+      "port": 3005,
+      "healthcheck": "http://localhost:3005/health",
+      "description": "Service de gestion des entretiens",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "notification-service": {
+      "essential": false,
+      "profile": "notifications",
+      "port": 3006,
+      "healthcheck": "http://localhost:3006/health",
+      "description": "Service de notifications",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "dashboard-service": {
+      "essential": false,
+      "profile": "dashboard",
+      "port": 3007,
+      "healthcheck": "http://localhost:3007/health",
+      "description": "Service de tableau de bord",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "call-service": {
+      "essential": false,
+      "profile": "calls",
+      "port": 3008,
+      "healthcheck": "http://localhost:3008/health",
+      "description": "Service de gestion des appels",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "profile-service": {
+      "essential": false,
+      "profile": "profiles",
+      "port": 3009,
+      "healthcheck": "http://localhost:3009/health",
+      "description": "Service de gestion des profils",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "event-service": {
+      "essential": false,
+      "profile": "events",
+      "port": 3011,
+      "healthcheck": "http://localhost:3011/health",
+      "description": "Service de gestion des événements",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "followup-service": {
+      "essential": false,
+      "profile": "followups",
+      "port": 3012,
+      "healthcheck": "http://localhost:3012/health",
+      "description": "Service de suivi des candidatures",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "workflow-service": {
+      "essential": false,
+      "profile": "workflows",
+      "port": 3013,
+      "healthcheck": "http://localhost:3013/health",
+      "description": "Service de gestion des workflows",
+      "depends_on": ["postgres", "redis", "api-gateway"],
+      "networks": ["jobbingtrack"],
+      "restart_policy": "unless-stopped"
+    },
+    "metrics-aggregator": {
+      "essential": true,
+      "port": 3014,
+      "healthcheck": "http://localhost:3014/health",
+      "description": "Agrégateur de métriques système",
+      "depends_on": ["postgres"],
+      "networks": ["jobbingtrack"],
+      "profiles": ["monitoring", "full"],
+      "restart_policy": "unless-stopped"
+    },
+    "cadvisor": {
+      "essential": true,
+      "port": 8080,
+      "healthcheck": "http://localhost:8080/api/v1.3/docker/",
+      "description": "Monitoring des conteneurs Docker",
+      "depends_on": [],
+      "networks": ["jobbingtrack"],
+      "profiles": ["monitoring", "full"],
+      "restart_policy": "unless-stopped",
+      "privileged": true
+    },
+    "prometheus": {
+      "essential": false,
+      "port": 9090,
+      "healthcheck": "http://localhost:9090/-/healthy",
+      "description": "Collecte et stockage des métriques",
+      "depends_on": [],
+      "networks": ["jobbingtrack"],
+      "profiles": ["monitoring", "full"],
+      "restart_policy": "unless-stopped"
+    },
+    "grafana": {
+      "essential": false,
+      "port": 4000,
+      "healthcheck": "http://localhost:4000/api/health",
+      "description": "Visualisation des métriques",
+      "depends_on": [],
+      "networks": ["jobbingtrack"],
+      "profiles": ["monitoring", "full"],
+      "restart_policy": "unless-stopped"
+    }
+  },
+  "profiles": {
+    "auth": ["auth-service"],
+    "applications": ["application-service"],
+    "companies": ["company-service"],
+    "contacts": ["contact-service"],
+    "interviews": ["interview-service"],
+    "notifications": ["notification-service"],
+    "dashboard": ["dashboard-service"],
+    "calls": ["call-service"],
+    "profiles": ["profile-service"],
+    "events": ["event-service"],
+    "followups": ["followup-service"],
+    "workflows": ["workflow-service"],
+    "monitoring": ["metrics-aggregator", "cadvisor", "prometheus", "grafana"],
+    "full": [
+      "auth-service", "application-service", "company-service",
+      "contact-service", "interview-service", "notification-service",
+      "dashboard-service", "call-service", "profile-service",
+      "event-service", "followup-service", "workflow-service",
+      "metrics-aggregator", "cadvisor", "prometheus", "grafana"
+    ]
+  },
+  "networks": {
+    "jobbingtrack": {
+      "driver": "bridge",
+      "name": "jobbingtrack-network"
+    }
+  },
+  "volumes": {
+    "postgres_data": {
+      "name": "jobbingtrack_postgres_data"
+    },
+    "redis_data": {
+      "name": "jobbingtrack_redis_data"
+    },
+    "grafana_data": {
+      "name": "jobbingtrack_grafana_data"
+    },
+    "prometheus_data": {
+      "name": "jobbingtrack_prometheus_data"
+    }
+  }
+}
