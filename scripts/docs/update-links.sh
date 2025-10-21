@@ -1,202 +1,253 @@
 #!/usr/bin/env bash
 
 # ============================================================================
-# Script de mise à jour des liens de documentation - JobbingTrack
+# Script de mise à jour des liens - JobbingTrack
 # ============================================================================
-# Met à jour automatiquement tous les liens dans les fichiers de documentation
-# pour qu'ils pointent vers la branche principale (main) au lieu de feat/frontend-dashboard
-#
-# Usage: ./scripts/docs/update-links.sh [OPTIONS]
-#
-# Options:
-#   --dry-run         Afficher les changements sans les appliquer
-#   --target-branch   Branche cible (défaut: main)
-#   --source-branch   Branche source à remplacer (défaut: feat/frontend-dashboard)
-#   --help           Afficher cette aide
-#
-# Exemples:
-#   ./scripts/docs/update-links.sh
-#   ./scripts/docs/update-links.sh --dry-run
+# Met à jour tous les liens dans la documentation pour qu'ils soient relatifs
 # ============================================================================
 
 set -e
 
 # Couleurs pour les messages
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-DRY_RUN=false
-TARGET_BRANCH="main"
-SOURCE_BRANCH="feat/frontend-dashboard"
+# Fonctions de logging
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
 # Fonction d'aide
 show_help() {
-    echo -e "${BLUE}🔗 Mise à jour des liens - JobbingTrack${NC}"
-    echo "===================================="
-    echo ""
-    echo "Usage: $0 [OPTIONS]"
-    echo ""
-    echo "Options:"
-    echo "  --dry-run         Afficher les changements sans les appliquer"
-    echo "  --target-branch   Branche cible (défaut: main)"
-    echo "  --source-branch   Branche source à remplacer (défaut: feat/frontend-dashboard)"
-    echo "  --help           Afficher cette aide"
-    echo ""
-    echo "Exemples:"
-    echo "  $0                           # Mise à jour complète"
-    echo "  $0 --dry-run                 # Aperçu des changements"
-    echo "  $0 --target-branch develop    # Vers branche develop"
-    echo ""
-    echo "Liens modifiés:"
-    echo "  • GitHub blob links (raw content)"
-    echo "  • GitHub raw links (PDF downloads)"
-    echo "  • Références croisées entre documents"
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Met à jour tous les liens dans la documentation pour qu'ils soient relatifs.
+
+OPTIONS:
+    --help          Afficher cette aide
+    --dry-run       Afficher les changements sans les appliquer
+    --verbose       Mode verbeux
+    --fix-all       Corriger tous les liens automatiquement
+
+EXEMPLES:
+    $0                    # Mise à jour standard
+    $0 --dry-run          # Voir les changements sans les appliquer
+    $0 --verbose          # Mode verbeux
+    $0 --fix-all          # Corriger automatiquement
+
+EOF
 }
 
-# Gestion des arguments
+# Variables par défaut
+DRY_RUN=false
+VERBOSE=false
+FIX_ALL=false
+PROJECT_ROOT="$(dirname "$0")/../.."
+
+# Traitement des arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        --target-branch)
-            TARGET_BRANCH="$2"
-            shift 2
-            ;;
-        --source-branch)
-            SOURCE_BRANCH="$2"
-            shift 2
-            ;;
         --help)
             show_help
             exit 0
             ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --verbose)
+            VERBOSE=true
+            shift
+            ;;
+        --fix-all)
+            FIX_ALL=true
+            shift
+            ;;
         *)
-            echo -e "${RED}❌ Option inconnue: $1${NC}"
+            log_error "Option inconnue: $1"
             show_help
             exit 1
             ;;
     esac
 done
 
+# Aller à la racine du projet
+cd "$PROJECT_ROOT"
+
+log_info "🔗 Mise à jour des liens dans la documentation JobbingTrack"
+log_info "📁 Répertoire de travail: $(pwd)"
+
+if [[ "$DRY_RUN" == "true" ]]; then
+    log_warning "🔍 Mode DRY-RUN activé - Aucun changement ne sera appliqué"
+fi
+
 # Fonction pour mettre à jour les liens dans un fichier
-update_file_links() {
+update_links_in_file() {
     local file="$1"
-    local changes_made=0
-
-    echo -e "\n${YELLOW}📄 Traitement de: $file${NC}"
-
-    # Créer une sauvegarde temporaire
-    local temp_file=$(mktemp)
-
-    # Mettre à jour les liens GitHub
-    sed -E \
-        -e "s|github\.com/[^/]+/[^/]+/blob/${SOURCE_BRANCH}/|github.com/OWNER/JobbingTrack/blob/${TARGET_BRANCH}/|g" \
-        -e "s|github\.com/[^/]+/[^/]+/raw/${SOURCE_BRANCH}/|github.com/OWNER/JobbingTrack/raw/${TARGET_BRANCH}/|g" \
-        "$file" > "$temp_file"
-
-    # Vérifier si des changements ont été apportés
-    if ! diff -q "$file" "$temp_file" >/dev/null 2>&1; then
-        changes_made=1
-
-        if [ "$DRY_RUN" = true ]; then
-            echo -e "${YELLOW}🔍 Changements détectés (mode dry-run):${NC}"
-            diff "$file" "$temp_file" | head -10
-        else
-            echo -e "${GREEN}✅ Liens mis à jour${NC}"
-            mv "$temp_file" "$file"
-        fi
-    else
-        echo -e "${GREEN}✅ Aucun changement nécessaire${NC}"
+    
+    if [[ ! -f "$file" ]]; then
+        log_error "Fichier introuvable: $file"
+        return 1
     fi
-
-    # Nettoyer le fichier temporaire
-    rm -f "$temp_file"
-
-    return $changes_made
-}
-
-# Fonction pour traiter tous les fichiers de documentation
-update_all_docs() {
-    local docs_dir="$PROJECT_ROOT/docs"
-    local files_updated=0
-
-    echo -e "${BLUE}🔗 Mise à jour des liens de documentation${NC}"
-    echo "========================================="
-    echo "Branche source: $SOURCE_BRANCH"
-    echo "Branche cible: $TARGET_BRANCH"
-    echo ""
-
-    # Traitement des fichiers dans docs/
-    if [ -d "$docs_dir" ]; then
-        echo -e "${YELLOW}📁 Traitement du dossier docs/${NC}"
-
-        while IFS= read -r -d '' file; do
-            if [[ "$file" =~ \.md$ ]]; then
-                if update_file_links "$file"; then
-                    ((files_updated++))
+    
+    log_info "📄 Mise à jour de: $file"
+    
+    local temp_file=$(mktemp)
+    local changes_made=false
+    
+    while IFS= read -r line; do
+        local original_line="$line"
+        local updated_line="$line"
+        
+        # Remplacer les liens GitHub absolus par des liens relatifs
+        # Exemple: https://github.com/user/repo/blob/branch/docs/file.md -> docs/file.md
+        if [[ "$line" =~ https://github\.com/[^/]+/[^/]+/blob/[^/]+/(.*) ]]; then
+            local relative_path="${BASH_REMATCH[1]}"
+            updated_line=$(echo "$line" | sed "s|https://github\.com/[^/]*/[^/]*/blob/[^/]*/$relative_path|$relative_path|g")
+            if [[ "$updated_line" != "$original_line" ]]; then
+                changes_made=true
+                if [[ "$VERBOSE" == "true" ]]; then
+                    log_info "  🔄 Lien mis à jour: $relative_path"
                 fi
             fi
-        done < <(find "$docs_dir" -name "*.md" -print0)
-    fi
-
-    # Traitement du README principal
-    if [ -f "$PROJECT_ROOT/README.md" ]; then
-        echo -e "\n${YELLOW}📄 Traitement du README principal${NC}"
-        if update_file_links "$PROJECT_ROOT/README.md"; then
-            ((files_updated++))
         fi
-    fi
-
-    # Résumé
-    echo -e "\n${BLUE}📊 Résumé de la mise à jour${NC}"
-    echo "=========================="
-
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}🔍 Mode dry-run: $files_updated fichier(s) contiendraient des modifications${NC}"
+        
+        # Remplacer les liens vers la racine du repo
+        # Exemple: https://github.com/user/repo/blob/branch/README.md -> /README.md
+        if [[ "$line" =~ https://github\.com/[^/]+/[^/]+/blob/[^/]+/([^/]+\.md) ]]; then
+            local filename="${BASH_REMATCH[1]}"
+            updated_line=$(echo "$line" | sed "s|https://github\.com/[^/]*/[^/]*/blob/[^/]*/$filename|/$filename|g")
+            if [[ "$updated_line" != "$original_line" ]]; then
+                changes_made=true
+                if [[ "$VERBOSE" == "true" ]]; then
+                    log_info "  🔄 Lien racine mis à jour: /$filename"
+                fi
+            fi
+        fi
+        
+        echo "$updated_line" >> "$temp_file"
+    done < "$file"
+    
+    if [[ "$changes_made" == "true" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log_warning "  📝 Changements détectés (non appliqués)"
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo "    Différences:"
+                diff "$file" "$temp_file" || true
+            fi
+        else
+            mv "$temp_file" "$file"
+            log_success "  ✅ Fichier mis à jour"
+        fi
     else
-        echo -e "${GREEN}✅ $files_updated fichier(s) mis à jour${NC}"
+        rm "$temp_file"
+        log_info "  ℹ️  Aucun changement nécessaire"
     fi
+}
 
-    echo ""
-    echo -e "${BLUE}🔄 Liens remplacés:${NC}"
-    echo "   $SOURCE_BRANCH → $TARGET_BRANCH"
+# Fonction pour ajouter la navigation standard
+add_navigation() {
+    local file="$1"
+    local relative_path="$2"
+    
+    # Déterminer le niveau de navigation basé sur le chemin
+    local nav_level=""
+    if [[ "$relative_path" =~ ^docs/ ]]; then
+        nav_level="../"
+    elif [[ "$relative_path" =~ ^scripts/ ]]; then
+        nav_level="../../"
+    fi
+    
+    # Vérifier si la navigation existe déjà
+    if grep -q "← Retour au README principal" "$file"; then
+        return 0
+    fi
+    
+    log_info "  📝 Ajout de la navigation standard"
+    
+    # Créer le contenu de navigation
+    local nav_content="
+---
 
-    # Retourner 0 pour indiquer le succès, même si aucun fichier n'a été modifié
-    return 0
+[← Retour au README principal](${nav_level}README.md) | [Documentation complète](${nav_level}docs/README.md)
+"
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_warning "  📝 Navigation à ajouter (non appliquée)"
+    else
+        echo "$nav_content" >> "$file"
+        log_success "  ✅ Navigation ajoutée"
+    fi
 }
 
 # Fonction principale
 main() {
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}🔍 MODE DRY-RUN - Aucun fichier ne sera modifié${NC}"
+    local files_updated=0
+    local files_processed=0
+    
+    # Traiter le README principal
+    log_info "📋 Mise à jour du README principal..."
+    update_links_in_file "README.md"
+    ((files_processed++))
+    
+    # Traiter la documentation
+    if [[ -d "docs" ]]; then
+        log_info "📋 Mise à jour de la documentation..."
+        for file in docs/*.md; do
+            if [[ -f "$file" ]]; then
+                update_links_in_file "$file"
+                add_navigation "$file" "$file"
+                ((files_processed++))
+            fi
+        done
     fi
-
-    if ! update_all_docs; then
-        echo -e "${RED}❌ Échec de la mise à jour des liens${NC}"
-        exit 1
+    
+    # Traiter les scripts
+    if [[ -d "scripts" ]]; then
+        log_info "📋 Mise à jour des scripts..."
+        find scripts -name "README.md" -type f | while read -r file; do
+            update_links_in_file "$file"
+            add_navigation "$file" "$file"
+            ((files_processed++))
+        done
     fi
-
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "\n${YELLOW}💡 Utilisez sans --dry-run pour appliquer les changements${NC}"
+    
+    # Résumé
+    echo ""
+    log_info "📊 Résumé de la mise à jour:"
+    log_info "📄 Fichiers traités: $files_processed"
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_warning "🔍 Mode DRY-RUN - Aucun changement appliqué"
+        log_info "💡 Utilisez sans --dry-run pour appliquer les changements"
     else
-        echo -e "\n${GREEN}✅ Mise à jour des liens terminée avec succès !${NC}"
-        echo ""
-        echo -e "${BLUE}🎯 Prochaines étapes:${NC}"
-        echo "   1. Vérifiez les modifications avec 'git diff'"
-        echo "   2. Testez les liens pour vous assurer qu'ils fonctionnent"
-        echo "   3. Committez les changements si tout est correct"
+        log_success "✅ Mise à jour terminée!"
     fi
-
-    return 0
+    
+    # Suggestions
+    echo ""
+    log_info "💡 Suggestions:"
+    echo "   1. Vérifiez que tous les liens fonctionnent"
+    echo "   2. Testez la navigation entre les documents"
+    echo "   3. Vérifiez sur différentes branches"
+    echo "   4. Utilisez ./scripts/docs/verify-links.sh pour vérifier"
 }
 
-# Exécution
+# Exécuter la fonction principale
 main "$@"
