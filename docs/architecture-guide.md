@@ -1,22 +1,22 @@
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/guides/getting-started.md)**
+- **[Guide Installation](/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](/docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/api/v1/endpoints.md)** | **[API Technique](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/api.md)**
+- **[Documentation API](/docs/api/v1/endpoints.md)** | **[API Technique](/docs/technical/api.md)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/deployment.md)**
+- **[Guide Déploiement](/docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](/docs/technical/deployment.md)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
+- **[Scripts et Makefiles](/docs/scripts/makefiles.md)** | **[Documentation Technique](../technical/README.md)**
 
 ### 🔧 **Documentation Technique**
-- **[Architecture](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/architecture.md)** | **[Base de Données](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/database.md)** | **[Sécurité](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/security.md)** | **[Performance](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/technical/performance.md)**
+- **[Architecture](/docs/technical/architecture.md)** | **[Base de Données](/docs/technical/database.md)** | **[Sécurité](/docs/technical/security.md)** | **[Performance](/docs/technical/performance.md)**
 
 ---
 
@@ -27,19 +27,19 @@ Documentation complète de l'architecture technique de JobbingTrack.
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
-- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md)** | **[Documentation Centralisée](../README.md)**
+- **[Accueil](/README.md)** | **[Documentation Centralisée](../README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/guides/getting-started.md)**
+- **[Guide Installation](/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](/docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
-- **[Documentation API](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/api/v1/endpoints.md)** | **[API Technique](./api.md)**
+- **[Documentation API](/docs/api/v1/endpoints.md)** | **[API Technique](./api.md)**
 
 ### 🚀 **Déploiement**
-- **[Guide Déploiement](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](./deployment.md)**
+- **[Guide Déploiement](/docs/deployment/GUIDE-PORTAINER.md)** | **[Déploiement Technique](./deployment.md)**
 
 ### 🛠️ **Outils Développement**
-- **[Scripts et Makefiles](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/scripts/makefiles.md)** | **[Documentation Technique](./README.md)**
+- **[Scripts et Makefiles](/docs/scripts/makefiles.md)** | **[Documentation Technique](./README.md)**
 
 ### 🔧 **Documentation Technique**
 - **[Base de Données](./database.md)** | **[Sécurité](./security.md)** | **[Performance](./performance.md)**

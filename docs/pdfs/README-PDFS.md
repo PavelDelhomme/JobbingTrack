@@ -5,10 +5,10 @@ Cette section contient tous les guides de documentation au format PDF téléchar
 ## 📚 Guides Disponibles
 
 ### Documentation Complète
-- **Vue complète** : [Télécharger PDF](https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md)
+- **Vue complète** : [Télécharger PDF](/README.md)
 
 ### Guide de Démarrage Rapide
-- **Installation** : [Télécharger PDF](https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)
+- **Installation** : [Télécharger PDF](/GUIDE-DEMARRAGE-RAPIDE.md)
 
 ### Historique des Versions
-- **Versions** : [Télécharger PDF](https://github.com/PavelDelhomme/JobbingTrack/blob/main/VERSION.md)
+- **Versions** : [Télécharger PDF](/VERSION.md)

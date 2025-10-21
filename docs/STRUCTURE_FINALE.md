@@ -24,16 +24,16 @@
 ## 📥 Téléchargements PDF Disponibles
 
 ### Documentation Complète
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/documentation-complete.pdf
+- **Vue** : /README.md
+- **PDF** : docs/pdfs/documentation-complete.pdf
 
 ### Guide de Démarrage Rapide
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-demarrage-rapide.pdf
+- **Vue** : /GUIDE-DEMARRAGE-RAPIDE.md
+- **PDF** : docs/pdfs/guide-demarrage-rapide.pdf
 
 ### Historique des Versions
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/VERSION.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/VERSION.pdf
+- **Vue** : /VERSION.md
+- **PDF** : docs/pdfs/VERSION.pdf
 
 ## 🎯 Avantages
 

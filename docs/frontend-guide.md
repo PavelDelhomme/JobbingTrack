@@ -1,6 +1,6 @@
 # 🔗 Frontend - Redirection Documentation
 
-**📚 La documentation complète du frontend est disponible dans la [documentation centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/README.md)**
+**📚 La documentation complète du frontend est disponible dans la [documentation centralisée](/docs/README.md)**
 
 ## 🚀 Accès Rapide
 
@@ -22,10 +22,10 @@
 ## 🧭 Navigation
 
 ### 📚 **Documentation du Projet**
-- **[Accueil](https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md)** | **[Documentation Centralisée](https://github.com/PavelDelhomme/JobbingTrack/blob/main/docs/README.md)**
+- **[Accueil](/README.md)** | **[Documentation Centralisée](/docs/README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[Guide Installation](https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
+- **[Guide Installation](/GUIDE-DEMARRAGE-RAPIDE.md)** | **[Guide Développement](../docs/guides/getting-started.md)**
 
 ### 📡 **API & Intégration**
 - **[Documentation API](../docs/api/v1/endpoints.md)** | **[API Technique](../docs/technical/api.md)**

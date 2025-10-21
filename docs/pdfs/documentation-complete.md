@@ -15,28 +15,28 @@
 
 ## 📚 Documentation Téléchargeable
 
-### 📖 **[Documentation Complète](https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/documentation-complete.pdf)**
+### 📖 **[Documentation Complète](docs/pdfs/documentation-complete.pdf)**
 - Vue d'ensemble complète du projet JobbingTrack
 - Architecture technique détaillée
 - Guides de démarrage et d'utilisation
 - Documentation API complète
 
-### 🚀 **[Guide de Démarrage Rapide](https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-demarrage-rapide.pdf)**
+### 🚀 **[Guide de Démarrage Rapide](docs/pdfs/guide-demarrage-rapide.pdf)**
 - Installation et configuration express
 - Premiers pas avec JobbingTrack
 - Configuration des services
 
-### 🏗️ **[Guide Technique](https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-technique.pdf)**
+### 🏗️ **[Guide Technique](docs/pdfs/guide-technique.pdf)**
 - Architecture microservices détaillée
 - Configuration avancée
 - Déploiement en production
 
-### 📱 **[Guide Mobile](https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-mobile.pdf)**
+### 📱 **[Guide Mobile](docs/pdfs/guide-mobile.pdf)**
 - Développement React Native
 - Application mobile complète
 - Déploiement App Store/Play Store
 
-### 🔧 **[Guide Développement](https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-developpement.pdf)**
+### 🔧 **[Guide Développement](docs/pdfs/guide-developpement.pdf)**
 - Environnement de développement
 - Outils et workflows
 - Tests et qualité
