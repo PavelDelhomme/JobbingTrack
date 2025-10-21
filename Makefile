@@ -23,6 +23,270 @@ TESTS_DIR = tests
 # COMMANDES PRINCIPALES
 # ============================================================================
 
+# Démarrage et arrêt
+.PHONY: up down up-full restart up-profile
+
+# Démarrer tous les services essentiels
+up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend)
+	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
+	@echo "📦 Services: postgres, redis, api-gateway, frontend, metrics-aggregator, cadvisor"
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend metrics-aggregator cadvisor
+	@echo ""
+	@echo "✅ Services essentiels démarrés avec succès !"
+	@echo ""
+	@echo "🌐 Interfaces disponibles :"
+	@echo "   Frontend:           http://localhost:8080"
+	@echo "   API Gateway:        http://localhost:3000"
+	@echo "   cAdvisor:           http://localhost:8080"
+	@echo ""
+	@echo "🔑 Identifiants de connexion :"
+	@echo "   Email:    admin@jobbingtrack.com"
+	@echo "   Password: SuperAdmin123!"
+	@echo ""
+	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
+
+# Démarrer tous les services avec tous les profils
+up-full: ## Démarrer TOUS les services avec tous les profils
+	@echo "🚀 Démarrage complet de JobbingTrack..."
+	@echo "📦 Tous les services avec métriques complètes"
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) --profile full up -d
+	@echo ""
+	@echo "✅ Système complet démarré avec succès !"
+	@echo ""
+	@echo "🌐 Toutes les interfaces sont disponibles"
+	@echo "📊 Monitoring: Prometheus (9090), Grafana (4000), cAdvisor (8080)"
+
+# Arrêter tous les services
+down: ## Arrêter tous les services
+	@echo "🛑 Arrêt de tous les services JobbingTrack..."
+	docker-compose $(COMPOSE_FILES) down
+	@echo "✅ Tous les services arrêtés"
+
+# Redémarrer tous les services
+restart: ## Redémarrer tous les services
+	@echo "🔄 Redémarrage complet de JobbingTrack..."
+	$(MAKE) down
+	$(MAKE) up-full
+	@echo "✅ Système redémarré"
+
+# Démarrer un profil spécifique
+up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
+	@if [ -z "$(PROFILE)" ]; then \
+		echo "❌ Spécifiez le profil avec PROFILE=<nom>"; \
+		echo "💡 Exemples:"; \
+		echo "   make up-profile PROFILE=auth         # Service d'authentification"; \
+		echo "   make up-profile PROFILE=applications # Gestion des candidatures"; \
+		echo "   make up-profile PROFILE=monitoring   # Métriques complètes"; \
+		echo "   make up-profile PROFILE=full         # Tous les services"; \
+		exit 1; \
+	fi
+	@echo "🚀 Démarrage du profil: $(PROFILE)"
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) --profile $(PROFILE) up -d
+	@echo "✅ Profil $(PROFILE) démarré"
+
+# ============================================================================
+# GESTION INDIVIDUELLE DES SERVICES
+# ============================================================================
+
+.PHONY: start-auth start-applications stop-service restart-service logs-service
+
+# Démarrer le service d'authentification
+start-auth: ## Démarrer le service d'authentification
+	@echo "🚀 Démarrage du service d'authentification..."
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) --profile auth up -d
+	@echo "✅ Service d'authentification démarré"
+
+# Démarrer le service d'applications
+start-applications: ## Démarrer le service d'applications
+	@echo "🚀 Démarrage du service d'applications..."
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) --profile applications up -d
+	@echo "✅ Service d'applications démarré"
+
+# Arrêter un service spécifique
+stop-service: ## Arrêter un service spécifique (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
+		echo "💡 Exemple: make stop-service SERVICE=api-gateway"; \
+		exit 1; \
+	fi
+	@echo "🛑 Arrêt du service: $(SERVICE)"
+	docker-compose $(COMPOSE_FILES) stop $(SERVICE)
+	@echo "✅ Service $(SERVICE) arrêté"
+
+# Redémarrer un service spécifique
+restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
+		echo "💡 Exemple: make restart-service SERVICE=api-gateway"; \
+		exit 1; \
+	fi
+	@echo "🔄 Redémarrage du service: $(SERVICE)"
+	docker-compose $(COMPOSE_FILES) restart $(SERVICE)
+	@echo "✅ Service $(SERVICE) redémarré"
+
+# Voir les logs d'un service spécifique
+logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
+		echo "💡 Exemple: make logs-service SERVICE=api-gateway"; \
+		exit 1; \
+	fi
+	docker-compose $(COMPOSE_FILES) logs -f $(SERVICE)
+
+# ============================================================================
+# DIAGNOSTICS ET VÉRIFICATION
+# ============================================================================
+
+.PHONY: status logs health ps
+
+# Statut détaillé de chaque service
+status: ## Statut détaillé de chaque service
+	@echo "📊 Statut détaillé des services JobbingTrack"
+	@echo "=========================================="
+	@echo ""
+	@echo "🔴 Services essentiels:"
+	@docker ps --filter "name=jobbingtrack-postgres\|jobbingtrack-redis\|jobbingtrack-api-gateway\|jobbingtrack-frontend\|jobbingtrack-metrics-aggregator\|jobbingtrack-cadvisor" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  Aucun service essentiel en cours d'exécution"
+	@echo ""
+	@echo "🟡 Services optionnels:"
+	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -v "postgres\|redis\|api-gateway\|frontend\|metrics-aggregator\|cadvisor" 2>/dev/null || echo "  Aucun service optionnel en cours d'exécution"
+
+# Liste des conteneurs actifs
+ps: ## Liste les conteneurs actifs
+	@echo "📋 Conteneurs actifs JobbingTrack"
+	@echo "================================"
+	docker-compose $(COMPOSE_FILES) ps
+
+# Logs en temps réel de tous les services
+logs: ## Affiche tous les logs en temps réel
+	@echo "📜 Logs en temps réel de tous les services"
+	@echo "========================================"
+	docker-compose $(COMPOSE_FILES) logs -f
+
+# Vérification de santé complète
+health: ## Vérifie la santé de tous les services
+	@echo "🔍 Vérification complète de la santé du système"
+	@echo "=============================================="
+	./scripts/core/check.sh --detailed
+
+# ============================================================================
+# BASE DE DONNÉES
+# ============================================================================
+
+.PHONY: db-migrate db-seed db-reset db-backup db-restore
+
+# Migrations de base de données
+db-migrate: ## Appliquer les migrations de base de données
+	@echo "🗄️ Application des migrations..."
+	@echo "⚠️ Les migrations ne sont pas encore implémentées"
+	@echo "💡 Cette commande sera implémentée avec Prisma ou un outil de migration"
+
+# Seed de données de test
+db-seed: ## Insérer des données de test
+	@echo "🌱 Insertion de données de test..."
+	./scripts/db/seed.sh
+
+# Reset complet de la base de données
+db-reset: ## Reset complet de la DB
+	@echo "🔄 Reset complet de la base de données..."
+	docker-compose $(COMPOSE_FILES) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+	@echo "✅ Base de données réinitialisée"
+	@echo "💡 Relancez 'make db-seed' pour recréer les données"
+
+# Sauvegarde de la base de données
+db-backup: ## Créer une sauvegarde de la DB
+	@echo "💾 Création d'une sauvegarde..."
+	./scripts/db/backup.sh
+
+# Restauration de la base de données
+db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
+	@if [ -z "$(file)" ]; then \
+		echo "❌ Spécifiez le fichier avec file=<nom_du_fichier.sql>"; \
+		echo "💡 Exemple: make db-restore file=backup_20231001.sql"; \
+		exit 1; \
+	fi
+	@echo "📥 Restauration depuis $(file)..."
+	docker-compose $(COMPOSE_FILES) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file)
+	@echo "✅ Base de données restaurée"
+
+# ============================================================================
+# BUILD ET DÉVELOPPEMENT
+# ============================================================================
+
+.PHONY: build rebuild clean
+
+# Build de tous les services
+build: ## Build tous les services
+	@echo "🔨 Build de tous les services..."
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) build
+	@echo "✅ Tous les services construits"
+
+# Rebuild sans cache
+rebuild: ## Rebuild sans cache
+	@echo "🔨 Rebuild complet sans cache..."
+	$(call check_docker)
+	docker-compose $(COMPOSE_FILES) build --no-cache
+	@echo "✅ Rebuild terminé"
+
+# Nettoyage complet
+clean: ## Nettoyage complet
+	@echo "🧹 Nettoyage complet..."
+	docker-compose $(COMPOSE_FILES) down -v --remove-orphans
+	docker system prune -f
+	@echo "✅ Nettoyage terminé"
+
+# ============================================================================
+# TESTS
+# ============================================================================
+
+.PHONY: test test-integration
+
+# Lancer tous les tests
+test: ## Lancer tous les tests
+	@echo "🧪 Exécution de tous les tests..."
+	./scripts/testing/run-tests.sh --all
+
+# Tests d'intégration
+test-integration: ## Tests d'intégration
+	@echo "🔗 Tests d'intégration..."
+	./scripts/testing/run-tests.sh --integration
+
+# ============================================================================
+# MONITORING
+# ============================================================================
+
+.PHONY: metrics cadvisor logs-metrics
+
+# Ouvrir Prometheus
+metrics: ## Ouvrir Prometheus
+	@echo "📈 Ouverture de Prometheus..."
+	@echo "🌐 URL: http://localhost:9090"
+	@if command -v xdg-open &> /dev/null; then \
+		xdg-open http://localhost:9090 2>/dev/null & \
+	else \
+		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
+	fi
+
+# Ouvrir cAdvisor
+cadvisor: ## Ouvrir cAdvisor
+	@echo "📊 Ouverture de cAdvisor..."
+	@echo "🌐 URL: http://localhost:8080"
+	@if command -v xdg-open &> /dev/null; then \
+		xdg-open http://localhost:8080 2>/dev/null & \
+	else \
+		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
+	fi
+
+# Logs du système de métriques
+logs-metrics: ## Logs du système de métriques
+	@echo "📜 Logs du système de métriques..."
+	docker-compose $(COMPOSE_FILES) logs -f metrics-aggregator
+
 # Aide complète avec organisation par catégories
 help: ## Afficher l'aide organisée par catégories
 	@echo "================================================================"
@@ -63,23 +327,16 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "🔨 BUILD ET DÉVELOPPEMENT:"
 	@echo "  make build          - Build tous les services"
 	@echo "  make rebuild        - Rebuild sans cache"
-	@echo "  make rebuild-service SERVICE=nom - Rebuild un service"
 	@echo "  make clean          - Nettoyage complet"
 	@echo ""
 	@echo "🧪 TESTS:"
 	@echo "  make test           - Lancer tous les tests"
-	@echo "  make test-service SERVICE=nom - Tests d'un service"
 	@echo "  make test-integration - Tests d'intégration"
 	@echo ""
 	@echo "📈 MONITORING:"
 	@echo "  make metrics        - Ouvrir Prometheus"
 	@echo "  make cadvisor       - Ouvrir cAdvisor"
 	@echo "  make logs-metrics   - Logs du système de métriques"
-	@echo ""
-	@echo "🛠️ UTILITAIRES:"
-	@echo "  make shell SERVICE=nom - Shell dans un conteneur"
-	@echo "  make exec SERVICE=nom CMD='commande' - Exécuter une commande"
-	@echo "  make check-deps     - Vérifier les dépendances système"
 	@echo ""
 	@echo "📚 AIDE DÉTAILLÉE:"
 	@echo "  make help-up        - Aide détaillée pour 'make up'"
@@ -91,347 +348,3 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  • Utilisez 'make help-<commande>' pour l'aide détaillée d'une commande"
 	@echo "  • Ex: 'make help-health' pour l'aide de la commande health"
 	@echo "  • Toutes les commandes supportent les variables d'environnement"
-
-# ============================================================================
-# COMMANDES D'AIDE SPÉCIFIQUES
-# ============================================================================
-
-# Démarrage et arrêt
-help-up: ## Aide détaillée pour la commande 'make up'
-	@echo "================================================================"
-	@echo "🚀 COMMANDE: make up"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Démarre UNIQUEMENT les services essentiels de JobbingTrack."
-	@echo ""
-	@echo "SERVICES DÉMARRÉS:"
-	@echo "  • postgres        - Base de données PostgreSQL"
-	@echo "  • redis          - Cache Redis"
-	@echo "  • api-gateway    - API Gateway (cœur du système)"
-	@echo "  • frontend       - Interface utilisateur"
-	@echo "  • metrics-aggregator - Collecteur de métriques"
-	@echo "  • cadvisor       - Monitoring Docker"
-	@echo ""
-	@echo "PORTS EXPOSÉS:"
-	@echo "  • PostgreSQL: 5432"
-	@echo "  • Redis: 6379"
-	@echo "  • API Gateway: 3000"
-	@echo "  • Frontend: 8080"
-	@echo "  • cAdvisor: 8080"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make up                          # Démarrage standard"
-	@echo "  SUPER_ADMIN_EMAIL=test@example.com make up  # Admin personnalisé"
-	@echo ""
-	@echo "INTERFACES DISPONIBLES:"
-	@echo "  • Frontend: http://localhost:8080"
-	@echo "  • API Gateway: http://localhost:3000"
-	@echo "  • cAdvisor: http://localhost:8080"
-
-help-down: ## Aide détaillée pour la commande 'make down'
-	@echo "================================================================"
-	@echo "🛑 COMMANDE: make down"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Arrête proprement tous les services Docker en cours d'exécution."
-	@echo ""
-	@echo "ACTIONS EFFECTUÉES:"
-	@echo "  • Arrêt de tous les conteneurs"
-	@echo "  • Suppression des réseaux temporaires"
-	@echo "  • Les volumes de données sont préservés"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make down                        # Arrêt standard"
-	@echo "  make down && make up             # Redémarrage complet"
-	@echo ""
-	@echo "NOTE:"
-	@echo "  Utilisez 'make down-volumes' pour supprimer aussi les volumes"
-
-help-status: ## Aide détaillée pour la commande 'make status'
-	@echo "================================================================"
-	@echo "📊 COMMANDE: make status"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Affiche le statut détaillé de tous les services en cours d'exécution."
-	@echo ""
-	@echo "INFORMATIONS AFFICHÉES:"
-	@echo "  • Nom du service"
-	@echo "  • État (Up/Down)"
-	@echo "  • Uptime (temps de fonctionnement)"
-	@echo "  • Ports exposés"
-	@echo "  • Statut de santé"
-	@echo ""
-	@echo "FORMAT DE SORTIE:"
-	@echo "  SERVICE_NAME    STATUS    UPTIME    PORTS"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make status                      # Statut général"
-	@echo "  docker ps                        # Même information avec Docker"
-
-help-logs: ## Aide détaillée pour la commande 'make logs'
-	@echo "================================================================"
-	@echo "📜 COMMANDE: make logs"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Affiche les logs en temps réel de tous les services."
-	@echo ""
-	@echo "FONCTIONNALITÉS:"
-	@echo "  • Logs en temps réel (suivi continu)"
-	@echo "  • Couleurs pour distinguer les services"
-	@echo "  • Timestamps précis"
-	@echo "  • Arrêt avec Ctrl+C"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make logs                        # Tous les logs"
-	@echo "  make logs-service SERVICE=api-gateway  # Logs d'un service"
-	@echo ""
-	@echo "ASTUCE:"
-	@echo "  Utilisez 'make logs | grep ERROR' pour filtrer les erreurs"
-
-help-health: ## Aide détaillée pour la commande 'make health'
-	@echo "================================================================"
-	@echo "🔍 COMMANDE: make health"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Vérifie l'état de santé de l'intégralité du système JobbingTrack."
-	@echo ""
-	@echo "VÉRIFICATIONS EFFECTUÉES:"
-	@echo "  • Disponibilité de Docker"
-	@echo "  • État des services essentiels"
-	@echo "  • Connectivité des endpoints"
-	@echo "  • Accès à la base de données"
-	@echo "  • État du cache Redis"
-	@echo "  • Espace disque disponible"
-	@echo "  • Utilisation mémoire"
-	@echo ""
-	@echo "CODES DE SORTIE:"
-	@echo "  0 = Tout fonctionne correctement"
-	@echo "  1 = Problèmes détectés (warnings)"
-	@echo "  2 = Erreurs critiques détectées"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make health                      # Vérification standard"
-	@echo "  ./scripts/core/check.sh --detailed  # Version script"
-
-help-build: ## Aide détaillée pour la commande 'make build'
-	@echo "================================================================"
-	@echo "🔨 COMMANDE: make build"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Construit toutes les images Docker des services."
-	@echo ""
-	@echo "PROCESSUS:"
-	@echo "  1. Build de chaque service individuellement"
-	@echo "  2. Téléchargement des images de base"
-	@echo "  3. Installation des dépendances"
-	@echo "  4. Compilation du code"
-	@echo "  5. Création de l'image finale"
-	@echo ""
-	@echo "TEMPS ESTIMÉ:"
-	@echo "  • Premier build: 5-10 minutes"
-	@echo "  • Builds suivants: 2-5 minutes"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make build                       # Build complet"
-	@echo "  make rebuild                     # Rebuild forcé"
-	@echo "  make rebuild-service SERVICE=frontend  # Rebuild un service"
-
-help-test: ## Aide détaillée pour la commande 'make test'
-	@echo "================================================================"
-	@echo "🧪 COMMANDE: make test"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Exécute la suite complète de tests automatisés."
-	@echo ""
-	@echo "TYPES DE TESTS:"
-	@echo "  • Tests unitaires (fonctions isolées)"
-	@echo "  • Tests d'intégration (services)"
-	@echo "  • Tests end-to-end (flux complets)"
-	@echo "  • Tests de performance (optionnel)"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make test                        # Tous les tests"
-	@echo "  make test-service SERVICE=auth   # Tests d'un service"
-	@echo "  ./scripts/testing/run-tests.sh --auth  # Version script"
-
-# Utilitaires
-help-shell: ## Aide détaillée pour la commande 'make shell'
-	@echo "================================================================"
-	@echo "🐚 COMMANDE: make shell SERVICE=nom"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Ouvre un shell interactif dans un conteneur Docker spécifié."
-	@echo ""
-	@echo "SERVICES DISPONIBLES:"
-	@echo "  • postgres       - Base de données"
-	@echo "  • redis         - Cache"
-	@echo "  • api-gateway   - API Gateway"
-	@echo "  • frontend      - Interface utilisateur"
-	@echo "  • Tous les services microservices"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make shell SERVICE=postgres     # Shell PostgreSQL"
-	@echo "  make shell SERVICE=api-gateway  # Shell API Gateway"
-	@echo ""
-	@echo "COMMANDES UTILES DANS LE SHELL:"
-	@echo "  • psql -U jobbingtrack -d jobbingtrack  # Connexion DB"
-	@echo "  • redis-cli                             # Client Redis"
-	@echo "  • npm run logs                         # Logs de l'app"
-
-help-exec: ## Aide détaillée pour la commande 'make exec'
-	@echo "================================================================"
-	@echo "⚡ COMMANDE: make exec SERVICE=nom CMD='commande'"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Exécute une commande spécifique dans un conteneur Docker."
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make exec SERVICE=postgres CMD='psql -U jobbingtrack -c \"SELECT 1;\"'"
-	@echo "  make exec SERVICE=api-gateway CMD='npm install'"
-	@echo "  make exec SERVICE=redis CMD='redis-cli ping'"
-	@echo ""
-	@echo "COMMANDES COURANTES:"
-	@echo "  • Vérification DB: psql -U jobbingtrack -c 'SELECT version();'"
-	@echo "  • Vérification Redis: redis-cli ping"
-	@echo "  • Installation dépendances: npm install"
-
-# Base de données
-help-db-seed: ## Aide détaillée pour la commande 'make db-seed'
-	@echo "================================================================"
-	@echo "🌱 COMMANDE: make db-seed"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Insère des données de test dans la base de données."
-	@echo ""
-	@echo "DONNÉES AJOUTÉES:"
-	@echo "  • Utilisateur administrateur"
-	@echo "  • Entreprises d'exemple (Google, Microsoft, etc.)"
-	@echo "  • Candidatures de test"
-	@echo ""
-	@echo "IDENTIFIANTS ADMIN:"
-	@echo "  📧 Email: admin@jobbingtrack.com"
-	@echo "  🔐 Mot de passe: SuperAdmin123!"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make db-seed                     # Seed complet"
-	@echo "  ./scripts/db/seed.sh --admin-only  # Admin uniquement"
-
-help-db-backup: ## Aide détaillée pour la commande 'make db-backup'
-	@echo "================================================================"
-	@echo "💾 COMMANDE: make db-backup"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Crée une sauvegarde complète de la base de données PostgreSQL."
-	@echo ""
-	@echo "SAUVEGARDE CRÉÉE:"
-	@echo "  • Format: backup_YYYYMMDD_HHMMSS.sql"
-	@echo "  • Emplacement: ./backups/"
-	@echo "  • Compression: optionnelle avec --compress"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make db-backup                   # Sauvegarde simple"
-	@echo "  ./scripts/db/backup.sh --compress  # Sauvegarde compressée"
-	@echo ""
-	@echo "RESTAURATION:"
-	@echo "  make db-restore file=backup.sql"
-
-# Monitoring
-help-metrics: ## Aide détaillée pour la commande 'make metrics'
-	@echo "================================================================"
-	@echo "📈 COMMANDE: make metrics"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Ouvre l'interface web de Prometheus dans le navigateur par défaut."
-	@echo ""
-	@echo "URL D'ACCÈS:"
-	@echo "  http://localhost:9090"
-	@echo ""
-	@echo "FONCTIONNALITÉS:"
-	@echo "  • Requêtes de métriques personnalisées"
-	@echo "  • Graphiques en temps réel"
-	@echo "  • Historique des métriques"
-	@echo "  • Alertes et règles"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make metrics                     # Ouvrir Prometheus"
-	@echo "  curl http://localhost:9090/-/healthy  # Vérifier la santé"
-
-help-cadvisor: ## Aide détaillée pour la commande 'make cadvisor'
-	@echo "================================================================"
-	@echo "📊 COMMANDE: make cadvisor"
-	@echo "================================================================"
-	@echo ""
-	@echo "DESCRIPTION:"
-	@echo "  Ouvre l'interface web de cAdvisor dans le navigateur par défaut."
-	@echo ""
-	@echo "URL D'ACCÈS:"
-	@echo "  http://localhost:8080"
-	@echo ""
-	@echo "FONCTIONNALITÉS:"
-	@echo "  • Monitoring des conteneurs Docker"
-	@echo "  • Utilisation CPU/Mémoire par conteneur"
-	@echo "  • Graphiques de performance"
-	@echo "  • Historique des ressources"
-	@echo ""
-	@echo "EXEMPLES D'USAGE:"
-	@echo "  make cadvisor                    # Ouvrir cAdvisor"
-
-# Fonction générique pour l'aide des commandes
-help-%:
-	@if grep -q "^$*:.*##" $(MAKEFILE_LIST); then \
-		sed -n "/^$*:.*##/,/^$$/p" $(MAKEFILE_LIST) | sed 's/^$*: ## //; s/^/  /'; \
-	else \
-		echo "❌ Aucune aide disponible pour la commande '$*'"; \
-		echo ""; \
-		echo "💡 Utilisez 'make help' pour voir toutes les commandes disponibles"; \
-	fi
-
-# Intégration des commandes de scripts dans le Makefile
-.PHONY: install-deps create-admin-user run-tests cleanup-docker wait-for-service
-
-# Installation des dépendances système
-install-deps:
-	./scripts/setup/install-dependencies.sh
-
-# Création de l'utilisateur administrateur
-create-admin-user:
-	./scripts/database/create-admin-user.sh
-
-# Exécution des tests
-run-tests:
-	./scripts/testing/run-tests.sh --all
-
-# Nettoyage Docker
-cleanup-docker:
-	./scripts/docker/cleanup.sh
-
-# Attente d'un service
-wait-for-service:
-	@if [ -z "$(SERVICE_URL)" ]; then \
-		echo "❌ Spécifiez SERVICE_URL=<url>"; \
-		echo "💡 Exemple: make wait-for-service SERVICE_URL=http://localhost:3000/health"; \
-		exit 1; \
-	fi
-	./scripts/utils/wait-for-service.sh $(SERVICE_URL)
-
-# Seed de la base de données
-db-seed:
-	./scripts/db/seed.sh
-
-# Backup de la base de données
-db-backup:
-	./scripts/db/backup.sh
-
-.PHONY: help help-up help-down help-status help-logs help-health help-build help-test help-shell help-exec help-db-seed help-db-backup help-metrics help-cadvisor
