@@ -1,19 +1,19 @@
 # Liens GitHub Navigation - JobbingTrack
 
 ## 📚 Documentation Centralisée
-- **Accueil** : https://github.com/OWNER/JobbingTrack/blob/main/README.md
-- **Documentation** : https://github.com/OWNER/JobbingTrack/blob/main/docs/README.md
+- **Accueil** : /README.md
+- **Documentation** : /docs/README.md
 
 ## 🚀 Démarrage Rapide
-- **Guide Installation** : https://github.com/OWNER/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md
+- **Guide Installation** : /GUIDE-DEMARRAGE-RAPIDE.md
 
 ## 🏗️ Architecture
-- **Backend** : https://github.com/OWNER/JobbingTrack/blob/main/backend/README.md
-- **Frontend** : https://github.com/OWNER/JobbingTrack/blob/main/frontend/README.md
+- **Backend** : /backend/README.md
+- **Frontend** : /frontend/README.md
 
 ## 📋 Documentation Détaillée
-- **Spécifications** : https://github.com/OWNER/JobbingTrack/blob/main/docs/SPEC-TECHNIQUE-JOBBINGTRACK.md
-- **Architecture Technique** : https://github.com/OWNER/JobbingTrack/blob/main/docs/technical/architecture.md
-- **Guide Développement** : https://github.com/OWNER/JobbingTrack/blob/main/docs/guides/getting-started.md
-- **API** : https://github.com/OWNER/JobbingTrack/blob/main/docs/api/v1/endpoints.md
-- **Déploiement** : https://github.com/OWNER/JobbingTrack/blob/main/docs/deployment/GUIDE-PORTAINER.md
+- **Spécifications** : /docs/SPEC-TECHNIQUE-JOBBINGTRACK.md
+- **Architecture Technique** : /docs/technical/architecture.md
+- **Guide Développement** : /docs/guides/getting-started.md
+- **API** : /docs/api/v1/endpoints.md
+- **Déploiement** : /docs/deployment/GUIDE-PORTAINER.md
