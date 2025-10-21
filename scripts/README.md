@@ -259,9 +259,9 @@ Le système inclut un système de métriques complet basé sur Prometheus, Grafa
 
 ## 📚 Ressources supplémentaires
 
-- [README principal](../../../README.md) - Documentation générale
-- [Guide des métriques](../../../METRICS_SYSTEM_README.md) - Système de métriques
-- [Makefile](../../../Makefile) - Commandes Make disponibles
+- [README principal](../README.md) - Documentation générale
+- [Guide des métriques](../METRICS_SYSTEM_README.md) - Système de métriques
+- [Makefile](../Makefile) - Commandes Make disponibles
 
 ---
 
