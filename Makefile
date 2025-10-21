@@ -29,16 +29,15 @@ TESTS_DIR = tests
 # Démarrer tous les services essentiels
 up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend)
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
-	@echo "📦 Services: postgres, redis, api-gateway, frontend, metrics-aggregator, cadvisor"
+	@echo "📦 Services: postgres, redis, api-gateway, frontend"
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend metrics-aggregator cadvisor
+	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
 	@echo "🌐 Interfaces disponibles :"
 	@echo "   Frontend:           http://localhost:8080"
 	@echo "   API Gateway:        http://localhost:3000"
-	@echo "   cAdvisor:           http://localhost:8080"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
 	@echo "   Email:    admin@jobbingtrack.com"
@@ -150,10 +149,10 @@ status: ## Statut détaillé de chaque service
 	@echo "=========================================="
 	@echo ""
 	@echo "🔴 Services essentiels:"
-	@docker ps --filter "name=jobbingtrack-postgres\|jobbingtrack-redis\|jobbingtrack-api-gateway\|jobbingtrack-frontend\|jobbingtrack-metrics-aggregator\|jobbingtrack-cadvisor" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  Aucun service essentiel en cours d'exécution"
+	@docker ps --filter "name=jobbingtrack-postgres\|jobbingtrack-redis\|jobbingtrack-api-gateway\|jobbingtrack-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  Aucun service essentiel en cours d'exécution"
 	@echo ""
 	@echo "🟡 Services optionnels:"
-	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -v "postgres\|redis\|api-gateway\|frontend\|metrics-aggregator\|cadvisor" 2>/dev/null || echo "  Aucun service optionnel en cours d'exécution"
+	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -v "postgres\|redis\|api-gateway\|frontend" 2>/dev/null || echo "  Aucun service optionnel en cours d'exécution"
 
 # Liste des conteneurs actifs
 ps: ## Liste les conteneurs actifs

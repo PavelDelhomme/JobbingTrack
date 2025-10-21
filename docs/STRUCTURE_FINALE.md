@@ -24,16 +24,16 @@
 ## 📥 Téléchargements PDF Disponibles
 
 ### Documentation Complète
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/README.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/documentation-complete.pdf
+- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/README.md
+- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/documentation-complete.pdf
 
 ### Guide de Démarrage Rapide
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/GUIDE-DEMARRAGE-RAPIDE.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/guide-demarrage-rapide.pdf
+- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/GUIDE-DEMARRAGE-RAPIDE.md
+- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/guide-demarrage-rapide.pdf
 
 ### Historique des Versions
-- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/feat/frontend-dashboard/VERSION.md
-- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/feat/frontend-dashboard/docs/pdfs/VERSION.pdf
+- **Vue** : https://github.com/PavelDelhomme/JobbingTrack/blob/main/VERSION.md
+- **PDF** : https://github.com/PavelDelhomme/JobbingTrack/raw/main/docs/pdfs/VERSION.pdf
 
 ## 🎯 Avantages
 
