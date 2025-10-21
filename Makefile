@@ -20,6 +20,13 @@ TESTS_DIR = tests
 .PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics
 
 # ============================================================================
+# COMMANDE PAR DÉFAUT - Affiche l'aide
+# ============================================================================
+
+# La commande par défaut affiche l'aide
+.DEFAULT_GOAL := help
+
+# ============================================================================
 # COMMANDES PRINCIPALES
 # ============================================================================
 
