@@ -29,6 +29,34 @@ app.get('/', (req, res) => {
   });
 });
 
+// API routes avec données mockées
+app.get('/api/v1/dashboard-service', (req, res) => {
+  // Données mockées pour l'interface d'administration
+  const mockData = {
+    contact: { contacts: [], total: 0 },
+    interview: { interviews: [], total: 0 },
+    notification: { notifications: [], total: 0 },
+    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
+    call: { calls: [], total: 0 },
+    profile: { profiles: [], total: 0 },
+    event: { events: [], total: 0 },
+    followup: { followups: [], total: 0 }
+  };
+
+  res.json({
+    success: true,
+    ...mockData.dashboard,
+    message: 'Données de démonstration'
+  });
+});
+
+app.post('/api/v1/dashboard-service', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Fonctionnalité en cours d\'implémentation'
+  });
+});
+
 // Démarrage
 console.log(`🚀 Démarrage du dashboard-service sur le port ${PORT}...`);
 console.log(`📍 Configuration: 0.0.0.0:${PORT}`);
