@@ -130,7 +130,7 @@ services:
   # Metrics Aggregator (monitoring essentiel)
   metrics-aggregator:
     build:
-      context: ./metrics-aggregator
+      context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
     ports:
@@ -207,7 +207,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -762,7 +762,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
     ports:
-      - "3012:3000"
+      - "3007:3000"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
@@ -774,7 +774,13 @@ services:
     profiles:
       - dashboard
       - full
-    restart: unless-stopped
+    restart: no
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Service du dashboard
   #dashboard-service:

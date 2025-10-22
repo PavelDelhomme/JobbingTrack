@@ -32,7 +32,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Exposer le port
-EXPOSE 3001
+EXPOSE 3000
 
 # Commande de démarrage
-CMD ["npm", "start"]
+CMD ["node", "src/server.js"]
