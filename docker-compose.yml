@@ -775,12 +775,6 @@ services:
       - dashboard
       - full
     restart: no
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   # Service du dashboard
   #dashboard-service:
