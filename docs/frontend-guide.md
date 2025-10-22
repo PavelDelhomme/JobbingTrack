@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 🔗 Frontend - Redirection Documentation
 
 **📚 La documentation complète du frontend est disponible dans la [documentation centralisée](/docs/README.md)**
@@ -38,3 +42,10 @@
 
 ### 🔧 **Documentation Technique**
 - **[Architecture](../docs/technical/architecture.md)** | **[Base de Données](../docs/technical/database.md)** | **[Sécurité](../docs/technical/security.md)** | **[Performance](../docs/technical/performance.md)**
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

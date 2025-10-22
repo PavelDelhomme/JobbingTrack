@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 🚨 Guide de Déploiement - Système de Détection d'Intrusion
 
 ## Vue d'ensemble
@@ -271,3 +275,10 @@ Le système de détection d'intrusion de JobbingTrack offre :
 ✅ **Intégration transparente** avec l'infrastructure existante
 
 Les données statiques ont été remplacées par un système intelligent qui capture et analyse réellement les tentatives d'intrusion, fournissant ainsi des métriques authentiques et actionnables pour la sécurité de votre plateforme.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

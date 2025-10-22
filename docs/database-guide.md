@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -409,3 +413,10 @@ LIMIT 10;
 ---
 
 Cette architecture de base de données assure **performance**, **sécurité** et **maintenabilité** pour la plateforme JobbingTrack.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

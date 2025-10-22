@@ -375,3 +375,9 @@ make shell SERVICE=postgres
 ---
 
 [← Retour au README principal](../README.md) | [Guide de développement →](DEVELOPMENT.md)
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

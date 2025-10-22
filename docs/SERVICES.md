@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 📋 Services - JobbingTrack
 
 Cette documentation détaille tous les services constituant l'architecture microservices de JobbingTrack.
@@ -219,3 +223,10 @@ L'architecture permet :
 
 **Dernière mise à jour**: Octobre 2025
 **Version**: 3.0 - Architecture microservices complète
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

@@ -465,3 +465,10 @@ curl -X POST http://localhost:3000/companies \
 ---
 
 [← Retour au README principal](../README.md) | [Guide de développement →](DEVELOPMENT.md)
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

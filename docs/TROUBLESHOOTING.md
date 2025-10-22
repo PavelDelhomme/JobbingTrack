@@ -460,3 +460,10 @@ Lorsque vous demandez de l'aide, fournissez :
 ---
 
 [← Retour au README principal](../README.md) | [Guide de développement →](DEVELOPMENT.md)
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

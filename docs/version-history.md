@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # JobbingTrack Version Information
 
 Current Version: v1.0.1
@@ -88,3 +92,10 @@ cd mobile && npm install
 
 ---
 *This version represents a major milestone with a complete, production-ready job tracking system.*
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

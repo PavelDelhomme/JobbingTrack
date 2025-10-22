@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -694,3 +698,10 @@ done
 ---
 
 **⚡ Performance JobbingTrack** - Optimisée pour l'excellence et l'évolutivité.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

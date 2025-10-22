@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -567,3 +571,10 @@ docker compose -f production/docker-compose.production.yml up -d --force-recreat
 
 **🎉 Votre JobbingTrack est maintenant déployé en production avec Portainer et Nginx Proxy Manager !**
 
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

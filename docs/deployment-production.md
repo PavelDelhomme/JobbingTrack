@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 🚀 Déploiement en Production - JobbingTrack
 
 Ce guide explique comment déployer JobbingTrack en mode production sur votre serveur personnel avec **Portainer** et **Nginx Proxy Manager**.
@@ -816,3 +820,10 @@ curl https://prometheus.votre-domaine.com
 ---
 
 **🎉 Votre JobbingTrack est maintenant déployé en production !**
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -453,3 +457,10 @@ const securityMetrics = {
 ---
 
 **🔒 Sécurité JobbingTrack** - Protection maximale de vos données de candidatures professionnelles.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)
