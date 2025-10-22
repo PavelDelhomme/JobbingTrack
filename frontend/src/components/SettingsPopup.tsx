@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useCustomization } from '@/hooks/useCustomization'
+import { useTheme } from '@/lib/hooks/theme'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { Save, RotateCcw, LogOut, User, Palette, Layout, Bell, Eye, Globe, Database, X, ChevronDown, Check } from 'lucide-react'
+import { Save, RotateCcw, LogOut, User, Palette, Layout, Bell, Eye, Globe, Database, X, ChevronDown, Check, Moon, Sun } from 'lucide-react'
 
 interface SettingsPopupProps {
   isOpen: boolean
@@ -13,6 +14,7 @@ interface SettingsPopupProps {
 
 export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { settings, saveSettings, resetSettings, isLoading } = useCustomization()
+  const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const { user, logout } = useAuth()
   const router = useRouter()
   const [localSettings, setLocalSettings] = useState(settings)
@@ -75,12 +77,26 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
               Gérez vos préférences et paramètres utilisateur
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <X className="h-6 w-6 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Bouton de bascule du thème */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title={`Basculer vers le thème ${actualTheme === 'light' ? 'sombre' : 'clair'}`}
+            >
+              {actualTheme === 'light' ? (
+                <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              ) : (
+                <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="h-6 w-6 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         <div className="flex h-[600px]">
@@ -222,19 +238,23 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                         {[
                           { value: 'light', label: 'Clair', icon: '☀️' },
                           { value: 'dark', label: 'Sombre', icon: '🌙' },
-                          { value: 'auto', label: 'Auto', icon: '⚡' }
-                        ].map((theme) => (
+                          { value: 'system', label: 'Auto', icon: '⚡' }
+                        ].map((themeOption) => (
                           <button
-                            key={theme.value}
-                            onClick={() => updateLocalSettings({ theme: theme.value as any })}
+                            key={themeOption.value}
+                            onClick={() => {
+                              // Utiliser setThemeMode pour changer le thème
+                              const themeValue = themeOption.value as 'light' | 'dark' | 'system'
+                              setThemeMode(themeValue)
+                            }}
                             className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                              localSettings.theme === theme.value
+                              theme === themeOption.value
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
                                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }`}
                           >
-                            <span className="text-2xl">{theme.icon}</span>
-                            <span className="font-medium">{theme.label}</span>
+                            <span className="text-2xl">{themeOption.icon}</span>
+                            <span className="font-medium">{themeOption.label}</span>
                           </button>
                         ))}
                       </div>

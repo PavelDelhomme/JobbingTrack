@@ -216,14 +216,20 @@ export function useCustomization() {
 
 // Fonction pour appliquer le thème
 function applyTheme(settings: CustomizationSettings) {
-  const root = document.documentElement;
+  // Utiliser le système de thème du hook theme.tsx
+  import('./theme').then(({ applyTheme: applyThemeFromHook }) => {
+    let theme: 'light' | 'dark' | 'system' = 'system';
 
-  if (settings.theme === 'dark' ||
-      (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
+    if (settings.theme === 'dark') {
+      theme = 'dark';
+    } else if (settings.theme === 'light') {
+      theme = 'light';
+    } else if (settings.theme === 'auto') {
+      theme = 'system';
+    }
+
+    applyThemeFromHook(theme);
+  });
 }
 
 // Fonction pour appliquer les couleurs personnalisées
