@@ -1,7 +1,7 @@
 FROM node:20.19.5-alpine
 
-# Installer les dépendances système nécessaires pour Prisma
-RUN apk add --no-cache openssl
+# Installer les dépendances système nécessaires pour Prisma et health checks
+RUN apk add --no-cache openssl wget
 
 WORKDIR /app
 

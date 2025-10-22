@@ -1,77 +1,71 @@
-const express = require('express');
-const cors = require('cors');
+const http = require('http');
 
-const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware simple
-app.use(cors());
-app.use(express.json());
-
-// Health check simple
-app.get('/health', (req, res) => {
-  console.log(`📡 Health check appelé de ${req.ip}:${req.socket.remotePort}`);
-  res.json({
-    status: 'OK',
-    service: 'dashboard-service',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    port: PORT
-  });
-});
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Dashboard Service is running',
-    port: PORT,
-    health: '/health'
-  });
-});
-
-// API routes avec données mockées
-app.get('/api/v1/dashboard-service', (req, res) => {
-  // Données mockées pour l'interface d'administration
-  const mockData = {
-    contact: { contacts: [], total: 0 },
-    interview: { interviews: [], total: 0 },
-    notification: { notifications: [], total: 0 },
-    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
-    call: { calls: [], total: 0 },
-    profile: { profiles: [], total: 0 },
-    event: { events: [], total: 0 },
-    followup: { followups: [], total: 0 }
-  };
-
-  res.json({
-    success: true,
-    ...mockData.dashboard,
-    message: 'Données de démonstration'
-  });
-});
-
-app.post('/api/v1/dashboard-service', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Fonctionnalité en cours d\'implémentation'
-  });
-});
-
-// Démarrage
 console.log(`🚀 Démarrage du dashboard-service sur le port ${PORT}...`);
-console.log(`📍 Configuration: 0.0.0.0:${PORT}`);
 
-// Forcer l'écoute sur IPv4
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ dashboard-service démarré avec succès sur le port ${PORT}`);
-  console.log(`🌐 Service accessible sur http://0.0.0.0:${PORT}`);
-  console.log(`🔗 Mapping externe: localhost:3007 -> container:${PORT}`);
-  console.log(`📊 Adresse d'écoute: ${server.address()}`);
+const server = http.createServer();
+
+server.on('request', (req, res) => {
+  console.log(`📡 REQUEST: ${req.method} ${req.url} de ${req.socket.remoteAddress}:${req.socket.remotePort}`);
+  console.log(`🔍 URL: ${req.url}`);
+  console.log(`📝 Headers: ${JSON.stringify(req.headers)}`);
+
+  // Headers CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Content-Type', 'application/json');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  if (req.url === '/health') {
+    console.log(`📡 /health appelé`);
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      status: 'OK',
+      service: 'dashboard-service',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      port: PORT
+    }));
+  } else if (req.url === '/test') {
+    console.log(`📡 /test appelé`);
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      success: true,
+      message: 'Test endpoint fonctionne'
+    }));
+  } else {
+    console.log(`🚨 Route non trouvée: ${req.method} ${req.url}`);
+    res.writeHead(404);
+    res.end(JSON.stringify({
+      error: 'Route not found',
+      method: req.method,
+      path: req.url,
+      availableRoutes: ['/health', '/test']
+    }));
+  }
+});
+
+server.on('connection', (socket) => {
+  console.log(`🔗 Nouvelle connexion de ${socket.remoteAddress}:${socket.remotePort}`);
 });
 
 server.on('error', (error) => {
   console.error(`❌ Erreur serveur:`, error);
-  process.exit(1);
+});
+
+server.listen(PORT, () => {
+  const address = server.address();
+  console.log(`✅ dashboard-service démarré avec succès sur le port ${PORT}`);
+  console.log(`🌐 Service accessible sur http://${address.address}:${address.port}`);
+  console.log(`🔗 Mapping externe: localhost:3007 -> container:${PORT}`);
+  console.log(`📊 Adresse d'écoute: ${JSON.stringify(address)}`);
 });
 
 // Gestion gracieuse de l'arrêt
@@ -83,5 +77,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-console.log('📋 Serveur configuré et en cours d\'écoute...');
-module.exports = app;
+console.log('📋 Serveur HTTP natif configuré et en cours d\'écoute...');
