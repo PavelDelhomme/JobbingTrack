@@ -34,17 +34,19 @@ TESTS_DIR = tests
 .PHONY: up down up-full restart up-profile
 
 # Démarrer tous les services essentiels
-up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend)
+up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend, auth-service, dashboard-service)
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
-	@echo "📦 Services: postgres, redis, api-gateway, frontend"
+	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend
+	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
 	@echo "🌐 Interfaces disponibles :"
 	@echo "   Frontend:           http://localhost:8080"
 	@echo "   API Gateway:        http://localhost:3000"
+	@echo "   Auth Service:       http://localhost:3001"
+	@echo "   Dashboard Service:  http://localhost:3007"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
 	@echo "   Email:    admin@jobbingtrack.com"
@@ -57,7 +59,20 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🚀 Démarrage complet de JobbingTrack..."
 	@echo "📦 Tous les services avec métriques complètes"
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) --profile full up -d
+	# Démarrer d'abord les services essentiels
+	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service
+	# Puis les services optionnels avec profils
+	docker-compose $(COMPOSE_FILES) --profile applications up -d
+	docker-compose $(COMPOSE_FILES) --profile companies up -d
+	docker-compose $(COMPOSE_FILES) --profile contacts up -d
+	docker-compose $(COMPOSE_FILES) --profile interviews up -d
+	docker-compose $(COMPOSE_FILES) --profile notifications up -d
+	docker-compose $(COMPOSE_FILES) --profile calls up -d
+	docker-compose $(COMPOSE_FILES) --profile profiles up -d
+	docker-compose $(COMPOSE_FILES) --profile events up -d
+	docker-compose $(COMPOSE_FILES) --profile followups up -d
+	docker-compose $(COMPOSE_FILES) --profile workflows up -d
+	docker-compose $(COMPOSE_FILES) --profile monitoring up -d
 	@echo ""
 	@echo "✅ Système complet démarré avec succès !"
 	@echo ""

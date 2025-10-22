@@ -132,7 +132,7 @@ check_docker_compose() {
 check_essential_services() {
     echo -e "\n${BLUE}🔧 Vérification des services essentiels${NC}"
 
-    local services=("postgres" "redis" "api-gateway")
+    local services=("postgres" "redis" "api-gateway" "frontend" "auth-service" "dashboard-service")
     local all_ok=true
 
     for service in "${services[@]}"; do
@@ -157,6 +157,8 @@ check_main_endpoints() {
     local endpoints=(
         "http://localhost:3000/health"
         "http://localhost:8080"
+        "http://localhost:3001/health"
+        "http://localhost:3007/health"
     )
 
     local all_ok=true

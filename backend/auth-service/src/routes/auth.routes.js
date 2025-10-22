@@ -50,9 +50,9 @@ router.put('/users/:id/role', authenticate, authController.updateUserRole);
 router.put('/users/:id/status', authenticate, authController.toggleUserStatus);
 router.delete('/users/:id', authenticate, authController.deleteUser);
 
-// ✅ ADMIN - Nouvelles routes pour les métriques de sécurité
-router.get('/sessions/active', authenticate, authController.getActiveSessions);
-router.get('/security/metrics', authenticate, authController.getSecurityMetrics);
+// ✅ ADMIN - Nouvelles routes pour les métriques de sécurité (temporairement désactivées)
+// router.get('/sessions/active', authenticate, authController.getActiveSessions);
+// router.get('/security/metrics', authenticate, authController.getSecurityMetrics);
 
 // ✅ CUSTOMIZATION - Routes pour la personnalisation utilisateur
 router.get('/customization', authenticate, authController.getUserCustomization);

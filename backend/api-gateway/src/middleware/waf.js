@@ -11,7 +11,16 @@ const WAF_RULES = {
       /--/,
       /\/\*/,
       /\*\//,
-      /(\b(script|javascript|vbscript|onload|onerror|onclick|onsubmit|onreset|onfocus|onblur)\b)/gi
+      /(\b(script|javascript|vbscript|onload|onerror|onclick|onsubmit|onreset|onfocus|onblur)\b)/gi,
+      // Patterns plus spécifiques pour éviter les faux positifs
+      /(\bunion\s+select\b)/gi,
+      /(\bselect\s+\*\s+from\b)/gi,
+      /(\bdrop\s+table\b)/gi,
+      /(\binsert\s+into\b)/gi,
+      /(\bupdate\s+\w+\s+set\b)/gi,
+      /(\bdelete\s+from\b)/gi,
+      /(\bexec\s*\()/gi,
+      /(\bexecute\s*\()/gi
     ],
     severity: 'high',
     message: 'Injection SQL détectée'
@@ -44,7 +53,7 @@ const WAF_RULES = {
       /\.\.%5c/gi,
       /%252e%252e%252f/gi,
       /%c0%ae%c0%ae%c0%af/gi,
-      /\.\.\/|\.\.\\\/gi
+      /\.\.\/|\.\.\\/gi,
     ],
     severity: 'critical',
     message: 'Path Traversal détecté'
@@ -195,16 +204,44 @@ const wafCheck = async (req, res, next) => {
       // Continuer les vérifications normales
     }
 
-    const allInputs = [
+    // Analyser séparément les différentes parties de la requête
+    const urlAndBody = [
       url,
-      userAgent,
-      JSON.stringify(headers),
       req.body ? JSON.stringify(req.body) : '',
       url.includes('?') ? url.split('?')[1] : ''
     ].join(' ');
 
-    // Détection d'attaques
-    const detections = detectAttack(allInputs, WAF_RULES);
+    const headerString = JSON.stringify(headers);
+
+    // User-Agents légitimes à ne pas analyser avec les patterns SQL
+    const legitimateUserAgents = [
+      /curl\/\d+\.\d+/i,
+      /Mozilla\/\d+\.\d+/i,
+      /PostmanRuntime\/\d+\.\d+/i,
+      /axios\/\d+\.\d+/i
+    ];
+
+    const isLegitimateUserAgent = legitimateUserAgents.some(pattern => pattern.test(userAgent));
+
+    // Analyser l'URL et le body avec tous les patterns
+    const urlDetections = detectAttack(urlAndBody, WAF_RULES);
+
+    // Analyser les headers seulement avec des patterns spécifiques (pas SQL injection)
+    const headerRules = { ...WAF_RULES };
+    delete headerRules.SQL_INJECTION;
+    delete headerRules.XSS;
+    const headerDetections = detectAttack(headerString, headerRules);
+
+    // Analyser le User-Agent seulement si ce n'est pas un User-Agent légitime
+    let userAgentDetections = [];
+    if (!isLegitimateUserAgent) {
+      userAgentDetections = detectAttack(userAgent, {
+        SUSPICIOUS_USER_AGENTS: WAF_RULES.SUSPICIOUS_USER_AGENTS,
+        MALICIOUS_PATTERNS: WAF_RULES.MALICIOUS_PATTERNS
+      });
+    }
+
+    const detections = [...urlDetections, ...headerDetections, ...userAgentDetections];
 
     if (detections.length > 0) {
       // Log de l'incident de sécurité

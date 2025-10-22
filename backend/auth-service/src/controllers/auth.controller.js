@@ -610,7 +610,7 @@ const resetPassword = async (req, res, next) => {
   };
 
   // Nouvelles méthodes pour les métriques de sécurité et sessions
-  async function getActiveSessions(req, res) {
+  const getActiveSessions = async (req, res, next) => {
     try {
       // Simulation de sessions actives (en vrai, récupérer depuis Redis ou base de données)
       const activeSessions = [
@@ -662,7 +662,7 @@ const resetPassword = async (req, res, next) => {
   };
 
   // Récupérer les métriques de sécurité détaillées
-  async function getSecurityMetrics(req, res) {
+  const getSecurityMetrics = async (req, res, next) => {
     try {
       const metrics = {
         timestamp: new Date().toISOString(),
