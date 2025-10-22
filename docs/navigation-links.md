@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # Liens GitHub Navigation - JobbingTrack
 
 ## 📚 Documentation Centralisée
@@ -17,3 +21,10 @@
 - **Guide Développement** : /docs/guides/getting-started.md
 - **API** : /docs/api/v1/endpoints.md
 - **Déploiement** : /docs/deployment/GUIDE-PORTAINER.md
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

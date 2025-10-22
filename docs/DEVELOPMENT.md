@@ -359,3 +359,10 @@ make docker-exec SERVICE=postgres
 ---
 
 [← Retour au README principal](../README.md) | [Documentation API →](api-guide.md)
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

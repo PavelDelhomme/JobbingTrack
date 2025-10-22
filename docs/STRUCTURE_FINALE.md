@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # Structure Finale - JobbingTrack
 
 ## 📁 Structure du Projet
@@ -41,3 +45,10 @@
 - ✅ **Téléchargement direct** des PDFs
 - ✅ **Documentation centralisée**
 - ✅ **Pas de fichiers redondants**
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

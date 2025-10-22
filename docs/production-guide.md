@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 🚀 Guide de Déploiement Production - JobbingTrack
 
 Ce guide vous explique comment déployer JobbingTrack en production sur Portainer avec Nginx Proxy Manager.
@@ -329,3 +333,10 @@ Pour toute question ou problème :
 
 **🎯 Votre JobbingTrack est maintenant prêt pour la production !**
 
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -365,3 +369,10 @@ services:
 ---
 
 Cette architecture assure **scalabilité**, **maintenabilité** et **fiabilité** pour la plateforme JobbingTrack.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # Système de Métriques JobbingTrack
 
 ## Vue d'ensemble
@@ -244,3 +248,10 @@ Pour toute question ou problème :
 1. Consulter les logs des services
 2. Lancer les tests de diagnostic
 3. Vérifier la configuration réseau et les ports
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

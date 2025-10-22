@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -424,3 +428,10 @@ crontab -e
 ---
 
 **👑 Administration JobbingTrack** - Gestion complète et sécurisée de votre plateforme de candidatures.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

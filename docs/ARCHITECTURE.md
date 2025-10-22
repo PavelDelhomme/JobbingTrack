@@ -387,3 +387,10 @@ CMD ["node", "src/index.js"]
 ---
 
 [← Retour au README principal](../README.md) | [Documentation API →](API.md)
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 ## 🧭 Navigation Centrale
 
 ### 📖 **Documentation du Projet**
@@ -469,3 +473,10 @@ Authorization: Bearer <token>
 ---
 
 **🎯 API JobbingTrack** - Interface RESTful moderne et sécurisée pour votre plateforme de gestion de candidatures.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)

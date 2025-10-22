@@ -1,3 +1,7 @@
+[← Retour au README principal](../README.md) | [📚 Index Documentation](README.md)
+
+---
+
 # 📁 Guide des Makefiles JobbingTrack
 
 Documentation complète du système de Makefiles unifié de JobbingTrack.
@@ -404,3 +408,10 @@ make status
 ---
 
 **📁 Makefiles JobbingTrack** - Système de build et de déploiement unifié et extensible.
+
+---
+
+## Navigation
+
+- [📚 Index](README.md)
+- [🏠 Accueil](../README.md)
