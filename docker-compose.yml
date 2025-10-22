@@ -762,7 +762,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
     ports:
-      - "3012:3012"
+      - "3012:3000"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}

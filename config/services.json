@@ -101,8 +101,8 @@
     "dashboard-service": {
       "essential": false,
       "profile": "dashboard",
-      "port": 3007,
-      "healthcheck": "http://localhost:3007/health",
+      "port": 3012,
+      "healthcheck": "http://localhost:3012/health",
       "description": "Service de tableau de bord",
       "depends_on": ["postgres", "redis", "api-gateway"],
       "networks": ["jobbingtrack"],
