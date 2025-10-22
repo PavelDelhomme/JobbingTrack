@@ -85,6 +85,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
+      - WAF_ENABLED=false
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
       - REDIS_URL=redis://redis:6379
     depends_on:
@@ -99,6 +100,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   

@@ -10,6 +10,7 @@ const logger = require('./utils/logger');
 const { wafCheck } = require('./middleware/waf');
 const { intrusionDetection } = require('./middleware/intrusionDetector');
 const { authRateLimiter, adminRateLimiter } = require('./middleware/rateLimiter');
+const MaintenanceController = require('./controllers/maintenance.controller');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -548,7 +549,6 @@ app.use('/api/v1/admin', adminRoutes);
 
 // ✅ Routes maintenance (montées avant les routes proxy)
 const maintenanceRoutes = require('./routes/maintenance.routes');
-const MaintenanceController = require('./controllers/maintenance.controller');
 app.use('/api/v1/maintenance', maintenanceRoutes);
 
 
