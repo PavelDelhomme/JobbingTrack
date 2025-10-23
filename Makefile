@@ -84,8 +84,8 @@ down: ## Arrêter tous les services
 	@echo "🛑 Arrêt de tous les services JobbingTrack..."
 	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes)
 	# Arrêter tous les conteneurs JobbingTrack restants
-	@docker ps -q --filter "name=jobbingtrack" | xargs -r docker stop || true
-	@docker ps -aq --filter "name=jobbingtrack" | xargs -r docker rm || true
+	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
+	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
 	@echo "✅ Tous les services arrêtés"
 
 # Redémarrer tous les services
@@ -174,10 +174,10 @@ status: ## Statut détaillé de chaque service
 	@echo "=========================================="
 	@echo ""
 	@echo "🔴 Services essentiels:"
-	@docker ps --filter "name=jobbingtrack-postgres\|jobbingtrack-redis\|jobbingtrack-api-gateway\|jobbingtrack-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  Aucun service essentiel en cours d'exécution"
+	@docker ps --filter "name=jobbingtrack-*" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | grep -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service essentiel en cours d'exécution"
 	@echo ""
 	@echo "🟡 Services optionnels:"
-	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -v "postgres\|redis\|api-gateway\|frontend" 2>/dev/null || echo "  Aucun service optionnel en cours d'exécution"
+	@docker ps --filter "name=jobbingtrack-*" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | grep -v -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service optionnel en cours d'exécution"
 
 # Liste des conteneurs actifs
 ps: ## Liste les conteneurs actifs
