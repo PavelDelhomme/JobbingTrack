@@ -17,7 +17,7 @@ FRONTEND_DIR = frontend
 SCRIPTS_DIR = scripts
 TESTS_DIR = tests
 
-.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics clean-docker-cache show-docker-info
+.PHONY: help build build-system frontend-rebuild up down up-no-check up-mickdevil clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics clean-docker-cache show-docker-info diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services
 
 # ============================================================================
 # COMMANDE PAR DÉFAUT - Affiche l'aide
@@ -31,7 +31,7 @@ TESTS_DIR = tests
 # ============================================================================
 
 # Démarrage et arrêt
-.PHONY: up down up-full restart up-profile
+.PHONY: up down up-full up-no-check up-mickdevil restart up-profile
 
 # Démarrer tous les services essentiels
 up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend, auth-service, dashboard-service)
@@ -53,6 +53,33 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "   Password: SuperAdmin123!"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
+
+# Démarrer services essentiels SANS vérification Docker (mode officiel)
+up-no-check: ## Démarrer services essentiels SANS vérification Docker (solution de contournement)
+	@echo "🚀 Démarrage des services essentiels JobbingTrack (mode NO-CHECK - SANS vérification Docker)..."
+	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
+	@echo "⚠️ ATTENTION: Vérifications Docker ignorées - Utilisez si les checks normaux échouent"
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	@echo ""
+	@echo "✅ Services essentiels démarrés avec succès (mode NO-CHECK)!"
+	@echo ""
+	@echo "🌐 Interfaces disponibles :"
+	@echo "   Frontend:           http://localhost:8080"
+	@echo "   API Gateway:        http://localhost:3000"
+	@echo "   Auth Service:       http://localhost:3001"
+	@echo "   Dashboard Service:  http://localhost:3007"
+	@echo ""
+	@echo "🔑 Identifiants de connexion :"
+	@echo "   Email:    admin@jobbingtrack.test"
+	@echo "   Password: SuperAdmin123!"
+	@echo ""
+	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
+	@echo "💡 Utilisez 'make up' normal si les vérifications Docker fonctionnent"
+
+# Démarrer services essentiels SANS vérification Docker (alias MickDevil pour rigoler)
+up-mickdevil: up-no-check ## Alias MickDevil de up-no-check (pour rigoler)
+	@echo ""
+	@echo "😄 MickDevil approuve cette commande !"
 
 # Démarrer tous les services avec tous les profils
 up-full: ## Démarrer TOUS les services avec tous les profils
@@ -166,7 +193,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # DIAGNOSTICS ET VÉRIFICATION
 # ============================================================================
 
-.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps cors-fix cors-fix-auto diagnostic docker-compose-fix
+.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services
 
 # Statut détaillé de chaque service
 status: ## Statut détaillé de chaque service
@@ -201,7 +228,26 @@ health: ## Vérifie la santé de tous les services
 clean-docker-cache: ## Nettoie le cache Docker Compose et force une redétection
 	@echo "🧹 Nettoyage du cache Docker Compose..."
 	$(call clean_docker_compose_cache)
-	@echo "✅ Cache nettoyé - redétection au prochain appel"
+	# Force la recréation du cache en relançant la détection
+	@echo "🔄 Recréation du cache..."
+	@$(shell \
+		if command -v docker-compose &>/dev/null 2>&1 && timeout 10 docker-compose version &>/dev/null 2>&1; then \
+			echo "docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		elif timeout 10 docker compose version &>/dev/null 2>&1; then \
+			echo "docker compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		elif [ -x "/usr/bin/docker-compose" ] && timeout 10 /usr/bin/docker-compose version &>/dev/null 2>&1; then \
+			echo "/usr/bin/docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		elif [ -x "/usr/local/bin/docker-compose" ] && timeout 10 /usr/local/bin/docker-compose version &>/dev/null 2>&1; then \
+			echo "/usr/local/bin/docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		elif [ -x "/opt/bin/docker-compose" ] && timeout 10 /opt/bin/docker-compose version &>/dev/null 2>&1; then \
+			echo "/opt/bin/docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		elif [ -x "/snap/bin/docker-compose" ] && timeout 10 /snap/bin/docker-compose version &>/dev/null 2>&1; then \
+			echo "/snap/bin/docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		else \
+			echo "docker-compose" > /tmp/jobbingtrack_docker_compose_cache; \
+		fi \
+	)
+	@echo "✅ Cache nettoyé et recréé"
 
 # Affiche les informations Docker détectées
 show-docker-info: ## Affiche les informations Docker et Docker Compose détectées
@@ -209,23 +255,23 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 	@echo "================================"
 	@echo "Commande Docker Compose: $(DOCKER_COMPOSE_CMD)"
 	@if [ -f "/tmp/jobbingtrack_docker_compose_cache" ]; then \
-		echo "Cache: $(shell cat /tmp/jobbingtrack_docker_compose_cache)"; \
+		echo "Cache: $$(cat /tmp/jobbingtrack_docker_compose_cache)"; \
 	else \
-		echo "Cache: Aucun"; \
+		echo "Cache: Non encore créé (sera créé au premier make up)"; \
 	fi
 	@echo ""
 	@echo "📊 Test des commandes:"
-	@if command -v docker >/dev/null 2>&1; then \
+	@if command -v docker &>/dev/null 2>&1; then \
 		echo "✅ docker: $(shell docker --version | head -1)"; \
 	else \
 		echo "❌ docker: Non installé"; \
 	fi
-	@if command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
+	@if command -v docker-compose &>/dev/null 2>&1 && docker-compose version &>/dev/null 2>&1; then \
 		echo "✅ docker-compose: $(shell docker-compose --version)"; \
 	else \
 		echo "❌ docker-compose: Non fonctionnel"; \
 	fi
-	@if docker compose version >/dev/null 2>&1; then \
+	@if docker compose version &>/dev/null 2>&1; then \
 		echo "✅ docker compose: Plugin disponible"; \
 	else \
 		echo "❌ docker compose: Non disponible"; \
@@ -235,20 +281,20 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 check-deps: ## Vérifier que toutes les dépendances sont installées
 	@echo "🔍 Vérification des dépendances..."
 	@echo "🐳 Vérification de Docker..."
-	@if ! command -v docker >/dev/null 2>&1; then \
+	@if ! command -v docker &>/dev/null 2>&1; then \
 		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
 		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
 		exit 1; \
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
 	@echo "🐳 Vérification de Docker Compose..."
-	@if command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
+	@if command -v docker-compose &>/dev/null 2>&1 && docker-compose version &>/dev/null 2>&1; then \
 		echo "✅ docker-compose standalone: $$(docker-compose --version)"; \
-	elif docker compose version >/dev/null 2>&1; then \
+	elif docker compose version &>/dev/null 2>&1; then \
 		echo "✅ docker compose plugin: $$(docker compose version)"; \
-	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version >/dev/null 2>&1; then \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &>/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/bin: $$(/usr/bin/docker-compose --version)"; \
-	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version >/dev/null 2>&1; then \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &>/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/local/bin: $$(/usr/local/bin/docker-compose --version)"; \
 	else \
 		echo "❌ Docker Compose n'est pas disponible"; \
@@ -283,13 +329,67 @@ cors-fix: ## Diagnostiquer et corriger automatiquement les problèmes CORS
 cors-fix-auto: ## Corriger automatiquement les problèmes CORS sans demande de confirmation
 	./scripts/utils/cors-fix-direct.sh
 
+# ============================================================================
+# DIAGNOSTICS CENTRALISÉS
+# ============================================================================
+
 # Diagnostic complet et interactif
 diagnostic: ## Diagnostic complet et interactif de tous les problèmes système
 	./scripts/utils/diagnostic.sh
 
+# Diagnostic Docker uniquement
+diagnostic-docker: ## Diagnostic Docker uniquement
+	./scripts/utils/diagnostic.sh --docker
+
+# Diagnostic Docker Compose uniquement
+diagnostic-docker-compose: ## Diagnostic Docker Compose uniquement
+	./scripts/utils/diagnostic.sh --docker-compose
+
+# Diagnostic CORS uniquement
+diagnostic-cors: ## Diagnostic CORS uniquement
+	./scripts/utils/diagnostic.sh --cors
+
+# Diagnostic réseau et ports uniquement
+diagnostic-network: ## Diagnostic réseau et ports uniquement
+	./scripts/utils/diagnostic.sh --network
+
+# Correction automatique complète
+diagnostic-fix: ## Diagnostic et correction automatique de tous les problèmes
+	./scripts/utils/diagnostic.sh --auto-fix
+
 # Correction automatique Docker Compose
 docker-compose-fix: ## Diagnostiquer et corriger automatiquement les problèmes Docker Compose
 	./scripts/utils/docker-compose-fix.sh
+
+# ============================================================================
+# DIAGNOSTICS AVANCÉS
+# ============================================================================
+
+# Diagnostic des services en cours d'exécution
+diag-services: ## Diagnostic détaillé des services Docker en cours d'exécution
+	@echo "🔍 DIAGNOSTIC DÉTAILLÉ DES SERVICES"
+	@echo "==================================="
+	@echo ""
+	@echo "📊 Services essentiels:"
+	@docker ps --filter "name=jobbingtrack" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}" 2>/dev/null | grep -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service essentiel en cours d'exécution"
+	@echo ""
+	@echo "🟡 Services optionnels:"
+	@docker ps --filter "name=jobbingtrack" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}" 2>/dev/null | grep -v -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service optionnel en cours d'exécution"
+	@echo ""
+	@echo "🔍 Vérification des logs d'erreur (dernières 10 lignes):"
+	@echo "API Gateway:"
+	@docker logs --tail 10 jobbingtrack-api-gateway 2>/dev/null | head -5 || echo "  API Gateway non démarré ou logs indisponibles"
+	@echo ""
+	@echo "Frontend:"
+	@docker logs --tail 10 jobbingtrack-frontend 2>/dev/null | head -5 || echo "  Frontend non démarré ou logs indisponibles"
+	@echo ""
+	@echo "📝 Commandes de diagnostic disponibles:"
+	@echo "  make diagnostic              # Diagnostic complet interactif"
+	@echo "  make diagnostic-docker       # Docker uniquement"
+	@echo "  make diagnostic-cors        # CORS uniquement"
+	@echo "  make diagnostic-fix         # Correction automatique"
+	@echo "  make logs                   # Logs en temps réel"
+	@echo "  make status                 # Statut des services"
 
 # ============================================================================
 # BASE DE DONNÉES
@@ -413,6 +513,8 @@ help: ## Afficher l'aide organisée par catégories
 	@echo ""
 	@echo "📦 DEMARRAGE RAPIDE:"
 	@echo "  make up              - Démarrer services essentiels uniquement"
+	@echo "  make up-no-check     - Démarrer SANS vérification Docker (officiel)"
+	@echo "  make up-mickdevil    - Alias MickDevil de up-no-check (pour rigoler) 😄"
 	@echo "  make up-full         - Démarrer TOUS les services"
 	@echo "  make down            - Arrêter tous les services"
 	@echo "  make restart         - Redémarrer tous les services"
@@ -434,13 +536,27 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make ps             - Lister les conteneurs actifs"
 	@echo "  make logs           - Afficher tous les logs"
 	@echo "  make status         - Statut détaillé de chaque service"
+	@echo "  make diag-services  - Diagnostic détaillé des services avec logs"
 	@echo "  make show-docker-info - Informations Docker/Docker Compose détectées"
 	@echo "  make clean-docker-cache - Nettoyer le cache Docker Compose"
 	@echo "  make check-deps     - Vérifier que toutes les dépendances sont installées"
+	@echo ""
+	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
+	@echo "  make diagnostic     - Diagnostic complet et interactif"
+	@echo "  make diagnostic-docker - Docker uniquement"
+	@echo "  make diagnostic-cors  - CORS uniquement"
+	@echo "  make diagnostic-network - Réseau et ports uniquement"
+	@echo "  make diagnostic-fix - Correction automatique complète"
+	@echo ""
+	@echo "🔧 CORRECTIONS:"
 	@echo "  make cors-fix       - Diagnostiquer et corriger les problèmes CORS"
 	@echo "  make cors-fix-auto  - Corriger automatiquement les problèmes CORS"
-	@echo "  make diagnostic     - Diagnostic complet et interactif de tous les problèmes"
-	@echo "  make docker-compose-fix - Diagnostiquer et corriger automatiquement Docker Compose"
+	@echo "  make docker-compose-fix - Diagnostiquer et corriger Docker Compose"
+	@echo ""
+	@echo "🚨 MODE SANS VÉRIFICATION (si vérifications Docker échouent):"
+	@echo "  make up-no-check    - Démarrer SANS vérification Docker (officiel)"
+	@echo "  make up-mickdevil   - Alias MickDevil de up-no-check (pour rigoler) 😄"
+	@echo "  make clean-docker-cache - Recréer le cache Docker Compose"
 	@echo ""
 	@echo "🗄️ BASE DE DONNÉES:"
 	@echo "  make db-migrate     - Migrations de base de données"

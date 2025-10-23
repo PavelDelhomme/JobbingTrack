@@ -96,6 +96,20 @@ class MetricsService {
   // Récupération des métriques système depuis Prometheus
   async getSystemMetrics(): Promise<SystemMetrics | null> {
     try {
+      // Vérifier d'abord si Prometheus est disponible
+      try {
+        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+          signal: AbortSignal.timeout(2000)
+        });
+        if (!testResponse.ok) {
+          throw new Error('Prometheus non disponible');
+        }
+      } catch (prometheusError) {
+        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
+        console.warn('Prometheus non disponible, utilisation des métriques fallback');
+        return null;
+      }
+
       // Récupération CPU
       const cpuQuery = '100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
       const cpuResponse = await this.queryPrometheus(cpuQuery)
@@ -138,6 +152,20 @@ class MetricsService {
   // Récupération des métriques de conteneurs depuis Prometheus
   async getContainerMetrics(): Promise<ContainerMetrics | null> {
     try {
+      // Vérifier d'abord si Prometheus est disponible
+      try {
+        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+          signal: AbortSignal.timeout(2000)
+        });
+        if (!testResponse.ok) {
+          throw new Error('Prometheus non disponible');
+        }
+      } catch (prometheusError) {
+        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
+        console.warn('Prometheus non disponible, pas de métriques conteneurs');
+        return null;
+      }
+
       const containerMetrics: ContainerMetrics = {}
 
       // Récupérer tous les conteneurs avec leurs métriques
@@ -160,6 +188,20 @@ class MetricsService {
   // Récupération des métriques de services depuis Prometheus
   async getServiceMetrics(): Promise<{ [key: string]: ServiceMetrics } | null> {
     try {
+      // Vérifier d'abord si Prometheus est disponible
+      try {
+        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+          signal: AbortSignal.timeout(2000)
+        });
+        if (!testResponse.ok) {
+          throw new Error('Prometheus non disponible');
+        }
+      } catch (prometheusError) {
+        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
+        console.warn('Prometheus non disponible, pas de métriques services');
+        return null;
+      }
+
       const serviceMetrics: { [key: string]: ServiceMetrics } = {}
 
       // Récupérer le statut de tous les services

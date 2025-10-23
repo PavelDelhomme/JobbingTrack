@@ -166,11 +166,24 @@ export default function ServicesPage() {
     testAllServices()
 
     // Test automatique des métriques Prometheus pour l'API Gateway après 2 secondes
-    const prometheusTimeout = setTimeout(() => {
-      const apiGateway = services.find(s => s.name === 'API Gateway')
-      if (apiGateway) {
-        fetchPrometheusMetrics('API Gateway')
-        fetchServiceDetailedMetrics(apiGateway)
+    const prometheusTimeout = setTimeout(async () => {
+      try {
+        // Vérifier d'abord si Prometheus est disponible
+        const testResponse = await fetch(`${apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+          signal: AbortSignal.timeout(2000)
+        });
+
+        if (testResponse.ok) {
+          const apiGateway = services.find(s => s.name === 'API Gateway')
+          if (apiGateway) {
+            fetchPrometheusMetrics('API Gateway')
+            fetchServiceDetailedMetrics(apiGateway)
+          }
+        } else {
+          console.warn('Prometheus non disponible, test des métriques ignoré')
+        }
+      } catch (error) {
+        console.warn('Erreur lors du test Prometheus:', error)
       }
     }, 2000)
 
@@ -526,6 +539,20 @@ export default function ServicesPage() {
   const fetchPrometheusMetrics = async (serviceName: string) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+      // Vérifier d'abord si Prometheus est disponible
+      try {
+        const testResponse = await fetch(`${apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+          signal: AbortSignal.timeout(2000)
+        });
+
+        if (!testResponse.ok) {
+          throw new Error('Prometheus non disponible');
+        }
+      } catch (prometheusError) {
+        console.warn(`Prometheus non disponible pour ${serviceName}, utilisation des métriques fallback`);
+        return null;
+      }
 
       // Construire la requête Prometheus pour les métriques du service
       // Chercher les métriques de statut du service dans le job backend
