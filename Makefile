@@ -215,17 +215,17 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 	fi
 	@echo ""
 	@echo "📊 Test des commandes:"
-	@if command -v docker &>/dev/null; then \
+	@if command -v docker >/dev/null 2>&1; then \
 		echo "✅ docker: $(shell docker --version | head -1)"; \
 	else \
 		echo "❌ docker: Non installé"; \
 	fi
-	@if command -v docker-compose &>/dev/null && docker-compose version &>/dev/null 2>&1; then \
+	@if command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose: $(shell docker-compose --version)"; \
 	else \
 		echo "❌ docker-compose: Non fonctionnel"; \
 	fi
-	@if docker compose version &>/dev/null 2>&1; then \
+	@if docker compose version >/dev/null 2>&1; then \
 		echo "✅ docker compose: Plugin disponible"; \
 	else \
 		echo "❌ docker compose: Non disponible"; \
@@ -235,20 +235,20 @@ show-docker-info: ## Affiche les informations Docker et Docker Compose détecté
 check-deps: ## Vérifier que toutes les dépendances sont installées
 	@echo "🔍 Vérification des dépendances..."
 	@echo "🐳 Vérification de Docker..."
-	@if ! command -v docker &> /dev/null; then \
+	@if ! command -v docker >/dev/null 2>&1; then \
 		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
 		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
 		exit 1; \
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
 	@echo "🐳 Vérification de Docker Compose..."
-	@if command -v docker-compose &> /dev/null && docker-compose version &> /dev/null 2>&1; then \
+	@if command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose standalone: $$(docker-compose --version)"; \
-	elif docker compose version &> /dev/null 2>&1; then \
+	elif docker compose version >/dev/null 2>&1; then \
 		echo "✅ docker compose plugin: $$(docker compose version)"; \
-	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &> /dev/null 2>&1; then \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/bin: $$(/usr/bin/docker-compose --version)"; \
-	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &> /dev/null 2>&1; then \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/local/bin: $$(/usr/local/bin/docker-compose --version)"; \
 	else \
 		echo "❌ Docker Compose n'est pas disponible"; \
@@ -384,7 +384,7 @@ test-integration: ## Tests d'intégration
 metrics: ## Ouvrir Prometheus
 	@echo "📈 Ouverture de Prometheus..."
 	@echo "🌐 URL: http://localhost:9090"
-	@if command -v xdg-open &> /dev/null; then \
+	@if command -v xdg-open >/dev/null 2>&1; then \
 		xdg-open http://localhost:9090 2>/dev/null & \
 	else \
 		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
@@ -394,7 +394,7 @@ metrics: ## Ouvrir Prometheus
 cadvisor: ## Ouvrir cAdvisor
 	@echo "📊 Ouverture de cAdvisor..."
 	@echo "🌐 URL: http://localhost:8080"
-	@if command -v xdg-open &> /dev/null; then \
+	@if command -v xdg-open >/dev/null 2>&1; then \
 		xdg-open http://localhost:8080 2>/dev/null & \
 	else \
 		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
