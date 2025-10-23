@@ -267,42 +267,148 @@ check_docker_compose_comprehensive() {
 # FONCTIONS DE DIAGNOSTIC RÉSEAU
 # ============================================================================
 
-# Vérifier les ports utilisés
+# Vérifier les ports utilisés et proposer des solutions
 check_ports() {
     echo -e "${BLUE}🔍 DIAGNOSTIC PORTS ET RÉSEAU${NC}"
     echo "=============================="
 
     local ports=(3000 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3012 3013 3014 3015 5432 6379 8080 9090)
+    local occupied_ports=()
+    local has_netstat=false
+    local has_ss=false
 
+    echo -e "${CYAN}📋 Vérification des outils réseau:${NC}"
+
+    # Vérifier la disponibilité des outils
+    if command -v ss &>/dev/null; then
+        echo -e "${GREEN}✅ ss (iproute2) disponible${NC}"
+        has_ss=true
+    else
+        echo -e "${YELLOW}⚠️ ss non disponible${NC}"
+        if command -v netstat &>/dev/null; then
+            echo -e "${GREEN}✅ netstat disponible${NC}"
+            has_netstat=true
+        else
+            echo -e "${RED}❌ Aucun outil réseau (ss/netstat) disponible${NC}"
+            echo ""
+            echo -e "${YELLOW}💡 Installation des outils réseau:${NC}"
+            if command -v apt-get &>/dev/null; then
+                echo "   sudo apt-get update && sudo apt-get install -y net-tools iproute2"
+            elif command -v dnf &>/dev/null; then
+                echo "   sudo dnf install -y net-tools iproute"
+            elif command -v yum &>/dev/null; then
+                echo "   sudo yum install -y net-tools iproute"
+            elif command -v pacman &>/dev/null; then
+                echo "   sudo pacman -S net-tools iproute"
+            else
+                echo "   # Installation manuelle requise"
+            fi
+            echo ""
+            return 1
+        fi
+    fi
+
+    echo ""
     echo -e "${CYAN}📋 Vérification des ports critiques:${NC}"
 
     for port in "${ports[@]}"; do
-        if command -v ss &>/dev/null; then
-            if ss -tuln | grep -q ":$port "; then
-                echo -e "${RED}❌ Port $port: OCCUPÉ${NC}"
-                ss -tuln | grep ":$port " | head -1
-            else
-                echo -e "${GREEN}✅ Port $port: Libre${NC}"
+        local is_occupied=false
+        local process_info=""
+
+        if [ "$has_ss" = true ]; then
+            if ss -tuln 2>/dev/null | grep -q ":$port "; then
+                is_occupied=true
+                process_info=$(ss -tuln 2>/dev/null | grep ":$port " | head -1)
             fi
-        elif command -v netstat &>/dev/null; then
+        elif [ "$has_netstat" = true ]; then
             if netstat -tuln 2>/dev/null | grep -q ":$port "; then
-                echo -e "${RED}❌ Port $port: OCCUPÉ${NC}"
-                netstat -tuln 2>/dev/null | grep ":$port " | head -1
-            else
-                echo -e "${GREEN}✅ Port $port: Libre${NC}"
+                is_occupied=true
+                process_info=$(netstat -tuln 2>/dev/null | grep ":$port " | head -1)
             fi
+        fi
+
+        if [ "$is_occupied" = true ]; then
+            echo -e "${RED}❌ Port $port: OCCUPÉ${NC}"
+            echo "   $process_info"
+            occupied_ports+=("$port")
         else
-            echo -e "${YELLOW}⚠️ Impossible de vérifier le port $port (ss/netstat non disponibles)${NC}"
+            echo -e "${GREEN}✅ Port $port: Libre${NC}"
         fi
     done
 
     echo ""
     echo -e "${CYAN}📋 Services Docker en cours:${NC}"
     if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-        docker ps --filter "name=jobbingtrack" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "Aucun service JobbingTrack"
+        docker ps --filter "name=jobbingtrack-*" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "Aucun service JobbingTrack"
     else
         echo "Docker non disponible"
     fi
+
+    # Proposer de libérer les ports occupés
+    if [ ${#occupied_ports[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}🔧 Ports occupés détectés:${NC}"
+        printf '  %s\n' "${occupied_ports[@]}"
+        echo ""
+        echo -e "${YELLOW}💡 Voulez-vous libérer ces ports ? (o/N):${NC}"
+        read -p "Choix: " -r port_choice
+        if [[ $port_choice =~ ^[Oo]$ ]]; then
+            free_occupied_ports "${occupied_ports[@]}"
+        else
+            echo -e "${YELLOW}❌ Libération des ports annulée${NC}"
+        fi
+    fi
+}
+
+# Libérer les ports occupés
+free_occupied_ports() {
+    local ports=("$@")
+    echo -e "${BLUE}🔧 Libération des ports occupés...${NC}"
+
+    for port in "${ports[@]}"; do
+        echo "🔍 Recherche des processus sur le port $port..."
+
+        # Trouver les processus qui utilisent le port
+        if command -v ss &>/dev/null; then
+            pids=$(ss -tuln 2>/dev/null | grep ":$port " | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -5)
+        elif command -v netstat &>/dev/null; then
+            pids=$(netstat -tuln 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d/ -f1 | head -5)
+        else
+            echo -e "${YELLOW}⚠️ Impossible de trouver les processus pour le port $port${NC}"
+            continue
+        fi
+
+        if [ -n "$pids" ]; then
+            echo "📋 Processus trouvés sur le port $port:"
+            for pid in $pids; do
+                if [ -n "$pid" ] && [ "$pid" != "-" ]; then
+                    process_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "PID $pid")
+                    echo "   PID $pid: $process_name"
+                fi
+            done
+
+            echo "🛑 Arrêt des processus..."
+            for pid in $pids; do
+                if [ -n "$pid" ] && [ "$pid" != "-" ]; then
+                    if kill -TERM "$pid" 2>/dev/null; then
+                        echo -e "${GREEN}✅ Processus $pid arrêté${NC}"
+                        sleep 1
+                        # Vérifier si le processus est toujours en cours
+                        if kill -0 "$pid" 2>/dev/null; then
+                            echo -e "${YELLOW}⚠️ Processus $pid toujours en cours, tentative d'arrêt forcé...${NC}"
+                            kill -KILL "$pid" 2>/dev/null && echo -e "${GREEN}✅ Processus $pid arrêté de force${NC}"
+                        fi
+                    else
+                        echo -e "${RED}❌ Impossible d'arrêter le processus $pid${NC}"
+                    fi
+                fi
+            done
+        else
+            echo -e "${YELLOW}⚠️ Aucun processus trouvé sur le port $port${NC}"
+        fi
+    done
+
+    echo -e "${GREEN}✅ Libération des ports terminée${NC}"
 }
 
 # ============================================================================
@@ -543,7 +649,7 @@ main() {
                 if [ "$AUTO_FIX" = true ]; then
                     echo ""
                     echo -e "${YELLOW}🔧 Tentative d'installation Docker Compose...${NC}"
-                    install_docker_compose
+                    install_docker_compose_auto
                 fi
             fi
 
