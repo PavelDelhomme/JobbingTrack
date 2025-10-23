@@ -699,7 +699,9 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d'Erreur</p>
-                      <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{devMetrics.errorRate.toFixed(2)}%</p>
+                      <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                        {typeof devMetrics.errorRate === 'number' ? `${devMetrics.errorRate.toFixed(2)}%` : devMetrics.errorRate}
+                      </p>
                     </div>
                     <div className="text-purple-500">
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">

@@ -121,8 +121,8 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
-      - AUTH_SERVICE_URL=http://localhost:3001
+      # - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015  # Temporairement commenté pour diagnostic
+      # - AUTH_SERVICE_URL=http://localhost:3001  # Commenté car auth-service a un profil
       # ✅ En développement local, utiliser localhost pour vitesse
       - APPLICATION_SERVICE_URL=http://localhost:3002
       - COMPANY_SERVICE_URL=http://localhost:3003
@@ -298,27 +298,7 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Service du dashboard
-  dashboard-service:
-    build:
-      context: ./dashboard-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-dashboard-service
-    ports:
-      - "3007:3007"
-    environment:
-      - NODE_ENV=development
-      - PORT=3007
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=your-secret-key-change-in-production-2025
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      postgres:
-        condition: service_healthy
-      auth-service:
-        condition: service_started
-    networks:
-      - jobbingtrack-network
+  # Service du dashboard - supprimé car il existe dans docker-compose.yml principal
 
   # Service des appels téléphoniques
   call-service:
@@ -506,18 +486,9 @@ services:
     container_name: jobbingtrack-test-runner
     depends_on:
       - api-gateway
-      - auth-service
-      - application-service
-      - company-service
-      - contact-service
-      - interview-service
-      - notification-service
-      - dashboard-service
-      - call-service
-      - profile-service
-      - event-service
-      - followup-service
-      - workflow-service
+      - deployment-service
+      - system-metrics-service
+      - security-service
       # - scheduler-service  # ⚠️ DÉSACTIVÉ
     networks:
       - jobbingtrack-network
