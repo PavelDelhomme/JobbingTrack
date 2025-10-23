@@ -166,7 +166,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # DIAGNOSTICS ET VÉRIFICATION
 # ============================================================================
 
-.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps cors-fix
+.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps cors-fix cors-fix-auto diagnostic docker-compose-fix
 
 # Statut détaillé de chaque service
 status: ## Statut détaillé de chaque service
@@ -282,6 +282,14 @@ cors-fix: ## Diagnostiquer et corriger automatiquement les problèmes CORS
 # Correction directe CORS (sans interaction)
 cors-fix-auto: ## Corriger automatiquement les problèmes CORS sans demande de confirmation
 	./scripts/utils/cors-fix-direct.sh
+
+# Diagnostic complet et interactif
+diagnostic: ## Diagnostic complet et interactif de tous les problèmes système
+	./scripts/utils/diagnostic.sh
+
+# Correction automatique Docker Compose
+docker-compose-fix: ## Diagnostiquer et corriger automatiquement les problèmes Docker Compose
+	./scripts/utils/docker-compose-fix.sh
 
 # ============================================================================
 # BASE DE DONNÉES
@@ -431,6 +439,8 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make check-deps     - Vérifier que toutes les dépendances sont installées"
 	@echo "  make cors-fix       - Diagnostiquer et corriger les problèmes CORS"
 	@echo "  make cors-fix-auto  - Corriger automatiquement les problèmes CORS"
+	@echo "  make diagnostic     - Diagnostic complet et interactif de tous les problèmes"
+	@echo "  make docker-compose-fix - Diagnostiquer et corriger automatiquement Docker Compose"
 	@echo ""
 	@echo "🗄️ BASE DE DONNÉES:"
 	@echo "  make db-migrate     - Migrations de base de données"
