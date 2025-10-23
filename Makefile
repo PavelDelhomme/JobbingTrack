@@ -17,7 +17,7 @@ FRONTEND_DIR = frontend
 SCRIPTS_DIR = scripts
 TESTS_DIR = tests
 
-.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics
+.PHONY: help build build-system frontend-rebuild up down clean dev test migrate logs status install setup metrics-start metrics-test metrics-stop docker-exec test-socket fix-webpack verify-services start-simple-metrics clean-docker-cache show-docker-info
 
 # ============================================================================
 # COMMANDE PAR DÉFAUT - Affiche l'aide
@@ -38,7 +38,7 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
@@ -60,19 +60,19 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "📦 Tous les services avec métriques complètes"
 	$(call check_docker)
 	# Démarrer d'abord les services essentiels
-	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	# Puis les services optionnels avec profils
-	$(call docker_compose, $(COMPOSE_FILES) --profile applications up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile companies up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile contacts up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile interviews up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile notifications up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile calls up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile profiles up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile events up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile followups up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile workflows up -d)
-	$(call docker_compose, $(COMPOSE_FILES) --profile monitoring up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile applications up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile companies up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile contacts up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile interviews up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile notifications up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile calls up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile profiles up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile events up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile followups up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile workflows up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring up -d)
 	@echo ""
 	@echo "✅ Système complet démarré avec succès !"
 	@echo ""
@@ -82,7 +82,7 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 # Arrêter tous les services
 down: ## Arrêter tous les services
 	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	$(call docker_compose, $(COMPOSE_FILES) down)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down)
 	@echo "✅ Tous les services arrêtés"
 
 # Redémarrer tous les services
@@ -105,7 +105,7 @@ up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
 	fi
 	@echo "🚀 Démarrage du profil: $(PROFILE)"
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) --profile $(PROFILE) up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile $(PROFILE) up -d)
 	@echo "✅ Profil $(PROFILE) démarré"
 
 # ============================================================================
@@ -118,14 +118,14 @@ up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
 start-auth: ## Démarrer le service d'authentification
 	@echo "🚀 Démarrage du service d'authentification..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) --profile auth up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile auth up -d)
 	@echo "✅ Service d'authentification démarré"
 
 # Démarrer le service d'applications
 start-applications: ## Démarrer le service d'applications
 	@echo "🚀 Démarrage du service d'applications..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) --profile applications up -d)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile applications up -d)
 	@echo "✅ Service d'applications démarré"
 
 # Arrêter un service spécifique
@@ -136,7 +136,7 @@ stop-service: ## Arrêter un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🛑 Arrêt du service: $(SERVICE)"
-	$(call docker_compose, $(COMPOSE_FILES) stop $(SERVICE))
+	$(call docker_compose, $(COMPOSE_FILES_FULL) stop $(SERVICE))
 	@echo "✅ Service $(SERVICE) arrêté"
 
 # Redémarrer un service spécifique
@@ -147,7 +147,7 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🔄 Redémarrage du service: $(SERVICE)"
-	$(call docker_compose, $(COMPOSE_FILES) restart $(SERVICE))
+	$(call docker_compose, $(COMPOSE_FILES_FULL) restart $(SERVICE))
 	@echo "✅ Service $(SERVICE) redémarré"
 
 # Voir les logs d'un service spécifique
@@ -157,13 +157,13 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 		echo "💡 Exemple: make logs-service SERVICE=api-gateway"; \
 		exit 1; \
 	fi
-	$(call docker_compose, $(COMPOSE_FILES) logs -f $(SERVICE))
+	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(SERVICE))
 
 # ============================================================================
 # DIAGNOSTICS ET VÉRIFICATION
 # ============================================================================
 
-.PHONY: status logs health ps
+.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps
 
 # Statut détaillé de chaque service
 status: ## Statut détaillé de chaque service
@@ -180,19 +180,97 @@ status: ## Statut détaillé de chaque service
 ps: ## Liste les conteneurs actifs
 	@echo "📋 Conteneurs actifs JobbingTrack"
 	@echo "================================"
-	$(call docker_compose, $(COMPOSE_FILES) ps)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) ps)
 
 # Logs en temps réel de tous les services
 logs: ## Affiche tous les logs en temps réel
 	@echo "📜 Logs en temps réel de tous les services"
 	@echo "========================================"
-	$(call docker_compose, $(COMPOSE_FILES) logs -f)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f)
 
 # Vérification de santé complète
 health: ## Vérifie la santé de tous les services
 	@echo "🔍 Vérification complète de la santé du système"
 	@echo "=============================================="
 	./scripts/core/check.sh --detailed
+
+# Nettoie le cache Docker Compose (force redétection)
+clean-docker-cache: ## Nettoie le cache Docker Compose et force une redétection
+	@echo "🧹 Nettoyage du cache Docker Compose..."
+	$(call clean_docker_compose_cache)
+	@echo "✅ Cache nettoyé - redétection au prochain appel"
+
+# Affiche les informations Docker détectées
+show-docker-info: ## Affiche les informations Docker et Docker Compose détectées
+	@echo "🐳 Informations Docker détectées"
+	@echo "================================"
+	@echo "Commande Docker Compose: $(DOCKER_COMPOSE_CMD)"
+	@if [ -f "/tmp/jobbingtrack_docker_compose_cache" ]; then \
+		echo "Cache: $(shell cat /tmp/jobbingtrack_docker_compose_cache)"; \
+	else \
+		echo "Cache: Aucun"; \
+	fi
+	@echo ""
+	@echo "📊 Test des commandes:"
+	@if command -v docker &>/dev/null; then \
+		echo "✅ docker: $(shell docker --version | head -1)"; \
+	else \
+		echo "❌ docker: Non installé"; \
+	fi
+	@if command -v docker-compose &>/dev/null && docker-compose version &>/dev/null 2>&1; then \
+		echo "✅ docker-compose: $(shell docker-compose --version)"; \
+	else \
+		echo "❌ docker-compose: Non fonctionnel"; \
+	fi
+	@if docker compose version &>/dev/null 2>&1; then \
+		echo "✅ docker compose: Plugin disponible"; \
+	else \
+		echo "❌ docker compose: Non disponible"; \
+	fi
+
+# Vérification complète des dépendances
+check-deps: ## Vérifier que toutes les dépendances sont installées
+	@echo "🔍 Vérification des dépendances..."
+	@echo "🐳 Vérification de Docker..."
+	@if ! command -v docker &> /dev/null; then \
+		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
+		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
+		exit 1; \
+	fi
+	@echo "✅ Docker trouvé: $$(docker --version)"
+	@echo "🐳 Vérification de Docker Compose..."
+	@if command -v docker-compose &> /dev/null && docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose standalone: $$(docker-compose --version)"; \
+	elif docker compose version &> /dev/null 2>&1; then \
+		echo "✅ docker compose plugin: $$(docker compose version)"; \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose dans /usr/bin: $$(/usr/bin/docker-compose --version)"; \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose dans /usr/local/bin: $$(/usr/local/bin/docker-compose --version)"; \
+	else \
+		echo "❌ Docker Compose n'est pas disponible"; \
+		echo ""; \
+		echo "💡 Installation recommandée :"; \
+		echo ""; \
+		echo "📦 Option 1 - Installation standalone :"; \
+		echo "   sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-\$$(uname -s)-\$$(uname -m)\" -o /usr/local/bin/docker-compose"; \
+		echo "   sudo chmod +x /usr/local/bin/docker-compose"; \
+		echo ""; \
+		echo "📦 Option 2 - Installation via package manager :"; \
+		echo "   # Ubuntu/Debian:"; \
+		echo "   sudo apt-get update"; \
+		echo "   sudo apt-get install docker-compose-plugin"; \
+		echo ""; \
+		echo "   # CentOS/RHEL/Fedora:"; \
+		echo "   sudo dnf install docker-compose"; \
+		echo ""; \
+		echo "📦 Option 3 - Utiliser Docker Desktop (recommandé):"; \
+		echo "   https://docs.docker.com/desktop/"; \
+		echo ""; \
+		echo "🔄 Après installation, relancez la commande"; \
+		exit 1; \
+	fi
+	@echo "✅ Toutes les dépendances sont installées"
 
 # ============================================================================
 # BASE DE DONNÉES
@@ -214,7 +292,7 @@ db-seed: ## Insérer des données de test
 # Reset complet de la base de données
 db-reset: ## Reset complet de la DB
 	@echo "🔄 Reset complet de la base de données..."
-	$(call docker_compose, $(COMPOSE_FILES) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	$(call docker_compose, $(COMPOSE_FILES_FULL) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
 	@echo "✅ Base de données réinitialisée"
 	@echo "💡 Relancez 'make db-seed' pour recréer les données"
 
@@ -231,7 +309,7 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 		exit 1; \
 	fi
 	@echo "📥 Restauration depuis $(file)..."
-	$(call docker_compose, $(COMPOSE_FILES) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
+	$(call docker_compose, $(COMPOSE_FILES_FULL) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
 	@echo "✅ Base de données restaurée"
 
 # ============================================================================
@@ -244,20 +322,20 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 build: ## Build tous les services
 	@echo "🔨 Build de tous les services..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) build)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) build)
 	@echo "✅ Tous les services construits"
 
 # Rebuild sans cache
 rebuild: ## Rebuild sans cache
 	@echo "🔨 Rebuild complet sans cache..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) build --no-cache)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) build --no-cache)
 	@echo "✅ Rebuild terminé"
 
 # Nettoyage complet
 clean: ## Nettoyage complet
 	@echo "🧹 Nettoyage complet..."
-	$(call docker_compose, $(COMPOSE_FILES) down -v --remove-orphans)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) down -v --remove-orphans)
 	docker system prune -f
 	@echo "✅ Nettoyage terminé"
 
@@ -306,7 +384,7 @@ cadvisor: ## Ouvrir cAdvisor
 # Logs du système de métriques
 logs-metrics: ## Logs du système de métriques
 	@echo "📜 Logs du système de métriques..."
-	$(call docker_compose, $(COMPOSE_FILES) logs -f metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f metrics-aggregator)
 
 # Aide complète avec organisation par catégories
 help: ## Afficher l'aide organisée par catégories
@@ -337,6 +415,9 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make ps             - Lister les conteneurs actifs"
 	@echo "  make logs           - Afficher tous les logs"
 	@echo "  make status         - Statut détaillé de chaque service"
+	@echo "  make show-docker-info - Informations Docker/Docker Compose détectées"
+	@echo "  make clean-docker-cache - Nettoyer le cache Docker Compose"
+	@echo "  make check-deps     - Vérifier que toutes les dépendances sont installées"
 	@echo ""
 	@echo "🗄️ BASE DE DONNÉES:"
 	@echo "  make db-migrate     - Migrations de base de données"

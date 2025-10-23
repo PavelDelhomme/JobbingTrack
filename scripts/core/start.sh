@@ -42,8 +42,8 @@ QUICK=false
 # Import du wrapper Docker Compose utilitaire
 UTILS_DIR="$SCRIPT_DIR/../utils"
 
-if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
-    source "$UTILS_DIR/docker_compose_wrapper.sh"
+if [ -f "$UTILS_DIR/docker-compose-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker-compose-wrapper.sh"
 
     # Initialiser la détection Docker Compose
     if ! init_docker_compose_detection; then
@@ -114,26 +114,54 @@ done
 echo -e "${BLUE}🚀 Démarrage de JobbingTrack${NC}"
 echo "================================"
 
-# Vérifier que Docker est disponible
-if ! check_docker_available; then
-    echo -e "${RED}❌ Docker n'est pas disponible${NC}"
+# Initialiser la détection Docker Compose (avec cache)
+if ! init_docker_compose_detection 2>/dev/null; then
+    echo -e "${RED}❌ Impossible d'initialiser Docker/Docker Compose${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Docker est disponible${NC}"
+echo -e "${GREEN}✅ Docker et Docker Compose sont disponibles${NC}"
 show_detection_info
 
 # Vérifier si on doit reconstruire
 if [ "$REBUILD" = true ]; then
     echo -e "${YELLOW}🔨 Reconstruction des images Docker...${NC}"
     cd "$PROJECT_ROOT"
-    make build
+    docker_compose_wrapper -f docker-compose.yml build
 fi
 
 # Démarrer les services backend
 echo -e "${BLUE}🌐 Démarrage des services backend...${NC}"
 cd "$PROJECT_ROOT"
-make up
+
+# Utiliser docker compose directement au lieu de make
+echo -e "${BLUE}🚀 Démarrage des services essentiels JobbingTrack...${NC}"
+echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
+
+if ! check_docker_available; then
+    echo -e "${RED}❌ Docker n'est pas disponible${NC}"
+    exit 1
+fi
+
+show_detection_info
+
+# Démarrer les services essentiels
+docker_compose_wrapper -f docker-compose.yml up -d postgres redis api-gateway frontend auth-service dashboard-service
+
+echo ""
+echo -e "${GREEN}✅ Services essentiels démarrés avec succès !${NC}"
+echo ""
+echo -e "${BLUE}🌐 Interfaces disponibles :${NC}"
+echo "   Frontend:           http://localhost:8080"
+echo "   API Gateway:        http://localhost:3000"
+echo "   Auth Service:       http://localhost:3001"
+echo "   Dashboard Service:  http://localhost:3007"
+echo ""
+echo -e "${BLUE}🔑 Identifiants de connexion :${NC}"
+echo "   Email:    admin@jobbingtrack.com"
+echo "   Password: SuperAdmin123!"
+echo ""
+echo -e "${YELLOW}💡 Utilisez 'make up-full' pour démarrer tous les services${NC}"
 
 # Attendre que les services soient prêts (sauf en mode quick)
 if [ "$QUICK" = false ]; then

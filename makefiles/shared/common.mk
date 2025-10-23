@@ -115,18 +115,64 @@ endef
 # DÉTECTION AUTOMATIQUE DOCKER COMPOSE
 # ============================================================================
 
-# Détecte automatiquement la commande Docker Compose disponible
+# ============================================================================
+# DÉTECTION ROBUSTE DOCKER COMPOSE
+# ============================================================================
+
+# Cache de la commande Docker Compose détectée
+DOCKER_COMPOSE_CACHE_FILE := /tmp/jobbingtrack_docker_compose_cache
+
+# Détecte la commande Docker Compose qui fonctionne réellement
 DOCKER_COMPOSE_CMD := $(shell \
-	if command -v docker-compose &> /dev/null; then \
+	if command -v docker-compose &>/dev/null && docker-compose version &>/dev/null 2>&1; then \
 		echo "docker-compose"; \
-	elif docker compose version &> /dev/null 2>&1; then \
+	elif docker compose version &>/dev/null 2>&1; then \
 		echo "docker compose"; \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &>/dev/null 2>&1; then \
+		echo "/usr/bin/docker-compose"; \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &>/dev/null 2>&1; then \
+		echo "/usr/local/bin/docker-compose"; \
 	else \
 		echo "docker-compose"; \
-	fi)
+	fi \
+)
+
+# Fonction pour proposer l'installation de Docker Compose
+define install_docker_compose
+	@echo "❌ Docker Compose n'est pas disponible"
+	@echo ""
+	@echo "💡 Installation recommandée :"
+	@echo ""
+	@echo "📦 Option 1 - Installation standalone :"
+	@echo "   sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-\$$(uname -s)-\$$(uname -m)\" -o /usr/local/bin/docker-compose"
+	@echo "   sudo chmod +x /usr/local/bin/docker-compose"
+	@echo ""
+	@echo "📦 Option 2 - Installation via package manager :"
+	@echo "   # Ubuntu/Debian:"
+	@echo "   sudo apt-get update"
+	@echo "   sudo apt-get install docker-compose-plugin"
+	@echo ""
+	@echo "   # CentOS/RHEL/Fedora:"
+	@echo "   sudo dnf install docker-compose"
+	@echo ""
+	@echo "📦 Option 3 - Utiliser Docker Desktop (recommandé):"
+	@echo "   https://docs.docker.com/desktop/"
+	@echo ""
+	@echo "🔄 Après installation, relancez la commande"
+	@exit 1
+endef
 
 # Variables de fichiers Docker Compose
 COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml
+
+# Fichiers pour les services essentiels (sans backend services conflictuels)
+COMPOSE_FILES_ESSENTIAL := -f docker-compose.yml
+
+# Fichiers pour tous les services
+COMPOSE_FILES_FULL := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml
+
+# Afficher la commande Docker Compose détectée
+DOCKER_COMPOSE_INFO := $(shell echo "🐳 Commande Docker Compose: $(DOCKER_COMPOSE_CMD)")
 
 # ============================================================================
 # FONCTIONS DE PORTABILITÉ SYSTÈME
@@ -159,29 +205,38 @@ endef
 # WRAPPER POUR COMMANDES DOCKER COMPOSE
 # ============================================================================
 
-# Fonction wrapper pour docker-compose avec détection automatique
+# Fonction wrapper simple pour Docker Compose
 define docker_compose
-	@if [ "$(DOCKER_COMPOSE_CMD)" = "docker-compose" ]; then \
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+		docker compose $(1); \
+	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
 		docker-compose $(1); \
 	else \
-		docker compose $(1); \
+		$(DOCKER_COMPOSE_CMD) $(1); \
 	fi
+endef
+
+# Nettoie le cache Docker Compose (force redétection)
+define clean_docker_compose_cache
+	@rm -f $(DOCKER_COMPOSE_CACHE_FILE) 2>/dev/null || true
+	@echo "🧹 Cache Docker Compose nettoyé - redétection au prochain appel"
 endef
 
 # ============================================================================
 # FONCTIONS DE VÉRIFICATION
 # ============================================================================
 
-# Vérification rapide de Docker
+# Vérification de Docker
 define check_docker
 	@if ! command -v docker &> /dev/null; then \
 		echo "❌ Docker n'est pas installé"; \
 		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
 		exit 1; \
-	fi
-	@if ! docker info &> /dev/null; then \
+	fi; \
+	if ! docker info &> /dev/null; then \
 		echo "❌ Docker daemon n'est pas en cours d'exécution"; \
-		echo "💡 Démarrer Docker: sudo systemctl start docker (Linux) ou démarrer Docker Desktop (Windows/Mac)"; \
+		echo "💡 Démarrer Docker: sudo systemctl start docker (Linux)"; \
+		echo "💡 Ou Docker Desktop (Windows/Mac)"; \
 		exit 1; \
 	fi
 endef
@@ -197,14 +252,16 @@ define check_dependencies
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
 	@echo "🐳 Vérification de Docker Compose..."
-	@if command -v docker-compose &> /dev/null; then \
-		echo "✅ docker-compose trouvé: $$(docker-compose --version)"; \
-	elif docker compose version &> /dev/null; then \
-		echo "✅ docker compose trouvé: $$(docker compose version)"; \
+	@if command -v docker-compose &> /dev/null && docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose standalone: $$(docker-compose --version)"; \
+	elif docker compose version &> /dev/null 2>&1; then \
+		echo "✅ docker compose plugin: $$(docker compose version)"; \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose dans /usr/bin: $$(/usr/bin/docker-compose --version)"; \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &> /dev/null 2>&1; then \
+		echo "✅ docker-compose dans /usr/local/bin: $$(/usr/local/bin/docker-compose --version)"; \
 	else \
-		echo "❌ Docker Compose n'est pas disponible"; \
-		echo "💡 Installez Docker Compose ou utilisez 'docker compose' (Docker v2+)"; \
-		exit 1; \
+		$(call install_docker_compose); \
 	fi
 	@echo "✅ Toutes les dépendances sont installées"
 endef

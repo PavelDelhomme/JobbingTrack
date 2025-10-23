@@ -44,8 +44,8 @@ BACKUP_NAME=""
 # Import du wrapper Docker Compose utilitaire
 UTILS_DIR="$SCRIPT_DIR/../utils"
 
-if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
-    source "$UTILS_DIR/docker_compose_wrapper.sh"
+if [ -f "$UTILS_DIR/docker-compose-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker-compose-wrapper.sh"
 
     # Initialiser la détection Docker Compose
     if ! init_docker_compose_detection; then
@@ -113,8 +113,8 @@ done
 check_postgres() {
     echo -e "${YELLOW}🔍 Vérification de PostgreSQL...${NC}"
 
-    if ! check_docker_available; then
-        echo -e "${RED}❌ Docker n'est pas disponible${NC}"
+    if ! check_docker_compose_available; then
+        echo -e "${RED}❌ Docker/Docker Compose n'est pas disponible${NC}"
         return 1
     fi
 
@@ -200,6 +200,12 @@ create_backup() {
 main() {
     echo -e "${BLUE}💾 Sauvegarde de la base de données JobbingTrack${NC}"
     echo "=============================================="
+
+    # Initialisation de Docker Compose (avec cache)
+    if ! init_docker_compose_detection 2>/dev/null; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
 
     # Vérifier PostgreSQL
     if ! check_postgres; then

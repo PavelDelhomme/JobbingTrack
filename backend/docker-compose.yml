@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Service de statistiques Docker
+  # Service de statistiques Docker (nécessaire pour les métriques)
   docker-stats-service:
     build:
       context: ./docker-stats-service
@@ -49,6 +49,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
+    restart: unless-stopped
 
   # Service de métriques système
   system-metrics-service:
@@ -121,19 +122,19 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      # - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015  # Temporairement commenté pour diagnostic
+      - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
       # - AUTH_SERVICE_URL=http://localhost:3001  # Commenté car auth-service a un profil
       # ✅ En développement local, utiliser localhost pour vitesse
-      - APPLICATION_SERVICE_URL=http://localhost:3002
-      - COMPANY_SERVICE_URL=http://localhost:3003
-      - CONTACT_SERVICE_URL=http://localhost:3004
-      - INTERVIEW_SERVICE_URL=http://localhost:3005
-      - NOTIFICATION_SERVICE_URL=http://localhost:3006
-      - DASHBOARD_SERVICE_URL=http://localhost:3007
-      - CALL_SERVICE_URL=http://localhost:3008
-      - PROFILE_SERVICE_URL=http://localhost:3009
-      - EVENT_SERVICE_URL=http://localhost:3011
-      - FOLLOWUP_SERVICE_URL=http://localhost:3012
+      # - APPLICATION_SERVICE_URL=http://localhost:3002  # Commenté car application-service a un profil
+      # - COMPANY_SERVICE_URL=http://localhost:3003  # Commenté car company-service a un profil
+      # - CONTACT_SERVICE_URL=http://localhost:3004  # Commenté car contact-service a un profil
+      # - INTERVIEW_SERVICE_URL=http://localhost:3005  # Commenté car interview-service a un profil
+      # - NOTIFICATION_SERVICE_URL=http://localhost:3006  # Commenté car notification-service a un profil
+      # - DASHBOARD_SERVICE_URL=http://localhost:3007  # Commenté car dashboard-service a un profil
+      # - CALL_SERVICE_URL=http://localhost:3008  # Commenté car call-service a un profil
+      # - PROFILE_SERVICE_URL=http://localhost:3009  # Commenté car profile-service a un profil
+      # - EVENT_SERVICE_URL=http://localhost:3011  # Commenté car event-service a un profil
+      # - FOLLOWUP_SERVICE_URL=http://localhost:3012  # Commenté car followup-service a un profil
       - DEPLOYMENT_SERVICE_URL=http://localhost:3016
       - SYSTEM_METRICS_SERVICE_URL=http://localhost:3018
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
@@ -143,17 +144,6 @@ services:
       - ./docker-compose.yml:/app/docker-compose.yml:ro
     depends_on:
       - docker-stats-service
-      - auth-service
-      - application-service
-      - company-service
-      - contact-service
-      - interview-service
-      - notification-service
-      - dashboard-service
-      - call-service
-      - profile-service
-      - event-service
-      - followup-service
     networks:
       - jobbingtrack-network
 
@@ -480,22 +470,23 @@ services:
   #   networks:
   #     - jobbingtrack-network
 
-  # Service de tests
-  test-runner:
-    image: curlimages/curl:latest
-    container_name: jobbingtrack-test-runner
-    depends_on:
-      - api-gateway
-      - deployment-service
-      - system-metrics-service
-      - security-service
-      # - scheduler-service  # ⚠️ DÉSACTIVÉ
-    networks:
-      - jobbingtrack-network
-    volumes:
-      - ./test-microservices.sh:/test-microservices.sh
-    command: ["sh", "/test-microservices.sh"]
-    profiles: ["testing"]
+  # Service de tests - temporairement commenté (fichier test-microservices.sh manquant)
+  # test-runner:
+  #   image: curlimages/curl:latest
+  #   container_name: jobbingtrack-test-runner
+  #   depends_on:
+  #     - api-gateway
+  #     - docker-stats-service
+  #     - deployment-service
+  #     - system-metrics-service
+  #     - security-service
+  #     # - scheduler-service  # ⚠️ DÉSACTIVÉ
+  #   networks:
+  #     - jobbingtrack-network
+  #   volumes:
+  #     - ./test-microservices.sh:/test-microservices.sh
+  #   command: ["sh", "/test-microservices.sh"]
+  #   profiles: ["testing"]
 
 
 volumes:

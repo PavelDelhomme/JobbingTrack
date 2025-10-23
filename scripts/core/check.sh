@@ -112,8 +112,8 @@ check_docker() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_DIR="$SCRIPT_DIR/../utils"
 
-if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
-    source "$UTILS_DIR/docker_compose_wrapper.sh"
+if [ -f "$UTILS_DIR/docker-compose-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker-compose-wrapper.sh"
 else
     echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}" >&2
     exit 1
@@ -308,6 +308,12 @@ main() {
     echo "=============================================="
 
     local issues=0
+
+    # Initialisation de Docker Compose (avec cache)
+    if ! init_docker_compose_detection 2>/dev/null; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        return 2
+    fi
 
     # Vérifications de base
     check_docker || ((issues++))
