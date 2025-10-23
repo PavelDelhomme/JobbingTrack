@@ -38,7 +38,7 @@ endef
 
 # Fonction pour vérifier si une commande existe
 define check_command
-	@if ! command -v $(1) &> /dev/null; then \
+	@if ! command -v $(1) >/dev/null 2>&1; then \
 		echo "❌ $(1) n'est pas installé"; \
 		exit 1; \
 	fi
@@ -184,9 +184,9 @@ DOCKER_COMPOSE_INFO := $(shell echo "🐳 Commande Docker Compose: $(DOCKER_COMP
 
 # Fonction portable pour vérifier si un port est occupé
 define check_port_occupied
-	@if command -v ss &> /dev/null; then \
+	@if command -v ss >/dev/null 2>&1; then \
 		ss -tuln | grep -q ":$(1) "; \
-	elif command -v netstat &> /dev/null; then \
+	elif command -v netstat >/dev/null 2>&1; then \
 		netstat -tuln 2>/dev/null | grep -q ":$(1) "; \
 	else \
 		echo "⚠️ Impossible de vérifier les ports (ss/netstat non disponibles)"; \
@@ -196,9 +196,9 @@ endef
 
 # Fonction portable pour obtenir le PID utilisant un port
 define get_port_pid
-	@if command -v ss &> /dev/null; then \
+	@if command -v ss >/dev/null 2>&1; then \
 		ss -tuln | grep ":$(1) " | head -1 | awk '{print $$7}' | cut -d',' -f2 | cut -d'=' -f2; \
-	elif command -v netstat &> /dev/null; then \
+	elif command -v netstat >/dev/null 2>&1; then \
 		netstat -tuln 2>/dev/null | grep ":$(1) " | head -1 | awk '{print $$7}' | cut -d'/' -f1; \
 	else \
 		echo ""; \
@@ -230,10 +230,10 @@ endef
 # FONCTIONS DE VÉRIFICATION
 # ============================================================================
 
-# Vérification complète de Docker
+# Vérification complète de Docker (inspirée de diagnostic.sh qui fonctionne)
 define check_docker
 	@echo "🐳 Vérification de Docker..."
-	@if ! command -v docker &> /dev/null; then \
+	@if ! command -v docker >/dev/null 2>&1; then \
 		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
 		echo ""; \
 		echo "💡 Installation Docker:"; \
@@ -251,7 +251,7 @@ define check_docker
 		exit 1; \
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
-	@if ! docker info &> /dev/null; then \
+	@if ! docker info >/dev/null 2>&1; then \
 		echo "❌ Docker daemon n'est pas en cours d'exécution"; \
 		echo ""; \
 		echo "💡 Démarrage Docker:"; \
@@ -266,7 +266,7 @@ define check_docker
 		exit 1; \
 	fi
 	@echo "✅ Docker daemon fonctionne"
-	@if ! docker ps &> /dev/null; then \
+	@if ! docker ps >/dev/null 2>&1; then \
 		echo "⚠️ Docker fonctionne mais permission refusée pour docker ps"; \
 		echo ""; \
 		echo "💡 Solution permissions:"; \
@@ -285,20 +285,20 @@ endef
 define check_dependencies
 	@echo "🔍 Vérification des dépendances..."
 	@echo "🐳 Vérification de Docker..."
-	@if ! command -v docker &> /dev/null; then \
+	@if ! command -v docker >/dev/null 2>&1; then \
 		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
 		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
 		exit 1; \
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
 	@echo "🐳 Vérification de Docker Compose..."
-	@if command -v docker-compose &> /dev/null && docker-compose version &> /dev/null 2>&1; then \
+	@if command -v docker-compose >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose standalone: $$(docker-compose --version)"; \
-	elif docker compose version &> /dev/null 2>&1; then \
+	elif docker compose version >/dev/null 2>&1; then \
 		echo "✅ docker compose plugin: $$(docker compose version)"; \
-	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version &> /dev/null 2>&1; then \
+	elif [ -x "/usr/bin/docker-compose" ] && /usr/bin/docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/bin: $$(/usr/bin/docker-compose --version)"; \
-	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version &> /dev/null 2>&1; then \
+	elif [ -x "/usr/local/bin/docker-compose" ] && /usr/local/bin/docker-compose version >/dev/null 2>&1; then \
 		echo "✅ docker-compose dans /usr/local/bin: $$(/usr/local/bin/docker-compose --version)"; \
 	else \
 		$(call install_docker_compose); \
