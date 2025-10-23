@@ -38,7 +38,7 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service))
+	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""

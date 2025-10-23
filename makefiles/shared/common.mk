@@ -126,7 +126,7 @@ DOCKER_COMPOSE_CMD := $(shell \
 	fi)
 
 # Variables de fichiers Docker Compose
-COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml -f tests/docker-compose.test.yml
+COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml
 
 # ============================================================================
 # FONCTIONS DE PORTABILITÉ SYSTÈME
