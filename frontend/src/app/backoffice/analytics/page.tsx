@@ -897,7 +897,9 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Attaques DDoS</p>
-                      <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{devMetrics.ddosAttacks}</p>
+                      <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                        {typeof devMetrics.ddosAttacks === 'number' ? devMetrics.ddosAttacks : 'N/A'}
+                      </p>
                     </div>
                     <div className="text-orange-500">
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -1006,44 +1008,60 @@ function AnalyticsContent() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Logs de sécurité</span>
-                      <span className="font-bold text-orange-600 dark:text-orange-400">{Math.floor(devMetrics.intrusionAttempts * 10)}</span>
+                      <span className="font-bold text-orange-600 dark:text-orange-400">
+                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 10) : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Événements suspects</span>
-                      <span className="font-bold text-red-600 dark:text-red-400">{devMetrics.intrusionAttempts}</span>
+                      <span className="font-bold text-red-600 dark:text-red-400">
+                        {typeof devMetrics.intrusionAttempts === 'number' ? devMetrics.intrusionAttempts : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Authentifications échouées</span>
-                      <span className="font-bold text-yellow-600 dark:text-yellow-400">{Math.floor(devMetrics.intrusionAttempts * 2)}</span>
+                      <span className="font-bold text-yellow-600 dark:text-yellow-400">
+                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 2) : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Menaces détectées</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">{Math.floor(devMetrics.ddosAttacks * 3)}</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">
+                        {typeof devMetrics.ddosAttacks === 'number' ? Math.floor(devMetrics.ddosAttacks * 3) : 'N/A'}
+                      </span>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Traces actives</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">{Math.floor(devMetrics.intrusionAttempts * 20)}</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
+                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 20) : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse moyen</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">{Math.floor(devMetrics.averageResponseTime * 1.2)}ms</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">
+                        {typeof devMetrics.averageResponseTime === 'number' ? `${Math.floor(devMetrics.averageResponseTime * 1.2)}ms` : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Requêtes par minute</span>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">{Math.floor(devMetrics.apiCallsPerSecond * 60 * 1.5)}</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">
+                        {typeof devMetrics.apiCallsPerSecond === 'number' ? Math.floor(devMetrics.apiCallsPerSecond * 60 * 1.5) : 'N/A'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur APM</span>
-                      <span className="font-bold text-red-600 dark:text-red-400">{(devMetrics.errorRate * 1.2).toFixed(2)}%</span>
+                      <span className="font-bold text-red-600 dark:text-red-400">
+                        {typeof devMetrics.errorRate === 'number' ? `${(devMetrics.errorRate * 1.2).toFixed(2)}%` : 'N/A'}
+                      </span>
                     </div>
                   </div>
 
