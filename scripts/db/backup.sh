@@ -37,6 +37,26 @@ COMPRESS=false
 DESTINATION="./backups"
 BACKUP_NAME=""
 
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
+
 # Fonction d'aide
 show_help() {
     echo -e "${BLUE}💾 Sauvegarde base de données - JobbingTrack${NC}"
@@ -93,12 +113,12 @@ done
 check_postgres() {
     echo -e "${YELLOW}🔍 Vérification de PostgreSQL...${NC}"
 
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}❌ Docker n'est pas installé${NC}"
+    if ! check_docker_available; then
+        echo -e "${RED}❌ Docker n'est pas disponible${NC}"
         return 1
     fi
 
-    if ! docker-compose ps postgres | grep -q "Up"; then
+    if ! docker_compose_wrapper ps postgres | grep -q "Up"; then
         echo -e "${RED}❌ PostgreSQL n'est pas en cours d'exécution${NC}"
         echo -e "${YELLOW}💡 Démarrez les services avec : make up${NC}"
         return 1
@@ -150,9 +170,9 @@ create_backup() {
 
     # Créer la sauvegarde
     if [ "$COMPRESS" = true ]; then
-        docker-compose exec -T postgres pg_dump -U jobbingtrack jobbingtrack | gzip > "$filepath"
+        docker_compose_wrapper exec -T postgres pg_dump -U jobbingtrack jobbingtrack | gzip > "$filepath"
     else
-        docker-compose exec -T postgres pg_dump -U jobbingtrack jobbingtrack > "$filepath"
+        docker_compose_wrapper exec -T postgres pg_dump -U jobbingtrack jobbingtrack > "$filepath"
     fi
 
     # Vérifier que la sauvegarde a été créée
@@ -209,9 +229,9 @@ main() {
     # Commandes de restauration suggérées
     echo -e "\n${BLUE}🔄 Pour restaurer cette sauvegarde:${NC}"
     if [ "$COMPRESS" = true ]; then
-        echo "   gunzip < $DESTINATION/$filename | docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack"
+        echo "   gunzip < $DESTINATION/$filename | docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack"
     else
-        echo "   docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack < $DESTINATION/$filename"
+        echo "   docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack < $DESTINATION/$filename"
     fi
     echo "   # Ou utilisez: make db-restore file=$DESTINATION/$filename"
 

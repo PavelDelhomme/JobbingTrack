@@ -33,6 +33,27 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
+
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper-wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 QUICK=false
@@ -184,7 +205,7 @@ check_docker_compose() {
     local check_name="Docker Compose"
     local message=""
 
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    if ! command -v docker_compose_wrapper &> /dev/null && ! docker compose version &> /dev/null; then
         record_result "$check_name" "FAILED" "Docker Compose n'est pas installé"
         return 1
     fi
@@ -239,7 +260,7 @@ check_database() {
         fi
     fi
 
-    if docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1;" >/dev/null 2>&1; then
+    if docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1;" >/dev/null 2>&1; then
         record_result "$check_name" "PASSED" "PostgreSQL accessible via Docker"
         return 0
     fi
@@ -259,7 +280,7 @@ check_redis() {
         fi
     fi
 
-    if docker-compose exec -T redis redis-cli ping >/dev/null 2>&1; then
+    if docker_compose_wrapper exec -T redis redis-cli ping >/dev/null 2>&1; then
         record_result "$check_name" "PASSED" "Redis accessible via Docker"
         return 0
     fi

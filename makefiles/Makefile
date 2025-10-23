@@ -104,7 +104,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \
 	else \
-		docker compose -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \
+		$(call docker_compose, -f docker-compose.yml up -d postgres redis >/dev/null 2>&1 && echo "✅ Infrastructure démarrée"; \)
 	fi
 
 	# Démarrer les services système (stats)
@@ -112,7 +112,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.yml up -d docker-stats-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
 	else \
-		docker compose -f docker-compose.yml up -d docker-stats-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \
+		$(call docker_compose, -f docker-compose.yml up -d docker-stats-service >/dev/null 2>&1 && echo "✅ Services système démarrés"; \)
 	fi
 
 	# Démarrer les services de métriques avec le fichier dédié
@@ -121,7 +121,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 		cd monitoring && if command -v docker-compose &> /dev/null; then \
 			docker-compose up -d >/dev/null 2>&1 && echo "✅ Services de métriques démarrés"; \
 		else \
-			docker compose up -d >/dev/null 2>&1 && echo "✅ Services de métriques démarrés"; \
+			$(call docker_compose, up -d >/dev/null 2>&1 && echo "✅ Services de métriques démarrés"; \)
 		fi; \
 	else \
 		echo "   Dossier monitoring non trouvé, démarrage des métriques ignoré"; \
@@ -139,7 +139,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"; \
 	else \
-		docker compose -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"; \
+		$(call docker_compose, -f docker-compose.yml up -d >/dev/null 2>&1 && echo "✅ Services backend démarrés"; \)
 	fi
 
 	# Attendre que les services soient prêts
@@ -150,7 +150,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \
 	else \
-		docker compose -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \
+		$(call docker_compose, -f docker-compose.frontend.yml up -d >/dev/null 2>&1 && echo "✅ Frontend démarré"; \)
 	fi
 
 	# Attendre que le frontend soit prêt
@@ -193,7 +193,7 @@ clean-conflicts: ## Nettoyer automatiquement les conflits de ports et services
 	# Vérifier que les ports sont libres maintenant
 	@PORTS_STILL_OCCUPIED=0; \
 	for port in 5432 6379 8080; do \
-		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
+		if $(call check_port_occupied,$$port); then \
 			PORTS_STILL_OCCUPIED=1; \
 		fi \
 	done; \
@@ -221,11 +221,11 @@ down: ## Arrêter tout le projet proprement
 			echo "   ✅ Aucun service backend en cours"; \
 		fi; \
 	else \
-		SERVICES=$$(docker compose -f docker-compose.yml ps -q 2>/dev/null); \
+		SERVICES=$$($(call docker_compose, -f docker-compose.yml ps -q 2>/dev/null); \
 		if [ -n "$$SERVICES" ]; then \
-			docker compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			$(call docker_compose, -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \)
 			echo "⏹️ Arrêt des services backend..."; \
-			docker compose -f docker-compose.yml down >/dev/null 2>&1 && echo "✅ Services backend arrêtés"; \
+			$(call docker_compose, -f docker-compose.yml down >/dev/null 2>&1 && echo "✅ Services backend arrêtés"; \)
 		else \
 			echo "   ✅ Aucun service backend en cours"; \
 		fi; \
@@ -243,11 +243,11 @@ down: ## Arrêter tout le projet proprement
 			echo "   ✅ Aucun service frontend en cours"; \
 		fi; \
 	else \
-		SERVICES=$$(docker compose -f docker-compose.frontend.yml ps -q 2>/dev/null); \
+		SERVICES=$$($(call docker_compose, -f docker-compose.frontend.yml ps -q 2>/dev/null); \
 		if [ -n "$$SERVICES" ]; then \
-			docker compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+			$(call docker_compose, -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \)
 			echo "⏹️ Arrêt des services frontend..."; \
-			docker compose -f docker-compose.frontend.yml down >/dev/null 2>&1 && echo "✅ Services frontend arrêtés"; \
+			$(call docker_compose, -f docker-compose.frontend.yml down >/dev/null 2>&1 && echo "✅ Services frontend arrêtés"; \)
 		else \
 			echo "   ✅ Aucun service frontend en cours"; \
 		fi; \
@@ -259,7 +259,7 @@ down: ## Arrêter tout le projet proprement
 		cd monitoring && if command -v docker-compose &> /dev/null; then \
 			docker-compose down >/dev/null 2>&1 || echo "   Aucun service de monitoring à arrêter"; \
 		else \
-			docker compose down >/dev/null 2>&1 || echo "   Aucun service de monitoring à arrêter"; \
+			$(call docker_compose, down >/dev/null 2>&1 || echo "   Aucun service de monitoring à arrêter"; \)
 		fi; \
 	else \
 		echo "   Dossier monitoring non trouvé"; \
@@ -292,13 +292,13 @@ dev: check-deps ## Mode développement avec hot reload
 	@cd $(BACKEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.yml up -d; \
 	else \
-		docker compose -f docker-compose.yml up -d; \
+		$(call docker_compose, -f docker-compose.yml up -d; \)
 	fi
 	@echo "🐳 Démarrage des services frontend..."
 	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.frontend.yml up -d; \
 	else \
-		docker compose -f docker-compose.frontend.yml up -d; \
+		$(call docker_compose, -f docker-compose.frontend.yml up -d; \)
 	fi
 	@echo "✅ Mode développement démarré"
 	@echo ""
@@ -367,13 +367,13 @@ rebuild: ## Reconstruction complète
 # Construire toutes les images
 build: ## Construire toutes les images Docker
 	@echo "🔨 Construction des images Docker..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml build --parallel
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml build --parallel
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml build --parallel)
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml build --parallel)
 
 # Construire seulement les services système
 build-system: ## Construire seulement les services système
 	@echo "🔨 Construction des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml build docker-stats-service deployment-service security-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml build docker-stats-service deployment-service security-service)
 
 # Reconstruire le frontend sans cache
 frontend-rebuild: ## Reconstruire le frontend sans cache avec sortie détaillée
@@ -381,7 +381,7 @@ frontend-rebuild: ## Reconstruire le frontend sans cache avec sortie détaillée
 	@cd $(FRONTEND_DIR) && if command -v docker-compose &> /dev/null; then \
 		docker-compose -f docker-compose.frontend.yml build --no-cache --progress=plain; \
 	else \
-		docker compose -f docker-compose.frontend.yml build --no-cache --progress=plain; \
+		$(call docker_compose, -f docker-compose.frontend.yml build --no-cache --progress=plain; \)
 	fi
 	@echo "✅ Frontend reconstruit avec succès"
 
@@ -392,7 +392,7 @@ frontend-rebuild: ## Reconstruire le frontend sans cache avec sortie détaillée
 # Appliquer les migrations
 migrate: ## Appliquer les migrations de base de données
 	@echo "🗄️ Application des migrations..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml exec auth-service npx prisma migrate deploy
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml exec auth-service npx prisma migrate deploy)
 
 # ============================================================================
 # LOGS ET STATUT
@@ -401,8 +401,8 @@ migrate: ## Appliquer les migrations de base de données
 # Logs de tous les services
 logs: ## Logs en temps réel de tous les services
 	@echo "📋 Logs en temps réel..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f &
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml logs -f &
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f &)
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml logs -f &)
 
 # Statut des services
 status: ## État de tous les services
@@ -411,16 +411,16 @@ status: ## État de tous les services
 
 	# Services backend
 	@echo "📦 Backend:"
-	@cd $(BACKEND_DIR) && if docker compose -f docker-compose.yml ps -q >/dev/null 2>&1; then \
-		docker compose -f docker-compose.yml ps; \
+	@cd $(BACKEND_DIR) && if $(call docker_compose, -f docker-compose.yml ps -q >/dev/null 2>&1; then \)
+		$(call docker_compose, -f docker-compose.yml ps; \)
 	else \
 		echo "   Aucun service backend démarré"; \
 	fi
 
 	@echo ""
 	@echo "🖥️ Frontend:"
-	@cd $(FRONTEND_DIR) && if docker compose -f docker-compose.frontend.yml ps -q >/dev/null 2>&1; then \
-		docker compose -f docker-compose.frontend.yml ps; \
+	@cd $(FRONTEND_DIR) && if $(call docker_compose, -f docker-compose.frontend.yml ps -q >/dev/null 2>&1; then \)
+		$(call docker_compose, -f docker-compose.frontend.yml ps; \)
 	else \
 		echo "   Aucun service frontend démarré"; \
 	fi
@@ -674,7 +674,7 @@ check-health: ## Vérification santé préventive de tous les composants
 	# Vérifier les ports disponibles
 	@echo "🌐 Ports réseau:"
 	@for port in 3000 8080 5432 6379; do \
-		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
+		if $(call check_port_occupied,$$port); then \
 			echo "   ❌ Port $$port occupé"; \
 		else \
 			echo "   ✅ Port $$port libre"; \
@@ -747,10 +747,10 @@ check-disk: ## Vérifier l'espace disque disponible
 # Démarrer seulement les services système (stats, déploiement, sécurité, métriques)
 start-system: ## Démarrer seulement les services système
 	@echo "🔧 Démarrage des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d docker-stats-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d docker-stats-service)
 	# Démarrer les services de métriques avec le fichier dédié
 	@if [ -d "monitoring" ]; then \
-		cd monitoring && docker compose up -d; \
+		cd monitoring && $(call docker_compose, up -d; \)
 	else \
 		echo "   Dossier monitoring non trouvé"; \
 	fi
@@ -759,10 +759,10 @@ start-system: ## Démarrer seulement les services système
 # Arrêter seulement les services système
 stop-system: ## Arrêter seulement les services système
 	@echo "⏹️ Arrêt des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop docker-stats-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml stop docker-stats-service)
 	# Arrêter les services de métriques
 	@if [ -d "monitoring" ]; then \
-		cd monitoring && docker compose stop; \
+		cd monitoring && $(call docker_compose, stop; \)
 	else \
 		echo "   Dossier monitoring non trouvé"; \
 	fi
@@ -774,10 +774,10 @@ restart-system: stop-system start-system ## Redémarrer seulement les services s
 # Logs des services système
 logs-system: ## Logs des services système uniquement
 	@echo "📋 Logs des services système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f docker-stats-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f docker-stats-service)
 	# Logs des services de métriques
 	@if [ -d "monitoring" ]; then \
-		cd monitoring && docker compose logs -f; \
+		cd monitoring && $(call docker_compose, logs -f; \)
 	else \
 		echo "   Dossier monitoring non trouvé"; \
 	fi
@@ -785,53 +785,53 @@ logs-system: ## Logs des services système uniquement
 # Démarrer seulement le service de déploiement
 start-deployment: ## Démarrer seulement le service de déploiement
 	@echo "🚀 Démarrage du service de déploiement..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d deployment-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d deployment-service)
 	@echo "✅ Service de déploiement démarré"
 
 # Arrêter seulement le service de déploiement
 stop-deployment: ## Arrêter seulement le service de déploiement
 	@echo "⏹️ Arrêt du service de déploiement..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop deployment-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml stop deployment-service)
 	@echo "✅ Service de déploiement arrêté"
 
 # Logs du service de déploiement
 logs-deployment: ## Logs du service de déploiement
 	@echo "📋 Logs du service de déploiement..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f deployment-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f deployment-service)
 
 # Démarrer seulement le service de sécurité
 start-security: ## Démarrer seulement le service de sécurité
 	@echo "🔒 Démarrage du service de sécurité..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d security-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d security-service)
 	@echo "✅ Service de sécurité démarré"
 
 # Arrêter seulement le service de sécurité
 stop-security: ## Arrêter seulement le service de sécurité
 	@echo "⏹️ Arrêt du service de sécurité..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop security-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml stop security-service)
 	@echo "✅ Service de sécurité arrêté"
 
 # Logs du service de sécurité
 logs-security: ## Logs du service de sécurité
 	@echo "📋 Logs du service de sécurité..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f security-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f security-service)
 
 # Démarrer seulement le service de métriques système
 start-metrics: ## Démarrer seulement le service de métriques système
 	@echo "📊 Démarrage du service de métriques système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d system-metrics-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d system-metrics-service)
 	@echo "✅ Service de métriques système démarré"
 
 # Arrêter seulement le service de métriques système
 stop-metrics: ## Arrêter seulement le service de métriques système
 	@echo "⏹️ Arrêt du service de métriques système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml stop system-metrics-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml stop system-metrics-service)
 	@echo "✅ Service de métriques système arrêté"
 
 # Logs du service de métriques système
 logs-metrics: ## Logs du service de métriques système
 	@echo "📋 Logs du service de métriques système..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f system-metrics-service
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f system-metrics-service)
 
 # ============================================================================
 # SYSTEME DE METRIQUES
@@ -841,7 +841,7 @@ logs-metrics: ## Logs du service de métriques système
 metrics-start: ## Démarrer le système de métriques (cAdvisor + Metrics Aggregator + Prometheus)
 	@echo "📊 Démarrage du système de métriques..."
 	@if [ -d "monitoring" ]; then \
-		cd monitoring && docker compose up -d; \
+		cd monitoring && $(call docker_compose, up -d; \)
 	else \
 		echo "   Dossier monitoring non trouvé"; \
 	fi
@@ -861,7 +861,7 @@ metrics-test: ## Tester le système de métriques
 metrics-stop: ## Arrêter le système de métriques
 	@echo "⏹️ Arrêt du système de métriques..."
 	@if [ -d "monitoring" ]; then \
-		cd monitoring && docker compose stop; \
+		cd monitoring && $(call docker_compose, stop; \)
 	else \
 		echo "   Dossier monitoring non trouvé"; \
 	fi

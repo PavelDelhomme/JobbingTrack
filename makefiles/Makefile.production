@@ -4,6 +4,9 @@
 # Commandes pour déployer et gérer JobbingTrack en production
 # ============================================================================
 
+# Inclure les fonctions et variables communes
+include makefiles/shared/common.mk
+
 # Couleurs
 GREEN := \033[0;32m
 RED := \033[0;31m
@@ -54,9 +57,9 @@ deploy: ## Déployer en production
 		exit 1; \
 	fi
 	@echo "$(BLUE)📦 Construction des images...$(NC)"
-	@cd production && docker compose -f docker-compose.production.yml build --parallel
+	@cd production && $(call docker_compose, -f docker-compose.production.yml build --parallel)
 	@echo "$(BLUE)🚀 Démarrage des services...$(NC)"
-	@cd production && docker compose -f docker-compose.production.yml up -d
+	@cd production && $(call docker_compose, -f docker-compose.production.yml up -d)
 	@echo "$(GREEN)✅ JobbingTrack déployé en production$(NC)"
 	@echo ""
 	@echo "$(CYAN)🌐 Accès:$(NC)"
@@ -65,12 +68,12 @@ deploy: ## Déployer en production
 
 stop: ## Arrêter la production
 	@echo "$(RED)🛑 Arrêt de la production...$(NC)"
-	@cd production && docker compose -f docker-compose.production.yml down
+	@cd production && $(call docker_compose, -f docker-compose.production.yml down)
 	@echo "$(GREEN)✅ Production arrêtée$(NC)"
 
 restart: ## Redémarrer la production
 	@echo "$(YELLOW)🔄 Redémarrage de la production...$(NC)"
-	@cd production && docker compose -f docker-compose.production.yml restart
+	@cd production && $(call docker_compose, -f docker-compose.production.yml restart)
 	@echo "$(GREEN)✅ Production redémarrée$(NC)"
 
 # ============================================================================
@@ -78,11 +81,11 @@ restart: ## Redémarrer la production
 # ============================================================================
 
 logs: ## Logs en temps réel
-	@cd production && docker compose -f docker-compose.production.yml logs -f
+	@cd production && $(call docker_compose, -f docker-compose.production.yml logs -f)
 
 status: ## État des services
 	@echo "$(BLUE)📊 Statut des services de production:$(NC)"
-	@cd production && docker compose -f docker-compose.production.yml ps
+	@cd production && $(call docker_compose, -f docker-compose.production.yml ps)
 
 health: ## Vérifier la santé des services
 	@echo "$(GREEN)💚 Vérification de la santé...$(NC)"
@@ -118,8 +121,8 @@ restore: ## Restaurer une sauvegarde
 update: ## Mettre à jour l'application
 	@echo "$(YELLOW)🔄 Mise à jour de l'application...$(NC)"
 	@git pull origin main
-	@cd production && docker compose -f docker-compose.production.yml build --no-cache
-	@cd production && docker compose -f docker-compose.production.yml up -d
+	@cd production && $(call docker_compose, -f docker-compose.production.yml build --no-cache)
+	@cd production && $(call docker_compose, -f docker-compose.production.yml up -d)
 	@echo "$(GREEN)✅ Application mise à jour$(NC)"
 
 migrate: ## Appliquer les migrations de base de données

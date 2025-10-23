@@ -30,6 +30,27 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # Configuration
+
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper-wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CHECK_ONLY=false
@@ -211,7 +232,7 @@ main() {
     fi
 
     # Vérifier Docker Compose
-    if ! command_exists docker-compose && ! docker compose version >/dev/null 2>&1; then
+    if ! command_exists docker_compose_wrapper && ! docker compose version >/dev/null 2>&1; then
         echo -e "${YELLOW}📦 Installation de Docker Compose...${NC}"
         # Docker Compose est généralement inclus avec Docker Desktop ou docker CLI
         echo -e "${YELLOW}💡 Docker Compose devrait être disponible avec Docker${NC}"

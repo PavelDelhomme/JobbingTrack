@@ -110,14 +110,14 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 
 	# Démarrer le reste des services backend
 	@echo "🌐 Démarrage des services backend..."
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d)
 
 	# Attendre que les services soient prêts
 	@sleep 10
 
 	# Démarrer le frontend
 	@echo "🖥️ Démarrage du frontend..."
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml up -d)
 
 	@echo "✅ JobbingTrack démarré avec succès !"
 	@echo ""
@@ -145,7 +145,7 @@ clean-conflicts: ## Nettoyer automatiquement les conflits de ports et services
 	@echo "$(BLUE)🔍 Vérification des ports après nettoyage...$(NC)"
 	@PORTS_STILL_OCCUPIED=0; \
 	for port in 5432 6379 8080; do \
-		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
+		if $(call check_port_occupied,$$port); then \
 			echo "$(RED)❌ Port $$port toujours occupé$(NC)"; \
 			PORTS_STILL_OCCUPIED=1; \
 		else \
@@ -169,20 +169,20 @@ down: ## Arrêter tout le projet proprement
 
 	# Lister les services backend
 	@echo "$(BLUE)📦 Services backend:$(NC)"
-	@cd $(BACKEND_DIR) && if docker compose -f docker-compose.yml ps -q | grep -q .; then \
-		docker compose -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+	@cd $(BACKEND_DIR) && if $(call docker_compose, -f docker-compose.yml ps -q | grep -q .; then \)
+		$(call docker_compose, -f docker-compose.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \)
 		echo "$(YELLOW)⏹️ Arrêt des services backend...$(NC)"; \
-		docker compose -f docker-compose.yml down; \
+		$(call docker_compose, -f docker-compose.yml down; \)
 	else \
 		echo "   $(GREEN)✅ Aucun service backend en cours$(NC)"; \
 	fi
 
 	# Lister les services frontend
 	@echo "$(BLUE)🖥️ Services frontend:$(NC)"
-	@cd $(FRONTEND_DIR) && if docker compose -f docker-compose.frontend.yml ps -q | grep -q .; then \
-		docker compose -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \
+	@cd $(FRONTEND_DIR) && if $(call docker_compose, -f docker-compose.frontend.yml ps -q | grep -q .; then \)
+		$(call docker_compose, -f docker-compose.frontend.yml ps --format "table {{.Service}}\t{{.Status}}" | grep -v "NAME\|---"; \)
 		echo "$(YELLOW)⏹️ Arrêt des services frontend...$(NC)"; \
-		docker compose -f docker-compose.frontend.yml down; \
+		$(call docker_compose, -f docker-compose.frontend.yml down; \)
 	else \
 		echo "   $(GREEN)✅ Aucun service frontend en cours$(NC)"; \
 	fi
@@ -210,8 +210,8 @@ clean: ## Nettoyer complètement (containers, volumes, images)
 dev: ## Mode développement avec hot reload
 	$(call print_message,$(BLUE),🔧 Mode développement JobbingTrack...)
 	$(call print_message,$(YELLOW),⚡ Démarrage rapide sans reconstruction...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml up -d
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml up -d
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml up -d)
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml up -d)
 	$(call print_message,$(GREEN),✅ Mode développement démarré)
 	@echo ""
 	@echo "$(CYAN)🌐 Accès:$(NC)"
@@ -270,8 +270,8 @@ rebuild: ## Reconstruction complète
 # Construire toutes les images
 build: ## Construire toutes les images Docker
 	$(call print_message,$(BLUE),🔨 Construction des images Docker...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml build --parallel
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml build --parallel
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml build --parallel)
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml build --parallel)
 
 # ============================================================================
 # MIGRATIONS
@@ -280,7 +280,7 @@ build: ## Construire toutes les images Docker
 # Appliquer les migrations
 migrate: ## Appliquer les migrations de base de données
 	$(call print_message,$(BLUE),🗄️ Application des migrations...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml exec auth-service npx prisma migrate deploy
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml exec auth-service npx prisma migrate deploy)
 
 # ============================================================================
 # LOGS ET STATUT
@@ -289,17 +289,17 @@ migrate: ## Appliquer les migrations de base de données
 # Logs de tous les services
 logs: ## Logs en temps réel de tous les services
 	$(call print_message,$(BLUE),📋 Logs en temps réel...)
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml logs -f &
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml logs -f &
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml logs -f &)
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml logs -f &)
 
 # Statut des services
 status: ## État de tous les services
 	$(call print_message,$(BLUE),📊 Statut des services:)
 	@echo "$(YELLOW)Backend:$(NC)"
-	@cd $(BACKEND_DIR) && docker compose -f docker-compose.yml ps
+	@cd $(BACKEND_DIR) && $(call docker_compose, -f docker-compose.yml ps)
 	@echo ""
 	@echo "$(YELLOW)Frontend:$(NC)"
-	@cd $(FRONTEND_DIR) && docker compose -f docker-compose.frontend.yml ps 2>/dev/null || echo "   Frontend non démarré"
+	@cd $(FRONTEND_DIR) && $(call docker_compose, -f docker-compose.frontend.yml ps 2>/dev/null || echo "   Frontend non démarré")
 
 # ============================================================================
 # TESTS
@@ -467,10 +467,10 @@ check-health: ## Vérification santé préventive de tous les composants
 	# Vérifier les ports disponibles et identifier les processus
 	@echo "$(BLUE)🌐 Ports réseau:$(NC)"
 	@for port in 3000 3001 3002 3003 3004 3005 3006 3007 8080 5432 6379; do \
-		if netstat -tuln 2>/dev/null | grep -q ":$$port "; then \
-			PROCESS=$$(netstat -tuln 2>/dev/null | grep ":$$port " | head -1 | awk '{print $$7}' | cut -d'/' -f2); \
-			if [ -n "$$PROCESS" ]; then \
-				echo "   $(RED)❌ Port $$port occupé par: $$PROCESS$(NC)"; \
+		if $(call check_port_occupied,$$port); then \
+			PID=$$(call get_port_pid,$$port); \
+			if [ -n "$$PID" ]; then \
+				echo "   $(RED)❌ Port $$port occupé par: $$PID$(NC)"; \
 			else \
 				echo "   $(RED)❌ Port $$port occupé (processus inconnu)$(NC)"; \
 			fi; \

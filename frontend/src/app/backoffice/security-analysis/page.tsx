@@ -357,7 +357,11 @@ export default function SecurityAnalysisPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">CVSS Moyen</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{riskAnalysis.vulnerabilityAssessment.averageCVSS.toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {typeof riskAnalysis.vulnerabilityAssessment.averageCVSS === 'number'
+                      ? riskAnalysis.vulnerabilityAssessment.averageCVSS.toFixed(1)
+                      : riskAnalysis.vulnerabilityAssessment.averageCVSS}
+                  </p>
                 </div>
               </div>
             </div>

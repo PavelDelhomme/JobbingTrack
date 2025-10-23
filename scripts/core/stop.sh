@@ -27,6 +27,27 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # Configuration
+
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper-wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CLEAN=false
@@ -86,7 +107,7 @@ else
     make down
 
     # Arrêter les métriques si elles sont démarrées
-    if [ -f "/tmp/jobbingtrack-metrics.pid" ] || pgrep -f "start-monitoring" > /dev/null; then
+    if [ -f "/tmp/jobbingtrack-metrics.pid" ] || ps aux | grep -v grep | grep -q "start-monitoring"; then
         echo -e "${YELLOW}📊 Arrêt des services de métriques...${NC}"
         "$SCRIPT_DIR/../monitoring/stop.sh" 2>/dev/null || true
     fi
@@ -109,5 +130,5 @@ else
     echo ""
     echo -e "${BLUE}💡 Pour redémarrer :${NC}"
     echo "   make up"
-    echo "   cd frontend && docker-compose up -d"
+    echo "   cd frontend && docker_compose_wrapper up -d"
 fi
