@@ -1181,7 +1181,7 @@ function AnalyticsContent() {
                   <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Disponibilité ce mois</span>
                     <span className="font-bold text-purple-700 dark:text-purple-300">
-                      {devMetrics.deploymentSuccessRate ? `${devMetrics.deploymentSuccessRate.toFixed(2)}%` : 'N/A'}
+                      {typeof devMetrics.deploymentSuccessRate === 'number' ? `${devMetrics.deploymentSuccessRate.toFixed(2)}%` : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
