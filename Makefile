@@ -82,7 +82,10 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 # Arrêter tous les services
 down: ## Arrêter tous les services
 	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes)
+	# Arrêter tous les conteneurs JobbingTrack restants
+	@docker ps -q --filter "name=jobbingtrack" | xargs -r docker stop || true
+	@docker ps -aq --filter "name=jobbingtrack" | xargs -r docker rm || true
 	@echo "✅ Tous les services arrêtés"
 
 # Redémarrer tous les services
@@ -163,7 +166,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # DIAGNOSTICS ET VÉRIFICATION
 # ============================================================================
 
-.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps
+.PHONY: status logs health ps show-docker-info clean-docker-cache check-deps cors-fix
 
 # Statut détaillé de chaque service
 status: ## Statut détaillé de chaque service
@@ -271,6 +274,14 @@ check-deps: ## Vérifier que toutes les dépendances sont installées
 		exit 1; \
 	fi
 	@echo "✅ Toutes les dépendances sont installées"
+
+# Correction automatique des problèmes CORS
+cors-fix: ## Diagnostiquer et corriger automatiquement les problèmes CORS
+	./scripts/utils/cors-diagnostic.sh
+
+# Correction directe CORS (sans interaction)
+cors-fix-auto: ## Corriger automatiquement les problèmes CORS sans demande de confirmation
+	./scripts/utils/cors-fix-direct.sh
 
 # ============================================================================
 # BASE DE DONNÉES
@@ -418,6 +429,8 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make show-docker-info - Informations Docker/Docker Compose détectées"
 	@echo "  make clean-docker-cache - Nettoyer le cache Docker Compose"
 	@echo "  make check-deps     - Vérifier que toutes les dépendances sont installées"
+	@echo "  make cors-fix       - Diagnostiquer et corriger les problèmes CORS"
+	@echo "  make cors-fix-auto  - Corriger automatiquement les problèmes CORS"
 	@echo ""
 	@echo "🗄️ BASE DE DONNÉES:"
 	@echo "  make db-migrate     - Migrations de base de données"
