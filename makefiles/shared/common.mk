@@ -111,7 +111,82 @@ define show_help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "%-25s - %s\n", $$1, $$2}'
 endef
 
-# Vérifie les dépendances système
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Détecte automatiquement la commande Docker Compose disponible
+DOCKER_COMPOSE_CMD := $(shell \
+	if command -v docker-compose &> /dev/null; then \
+		echo "docker-compose"; \
+	elif docker compose version &> /dev/null 2>&1; then \
+		echo "docker compose"; \
+	else \
+		echo "docker-compose"; \
+	fi)
+
+# Variables de fichiers Docker Compose
+COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml -f tests/docker-compose.test.yml
+
+# ============================================================================
+# FONCTIONS DE PORTABILITÉ SYSTÈME
+# ============================================================================
+
+# Fonction portable pour vérifier si un port est occupé
+define check_port_occupied
+	@if command -v ss &> /dev/null; then \
+		ss -tuln | grep -q ":$(1) "; \
+	elif command -v netstat &> /dev/null; then \
+		netstat -tuln 2>/dev/null | grep -q ":$(1) "; \
+	else \
+		echo "⚠️ Impossible de vérifier les ports (ss/netstat non disponibles)"; \
+		exit 1; \
+	fi
+endef
+
+# Fonction portable pour obtenir le PID utilisant un port
+define get_port_pid
+	@if command -v ss &> /dev/null; then \
+		ss -tuln | grep ":$(1) " | head -1 | awk '{print $$7}' | cut -d',' -f2 | cut -d'=' -f2; \
+	elif command -v netstat &> /dev/null; then \
+		netstat -tuln 2>/dev/null | grep ":$(1) " | head -1 | awk '{print $$7}' | cut -d'/' -f1; \
+	else \
+		echo ""; \
+	fi
+endef
+
+# ============================================================================
+# WRAPPER POUR COMMANDES DOCKER COMPOSE
+# ============================================================================
+
+# Fonction wrapper pour docker-compose avec détection automatique
+define docker_compose
+	@if [ "$(DOCKER_COMPOSE_CMD)" = "docker-compose" ]; then \
+		docker-compose $(1); \
+	else \
+		docker compose $(1); \
+	fi
+endef
+
+# ============================================================================
+# FONCTIONS DE VÉRIFICATION
+# ============================================================================
+
+# Vérification rapide de Docker
+define check_docker
+	@if ! command -v docker &> /dev/null; then \
+		echo "❌ Docker n'est pas installé"; \
+		echo "💡 Installez Docker: https://docs.docker.com/get-docker/"; \
+		exit 1; \
+	fi
+	@if ! docker info &> /dev/null; then \
+		echo "❌ Docker daemon n'est pas en cours d'exécution"; \
+		echo "💡 Démarrer Docker: sudo systemctl start docker (Linux) ou démarrer Docker Desktop (Windows/Mac)"; \
+		exit 1; \
+	fi
+endef
+
+# Vérification des dépendances système
 define check_dependencies
 	@echo "🔍 Vérification des dépendances..."
 	@echo "🐳 Vérification de Docker..."

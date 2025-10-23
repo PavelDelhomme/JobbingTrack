@@ -92,18 +92,10 @@ done
 check_docker() {
     echo -e "\n${BLUE}🐳 Vérification de Docker${NC}"
 
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}❌ Docker n'est pas installé${NC}"
+    if ! check_docker_available; then
         if [ "$FIX" = true ]; then
             echo -e "${YELLOW}💡 Installez Docker : https://docker.com/get-started${NC}"
-        fi
-        return 1
-    fi
-
-    if ! docker info &> /dev/null; then
-        echo -e "${RED}❌ Docker daemon n'est pas en cours d'exécution${NC}"
-        if [ "$FIX" = true ]; then
-            echo -e "${YELLOW}💡 Démarrer Docker : sudo systemctl start docker${NC}"
+            echo -e "${YELLOW}💡 Démarrer Docker : sudo systemctl start docker (Linux)${NC}"
         fi
         return 1
     fi
@@ -112,19 +104,33 @@ check_docker() {
     return 0
 }
 
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper.sh"
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}" >&2
+    exit 1
+fi
+
 # Fonction pour vérifier Docker Compose
 check_docker_compose() {
     echo -e "\n${BLUE}🐳 Vérification de Docker Compose${NC}"
 
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        echo -e "${RED}❌ Docker Compose n'est pas installé${NC}"
+    if ! check_docker_compose_available; then
         if [ "$FIX" = true ]; then
             echo -e "${YELLOW}💡 Installez Docker Compose${NC}"
         fi
         return 1
     fi
 
-    echo -e "${GREEN}✅ Docker Compose est disponible${NC}"
+    show_detection_info
     return 0
 }
 
@@ -190,7 +196,7 @@ check_database() {
     fi
 
     # Test via Docker si psql n'est pas disponible localement
-    if docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1;" >/dev/null 2>&1; then
+    if docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1;" >/dev/null 2>&1; then
         echo -e "${GREEN}✅ PostgreSQL - Accessible via Docker${NC}"
         return 0
     fi
@@ -214,7 +220,7 @@ check_redis() {
     fi
 
     # Test via Docker si redis-cli n'est pas disponible localement
-    if docker-compose exec -T redis redis-cli ping >/dev/null 2>&1; then
+    if docker_compose_wrapper exec -T redis redis-cli ping >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Redis - Accessible via Docker${NC}"
         return 0
     fi

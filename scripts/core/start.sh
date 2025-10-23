@@ -35,6 +35,26 @@ REBUILD=false
 WITH_METRICS=false
 QUICK=false
 
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
+
 # Fonction d'aide
 show_help() {
     echo -e "${BLUE}🚀 Démarrage Système - JobbingTrack${NC}"
@@ -95,12 +115,13 @@ echo -e "${BLUE}🚀 Démarrage de JobbingTrack${NC}"
 echo "================================"
 
 # Vérifier que Docker est disponible
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker n'est pas installé ou n'est pas dans le PATH${NC}"
+if ! check_docker_available; then
+    echo -e "${RED}❌ Docker n'est pas disponible${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}✅ Docker est disponible${NC}"
+show_detection_info
 
 # Vérifier si on doit reconstruire
 if [ "$REBUILD" = true ]; then

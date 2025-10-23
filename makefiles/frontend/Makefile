@@ -94,20 +94,20 @@ prod: ## Démarrer en mode production
 
 up: ## Démarrer avec Docker (mode développement)
 	$(call print_message,$(BLUE),🐳 Démarrage Docker frontend...)
-	@docker compose -f $(DOCKER_COMPOSE_FILE) up -d
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) up -d
 	@echo "$(GREEN)✅ Frontend démarré sur http://localhost:8080$(NC)"
 
 down: ## Arrêter Docker
 	$(call print_message,$(RED),🛑 Arrêt Docker frontend...)
-	@docker compose -f $(DOCKER_COMPOSE_FILE) down
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) down
 
 logs: ## Voir les logs Docker
 	$(call print_message,$(BLUE),📋 Logs Docker frontend...)
-	@docker compose -f $(DOCKER_COMPOSE_FILE) logs -f
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) logs -f
 
 status: ## Statut des conteneurs Docker
 	$(call print_message,$(BLUE),📊 Statut Docker frontend...)
-	@docker compose -f $(DOCKER_COMPOSE_FILE) ps
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) ps
 
 health: ## Vérifier la santé du frontend
 	$(call print_message,$(GREEN),💚 Vérification santé frontend...)
@@ -115,15 +115,15 @@ health: ## Vérifier la santé du frontend
 
 build-dev: ## Construire l'image Docker de développement
 	$(call print_message,$(BLUE),🔨 Construction image dev...)
-	@docker compose -f $(DOCKER_COMPOSE_FILE) build
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) build
 
 build-prod: ## Construire l'image Docker de production
 	$(call print_message,$(BLUE),🔨 Construction image prod...)
-	@docker compose -f $(DOCKER_COMPOSE_PROD_FILE) build
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_PROD_FILE) build
 
 build-test: ## Construire l'image Docker de test
 	$(call print_message,$(BLUE),🔨 Construction image test...)
-	@docker compose -f $(DOCKER_COMPOSE_TEST_FILE) build
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_TEST_FILE) build
 
 # ============================================================================
 # TESTS
@@ -233,7 +233,7 @@ check: ## Diagnostic du frontend
 	fi
 
 	@echo "$(YELLOW)🐳 Vérification Docker:$(NC)"
-	@docker compose -f $(DOCKER_COMPOSE_FILE) ps --format "table {{.Service}}\t{{.Status}}" 2>/dev/null | grep -v "NAME\|---" || echo "   Aucun conteneur Docker"
+	@$(call docker_compose, -f $(DOCKER_COMPOSE_FILE) ps --format "table {{.Service}}\t{{.Status}}" 2>/dev/null | grep -v "NAME\|---" || echo "   Aucun conteneur Docker"
 
 	@echo "$(GREEN)✅ Diagnostic terminé$(NC)"
 

@@ -38,7 +38,7 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service
+	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service))
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
@@ -60,19 +60,19 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "📦 Tous les services avec métriques complètes"
 	$(call check_docker)
 	# Démarrer d'abord les services essentiels
-	docker-compose $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service
+	$(call docker_compose, $(COMPOSE_FILES) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	# Puis les services optionnels avec profils
-	docker-compose $(COMPOSE_FILES) --profile applications up -d
-	docker-compose $(COMPOSE_FILES) --profile companies up -d
-	docker-compose $(COMPOSE_FILES) --profile contacts up -d
-	docker-compose $(COMPOSE_FILES) --profile interviews up -d
-	docker-compose $(COMPOSE_FILES) --profile notifications up -d
-	docker-compose $(COMPOSE_FILES) --profile calls up -d
-	docker-compose $(COMPOSE_FILES) --profile profiles up -d
-	docker-compose $(COMPOSE_FILES) --profile events up -d
-	docker-compose $(COMPOSE_FILES) --profile followups up -d
-	docker-compose $(COMPOSE_FILES) --profile workflows up -d
-	docker-compose $(COMPOSE_FILES) --profile monitoring up -d
+	$(call docker_compose, $(COMPOSE_FILES) --profile applications up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile companies up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile contacts up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile interviews up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile notifications up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile calls up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile profiles up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile events up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile followups up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile workflows up -d)
+	$(call docker_compose, $(COMPOSE_FILES) --profile monitoring up -d)
 	@echo ""
 	@echo "✅ Système complet démarré avec succès !"
 	@echo ""
@@ -82,7 +82,7 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 # Arrêter tous les services
 down: ## Arrêter tous les services
 	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	docker-compose $(COMPOSE_FILES) down
+	$(call docker_compose, $(COMPOSE_FILES) down)
 	@echo "✅ Tous les services arrêtés"
 
 # Redémarrer tous les services
@@ -105,7 +105,7 @@ up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
 	fi
 	@echo "🚀 Démarrage du profil: $(PROFILE)"
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) --profile $(PROFILE) up -d
+	$(call docker_compose, $(COMPOSE_FILES) --profile $(PROFILE) up -d)
 	@echo "✅ Profil $(PROFILE) démarré"
 
 # ============================================================================
@@ -118,14 +118,14 @@ up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
 start-auth: ## Démarrer le service d'authentification
 	@echo "🚀 Démarrage du service d'authentification..."
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) --profile auth up -d
+	$(call docker_compose, $(COMPOSE_FILES) --profile auth up -d)
 	@echo "✅ Service d'authentification démarré"
 
 # Démarrer le service d'applications
 start-applications: ## Démarrer le service d'applications
 	@echo "🚀 Démarrage du service d'applications..."
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) --profile applications up -d
+	$(call docker_compose, $(COMPOSE_FILES) --profile applications up -d)
 	@echo "✅ Service d'applications démarré"
 
 # Arrêter un service spécifique
@@ -136,7 +136,7 @@ stop-service: ## Arrêter un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🛑 Arrêt du service: $(SERVICE)"
-	docker-compose $(COMPOSE_FILES) stop $(SERVICE)
+	$(call docker_compose, $(COMPOSE_FILES) stop $(SERVICE))
 	@echo "✅ Service $(SERVICE) arrêté"
 
 # Redémarrer un service spécifique
@@ -147,7 +147,7 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🔄 Redémarrage du service: $(SERVICE)"
-	docker-compose $(COMPOSE_FILES) restart $(SERVICE)
+	$(call docker_compose, $(COMPOSE_FILES) restart $(SERVICE))
 	@echo "✅ Service $(SERVICE) redémarré"
 
 # Voir les logs d'un service spécifique
@@ -157,7 +157,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 		echo "💡 Exemple: make logs-service SERVICE=api-gateway"; \
 		exit 1; \
 	fi
-	docker-compose $(COMPOSE_FILES) logs -f $(SERVICE)
+	$(call docker_compose, $(COMPOSE_FILES) logs -f $(SERVICE))
 
 # ============================================================================
 # DIAGNOSTICS ET VÉRIFICATION
@@ -180,13 +180,13 @@ status: ## Statut détaillé de chaque service
 ps: ## Liste les conteneurs actifs
 	@echo "📋 Conteneurs actifs JobbingTrack"
 	@echo "================================"
-	docker-compose $(COMPOSE_FILES) ps
+	$(call docker_compose, $(COMPOSE_FILES) ps)
 
 # Logs en temps réel de tous les services
 logs: ## Affiche tous les logs en temps réel
 	@echo "📜 Logs en temps réel de tous les services"
 	@echo "========================================"
-	docker-compose $(COMPOSE_FILES) logs -f
+	$(call docker_compose, $(COMPOSE_FILES) logs -f)
 
 # Vérification de santé complète
 health: ## Vérifie la santé de tous les services
@@ -214,7 +214,7 @@ db-seed: ## Insérer des données de test
 # Reset complet de la base de données
 db-reset: ## Reset complet de la DB
 	@echo "🔄 Reset complet de la base de données..."
-	docker-compose $(COMPOSE_FILES) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+	$(call docker_compose, $(COMPOSE_FILES) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
 	@echo "✅ Base de données réinitialisée"
 	@echo "💡 Relancez 'make db-seed' pour recréer les données"
 
@@ -231,7 +231,7 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 		exit 1; \
 	fi
 	@echo "📥 Restauration depuis $(file)..."
-	docker-compose $(COMPOSE_FILES) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file)
+	$(call docker_compose, $(COMPOSE_FILES) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
 	@echo "✅ Base de données restaurée"
 
 # ============================================================================
@@ -244,20 +244,20 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 build: ## Build tous les services
 	@echo "🔨 Build de tous les services..."
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) build
+	$(call docker_compose, $(COMPOSE_FILES) build)
 	@echo "✅ Tous les services construits"
 
 # Rebuild sans cache
 rebuild: ## Rebuild sans cache
 	@echo "🔨 Rebuild complet sans cache..."
 	$(call check_docker)
-	docker-compose $(COMPOSE_FILES) build --no-cache
+	$(call docker_compose, $(COMPOSE_FILES) build --no-cache)
 	@echo "✅ Rebuild terminé"
 
 # Nettoyage complet
 clean: ## Nettoyage complet
 	@echo "🧹 Nettoyage complet..."
-	docker-compose $(COMPOSE_FILES) down -v --remove-orphans
+	$(call docker_compose, $(COMPOSE_FILES) down -v --remove-orphans)
 	docker system prune -f
 	@echo "✅ Nettoyage terminé"
 
@@ -306,7 +306,7 @@ cadvisor: ## Ouvrir cAdvisor
 # Logs du système de métriques
 logs-metrics: ## Logs du système de métriques
 	@echo "📜 Logs du système de métriques..."
-	docker-compose $(COMPOSE_FILES) logs -f metrics-aggregator
+	$(call docker_compose, $(COMPOSE_FILES) logs -f metrics-aggregator)
 
 # Aide complète avec organisation par catégories
 help: ## Afficher l'aide organisée par catégories

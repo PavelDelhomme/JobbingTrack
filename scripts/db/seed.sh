@@ -32,6 +32,26 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ADMIN_ONLY=false
 SAMPLE_DATA=true
 
+# ============================================================================
+# DÉTECTION AUTOMATIQUE DOCKER COMPOSE
+# ============================================================================
+
+# Import du wrapper Docker Compose utilitaire
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker_compose_wrapper.sh" ]; then
+    source "$UTILS_DIR/docker_compose_wrapper.sh"
+
+    # Initialiser la détection Docker Compose
+    if ! init_docker_compose_detection; then
+        echo -e "${RED}❌ Impossible d'initialiser Docker Compose${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Wrapper Docker Compose non trouvé${NC}"
+    exit 1
+fi
+
 # Fonction d'aide
 show_help() {
     echo -e "${BLUE}🌱 Seed base de données - JobbingTrack${NC}"
@@ -82,12 +102,12 @@ done
 check_postgres() {
     echo -e "${YELLOW}🔍 Vérification de PostgreSQL...${NC}"
 
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}❌ Docker n'est pas installé${NC}"
+    if ! check_docker_available; then
+        echo -e "${RED}❌ Docker n'est pas disponible${NC}"
         return 1
     fi
 
-    if ! docker-compose ps postgres | grep -q "Up"; then
+    if ! docker_compose_wrapper ps postgres | grep -q "Up"; then
         echo -e "${RED}❌ PostgreSQL n'est pas en cours d'exécution${NC}"
         echo -e "${YELLOW}💡 Démarrez les services avec : make up${NC}"
         return 1
@@ -107,7 +127,7 @@ create_admin_user() {
     # Mot de passe hashé (correspond au mot de passe par défaut)
     local hashed_password='$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
 
-    docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
+    docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
     INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
     VALUES (
         '$user_id',
@@ -148,7 +168,7 @@ seed_sample_data() {
     # Créer quelques entreprises d'exemple
     echo -e "${YELLOW}📁 Insertion des entreprises...${NC}"
 
-    docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
+    docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
     INSERT INTO \"Company\" (id, name, industry, size, description, website, \"createdAt\", \"updatedAt\")
     VALUES
         ('company_001', 'Google', 'Technology', 'LARGE', 'Entreprise technologique leader', 'https://google.com', NOW(), NOW()),
@@ -164,7 +184,7 @@ seed_sample_data() {
     # Créer des candidatures d'exemple
     echo -e "${YELLOW}📋 Insertion des candidatures...${NC}"
 
-    docker-compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
+    docker_compose_wrapper exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "
     INSERT INTO \"Application\" (id, \"userId\", \"companyName\", position, type, status, description, \"createdAt\", \"updatedAt\")
     VALUES
         ('app_001', 'admin_$(date +%s)', 'Google', 'Software Engineer', 'FULL_TIME', 'DRAFT', 'Candidature pour poste développeur', NOW(), NOW()),
