@@ -38,7 +38,7 @@ endef
 
 # Fonction pour vérifier si une commande existe
 define check_command
-	@if ! command -v $(1) >/dev/null 2>&1; then \
+	@if ! command -v $(1) &> /dev/null; then \
 		echo "❌ $(1) n'est pas installé"; \
 		exit 1; \
 	fi
