@@ -94,6 +94,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Import du wrapper Docker Compose utilitaire
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_DIR="$SCRIPT_DIR/../utils"
+
+if [ -f "$UTILS_DIR/docker-compose-wrapper.sh" ]; then
+    source "$UTILS_DIR/docker-compose-wrapper.sh"
+
+    # Initialiser la détection Docker Compose (avec cache)
+    init_docker_compose_detection 2>/dev/null || echo -e "${YELLOW}⚠️ Impossible d'initialiser Docker Compose${NC}"
+fi
+
 echo -e "${BLUE}🛑 Arrêt de JobbingTrack${NC}"
 echo "=========================="
 
