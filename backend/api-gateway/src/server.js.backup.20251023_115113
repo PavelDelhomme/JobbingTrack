@@ -16,28 +16,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ✅ Configuration CORS complète - corrigée automatiquement
-// Configuration CORS corrigee automatiquement - 2025-10-23 11:55:05
-// Configuration CORS corrigee automatiquement - jeu. 23 oct. 2025 11:55:05 CEST
 app.use(cors({
-  origin: [
-    'http://localhost:8080', 'http://localhost:3000', 'http://localhost:3001',
-    'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001',
-    'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004',
-    'http://localhost:3005', 'http://localhost:3006', 'http://localhost:3007',
-    'http://localhost:3008', 'http://localhost:3009', 'http://localhost:3010',
-    'http://localhost:3011', 'http://localhost:3012', 'http://localhost:3013',
-    'http://localhost:3014', 'http://localhost:3015',
-    'http://[::1]:8080', 'http://[::1]:3000', 'http://[::1]:3001',
-    'http://frontend:3000', 'http://api-gateway:3000', 'http://auth-service:3001'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 'Authorization', 'X-Requested-With', 'Accept',
-    'Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'
-  ],
-  optionsSuccessStatus: 200
-}));
   origin: [
     // Origines principales
     'http://localhost:8080',  // Frontend principal
