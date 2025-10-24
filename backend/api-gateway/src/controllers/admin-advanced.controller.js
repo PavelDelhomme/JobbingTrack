@@ -805,6 +805,127 @@ const getRateLimitHits = async () => {
   }
 };
 
+// Créer un utilisateur de test pour les tests Playwright
+const createTestUser = async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role = 'USER' } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email et mot de passe requis'
+      });
+    }
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await authService.getProfileByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'Utilisateur existe déjà'
+      });
+    }
+
+    // Créer l'utilisateur dans le service d'authentification
+    const newUser = {
+      email,
+      password,
+      firstName: firstName || email.split('@')[0],
+      lastName: lastName || 'Test',
+      role
+    };
+
+    const createdUser = await authService.createUser(newUser);
+
+    logger.info(`Utilisateur de test créé: ${email}`, { userId: createdUser.id });
+
+    res.json({
+      success: true,
+      user: {
+        id: createdUser.id,
+        email: createdUser.email,
+        firstName: createdUser.firstName,
+        lastName: createdUser.lastName,
+        role: createdUser.role
+      }
+    });
+
+  } catch (error) {
+    logger.error('Erreur création utilisateur de test:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
+// Supprimer un utilisateur de test
+const deleteTestUser = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    // Vérifier si l'utilisateur existe
+    const user = await authService.getProfileByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
+      });
+    }
+
+    // Supprimer l'utilisateur
+    await authService.deleteUser(user.id);
+
+    logger.info(`Utilisateur de test supprimé: ${email}`, { userId: user.id });
+
+    res.json({
+      success: true,
+      message: 'Utilisateur supprimé'
+    });
+
+  } catch (error) {
+    logger.error('Erreur suppression utilisateur de test:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
+// Lister tous les utilisateurs de test
+const listTestUsers = async (req, res) => {
+  try {
+    // Récupérer tous les utilisateurs
+    const users = await authService.getAllUsers();
+
+    // Filtrer les utilisateurs de test (ceux avec des emails génériques)
+    const testUsers = users.filter(user =>
+      user.email.includes('@test.') ||
+      user.email.includes('test-user') ||
+      user.email.includes('user') && user.email.includes('jobbingtrack.com')
+    );
+
+    res.json({
+      success: true,
+      users: testUsers.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        createdAt: user.createdAt
+      }))
+    });
+
+  } catch (error) {
+    logger.error('Erreur liste utilisateurs de test:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
 // Récupérer les métriques de base de données
 const getDatabaseMetrics = async () => {
   try {
@@ -1201,6 +1322,11 @@ module.exports = {
 
   // Nouvelles méthodes pour les métriques avancées
   getEndpointMetrics,
+
+  // Nouvelles fonctions pour les tests
+  createTestUser,
+  deleteTestUser,
+  listTestUsers
   getDetailedSystemMetrics,
   getUserMetrics,
   getSecurityMetrics,

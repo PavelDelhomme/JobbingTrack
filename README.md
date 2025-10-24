@@ -64,6 +64,8 @@ make health # Vérifier santé
 | [📡 API](docs/API.md) | Documentation API |
 | [🐛 Dépannage](docs/TROUBLESHOOTING.md) | Résolution problèmes |
 | [🧪 Tests](tests/README.md) | Suite de tests complète |
+| [📋 Journal des Modifications](docs/changelog/all-changes.md) | Historique des changements |
+| [🚀 Démarrage Rapide Tests](docs/tests/quick-start-tests.md) | Guide de démarrage des tests |
 
 ### Scripts
 

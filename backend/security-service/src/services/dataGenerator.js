@@ -197,7 +197,7 @@ class SecurityDataGenerator {
           sourceIP: ip,
           country: geo?.country,
           city: geo?.city,
-          attackType: attackTypes[eventType.type as keyof typeof attackTypes],
+          attackType: attackTypes[eventType.type] || 'UNKNOWN',
           targetEndpoint: endpoint,
           method: 'POST',
           userAgent,

@@ -51,7 +51,7 @@ NODE_ENV=development
 PORT=3000
 
 # Base de données
-DATABASE_URL=postgresql://user:password@localhost:5432/jobbingtrack_dev
+DATABASE_URL=postgresql://admin@jobbingtrack.test:admin@jobbingtrack.test@localhost:5432/jobbingtrack?schema=public
 
 # Redis
 REDIS_URL=redis://localhost:6379

@@ -38,7 +38,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
-              <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+              <div className="min-h-screen bg-gray-50 dark:bg-gray-950" suppressHydrationWarning>
                 {children}
                 {/* OfflineNotification temporairement désactivé pour éviter boucle infinie */}
               </div>

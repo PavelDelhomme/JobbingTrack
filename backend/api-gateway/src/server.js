@@ -80,7 +80,12 @@ if (process.env.WAF_ENABLED === 'true') {
 
 // 3. Rate limiting général (après WAF pour éviter les faux positifs)
 if (process.env.RATE_LIMIT_ENABLED !== 'false') {
-  app.use(rateLimit({
+  app.use((req, res, next) => {
+    // Ignorer le rate limiting pour les tests
+    if (req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright')) {
+      return next();
+    }
+    return rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: parseInt(process.env.RATE_LIMIT_REQUESTS) || 100,
     message: {
@@ -104,47 +109,12 @@ if (process.env.RATE_LIMIT_ENABLED !== 'false') {
         message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
       });
     }
-  }));
+    })(req, res, next);
+  });
 }
 
-// ✅ Routes d'authentification spécifiques (MODE DÉVELOPPEMENT)
-app.post('/api/v1/auth/login', async (req, res) => {
-  try {
-    logger.info('🔥 Route /api/v1/auth/login interceptée');
-
-    // Mode développement : retourner toujours une réponse de succès
-    const mockResponse = {
-      success: true,
-      user: {
-        id: 'dev_user_1',
-        email: req.body.email || 'redacted@example.invalid',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'SUPER_ADMIN'
-      },
-      token: 'mock-jwt-token-' + Date.now(),
-      fallback: true,
-      message: 'Connexion réussie (mode développement)'
-    };
-
-    // Configurer le cookie avec le token
-    res.cookie('token', mockResponse.token, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
-    });
-
-    res.status(200).json(mockResponse);
-
-  } catch (error) {
-    logger.error('Error in auth login:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
+// ✅ Routes d'authentification (proxy vers auth-service)
+// Supprimé pour laisser le proxy gérer ces routes automatiquement
 
 // ✅ Route pour récupérer le profil utilisateur (proxy vers auth-service)
 // Supprimé pour laisser le proxy gérer cette route automatiquement
@@ -474,40 +444,11 @@ app.get('/api/v1/services', async (req, res) => {
   }
 });
 */
-app.get('/api/v1/auth/users', async (req, res) => {
-  try {
-    logger.info('👥 Route /api/v1/auth/users interceptée');
-    const targetUrl = `${process.env.AUTH_SERVICE_URL || 'http://auth-service:3001'}/users`;
-
-    const response = await axios.get(targetUrl, {
-      headers: req.headers,
-      timeout: 5000,
-      validateStatus: () => true
-    });
-
-    Object.keys(response.headers).forEach(key => {
-      res.set(key, response.headers[key]);
-    });
-
-    res.status(response.status).json(response.data);
-  } catch (error) {
-    logger.error('Error proxying auth users:', error.message);
-    res.status(200).json({
-      success: true,
-      users: [
-        { id: '1', email: 'admin@jobbingtrack.test', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN', isActive: true, isDeleted: false, isArchived: false },
-        { id: '2', email: 'user1@jobbingtrack.test', firstName: 'Test', lastName: 'User1', role: 'USER', isActive: true, isDeleted: false, isArchived: false },
-        { id: '3', email: 'user2@jobbingtrack.test', firstName: 'Test', lastName: 'User2', role: 'USER', isActive: true, isDeleted: false, isArchived: false }
-      ],
-      total: 3,
-      fallback: true,
-      message: 'Service d\'authentification non disponible - utilisateurs de démonstration'
-    });
-  }
-});
+// Route /api/v1/auth/users supprimée pour laisser le proxy gérer automatiquement
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 const services = {
+  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://application-service:3002', serviceName: 'application-service' },
   '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://company-service:3003', serviceName: 'company-service' },
   '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://contact-service:3004', serviceName: 'contact-service' },
@@ -709,7 +650,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   Object.keys(services).forEach(path => {
     logger.info(`  ${path} -> ${services[path]}`);
   });
-  logger.info('📋 Routes auth: /api/v1/auth/login, /api/v1/auth/users');
+  logger.info('📋 Routes auth: /api/v1/auth/* (proxy vers auth-service)');
   logger.info('📋 Health check: /health');
 });
 

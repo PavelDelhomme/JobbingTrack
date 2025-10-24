@@ -11,16 +11,16 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres-dev
     environment:
-      POSTGRES_DB: jobbingtrack_dev
-      POSTGRES_USER: admin@jobbingtrack.test
-      POSTGRES_PASSWORD: admin@jobbingtrack.test
+      POSTGRES_DB: jobbingtrack
+      POSTGRES_USER: jobbingtrack
+      POSTGRES_PASSWORD: jobbingtrack123
     ports:
       - "5433:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
       - ./data/sql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_dev"]
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,16 +33,16 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres-test
     environment:
-      POSTGRES_DB: jobbingtrack_test
-      POSTGRES_USER: admin@jobbingtrack.test
-      POSTGRES_PASSWORD: admin@jobbingtrack.test
+      POSTGRES_DB: jobbingtrack
+      POSTGRES_USER: jobbingtrack
+      POSTGRES_PASSWORD: jobbingtrack123
     ports:
       - "5434:5432"
     volumes:
       - postgres_test_data:/var/lib/postgresql/data
       - ./data/sql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_test"]
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,16 +59,16 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres-staging
     environment:
-      POSTGRES_DB: jobbingtrack_staging
-      POSTGRES_USER: admin@jobbingtrack.test
-      POSTGRES_PASSWORD: admin@jobbingtrack.test
+      POSTGRES_DB: jobbingtrack
+      POSTGRES_USER: jobbingtrack
+      POSTGRES_PASSWORD: jobbingtrack123
     ports:
       - "5435:5432"
     volumes:
       - postgres_staging_data:/var/lib/postgresql/data
       - ./data/sql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_staging"]
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -85,16 +85,16 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres-prod
     environment:
-      POSTGRES_DB: jobbingtrack_prod
-      POSTGRES_USER: admin@jobbingtrack.test
-      POSTGRES_PASSWORD: admin@jobbingtrack.test
+      POSTGRES_DB: jobbingtrack
+      POSTGRES_USER: jobbingtrack
+      POSTGRES_PASSWORD: jobbingtrack123
     ports:
       - "5436:5432"
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
       - ./data/sql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_prod"]
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
       retries: 5
