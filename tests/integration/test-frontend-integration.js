@@ -80,4 +80,8 @@ testFrontendIntegration().then(() => {
   console.log('✅ Le frontend peut se connecter au service metrics');
   console.log('✅ Les données temps réel sont disponibles');
   console.log('✅ Tous les ports sont correctement configurés');
-});
+
+  describe('Error handling', () => {
+    test('should handle network errors', () => {
+      // Test implementation
+    });

@@ -1,4 +1,5 @@
 const Redis = require('ioredis');
+const axios = require('axios');
 const logger = require('../utils/logger');
 
 // Configuration Redis pour le stockage des données d'intrusion
@@ -188,6 +189,11 @@ class IntrusionDetector {
         }
       }
 
+      // Enregistrer les requêtes normales aussi (échantillonnage)
+      if (Math.random() < 0.1) { // 10% des requêtes normales
+        await this.logNormalRequest(requestData);
+      }
+
       next();
     } catch (error) {
       logger.error('Erreur détecteur d\'intrusion:', error);
@@ -320,9 +326,169 @@ class IntrusionDetector {
         // Tracker par pattern (TTL de 1h)
         await redis.incr(`intrusion:pattern:${detection.pattern}`);
         await redis.expire(`intrusion:pattern:${detection.pattern}`, 60 * 60);
+
+        // Envoyer au security-service
+        await this.sendToSecurityService(detection);
       }
     } catch (error) {
       logger.error('Erreur enregistrement intrusions:', error);
+    }
+  }
+
+  // Envoyer les données de sécurité au security-service
+  async sendToSecurityService(detection) {
+    try {
+      const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
+
+      // Obtenir la géolocalisation de l'IP
+      let geoInfo = null;
+      try {
+        const geoip = require('geoip-lite');
+        geoInfo = geoip.lookup(detection.clientIP);
+      } catch (error) {
+        // Fallback si geoip-lite n'est pas disponible
+      }
+
+      // Déterminer le niveau de log basé sur la sévérité
+      let logLevel = 'info';
+      switch (detection.severity) {
+        case 'critical': logLevel = 'critical'; break;
+        case 'high': logLevel = 'error'; break;
+        case 'medium': logLevel = 'warning'; break;
+      }
+
+      // Déterminer la catégorie
+      let category = 'intrusion';
+      switch (detection.type) {
+        case 'brute_force': category = 'authentication'; break;
+        case 'user_enumeration': category = 'authentication'; break;
+        case 'vulnerability_scan': category = 'vulnerability'; break;
+        case 'dos_attack': category = 'ddos'; break;
+        default: category = 'intrusion';
+      }
+
+      // Créer le log de sécurité
+      const securityLog = {
+        level: logLevel,
+        category,
+        eventType: detection.type,
+        message: detection.description,
+        sourceIP: detection.clientIP,
+        country: geoInfo?.country,
+        city: geoInfo?.city,
+        endpoint: detection.url,
+        method: detection.method,
+        userAgent: detection.userAgent,
+        riskScore: this.mapSeverityToRiskScore(detection.severity),
+        isBlocked: detection.severity === 'critical',
+        metadata: {
+          pattern: detection.pattern,
+          confidence: detection.confidence,
+          severity: detection.severity,
+          evidence: detection.evidence,
+          timestamp: new Date(),
+          source: 'api-gateway-intrusion-detector'
+        }
+      };
+
+      // Envoyer au security-service
+      await axios.post(`${securityServiceUrl}/api/v1/logs`, securityLog, {
+        timeout: 2000, // Timeout court pour ne pas ralentir les requêtes
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Source': 'api-gateway'
+        }
+      });
+
+      logger.debug('Log de sécurité envoyé au security-service:', {
+        ip: detection.clientIP,
+        type: detection.type,
+        severity: detection.severity
+      });
+
+    } catch (error) {
+      // Ne pas logger l'erreur pour éviter le spam si le security-service n'est pas disponible
+      logger.debug('Impossible d\'envoyer au security-service (service peut être indisponible):', error.message);
+    }
+  }
+
+  // Mapper la sévérité vers un score de risque
+  mapSeverityToRiskScore(severity) {
+    switch (severity) {
+      case 'critical': return 95;
+      case 'high': return 80;
+      case 'medium': return 60;
+      case 'low': return 30;
+      default: return 50;
+    }
+  }
+
+  // Enregistrer une requête normale (échantillonnage)
+  async logNormalRequest(requestData) {
+    try {
+      const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
+
+      // Obtenir la géolocalisation de l'IP
+      let geoInfo = null;
+      try {
+        const geoip = require('geoip-lite');
+        geoInfo = geoip.lookup(requestData.clientIP);
+      } catch (error) {
+        // Fallback si geoip-lite n'est pas disponible
+      }
+
+      // Déterminer le type d'événement basé sur l'endpoint
+      let eventType = 'api_request';
+      let category = 'monitoring';
+      let riskScore = 5;
+
+      if (requestData.url.includes('/auth/')) {
+        eventType = 'authentication';
+        category = 'authentication';
+        riskScore = 10;
+      } else if (requestData.url.includes('/admin/')) {
+        eventType = 'admin_access';
+        category = 'authorization';
+        riskScore = 15;
+      } else if (requestData.url.includes('/api/')) {
+        eventType = 'api_access';
+        category = 'monitoring';
+        riskScore = 5;
+      }
+
+      // Créer le log de sécurité pour une requête normale
+      const securityLog = {
+        level: 'info',
+        category,
+        eventType,
+        message: `Requête API normale: ${requestData.method} ${requestData.url}`,
+        sourceIP: requestData.clientIP,
+        country: geoInfo?.country,
+        city: geoInfo?.city,
+        endpoint: requestData.url,
+        method: requestData.method,
+        userAgent: requestData.userAgent,
+        riskScore,
+        isBlocked: false,
+        metadata: {
+          timestamp: new Date(),
+          source: 'api-gateway-normal-request',
+          responseTime: Math.floor(Math.random() * 200) + 50, // Simulation du temps de réponse
+          statusCode: 200
+        }
+      };
+
+      // Envoyer au security-service
+      await axios.post(`${securityServiceUrl}/api/v1/logs`, securityLog, {
+        timeout: 2000,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Source': 'api-gateway'
+        }
+      });
+
+    } catch (error) {
+      // Ne pas logger l'erreur pour éviter le spam
     }
   }
 

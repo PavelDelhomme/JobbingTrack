@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const axios = require('axios');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
 
@@ -12,13 +13,25 @@ const register = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
+      // Log d'échec de validation
+      await sendSecurityLog('warning', 'authentication', 'registration_validation_error', 'Échec de validation des données d\'inscription', {
+        sourceIP: req.ip,
+        endpoint: req.path,
+        method: req.method,
+        userAgent: req.get('User-Agent'),
+        riskScore: 15,
+        metadata: { errors: errors.array() }
+      });
+
+      return res.status(400).json({
         success: false,
-        errors: errors.array() 
+        errors: errors.array()
       });
     }
 
     const { email, password, firstName, lastName, phone, role } = req.body;
+    const clientIP = req.ip;
+    const userAgent = req.get('User-Agent');
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
@@ -26,6 +39,19 @@ const register = async (req, res, next) => {
     });
 
     if (existingUser) {
+      // Log de tentative d'inscription avec email existant
+      await sendSecurityLog('warning', 'authentication', 'registration_duplicate_email', 'Tentative d\'inscription avec un email déjà existant', {
+        sourceIP: clientIP,
+        endpoint: req.path,
+        method: req.method,
+        userAgent,
+        riskScore: 20,
+        metadata: {
+          attemptedEmail: email,
+          existingUserId: existingUser.id
+        }
+      });
+
       return res.status(409).json({
         success: false,
         error: 'Un compte avec cette adresse email existe déjà'
@@ -62,6 +88,21 @@ const register = async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
+    // Log de succès d'inscription
+    await sendSecurityLog('info', 'authentication', 'registration_success', 'Inscription utilisateur réussie', {
+      sourceIP: clientIP,
+      endpoint: req.path,
+      method: req.method,
+      userAgent,
+      userId: user.id,
+      riskScore: 5,
+      metadata: {
+        userEmail: user.email,
+        userRole: user.role,
+        registrationComplete: true
+      }
+    });
+
     // Envoyer email de bienvenue (async)
     emailService.sendWelcomeEmail(user).catch(error => {
       logger.error('Erreur envoi email bienvenue:', error);
@@ -88,13 +129,25 @@ const login = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        errors: errors.array() 
+      // Log d'échec de validation
+      await sendSecurityLog('warning', 'authentication', 'validation_error', 'Échec de validation des données de connexion', {
+        sourceIP: req.ip,
+        endpoint: req.path,
+        method: req.method,
+        userAgent: req.get('User-Agent'),
+        riskScore: 15,
+        metadata: { errors: errors.array() }
+      });
+
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
       });
     }
 
     const { email, password } = req.body;
+    const clientIP = req.ip;
+    const userAgent = req.get('User-Agent');
 
     // Trouver l'utilisateur (version temporaire pour contourner le problème de schéma)
     let user;
@@ -120,6 +173,19 @@ const login = async (req, res, next) => {
     }
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      // Log d'échec d'authentification
+      await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - identifiants incorrects', {
+        sourceIP: clientIP,
+        endpoint: req.path,
+        method: req.method,
+        userAgent,
+        riskScore: 25,
+        metadata: {
+          attemptedEmail: email,
+          reason: user ? 'wrong_password' : 'user_not_found'
+        }
+      });
+
       return res.status(401).json({
         success: false,
         error: 'Email ou mot de passe incorrect'
@@ -136,6 +202,21 @@ const login = async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Log de succès de connexion
+    await sendSecurityLog('info', 'authentication', 'login_success', 'Connexion utilisateur réussie', {
+      sourceIP: clientIP,
+      endpoint: req.path,
+      method: req.method,
+      userAgent,
+      userId: user.id,
+      riskScore: 5,
+      metadata: {
+        userEmail: user.email,
+        userRole: user.role,
+        tokenGenerated: true
+      }
+    });
 
     // Retourner la réponse (sans le mot de passe)
     const { password: _, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
@@ -826,6 +907,53 @@ const saveUserCustomization = async (req, res) => {
     });
   }
 };
+
+// Fonction pour envoyer les logs de sécurité au security-service
+async function sendSecurityLog(level, category, eventType, message, additionalData = {}) {
+  try {
+    const securityServiceUrl = process.env.SECURITY_SERVICE_URL || 'http://security-service:3017';
+
+    // Obtenir la géolocalisation de l'IP
+    let geoInfo = null;
+    try {
+      const geoip = require('geoip-lite');
+      geoInfo = geoip.lookup(additionalData.sourceIP || '127.0.0.1');
+    } catch (error) {
+      // Fallback si geoip-lite n'est pas disponible
+    }
+
+    const securityLog = {
+      level,
+      category,
+      eventType,
+      message,
+      sourceIP: additionalData.sourceIP,
+      country: geoInfo?.country,
+      city: geoInfo?.city,
+      endpoint: additionalData.endpoint,
+      method: additionalData.method,
+      userAgent: additionalData.userAgent,
+      riskScore: additionalData.riskScore || 10,
+      isBlocked: additionalData.isBlocked || false,
+      metadata: {
+        ...additionalData.metadata,
+        timestamp: new Date(),
+        source: 'auth-service'
+      }
+    };
+
+    await axios.post(`${securityServiceUrl}/api/v1/logs`, securityLog, {
+      timeout: 2000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'auth-service'
+      }
+    });
+
+  } catch (error) {
+    // Ne pas logger l'erreur pour éviter le spam si le security-service n'est pas disponible
+  }
+}
 
 module.exports = {
   register,

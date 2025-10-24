@@ -29,4 +29,13 @@ router.post('/generate-dev-data', securityController.generateDevelopmentData);
 // Analyser les risques de sécurité en temps réel
 router.get('/risk-analysis', securityController.analyzeSecurityRisks);
 
+// Démarrer la génération continue de données de sécurité
+router.post('/generate-continuous', securityController.startContinuousGeneration);
+
+// Arrêter la génération continue de données de sécurité
+router.delete('/generate-continuous', securityController.stopContinuousGeneration);
+
+// État de la génération continue
+router.get('/generate-continuous/status', securityController.getGenerationStatus);
+
 module.exports = router;

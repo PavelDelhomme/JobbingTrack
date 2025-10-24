@@ -310,6 +310,136 @@ model ServiceMaintenance {
   activator User? @relation(fields: [activatedBy], references: [id], onDelete: SetNull)
 }
 
+// === MODÈLES DE SÉCURITÉ ===
+
+// Logs de sécurité collectés en temps réel
+model SecurityLog {
+  id                String           @id @default(cuid())
+  timestamp         DateTime         @default(now())
+  level             SecurityLevel
+  category          SecurityCategory
+  eventType         SecurityEventType
+  message           String           @db.Text
+  sourceIP          String?          @db.VarChar(45)
+  userAgent         String?          @db.Text
+  userId            String?          @db.VarChar(100)
+  endpoint          String?          @db.VarChar(500)
+  method            String?          @db.VarChar(10)
+  statusCode        Int?
+  responseTime      Int?             // en millisecondes
+  country           String?          @db.VarChar(2)
+  city              String?          @db.VarChar(100)
+  riskScore         Float?           // score de risque de 0 à 100
+  isBlocked         Boolean          @default(false)
+  metadata          Json?            // informations supplémentaires
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@map("security_logs")
+}
+
+// Gestion des vulnérabilités de sécurité
+model Vulnerability {
+  id                String              @id @default(cuid())
+  title             String              @db.VarChar(200)
+  description       String              @db.Text
+  severity          VulnerabilitySeverity
+  cveId             String?             @db.VarChar(50)
+  cvssScore         Float?
+  affectedComponent String              @db.VarChar(100) // nom du composant/service affecté
+  status            VulnerabilityStatus  @default(OPEN)
+  discoveredAt      DateTime            @default(now())
+  resolvedAt        DateTime?
+  assignedTo        String?             @db.VarChar(100)
+  remediation       String?             @db.Text
+  tags              String[]            // technologies, frameworks, etc.
+  metadata          Json?               // informations supplémentaires
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("vulnerabilities")
+}
+
+// Tentatives d'intrusion détectées
+model IntrusionAttempt {
+  id                String     @id @default(cuid())
+  timestamp         DateTime   @default(now())
+  sourceIP          String     @db.VarChar(45)
+  country           String?    @db.VarChar(2)
+  city              String?    @db.VarChar(100)
+  attackType        AttackType
+  targetEndpoint    String     @db.VarChar(500)
+  method            String     @db.VarChar(10)
+  userAgent         String?    @db.Text
+  payload           String?    @db.Text // requête malveillante
+  riskScore         Float      // score de risque de 0 à 100
+  isBlocked         Boolean    @default(false)
+  blockReason       String?    @db.VarChar(200)
+  metadata          Json?      // informations supplémentaires
+
+  createdAt         DateTime   @default(now())
+
+  @@map("intrusion_attempts")
+}
+
+// Attaques DDoS détectées
+model DDoSAttack {
+  id                String        @id @default(cuid())
+  timestamp         DateTime      @default(now())
+  sourceIPs         String[]      // liste des IPs impliquées
+  countries         String[]      // pays d'origine
+  attackType        DDoSAttackType
+  targetEndpoint    String        @db.VarChar(500)
+  duration          Int           // durée en secondes
+  totalRequests     Int           // nombre total de requêtes
+  requestsPerSecond Float
+  isMitigated       Boolean       @default(false)
+  mitigationTime    Int?          // temps de mitigation en secondes
+  metadata          Json?         // informations supplémentaires
+
+  createdAt         DateTime      @default(now())
+
+  @@map("ddos_attacks")
+}
+
+// Alertes de sécurité générées
+model SecurityAlert {
+  id                String           @id @default(cuid())
+  timestamp         DateTime         @default(now())
+  level             SecurityLevel
+  title             String           @db.VarChar(200)
+  description       String           @db.Text
+  category          SecurityCategory
+  source            String           @db.VarChar(100) // IP, user, service
+  isAcknowledged    Boolean          @default(false)
+  acknowledgedBy    String?          @db.VarChar(100)
+  acknowledgedAt    DateTime?
+  resolvedAt        DateTime?
+  metadata          Json?            // informations supplémentaires
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@map("security_alerts")
+}
+
+// Métriques de sécurité collectées
+model SecurityMetric {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  metricType        String   @db.VarChar(50) // intrusion_attempts, ddos_attacks, vulnerabilities, etc.
+  value             Float
+  unit              String   @db.VarChar(20) // count, percentage, score, etc.
+  period            String   @db.VarChar(20) // hour, day, week, month
+  metadata          Json?    // informations supplémentaires
+
+  createdAt         DateTime @default(now())
+
+  @@map("security_metrics")
+}
+
 // ENUMS
 
 enum JobType {
@@ -426,4 +556,76 @@ enum UserRole {
   ADMIN
   SUPER_ADMIN
   TESTER
+}
+
+// Enums pour la sécurité
+enum SecurityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VulnerabilitySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ACCEPTED_RISK
+}
+
+enum AttackType {
+  SQL_INJECTION
+  XSS
+  BRUTE_FORCE
+  CSRF
+  LFI
+  RFI
+  DIRECTORY_TRAVERSAL
+  COMMAND_INJECTION
+  FILE_UPLOAD
+  DOS
+  DDOS
+  SCANNING
+  SUSPICIOUS_ACTIVITY
+}
+
+enum DDoSAttackType {
+  VOLUMETRIC
+  PROTOCOL
+  APPLICATION
+}
+
+enum SecurityCategory {
+  AUTHENTICATION
+  AUTHORIZATION
+  INTRUSION
+  DDOS
+  VULNERABILITY
+  MALWARE
+  SUSPICIOUS_ACTIVITY
+  SYSTEM_ERROR
+  CONFIGURATION
+  COMPLIANCE
+}
+
+enum SecurityEventType {
+  LOGIN_ATTEMPT
+  LOGOUT
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+  SUSPICIOUS_ACTIVITY
+  BLOCKED_REQUEST
+  RATE_LIMIT_EXCEEDED
+  UNAUTHORIZED_ACCESS
+  DATA_BREACH
+  CONFIGURATION_CHANGE
+  SERVICE_ERROR
+  DEPENDENCY_VULNERABILITY
 }

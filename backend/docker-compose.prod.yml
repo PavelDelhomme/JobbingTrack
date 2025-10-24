@@ -71,6 +71,7 @@ services:
 
   # Service d'authentification
   auth-service:
+    image: jobbingtrack-auth-service
     build:
       context: ./auth-service
       dockerfile: Dockerfile
@@ -98,6 +99,7 @@ services:
 
   # Service des candidatures
   application-service:
+    image: jobbingtrack-application-service
     build:
       context: ./application-service
       dockerfile: Dockerfile
@@ -121,6 +123,7 @@ services:
 
   # Service des entreprises
   company-service:
+    image: jobbingtrack-company-service
     build:
       context: ./company-service
       dockerfile: Dockerfile
@@ -144,6 +147,7 @@ services:
 
   # Service des contacts
   contact-service:
+    image: jobbingtrack-contact-service
     build:
       context: ./contact-service
       dockerfile: Dockerfile
@@ -167,6 +171,7 @@ services:
 
   # Service des entretiens
   interview-service:
+    image: jobbingtrack-interview-service
     build:
       context: ./interview-service
       dockerfile: Dockerfile

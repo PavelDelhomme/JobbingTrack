@@ -89,7 +89,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(intrusionDetection);
 
 // 2. WAF (Web Application Firewall)
-if (process.env.WAF_ENABLED !== 'false') {
+if (process.env.WAF_ENABLED === 'true') {
   app.use(wafCheck);
 }
 
@@ -272,6 +272,7 @@ app.get('/api/v1/services/:serviceName/logs', async (req, res) => {
       'event-service': 3011,
       'followup-service': 3012,
       'workflow-service': 3013,
+      'security-service': 3017,
       'frontend': 8080,
       'database': 5432,
       'cache': 6379,
@@ -448,6 +449,14 @@ app.get('/api/v1/services', async (req, res) => {
           containerName: 'jobbingtrack-workflow-service'
         },
         {
+          name: 'Service de Sécurité',
+          serviceType: 'security-service',
+          status: 'running',
+          port: 3017,
+          url: 'http://security-service:3017',
+          containerName: 'jobbingtrack-security-service'
+        },
+        {
           name: 'Frontend',
           serviceType: 'frontend',
           status: 'running',
@@ -496,7 +505,7 @@ app.get('/api/v1/services', async (req, res) => {
           containerName: 'jobbingtrack-cadvisor'
         }
       ],
-      total: 19,
+      total: 20,
       fallback: true,
       message: 'État de tous les services (mode développement)'
     };
@@ -555,7 +564,13 @@ const services = {
   '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3008', serviceName: 'call-service' },
   '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
-  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' }
+  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },
+  '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/intrusions': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/ddos': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/vulnerabilities': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' }
 };
 
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {

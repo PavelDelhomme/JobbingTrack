@@ -1,0 +1,26 @@
+{
+  "admin": {
+    "email": "admin@jobbingtrack.test",
+    "password": "admin123",
+    "name": "Admin Test",
+    "role": "admin"
+  },
+  "user": {
+    "email": "user@jobbingtrack.test",
+    "password": "user123",
+    "name": "User Test",
+    "role": "user"
+  },
+  "candidate": {
+    "email": "candidate@jobbingtrack.test",
+    "password": "candidate123",
+    "name": "Candidate Test",
+    "role": "candidate"
+  },
+  "recruiter": {
+    "email": "recruiter@jobbingtrack.test",
+    "password": "recruiter123",
+    "name": "Recruiter Test",
+    "role": "recruiter"
+  }
+}

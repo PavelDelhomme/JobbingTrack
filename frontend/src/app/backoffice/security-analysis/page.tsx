@@ -55,7 +55,34 @@ export default function SecurityAnalysisPage() {
   const loadSecurityData = async () => {
     setLoading(true)
     try {
-      // Simulation de données de sécurité pour l'instant
+      // Récupérer les vraies données du security-service via l'API Gateway
+      const [metricsResponse, riskResponse, logsResponse] = await Promise.all([
+        axios.get(`${API_URL}/api/v1/security/metrics?days=7`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/v1/security/risk-analysis`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/v1/logs?limit=20`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
+
+      if (metricsResponse.data.success) {
+        setSystemMetrics(metricsResponse.data.data.overview)
+      }
+
+      if (riskResponse.data.success) {
+        setRiskAnalysis(riskResponse.data.data)
+      }
+
+      if (logsResponse.data.success) {
+        setSecurityLogs(logsResponse.data.data)
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données de sécurité:', error)
+
+      // Fallback vers les données mockées si l'API n'est pas disponible
       const mockSystemMetrics = {
         totalLogs: 1247,
         criticalEvents: 3,
@@ -144,8 +171,6 @@ export default function SecurityAnalysisPage() {
       setSystemMetrics(mockSystemMetrics)
       setRiskAnalysis(mockRiskAnalysis)
       setSecurityLogs(mockLogs)
-    } catch (error) {
-      console.error('Erreur lors du chargement des données de sécurité:', error)
     } finally {
       setLoading(false)
     }
@@ -194,7 +219,21 @@ export default function SecurityAnalysisPage() {
           </p>
         </div>
 
-        {systemMetrics && riskAnalysis && (
+        {(!systemMetrics || !riskAnalysis) && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-6">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+              </svg>
+              <div>
+                <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Service de sécurité non disponible</h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">Affichage des données de démonstration. Le service de sécurité n'est pas encore connecté.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {systemMetrics && riskAnalysis ? (
           <div className="space-y-6">
             {/* Métriques principales de sécurité */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -366,13 +405,24 @@ export default function SecurityAnalysisPage() {
               </div>
             </div>
 
-            {/* Logs de sécurité récents */}
+            {/* Logs de sécurité récents avec lien vers la page dédiée */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                📋 Logs de Sécurité Récents
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  📋 Logs de Sécurité Récents
+                </h3>
+                <a
+                  href="/backoffice/security-logs"
+                  className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  Voir tous les logs
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {securityLogs.length > 0 ? securityLogs.slice(0, 10).map((log, index) => {
+                {securityLogs.length > 0 ? securityLogs.slice(0, 5).map((log, index) => {
                   const time = formatDate(log.timestamp)
                   return (
                     <div key={index} className={`p-3 rounded-lg border ${
@@ -415,6 +465,13 @@ export default function SecurityAnalysisPage() {
                 </svg>
                 Actualiser l'Analyse
               </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Chargement des données de sécurité...</p>
             </div>
           </div>
         )}
