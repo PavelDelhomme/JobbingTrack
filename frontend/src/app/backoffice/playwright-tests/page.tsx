@@ -561,69 +561,78 @@ export async function createTestUser(page: Page) {
     addLog(`🚀 Démarrage des tests${testName ? ` - ${testName}` : ''}${projectName ? ` (${projectName})` : ''}`);
 
     try {
-      // Simulation de l'exécution Playwright
-      const executionMessages = [
-        '📦 Installation des dépendances...',
-        '⚙️ Configuration des projets...',
-        '🌐 Démarrage des navigateurs...',
-        '🔍 Découverte des tests...',
-        '⚡ Exécution des tests...',
-        '📊 Collecte des résultats...'
-      ];
+      // Construire la commande Playwright
+      let command = 'npx playwright test';
 
-      for (const message of executionMessages) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        addLog(`⏳ ${message}`);
+      if (projectName && projectName !== 'all') {
+        command += ` --project="${projectName}"`;
       }
 
-      // Simulation des résultats de tests
-      const mockResults: TestResult[] = [
-        {
-          id: `result_${Date.now()}_1`,
-          file: 'admin-backoffice.spec.ts',
-          testName: 'Dashboard admin accessible',
-          status: 'passed',
-          duration: 2450,
-          browser: 'chromium',
-          viewport: '1920x1080',
-          project: projectName || 'chromium',
-          startTime: new Date(Date.now() - 10000).toISOString(),
-          endTime: new Date(Date.now() - 7500).toISOString(),
-          output: [
-            '✓ Dashboard admin accessible',
-            '✓ Navigation entre sections',
-            '✓ Gestion utilisateurs'
-          ],
-          screenshots: ['screenshot-1.png', 'screenshot-2.png']
+      if (testName && testName !== 'all') {
+        command += ` --grep="${testName}"`;
+      }
+
+      command += ' --reporter=line,json';
+
+      addLog(`🔧 Commande: ${command}`);
+
+      // Exécuter les tests via l'API
+      const response = await fetch('/api/v1/admin/playwright/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`,
+          'X-Test-Mode': 'true'
         },
-        {
-          id: `result_${Date.now()}_2`,
-          file: 'user-journeys.spec.ts',
-          testName: 'Inscription et connexion',
-          status: 'passed',
-          duration: 3200,
-          browser: 'chromium',
-          viewport: '1920x1080',
-          project: projectName || 'chromium',
-          startTime: new Date(Date.now() - 8000).toISOString(),
-          endTime: new Date(Date.now() - 4800).toISOString(),
-          output: [
-            '✓ Formulaire inscription',
-            '✓ Validation email',
-            '✓ Connexion réussie'
-          ],
-          screenshots: ['screenshot-3.png']
+        body: JSON.stringify({
+          command,
+          project: projectName,
+          test: testName,
+          parallel: parallelExecution
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+
+      const executionId = await response.json();
+
+      // Suivre l'exécution en temps réel
+      const eventSource = new EventSource(`/api/v1/admin/playwright/events/${executionId.id}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addLog(`📊 ${data.message}`);
+
+        if (data.type === 'result') {
+          setTestResults(prev => [...prev, data.result]);
         }
-      ];
+      };
 
-      setTestResults(mockResults);
+      eventSource.onerror = (error) => {
+        console.error('SSE Error:', error);
+        eventSource.close();
+      };
 
-      const passed = mockResults.filter(r => r.status === 'passed').length;
-      const failed = mockResults.filter(r => r.status === 'failed').length;
-      const total = mockResults.length;
+      // Attendre la fin de l'exécution
+      const resultResponse = await fetch(`/api/v1/admin/playwright/result/${executionId.id}`, {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'X-Test-Mode': 'true'
+        }
+      });
 
-      addLog(`✅ Tests terminés: ${passed} passed, ${failed} failed, ${total} total`);
-      addLog(`📈 Rapport généré: playwright-report/index.html`);
+      const result = await resultResponse.json();
+
+      eventSource.close();
+
+      if (result.success) {
+        addLog(`✅ Tests terminés: ${result.summary.passed} passed, ${result.summary.failed} failed, ${result.summary.total} total`);
+        addLog(`📈 Rapport généré: /api/v1/admin/playwright/report/${executionId.id}`);
+      } else {
+        addLog(`❌ Échec des tests: ${result.error}`);
+      }
 
     } catch (error) {
       addLog(`❌ Erreur d'exécution: ${error}`);
@@ -1340,9 +1349,75 @@ test.describe('Tests de Sécurité', () => {
 
                 {activeView === 'run' && (
                   <div className="p-2">
+                    {/* Contrôles d'exécution */}
+                    <div className="mb-4 p-3 bg-[#252526] rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-300 mb-3">Exécution des Tests</h3>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <Button
+                          onClick={() => handleRunTest(undefined, 'all')}
+                          disabled={isRunning}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Tous les tests
+                        </Button>
+                        <Button
+                          onClick={() => handleRunTest('mobile', 'Flutter Mobile App')}
+                          disabled={isRunning}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                        >
+                          <Smartphone className="h-3 w-3 mr-1" />
+                          Tests Mobile
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <Button
+                          onClick={() => handleRunTest('api', 'API')}
+                          disabled={isRunning}
+                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                        >
+                          <Database className="h-3 w-3 mr-1" />
+                          Tests API
+                        </Button>
+                        <Button
+                          onClick={() => handleRunTest('security', 'chromium')}
+                          disabled={isRunning}
+                          className="bg-red-600 hover:bg-red-700 text-white text-xs"
+                        >
+                          <Shield className="h-3 w-3 mr-1" />
+                          Tests Sécurité
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="parallelExecution"
+                          checked={parallelExecution}
+                          onChange={(e) => setParallelExecution(e.target.checked)}
+                          className="rounded"
+                        />
+                        <label htmlFor="parallelExecution" className="text-xs text-gray-300">
+                          Exécution parallèle
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Résultats des tests */}
                     <div className="mb-4">
-                      <h3 className="text-sm font-medium text-gray-300 mb-2">Test Results</h3>
-                      <div className="space-y-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-gray-300">Résultats des Tests</h3>
+                        {isRunning && (
+                          <div className="flex items-center gap-1 text-xs text-blue-400">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                            En cours...
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 max-h-64 overflow-y-auto">
                         {testResults.map(result => (
                           <div key={result.id} className="flex items-center gap-2 text-xs p-2 bg-[#1e1e1e] rounded">
                             {getStatusIcon(result.status, 'sm')}
@@ -1350,10 +1425,59 @@ test.describe('Tests de Sécurité', () => {
                               <div className="text-gray-300 truncate">{result.testName}</div>
                               <div className="text-gray-500">{result.browser} • {result.duration}ms</div>
                             </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                            {result.screenshots && result.screenshots.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={() => window.open(`/api/v1/admin/playwright/screenshot/${result.id}`, '_blank')}
+                              >
+                                <Camera className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Rapport de tests */}
+                    {testResults.length > 0 && (
+                      <div className="p-3 bg-[#252526] rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-sm font-medium text-gray-300">Rapport de Tests</h3>
+                          <Button
+                            size="sm"
+                            onClick={() => window.open(`/api/v1/admin/playwright/report/${currentExecution}`, '_blank')}
+                            className="bg-[#007acc] hover:bg-[#1177bb] text-white text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Voir Rapport
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <div className="text-lg font-bold text-green-400">
+                              {testResults.filter(r => r.status === 'passed').length}
+                            </div>
+                            <div className="text-xs text-gray-400">Réussis</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-red-400">
+                              {testResults.filter(r => r.status === 'failed').length}
+                            </div>
+                            <div className="text-xs text-gray-400">Échoués</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-blue-400">
+                              {testResults.length}
+                            </div>
+                            <div className="text-xs text-gray-400">Total</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                     <div>
                       <h3 className="text-sm font-medium text-gray-300 mb-2">Projects</h3>

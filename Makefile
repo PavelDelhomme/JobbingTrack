@@ -725,7 +725,7 @@ test-frontend-only: ## Tests frontend uniquement
 # Tests avec coverage
 test-coverage: ## Tests avec coverage
 	@echo "📊 Tests avec coverage..."
-	cd tests && npm run test:coverage
+	cd tests && npx jest --config jest.config.js --coverage
 
 # ============================================================================
 # QUALITÉ DU CODE

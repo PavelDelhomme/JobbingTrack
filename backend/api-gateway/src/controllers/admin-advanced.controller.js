@@ -926,6 +926,241 @@ const listTestUsers = async (req, res) => {
   }
 };
 
+// Exécuter les tests Playwright
+const runPlaywrightTests = async (req, res) => {
+  try {
+    const { command, project, test, parallel = true } = req.body;
+
+    if (!command) {
+      return res.status(400).json({
+        success: false,
+        error: 'Commande requise'
+      });
+    }
+
+    // Générer un ID unique pour cette exécution
+    const executionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Démarrer l'exécution en arrière-plan
+    const { spawn } = require('child_process');
+    const testProcess = spawn('npx', ['playwright', 'test', '--reporter=line,json'], {
+      cwd: './frontend',
+      env: {
+        ...process.env,
+        WAF_ENABLED: 'false',
+        RATE_LIMIT_ENABLED: 'false'
+      },
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    // Stocker l'ID d'exécution
+    global.testExecutions = global.testExecutions || new Map();
+    global.testExecutions.set(executionId, {
+      id: executionId,
+      startTime: new Date(),
+      process: testProcess,
+      logs: [],
+      results: [],
+      status: 'running'
+    });
+
+    // Gérer les logs en temps réel
+    testProcess.stdout.on('data', (data) => {
+      const log = data.toString().trim();
+      if (log) {
+        const execution = global.testExecutions.get(executionId);
+        if (execution) {
+          execution.logs.push(log);
+        }
+      }
+    });
+
+    testProcess.stderr.on('data', (data) => {
+      const log = data.toString().trim();
+      if (log) {
+        const execution = global.testExecutions.get(executionId);
+        if (execution) {
+          execution.logs.push(`ERROR: ${log}`);
+        }
+      }
+    });
+
+    // Gérer la fin de l'exécution
+    testProcess.on('close', (code) => {
+      const execution = global.testExecutions.get(executionId);
+      if (execution) {
+        execution.status = code === 0 ? 'completed' : 'failed';
+        execution.endTime = new Date();
+      }
+    });
+
+    res.json({
+      success: true,
+      executionId: executionId,
+      message: 'Tests démarrés'
+    });
+
+  } catch (error) {
+    logger.error('Erreur exécution tests Playwright:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
+// Récupérer les résultats d'exécution des tests
+const getTestResults = async (req, res) => {
+  try {
+    const { executionId } = req.params;
+
+    const execution = global.testExecutions?.get(executionId);
+    if (!execution) {
+      return res.status(404).json({
+        success: false,
+        error: 'Exécution non trouvée'
+      });
+    }
+
+    // Calculer le résumé
+    const summary = {
+      passed: execution.results.filter(r => r.status === 'passed').length,
+      failed: execution.results.filter(r => r.status === 'failed').length,
+      total: execution.results.length
+    };
+
+    res.json({
+      success: true,
+      execution: {
+        id: execution.id,
+        startTime: execution.startTime,
+        endTime: execution.endTime,
+        status: execution.status,
+        logs: execution.logs.slice(-50), // Derniers 50 logs
+        results: execution.results
+      },
+      summary
+    });
+
+  } catch (error) {
+    logger.error('Erreur récupération résultats tests:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
+// Récupérer les événements en temps réel des tests
+const getTestEvents = async (req, res) => {
+  try {
+    const { executionId } = req.params;
+
+    const execution = global.testExecutions?.get(executionId);
+    if (!execution) {
+      return res.status(404).json({
+        success: false,
+        error: 'Exécution non trouvée'
+      });
+    }
+
+    // Configuration SSE
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Envoyer les logs existants
+    execution.logs.forEach(log => {
+      res.write(`data: ${JSON.stringify({ type: 'log', message: log })}\n\n`);
+    });
+
+    // Écouter les nouveaux logs
+    const sendLog = (log) => {
+      res.write(`data: ${JSON.stringify({ type: 'log', message: log })}\n\n`);
+    };
+
+    execution.logListener = sendLog;
+
+    // Nettoyer quand la connexion se ferme
+    req.on('close', () => {
+      if (execution.logListener) {
+        execution.logListener = null;
+      }
+    });
+
+  } catch (error) {
+    logger.error('Erreur événements tests:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
+// Récupérer le rapport de tests
+const getTestReport = async (req, res) => {
+  try {
+    const { executionId } = req.params;
+
+    const execution = global.testExecutions?.get(executionId);
+    if (!execution) {
+      return res.status(404).json({
+        success: false,
+        error: 'Exécution non trouvée'
+      });
+    }
+
+    // Générer un rapport HTML simple
+    const report = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Rapport de tests Playwright</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .passed { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .failed { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .log { background-color: #f8f9fa; padding: 5px; margin: 2px 0; font-family: monospace; }
+      </style>
+    </head>
+    <body>
+      <h1>Rapport de tests Playwright</h1>
+      <p><strong>Exécution:</strong> ${execution.id}</p>
+      <p><strong>Démarré:</strong> ${execution.startTime.toISOString()}</p>
+      <p><strong>Status:</strong> ${execution.status}</p>
+
+      <h2>Résultats des tests</h2>
+      ${execution.results.map(result => `
+        <div class="test-result ${result.status}">
+          <strong>${result.testName}</strong><br>
+          <small>Durée: ${result.duration}ms | Navigateur: ${result.browser}</small>
+        </div>
+      `).join('')}
+
+      <h2>Logs d'exécution</h2>
+      <div class="logs">
+        ${execution.logs.map(log => `<div class="log">${log}</div>`).join('')}
+      </div>
+    </body>
+    </html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(report);
+
+  } catch (error) {
+    logger.error('Erreur rapport tests:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+};
+
 // Récupérer les métriques de base de données
 const getDatabaseMetrics = async () => {
   try {
@@ -1327,6 +1562,12 @@ module.exports = {
   createTestUser,
   deleteTestUser,
   listTestUsers,
+
+  // Fonctions pour l'exécution des tests Playwright
+  runPlaywrightTests,
+  getTestResults,
+  getTestEvents,
+  getTestReport,
   getDetailedSystemMetrics,
   getUserMetrics,
   getSecurityMetrics,
