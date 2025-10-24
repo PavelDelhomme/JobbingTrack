@@ -44,12 +44,12 @@ class TestRunner {
 
   async runUnitTests() {
     this.log('🔧 Tests unitaires...');
-    return await this.runCommand('cd tests && npm run test:unit', 'Unit tests');
+    return await this.runCommand('npx jest unit/', 'Unit tests');
   }
 
   async runIntegrationTests() {
     this.log('🔗 Tests d\'intégration...');
-    return await this.runCommand('cd tests && npm run test:integration', 'Integration tests');
+    return await this.runCommand('npx jest integration/', 'Integration tests');
   }
 
   async runAPITests() {
@@ -72,11 +72,17 @@ class TestRunner {
 
     // Tests des services backend
     const services = [
+      'api-gateway',
       'auth-service',
-      'user-service',
       'company-service',
       'application-service',
-      'dashboard-service'
+      'dashboard-service',
+      'contact-service',
+      'interview-service',
+      'notification-service',
+      'profile-service',
+      'security-service',
+      'deployment-service'
     ];
 
     for (const service of services) {

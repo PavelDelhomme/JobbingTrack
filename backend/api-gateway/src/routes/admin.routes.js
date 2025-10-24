@@ -129,5 +129,11 @@ router.post('/test-users', authenticate, advancedController.createTestUser);
 router.get('/test-users', authenticate, advancedController.listTestUsers);
 router.delete('/test-users/:email', authenticate, advancedController.deleteTestUser);
 
+// Routes pour l'exécution des tests Playwright
+router.post('/playwright/run', authenticate, advancedController.runPlaywrightTests);
+router.get('/playwright/result/:executionId', authenticate, advancedController.getTestResults);
+router.get('/playwright/events/:executionId', authenticate, advancedController.getTestEvents);
+router.get('/playwright/report/:executionId', authenticate, advancedController.getTestReport);
+
 module.exports = router;
 
