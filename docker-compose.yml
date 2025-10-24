@@ -94,8 +94,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    profiles:
-      - full
     networks:
       - jobbingtrack-network
     healthcheck:
@@ -951,26 +949,6 @@ services:
       - jobbingtrack-network
     profiles:
       - security
-      - full
-    restart: unless-stopped
-
-  # Service de statistiques Docker (nécessaire pour les métriques)
-  docker-stats-service:
-    image: jobbingtrack-docker-stats-service
-    build:
-      context: ./backend/docker-stats-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-docker-stats
-    ports:
-      - "3015:3015"
-    environment:
-      - NODE_ENV=development
-      - PORT=3015
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - jobbingtrack-network
-    profiles:
       - full
     restart: unless-stopped
 

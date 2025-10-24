@@ -68,7 +68,6 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
       # - AUTH_SERVICE_URL=http://localhost:3001  # Commenté car auth-service a un profil
       # ✅ En développement local, utiliser localhost pour vitesse
       # - APPLICATION_SERVICE_URL=http://localhost:3002  # Commenté car application-service a un profil
@@ -89,7 +88,6 @@ services:
       # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
       - ./docker-compose.yml:/app/docker-compose.yml:ro
     depends_on:
-      - docker-stats-service
     networks:
       - jobbingtrack-network
 
