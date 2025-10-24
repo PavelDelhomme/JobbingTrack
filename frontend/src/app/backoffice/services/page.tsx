@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { useMetrics } from '@/hooks/useMetrics'
+import { useMetrics } from '@/lib/hooks/useMetrics'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import axios from 'axios'
 
@@ -24,7 +24,7 @@ const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:300
 export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
-  const { metrics, isConnected, error: metricsError } = useMetrics()
+  const { metrics, isConnected, error: metricsError, isLoading: metricsLoading } = useMetrics()
   const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
   // Configuration des vraies URLs des services (corrigées)
   const REAL_SERVICES = [

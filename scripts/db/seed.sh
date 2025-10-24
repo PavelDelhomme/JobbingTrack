@@ -131,7 +131,7 @@ create_admin_user() {
     INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
     VALUES (
         '$user_id',
-        'admin@jobbingtrack.test',
+        '${ADMIN_EMAIL:-admin@jobbingtrack.test}',
         '$hashed_password',
         'Super',
         'Administrateur',
@@ -149,7 +149,7 @@ create_admin_user() {
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Utilisateur administrateur créé${NC}"
-        echo "📧 Email: admin@jobbingtrack.test"
+        echo "📧 Email: ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
         echo "🔐 Mot de passe: SuperAdmin123!"
     else
         echo -e "${RED}❌ Échec de la création de l'utilisateur${NC}"
@@ -225,7 +225,7 @@ main() {
     echo -e "\n${GREEN}✅ Seed de la base de données terminé avec succès !${NC}"
     echo ""
     echo -e "${BLUE}🔑 Informations de connexion :${NC}"
-    echo "   📧 Email: admin@jobbingtrack.test"
+    echo "   📧 Email: ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
     echo "   🔐 Mot de passe: SuperAdmin123!"
     echo ""
     echo -e "${BLUE}🌐 Accédez à l'application :${NC}"

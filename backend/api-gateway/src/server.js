@@ -18,29 +18,41 @@ const PORT = process.env.PORT || 3000;
 // ✅ Configuration CORS complète - corrigée automatiquement
 app.use(cors({
   origin: [
-    // Origines principales
-    'http://localhost:8080',  // Frontend principal
-    'http://localhost:3000',  // API Gateway
-    'http://localhost:3001',  // Auth Service
+    // Origines principales (noms de service Docker)
+    'http://frontend:3000',  // Frontend principal
+    'http://api-gateway:3000',  // API Gateway
+    'http://auth-service:3001',  // Auth Service
+    'http://application-service:3002',  // Application Service
+    'http://company-service:3003',  // Company Service
+    'http://contact-service:3004',  // Contact Service
+    'http://interview-service:3005',  // Interview Service
+    'http://notification-service:3006',  // Notification Service
+    'http://dashboard-service:3007',  // Dashboard Service
+    'http://call-service:3008',  // Call Service
+    'http://profile-service:3009',  // Profile Service
+    'http://event-service:3011',  // Event Service
+    'http://followup-service:3012',  // Followup Service
+    'http://workflow-service:3013',  // Workflow Service
+    'http://jobbingtrack-metrics-aggregator:3014',  // Metrics Aggregator
     // Origines alternatives
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
     // Origines avec différents ports (au cas où)
-    'http://localhost:3002',
-    'http://localhost:3003',
-    'http://localhost:3004',
-    'http://localhost:3005',
-    'http://localhost:3006',
-    'http://localhost:3007',
-    'http://localhost:3008',
-    'http://localhost:3009',
+    'http://application-service:3002',
+    'http://company-service:3003',
+    'http://contact-service:3004',
+    'http://interview-service:3005',
+    'http://notification-service:3006',
+    'http://dashboard-service:3007',
+    'http://call-service:3008',
+    'http://profile-service:3009',
     'http://localhost:3010',
-    'http://localhost:3011',
-    'http://localhost:3012',
-    'http://localhost:3013',
-    'http://localhost:3014',
-    'http://localhost:3015',
+    'http://event-service:3011',
+    'http://followup-service:3012',
+    'http://workflow-service:3013',
+    'http://jobbingtrack-metrics-aggregator:3014',
+    'http://docker-stats-service:3015',
     // IPv6 localhost
     'http://[::1]:8080',
     'http://[::1]:3000',
@@ -336,7 +348,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'api-gateway',
           status: 'running',
           port: 3000,
-          url: 'http://localhost:3000',
+          url: 'http://api-gateway:3000',
           containerName: 'jobbingtrack-api-gateway'
         },
         {
@@ -344,7 +356,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'auth-service',
           status: 'running',
           port: 3001,
-          url: 'http://localhost:3001',
+          url: 'http://auth-service:3001',
           containerName: 'jobbingtrack-auth-service'
         },
         {
@@ -352,7 +364,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'application-service',
           status: 'running',
           port: 3002,
-          url: 'http://localhost:3002',
+          url: 'http://application-service:3002',
           containerName: 'jobbingtrack-application-service'
         },
         {
@@ -360,7 +372,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'company-service',
           status: 'running',
           port: 3003,
-          url: 'http://localhost:3003',
+          url: 'http://company-service:3003',
           containerName: 'jobbingtrack-company-service'
         },
         {
@@ -368,7 +380,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'contact-service',
           status: 'running',
           port: 3004,
-          url: 'http://localhost:3004',
+          url: 'http://contact-service:3004',
           containerName: 'jobbingtrack-contact-service'
         },
         {
@@ -376,7 +388,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'interview-service',
           status: 'running',
           port: 3005,
-          url: 'http://localhost:3005',
+          url: 'http://interview-service:3005',
           containerName: 'jobbingtrack-interview-service'
         },
         {
@@ -384,7 +396,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'notification-service',
           status: 'running',
           port: 3006,
-          url: 'http://localhost:3006',
+          url: 'http://notification-service:3006',
           containerName: 'jobbingtrack-notification-service'
         },
         {
@@ -392,7 +404,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'dashboard-service',
           status: 'running',
           port: 3007,
-          url: 'http://localhost:3007',
+          url: 'http://dashboard-service:3007',
           containerName: 'jobbingtrack-dashboard-service'
         },
         {
@@ -400,7 +412,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'call-service',
           status: 'running',
           port: 3008,
-          url: 'http://localhost:3008',
+          url: 'http://call-service:3008',
           containerName: 'jobbingtrack-call-service'
         },
         {
@@ -408,7 +420,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'profile-service',
           status: 'running',
           port: 3009,
-          url: 'http://localhost:3009',
+          url: 'http://profile-service:3009',
           containerName: 'jobbingtrack-profile-service'
         },
         {
@@ -416,7 +428,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'event-service',
           status: 'running',
           port: 3011,
-          url: 'http://localhost:3011',
+          url: 'http://event-service:3011',
           containerName: 'jobbingtrack-event-service'
         },
         {
@@ -424,7 +436,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'followup-service',
           status: 'running',
           port: 3012,
-          url: 'http://localhost:3012',
+          url: 'http://followup-service:3012',
           containerName: 'jobbingtrack-followup-service'
         },
         {
@@ -432,7 +444,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'workflow-service',
           status: 'running',
           port: 3013,
-          url: 'http://localhost:3013',
+          url: 'http://workflow-service:3013',
           containerName: 'jobbingtrack-workflow-service'
         },
         {
@@ -440,7 +452,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'frontend',
           status: 'running',
           port: 8080,
-          url: 'http://localhost:8080',
+          url: 'http://frontend:3000',
           containerName: 'jobbingtrack-frontend'
         },
         {
@@ -448,7 +460,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'database',
           status: 'running',
           port: 5432,
-          url: 'http://localhost:5432',
+          url: 'http://postgres:5432',
           containerName: 'jobbingtrack-postgres'
         },
         {
@@ -456,7 +468,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'cache',
           status: 'running',
           port: 6379,
-          url: 'http://localhost:6379',
+          url: 'http://redis:6379',
           containerName: 'jobbingtrack-redis'
         },
         {
@@ -464,7 +476,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'monitoring',
           status: 'running',
           port: 9090,
-          url: 'http://localhost:9090',
+          url: 'http://prometheus:9090',
           containerName: 'jobbingtrack-prometheus'
         },
         {
@@ -472,7 +484,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'monitoring',
           status: 'running',
           port: 3000,
-          url: 'http://localhost:4000',
+          url: 'http://grafana:4000',
           containerName: 'jobbingtrack-grafana'
         },
         {
@@ -480,7 +492,7 @@ app.get('/api/v1/services', async (req, res) => {
           serviceType: 'monitoring',
           status: 'running',
           port: 8080,
-          url: 'http://localhost:8082',
+          url: 'http://cadvisor:8080',
           containerName: 'jobbingtrack-cadvisor'
         }
       ],
@@ -503,7 +515,7 @@ app.get('/api/v1/services', async (req, res) => {
 app.get('/api/v1/auth/users', async (req, res) => {
   try {
     logger.info('👥 Route /api/v1/auth/users interceptée');
-    const targetUrl = `${process.env.AUTH_SERVICE_URL || 'http://localhost:3001'}/users`;
+    const targetUrl = `${process.env.AUTH_SERVICE_URL || 'http://auth-service:3001'}/users`;
 
     const response = await axios.get(targetUrl, {
       headers: req.headers,
@@ -532,18 +544,18 @@ app.get('/api/v1/auth/users', async (req, res) => {
   }
 });
 
-// ✅ Proxy vers les services (utilise les variables d'environnement avec fallback localhost)
+// ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 const services = {
-  '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://localhost:3002', serviceName: 'application-service' },
-  '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://localhost:3003', serviceName: 'company-service' },
-  '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://localhost:3004', serviceName: 'contact-service' },
-  '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://localhost:3005', serviceName: 'interview-service' },
-  '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006', serviceName: 'notification-service' },
-  '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://localhost:3007', serviceName: 'dashboard-service' },
-  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://localhost:3008', serviceName: 'call-service' },
-  '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://localhost:3009', serviceName: 'profile-service' },
-  '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://localhost:3011', serviceName: 'event-service' },
-  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://localhost:3012', serviceName: 'followup-service' }
+  '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://application-service:3002', serviceName: 'application-service' },
+  '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://company-service:3003', serviceName: 'company-service' },
+  '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://contact-service:3004', serviceName: 'contact-service' },
+  '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://interview-service:3005', serviceName: 'interview-service' },
+  '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3006', serviceName: 'notification-service' },
+  '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3007', serviceName: 'dashboard-service' },
+  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3008', serviceName: 'call-service' },
+  '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
+  '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
+  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' }
 };
 
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {

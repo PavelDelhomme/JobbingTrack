@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import config from './test-config.js';
 
 test.describe('👑 Fonctionnalités Administrateur Avancées', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,7 +14,7 @@ test.describe('👑 Fonctionnalités Administrateur Avancées', () => {
           success: true,
           user: {
             id: '1',
-            email: 'admin@jobbingtrack.test',
+            email: config.testUser.email,
             firstName: 'Admin',
             lastName: 'JobbingTrack',
             role: 'SUPER_ADMIN'

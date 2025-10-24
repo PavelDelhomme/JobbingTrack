@@ -5,7 +5,7 @@ export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export { Input } from './input'
 export { Label } from './label'
 export { Progress } from './progress'
-export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
+export { Select, SelectContent, SelectItem, SelectOption, SelectTrigger, SelectValue } from './select'
 export { Separator } from './separator'
 export { Switch } from './switch'
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'

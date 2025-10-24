@@ -1,7 +1,7 @@
 {
-  "name": "metrics-aggregator-service",
+  "name": "jobbingtrack-metrics-aggregator",
   "version": "1.0.0",
-  "description": "Service d'agrégation des métriques Docker",
+  "description": "Service d'agrégation des métriques JobbingTrack",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

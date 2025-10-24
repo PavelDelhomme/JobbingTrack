@@ -53,15 +53,20 @@ async function main() {
 
   console.log('✅ Plateformes créées:', platforms.length)
 
-  // Créer un utilisateur de test
-  const hashedPassword = await bcrypt.hash('password123', 10)
+  // Créer un utilisateur de test (utilise les variables d'environnement)
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test'
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123'
+  const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin'
+  const adminLastName = process.env.ADMIN_LAST_NAME || 'JobbingTrack'
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 10)
 
   const testUser = await prisma.user.create({
     data: {
-      email: 'admin@jobbingtrack.test',
+      email: adminEmail,
       password: hashedPassword,
-      firstName: 'Admin',
-      lastName: 'JobbingTrack',
+      firstName: adminFirstName,
+      lastName: adminLastName,
       phone: '+33123456789',
     }
   })
@@ -185,8 +190,8 @@ async function main() {
   console.log('✅ Données de test créées avec succès!')
   console.log('')
   console.log('🔐 Compte de test:')
-  console.log('   Email: admin@jobbingtrack.test')
-  console.log('   Mot de passe: password123')
+  console.log(`   Email: ${adminEmail}`)
+  console.log(`   Mot de passe: ${adminPassword}`)
 }
 
 main()

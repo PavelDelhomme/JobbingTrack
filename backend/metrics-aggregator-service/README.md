@@ -1,4 +1,4 @@
-# Metrics Aggregator Service
+# JobbingTrack Metrics Aggregator Service
 
 Service d'agrégation de métriques avec auto-discovery pour la plateforme JobbingTrack.
 
@@ -14,8 +14,8 @@ Service d'agrégation de métriques avec auto-discovery pour la plateforme Jobbi
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Frontend      │◄──►│ Metrics Aggregator│◄──►│  Docker API     │
-│   Dashboard     │    │   Service        │    │  cAdvisor       │
+│   Frontend      │◄──►│ JobbingTrack     │◄──►│  Docker API     │
+│   Dashboard     │    │   Aggregator     │    │  cAdvisor       │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                                 ▼
@@ -34,7 +34,7 @@ docker build -t jobbingtrack-metrics-aggregator .
 
 2. Démarrer le service :
 ```bash
-docker-compose up metrics-aggregator-service
+docker-compose up jobbingtrack-metrics-aggregator
 ```
 
 ## API Endpoints

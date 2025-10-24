@@ -158,7 +158,7 @@
       "networks": ["jobbingtrack"],
       "restart_policy": "unless-stopped"
     },
-    "metrics-aggregator": {
+    "jobbingtrack-metrics-aggregator": {
       "essential": true,
       "port": 3014,
       "healthcheck": "http://localhost:3014/health",
@@ -213,13 +213,13 @@
     "events": ["event-service"],
     "followups": ["followup-service"],
     "workflows": ["workflow-service"],
-    "monitoring": ["metrics-aggregator", "cadvisor", "prometheus", "grafana"],
+    "monitoring": ["jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"],
     "full": [
       "auth-service", "application-service", "company-service",
       "contact-service", "interview-service", "notification-service",
       "dashboard-service", "call-service", "profile-service",
       "event-service", "followup-service", "workflow-service",
-      "metrics-aggregator", "cadvisor", "prometheus", "grafana"
+      "jobbingtrack-metrics-aggregator", "cadvisor", "prometheus", "grafana"
     ]
   },
   "networks": {

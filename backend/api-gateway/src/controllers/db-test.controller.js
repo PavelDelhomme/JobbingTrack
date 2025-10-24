@@ -201,7 +201,7 @@ const listTables = async (req, res) => {
     logger.info(`🔍 Admin ${req.user.email} liste les tables de la DB`);
 
     // Query pour lister toutes les tables PostgreSQL
-    const dbUrl = process.env.DATABASE_URL || 'postgresql://jobbingtrack:password@postgres:5432/jobbingtrack';
+    const dbUrl = process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public';
     
     try {
       const { stdout } = await execPromise(

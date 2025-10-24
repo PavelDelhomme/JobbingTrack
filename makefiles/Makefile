@@ -175,7 +175,7 @@ up: check-deps ## Démarrer tout le projet (backend + frontend + base de donnée
 	@echo "  Prometheus:         http://localhost:9090"
 	@echo ""
 	@echo "🔑 Identifiants:"
-	@echo "  Email:    admin@jobbingtrack.test"
+	@echo "  Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
 	@echo "  Password: SuperAdmin123!"
 	@echo ""
 	@echo "💡 Utilisez 'make logs' pour surveiller les logs en temps réel"

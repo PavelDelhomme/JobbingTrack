@@ -553,7 +553,7 @@ class CentralMetricsService {
     return null
   }
 
-  // Récupération de tous les services depuis l'API Gateway
+  // Récupération de tous les services depuis l'API Gateway avec timeout
   async getAllServices(): Promise<any[] | null> {
     try {
       // Essayer d'abord le service de métriques agrégateur qui a les vraies données
@@ -562,6 +562,7 @@ class CentralMetricsService {
         headers: {
           'Accept': 'application/json',
         },
+        signal: AbortSignal.timeout(3000) // Timeout court
       })
 
       if (response.ok) {
@@ -569,16 +570,20 @@ class CentralMetricsService {
         return Object.values(data) // Convertir l'objet en tableau
       }
     } catch (error) {
-      console.error('Erreur récupération services depuis agrégateur:', error)
+      // Ne pas logger d'erreur si c'est juste un timeout ou une connexion refusée
+      if (error.name !== 'AbortError' && error.code !== 'ECONNREFUSED') {
+        console.warn('Service de métriques non disponible:', error.message)
+      }
     }
 
-    // Fallback vers l'API Gateway
+    // Fallback vers l'API Gateway avec timeout aussi
     try {
       const response = await fetch(`${this.apiUrl}/api/v1/services`, {
         headers: {
           'Accept': 'application/json',
           'Authorization': `Bearer ${this.token}`,
         },
+        signal: AbortSignal.timeout(3000)
       })
 
       if (response.ok) {
@@ -588,7 +593,10 @@ class CentralMetricsService {
         }
       }
     } catch (error) {
-      console.error('Erreur récupération services:', error)
+      // Ne pas logger d'erreur si c'est juste un timeout ou une connexion refusée
+      if (error.name !== 'AbortError' && error.code !== 'ECONNREFUSED') {
+        console.warn('API Gateway services non disponible:', error.message)
+      }
     }
 
     return null
