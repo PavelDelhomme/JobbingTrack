@@ -96,7 +96,7 @@ async function main() {
     // 1. Créer les utilisateurs
     console.log('👥 Création des utilisateurs...');
     const hashedPassword = await bcrypt.hash('password123', 10);
-    
+
     const users = [];
     for (let i = 0; i < config.users; i++) {
       const user = await prisma.user.upsert({

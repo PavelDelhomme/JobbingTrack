@@ -574,46 +574,8 @@ export function useMetrics() {
       }
     }
 
-    // Dernier fallback : essayer de récupérer depuis cAdvisor
-    try {
-      const cadvisorUrl = 'http://localhost:8080'
-      const response = await fetch(`${cadvisorUrl}/api/v1.3/docker/`)
-
-      if (response.ok) {
-        const containersData = await response.json()
-        console.log('[METRICS] 📊 Métriques cAdvisor récupérées')
-
-        // Fusionner les métriques cAdvisor avec les données N/A existantes
-        setMetrics(prevMetrics => {
-          if (!prevMetrics) {
-            return {
-              services: {},
-              system: {
-                cpu: { usage: 0, cores: 1, model: 'Unknown' },
-                memory: { total: 0, used: 0, free: 0, usage: 0 },
-                load: { average: 0, cores: [] },
-                disk: []
-              },
-              containers: containersData,
-              timestamp: new Date().toISOString()
-            }
-          }
-
-          return {
-            ...prevMetrics,
-            containers: {
-              ...prevMetrics.containers,
-              ...containersData
-            },
-            timestamp: new Date().toISOString()
-          }
-        })
-        setError(null)
-        return
-      }
-    } catch (err) {
-      // Silencieux pour cAdvisor - souvent non disponible en développement
-    }
+    // cAdvisor non accessible depuis les conteneurs, ne pas essayer
+    console.log('[METRICS] cAdvisor non accessible depuis les conteneurs')
 
     // Si tous les fallbacks échouent, garder les métriques N/A existantes
     console.warn('[METRICS] ⚠️ Aucun service de métriques disponible - fonctionnement avec valeurs N/A')

@@ -109,11 +109,75 @@ class CentralMetricsService {
   private prometheusUrl: string
   private token: string | null
   private customization: UserCustomization | null = null
+  private metricsCache: MetricsData | null = null
+  private cacheTimestamp: number = 0
+  private cacheDuration: number = 60000 // 60 secondes
+  private isLoading: boolean = false
+  private loadingPromises: Map<string, Promise<any>> = new Map()
 
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
+    this.updateToken()
+  }
+
+  private updateToken() {
     this.token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  }
+
+  private isAuthenticated(): boolean {
+    return !!(this.token && this.token.trim() !== '')
+  }
+
+  private isValidToken(): boolean {
+    if (!this.isAuthenticated()) return false
+
+    // En mode développement, accepter les tokens mock
+    if (process.env.NODE_ENV === 'development' && this.token?.startsWith('mock-jwt-token')) {
+      return true
+    }
+
+    // Pour les vrais tokens, vérifier le format
+    return this.token!.split('.').length === 3
+  }
+
+  // Gestion du cache pour éviter les requêtes multiples
+  private getCachedMetrics(): MetricsData | null {
+    const now = Date.now()
+    if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration) {
+      return this.metricsCache
+    }
+    // Ne pas vider le cache si la durée n'est pas encore écoulée (pour éviter les requêtes multiples au démarrage)
+    if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration * 2) {
+      return this.metricsCache
+    }
+    this.metricsCache = null
+    return null
+  }
+
+  private setCachedMetrics(metrics: MetricsData): void {
+    this.metricsCache = metrics
+    this.cacheTimestamp = Date.now()
+  }
+
+  private clearCache(): void {
+    this.metricsCache = null
+    this.cacheTimestamp = 0
+  }
+
+  // Méthode pour éviter les requêtes simultanées identiques
+  private async getWithCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    // Vérifier si une requête identique est déjà en cours
+    if (this.loadingPromises.has(key)) {
+      return this.loadingPromises.get(key)!
+    }
+
+    const promise = fetcher().finally(() => {
+      this.loadingPromises.delete(key)
+    })
+
+    this.loadingPromises.set(key, promise)
+    return promise
   }
 
   // Récupération de la personnalisation utilisateur
@@ -198,90 +262,155 @@ class CentralMetricsService {
 
   // Récupération des métriques système depuis Prometheus via l'API Gateway
   async getSystemMetrics(): Promise<SystemMetrics | null> {
+    // Mettre à jour le token
+    this.updateToken()
+
+    // Si pas authentifié, retourner null
+    if (!this.isAuthenticated()) {
+      return null
+    }
+
     try {
-      // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/maintenance/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
+      // Endpoint de monitoring système non disponible, utiliser le service de métriques
+      console.log('[SYSTEM] Endpoint non disponible, utilisation du service de métriques')
+
+      // Utiliser le service de métriques agrégateur
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(3000)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.system) {
+          return {
+            cpu: {
+              usage: data.system.cpu?.usage || 0,
+              cores: data.system.cpu?.cores || 'N/A',
+              model: data.system.cpu?.model || 'N/A'
+            },
+            memory: {
+              total: data.system.memory?.total || 'N/A',
+              used: data.system.memory?.used || 'N/A',
+              free: data.system.memory?.free || 'N/A',
+              usage: data.system.memory?.usage || 0
+            },
+            load: {
+              average: data.system.load?.average || 0,
+              cores: data.system.load?.cores || 'N/A'
+            },
+            disk: data.system.disk || []
+          }
         }
-      } catch (prometheusError) {
-        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, utilisation des métriques fallback');
-        return null;
       }
 
-      // Récupération CPU
-      const cpuQuery = '100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
-      const cpuResponse = await this.queryPrometheus(cpuQuery)
-      const cpuUsage = cpuResponse ? parseFloat(cpuResponse) : 'N/A'
-
-      // Récupération mémoire
-      const memoryQuery = '100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)'
-      const memoryResponse = await this.queryPrometheus(memoryQuery)
-      const memoryUsage = memoryResponse ? parseFloat(memoryResponse) : 'N/A'
-
-      // Récupération charge système
-      const loadQuery = 'node_load1'
-      const loadResponse = await this.queryPrometheus(loadQuery)
-      const loadAverage = loadResponse ? parseFloat(loadResponse) : 'N/A'
-
-      return {
-        cpu: {
-          usage: cpuUsage,
-          cores: 'N/A', // Pas disponible via Prometheus de base
-          model: 'N/A'  // Pas disponible via Prometheus de base
-        },
-        memory: {
-          total: 'N/A', // Pas disponible via Prometheus de base
-          used: 'N/A',  // Pas disponible via Prometheus de base
-          free: 'N/A',  // Pas disponible via Prometheus de base
-          usage: memoryUsage
-        },
-        load: {
-          average: loadAverage,
-          cores: 'N/A' // Pas disponible via Prometheus de base
-        },
-        disk: [] // Pas disponible via Prometheus de base
+      // Dernier fallback : données système basiques du navigateur
+      if (typeof navigator !== 'undefined' && 'hardwareConcurrency' in navigator) {
+        return {
+          cpu: {
+            usage: 0, // Le navigateur ne peut pas mesurer l'utilisation CPU du système
+            cores: navigator.hardwareConcurrency,
+            model: 'N/A'
+          },
+          memory: {
+            total: 'N/A',
+            used: 'N/A',
+            free: 'N/A',
+            usage: 0
+          },
+          load: {
+            average: 0,
+            cores: 'N/A'
+          },
+          disk: []
+        }
       }
+
+      return null
     } catch (error) {
       console.error('Erreur récupération métriques système:', error)
       return null
     }
   }
 
-  // Récupération des métriques de conteneurs depuis Prometheus
+  // Récupération des métriques de conteneurs depuis Prometheus via le service agrégateur
   async getContainerMetrics(): Promise<ContainerMetrics | null> {
+    // Mettre à jour le token
+    this.updateToken()
+
+    // Si pas authentifié, retourner null
+    if (!this.isAuthenticated()) {
+      return null
+    }
+
     try {
-      // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/maintenance/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
+      console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
+
+      // Utiliser le service de métriques agrégateur qui se connecte à Prometheus
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(5000)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.containers && Object.keys(data.containers).length > 0) {
+          console.log('[CONTAINERS] ✅ Métriques conteneurs récupérées depuis Prometheus')
+          return data.containers
         }
-      } catch (prometheusError) {
-        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, pas de métriques conteneurs');
-        return null;
       }
 
-      const containerMetrics: ContainerMetrics = {}
+      // Fallback vers cAdvisor directement si disponible
+      try {
+        const cadvisorResponse = await fetch('http://localhost:8081/api/v1.3/docker/', {
+          signal: AbortSignal.timeout(3000)
+        })
 
-      // Récupérer tous les conteneurs avec leurs métriques
-      const containersQuery = 'container_cpu_usage_seconds_total'
-      const containersResponse = await this.queryPrometheus(containersQuery)
+        if (cadvisorResponse.ok) {
+          const containersData = await cadvisorResponse.json()
+          const containerMetrics: ContainerMetrics = {}
 
-      if (!containersResponse) return null
+          Object.keys(containersData).forEach(containerName => {
+            const container = containersData[containerName]
+            if (container && container.stats && container.stats.length > 0) {
+              const latestStats = container.stats[container.stats.length - 1]
 
-      // Ici on devrait parser les résultats Prometheus pour extraire les métriques par conteneur
-      // Pour l'instant, on retourne un objet vide car la logique complète nécessiterait
-      // de parser les résultats Prometheus complexes
+              containerMetrics[containerName] = {
+                memory: {
+                  usage: latestStats.memory?.usage || 0,
+                  limit: latestStats.memory?.limit || 0,
+                  percentage: latestStats.memory?.percentage || 0
+                },
+                cpu: {
+                  usage: latestStats.cpu?.usage || 0,
+                  system: latestStats.cpu?.system || 0,
+                  percentage: latestStats.cpu?.percentage || 0
+                },
+                network: {
+                  rx_bytes: latestStats.network?.rx_bytes || 0,
+                  tx_bytes: latestStats.network?.tx_bytes || 0
+                },
+                status: container.status || 'unknown'
+              }
+            }
+          })
 
-      return containerMetrics
+          console.log('[CONTAINERS] ✅ Métriques cAdvisor récupérées')
+          return containerMetrics
+        }
+      } catch (cadvisorError) {
+        console.warn('[CONTAINERS] cAdvisor non disponible');
+      }
+
+      // Retourner un objet vide si aucune source n'est disponible
+      console.log('[CONTAINERS] Aucune source de métriques conteneurs disponible')
+      return {}
     } catch (error) {
       console.error('Erreur récupération métriques conteneurs:', error)
       return null
@@ -290,102 +419,81 @@ class CentralMetricsService {
 
   // Récupération des métriques de services depuis Prometheus
   async getServiceMetrics(): Promise<{ [key: string]: ServiceMetrics } | null> {
+    // Mettre à jour le token
+    this.updateToken()
+
+    // Si pas authentifié, retourner null
+    if (!this.isAuthenticated()) {
+      return null
+    }
+
     try {
-      // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/maintenance/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
+      // Utiliser le service de métriques agrégateur
+      console.log('[SERVICES] Récupération depuis le service de métriques')
+
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(3000)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.services) {
+          return data.services
         }
-      } catch (prometheusError) {
-        // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, pas de métriques services');
-        return null;
       }
 
-      const serviceMetrics: { [key: string]: ServiceMetrics } = {}
+      // Fallback vers la liste des services depuis Docker
+      const dockerServices = await this.getDockerServices()
+      if (dockerServices) {
+        const serviceMetrics: { [key: string]: ServiceMetrics } = {}
 
-      // Récupérer le statut de tous les services
-      const statusQuery = 'up{job="jobbingtrack-backend"}'
-      const statusResponse = await this.queryPrometheus(statusQuery)
+        Object.keys(dockerServices).forEach(serviceName => {
+          const service = dockerServices[serviceName]
+          serviceMetrics[serviceName] = {
+            name: service.name,
+            url: service.url,
+            port: service.port,
+            status: service.status,
+            responseTime: 'N/A',
+            version: 'N/A',
+            metrics: service.metrics,
+            lastCheck: service.lastCheck
+          }
+        })
 
-      if (!statusResponse) return null
+        return serviceMetrics
+      }
 
-      // Ici on devrait parser les résultats Prometheus pour créer les métriques de service
-      // Pour l'instant, on retourne un objet vide
-
-      return serviceMetrics
+      // Dernier fallback : retourner une liste vide au lieu de null
+      return {}
     } catch (error) {
       console.error('Erreur récupération métriques services:', error)
       return null
     }
   }
 
-  // Requête Prometheus générique via l'API Gateway
+  // Requête Prometheus générique via l'API Gateway (endpoint non disponible)
   private async queryPrometheus(query: string): Promise<string | null> {
-    try {
-      const response = await fetch(`${this.apiUrl}/api/v1/maintenance/metrics/prometheus/query?query=${encodeURIComponent(query)}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-
-        if (data.status === 'success' && data.data.result.length > 0) {
-          return data.data.result[0].value[1]
-        }
-      }
-    } catch (error) {
-      console.error('Erreur requête Prometheus:', error)
-    }
-
+    // Endpoint Prometheus non disponible, retourner null
+    console.log('[PROMETHEUS] Endpoint non disponible')
     return null
   }
 
   // Récupération des métriques de maintenance depuis l'API Gateway
   async getMaintenanceMetrics(): Promise<any> {
-    try {
-      const response = await fetch(`${this.apiUrl}/api/v1/maintenance`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data
-      }
-    } catch (error) {
-      console.error('Erreur récupération métriques maintenance:', error)
-    }
-
+    // Endpoint de maintenance non disponible, retourner des données par défaut
+    console.log('[MAINTENANCE] Endpoint non disponible, utilisation des données par défaut')
     return { maintenances: [] }
   }
 
   // Récupération des logs de sécurité depuis l'API Gateway
   async getSecurityLogs(level: string = 'error', limit: number = 100): Promise<any> {
-    try {
-      const response = await fetch(`${this.apiUrl}/api/v1/security/logs?level=${level}&limit=${limit}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data
-      }
-    } catch (error) {
-      console.error('Erreur récupération logs sécurité:', error)
-    }
-
+    // Endpoint de sécurité non disponible, retourner des données par défaut
+    console.log('[SECURITY] Endpoint non disponible, utilisation des données par défaut')
     return { logs: [] }
   }
 
@@ -413,19 +521,9 @@ class CentralMetricsService {
     }
   }
 
-  // Récupération des métriques système depuis cAdvisor
+  // Récupération des métriques système depuis cAdvisor (non accessible depuis les conteneurs)
   async getCadvisorMetrics(): Promise<any> {
-    try {
-      const response = await fetch('http://localhost:8080/api/v1.3/docker/')
-
-      if (response.ok) {
-        const containersData = await response.json()
-        return containersData
-      }
-    } catch (error) {
-      console.error('Erreur récupération métriques cAdvisor:', error)
-    }
-
+    console.log('[CADVISOR] Non accessible depuis les conteneurs')
     return null
   }
 
@@ -433,11 +531,20 @@ class CentralMetricsService {
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`)
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
 
       if (response.ok) {
         const data = await response.json()
-        return data
+        return {
+          services: data.services || {},
+          system: data.system || {},
+          containers: data.containers || {},
+          timestamp: data.timestamp || new Date().toISOString()
+        }
       }
     } catch (error) {
       console.error('Erreur récupération métriques agrégateur:', error)
@@ -448,6 +555,24 @@ class CentralMetricsService {
 
   // Récupération de tous les services depuis l'API Gateway
   async getAllServices(): Promise<any[] | null> {
+    try {
+      // Essayer d'abord le service de métriques agrégateur qui a les vraies données
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const response = await fetch(`${metricsUrl}/api/v1/services`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return Object.values(data) // Convertir l'objet en tableau
+      }
+    } catch (error) {
+      console.error('Erreur récupération services depuis agrégateur:', error)
+    }
+
+    // Fallback vers l'API Gateway
     try {
       const response = await fetch(`${this.apiUrl}/api/v1/services`, {
         headers: {
@@ -512,74 +637,9 @@ class CentralMetricsService {
     return null
   }
 
-  // Récupération de la liste des services depuis Docker
+  // Récupération de la liste des services depuis Docker (non accessible depuis les conteneurs)
   async getDockerServices(): Promise<{[key: string]: any} | null> {
-    try {
-      const response = await fetch('http://localhost:8080/api/v1.3/docker/')
-
-      if (response.ok) {
-        const containersData = await response.json()
-
-        // Convertir les données cAdvisor en format service
-        const services: {[key: string]: any} = {}
-
-        Object.keys(containersData).forEach(containerName => {
-          const container = containersData[containerName]
-
-          // Extraire le nom du service depuis le nom du conteneur
-          let serviceName = containerName
-          let serviceType = 'unknown'
-
-          // Essayer d'identifier le type de service depuis le nom
-          if (containerName.includes('auth')) serviceType = 'auth-service'
-          else if (containerName.includes('application')) serviceType = 'application-service'
-          else if (containerName.includes('company')) serviceType = 'company-service'
-          else if (containerName.includes('contact')) serviceType = 'contact-service'
-          else if (containerName.includes('interview')) serviceType = 'interview-service'
-          else if (containerName.includes('notification')) serviceType = 'notification-service'
-          else if (containerName.includes('dashboard')) serviceType = 'dashboard-service'
-          else if (containerName.includes('call')) serviceType = 'call-service'
-          else if (containerName.includes('profile')) serviceType = 'profile-service'
-          else if (containerName.includes('event')) serviceType = 'event-service'
-          else if (containerName.includes('followup')) serviceType = 'followup-service'
-          else if (containerName.includes('workflow')) serviceType = 'workflow-service'
-          else if (containerName.includes('api-gateway')) serviceType = 'api-gateway'
-          else if (containerName.includes('frontend')) serviceType = 'frontend'
-          else if (containerName.includes('postgres')) serviceType = 'database'
-          else if (containerName.includes('redis')) serviceType = 'cache'
-          else if (containerName.includes('prometheus')) serviceType = 'monitoring'
-          else if (containerName.includes('grafana')) serviceType = 'monitoring'
-          else if (containerName.includes('cadvisor')) serviceType = 'monitoring'
-
-          services[serviceName] = {
-            name: this.formatServiceName(containerName),
-            url: this.getServiceUrl(serviceType),
-            port: this.getServicePort(serviceType),
-            status: container.status || 'unknown',
-            serviceType: serviceType,
-            containerName: containerName,
-            metrics: {
-              cpu: {
-                usage: container.cpu?.percentage || 'N/A',
-                system: container.cpu?.system || 'N/A',
-                percentage: container.cpu?.percentage || 'N/A'
-              },
-              memory: {
-                usage: container.memory?.percentage || 'N/A',
-                limit: 'N/A',
-                percentage: container.memory?.percentage || 'N/A'
-              }
-            },
-            lastCheck: new Date().toISOString()
-          }
-        })
-
-        return services
-      }
-    } catch (error) {
-      console.error('Erreur récupération services Docker:', error)
-    }
-
+    console.log('[DOCKER] API Docker non accessible depuis les conteneurs')
     return null
   }
 
@@ -628,7 +688,7 @@ class CentralMetricsService {
       'followup-service': 'http://localhost:3012',
       'workflow-service': 'http://localhost:3013',
       'api-gateway': 'http://localhost:3000',
-      'frontend': 'http://localhost:8080',
+      'frontend': 'http://localhost:3003',
       'database': 'http://localhost:5432',
       'cache': 'http://localhost:6379',
       'monitoring': 'http://localhost:9090'
@@ -662,90 +722,160 @@ class CentralMetricsService {
     return portMap[serviceType] || 3000
   }
 
-  // Méthode principale pour récupérer les métriques avec fallback intelligent
+  // Méthode principale pour récupérer les métriques avec cache et fallback intelligent
   async fetchMetrics(): Promise<MetricsData | null> {
-    // Essayer d'abord le service agrégateur
-    let metrics = await this.getAggregatorMetrics()
+    // Mettre à jour le token au cas où il aurait changé
+    this.updateToken()
 
-    if (metrics) {
-      console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis l\'agrégateur')
-      return metrics
+    // Si pas de token valide, retourner des données par défaut sans faire de requêtes
+    if (!this.isValidToken()) {
+      console.log('[CENTRAL METRICS] ⚠️ Pas de token valide, utilisation des données par défaut')
+      return {
+        services: {},
+        system: {
+          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+          load: { average: 'N/A', cores: 'N/A' },
+          disk: []
+        },
+        containers: {},
+        timestamp: new Date().toISOString()
+      }
     }
 
-    // Fallback vers l'API Gateway pour récupérer tous les services
-    console.log('[CENTRAL METRICS] ⚠️ Service agrégateur non disponible, récupération depuis API Gateway')
+    // Vérifier le cache d'abord
+    const cachedMetrics = this.getCachedMetrics()
+    if (cachedMetrics) {
+      console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis le cache')
+      return cachedMetrics
+    }
 
-    const allServices = await this.getAllServices()
+    // Éviter les requêtes simultanées identiques
+    return this.getWithCache('fetchMetrics', async () => {
+      try {
+        console.log('[CENTRAL METRICS] 🔄 Récupération des métriques...')
 
-    if (allServices) {
-      console.log('[CENTRAL METRICS] ✅ Services récupérés depuis API Gateway')
+        // Essayer d'abord le service agrégateur avec timeout court
+        const aggregatorPromise = this.getAggregatorMetrics().catch(() => null)
 
-      // Récupérer aussi les métriques système
-      const systemMetrics = await this.getSystemMetrics()
+        // En parallèle, essayer l'API Gateway avec timeout court
+        const apiGatewayPromise = this.getAllServices().catch(() => null)
 
-      // Convertir les services en format compatible
-      const servicesMap: {[key: string]: any} = {}
-      allServices.forEach((service: any) => {
-        servicesMap[service.serviceType] = {
-          name: service.name,
-          url: service.url,
-          port: service.port,
-          status: service.status,
-          serviceType: service.serviceType,
-          containerName: service.containerName,
-          lastCheck: new Date().toISOString()
+        // Attendre la première réponse disponible
+        const [aggregatorMetrics, allServices] = await Promise.race([
+          Promise.all([aggregatorPromise, apiGatewayPromise]),
+          new Promise<[null, null]>(resolve =>
+            setTimeout(() => resolve([null, null]), 3000) // Timeout de 3 secondes
+          )
+        ])
+
+        if (aggregatorMetrics) {
+          console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis l\'agrégateur')
+          this.setCachedMetrics(aggregatorMetrics)
+          return aggregatorMetrics
         }
-      })
 
-      return {
-        services: servicesMap,
-        system: systemMetrics || {
-          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
-          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
-          load: { average: 'N/A', cores: 'N/A' },
-          disk: []
-        },
-        containers: {}, // On utilise les services pour l'instant
-        timestamp: new Date().toISOString()
+        if (allServices) {
+          console.log('[CENTRAL METRICS] ✅ Services récupérés depuis API Gateway')
+
+          // Récupérer les métriques système avec timeout
+          const systemMetrics = await Promise.race([
+            this.getSystemMetrics(),
+            new Promise<SystemMetrics | null>(resolve =>
+              setTimeout(() => resolve(null), 2000)
+            )
+          ])
+
+          // Convertir les services en format compatible
+          const servicesMap: {[key: string]: any} = {}
+          allServices.forEach((service: any) => {
+            servicesMap[service.serviceType] = {
+              name: service.name,
+              url: service.url,
+              port: service.port,
+              status: service.status,
+              serviceType: service.serviceType,
+              containerName: service.containerName,
+              lastCheck: new Date().toISOString()
+            }
+          })
+
+          const metrics = {
+            services: servicesMap,
+            system: systemMetrics || {
+              cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+              memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+              load: { average: 'N/A', cores: 'N/A' },
+              disk: []
+            },
+            containers: {},
+            timestamp: new Date().toISOString()
+          }
+
+          this.setCachedMetrics(metrics)
+          return metrics
+        }
+
+        // Fallback vers Docker/cAdvisor seulement si nécessaire
+        console.log('[CENTRAL METRICS] ⚠️ API Gateway non disponible, tentative Docker')
+
+        const dockerServices = await Promise.race([
+          this.getDockerServices(),
+          new Promise<{[key: string]: any} | null>(resolve =>
+            setTimeout(() => resolve(null), 2000)
+          )
+        ])
+
+        if (dockerServices) {
+          console.log('[CENTRAL METRICS] ✅ Services récupérés depuis Docker')
+
+          const systemMetrics = await Promise.race([
+            this.getSystemMetrics(),
+            new Promise<SystemMetrics | null>(resolve =>
+              setTimeout(() => resolve(null), 1000)
+            )
+          ])
+
+          const metrics = {
+            services: dockerServices,
+            system: systemMetrics || {
+              cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+              memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+              load: { average: 'N/A', cores: 'N/A' },
+              disk: []
+            },
+            containers: {},
+            timestamp: new Date().toISOString()
+          }
+
+          this.setCachedMetrics(metrics)
+          return metrics
+        }
+
+        // Dernier fallback vers les métriques individuelles
+        console.log('[CENTRAL METRICS] ⚠️ Docker non disponible, fallback vers sources individuelles')
+        const metrics = await Promise.race([
+          this.getAllMetrics(),
+          new Promise<MetricsData | null>(resolve =>
+            setTimeout(() => resolve(null), 2000)
+          )
+        ])
+
+        if (metrics) {
+          console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis les sources individuelles')
+          this.setCachedMetrics(metrics)
+          return metrics
+        }
+
+        console.log('[CENTRAL METRICS] ❌ Aucun service de métriques disponible')
+        return null
+
+      } catch (error) {
+        console.error('[CENTRAL METRICS] ❌ Erreur lors de la récupération des métriques:', error)
+        this.clearCache()
+        return null
       }
-    }
-
-    // Fallback vers Docker/cAdvisor
-    console.log('[CENTRAL METRICS] ⚠️ API Gateway non disponible, récupération depuis Docker')
-
-    // Récupérer les services depuis Docker/cAdvisor
-    const dockerServices = await this.getDockerServices()
-
-    if (dockerServices) {
-      console.log('[CENTRAL METRICS] ✅ Services récupérés depuis Docker')
-
-      // Récupérer aussi les métriques système
-      const systemMetrics = await this.getSystemMetrics()
-
-      return {
-        services: dockerServices,
-        system: systemMetrics || {
-          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
-          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
-          load: { average: 'N/A', cores: 'N/A' },
-          disk: []
-        },
-        containers: {}, // On utilise les services pour l'instant
-        timestamp: new Date().toISOString()
-      }
-    }
-
-    // Dernier fallback vers les métriques individuelles
-    console.log('[CENTRAL METRICS] ⚠️ Docker non disponible, fallback vers sources individuelles')
-    metrics = await this.getAllMetrics()
-
-    if (metrics) {
-      console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis les sources individuelles')
-      return metrics
-    }
-
-    console.log('[CENTRAL METRICS] ❌ Aucun service de métriques disponible')
-    return null
+    })
   }
 }
 

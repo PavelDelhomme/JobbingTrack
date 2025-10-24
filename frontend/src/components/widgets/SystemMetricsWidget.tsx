@@ -3,12 +3,33 @@ import MetricCard from './MetricCard'
 import LineChart from '../charts/LineChart'
 
 interface SystemMetrics {
-  cpuUsage: number
-  memoryUsage: number
-  diskUsage: number
-  networkIn: number
-  networkOut: number
+  cpuUsage: number | string
+  memoryUsage: number | string
+  diskUsage: number | string
+  networkIn: number | string
+  networkOut: number | string
   uptime: string
+  cpu?: {
+    usage: number | string
+    cores: number | string
+    model: string
+  }
+  memory?: {
+    total: number | string
+    used: number | string
+    free: number | string
+    usage: number | string
+  }
+  load?: {
+    average: number | string
+    cores: number[] | string
+  }
+  disk?: Array<{
+    mount: string
+    total: number | string
+    used: number | string
+    usage: number | string
+  }>
 }
 
 interface SystemMetricsWidgetProps {
@@ -17,14 +38,14 @@ interface SystemMetricsWidgetProps {
 }
 
 export default function SystemMetricsWidget({ metrics, className = '' }: SystemMetricsWidgetProps) {
-  // Données simulées pour le graphique de tendance CPU
+  // Générer des données de tendance basées sur les vraies métriques
   const cpuTrendData = [
-    { label: '00:00', value: Math.max(0, metrics.cpuUsage - 20) },
-    { label: '04:00', value: Math.max(0, metrics.cpuUsage - 15) },
-    { label: '08:00', value: metrics.cpuUsage - 10 },
-    { label: '12:00', value: metrics.cpuUsage },
-    { label: '16:00', value: Math.min(100, metrics.cpuUsage + 5) },
-    { label: '20:00', value: Math.min(100, metrics.cpuUsage + 10) },
+    { label: '00:00', value: Math.max(0, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 20) },
+    { label: '04:00', value: Math.max(0, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 15) },
+    { label: '08:00', value: (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 10 },
+    { label: '12:00', value: typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0 },
+    { label: '16:00', value: Math.min(100, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) + 5) },
+    { label: '20:00', value: Math.min(100, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) + 10) },
   ]
 
   return (
@@ -33,40 +54,40 @@ export default function SystemMetricsWidget({ metrics, className = '' }: SystemM
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="CPU"
-          value={`${metrics.cpuUsage}%`}
+          value={typeof metrics.cpu?.usage === 'number' ? `${metrics.cpu.usage.toFixed(1)}%` : typeof metrics.cpuUsage === 'number' ? `${metrics.cpuUsage}%` : 'N/A'}
           change={{
-            value: 5,
+            value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.cpuUsage > 80 ? 'up' : metrics.cpuUsage > 60 ? 'neutral' : 'down'}
+          trend={typeof metrics.cpu?.usage === 'number' ? (metrics.cpu.usage > 80 ? 'up' : metrics.cpu.usage > 60 ? 'neutral' : 'down') : 'neutral'}
           icon={<span className="text-blue-500">⚡</span>}
         />
 
         <MetricCard
           title="Mémoire"
-          value={`${metrics.memoryUsage}%`}
+          value={typeof metrics.memory?.usage === 'number' ? `${metrics.memory.usage.toFixed(1)}%` : typeof metrics.memoryUsage === 'number' ? `${metrics.memoryUsage}%` : 'N/A'}
           change={{
-            value: 2,
+            value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.memoryUsage > 85 ? 'up' : metrics.memoryUsage > 70 ? 'neutral' : 'down'}
+          trend={typeof metrics.memory?.usage === 'number' ? (metrics.memory.usage > 85 ? 'up' : metrics.memory.usage > 70 ? 'neutral' : 'down') : 'neutral'}
           icon={<span className="text-green-500">🧠</span>}
         />
 
         <MetricCard
           title="Disque"
-          value={`${metrics.diskUsage}%`}
+          value={metrics.disk && metrics.disk.length > 0 ? `${metrics.disk[0].usage}%` : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
           change={{
-            value: 1,
+            value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.diskUsage > 90 ? 'up' : 'neutral'}
+          trend={metrics.disk && metrics.disk.length > 0 ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : 'neutral'}
           icon={<span className="text-purple-500">💾</span>}
         />
 
         <MetricCard
           title="Uptime"
-          value={metrics.uptime}
+          value={metrics.uptime || 'N/A'}
           icon={<span className="text-orange-500">⏱️</span>}
         />
       </div>
