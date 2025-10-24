@@ -1,0 +1,52 @@
+{
+  "name": "jobbingtrack-backend",
+  "version": "1.0.0",
+  "description": "Backend monorepo pour JobbingTrack",
+  "private": true,
+  "workspaces": [
+    "api-gateway",
+    "auth-service",
+    "application-service",
+    "company-service",
+    "contact-service",
+    "interview-service",
+    "notification-service",
+    "dashboard-service",
+    "call-service",
+    "profile-service",
+    "event-service",
+    "followup-service",
+    "deployment-service",
+    "metrics-aggregator-service",
+    "security-service",
+    "system-metrics-service",
+    "docker-stats-service",
+    "simple-metrics-service"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces",
+    "test:ci": "npm run test --workspaces -- --ci --coverage --watchAll=false",
+    "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces",
+    "install:all": "npm install",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

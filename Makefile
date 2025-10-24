@@ -727,6 +727,57 @@ test-coverage: ## Tests avec coverage
 	@echo "📊 Tests avec coverage..."
 	cd tests && npm run test:coverage
 
+# ============================================================================
+# QUALITÉ DU CODE
+# ============================================================================
+
+.PHONY: lint format format-check
+
+# Linting de tout le projet
+lint: ## Linting de tout le projet (ESLint)
+	@echo "🧹 Linting du projet..."
+	@echo "🔧 Backend services..."
+	@for service in backend/*/; do \
+		if [ -f "$$service/package.json" ]; then \
+			echo "Linting $$service..."; \
+			cd "$$service" && npm run lint 2>/dev/null || echo "⚠️ Linting échoué pour $$service"; \
+			cd - > /dev/null; \
+		fi; \
+	done
+	@echo "⚛️ Frontend..."
+	@cd frontend && npm run lint 2>/dev/null || echo "⚠️ Linting frontend échoué"
+	@echo "📋 Tests..."
+	@cd tests && npm run lint 2>/dev/null || echo "⚠️ Linting tests échoué"
+	@echo "✅ Linting terminé"
+
+# Formatage du code
+format: ## Formatage automatique du code (Prettier)
+	@echo "🎨 Formatage du code..."
+	@for service in backend/*/; do \
+		if [ -f "$$service/package.json" ]; then \
+			echo "Formatage $$service..."; \
+			cd "$$service" && npm run format 2>/dev/null || echo "⚠️ Formatage échoué pour $$service"; \
+			cd - > /dev/null; \
+		fi; \
+	done
+	@cd frontend && npm run format 2>/dev/null || echo "⚠️ Formatage frontend échoué"
+	@cd tests && npm run format 2>/dev/null || echo "⚠️ Formatage tests échoué"
+	@echo "✅ Formatage terminé"
+
+# Vérification du formatage
+format-check: ## Vérification du formatage (Prettier --check)
+	@echo "🔍 Vérification du formatage..."
+	@for service in backend/*/; do \
+		if [ -f "$$service/package.json" ]; then \
+			echo "Vérification formatage $$service..."; \
+			cd "$$service" && npm run format:check 2>/dev/null || echo "⚠️ Formatage incorrect pour $$service"; \
+			cd - > /dev/null; \
+		fi; \
+	done
+	@cd frontend && npm run format:check 2>/dev/null || echo "⚠️ Formatage frontend incorrect"
+	@cd tests && npm run format:check 2>/dev/null || echo "⚠️ Formatage tests incorrect"
+	@echo "✅ Vérification formatage terminée"
+
 # Setup des tests
 test-setup: ## Configuration complète de l'environnement de test
 	@echo "⚙️ Configuration de l'environnement de test..."

@@ -22,20 +22,20 @@ cd backend/api-gateway && npm run dev
 
 ## Exécution
 
-### Tests unitaires
+**Commandes principales (recommandées) :**
 ```bash
+# Tests unitaires
+make test-unit
+
+# Tests E2E
+make test-e2e
+
+# Tests API
+make test-api
+
+# Alternative npm :
 npm run test:unit
-```
-
-### Tests E2E
-```bash
 npm run test:e2e
-# Avec interface
-npm run test:playwright
-```
-
-### Tests API
-```bash
 npm run test:api
 ```
 

@@ -220,6 +220,25 @@ export default function PlaywrightTestsPage() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
+  // Fonction pour charger les utilisateurs de test
+  const loadTestUsers = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/test-users', {
+        headers: {
+          'Authorization': `Bearer ${user?.token}`,
+          'X-Test-Mode': 'true'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTestUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Erreur chargement utilisateurs de test:', error);
+    }
+  };
+
   // Initialisation et chargement des données
   useEffect(() => {
     initializePlaywrightInterface();
@@ -329,9 +348,9 @@ export default function PlaywrightTestsPage() {
   const fetchTestStructure = async () => {
     // Simulation des vrais fichiers de test avec les nouveaux types
     const files: PlaywrightFile[] = [
-      {
-        name: 'admin-backoffice.spec.ts',
-        path: 'tests/e2e/specs/admin-backoffice.spec.ts',
+        {
+          name: 'admin-backoffice.spec.ts',
+          path: 'tests/e2e/specs/admin-backoffice.spec.ts',
         content: `import { test, expect } from '@playwright/test';
 
 test.describe('Backoffice Admin', () => {
@@ -358,13 +377,13 @@ test.describe('Backoffice Admin', () => {
     await expect(page.locator('tr:has-text("redacted@example.invalid")')).toBeVisible();
   });
 });`,
-        type: 'spec',
-        lastModified: new Date(),
+          type: 'spec',
+          lastModified: new Date(),
         size: 2048
-      },
-      {
-        name: 'user-journeys.spec.ts',
-        path: 'tests/e2e/specs/user-journeys.spec.ts',
+        },
+        {
+          name: 'user-journeys.spec.ts',
+          path: 'tests/e2e/specs/user-journeys.spec.ts',
         content: `import { test, expect } from '@playwright/test';
 
 test.describe('Parcours utilisateur', () => {
@@ -390,13 +409,13 @@ test.describe('Parcours utilisateur', () => {
     await expect(page.locator('tr:has-text("Développeur Full Stack")')).toBeVisible();
   });
 });`,
-        type: 'spec',
-        lastModified: new Date(),
+          type: 'spec',
+          lastModified: new Date(),
         size: 1536
-      },
-      {
-        name: 'playwright.config.ts',
-        path: 'tests/playwright.config.ts',
+        },
+        {
+          name: 'playwright.config.ts',
+          path: 'tests/playwright.config.ts',
         content: `import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -418,13 +437,13 @@ export default defineConfig({
     { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
   ],
 });`,
-        type: 'config',
-        lastModified: new Date(),
+          type: 'config',
+          lastModified: new Date(),
         size: 1024
-      },
-      {
-        name: 'test-helpers.ts',
-        path: 'tests/e2e/utils/test-helpers.ts',
+        },
+        {
+          name: 'test-helpers.ts',
+          path: 'tests/e2e/utils/test-helpers.ts',
         content: `import { Page, expect } from '@playwright/test';
 
 export async function loginAs(page: Page, userType: string = 'admin') {
@@ -445,8 +464,8 @@ export async function createTestUser(page: Page) {
   await page.click('button[type="submit"]');
   await expect(page.locator('.success-message')).toBeVisible();
 }`,
-        type: 'helper',
-        lastModified: new Date(),
+          type: 'helper',
+          lastModified: new Date(),
         size: 768
       }
     ];
@@ -1081,15 +1100,15 @@ test.describe('Tests de Sécurité', () => {
             {/* Contrôles d'exécution */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
+            <Button
+              size="sm"
                   variant="ghost"
                   className="text-gray-300 hover:text-white hover:bg-[#3e3e42]"
-                >
+            >
                   <FilePlus className="h-4 w-4 mr-1" />
                   New Test
                   <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
+            </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-[#2d2d30] border-[#3e3e42]">
                 <DropdownMenuItem onClick={() => handleCreateNewTest('spec', 'basic')}>
@@ -1152,11 +1171,11 @@ test.describe('Tests de Sécurité', () => {
             >
               <Sidebar className="h-4 w-4" />
                 </Button>
-          </div>
         </div>
+      </div>
 
         {/* Contenu principal - Style VS Code */}
-        <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Explorateur (gauche) */}
           {sidebarVisible && (
             <div className="w-64 bg-[#252526] border-r border-[#3e3e42] flex flex-col">
@@ -1196,7 +1215,7 @@ test.describe('Tests de Sécurité', () => {
                   🌐 WebView
                 </div>
                 </div>
-              </div>
+            </div>
 
               {/* Contenu de la sidebar selon l'onglet actif */}
               <div className="flex-1 overflow-auto">
@@ -1222,16 +1241,16 @@ test.describe('Tests de Sécurité', () => {
                         </div>
                         <div className="ml-4 space-y-1">
                           {openedFiles.filter(f => f.type === 'spec').map(file => (
-                            <div
-                              key={file.name}
+                <div
+                  key={file.name}
                               className={`flex items-center gap-1 hover:bg-[#2a2d2e] rounded px-1 py-0.5 cursor-pointer ${
                                 activeFile?.name === file.name ? 'bg-[#007acc] text-white' : 'text-gray-300'
-                              }`}
-                              onClick={() => handleFileSelect(file)}
-                            >
+                  }`}
+                  onClick={() => handleFileSelect(file)}
+                >
                               {getFileIcon(file.type, 'sm')}
                               <span>{file.name}</span>
-                            </div>
+                  </div>
                           ))}
             </div>
 
@@ -1250,10 +1269,10 @@ test.describe('Tests de Sécurité', () => {
                 >
                               {getFileIcon(file.type, 'sm')}
                               <span>{file.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
                       <div className="flex items-center gap-1 text-blue-400 hover:bg-[#2a2d2e] rounded px-1 py-0.5 cursor-pointer">
                         <SettingsIcon className="h-4 w-4" />
@@ -1267,10 +1286,10 @@ test.describe('Tests de Sécurité', () => {
                   <div className="p-2">
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-gray-300 mb-2">Playwright WebView</h3>
-                      <div className="space-y-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
+            <div className="space-y-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
                           className="w-full justify-start text-xs"
                           onClick={() => setWebviewVisible(!webviewVisible)}
                         >
@@ -1285,7 +1304,7 @@ test.describe('Tests de Sécurité', () => {
                         >
                           <ExternalLink className="h-3 w-3 mr-2" />
                           Ouvrir dans navigateur
-                        </Button>
+                  </Button>
                       </div>
                     </div>
 
@@ -1347,7 +1366,7 @@ test.describe('Tests de Sécurité', () => {
                           >
                             <Play className="h-3 w-3" />
                             <span>{project.name}</span>
-                </div>
+        </div>
               ))}
             </div>
           </div>
@@ -1368,7 +1387,7 @@ test.describe('Tests de Sécurité', () => {
                     <span className="text-white font-medium">{activeFile.name}</span>
                     <Badge variant="outline" className="text-xs border-gray-500 text-gray-300">
                       {activeFile.type}
-                    </Badge>
+                  </Badge>
                     {isDirty && (
                       <Badge className="text-xs bg-[#007acc] text-white">
                         Modified
@@ -1379,7 +1398,7 @@ test.describe('Tests de Sécurité', () => {
                   <div className="flex items-center gap-1">
                     <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white hover:bg-[#3e3e42]">
                       <Undo className="h-3 w-3" />
-                    </Button>
+                  </Button>
                     <Button size="sm" variant="ghost" className="text-gray-300 hover:text-white hover:bg-[#3e3e42]">
                       <Redo className="h-3 w-3" />
                     </Button>
@@ -1401,7 +1420,7 @@ test.describe('Tests de Sécurité', () => {
                     >
                       <SaveIcon className="h-3 w-3" />
                   </Button>
-                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1451,13 +1470,13 @@ test.describe('Tests de Sécurité', () => {
           {webviewVisible && (
             <div className="w-96 bg-[#1e1e1e] border-l border-[#3e3e42] flex flex-col">
               <div className="bg-[#323233] border-b border-[#3e3e42] px-3 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <Monitor className="h-4 w-4 text-green-400" />
                   <span className="font-medium text-white">Playwright WebView</span>
                   <Badge className="text-xs bg-green-600 text-white">
                     {selectedEnvironment.toUpperCase()}
                   </Badge>
-                </div>
+              </div>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1521,10 +1540,164 @@ test.describe('Tests de Sécurité', () => {
               ))
             )}
           </div>
-            </div>
-          )}
         </div>
+          )}
       </div>
+      </div>
+
+      {/* Modal de création d'utilisateur de test */}
+      {showUserCreator && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                Créer un utilisateur de test
+              </h3>
+              <button
+                onClick={() => setShowUserCreator(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                const email = formData.get('email') as string;
+                const password = formData.get('password') as string;
+                const firstName = formData.get('firstName') as string;
+                const lastName = formData.get('lastName') as string;
+                const role = formData.get('role') as string;
+
+                if (!email || !password) {
+                  addLog('❌ Email et mot de passe requis');
+                  return;
+                }
+
+                setCreatingUser(true);
+                try {
+                  const response = await fetch('/api/v1/admin/test-users', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${user?.token}`,
+                      'X-Test-Mode': 'true'
+                    },
+                    body: JSON.stringify({
+                      email,
+                      password,
+                      firstName,
+                      lastName,
+                      role
+                    })
+                  });
+
+                  if (response.ok) {
+                    const data = await response.json();
+                    addLog(`✅ Utilisateur créé: ${data.user.email}`);
+                    setShowUserCreator(false);
+                    // Recharger la liste des utilisateurs
+                    loadTestUsers();
+                  } else {
+                    const error = await response.json();
+                    addLog(`❌ Erreur création utilisateur: ${error.error}`);
+                  }
+                } catch (error) {
+                  addLog(`❌ Erreur réseau: ${error}`);
+                } finally {
+                  setCreatingUser(false);
+                }
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="redacted@example.invalid"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Prénom
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="Prénom"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="Nom"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Rôle
+                  </label>
+                  <select
+                    name="role"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="USER">Utilisateur</option>
+                    <option value="ADMIN">Administrateur</option>
+                    <option value="SUPER_ADMIN">Super Administrateur</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowUserCreator(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingUser}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingUser ? 'Création...' : 'Créer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

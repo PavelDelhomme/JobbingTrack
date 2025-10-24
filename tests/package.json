@@ -41,17 +41,5 @@
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-jest": "^27.6.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testMatch": ["**/*.test.js", "**/*.spec.js"],
-    "collectCoverageFrom": [
-      "**/*.js",
-      "!**/node_modules/**",
-      "!**/coverage/**",
-      "!jest.config.js"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"]
   }
 }

@@ -156,6 +156,9 @@ make up-full  # Utilise automatiquement les variables d'environnement
 ./scripts/test-api-only.sh
 
 # Tests Playwright standards
+make test-e2e
+
+# Alternative npm :
 npm run test:e2e
 ```
 

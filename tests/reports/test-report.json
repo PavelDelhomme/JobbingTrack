@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-10-24T20:48:16.521Z",
+  "duration": 3402,
+  "results": {
+    "auth-service": {
+      "success": false,
+      "output": "\n> jobbingtrack-auth-service@1.0.0 test\n> jest\n\n\u001b[1mNo tests found, exiting with code 1\u001b[22m\nRun with `--passWithNoTests` to exit with code 0\nIn \u001b[1m/home/pactivisme/Documents/Dev/Perso/JobbingTrack/backend/auth-service\u001b[22m\n  11 files checked.\n  testMatch: \u001b[33m**/__tests__/**/*.[jt]s?(x), **/?(*.)+(spec|test).[tj]s?(x)\u001b[39m - 0 matches\n  testPathIgnorePatterns: \u001b[33m/node_modules/\u001b[39m - 11 matches\n  testRegex:  - 0 matches\nPattern:  - 0 matches\n"
+    },
+    "user-service": {
+      "success": false,
+      "output": "Command failed: cd backend/user-service && npm test\n/bin/sh: ligne 1 : cd: backend/user-service: Aucun fichier ou dossier de ce nom\n"
+    },
+    "company-service": {
+      "success": false,
+      "output": "\n> jobbingtrack-company-service@1.0.0 test\n> jest\n\n\u001b[1mNo tests found, exiting with code 1\u001b[22m\nRun with `--passWithNoTests` to exit with code 0\nIn \u001b[1m/home/pactivisme/Documents/Dev/Perso/JobbingTrack/backend/company-service\u001b[22m\n  9 files checked.\n  testMatch: \u001b[33m**/__tests__/**/*.[jt]s?(x), **/?(*.)+(spec|test).[tj]s?(x)\u001b[39m - 0 matches\n  testPathIgnorePatterns: \u001b[33m/node_modules/\u001b[39m - 9 matches\n  testRegex:  - 0 matches\nPattern:  - 0 matches\n"
+    },
+    "application-service": {
+      "success": false,
+      "output": "\n> jobbingtrack-application-service@1.0.0 test\n> jest\n\n\u001b[1mNo tests found, exiting with code 1\u001b[22m\nRun with `--passWithNoTests` to exit with code 0\nIn \u001b[1m/home/pactivisme/Documents/Dev/Perso/JobbingTrack/backend/application-service\u001b[22m\n  14 files checked.\n  testMatch: \u001b[33m**/__tests__/**/*.[jt]s?(x), **/?(*.)+(spec|test).[tj]s?(x)\u001b[39m - 0 matches\n  testPathIgnorePatterns: \u001b[33m/node_modules/\u001b[39m - 14 matches\n  testRegex:  - 0 matches\nPattern:  - 0 matches\n"
+    },
+    "dashboard-service": {
+      "success": false,
+      "output": "Command failed: cd backend/dashboard-service && npm test\nnpm error Lifecycle script `test` failed with error:\nnpm error workspace jobbingtrack-dashboard-service@1.0.0\nnpm error location /home/pactivisme/Documents/Dev/Perso/JobbingTrack/backend/dashboard-service\nnpm error Missing script: \"test\"\nnpm error\nnpm error To see a list of scripts, run:\nnpm error   npm run --workspace=jobbingtrack-dashboard-service@1.0.0\n"
+    }
+  },
+  "summary": {
+    "total": 5,
+    "passed": 0,
+    "failed": 5
+  }
+}
