@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, Clock, Database } from 'lucide-react';
 import { useOfflineSync } from '@/hooks/useOfflineSyncSimple';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { Progress } from '@/components/ui';
+import { Alert, AlertDescription } from '@/components/ui';
 
 interface OfflineStatusProps {
   className?: string;

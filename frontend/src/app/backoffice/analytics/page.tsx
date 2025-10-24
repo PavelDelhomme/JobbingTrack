@@ -1,91 +1,17 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import AdminLayout from '@/components/features/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Settings, BarChart3, PieChart, TrendingUp, Eye, EyeOff } from 'lucide-react'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
-import { DataSourceBadge } from '@/components/ui/badge'
+import { useMetrics } from '@/lib/hooks/useMetrics'
+import { DataSourceBadge } from '@/components/ui'
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-// Hook personnalisé pour les métriques utilisant le service centralisé avec cache optimisé
-function useMetrics() {
-  const [metrics, setMetrics] = useState<any>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    let isMounted = true
-
-    const loadMetrics = async () => {
-      try {
-        setError(null)
-        const metricsData = await centralMetricsService.fetchMetrics()
-
-        if (isMounted) {
-          setMetrics(metricsData)
-          setIsConnected(true)
-          setIsLoading(false)
-        }
-      } catch (err) {
-        console.error('Erreur chargement métriques analytics:', err)
-        if (isMounted) {
-          setError('Erreur lors du chargement des métriques')
-          setIsLoading(false)
-          // Définir des valeurs par défaut sûres avec indicateurs de source
-          setMetrics({
-            services: {},
-            system: {
-              cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A', dataSource: 'SIMULATED' },
-              memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A', dataSource: 'REAL' },
-              load: { average: 'N/A', cores: [], dataSource: 'REAL' },
-              disk: [{ mount: 'N/A', total: 'N/A', used: 'N/A', usage: 'N/A' }],
-              uptime: 'N/A',
-              hostname: 'N/A',
-              dataSource: 'MIXED'
-            },
-            containers: {},
-            timestamp: new Date().toISOString()
-          })
-        }
-      }
-    }
-
-    // Attendre un peu avant de charger les métriques pour laisser le temps à l'authentification
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        loadMetrics()
-      }
-    }, 1000)
-
-    // Attendre que le cache du service soit effectif avant de configurer l'interval
-    // Augmenter l'interval à 60 secondes pour réduire la charge sur le serveur
-    const setupInterval = () => {
-      if (interval) clearInterval(interval)
-      interval = setInterval(() => {
-        // Ne recharger que si nécessaire (le cache du service gère la logique)
-        loadMetrics()
-      }, 60000) // 60 secondes au lieu de 10
-    }
-
-    // Configurer l'interval après un court délai pour laisser le temps au cache
-    const setupTimeout = setTimeout(setupInterval, 3000)
-
-    return () => {
-      isMounted = false
-      if (interval) clearInterval(interval)
-      clearTimeout(timeout)
-      clearTimeout(setupTimeout)
-    }
-  }, [])
-
-  return { metrics, isConnected, error, isLoading }
-}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -187,7 +113,7 @@ function AnalyticsContent() {
   const { token, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { metrics } = useMetrics()
+  const { metrics, isConnected, error, isLoading, refreshMetrics } = useMetrics()
 
   const [activeTab, setActiveTab] = useState<'performance' | 'errors' | 'timeline' | 'developer' | 'security'>('performance')
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h')

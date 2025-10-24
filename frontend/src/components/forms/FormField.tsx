@@ -1,11 +1,11 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui'
+import { Input } from '@/components/ui'
+import { Textarea } from '@/components/ui'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
+import { Switch } from '@/components/ui'
 
 interface BaseFieldProps {
   label: string

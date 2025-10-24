@@ -139,8 +139,12 @@ services:
       - "3014:3014"
     environment:
       - NODE_ENV=development
+      - PORT=3014
+      - CADVISOR_URL=http://cadvisor:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - cadvisor
     networks:
       - jobbingtrack-network
     restart: unless-stopped

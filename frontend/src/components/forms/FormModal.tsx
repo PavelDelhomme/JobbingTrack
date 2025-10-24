@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 
 interface FormModalProps {
   isOpen: boolean

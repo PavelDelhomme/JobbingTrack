@@ -275,7 +275,7 @@ class CentralMetricsService {
       console.log('[SYSTEM] Endpoint non disponible, utilisation du service de métriques')
 
       // Utiliser le service de métriques agrégateur
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -350,7 +350,7 @@ class CentralMetricsService {
       console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
 
       // Utiliser le service de métriques agrégateur qui se connecte à Prometheus
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -431,7 +431,7 @@ class CentralMetricsService {
       // Utiliser le service de métriques agrégateur
       console.log('[SERVICES] Récupération depuis le service de métriques')
 
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -530,7 +530,7 @@ class CentralMetricsService {
   // Récupération des métriques depuis le service agrégateur
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -557,7 +557,7 @@ class CentralMetricsService {
   async getAllServices(): Promise<any[] | null> {
     try {
       // Essayer d'abord le service de métriques agrégateur qui a les vraies données
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
       const response = await fetch(`${metricsUrl}/api/v1/services`, {
         headers: {
           'Accept': 'application/json',

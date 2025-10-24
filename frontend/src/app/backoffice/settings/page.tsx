@@ -7,15 +7,15 @@ import { useCustomization } from '@/hooks/useCustomization';
 import { OfflineStatus } from '@/components/widgets';
 import { LinkedInIntegration } from '@/components/integrations';
 import { CalendarIntegration } from '@/components/integrations';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
+import { Switch } from '@/components/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
+import { Input } from '@/components/ui';
+import { Label } from '@/components/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
+import { Separator } from '@/components/ui';
+import { Badge } from '@/components/ui';
 
 export default function SettingsPage() {
   const { settings, saveSettings, resetSettings, isLoading } = useCustomization();
