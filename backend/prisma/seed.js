@@ -54,10 +54,17 @@ async function main() {
   console.log('✅ Plateformes créées:', platforms.length)
 
   // Créer un utilisateur de test (utilise les variables d'environnement)
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@jobbingtrack.test'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123'
+  const adminEmail = process.env.ADMIN_EMAIL
+  const adminPassword = process.env.ADMIN_PASSWORD
   const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin'
   const adminLastName = process.env.ADMIN_LAST_NAME || 'JobbingTrack'
+
+  // Vérifier que les variables d'environnement sont définies
+  if (!adminEmail || !adminPassword) {
+    console.error('❌ Variables d\'environnement ADMIN_EMAIL et ADMIN_PASSWORD non définies')
+    console.error('💡 Définissez ADMIN_EMAIL et ADMIN_PASSWORD dans votre fichier .env')
+    process.exit(1)
+  }
 
   const hashedPassword = await bcrypt.hash(adminPassword, 10)
 

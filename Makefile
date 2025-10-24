@@ -38,6 +38,7 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator"
 	$(call check_docker)
+	$(call check_and_free_ports)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
@@ -61,6 +62,7 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (solutio
 	@echo "🚀 Démarrage des services essentiels JobbingTrack (mode NO-CHECK - SANS vérification Docker)..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator, cadvisor"
 	@echo "⚠️ ATTENTION: Vérifications Docker ignorées - Utilisez si les checks normaux échouent"
+	$(call check_and_free_ports)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès (mode NO-CHECK)!"
@@ -511,10 +513,114 @@ clean-force: ## Nettoyage d'urgence - force la suppression de TOUT
 	@echo "💡 Utilisez 'make up-full' pour redémarrer depuis zéro"
 
 # ============================================================================
+# ENVIRONNEMENTS ET BASES DE DONNÉES
+# ============================================================================
+
+.PHONY: up-dev up-test up-staging up-prod up-all-dbs db-dev db-test db-staging db-prod switch-db reset-db copy-prod-to-dev init-all-dbs
+
+# Démarrer l'environnement de développement avec sa propre base de données
+up-dev: ## Démarrer l'environnement de développement
+	@echo "🚀 Démarrage de l'environnement de développement..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-dev redis-dev)
+	@echo "✅ Environnement DEV démarré"
+	@echo "🌐 PostgreSQL DEV: localhost:5433"
+	@echo "🌐 Redis DEV: localhost:6380"
+
+# Démarrer l'environnement de test
+up-test: ## Démarrer l'environnement de test
+	@echo "🚀 Démarrage de l'environnement de test..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-test redis-test)
+	@echo "✅ Environnement TEST démarré"
+	@echo "🌐 PostgreSQL TEST: localhost:5434"
+	@echo "🌐 Redis TEST: localhost:6381"
+
+# Démarrer l'environnement de staging
+up-staging: ## Démarrer l'environnement de staging
+	@echo "🚀 Démarrage de l'environnement de staging..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-staging redis-staging)
+	@echo "✅ Environnement STAGING démarré"
+	@echo "🌐 PostgreSQL STAGING: localhost:5435"
+	@echo "🌐 Redis STAGING: localhost:6382"
+
+# Démarrer l'environnement de production (simulation)
+up-prod: ## Démarrer l'environnement de production (simulation)
+	@echo "🚀 Démarrage de l'environnement de production (simulation)..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-prod redis-prod)
+	@echo "✅ Environnement PROD démarré"
+	@echo "🌐 PostgreSQL PROD: localhost:5436"
+	@echo "🌐 Redis PROD: localhost:6383"
+
+# Basculer vers la base de données de développement
+switch-db: ## Basculer vers la base de données de développement
+	@echo "🔄 Basculement vers la base de données de développement..."
+	@echo "export DATABASE_URL=postgresql://admin@jobbingtrack.test:admin@jobbingtrack.test@localhost:5433/jobbingtrack_dev?schema=public" > /tmp/db_config.sh
+	@echo "export REDIS_URL=redis://localhost:6380" >> /tmp/db_config.sh
+	@echo "✅ Basculé vers DEV DB"
+	@echo "💡 Sourcez le fichier: source /tmp/db_config.sh"
+
+# Reset d'une base de données spécifique
+reset-db: ## Reset d'une base de données (DB=dev|test|staging|prod)
+	@if [ -z "$(DB)" ]; then \
+		echo "❌ Spécifiez la DB avec DB=<nom>"; \
+		echo "💡 Exemples:"; \
+		echo "   make reset-db DB=dev"; \
+		echo "   make reset-db DB=test"; \
+		echo "   make reset-db DB=staging"; \
+		echo "   make reset-db DB=prod"; \
+		exit 1; \
+	fi
+	@echo "🔄 Reset de la base de données $(DB)..."
+	$(call docker_compose, -f docker-compose.test.yml stop postgres-$(DB))
+	$(call docker_compose, -f docker-compose.test.yml rm -f postgres-$(DB))
+	docker volume rm jobbingtrack_postgres_$(DB)_data 2>/dev/null || echo "Volume non trouvé"
+	$(call docker_compose, -f docker-compose.test.yml up -d postgres-$(DB))
+	@echo "✅ Base de données $(DB) réinitialisée"
+
+# Copier la production vers le développement
+copy-prod-to-dev: ## Copier la base de prod vers dev
+	@echo "📋 Copie de PROD vers DEV..."
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod pg_dump -U admin@jobbingtrack.test -d jobbingtrack_prod > /tmp/prod_dump.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U admin@jobbingtrack.test -d jobbingtrack_dev -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	$(call docker_compose, -f docker-compose.test.yml exec -T postgres-dev psql -U admin@jobbingtrack.test -d jobbingtrack_dev < /tmp/prod_dump.sql)
+	rm /tmp/prod_dump.sql
+	@echo "✅ Données de PROD copiées vers DEV"
+
+# Démarrer tous les environnements de base de données
+up-all-dbs: ## Démarrer toutes les bases de données (dev, test, staging, prod)
+	@echo "🚀 Démarrage de tous les environnements de base de données..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.test.yml up -d postgres-dev redis-dev postgres-test redis-test postgres-staging redis-staging postgres-prod redis-prod)
+	@echo "✅ Tous les environnements démarrés"
+	@echo "🌐 PostgreSQL DEV: localhost:5433"
+	@echo "🌐 PostgreSQL TEST: localhost:5434"
+	@echo "🌐 PostgreSQL STAGING: localhost:5435"
+	@echo "🌐 PostgreSQL PROD: localhost:5436"
+	@echo "🌐 Redis DEV: localhost:6380"
+	@echo "🌐 Redis TEST: localhost:6381"
+	@echo "🌐 Redis STAGING: localhost:6382"
+	@echo "🌐 Redis PROD: localhost:6383"
+
+# Initialiser toutes les bases de données avec le schéma
+init-all-dbs: ## Initialiser toutes les bases de données avec le schéma
+	@echo "🗄️ Initialisation de toutes les bases de données..."
+	$(call check_docker)
+	@echo "⏳ Attente que toutes les bases soient prêtes..."
+	@sleep 10
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U admin@jobbingtrack.test -d jobbingtrack_dev -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-test psql -U admin@jobbingtrack.test -d jobbingtrack_test -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U admin@jobbingtrack.test -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U admin@jobbingtrack.test -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
+	@echo "✅ Toutes les bases de données initialisées"
+
+# ============================================================================
 # TESTS
 # ============================================================================
 
-.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage
+.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage test-docker-images test-docker-clean test-system-verify test-hydration test-implementation test-secure-env
 
 # Lancer tous les tests
 test: ## Lancer tous les tests
@@ -629,6 +735,34 @@ test-clean: ## Nettoyage complet de l'environnement de test
 test-verify: ## Vérification de la configuration des tests
 	@echo "🔍 Vérification de la configuration..."
 	node tests/verify.js
+
+# Tests Docker et déploiement (réorganisés)
+test-docker-images: ## Tests des noms d'images Docker
+	@echo "🐳 Tests des images Docker..."
+	node tests/docker/test-docker-images.js
+
+test-docker-clean: ## Tests de la commande make down
+	@echo "🧹 Tests de make down..."
+	node tests/docker/test-make-down-clean.js
+
+# Tests système et vérification (réorganisés)
+test-system-verify: ## Vérification complète du système de test
+	@echo "🔍 Vérification système..."
+	node tests/system/verify-test-system.js
+
+# Tests d'intégration étendus (réorganisés)
+test-hydration: ## Tests des corrections d'hydratation
+	@echo "🧩 Tests d'hydratation..."
+	node tests/integration/test-hydration-fixes.js
+
+test-implementation: ## Tests de l'implémentation complète
+	@echo "🔧 Tests d'implémentation..."
+	node tests/integration/test-implementation.js
+
+# Tests de sécurité (réorganisés)
+test-secure-env: ## Tests de sécurité des variables d'environnement
+	@echo "🔒 Tests de sécurité des variables d'environnement..."
+	node tests/security/test-secure-env-vars.js
 
 # Initialisation complète avec données de test
 init-with-tests: ## Initialisation complète avec génération de données de test
@@ -788,6 +922,14 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make enhance-tests   - Améliorer tests existants"
 	@echo "  make start-test-runner - Service de test runner"
 	@echo "  make full-setup      - Setup complet automatique"
+	@echo ""
+	@echo "🔧 TESTS RÉORGANISÉS (migration racine):"
+	@echo "  make test-docker-images - Tests des noms d'images Docker"
+	@echo "  make test-docker-clean  - Tests de la commande make down"
+	@echo "  make test-system-verify - Vérification complète du système"
+	@echo "  make test-hydration     - Tests des corrections d'hydratation"
+	@echo "  make test-implementation - Tests de l'implémentation complète"
+	@echo "  make test-secure-env    - Tests de sécurité des variables d'environnement"
 	@echo ""
 	@echo "📈 MONITORING:"
 	@echo "  make metrics        - Ouvrir Prometheus"

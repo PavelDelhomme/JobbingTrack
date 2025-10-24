@@ -1,0 +1,177 @@
+# Configuration des bases de données pour les tests et environnements multiples
+
+services:
+
+  # =====================================
+  # BASES DE DONNÉES DE DÉVELOPPEMENT
+  # =====================================
+
+  # Base de données de développement
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-postgres-dev
+    environment:
+      POSTGRES_DB: jobbingtrack_dev
+      POSTGRES_USER: admin@jobbingtrack.test
+      POSTGRES_PASSWORD: admin@jobbingtrack.test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./data/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # Base de données de test
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-postgres-test
+    environment:
+      POSTGRES_DB: jobbingtrack_test
+      POSTGRES_USER: admin@jobbingtrack.test
+      POSTGRES_PASSWORD: admin@jobbingtrack.test
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./data/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # =====================================
+  # BASES DE DONNÉES DE STAGING
+  # =====================================
+
+  # Base de données de staging
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-postgres-staging
+    environment:
+      POSTGRES_DB: jobbingtrack_staging
+      POSTGRES_USER: admin@jobbingtrack.test
+      POSTGRES_PASSWORD: admin@jobbingtrack.test
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ./data/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # =====================================
+  # BASES DE DONNÉES DE PRODUCTION (simulation)
+  # =====================================
+
+  # Base de données de production (simulation)
+  postgres-prod:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-postgres-prod
+    environment:
+      POSTGRES_DB: jobbingtrack_prod
+      POSTGRES_USER: admin@jobbingtrack.test
+      POSTGRES_PASSWORD: admin@jobbingtrack.test
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./data/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin@jobbingtrack.test -d jobbingtrack_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # =====================================
+  # REDIS POUR CHAQUE ENVIRONNEMENT
+  # =====================================
+
+  # Redis Développement
+  redis-dev:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis-dev
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # Redis Test
+  redis-test:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis-test
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # Redis Staging
+  redis-staging:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis-staging
+    ports:
+      - "6382:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # Redis Production
+  redis-prod:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis-prod
+    ports:
+      - "6383:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+  postgres_test_data:
+  postgres_staging_data:
+  postgres_prod_data:
+
+networks:
+  jobbingtrack-network:
+    driver: bridge

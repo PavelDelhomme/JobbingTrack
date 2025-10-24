@@ -18,27 +18,21 @@ const PORT = process.env.PORT || 3000;
 // ✅ Configuration CORS complète - corrigée automatiquement
 app.use(cors({
   origin: [
-    // Origines principales (noms de service Docker)
-    'http://frontend:3000',  // Frontend principal
-    'http://api-gateway:3000',  // API Gateway
-    'http://auth-service:3001',  // Auth Service
-    'http://application-service:3002',  // Application Service
-    'http://company-service:3003',  // Company Service
-    'http://contact-service:3004',  // Contact Service
-    'http://interview-service:3005',  // Interview Service
-    'http://notification-service:3006',  // Notification Service
-    'http://dashboard-service:3007',  // Dashboard Service
-    'http://call-service:3008',  // Call Service
-    'http://profile-service:3009',  // Profile Service
-    'http://event-service:3011',  // Event Service
-    'http://followup-service:3012',  // Followup Service
-    'http://workflow-service:3013',  // Workflow Service
-    'http://jobbingtrack-metrics-aggregator:3014',  // Metrics Aggregator
-    // Origines alternatives
+    // Développement local (prioritaires)
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://localhost:3001',
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
-    // Origines avec différents ports (au cas où)
+    // IPv6 localhost
+    'http://[::1]:8080',
+    'http://[::1]:3000',
+    'http://[::1]:3001',
+    // Services Docker
+    'http://frontend:3000',
+    'http://api-gateway:3000',
+    'http://auth-service:3001',
     'http://application-service:3002',
     'http://company-service:3003',
     'http://contact-service:3004',
@@ -47,20 +41,11 @@ app.use(cors({
     'http://dashboard-service:3007',
     'http://call-service:3008',
     'http://profile-service:3009',
-    'http://localhost:3010',
     'http://event-service:3011',
     'http://followup-service:3012',
     'http://workflow-service:3013',
     'http://jobbingtrack-metrics-aggregator:3014',
-    'http://docker-stats-service:3015',
-    // IPv6 localhost
-    'http://[::1]:8080',
-    'http://[::1]:3000',
-    'http://[::1]:3001',
-    // URLs de développement
-    'http://frontend:3000',
-    'http://api-gateway:3000',
-    'http://auth-service:3001'
+    'http://docker-stats-service:3015'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -161,40 +146,8 @@ app.post('/api/v1/auth/login', async (req, res) => {
   }
 });
 
-// ✅ Route pour récupérer le profil utilisateur
-app.get('/api/v1/auth/profile', async (req, res) => {
-  try {
-    logger.info('👤 Route /api/v1/auth/profile interceptée');
-
-    // Mode développement : retourner le profil de l'utilisateur connecté
-    const mockProfile = {
-      success: true,
-      user: {
-        id: 'dev_user_1',
-        email: 'admin@jobbingtrack.test',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'SUPER_ADMIN',
-        isActive: true,
-        isDeleted: false,
-        isArchived: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      fallback: true,
-      message: 'Profil utilisateur (mode développement)'
-    };
-
-    res.status(200).json(mockProfile);
-
-  } catch (error) {
-    logger.error('Error in auth profile:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    });
-  }
-});
+// ✅ Route pour récupérer le profil utilisateur (proxy vers auth-service)
+// Supprimé pour laisser le proxy gérer cette route automatiquement
 
 /**
  * @swagger
@@ -615,6 +568,88 @@ app.use('/api/v1/admin', adminRoutes);
 const maintenanceRoutes = require('./routes/maintenance.routes');
 app.use('/api/v1/maintenance', maintenanceRoutes);
 
+
+// ✅ Route pour récupérer la liste des services disponibles
+app.get('/api/v1/services', async (req, res) => {
+  try {
+    logger.info('📋 Route /api/v1/services interceptée');
+
+    let servicesStatus = [];
+
+    // Essayer de récupérer les vraies informations depuis le service de métriques
+    try {
+      const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/metrics`, {
+        timeout: 5000
+      });
+
+      if (response.data && response.data.services) {
+        // Convertir les services du format du service metrics-aggregator vers notre format
+        servicesStatus = Object.entries(response.data.services).map(([key, service]) => {
+          // Extraire le nom du service à partir de la clé Docker (jobbingtrack-api-gateway -> api-gateway)
+          const serviceName = key.replace('jobbingtrack-', '').replace('-service', '');
+
+          return {
+            name: serviceName,
+            status: service.health?.status || service.status || 'unknown',
+            port: service.port || 'N/A',
+            url: `http://localhost:${service.port || 'N/A'}`,
+            health: service.health?.status || service.status || 'unknown',
+            version: service.health?.version || '1.0.0',
+            environment: process.env.NODE_ENV || 'development',
+            type: service.type || 'service',
+            dataSource: 'metrics-aggregator',
+            lastCheck: service.lastCheck || new Date().toISOString(),
+            responseTime: service.health?.responseTime || 'N/A',
+            error: service.health?.error || undefined,
+            metrics: service.metrics || {}
+          };
+        });
+
+        logger.info(`✅ Services récupérés depuis le service de métriques (${servicesStatus.length} services) - données temps réel`);
+      } else {
+        throw new Error('Format de réponse invalide du service de métriques');
+      }
+    } catch (metricsError) {
+      logger.error('Service de métriques non disponible:', {
+        error: metricsError.message,
+        url: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
+        timestamp: new Date().toISOString()
+      });
+
+      // Retourner une erreur claire au lieu du fallback hardcodé
+      return res.status(503).json({
+        success: false,
+        error: 'Service de métriques indisponible',
+        message: 'Impossible de récupérer les informations des services car le système de monitoring n\'est pas accessible.',
+        details: {
+          metricsServiceUrl: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
+          errorType: metricsError.code || 'UNKNOWN',
+          errorMessage: metricsError.message,
+          timestamp: new Date().toISOString(),
+          suggestion: 'Vérifiez que le service de métriques est démarré avec "make metrics-start" ou "docker-compose up jobbingtrack-metrics-aggregator"'
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      services: servicesStatus,
+      total: servicesStatus.length,
+      running: servicesStatus.filter(s => s.status === 'running' || s.status === 'online').length,
+      dataSource: 'metrics-aggregator',
+      message: 'Liste des services (données temps réel du système de monitoring)',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Error in services list:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur'
+    });
+  }
+});
 
 // ✅ Health check
 app.get('/health', (req, res) => {

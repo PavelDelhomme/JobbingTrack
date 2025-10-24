@@ -323,3 +323,30 @@ define check_and_clean_existing_services
 		exit 1; \
 	fi
 endef
+
+# Vérifie et libère les ports occupés par d'autres processus
+define check_and_free_ports
+	@echo "🔍 Vérification des ports requis..."
+	@PORTS_NEEDED="3000 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3014 8080 8081 5432 6379 9090"; \
+	for port in $$PORTS_NEEDED; do \
+		if command -v ss >/dev/null 2>&1; then \
+			PID=$$(ss -tlnp 2>/dev/null | grep ":$$port " | head -1 | awk '{print $$7}' | cut -d',' -f2 | cut -d'=' -f2 || echo ""); \
+		elif command -v netstat >/dev/null 2>&1; then \
+			PID=$$(netstat -tlnp 2>/dev/null | grep ":$$port " | head -1 | awk '{print $$7}' | cut -d'/' -f1 || echo ""); \
+		else \
+			PID=""; \
+		fi; \
+		if [ -n "$$PID" ] && [ "$$PID" != "-" ]; then \
+			echo "⚠️ Port $$port occupé par le processus $$PID - tentative d'arrêt..."; \
+			if command -v pkill >/dev/null 2>&1; then \
+				if echo "$$PID" | grep -q "next-server\|node\|npm\|yarn"; then \
+					pkill -f "next-server\|node.*$$port\|npm.*$$port\|yarn.*$$port" || echo "⚠️ Impossible d'arrêter automatiquement le processus $$PID"; \
+				else \
+					kill -TERM $$PID 2>/dev/null || kill -KILL $$PID 2>/dev/null || echo "⚠️ Impossible d'arrêter le processus $$PID"; \
+				fi; \
+				sleep 2; \
+			fi; \
+		fi; \
+	done; \
+	echo "✅ Vérification des ports terminée"
+endef

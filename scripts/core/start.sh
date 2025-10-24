@@ -158,8 +158,17 @@ echo "   Auth Service:       http://localhost:3001"
 echo "   Dashboard Service:  http://localhost:3007"
 echo ""
 echo -e "${BLUE}🔑 Identifiants de connexion :${NC}"
-echo "   Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
-echo "   Password: SuperAdmin123!"
+if [ -n "${ADMIN_EMAIL:-}" ]; then
+    echo "   Email:    $ADMIN_EMAIL"
+    if [ -n "${ADMIN_PASSWORD:-}" ]; then
+        echo "   Password: $ADMIN_PASSWORD"
+    else
+        echo "   Password: [Défini dans les variables d'environnement]"
+    fi
+else
+    echo "   Email:    [Défini dans le fichier .env]"
+    echo "   Password: [Défini dans le fichier .env]"
+fi
 echo ""
 echo -e "${YELLOW}💡 Utilisez 'make up-full' pour démarrer tous les services${NC}"
 
@@ -189,8 +198,17 @@ echo ""
 
 # Afficher les informations de connexion
 echo -e "${BLUE}🔑 Informations de connexion :${NC}"
-echo "   📧 Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.test}"
-echo "   🔐 Mot de passe: SuperAdmin123!"
+if [ -n "${ADMIN_EMAIL:-}" ]; then
+    echo "   📧 Email:    $ADMIN_EMAIL"
+    if [ -n "${ADMIN_PASSWORD:-}" ]; then
+        echo "   🔐 Mot de passe: $ADMIN_PASSWORD"
+    else
+        echo "   🔐 Mot de passe: [Défini dans les variables d'environnement]"
+    fi
+else
+    echo "   📧 Email:    [Défini dans le fichier .env]"
+    echo "   🔐 Mot de passe: [Défini dans le fichier .env]"
+fi
 echo ""
 
 echo -e "${BLUE}🌐 Interfaces disponibles :${NC}"
