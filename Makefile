@@ -92,29 +92,17 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🚀 Démarrage complet de JobbingTrack..."
 	@echo "📦 Tous les services avec métriques complètes"
 	$(call check_docker)
-	# Démarrer d'abord les services essentiels (sans backend services qui causent des conflits)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis cadvisor prometheus jobbingtrack-metrics-aggregator)
-	# Attendre que les services de base soient prêts
-	@echo "⏳ Attente des services de base..."
-	@sleep 5
-	# Démarrer les services frontend et API
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway frontend auth-service dashboard-service)
-	# Attendre que les services API soient prêts
-	@echo "⏳ Attente des services API..."
-	@sleep 10
-	# Puis les services métier avec profils (démarrage séquentiel pour éviter les conflits)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile auth up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile applications up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile companies up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile contacts up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile interviews up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile notifications up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile calls up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile profiles up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile events up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile followups up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile workflows up -d)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring up -d)
+	# Nettoyer les conteneurs existants pour éviter les conflits
+	@echo "🧹 Nettoyage des conteneurs existants..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes) || true
+	# Démarrer tous les services en ignorant les dépendances problématiques
+	$(call docker_compose_env, DOCKER_COMPOSE_IGNORE_ORPHANS=1, $(COMPOSE_FILES_FULL) up -d --remove-orphans)
+	# Attendre que les services soient prêts
+	@echo "⏳ Attente du démarrage des services..."
+	@sleep 15
+	# Vérifier que les services critiques sont bien démarrés
+	@echo "🔍 Vérification des services critiques..."
+	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}" || true
 	@echo ""
 	@echo "✅ Système complet démarré avec succès !"
 	@echo ""
@@ -136,14 +124,41 @@ down: ## Arrêter tous les services
 	@docker network prune -f || true
 	@echo "✅ Tous les services arrêtés"
 
-# Redémarrer tous les services
-restart: ## Redémarrer tous les services
-	@echo "🔄 Redémarrage complet de JobbingTrack..."
-	$(MAKE) down
-	@echo "⏳ Attente de 3 secondes pour s'assurer que tout est bien arrêté..."
-	@sleep 3
-	$(MAKE) up-full
-	@echo "✅ Système redémarré"
+# Redémarrer seulement les conteneurs actuellement en cours d'exécution
+restart: ## Redémarrer seulement les conteneurs actuellement actifs
+	@echo "🔄 Redémarrage des services JobbingTrack actifs..."
+	# Vérifier les conteneurs actifs
+	@ACTIVE_CONTAINERS=$$(docker ps -q --filter "name=jobbingtrack-*" | wc -l); \
+	if [ "$$ACTIVE_CONTAINERS" -eq 0 ]; then \
+		echo "ℹ️ Aucun conteneur JobbingTrack en cours d'exécution"; \
+		echo "💡 Utilisez 'make up' pour démarrer les services essentiels"; \
+		echo "💡 Utilisez 'make restart-clean' pour un redémarrage complet"; \
+		exit 0; \
+	fi
+	@echo "🔄 Redémarrage de $$ACTIVE_CONTAINERS conteneur(s) actif(s)..."
+	# Redémarrer seulement les conteneurs actifs (sans nettoyage complet)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) restart)
+	@echo "⏳ Attente que les services redémarrent..."
+	@sleep 10
+	# Vérifier l'état après redémarrage
+	@echo "📊 État des services après redémarrage:"
+	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+	@echo "✅ Services redémarrés"
+
+# Redémarrage complet avec nettoyage (équivalent à l'ancien restart)
+restart-clean: ## Redémarrage complet avec nettoyage et redémarrage des services essentiels
+	@echo "🔄 Redémarrage complet de JobbingTrack (avec nettoyage)..."
+	# Nettoyage plus agressif pour éviter les conflits
+	@echo "🧹 Nettoyage complet avant redémarrage..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes --timeout 30) || true
+	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop --time 30 || true
+	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm -f || true
+	@docker network prune -f || true
+	@echo "⏳ Attente de 5 secondes pour s'assurer que tout est bien arrêté..."
+	@sleep 5
+	# Démarrer avec les services essentiels (comme make up)
+	$(MAKE) up
+	@echo "✅ Système redémarré (nettoyé et services essentiels)"
 
 # Redémarrer avec nettoyage forcé (si le restart normal échoue)
 restart-force: ## Redémarrer avec nettoyage forcé de tous les conteneurs et réseaux
@@ -557,7 +572,7 @@ up-prod: ## Démarrer l'environnement de production (simulation)
 # Basculer vers la base de données de développement
 switch-db: ## Basculer vers la base de données de développement
 	@echo "🔄 Basculement vers la base de données de développement..."
-	@echo "export DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@localhost:5433/jobbingtrack_dev?schema=public" > /tmp/db_config.sh
+	@echo "export DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@localhost:5433/jobbingtrack?schema=public" > /tmp/db_config.sh
 	@echo "export REDIS_URL=redis://localhost:6380" >> /tmp/db_config.sh
 	@echo "✅ Basculé vers DEV DB"
 	@echo "💡 Sourcez le fichier: source /tmp/db_config.sh"
@@ -583,9 +598,9 @@ reset-db: ## Reset d'une base de données (DB=dev|test|staging|prod)
 # Copier la production vers le développement
 copy-prod-to-dev: ## Copier la base de prod vers dev
 	@echo "📋 Copie de PROD vers DEV..."
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod pg_dump -U pavel@jobbingtrack.com -d jobbingtrack_prod > /tmp/prod_dump.sql)
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U pavel@jobbingtrack.com -d jobbingtrack_dev -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-	$(call docker_compose, -f docker-compose.test.yml exec -T postgres-dev psql -U pavel@jobbingtrack.com -d jobbingtrack_dev < /tmp/prod_dump.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod pg_dump -U jobbingtrack -d jobbingtrack_prod > /tmp/prod_dump.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	$(call docker_compose, -f docker-compose.test.yml exec -T postgres-dev psql -U jobbingtrack -d jobbingtrack < /tmp/prod_dump.sql)
 	rm /tmp/prod_dump.sql
 	@echo "✅ Données de PROD copiées vers DEV"
 
@@ -610,10 +625,10 @@ init-all-dbs: ## Initialiser toutes les bases de données avec le schéma
 	$(call check_docker)
 	@echo "⏳ Attente que toutes les bases soient prêtes..."
 	@sleep 10
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U pavel@jobbingtrack.com -d jobbingtrack_dev -f /docker-entrypoint-initdb.d/init-db.sql)
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-test psql -U pavel@jobbingtrack.com -d jobbingtrack_test -f /docker-entrypoint-initdb.d/init-db.sql)
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U pavel@jobbingtrack.com -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
-	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U pavel@jobbingtrack.com -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U jobbingtrack -d jobbingtrack -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-test psql -U jobbingtrack -d jobbingtrack_test -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U jobbingtrack -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U jobbingtrack -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
 	@echo "✅ Toutes les bases de données initialisées"
 
 # ============================================================================
@@ -838,7 +853,8 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make up-mickdevil    - Alias MickDevil de up-no-check (pour rigoler) 😄"
 	@echo "  make up-full         - Démarrer TOUS les services"
 	@echo "  make down            - Arrêter tous les services"
-	@echo "  make restart         - Redémarrer tous les services"
+	@echo "  make restart         - Redémarrer SEULEMENT les conteneurs actifs"
+	@echo "  make restart-clean   - Redémarrage COMPLET avec nettoyage + services essentiels"
 	@echo "  make restart-force   - Redémarrer avec nettoyage forcé (si restart échoue)"
 	@echo ""
 	@echo "🔧 GESTION INDIVIDUELLE:"

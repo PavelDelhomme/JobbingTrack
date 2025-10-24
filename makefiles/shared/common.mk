@@ -227,6 +227,17 @@ define docker_compose
 	fi
 endef
 
+# Fonction wrapper pour Docker Compose avec variables d'environnement
+define docker_compose_env
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+		$(1) docker compose $(2); \
+	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
+		$(1) docker-compose $(2); \
+	else \
+		$(1) $(DOCKER_COMPOSE_CMD) $(2); \
+	fi
+endef
+
 # Nettoie le cache Docker Compose (force redétection)
 define clean_docker_compose_cache
 	@rm -f $(DOCKER_COMPOSE_CACHE_FILE) 2>/dev/null || true

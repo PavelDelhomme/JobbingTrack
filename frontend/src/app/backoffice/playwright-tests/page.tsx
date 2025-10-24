@@ -211,6 +211,11 @@ export default function PlaywrightTestsPage() {
   const [browserContexts, setBrowserContexts] = useState<BrowserContext[]>([]);
   const [config, setConfig] = useState<any>({});
 
+  // État pour la gestion des utilisateurs de test
+  const [showUserCreator, setShowUserCreator] = useState(false);
+  const [testUsers, setTestUsers] = useState<any[]>([]);
+  const [creatingUser, setCreatingUser] = useState(false);
+
   // Réfs
   const terminalRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);

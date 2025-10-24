@@ -12,15 +12,15 @@ services:
     container_name: jobbingtrack-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-jobbingtrack}
-      POSTGRES_USER: ${POSTGRES_USER:-pavel@jobbingtrack.com}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pavel@jobbingtrack.com}
+      POSTGRES_USER: ${POSTGRES_USER:-jobbingtrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobbingtrack123}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      #- ./data/sql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./backend/init-db.sql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pavel@jobbingtrack.com -d jobbingtrack_dev"]
+      test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -85,7 +85,7 @@ services:
     environment:
       - NODE_ENV=development
       - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
       - REDIS_URL=redis://redis:6379
@@ -94,6 +94,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    profiles:
+      - full
     networks:
       - jobbingtrack-network
     healthcheck:
@@ -111,7 +113,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development
     container_name: jobbingtrack-frontend
     ports:
       - "8080:3000"
@@ -123,6 +124,8 @@ services:
       - ./frontend:/app:cached
       - /app/node_modules
       - /app/.next
+    profiles:
+      - full
     networks:
       - jobbingtrack-network
     depends_on:
@@ -247,7 +250,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
       - SMTP_HOST=${SMTP_HOST:-smtp.ovh.net}
@@ -307,7 +310,7 @@ services:
       - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service:3001
       - PORT=3002
@@ -357,7 +360,7 @@ services:
       - "3003:3003"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3003
@@ -411,7 +414,7 @@ services:
       - "3004:3004"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3004
@@ -464,7 +467,7 @@ services:
       - "3005:3005"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3005
@@ -518,7 +521,7 @@ services:
       - "3006:3006"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3006
@@ -570,7 +573,7 @@ services:
       - "3007:3007"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3007
@@ -622,7 +625,7 @@ services:
       - "3008:3008"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3008
@@ -673,7 +676,7 @@ services:
       - "3009:3009"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3009
@@ -724,7 +727,7 @@ services:
       - "3010:3010"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       - REDIS_URL=redis://redis:6379
       #- SMTP_HOST=smtp.ovh.net
       #- SMTP_PORT=587
@@ -786,7 +789,7 @@ services:
       - "3007:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -830,7 +833,7 @@ services:
       - "3011:3011"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3011
@@ -904,6 +907,8 @@ services:
       - NODE_ENV=development
     networks:
       - jobbingtrack-network
+    profiles:
+      - mobile
 
   # Frontend
   #frontend:
@@ -922,6 +927,100 @@ services:
   #    - auth-service
   #  networks:
   #    - jobbingtrack-network
+
+  # Security Service
+  security-service:
+    image: jobbingtrack-security-service
+    build:
+      context: ./backend/security-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-security-service
+    ports:
+      - "3017:3017"
+    environment:
+      - NODE_ENV=development
+      - PORT=3017
+      - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres:5432/jobbingtrack
+      - FRONTEND_URL=http://localhost:8080
+      - LOG_LEVEL=info
+      - SECURITY_SERVICE_URL=http://security-service:3017
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - security
+      - full
+    restart: unless-stopped
+
+  # Service de statistiques Docker (nécessaire pour les métriques)
+  docker-stats-service:
+    image: jobbingtrack-docker-stats-service
+    build:
+      context: ./backend/docker-stats-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-docker-stats
+    ports:
+      - "3015:3015"
+    environment:
+      - NODE_ENV=development
+      - PORT=3015
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - full
+    restart: unless-stopped
+
+  # Service de métriques système
+  system-metrics-service:
+    image: jobbingtrack-system-metrics-service
+    build:
+      context: ./backend/system-metrics-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-system-metrics
+    ports:
+      - "3018:3018"
+    environment:
+      - NODE_ENV=development
+      - PORT=3018
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=metrics
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - full
+    restart: unless-stopped
+
+  # Service de gestion des déploiements
+  deployment-service:
+    image: jobbingtrack-deployment-service
+    build:
+      context: ./backend/deployment-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-deployment-service
+    ports:
+      - "3016:3016"
+    environment:
+      - NODE_ENV=development
+      - PORT=3016
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=deployment
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - full
+    restart: unless-stopped
 
 volumes:
   postgres_data:
