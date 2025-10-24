@@ -110,7 +110,7 @@ cron.schedule('*/5 * * * * *', () => {
 server.listen(PORT, async () => {
   console.log(`
 ╔════════════════════════════════════════════════════════╗
-║   Metrics Aggregator Service - JobbingTrack           ║
+║   JobbingTrack Metrics Aggregator Service           ║
 ╠════════════════════════════════════════════════════════╣
 ║  HTTP Server:  http://localhost:${PORT}                     ║
 ║  WebSocket:    ws://localhost:${PORT}                       ║
@@ -120,5 +120,5 @@ server.listen(PORT, async () => {
 
   // Collecte initiale
   await collectAndBroadcast();
-  console.log('[Metrics] Service prêt !');
+  console.log('[JobbingTrack Metrics] Service prêt !');
 });

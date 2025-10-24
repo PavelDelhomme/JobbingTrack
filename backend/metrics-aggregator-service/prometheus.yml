@@ -12,10 +12,10 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Scraping du Metrics Aggregator Service
-  - job_name: 'metrics-aggregator'
+  # Scraping du JobbingTrack Metrics Aggregator Service
+  - job_name: 'jobbingtrack-metrics-aggregator'
     static_configs:
-      - targets: ['metrics-aggregator:3014']
+      - targets: ['jobbingtrack-metrics-aggregator:3014']
     scrape_interval: 10s
 
   # Scraping de cAdvisor

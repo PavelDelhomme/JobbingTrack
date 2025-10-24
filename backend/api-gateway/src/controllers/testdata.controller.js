@@ -44,7 +44,7 @@ const generateTestData = async (req, res) => {
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer
       env: {
         ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public'
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public'
       }
     });
 

@@ -22,7 +22,7 @@ Le système de métriques de JobbingTrack fournit une surveillance complète et 
           │    WebSocket + REST API          │
           │                 │                 │
 ┌─────────▼─────────────────▼─────────────────▼──────────┐
-│           METRICS AGGREGATOR SERVICE (Node.js)          │
+│        JOBBINGTRACK METRICS AGGREGATOR (Node.js)        │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  Auto-Discovery Engine (détecte nouveaux services)│  │
 │  └──────────────────────────────────────────────────┘  │
@@ -44,7 +44,7 @@ Le système de métriques de JobbingTrack fournit une surveillance complète et 
 
 ## Composants
 
-### 1. Metrics Aggregator Service (Port 3014)
+### 1. JobbingTrack Metrics Aggregator Service (Port 3014)
 - **Service principal** qui collecte et agrège toutes les métriques
 - **Auto-discovery** : Détecte automatiquement les nouveaux conteneurs
 - **WebSocket** : Diffuse les métriques en temps réel
@@ -93,7 +93,7 @@ docker-compose up -d
 
 ### APIs disponibles
 
-#### Metrics Aggregator API
+#### JobbingTrack Metrics Aggregator API
 ```bash
 # État du service
 curl http://localhost:3014/api/v1/health
@@ -149,7 +149,7 @@ curl http://localhost:9090/api/v1/query?query=up
 
 ### Variables d'environnement
 
-#### Metrics Aggregator Service
+#### JobbingTrack Metrics Aggregator Service
 ```bash
 NODE_ENV=development
 PORT=3014
@@ -179,7 +179,7 @@ Le système peut être configuré pour envoyer des alertes en cas de :
 ### Logs et débogage
 ```bash
 # Voir les logs du Metrics Aggregator
-docker-compose logs -f metrics-aggregator-service
+docker-compose logs -f jobbingtrack-metrics-aggregator
 
 # Voir les logs de cAdvisor
 docker-compose logs -f cadvisor
@@ -192,10 +192,10 @@ docker-compose logs -f
 
 ### Problèmes courants
 
-#### Metrics Aggregator ne démarre pas
+#### JobbingTrack Metrics Aggregator ne démarre pas
 ```bash
 # Vérifier les logs
-docker-compose logs metrics-aggregator-service
+docker-compose logs jobbingtrack-metrics-aggregator
 
 # Vérifier les ports disponibles
 netstat -tuln | grep :3014

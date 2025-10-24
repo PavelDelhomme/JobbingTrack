@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 // Cache simple pour éviter les requêtes dupliquées
 const requestCache = new Map<string, Promise<any>>();
-const cacheTimeout = 5000; // 5 secondes de cache
+const cacheTimeout = 3000; // 3 secondes de cache
 
 // Fonction utilitaire pour créer des requêtes avec cache
 const cachedRequest = <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
@@ -28,7 +28,16 @@ const cachedRequest = <T>(key: string, requestFn: () => Promise<T>): Promise<T> 
 // Client principal (API Gateway) avec configuration optimisée
 export const apiClient = axios.create({
     baseURL: `${API_BASE_URL}/api/v1`,
-    timeout: 5000, // Réduire le timeout à 5 secondes pour éviter les requêtes qui s'accumulent
+    timeout: 8000, // Timeout de 8 secondes pour éviter les blocages
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Configuration pour les requêtes critiques (auth, profil)
+export const criticalApiClient = axios.create({
+    baseURL: `${API_BASE_URL}/api/v1`,
+    timeout: 5000, // Timeout plus court pour les requêtes critiques
     headers: {
         'Content-Type': 'application/json',
     },
@@ -45,19 +54,19 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Intercepteur pour gérer les erreurs d'authentification avec gestion des rate limits
-apiClient.interceptors.response.use((response) => response, (error) => {
-    // Gestion spécifique des erreurs de rate limiting (429)
-    if (error.response?.status === 429) {
-        console.warn('Rate limit atteint, temporisation automatique...');
-        // Attendre un peu avant de rejeter l'erreur
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                reject(error);
-            }, 2000); // Attendre 2 secondes avant de réessayer
-        });
+// Intercepteur pour criticalApiClient (même logique)
+criticalApiClient.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
+    return config;
+});
 
+// Intercepteur pour gérer les erreurs d'authentification
+apiClient.interceptors.response.use((response) => response, (error) => {
     // Gestion des erreurs d'authentification
     if (error.response?.status === 401) {
         if (typeof window !== 'undefined') {
@@ -69,9 +78,33 @@ apiClient.interceptors.response.use((response) => response, (error) => {
         }
     }
 
-    // Gestion des timeouts
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.warn('Timeout de requête, service temporairement indisponible');
+    // Gestion des timeouts et erreurs réseau
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') ||
+        error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        console.warn('Service temporairement indisponible:', error.message);
+        return Promise.reject(new Error('Service temporairement indisponible'));
+    }
+
+    return Promise.reject(error);
+});
+
+// Intercepteur pour criticalApiClient (gestion plus stricte)
+criticalApiClient.interceptors.response.use((response) => response, (error) => {
+    // Gestion des erreurs d'authentification
+    if (error.response?.status === 401) {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            // Éviter la redirection en boucle en vérifiant l'URL actuelle
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
+        }
+    }
+
+    // Gestion des timeouts et erreurs réseau (plus stricte)
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') ||
+        error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        console.warn('Service critique indisponible:', error.message);
         return Promise.reject(new Error('Service temporairement indisponible'));
     }
 
@@ -82,7 +115,7 @@ apiClient.interceptors.response.use((response) => response, (error) => {
 export const authService = {
     login: (email: string, password: string) =>
         cachedRequest(`auth-login-${email}`, () =>
-            apiClient.post('/auth/login', { email, password })
+            criticalApiClient.post('/auth/login', { email, password })
         ),
 
     register: (data: {
@@ -96,7 +129,7 @@ export const authService = {
 
     logout: () => {
         // Ne pas mettre en cache logout car c'est une action unique
-        return apiClient.post('/auth/logout');
+        return criticalApiClient.post('/auth/logout');
     },
 
     getProfile: () => {
@@ -105,9 +138,23 @@ export const authService = {
         const cacheKey = process.env.NODE_ENV === 'development' && token?.startsWith('mock-jwt-token')
             ? 'auth-profile-mock-dev'
             : `auth-profile-${token}`;
+
+        // Utiliser le client critique pour getProfile (opération sensible)
         return cachedRequest(cacheKey, () =>
-            apiClient.get('/auth/profile')
+            criticalApiClient.get('/auth/profile')
         );
+    },
+
+    // Version avec timeout explicite pour les cas critiques
+    getProfileWithTimeout: async () => {
+        try {
+            const response = await criticalApiClient.get('/auth/profile')
+            return response
+        } catch (error) {
+            // Gestion d'erreur silencieuse pour éviter les erreurs runtime
+            console.warn('getProfileWithTimeout failed:', error)
+            return null
+        }
     },
 
     updateProfile: (data: any) => {

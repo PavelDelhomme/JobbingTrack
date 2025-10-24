@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { useMetrics } from '@/hooks/useMetrics'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { AdminLayout } from '@/components/features'
+import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X } from 'lucide-react'
 import axios from 'axios'
@@ -17,7 +17,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth()
   const router = useRouter()
-  const { metrics, isConnected: metricsConnected } = useMetrics()
   const [systemMetrics, setSystemMetrics] = useState<any>(null)
   const [containerMetrics, setContainerMetrics] = useState<any>(null)
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false)
@@ -49,7 +48,7 @@ export default function BackofficePage() {
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
 
   // Générer les services avec les vraies données des métriques
-  const generateServicesWithMetrics = () => {
+  const generateServicesWithMetrics = (servicesData?: any[]) => {
     const serviceMapping: { [key: string]: { name: string; description: string; icon: string; route: string } } = {
       'auth-service': {
         name: 'Service d\'Authentification',
@@ -125,8 +124,8 @@ export default function BackofficePage() {
       }
     }
 
-    // Si les métriques ne sont pas disponibles, retourner les services avec statut par défaut
-    if (!metrics?.services) {
+    // Si les données de services ne sont pas disponibles, retourner les services avec statut par défaut
+    if (!servicesData || servicesData.length === 0) {
       return Object.entries(serviceMapping).map(([serviceKey, serviceConfig]) => ({
         id: serviceKey,
         name: serviceConfig.name,
@@ -138,9 +137,10 @@ export default function BackofficePage() {
       }))
     }
 
-    return Object.entries(metrics.services).map(([serviceKey, serviceData]) => {
+    return servicesData.map((serviceData: any) => {
+      const serviceKey = serviceData.name || serviceData.id
       const serviceConfig = serviceMapping[serviceKey] || {
-        name: serviceKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        name: serviceKey?.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Service Inconnu',
         description: `Service ${serviceKey}`,
         icon: '🔧',
         route: `/backoffice/services/${serviceKey}`
@@ -151,10 +151,10 @@ export default function BackofficePage() {
         name: serviceConfig.name,
         description: serviceConfig.description,
         icon: serviceConfig.icon,
-        status: serviceData.health?.status === 'online' ? 'running' : 'stopped',
+        status: serviceData.status === 'running' || serviceData.health?.status === 'online' ? 'running' : 'stopped',
         route: serviceConfig.route,
         metrics: serviceData,
-        uptime: serviceData.health?.status === 'online' ? 'En ligne' : 'Hors ligne'
+        uptime: serviceData.status === 'running' ? 'En ligne' : 'Hors ligne'
       }
     })
   }
@@ -203,11 +203,25 @@ export default function BackofficePage() {
     }
   }
 
-  // Mettre à jour les services quand les métriques changent
+  // Charger les services au démarrage
   useEffect(() => {
-    const updatedServices = generateServicesWithMetrics()
-    setServices(updatedServices)
-  }, [metrics])
+    const loadServices = async () => {
+      try {
+        const servicesData = await centralMetricsService.getAllServices()
+        if (servicesData) {
+          const updatedServices = generateServicesWithMetrics(servicesData)
+          setServices(updatedServices)
+        }
+      } catch (error) {
+        console.error('Erreur chargement services:', error)
+        // Fallback vers la fonction par défaut
+        const updatedServices = generateServicesWithMetrics()
+        setServices(updatedServices)
+      }
+    }
+
+    loadServices()
+  }, [])
 
   // Charger les maintenances au démarrage
   useEffect(() => {
@@ -228,6 +242,28 @@ export default function BackofficePage() {
       try {
         setLoadingSystemMetrics(true)
 
+        // Vérifier d'abord que les services sont disponibles
+        try {
+          const healthResponse = await fetch('http://localhost:3000/health', {
+            signal: AbortSignal.timeout(2000)
+          })
+
+          if (!healthResponse.ok) {
+            throw new Error('Services non disponibles')
+          }
+        } catch (healthError) {
+          console.log('Services non disponibles, métriques désactivées')
+          setSystemMetrics({
+            cpu: { usage: 'N/A', cores: 'N/A', model: 'Services indisponibles' },
+            memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+            load: { average: 'N/A', cores: 'N/A' },
+            disk: []
+          })
+          setContainerMetrics({})
+          setLoadingSystemMetrics(false)
+          return
+        }
+
         // Récupérer toutes les métriques depuis le service centralisé
         const allMetrics = await centralMetricsService.fetchMetrics()
 
@@ -246,7 +282,7 @@ export default function BackofficePage() {
         console.error('Erreur chargement métriques système:', error)
         // En cas d'erreur, définir des valeurs par défaut sûres
         setSystemMetrics({
-          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+          cpu: { usage: 'N/A', cores: 'N/A', model: 'Erreur de chargement' },
           memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
           load: { average: 'N/A', cores: 'N/A' },
           disk: []
@@ -261,7 +297,12 @@ export default function BackofficePage() {
       loadSystemMetrics()
 
       // Actualiser les métriques toutes les 30 secondes
-      const interval = setInterval(loadSystemMetrics, 30000)
+      const interval = setInterval(() => {
+        // Vérifier que la page est toujours visible avant de rafraîchir
+        if (document.visibilityState === 'visible') {
+          loadSystemMetrics()
+        }
+      }, 30000)
 
       return () => clearInterval(interval)
     }
@@ -294,14 +335,14 @@ export default function BackofficePage() {
   }, [isAuthenticated])
 
   // Fonction pour générer le statut des services avec les vraies données
-  const generateServiceStatus = () => {
-    if (!metrics?.services) {
+  const generateServiceStatus = (servicesData?: any[]) => {
+    if (!servicesData || servicesData.length === 0) {
       return []
     }
 
-    return Object.entries(metrics.services).map(([serviceKey, serviceData]) => ({
-      name: serviceKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      status: serviceData.health?.status === 'online' ? 'running' : 'stopped',
+    return servicesData.map((serviceData: any) => ({
+      name: serviceData.name?.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Service Inconnu',
+      status: serviceData.status === 'running' || serviceData.health?.status === 'online' ? 'running' : 'stopped',
       uptime: serviceData.health?.responseTime ? `${serviceData.health.responseTime}ms` : 'N/A',
       responseTime: typeof serviceData.health?.responseTime === 'number' ? serviceData.health.responseTime : 0,
       version: serviceData.health?.version || 'N/A'
@@ -361,7 +402,8 @@ export default function BackofficePage() {
         </div>
 
         {/* Métriques système principales */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+        <MetricsErrorBoundary>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Activity className="h-5 w-5 text-blue-600" />
@@ -495,7 +537,8 @@ export default function BackofficePage() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </MetricsErrorBoundary>
 
         {/* Métriques principales en grille - Version administrative */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">

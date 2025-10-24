@@ -1,5 +1,4 @@
 # Configuration centralisée avec profiles
-version: '3.8'
 
 services:
 
@@ -12,16 +11,17 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-jobbingtrack}
-      POSTGRES_USER: ${POSTGRES_USER:-jobbingtrack}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobbingtrack123}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       #- ./data/sql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobbingtrack} -d ${POSTGRES_DB:-jobbingtrack}"]
+      #test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-jobbingtrack}"]
       #test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
       timeout: 5s
@@ -86,9 +86,9 @@ services:
     environment:
       - NODE_ENV=development
       - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - JWT_REFRESH_SECRET=your-refresh-token-secret
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - REDIS_URL=redis://redis:6379
     depends_on:
       postgres:
@@ -98,7 +98,7 @@ services:
     networks:
       - jobbingtrack-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "nc", "-z", "localhost", "3000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -130,7 +130,7 @@ services:
     restart: unless-stopped
   
   # Metrics Aggregator (monitoring essentiel)
-  metrics-aggregator:
+  jobbingtrack-metrics-aggregator:
     build:
       context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile
@@ -147,6 +147,9 @@ services:
       - cadvisor
     networks:
       - jobbingtrack-network
+    profiles:
+      - monitoring
+      - full
     restart: unless-stopped
   
   # cAdvisor (monitoring conteneurs)
@@ -164,6 +167,9 @@ services:
       - /dev/disk/:/dev/disk:ro
     networks:
       - jobbingtrack-network
+    profiles:
+      - monitoring
+      - full
     restart: unless-stopped
   
 
@@ -239,10 +245,10 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
-      - SMTP_HOST=${SMTP_HOST:-smtp.ovh.net}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-candidatures@delhomme.ovh}
       - SMTP_PASS=${SMTP_PASS:-V**Uw61^3*bz5c2AFrx&2d&%}
@@ -273,7 +279,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3001
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
   #    - SMTP_HOST=smtp.ovh.net
@@ -298,19 +304,16 @@ services:
       - "3002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3002
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PORT=3002
+      - LOG_LEVEL=info
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     networks:
       - jobbingtrack-network
     profiles:
@@ -329,7 +332,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3002
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -350,7 +353,7 @@ services:
       - "3003:3003"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3003
@@ -381,7 +384,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3003
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -403,7 +406,7 @@ services:
       - "3004:3004"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3004
@@ -434,7 +437,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3004
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -455,7 +458,7 @@ services:
       - "3005:3005"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3005
@@ -486,7 +489,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3005
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -508,7 +511,7 @@ services:
       - "3006:3006"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3006
@@ -540,7 +543,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3008
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -559,7 +562,7 @@ services:
       - "3007:3007"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3007
@@ -590,7 +593,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3009
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -610,7 +613,7 @@ services:
       - "3008:3008"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3008
@@ -639,7 +642,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3010
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -660,7 +663,7 @@ services:
       - "3009:3009"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3009
@@ -689,7 +692,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3011
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -710,7 +713,7 @@ services:
       - "3010:3010"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
       #- SMTP_HOST=smtp.ovh.net
       #- SMTP_PORT=587
@@ -746,7 +749,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3006
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - REDIS_URL=redis://redis:6379
   #    - SMTP_HOST=smtp.ovh.net
   #    - SMTP_PORT=587
@@ -771,7 +774,7 @@ services:
       - "3007:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -793,7 +796,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3007
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #  depends_on:
@@ -814,7 +817,7 @@ services:
       - "3011:3011"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       #- AUTH_SERVICE_URL=http://auth-service:3001
       #- PORT=3011
@@ -847,7 +850,7 @@ services:
   #  environment:
   #    - NODE_ENV=development
   #    - PORT=3013
-  #    - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER:-jobbingtrack}:${POSTGRES_PASSWORD:-jobbingtrack123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}?schema=public
   #    - JWT_SECRET=your-secret-key-change-in-production-2025
   #    - AUTH_SERVICE_URL=http://auth-service:3001
   #    - APPLICATION_SERVICE_URL=http://application-service:3002
@@ -860,7 +863,7 @@ services:
   #      condition: service_started
 
   # Service d'agrégation de métriques
-  #metrics-aggregator-service:
+  #jobbingtrack-metrics-aggregator:
   #  build:
   #    context: ./backend/metrics-aggregator-service
   #    dockerfile: Dockerfile

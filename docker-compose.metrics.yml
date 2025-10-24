@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   # Service d'agrégation de métriques
-  metrics-aggregator-service:
+  jobbingtrack-metrics-aggregator:
     build:
       context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile

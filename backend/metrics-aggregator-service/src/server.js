@@ -286,7 +286,7 @@ async function collectAllMetrics() {
 app.get('/api/v1/health', (req, res) => {
   res.json({
     status: 'online',
-    service: 'metrics-aggregator',
+    service: 'jobbingtrack-metrics-aggregator',
     version: '1.0.0',
     timestamp: new Date().toISOString()
   })

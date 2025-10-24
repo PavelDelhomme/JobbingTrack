@@ -10,34 +10,48 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginAttempts, setLoginAttempts] = useState(0);
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
   const { actualTheme, toggleTheme } = useTheme();
 
-  // ✅ Si déjà connecté, rediriger automatiquement
+  // ✅ Si déjà connecté, rediriger automatiquement via middleware
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('✅ Déjà connecté, redirection vers /backoffice...');
-      router.push('/backoffice');
+      console.log('✅ Déjà connecté, le middleware va rediriger vers /backoffice...');
+      // La redirection est gérée par le middleware Next.js
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Empêcher les clics multiples
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     setError('');
+    setLoginAttempts(prev => prev + 1);
 
     try {
-      console.log('🔐 Tentative de connexion...');
-      
+      console.log('🔐 Tentative de connexion...', loginAttempts + 1);
+
       // ✅ UTILISER LA FONCTION login() du contexte d'authentification
       await login(email, password);
-      
-      console.log('✅ Login réussi, redirection vers /backoffice...');
-      
-      // La redirection est gérée automatiquement par le useEffect ci-dessus
-      // ou directement par la fonction login() dans auth.tsx
-      
+
+      console.log('✅ Login réussi, attente de la redirection...');
+
+      // Attendre que les états se mettent à jour et que le middleware redirige
+      setTimeout(() => {
+        // Vérifier si la redirection a eu lieu
+        if (window.location.pathname === '/login') {
+          console.log('⚠️ Redirection manuelle nécessaire...');
+          router.push('/backoffice');
+        }
+      }, 2000);
+
     } catch (err: any) {
       console.error('❌ Login error:', err);
       setError(err.message || 'Erreur de connexion');
@@ -90,6 +104,32 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Message d'information pendant la connexion */}
+            {loading && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 sm:py-4 rounded-xl flex items-start gap-3 animate-pulse">
+                <span className="text-xl sm:text-2xl">🔄</span>
+                <div className="flex-1">
+                  <p className="text-sm sm:text-base font-medium">Authentification en cours...</p>
+                  <p className="text-xs sm:text-sm opacity-75 mt-1">
+                    Veuillez patienter pendant que nous vérifions vos identifiants et vous redirigeons automatiquement.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Message de succès temporaire */}
+            {isAuthenticated && user && !loading && (
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 sm:py-4 rounded-xl flex items-start gap-3 animate-pulse">
+                <span className="text-xl sm:text-2xl">✅</span>
+                <div className="flex-1">
+                  <p className="text-sm sm:text-base font-medium">Connexion réussie !</p>
+                  <p className="text-xs sm:text-sm opacity-75 mt-1">
+                    Redirection en cours vers le backoffice...
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
               <label className="block text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 📧 Email
@@ -133,16 +173,26 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 sm:py-5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 hover:from-blue-700 hover:to-purple-700 dark:hover:from-blue-600 dark:hover:to-purple-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] touch-manipulation"
+              className={`w-full py-4 sm:py-5 px-4 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg shadow-lg transform transition-all duration-200 touch-manipulation ${
+                loading
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 dark:from-blue-400 dark:to-purple-400 text-white cursor-not-allowed animate-pulse'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 hover:from-blue-700 hover:to-purple-700 dark:hover:from-blue-600 dark:hover:to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]'
+              }`}
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin">⏳</span>
-                  <span>Connexion en cours...</span>
+                <span className="flex flex-col items-center justify-center gap-3">
+                  <span className="animate-spin text-3xl text-white">🔄</span>
+                  <span className="text-lg font-bold text-white">Connexion en cours...</span>
+                  <div className="flex items-center gap-2 text-white">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                  <span className="text-sm text-blue-100">Vérification des identifiants...</span>
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <span>🚀</span>
+                  <span className="text-xl">🚀</span>
                   <span>Se connecter</span>
                 </span>
               )}

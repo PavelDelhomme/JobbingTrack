@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: 'standalone',
+    // ✅ Désactiver le mode strict React pour éviter les erreurs d'hydratation avec les extensions navigateur
+    reactStrictMode: false,
     experimental: {
         serverComponentsExternalPackages: ['socket.io-client'],
     },
@@ -22,6 +24,10 @@ const nextConfig = {
                 source: '/api/v1/:path*',
                 // ✅ Utiliser le nom du conteneur Docker exact
                 destination: 'http://jobbingtrack-api-gateway:3000/api/v1/:path*',
+            },
+            {
+                source: '/api/health',
+                destination: 'http://localhost:3000/health',
             },
         ];
     },

@@ -7,22 +7,27 @@ async function main() {
   console.log('🌱 Début du peuplement de la base de données Auth Service...')
 
   // Créer un utilisateur de test (ou le mettre à jour s'il existe)
-  const hashedPassword = await bcrypt.hash('password123', 10)
-  
+  const adminEmail = process.env.ADMIN_EMAIL || 'pavel@jobbingtrack.com'
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123'
+  const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Pavel'
+  const adminLastName = process.env.ADMIN_LAST_NAME || 'Delhomme'
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 10)
+
   const testUser = await prisma.user.upsert({
-    where: { email: 'pavel@jobbingtrack.com' },
+    where: { email: adminEmail },
     update: {
       password: hashedPassword,
-      firstName: 'Pavel',
-      lastName: 'Delhomme',
+      firstName: adminFirstName,
+      lastName: adminLastName,
       phone: '+33123456789',
       role: 'SUPER_ADMIN'
     },
     create: {
-      email: 'pavel@jobbingtrack.com',
+      email: adminEmail,
       password: hashedPassword,
-      firstName: 'Pavel',
-      lastName: 'Delhomme',
+      firstName: adminFirstName,
+      lastName: adminLastName,
       phone: '+33123456789',
       role: 'SUPER_ADMIN'
     }
@@ -32,8 +37,8 @@ async function main() {
   console.log('✅ Rôle:', testUser.role)
   console.log('')
   console.log('🔐 Compte de test:')
-  console.log('   Email: pavel@jobbingtrack.com')
-  console.log('   Mot de passe: password123')
+  console.log(`   Email: ${adminEmail}`)
+  console.log(`   Mot de passe: ${adminPassword}`)
 }
 
 main()

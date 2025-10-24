@@ -34,11 +34,11 @@ TESTS_DIR = tests
 .PHONY: up down up-full up-no-check up-mickdevil restart up-profile
 
 # Démarrer tous les services essentiels
-up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend, auth-service, dashboard-service)
+up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator)
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
-	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
+	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator"
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
@@ -47,19 +47,21 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo "   API Gateway:        http://localhost:3000"
 	@echo "   Auth Service:       http://localhost:3001"
 	@echo "   Dashboard Service:  http://localhost:3007"
+	@echo "   JobbingTrack Metrics:    http://localhost:3014"
+	@echo "   cAdvisor:           http://localhost:8081"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@echo "   Email:    admin@jobbingtrack.com"
-	@echo "   Password: SuperAdmin123!"
+	@echo "   Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
+	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
 
 # Démarrer services essentiels SANS vérification Docker (mode officiel)
 up-no-check: ## Démarrer services essentiels SANS vérification Docker (solution de contournement)
 	@echo "🚀 Démarrage des services essentiels JobbingTrack (mode NO-CHECK - SANS vérification Docker)..."
-	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service"
+	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator, cadvisor"
 	@echo "⚠️ ATTENTION: Vérifications Docker ignorées - Utilisez si les checks normaux échouent"
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès (mode NO-CHECK)!"
 	@echo ""
@@ -68,10 +70,12 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (solutio
 	@echo "   API Gateway:        http://localhost:3000"
 	@echo "   Auth Service:       http://localhost:3001"
 	@echo "   Dashboard Service:  http://localhost:3007"
+	@echo "   JobbingTrack Metrics:    http://localhost:3014"
+	@echo "   cAdvisor:           http://localhost:8081"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@echo "   Email:    admin@jobbingtrack.com"
-	@echo "   Password: SuperAdmin123!"
+	@echo "   Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
+	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"
 	@echo "💡 Utilisez 'make up' normal si les vérifications Docker fonctionnent"
@@ -86,9 +90,18 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🚀 Démarrage complet de JobbingTrack..."
 	@echo "📦 Tous les services avec métriques complètes"
 	$(call check_docker)
-	# Démarrer d'abord les services essentiels
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
-	# Puis les services optionnels avec profils
+	# Démarrer d'abord les services essentiels (sans backend services qui causent des conflits)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis cadvisor prometheus jobbingtrack-metrics-aggregator)
+	# Attendre que les services de base soient prêts
+	@echo "⏳ Attente des services de base..."
+	@sleep 5
+	# Démarrer les services frontend et API
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway frontend auth-service dashboard-service)
+	# Attendre que les services API soient prêts
+	@echo "⏳ Attente des services API..."
+	@sleep 10
+	# Puis les services métier avec profils (démarrage séquentiel pour éviter les conflits)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile auth up -d)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile applications up -d)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile companies up -d)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile contacts up -d)
@@ -103,8 +116,12 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo ""
 	@echo "✅ Système complet démarré avec succès !"
 	@echo ""
-	@echo "🌐 Toutes les interfaces sont disponibles"
-	@echo "📊 Monitoring: Prometheus (9090), Grafana (4000), cAdvisor (8080)"
+	@echo "🌐 Interfaces disponibles :"
+	@echo "   Frontend:           http://localhost:8080"
+	@echo "   API Gateway:        http://localhost:3000"
+	@echo "   Prometheus:         http://localhost:9090"
+	@echo "   cAdvisor:           http://localhost:8081"
+	@echo "   JobbingTrack Metrics:    http://localhost:3014"
 
 # Arrêter tous les services
 down: ## Arrêter tous les services
@@ -113,14 +130,27 @@ down: ## Arrêter tous les services
 	# Arrêter tous les conteneurs JobbingTrack restants
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
+	# Nettoyer les réseaux orphelins qui peuvent causer des conflits
+	@docker network prune -f || true
 	@echo "✅ Tous les services arrêtés"
 
 # Redémarrer tous les services
 restart: ## Redémarrer tous les services
 	@echo "🔄 Redémarrage complet de JobbingTrack..."
 	$(MAKE) down
+	@echo "⏳ Attente de 3 secondes pour s'assurer que tout est bien arrêté..."
+	@sleep 3
 	$(MAKE) up-full
 	@echo "✅ Système redémarré"
+
+# Redémarrer avec nettoyage forcé (si le restart normal échoue)
+restart-force: ## Redémarrer avec nettoyage forcé de tous les conteneurs et réseaux
+	@echo "🚨 REDÉMARRAGE FORCÉ - Nettoyage complet avant redémarrage"
+	$(MAKE) clean-force
+	@echo "⏳ Attente de 5 secondes après nettoyage complet..."
+	@sleep 5
+	$(MAKE) up-full
+	@echo "✅ Système redémarré après nettoyage forcé"
 
 # Démarrer un profil spécifique
 up-profile: ## Démarrer un profil spécifique (PROFILE=nom)
@@ -456,7 +486,29 @@ clean: ## Nettoyage complet
 	@echo "🧹 Nettoyage complet..."
 	$(call docker_compose, $(COMPOSE_FILES_FULL) down -v --remove-orphans)
 	docker system prune -f
+	# Nettoyer les réseaux orphelins
+	docker network prune -f
+	# Forcer le nettoyage des volumes
+	docker volume prune -f
 	@echo "✅ Nettoyage terminé"
+
+# Nettoyage d'urgence (force tout)
+clean-force: ## Nettoyage d'urgence - force la suppression de TOUT
+	@echo "🚨 NETTOYAGE D'URGENCE - SUPPRESSION COMPLÈTE"
+	@echo "⚠️ Cette commande va supprimer TOUS les conteneurs, images et volumes JobbingTrack"
+	# Arrêter et supprimer tous les conteneurs JobbingTrack
+	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
+	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm -f || true
+	# Supprimer les images JobbingTrack
+	@docker images "jobbingtrack-*" -q | xargs -r docker rmi -f || true
+	# Supprimer les volumes JobbingTrack
+	@docker volume ls --filter "name=jobbingtrack_*" -q | xargs -r docker volume rm -f || true
+	# Nettoyer les réseaux
+	@docker network prune -f
+	# Nettoyage système
+	docker system prune -a -f --volumes
+	@echo "✅ Nettoyage d'urgence terminé"
+	@echo "💡 Utilisez 'make up-full' pour redémarrer depuis zéro"
 
 # ============================================================================
 # TESTS
@@ -503,7 +555,7 @@ cadvisor: ## Ouvrir cAdvisor
 # Logs du système de métriques
 logs-metrics: ## Logs du système de métriques
 	@echo "📜 Logs du système de métriques..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f jobbingtrack-metrics-aggregator)
 
 # Aide complète avec organisation par catégories
 help: ## Afficher l'aide organisée par catégories
@@ -518,6 +570,7 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  make up-full         - Démarrer TOUS les services"
 	@echo "  make down            - Arrêter tous les services"
 	@echo "  make restart         - Redémarrer tous les services"
+	@echo "  make restart-force   - Redémarrer avec nettoyage forcé (si restart échoue)"
 	@echo ""
 	@echo "🔧 GESTION INDIVIDUELLE:"
 	@echo "  make start-auth      - Démarrer le service d'authentification"

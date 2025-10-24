@@ -158,7 +158,7 @@ echo "   Auth Service:       http://localhost:3001"
 echo "   Dashboard Service:  http://localhost:3007"
 echo ""
 echo -e "${BLUE}🔑 Identifiants de connexion :${NC}"
-echo "   Email:    admin@jobbingtrack.com"
+echo "   Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
 echo "   Password: SuperAdmin123!"
 echo ""
 echo -e "${YELLOW}💡 Utilisez 'make up-full' pour démarrer tous les services${NC}"
@@ -189,7 +189,7 @@ echo ""
 
 # Afficher les informations de connexion
 echo -e "${BLUE}🔑 Informations de connexion :${NC}"
-echo "   📧 Email:    admin@jobbingtrack.com"
+echo "   📧 Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
 echo "   🔐 Mot de passe: SuperAdmin123!"
 echo ""
 

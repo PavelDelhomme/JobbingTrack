@@ -62,7 +62,7 @@ if [ $? -eq 0 ]; then
     echo "   Dashboard Service:  http://localhost:3007"
     echo ""
     echo -e "${BLUE}🔑 Identifiants de connexion :${NC}"
-    echo "   Email:    admin@jobbingtrack.com"
+    echo "   Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
     echo "   Password: SuperAdmin123!"
     echo ""
     echo -e "${YELLOW}💡 Utilisez './make-up-full.sh' pour démarrer tous les services${NC}"
