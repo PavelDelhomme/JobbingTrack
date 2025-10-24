@@ -245,9 +245,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
       - run: npm ci
-      - run: npm run test:integration
-      - run: npm run test:e2e
-      - run: npm run build
+      - run: make test-integration
+      - run: make test-e2e
+      - run: make build
 ```
 
 ## 🔄 Gestion des Données

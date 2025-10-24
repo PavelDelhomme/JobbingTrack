@@ -1326,7 +1326,7 @@ module.exports = {
   // Nouvelles fonctions pour les tests
   createTestUser,
   deleteTestUser,
-  listTestUsers
+  listTestUsers,
   getDetailedSystemMetrics,
   getUserMetrics,
   getSecurityMetrics,

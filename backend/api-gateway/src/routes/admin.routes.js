@@ -124,5 +124,10 @@ router.delete('/data/:tableName/:id', authenticate, dataManagementController.del
 router.get('/export/:tableName', authenticate, dataManagementController.exportTable);
 router.post('/data/:tableName/bulk', authenticate, dataManagementController.bulkOperation);
 
+// Routes pour la gestion des utilisateurs de test
+router.post('/test-users', authenticate, advancedController.createTestUser);
+router.get('/test-users', authenticate, advancedController.listTestUsers);
+router.delete('/test-users/:email', authenticate, advancedController.deleteTestUser);
+
 module.exports = router;
 
