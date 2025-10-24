@@ -20,7 +20,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       #- ./data/sql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobbingtrack} -d ${POSTGRES_DB:-jobbingtrack}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-jobbingtrack}"]
       #test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-jobbingtrack}"]
       #test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
       interval: 10s
@@ -77,6 +77,7 @@ services:
 
   # API Gateway (coeur du système)
   api-gateway:
+    image: jobbingtrack-api-gateway
     build:
       context: ./backend/api-gateway
       dockerfile: Dockerfile
@@ -108,6 +109,7 @@ services:
   
   # Frontend Dashboard Administrateur
   frontend:
+    image: jobbingtrack-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -131,6 +133,7 @@ services:
   
   # Metrics Aggregator (monitoring essentiel)
   jobbingtrack-metrics-aggregator:
+    image: jobbingtrack-metrics-aggregator
     build:
       context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile
@@ -237,6 +240,7 @@ services:
 
   # Service d'authentification
   auth-service:
+    image: jobbingtrack-auth-service
     build:
       context: ./backend/auth-service
       dockerfile: Dockerfile
@@ -296,6 +300,7 @@ services:
 
   # Service Application
   application-service:
+    image: jobbingtrack-application-service
     build:
       context: ./backend/application-service
       dockerfile: Dockerfile
@@ -345,6 +350,7 @@ services:
 
   # Service Company
   company-service:
+    image: jobbingtrack-company-service
     build:
       context: ./backend/company-service
       dockerfile: Dockerfile
@@ -398,6 +404,7 @@ services:
 
   # Service Contact
   contact-service:
+    image: jobbingtrack-contact-service
     build:
       context: ./backend/contact-service
       dockerfile: Dockerfile
@@ -450,6 +457,7 @@ services:
   
   # Service Interview
   interview-service:
+    image: jobbingtrack-interview-service
     build:
       context: ./backend/interview-service
       dockerfile: Dockerfile
@@ -503,6 +511,7 @@ services:
 
   # Service Call
   call-service:
+    image: jobbingtrack-call-service
     build:
       context: ./backend/call-service
       dockerfile: Dockerfile
@@ -554,6 +563,7 @@ services:
   
   # Service Event
   event-service:
+    image: jobbingtrack-event-service
     build:
       context: ./backend/event-service
       dockerfile: Dockerfile
@@ -605,6 +615,7 @@ services:
 
   # Service Followup
   followup-service:
+    image: jobbingtrack-followup-service
     build:
       context: ./backend/followup-service
       dockerfile: Dockerfile
@@ -655,6 +666,7 @@ services:
   
   # Service Profile
   profile-service:
+    image: jobbingtrack-profile-service
     build:
       context: ./backend/profile-service
       dockerfile: Dockerfile
@@ -705,6 +717,7 @@ services:
 
   # Service Notification
   notification-service:
+    image: jobbingtrack-notification-service
     build:
       context: ./backend/notification-service
       dockerfile: Dockerfile
@@ -766,6 +779,7 @@ services:
 
   # Service Dashboard (si différent du frontend)
   dashboard-service:
+    image: jobbingtrack-dashboard-service
     build:
       context: ./backend/dashboard-service
       dockerfile: Dockerfile
@@ -809,6 +823,7 @@ services:
 
   # Service Workflow
   workflow-service:
+    image: jobbingtrack-workflow-service
     build:
       context: ./backend/workflow-service
       dockerfile: Dockerfile
@@ -864,6 +879,7 @@ services:
 
   # Service d'agrégation de métriques
   #jobbingtrack-metrics-aggregator:
+  #  image: jobbingtrack-metrics-aggregator
   #  build:
   #    context: ./backend/metrics-aggregator-service
   #    dockerfile: Dockerfile

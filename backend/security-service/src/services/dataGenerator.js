@@ -2,6 +2,11 @@ const { prisma } = require('../config/database');
 const { logger } = require('../utils/logger');
 
 class SecurityDataGenerator {
+  constructor() {
+    this.isGenerating = false;
+    this.generationInterval = null;
+  }
+
   // Générer des données de sécurité réalistes pour le développement
   async generateRealisticSecurityData() {
     try {
@@ -23,6 +28,250 @@ class SecurityDataGenerator {
     } catch (error) {
       logger.error('Erreur lors de la génération des données de sécurité:', error);
     }
+  }
+
+  // Démarrer la génération continue de données
+  startContinuousGeneration(intervalMinutes = 5) {
+    if (this.isGenerating) {
+      logger.warn('La génération continue est déjà active');
+      return;
+    }
+
+    this.isGenerating = true;
+    logger.info(`Démarrage de la génération continue (toutes les ${intervalMinutes} minutes)`);
+
+    // Générer immédiatement
+    this.generateRealTimeSecurityEvents();
+
+    // Planifier la génération continue
+    this.generationInterval = setInterval(() => {
+      this.generateRealTimeSecurityEvents();
+    }, intervalMinutes * 60 * 1000);
+  }
+
+  // Arrêter la génération continue
+  stopContinuousGeneration() {
+    if (this.generationInterval) {
+      clearInterval(this.generationInterval);
+      this.generationInterval = null;
+    }
+    this.isGenerating = false;
+    logger.info('Génération continue arrêtée');
+  }
+
+  // Générer des événements de sécurité en temps réel
+  async generateRealTimeSecurityEvents() {
+    try {
+      logger.debug('Génération d\'événements de sécurité en temps réel...');
+
+      // Générer 1-3 événements par génération
+      const eventCount = Math.floor(Math.random() * 3) + 1;
+
+      for (let i = 0; i < eventCount; i++) {
+        await this.generateRandomSecurityEvent();
+      }
+
+      // Créer une alerte si nécessaire
+      if (Math.random() > 0.8) {
+        await this.generateRandomAlert();
+      }
+
+      logger.debug(`${eventCount} événements de sécurité générés`);
+    } catch (error) {
+      logger.error('Erreur lors de la génération d\'événements en temps réel:', error);
+    }
+  }
+
+  // Générer un événement de sécurité aléatoire
+  async generateRandomSecurityEvent() {
+    const eventTypes = [
+      { type: 'login_success', category: 'authentication', level: 'info', riskScore: 5 },
+      { type: 'login_failure', category: 'authentication', level: 'warning', riskScore: 25 },
+      { type: 'suspicious_activity', category: 'intrusion', level: 'warning', riskScore: 70 },
+      { type: 'sql_injection', category: 'intrusion', level: 'error', riskScore: 85 },
+      { type: 'xss_attempt', category: 'intrusion', level: 'error', riskScore: 75 },
+      { type: 'brute_force', category: 'intrusion', level: 'warning', riskScore: 70 },
+      { type: 'high_traffic', category: 'ddos', level: 'warning', riskScore: 60 },
+      { type: 'rate_limit_exceeded', category: 'authentication', level: 'warning', riskScore: 40 }
+    ];
+
+    const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    const ips = ['192.168.1.100', '10.0.0.50', '203.0.113.1', '198.51.100.1', '172.16.0.1'];
+    const endpoints = ['/api/v1/auth/login', '/api/v1/companies', '/api/v1/applications', '/api/v1/users', '/api/v1/dashboard'];
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      'curl/7.68.0',
+      'python-requests/2.25.1'
+    ];
+
+    const ip = ips[Math.floor(Math.random() * ips.length)];
+    const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
+    const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+
+    let message = '';
+    switch (eventType.type) {
+      case 'login_success':
+        message = 'Connexion utilisateur réussie';
+        break;
+      case 'login_failure':
+        message = 'Échec d\'authentification - identifiants incorrects';
+        break;
+      case 'suspicious_activity':
+        message = 'Activité suspecte détectée - pattern inhabituel';
+        break;
+      case 'sql_injection':
+        message = 'Tentative d\'injection SQL détectée et bloquée';
+        break;
+      case 'xss_attempt':
+        message = 'Tentative XSS détectée et neutralisée';
+        break;
+      case 'brute_force':
+        message = 'Tentative de force brute détectée';
+        break;
+      case 'high_traffic':
+        message = 'Pic de trafic détecté - surveillance activée';
+        break;
+      case 'rate_limit_exceeded':
+        message = 'Limite de taux dépassée - IP temporairement restreinte';
+        break;
+    }
+
+    // Utiliser geoip-lite pour obtenir le pays réel
+    let country = 'FR';
+    try {
+      const geoip = require('geoip-lite');
+      const geo = geoip.lookup(ip);
+      if (geo && geo.country) {
+        country = geo.country;
+      }
+    } catch (error) {
+      // Fallback si geoip-lite n'est pas disponible
+    }
+
+    await prisma.securityLog.create({
+      data: {
+        level: eventType.level,
+        category: eventType.category,
+        eventType: eventType.type,
+        message,
+        sourceIP: ip,
+        country,
+        endpoint,
+        userAgent,
+        riskScore: eventType.riskScore,
+        isBlocked: eventType.riskScore > 70,
+        metadata: {
+          automated: true,
+          timestamp: new Date(),
+          confidence: Math.random() * 0.3 + 0.7 // 70-100% de confiance
+        }
+      }
+    });
+
+    // Créer une tentative d'intrusion si le risque est élevé
+    if (eventType.riskScore > 70 && ['sql_injection', 'xss_attempt', 'brute_force'].includes(eventType.type)) {
+      await this.createIntrusionAttempt(eventType, ip, endpoint, userAgent);
+    }
+
+    // Créer une alerte si le risque est critique
+    if (eventType.riskScore > 80) {
+      await this.createSecurityAlert(eventType, message, ip);
+    }
+  }
+
+  // Créer une tentative d'intrusion
+  async createIntrusionAttempt(eventType, ip, endpoint, userAgent) {
+    const attackTypes = {
+      'sql_injection': 'SQL_INJECTION',
+      'xss_attempt': 'XSS',
+      'brute_force': 'BRUTE_FORCE'
+    };
+
+    try {
+      const geoip = require('geoip-lite');
+      const geo = geoip.lookup(ip);
+
+      await prisma.intrusionAttempt.create({
+        data: {
+          sourceIP: ip,
+          country: geo?.country,
+          city: geo?.city,
+          attackType: attackTypes[eventType.type as keyof typeof attackTypes],
+          targetEndpoint: endpoint,
+          method: 'POST',
+          userAgent,
+          riskScore: eventType.riskScore,
+          isBlocked: true,
+          blockReason: `${eventType.type} détecté`,
+          payload: eventType.type === 'sql_injection' ? "'; DROP TABLE users; --" : undefined
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la création de la tentative d\'intrusion:', error);
+    }
+  }
+
+  // Créer une alerte de sécurité
+  async createSecurityAlert(eventType, message, sourceIP) {
+    try {
+      await prisma.securityAlert.create({
+        data: {
+          level: eventType.riskScore > 90 ? 'critical' : 'high',
+          title: `Activité ${eventType.type} détectée`,
+          description: `${message} depuis ${sourceIP}`,
+          category: eventType.category,
+          source: sourceIP,
+          metadata: {
+            riskScore: eventType.riskScore,
+            eventType: eventType.type,
+            automated: true
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la création de l\'alerte de sécurité:', error);
+    }
+  }
+
+  // Générer une alerte aléatoire
+  async generateRandomAlert() {
+    const alertTypes = [
+      {
+        level: 'medium',
+        title: 'Configuration obsolète détectée',
+        description: 'Certaines configurations de sécurité nécessitent une mise à jour',
+        category: 'configuration'
+      },
+      {
+        level: 'high',
+        title: 'Activité inhabituelle détectée',
+        description: 'Pattern d\'accès inhabituel sur l\'API',
+        category: 'monitoring'
+      },
+      {
+        level: 'low',
+        title: 'Maintenance de sécurité planifiée',
+        description: 'Mise à jour de sécurité programmée pour ce soir',
+        category: 'maintenance'
+      }
+    ];
+
+    const alertType = alertTypes[Math.floor(Math.random() * alertTypes.length)];
+
+    await prisma.securityAlert.create({
+      data: {
+        level: alertType.level,
+        title: alertType.title,
+        description: alertType.description,
+        category: alertType.category,
+        source: 'security-monitor',
+        metadata: {
+          automated: true,
+          priority: alertType.level
+        }
+      }
+    });
   }
 
   // Générer des logs de sécurité réalistes

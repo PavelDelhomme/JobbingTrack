@@ -35,6 +35,7 @@ services:
 
   # Service de statistiques Docker (nécessaire pour les métriques)
   docker-stats-service:
+    image: jobbingtrack-docker-stats-service
     build:
       context: ./docker-stats-service
       dockerfile: Dockerfile
@@ -53,6 +54,7 @@ services:
 
   # Service de métriques système
   system-metrics-service:
+    image: jobbingtrack-system-metrics-service
     build:
       context: ./system-metrics-service
       dockerfile: Dockerfile
@@ -73,6 +75,7 @@ services:
 
   # Service de gestion des déploiements
   deployment-service:
+    image: jobbingtrack-deployment-service
     build:
       context: ./deployment-service
       dockerfile: Dockerfile
@@ -93,6 +96,7 @@ services:
 
   # Service de sécurité et surveillance
   security-service:
+    image: jobbingtrack-security-service
     build:
       context: ./security-service
       dockerfile: Dockerfile
@@ -113,6 +117,7 @@ services:
 
   # API Gateway
   api-gateway:
+    image: jobbingtrack-api-gateway
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
@@ -149,6 +154,7 @@ services:
 
   # Service d'authentification
   auth-service:
+    image: jobbingtrack-auth-service
     build:
       context: ./auth-service
       dockerfile: Dockerfile
@@ -175,6 +181,7 @@ services:
 
   # Service des candidatures
   application-service:
+    image: jobbingtrack-application-service
     build:
       context: ./application-service
       dockerfile: Dockerfile
@@ -197,6 +204,7 @@ services:
 
   # Service des entreprises
   company-service:
+    image: jobbingtrack-company-service
     build:
       context: ./company-service
       dockerfile: Dockerfile
@@ -219,6 +227,7 @@ services:
 
   # Service des contacts
   contact-service:
+    image: jobbingtrack-contact-service
     build:
       context: ./contact-service
       dockerfile: Dockerfile
@@ -241,6 +250,7 @@ services:
 
   # Service des entretiens
   interview-service:
+    image: jobbingtrack-interview-service
     build:
       context: ./interview-service
       dockerfile: Dockerfile
@@ -263,6 +273,7 @@ services:
 
   # Service des notifications
   notification-service:
+    image: jobbingtrack-notification-service
     build:
       context: ./notification-service
       dockerfile: Dockerfile
@@ -292,6 +303,7 @@ services:
 
   # Service des appels téléphoniques
   call-service:
+    image: jobbingtrack-call-service
     build:
       context: ./call-service
       dockerfile: Dockerfile
@@ -314,6 +326,7 @@ services:
 
   # Service dédié aux relances
   followup-service:
+    image: jobbingtrack-followup-service
     build:
       context: ./followup-service
       dockerfile: Dockerfile
@@ -359,6 +372,7 @@ services:
 
   # Service des événements globaux
   event-service:
+    image: jobbingtrack-event-service
     build:
       context: ./event-service
       dockerfile: Dockerfile
@@ -384,6 +398,7 @@ services:
 
   # Service de gestion des profils et CVs
   profile-service:
+    image: jobbingtrack-profile-service
     build:
       context: ./profile-service
       dockerfile: Dockerfile
@@ -405,6 +420,7 @@ services:
       - jobbingtrack-network
 
   workflow-service:
+    image: jobbingtrack-workflow-service
     build:
       context: ./workflow-service
       dockerfile: Dockerfile

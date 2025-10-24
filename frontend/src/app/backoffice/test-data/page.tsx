@@ -205,71 +205,105 @@ export default function TestDataGeneratorPage() {
 
   const presets = [
     {
-      name: 'Minimal',
-      description: 'Configuration minimale pour tests rapides',
-      icon: '⚡',
+      name: 'Tests E2E',
+      description: 'Données minimales pour tests end-to-end',
+      icon: '🧪',
       config: {
-        users: 2,
-        companies: 5,
-        applications: 5,
-        contacts: 5,
-        interviews: 2,
-        followups: 3,
-        calls: 2,
-        events: 5,
+        users: 4,
+        companies: 8,
+        applications: 12,
+        contacts: 10,
+        interviews: 4,
+        followups: 6,
+        calls: 4,
+        events: 8,
+        deletedItems: 2,
+        archivedItems: 2
+      }
+    },
+    {
+      name: 'Tests API',
+      description: 'Données pour tests des endpoints API',
+      icon: '🌐',
+      config: {
+        users: 3,
+        companies: 6,
+        applications: 15,
+        contacts: 8,
+        interviews: 3,
+        followups: 5,
+        calls: 3,
+        events: 6,
         deletedItems: 1,
         archivedItems: 1
       }
     },
     {
-      name: 'Standard',
-      description: 'Configuration équilibrée pour développement',
-      icon: '📊',
+      name: 'Tests Performance',
+      description: 'Beaucoup de données pour tests de charge',
+      icon: '⚡',
       config: {
-        users: 3,
-        companies: 10,
-        applications: 20,
-        contacts: 15,
+        users: 5,
+        companies: 25,
+        applications: 100,
+        contacts: 50,
+        interviews: 15,
+        followups: 25,
+        calls: 20,
+        events: 40,
+        deletedItems: 5,
+        archivedItems: 5
+      }
+    },
+    {
+      name: 'Tests Sécurité',
+      description: 'Données variées pour tests de sécurité',
+      icon: '🔒',
+      config: {
+        users: 6,
+        companies: 12,
+        applications: 30,
+        contacts: 20,
         interviews: 8,
         followups: 12,
-        calls: 10,
-        events: 20,
-        deletedItems: 5,
+        calls: 8,
+        events: 15,
+        deletedItems: 3,
         archivedItems: 3
       }
     },
     {
-      name: 'Complet',
-      description: 'Beaucoup de données pour tests de performance',
-      icon: '🚀',
+      name: 'Tests Mobile',
+      description: 'Données optimisées pour tests mobile',
+      icon: '📱',
       config: {
-        users: 5,
-        companies: 20,
-        applications: 50,
-        contacts: 40,
-        interviews: 20,
-        followups: 30,
-        calls: 25,
-        events: 50,
-        deletedItems: 10,
-        archivedItems: 8
+        users: 3,
+        companies: 10,
+        applications: 20,
+        contacts: 12,
+        interviews: 5,
+        followups: 8,
+        calls: 5,
+        events: 10,
+        deletedItems: 2,
+        archivedItems: 2
       }
     },
     {
-      name: 'Démo',
-      description: 'Configuration pour démonstration client',
-      icon: '🎬',
+      name: 'Tests Complets',
+      description: 'Suite complète pour validation finale',
+      icon: '🎯',
       config: {
-        users: 1,
-        companies: 8,
-        applications: 15,
-        contacts: 12,
-        interviews: 6,
-        followups: 8,
-        calls: 5,
-        events: 15,
-        deletedItems: 2,
-        archivedItems: 2
+        users: 8,
+        companies: 20,
+        applications: 50,
+        contacts: 35,
+        interviews: 15,
+        followups: 25,
+        calls: 15,
+        events: 30,
+        deletedItems: 5,
+        archivedItems: 5
       }
     }
   ]
@@ -546,43 +580,176 @@ export default function TestDataGeneratorPage() {
           </div>
         </div>
 
-        {/* Actions - Empilés verticalement sur mobile */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 md:mb-8">
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="flex-1 px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
-          >
-            {generating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
-                <span className="text-sm sm:text-base">Génération en cours...</span>
-              </>
-            ) : (
-              <>
-                <span className="text-xl sm:text-2xl">🎲</span>
-                <span className="text-sm sm:text-base font-semibold">Générer les données de test</span>
-              </>
-            )}
-          </button>
+        {/* Actions avec tests automatiques - Empilés verticalement sur mobile */}
+        <div className="space-y-3 sm:space-y-4 mb-4 md:mb-8">
+          {/* Génération principale */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="flex-1 px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
+            >
+              {generating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                  <span className="text-sm sm:text-base">Génération en cours...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-xl sm:text-2xl">🎲</span>
+                  <span className="text-sm sm:text-base font-semibold">Générer les données de test</span>
+                </>
+              )}
+            </button>
 
-          <button
-            onClick={handleClear}
-            disabled={clearing || generating}
-            className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap"
-          >
-            {clearing ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
-                <span className="text-sm sm:text-base">Nettoyage...</span>
-              </>
-            ) : (
-              <>
-                <span className="text-lg sm:text-xl">🗑️</span>
-                <span className="text-sm sm:text-base">Tout supprimer</span>
-              </>
-            )}
-          </button>
+            <button
+              onClick={handleClear}
+              disabled={clearing || generating}
+              className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600 dark:bg-red-500 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 whitespace-nowrap"
+            >
+              {clearing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                  <span className="text-sm sm:text-base">Nettoyage...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg sm:text-xl">🗑️</span>
+                  <span className="text-sm sm:text-base">Tout supprimer</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Tests automatiques */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">🧪 Tests automatiques après génération</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+              <button
+                onClick={() => window.open('/backoffice/playwright-tests', '_blank')}
+                className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">🧪</div>
+                <div className="text-sm font-medium text-green-900 dark:text-green-100">Tests E2E</div>
+                <div className="text-xs text-green-700 dark:text-green-300">Playwright</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Exécuter les tests API
+                  fetch('/api/test/run-api-tests')
+                    .then(() => alert('Tests API lancés !'))
+                    .catch(() => alert('Erreur lors du lancement des tests API'))
+                }}
+                className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">🌐</div>
+                <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Tests API</div>
+                <div className="text-xs text-blue-700 dark:text-blue-300">Endpoints</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Exécuter les tests de performance
+                  fetch('/api/test/run-performance-tests')
+                    .then(() => alert('Tests de performance lancés !'))
+                    .catch(() => alert('Erreur lors du lancement des tests de performance'))
+                }}
+                className="p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">⚡</div>
+                <div className="text-sm font-medium text-purple-900 dark:text-purple-100">Performance</div>
+                <div className="text-xs text-purple-700 dark:text-purple-300">Charge & Speed</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Exécuter les tests de sécurité
+                  fetch('/api/test/run-security-tests')
+                    .then(() => alert('Tests de sécurité lancés !'))
+                    .catch(() => alert('Erreur lors du lancement des tests de sécurité'))
+                }}
+                className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">🔒</div>
+                <div className="text-sm font-medium text-red-900 dark:text-red-100">Sécurité</div>
+                <div className="text-xs text-red-700 dark:text-red-300">Vulnérabilités</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Exécuter les tests mobile
+                  fetch('/api/test/run-mobile-tests')
+                    .then(() => alert('Tests mobile lancés !'))
+                    .catch(() => alert('Erreur lors du lancement des tests mobile'))
+                }}
+                className="p-3 sm:p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">📱</div>
+                <div className="text-sm font-medium text-orange-900 dark:text-orange-100">Mobile</div>
+                <div className="text-xs text-orange-700 dark:text-orange-300">Responsive</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  // Lancer tous les tests
+                  fetch('/api/test/run-all-tests')
+                    .then(() => alert('Suite complète de tests lancée !'))
+                    .catch(() => alert('Erreur lors du lancement de la suite de tests'))
+                }}
+                className="p-3 sm:p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors text-left"
+              >
+                <div className="text-lg sm:text-xl mb-1">🚀</div>
+                <div className="text-sm font-medium text-indigo-900 dark:text-indigo-100">Suite complète</div>
+                <div className="text-xs text-indigo-700 dark:text-indigo-300">Tous les tests</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Génération automatique au démarrage */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">🔄 Génération automatique</h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await adminService.generateTestData({
+                      config: { users: 3, companies: 8, applications: 15, contacts: 10, interviews: 5, followups: 8, calls: 5, events: 10, deletedItems: 2, archivedItems: 2 },
+                      options: { users: true, companies: true, applications: true, contacts: true, interviews: true, followups: true, calls: true, events: true, deletedItems: true, archivedItems: true },
+                      userSelection: { generateForAllUsers: true, selectedUsers: [] }
+                    })
+                    alert('✅ Données de test par défaut générées !')
+                  } catch (error) {
+                    alert('❌ Erreur lors de la génération automatique')
+                  }
+                }}
+                className="px-4 py-2 bg-gray-600 dark:bg-gray-500 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm"
+              >
+                🎲 Générer données par défaut
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await adminService.generateTestData({
+                      config: { users: 4, companies: 8, applications: 12, contacts: 10, interviews: 4, followups: 6, calls: 4, events: 8, deletedItems: 2, archivedItems: 2 },
+                      options: { users: true, companies: true, applications: true, contacts: true, interviews: true, followups: true, calls: true, events: true, deletedItems: true, archivedItems: true },
+                      userSelection: { generateForAllUsers: true, selectedUsers: [] }
+                    })
+                    setTimeout(() => {
+                      window.open('/backoffice/playwright-tests', '_blank')
+                    }, 1000)
+                    alert('✅ Données E2E générées + Tests lancés !')
+                  } catch (error) {
+                    alert('❌ Erreur lors de la génération E2E')
+                  }
+                }}
+                className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-sm"
+              >
+                🧪 Générer + Tests E2E
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Output - Responsive */}

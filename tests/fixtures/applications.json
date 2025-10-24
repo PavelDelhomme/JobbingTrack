@@ -1,0 +1,26 @@
+{
+  "developer": {
+    "title": "Développeur Full Stack",
+    "description": "Poste de développeur full stack expérimenté",
+    "company": "Tech Corp",
+    "status": "applied",
+    "priority": "high",
+    "salary": "45000-55000"
+  },
+  "designer": {
+    "title": "UX Designer",
+    "description": "Designer UX/UI pour applications web",
+    "company": "Startup Inc",
+    "status": "interview",
+    "priority": "medium",
+    "salary": "35000-45000"
+  },
+  "manager": {
+    "title": "Product Manager",
+    "description": "Chef de produit senior",
+    "company": "Consulting Plus",
+    "status": "rejected",
+    "priority": "low",
+    "salary": "55000-65000"
+  }
+}

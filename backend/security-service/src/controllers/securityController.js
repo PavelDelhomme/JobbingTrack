@@ -277,6 +277,77 @@ class SecurityController {
       return [];
     }
   }
+
+  // Démarrer la génération continue de données de sécurité
+  async startContinuousGeneration(req, res) {
+    try {
+      const { intervalMinutes = 5 } = req.body;
+
+      // Importer le générateur de données
+      const dataGenerator = require('../services/dataGenerator');
+
+      dataGenerator.startContinuousGeneration(intervalMinutes);
+
+      res.json({
+        success: true,
+        message: `Génération continue démarrée (interval: ${intervalMinutes} minutes)`,
+        data: {
+          intervalMinutes,
+          startedAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors du démarrage de la génération continue:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors du démarrage de la génération continue'
+      });
+    }
+  }
+
+  // Arrêter la génération continue de données de sécurité
+  async stopContinuousGeneration(req, res) {
+    try {
+      const dataGenerator = require('../services/dataGenerator');
+
+      dataGenerator.stopContinuousGeneration();
+
+      res.json({
+        success: true,
+        message: 'Génération continue arrêtée',
+        data: {
+          stoppedAt: new Date()
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors de l\'arrêt de la génération continue:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de l\'arrêt de la génération continue'
+      });
+    }
+  }
+
+  // Récupérer l'état de la génération continue
+  async getGenerationStatus(req, res) {
+    try {
+      const dataGenerator = require('../services/dataGenerator');
+
+      res.json({
+        success: true,
+        data: {
+          isGenerating: dataGenerator.isGenerating,
+          intervalMinutes: dataGenerator.intervalMinutes || 5
+        }
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la récupération du statut de génération:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération du statut de génération'
+      });
+    }
+  }
 }
 
 module.exports = new SecurityController();

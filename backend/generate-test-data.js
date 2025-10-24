@@ -29,6 +29,114 @@ const DEFAULT_CONFIG = {
   archivedItems: 3
 };
 
+// Presets optimisés pour différents types de tests
+const PRESETS = {
+  'e2e': {
+    users: 4,
+    companies: 8,
+    applications: 12,
+    contacts: 10,
+    interviews: 4,
+    followups: 6,
+    calls: 4,
+    events: 8,
+    deletedItems: 2,
+    archivedItems: 2,
+    description: 'Données minimales pour tests end-to-end'
+  },
+  'api': {
+    users: 3,
+    companies: 6,
+    applications: 15,
+    contacts: 8,
+    interviews: 3,
+    followups: 5,
+    calls: 3,
+    events: 6,
+    deletedItems: 1,
+    archivedItems: 1,
+    description: 'Données pour tests des endpoints API'
+  },
+  'performance': {
+    users: 5,
+    companies: 25,
+    applications: 100,
+    contacts: 50,
+    interviews: 15,
+    followups: 25,
+    calls: 20,
+    events: 40,
+    deletedItems: 5,
+    archivedItems: 5,
+    description: 'Beaucoup de données pour tests de charge'
+  },
+  'security': {
+    users: 6,
+    companies: 12,
+    applications: 30,
+    contacts: 20,
+    interviews: 8,
+    followups: 12,
+    calls: 8,
+    events: 15,
+    deletedItems: 3,
+    archivedItems: 3,
+    description: 'Données variées pour tests de sécurité'
+  },
+  'mobile': {
+    users: 3,
+    companies: 10,
+    applications: 20,
+    contacts: 12,
+    interviews: 5,
+    followups: 8,
+    calls: 5,
+    events: 10,
+    deletedItems: 2,
+    archivedItems: 2,
+    description: 'Données optimisées pour tests mobile'
+  },
+  'complete': {
+    users: 8,
+    companies: 20,
+    applications: 50,
+    contacts: 35,
+    interviews: 15,
+    followups: 25,
+    calls: 15,
+    events: 30,
+    deletedItems: 5,
+    archivedItems: 5,
+    description: 'Suite complète pour validation finale'
+  },
+  'minimal': {
+    users: 2,
+    companies: 5,
+    applications: 5,
+    contacts: 5,
+    interviews: 2,
+    followups: 3,
+    calls: 2,
+    events: 5,
+    deletedItems: 1,
+    archivedItems: 1,
+    description: 'Configuration minimale pour tests rapides'
+  },
+  'demo': {
+    users: 1,
+    companies: 8,
+    applications: 15,
+    contacts: 12,
+    interviews: 6,
+    followups: 8,
+    calls: 5,
+    events: 15,
+    deletedItems: 2,
+    archivedItems: 2,
+    description: 'Configuration pour démonstration client'
+  }
+};
+
 // Données de test réalistes
 const COMPANIES_DATA = [
   { name: 'Google', website: 'https://google.com', industry: 'Technologie', size: '10000+', location: 'Mountain View, CA' },
@@ -81,18 +189,72 @@ const STATUSES = [
 const FIRST_NAMES = ['Pavel', 'Marie', 'Thomas', 'Sophie', 'Alexandre', 'Camille', 'Nicolas', 'Emma', 'Julien', 'Léa'];
 const LAST_NAMES = ['Delhomme', 'Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Petit', 'Durand', 'Leroy', 'Moreau'];
 
+async function cleanExistingData() {
+  console.log('🧹 Suppression des données existantes...');
+
+  try {
+    // Supprimer dans l'ordre inverse des dépendances
+    await prisma.followUp.deleteMany({});
+    await prisma.call.deleteMany({});
+    await prisma.interview.deleteMany({});
+    await prisma.activity.deleteMany({});
+    await prisma.applicationContact.deleteMany({});
+    await prisma.application.deleteMany({});
+    await prisma.contact.deleteMany({});
+    await prisma.company.deleteMany({});
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'user' } } });
+
+    console.log('✅ Données existantes supprimées');
+  } catch (error) {
+    console.error('❌ Erreur lors du nettoyage:', error);
+    throw error;
+  }
+}
+
 async function main() {
   console.log('🎲 Génération de données de test cohérentes...');
   console.log('='.repeat(50));
 
-  // Récupérer la configuration depuis les arguments
-  const configArg = process.argv[2];
-  const config = configArg ? { ...DEFAULT_CONFIG, ...JSON.parse(configArg) } : DEFAULT_CONFIG;
+  // Récupérer la configuration depuis les arguments ou presets
+  const args = process.argv.slice(2);
+  const presetName = args.find(arg => !arg.startsWith('--') && PRESETS[arg]);
+  const configArg = args.find(arg => !arg.startsWith('--') && arg !== presetName);
+  const isClean = args.includes('--clean');
 
-  console.log('📋 Configuration:', config);
+  let config = DEFAULT_CONFIG;
+
+  if (presetName && PRESETS[presetName]) {
+    config = PRESETS[presetName];
+    console.log(`🎯 Preset utilisé: ${presetName}`);
+    console.log(`📝 Description: ${PRESETS[presetName].description}`);
+  } else if (presetName) {
+    console.log(`⚠️ Preset "${presetName}" non reconnu, utilisation de la configuration par défaut`);
+  }
+
+  // Appliquer les modifications personnalisées si fournies
+  if (configArg) {
+    try {
+      const customConfig = JSON.parse(configArg);
+      config = { ...config, ...customConfig };
+      console.log('🔧 Configuration personnalisée appliquée');
+    } catch (error) {
+      console.log('⚠️ Configuration personnalisée invalide, utilisation de la configuration par défaut');
+    }
+  }
+
+  if (isClean) {
+    console.log('🧹 Mode nettoyage activé - Suppression des données existantes');
+  }
+
+  console.log('📋 Configuration finale:', config);
   console.log('');
 
   try {
+    // Nettoyer les données existantes si demandé
+    if (isClean) {
+      console.log('🧹 Nettoyage des données existantes...');
+      await cleanExistingData();
+    }
     // 1. Créer les utilisateurs
     console.log('👥 Création des utilisateurs...');
     const hashedPassword = await bcrypt.hash('password123', 10);

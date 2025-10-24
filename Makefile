@@ -514,17 +514,152 @@ clean-force: ## Nettoyage d'urgence - force la suppression de TOUT
 # TESTS
 # ============================================================================
 
-.PHONY: test test-integration
+.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage
 
 # Lancer tous les tests
 test: ## Lancer tous les tests
 	@echo "🧪 Exécution de tous les tests..."
 	./scripts/testing/run-tests.sh --all
 
+# Tests unitaires
+test-unit: ## Tests unitaires
+	@echo "🔧 Tests unitaires..."
+	cd tests && npm run test:unit
+
 # Tests d'intégration
 test-integration: ## Tests d'intégration
 	@echo "🔗 Tests d'intégration..."
 	./scripts/testing/run-tests.sh --integration
+
+# Tests de base de données
+test-database: ## Tests de base de données
+	@echo "🗄️ Tests de base de données..."
+	node tests/database/test-database.js
+
+# Tests API
+test-api: ## Tests API backend
+	@echo "🌐 Tests API..."
+	node tests/api/test-api.js
+
+# Tests backend
+test-backend: ## Tests des services backend
+	@echo "🔧 Tests backend..."
+	node tests/backend/test-services.js
+
+# Tests E2E
+test-e2e: ## Tests E2E (Playwright)
+	@echo "🎭 Tests E2E..."
+	cd tests && npx playwright test
+
+# Tests E2E avec interface
+test-e2e-ui: ## Tests E2E avec interface graphique
+	@echo "🎭 Tests E2E avec UI..."
+	cd tests && npx playwright test --ui
+
+# Tests mobile
+test-mobile: ## Tests mobile
+	@echo "📱 Tests mobile..."
+	node tests/mobile/test-mobile.js
+
+# Tests frontend
+test-frontend: ## Tests frontend
+	@echo "⚛️ Tests frontend..."
+	cd frontend && npm run test
+
+# Tests de performance
+test-performance: ## Tests de performance
+	@echo "⚡ Tests de performance..."
+	node tests/performance/test-performance.js
+
+# Tests de sécurité
+test-security: ## Tests de sécurité
+	@echo "🔒 Tests de sécurité..."
+	node tests/security/test-security.js
+
+# Tests complets (tous les types)
+test-all: ## Tests complets (tous types)
+	@echo "🚀 Tests complets - Suite complète..."
+	node tests/run-tests.js
+
+# Tests avec rapport
+test-report: ## Tests avec génération de rapport
+	@echo "📊 Tests avec rapport..."
+	node tests/run-tests.js --report
+
+# Tests rapides (sans E2E)
+test-quick: ## Tests rapides (sans E2E)
+	@echo "⚡ Tests rapides..."
+	node tests/run-tests.js --no-e2e
+
+# Tests backend uniquement
+test-backend-only: ## Tests backend uniquement
+	@echo "🔧 Tests backend uniquement..."
+	node tests/run-tests.js --no-frontend --no-mobile --no-e2e
+
+# Tests frontend uniquement
+test-frontend-only: ## Tests frontend uniquement
+	@echo "⚛️ Tests frontend uniquement..."
+	node tests/run-tests.js --no-backend --no-api --no-database --no-mobile --no-e2e
+
+# Tests avec coverage
+test-coverage: ## Tests avec coverage
+	@echo "📊 Tests avec coverage..."
+	cd tests && npm run test:coverage
+
+# Setup des tests
+test-setup: ## Configuration complète de l'environnement de test
+	@echo "⚙️ Configuration de l'environnement de test..."
+	node tests/setup.js
+
+# Nettoyage des tests
+test-clean: ## Nettoyage complet de l'environnement de test
+	@echo "🧹 Nettoyage des tests..."
+	./tests/cleanup.sh 2>/dev/null || echo "Script cleanup.sh non trouvé, nettoyage manuel..."
+	rm -rf tests/reports/*
+	rm -rf tests/coverage/*
+	rm -rf tests/e2e/results/*
+	rm -rf tests/temp/*
+	rm -rf tests/node_modules/.cache
+	rm -rf tests/.nyc_output
+	docker-compose -f tests/docker-compose.test.yml down -v 2>/dev/null || true
+	docker volume rm jobbingtrack_postgres_test_data 2>/dev/null || true
+	@echo "✅ Nettoyage terminé"
+
+# Vérification de la configuration des tests
+test-verify: ## Vérification de la configuration des tests
+	@echo "🔍 Vérification de la configuration..."
+	node tests/verify.js
+
+# Initialisation complète avec données de test
+init-with-tests: ## Initialisation complète avec génération de données de test
+	@echo "🚀 Initialisation complète avec données de test..."
+	./scripts/testing/init-with-test-data.sh
+
+# Génération de données de test par défaut
+generate-test-data: ## Générer des données de test par défaut
+	@echo "🎲 Génération de données de test..."
+	node scripts/testing/generate-simple-test-data.js e2e
+
+# Nettoyage et régénération des données de test
+refresh-test-data: ## Nettoyer et régénérer les données de test
+	@echo "🧹 Nettoyage et régénération des données de test..."
+	node scripts/testing/generate-simple-test-data.js e2e --clean
+	@echo "✅ Données de test régénérées"
+
+# Amélioration des tests existants
+enhance-tests: ## Améliorer les tests existants
+	@echo "🛠️ Amélioration des tests existants..."
+	node scripts/testing/enhance-existing-tests.js
+
+# Service de test runner
+start-test-runner: ## Démarrer le service de test runner
+	@echo "🚀 Démarrage du service de test runner..."
+	cd backend && node test-runner-service.js
+
+# Setup complet avec tests (script automatique)
+full-setup: ## Setup complet automatique avec tests
+	@echo "🚀 Setup complet automatique JobbingTrack + Tests..."
+	./scripts/testing/full-setup.sh
 
 # ============================================================================
 # MONITORING
@@ -625,7 +760,34 @@ help: ## Afficher l'aide organisée par catégories
 	@echo ""
 	@echo "🧪 TESTS:"
 	@echo "  make test           - Lancer tous les tests"
+	@echo "  make test-all       - Tests complets (tous types)"
+	@echo "  make test-quick     - Tests rapides (sans E2E)"
+	@echo "  make test-backend-only - Tests backend uniquement"
+	@echo "  make test-frontend-only - Tests frontend uniquement"
+	@echo ""
+	@echo "📋 TESTS PAR CATEGORIE:"
+	@echo "  make test-unit      - Tests unitaires"
 	@echo "  make test-integration - Tests d'intégration"
+	@echo "  make test-database  - Tests de base de données"
+	@echo "  make test-api       - Tests API backend"
+	@echo "  make test-backend   - Tests des services backend"
+	@echo "  make test-frontend  - Tests frontend"
+	@echo "  make test-mobile    - Tests mobile"
+	@echo "  make test-e2e       - Tests E2E (Playwright)"
+	@echo "  make test-e2e-ui    - Tests E2E avec interface"
+	@echo "  make test-performance - Tests de performance"
+	@echo "  make test-security  - Tests de sécurité"
+	@echo "  make test-coverage  - Tests avec coverage"
+	@echo "  make test-report    - Tests avec génération de rapport"
+	@echo "  make test-setup     - Configuration complète des tests"
+	@echo "  make test-clean     - Nettoyage complet des tests"
+	@echo "  make test-verify    - Vérification de la configuration"
+	@echo "  make init-with-tests - Initialisation complète avec données"
+	@echo "  make generate-test-data - Générer données de test"
+	@echo "  make refresh-test-data - Nettoyer et régénérer données"
+	@echo "  make enhance-tests   - Améliorer tests existants"
+	@echo "  make start-test-runner - Service de test runner"
+	@echo "  make full-setup      - Setup complet automatique"
 	@echo ""
 	@echo "📈 MONITORING:"
 	@echo "  make metrics        - Ouvrir Prometheus"
