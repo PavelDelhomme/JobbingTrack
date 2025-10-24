@@ -86,7 +86,9 @@ services:
     environment:
       - NODE_ENV=development
       - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-jobbingtrack}
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_REFRESH_SECRET=your-refresh-token-secret
       - REDIS_URL=redis://redis:6379
     depends_on:
       postgres:

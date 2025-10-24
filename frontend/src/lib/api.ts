@@ -2,10 +2,33 @@ import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-// Client principal (API Gateway)
+// Cache simple pour éviter les requêtes dupliquées
+const requestCache = new Map<string, Promise<any>>();
+const cacheTimeout = 5000; // 5 secondes de cache
+
+// Fonction utilitaire pour créer des requêtes avec cache
+const cachedRequest = <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
+    // Vérifier si une requête identique est déjà en cours
+    if (requestCache.has(key)) {
+        return requestCache.get(key)!;
+    }
+
+    // Créer la requête et la mettre en cache
+    const promise = requestFn().finally(() => {
+        // Nettoyer le cache après un délai
+        setTimeout(() => {
+            requestCache.delete(key);
+        }, cacheTimeout);
+    });
+
+    requestCache.set(key, promise);
+    return promise;
+};
+
+// Client principal (API Gateway) avec configuration optimisée
 export const apiClient = axios.create({
     baseURL: `${API_BASE_URL}/api/v1`,
-    timeout: 10000,
+    timeout: 5000, // Réduire le timeout à 5 secondes pour éviter les requêtes qui s'accumulent
     headers: {
         'Content-Type': 'application/json',
     },
@@ -22,40 +45,95 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Intercepteur pour gérer les erreurs d'authentification
+// Intercepteur pour gérer les erreurs d'authentification avec gestion des rate limits
 apiClient.interceptors.response.use((response) => response, (error) => {
+    // Gestion spécifique des erreurs de rate limiting (429)
+    if (error.response?.status === 429) {
+        console.warn('Rate limit atteint, temporisation automatique...');
+        // Attendre un peu avant de rejeter l'erreur
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                reject(error);
+            }, 2000); // Attendre 2 secondes avant de réessayer
+        });
+    }
+
+    // Gestion des erreurs d'authentification
     if (error.response?.status === 401) {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            // Éviter la redirection en boucle en vérifiant l'URL actuelle
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
         }
     }
+
+    // Gestion des timeouts
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('Timeout de requête, service temporairement indisponible');
+        return Promise.reject(new Error('Service temporairement indisponible'));
+    }
+
     return Promise.reject(error);
 });
 
 // Services pour les microservices
 export const authService = {
     login: (email: string, password: string) =>
-        apiClient.post('/auth/login', { email, password }),
+        cachedRequest(`auth-login-${email}`, () =>
+            apiClient.post('/auth/login', { email, password })
+        ),
 
     register: (data: {
         email: string;
         password: string;
         firstName: string;
         lastName: string;
-    }) => apiClient.post('/auth/register', data),
+    }) => cachedRequest(`auth-register-${data.email}`, () =>
+        apiClient.post('/auth/register', data)
+    ),
 
-    logout: () => apiClient.post('/auth/logout'),
-    getProfile: () => apiClient.get('/auth/profile'),
-    updateProfile: (data: any) => apiClient.put('/auth/profile', data),
-    
+    logout: () => {
+        // Ne pas mettre en cache logout car c'est une action unique
+        return apiClient.post('/auth/logout');
+    },
+
+    getProfile: () => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        // En mode développement, normaliser la clé de cache pour les tokens mock
+        const cacheKey = process.env.NODE_ENV === 'development' && token?.startsWith('mock-jwt-token')
+            ? 'auth-profile-mock-dev'
+            : `auth-profile-${token}`;
+        return cachedRequest(cacheKey, () =>
+            apiClient.get('/auth/profile')
+        );
+    },
+
+    updateProfile: (data: any) => {
+        // Ne pas mettre en cache les mises à jour
+        return apiClient.put('/auth/profile', data);
+    },
+
     // ✅ ADMIN - Gestion utilisateurs
-    getAllUsers: () => apiClient.get('/auth/users'),
-    updateUserRole: (userId: string, role: string) => 
-        apiClient.put(`/auth/users/${userId}/role`, { role }),
-    toggleUserStatus: (userId: string, isActive: boolean) => 
-        apiClient.put(`/auth/users/${userId}/status`, { isActive }),
-    deleteUser: (userId: string) => apiClient.delete(`/auth/users/${userId}`),
+    getAllUsers: () => cachedRequest('auth-users', () =>
+        apiClient.get('/auth/users')
+    ),
+
+    updateUserRole: (userId: string, role: string) => {
+        // Ne pas mettre en cache les mises à jour
+        return apiClient.put(`/auth/users/${userId}/role`, { role });
+    },
+
+    toggleUserStatus: (userId: string, isActive: boolean) => {
+        // Ne pas mettre en cache les mises à jour
+        return apiClient.put(`/auth/users/${userId}/status`, { isActive });
+    },
+
+    deleteUser: (userId: string) => {
+        // Ne pas mettre en cache les suppressions
+        return apiClient.delete(`/auth/users/${userId}`);
+    },
 };
 
 export const applicationService = {
@@ -145,8 +223,12 @@ export const notificationService = {
 };
 
 export const dashboardService = {
-    getKPIs: () => apiClient.get('/dashboard/kpis'),
-    getStats: () => apiClient.get('/dashboard/stats'),
+    getKPIs: () => cachedRequest('dashboard-kpis', () =>
+        apiClient.get('/dashboard/kpis')
+    ),
+    getStats: () => cachedRequest('dashboard-stats', () =>
+        apiClient.get('/dashboard/stats')
+    ),
 };
 
 export const searchService = {

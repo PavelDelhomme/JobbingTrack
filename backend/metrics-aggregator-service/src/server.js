@@ -5,7 +5,6 @@ const cors = require('cors')
 const helmet = require('helmet')
 const morgan = require('morgan')
 const cron = require('node-cron')
-const Docker = require('dockerode')
 const si = require('systeminformation')
 const axios = require('axios')
 
@@ -13,7 +12,7 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    origin: process.env.FRONTEND_URL || "http://localhost:8080",
     methods: ["GET", "POST"]
   }
 })
@@ -21,13 +20,12 @@ const io = new Server(server, {
 // Middleware de sécurité
 app.use(helmet())
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3001"
+  origin: process.env.FRONTEND_URL || "http://localhost:8080"
 }))
 app.use(morgan('combined'))
 app.use(express.json())
 
-// Configuration Docker
-const docker = new Docker()
+// Docker non accessible depuis les conteneurs
 
 // Configuration des services connus
 const KNOWN_SERVICES = {
@@ -59,67 +57,30 @@ let containerMetrics = {}
 
 // Fonction pour découvrir automatiquement les conteneurs
 async function discoverServices() {
+  console.log('[DISCOVERY] === DÉBUT DÉCOUVERTE ===')
   try {
-    console.log('[DISCOVERY] Démarrage de la découverte automatique des services...')
+    console.log('[DISCOVERY] Docker API non accessible, utilisation des services configurés statiquement...')
 
-    const containers = await docker.listContainers({ all: true })
+    // Retourner les services configurés statiquement car Docker API n'est pas accessible
     const discoveredServices = {}
 
-    for (const container of containers) {
-      const containerName = container.Names[0]?.replace('/', '') || container.Id.substring(0, 12)
-      const imageName = container.Image
-
-      // Vérifier si c'est un service connu ou si c'est un nouveau service
-      if (KNOWN_SERVICES[containerName]) {
-        const serviceConfig = KNOWN_SERVICES[containerName]
-        discoveredServices[containerName] = {
-          ...serviceConfig,
-          containerId: container.Id,
-          status: container.State,
-          image: imageName,
-          containerName: containerName,
-          discovered: true
-        }
-      } else if (imageName.includes('postgres')) {
-        discoveredServices[containerName] = {
-          port: 5432,
-          type: 'database',
-          containerId: container.Id,
-          status: container.State,
-          image: imageName,
-          containerName: containerName,
-          discovered: true
-        }
-      } else if (imageName.includes('redis')) {
-        discoveredServices[containerName] = {
-          port: 6379,
-          type: 'cache',
-          containerId: container.Id,
-          status: container.State,
-          image: imageName,
-          containerName: containerName,
-          discovered: true
-        }
-      }
-    }
-
-    // Fusionner avec les services connus
+    // Ajouter tous les services configurés comme non démarrés
     Object.keys(KNOWN_SERVICES).forEach(serviceName => {
-      if (!discoveredServices[serviceName]) {
-        discoveredServices[serviceName] = {
-          ...KNOWN_SERVICES[serviceName],
-          containerId: null,
-          status: 'not_running',
-          discovered: false
-        }
+      discoveredServices[serviceName] = {
+        ...KNOWN_SERVICES[serviceName],
+        containerId: null,
+        status: 'not_running',
+        discovered: false
       }
     })
 
-    console.log(`[DISCOVERY] ${Object.keys(discoveredServices).length} services découverts`)
+    console.log(`[DISCOVERY] ${Object.keys(discoveredServices).length} services configurés`)
+    console.log('[DISCOVERY] === FIN DÉCOUVERTE ===')
     return discoveredServices
 
   } catch (error) {
     console.error('[DISCOVERY] Erreur lors de la découverte:', error)
+    console.log('[DISCOVERY] === ERREUR DÉCOUVERTE ===')
     return {}
   }
 }
@@ -129,24 +90,6 @@ async function testServiceHealth(serviceName, serviceConfig) {
   const startTime = Date.now()
 
   try {
-    if (serviceConfig.type === 'database') {
-      // Test de base de données PostgreSQL
-      return {
-        status: 'online',
-        responseTime: Date.now() - startTime,
-        version: 'PostgreSQL 15'
-      }
-    }
-
-    if (serviceConfig.type === 'cache') {
-      // Test Redis
-      return {
-        status: 'online',
-        responseTime: Date.now() - startTime,
-        version: 'Redis 7'
-      }
-    }
-
     // Test HTTP pour les services web
     const baseUrl = process.env.NODE_ENV === 'production'
       ? `http://${serviceName}:${serviceConfig.port}`
@@ -217,128 +160,87 @@ async function collectSystemMetrics() {
   }
 }
 
-// Fonction pour collecter les métriques de cAdvisor
-async function collectCadvisorMetrics() {
+// Fonction pour collecter les métriques des conteneurs depuis Prometheus
+async function collectContainerMetrics() {
+  console.log('[CONTAINERS] === DÉBUT COLLECTE CONTENEURS ===')
   try {
-    const response = await axios.get('http://localhost:8080/api/v1.3/docker/', {
-      timeout: 5000
-    })
+    console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
 
-    if (response.data) {
-      const cadvisorMetrics = {}
+    // Configuration Prometheus
+    const prometheusUrl = process.env.PROMETHEUS_URL || 'http://localhost:9090'
 
-      // Traiter les métriques de chaque conteneur
-      Object.keys(response.data).forEach(containerId => {
-        const containerData = response.data[containerId]
-        const containerName = Object.keys(containerData.aliases || {})[0] || containerId.substring(0, 12)
+    // Récupérer les métriques CPU des conteneurs
+    const cpuQuery = 'rate(container_cpu_usage_seconds_total[5m]) * 100'
+    const memoryQuery = 'container_memory_usage_bytes / container_spec_memory_limit_bytes * 100'
 
-        if (containerData.stats && containerData.stats.length > 0) {
-          const latestStats = containerData.stats[containerData.stats.length - 1]
+    const [cpuResponse, memoryResponse] = await Promise.all([
+      axios.get(`${prometheusUrl}/api/v1/query`, {
+        params: { query: cpuQuery },
+        timeout: 5000
+      }),
+      axios.get(`${prometheusUrl}/api/v1/query`, {
+        params: { query: memoryQuery },
+        timeout: 5000
+      })
+    ])
 
-          cadvisorMetrics[containerName] = {
-            memory: {
-              usage: Math.round(latestStats.memory?.usage || 0),
-              max_usage: Math.round(latestStats.memory?.max_usage || 0),
-              limit: Math.round(latestStats.memory?.limit || 0)
-            },
-            cpu: {
-              usage: latestStats.cpu?.usage?.total || 0,
-              system: latestStats.cpu?.usage?.system || 0,
-              user: latestStats.cpu?.usage?.user || 0
-            },
-            network: {
-              rx_bytes: latestStats.network?.rx_bytes || 0,
-              tx_bytes: latestStats.network?.tx_bytes || 0,
-              rx_errors: latestStats.network?.rx_errors || 0,
-              tx_errors: latestStats.network?.tx_errors || 0
-            },
-            filesystem: latestStats.filesystem?.map(fs => ({
-              device: fs.device,
-              capacity: fs.capacity,
-              usage: fs.usage
-            })) || []
-          }
+    const containerMetrics = {}
+
+    // Traiter les métriques CPU
+    if (cpuResponse.data.status === 'success' && cpuResponse.data.data.result) {
+      console.log(`[PROMETHEUS] Traitement de ${cpuResponse.data.data.result.length} métriques CPU`)
+      cpuResponse.data.data.result.forEach(metric => {
+        const containerId = metric.metric.id || metric.metric.name || 'unknown'
+        const containerName = containerId.replace('/', '').replace(/^\//, '') || 'system'
+        const cpuUsage = parseFloat(metric.value[1])
+
+        console.log(`[PROMETHEUS] CPU ${containerName}: ${cpuUsage}`)
+
+        if (!containerMetrics[containerName]) {
+          containerMetrics[containerName] = {}
+        }
+        containerMetrics[containerName].cpu = {
+          usage: cpuUsage,
+          percentage: Math.min(100, Math.max(0, cpuUsage))
         }
       })
-
-      return cadvisorMetrics
     }
 
-    return {}
+    // Traiter les métriques mémoire
+    if (memoryResponse.data.status === 'success' && memoryResponse.data.data.result) {
+      console.log(`[PROMETHEUS] Traitement de ${memoryResponse.data.data.result.length} métriques mémoire`)
+      memoryResponse.data.data.result.forEach(metric => {
+        const containerId = metric.metric.id || metric.metric.name || 'unknown'
+        const containerName = containerId.replace('/', '').replace(/^\//, '') || 'system'
+        const memoryUsage = parseFloat(metric.value[1]) * 100
 
-  } catch (error) {
-    console.error('[CADVISOR] Erreur récupération métriques cAdvisor:', error.message)
-    return {}
-  }
-}
+        console.log(`[PROMETHEUS] Mémoire ${containerName}: ${memoryUsage}%`)
 
-// Fonction pour collecter les métriques des conteneurs
-async function collectContainerMetrics() {
-  try {
-    const containers = await docker.listContainers({ all: true })
-    const metrics = {}
-
-    // Essayer d'abord cAdvisor si disponible
-    const cadvisorMetrics = await collectCadvisorMetrics()
-
-    for (const container of containers) {
-      const containerName = container.Names[0]?.replace('/', '') || container.Id.substring(0, 12)
-
-      try {
-        // Utiliser cAdvisor si disponible, sinon Docker API
-        if (cadvisorMetrics[containerName]) {
-          metrics[containerName] = {
-            ...cadvisorMetrics[containerName],
-            status: container.State,
-            source: 'cadvisor'
-          }
-        } else {
-          // Fallback vers Docker API
-          const containerInfo = docker.getContainer(container.Id)
-          const stats = await containerInfo.stats({ stream: false })
-
-          if (stats && stats.memory_stats && stats.cpu_stats) {
-            const memoryUsage = stats.memory_stats.usage || 0
-            const memoryLimit = stats.memory_stats.limit || 1
-            const cpuUsage = stats.cpu_stats.cpu_usage?.total_usage || 0
-            const cpuSystem = stats.cpu_stats.system_cpu_usage || 1
-
-            metrics[containerName] = {
-              memory: {
-                usage: Math.round(memoryUsage / 1024 / 1024), // MB
-                limit: Math.round(memoryLimit / 1024 / 1024), // MB
-                percentage: Math.round((memoryUsage / memoryLimit) * 100)
-              },
-              cpu: {
-                usage: cpuUsage,
-                system: cpuSystem,
-                percentage: Math.round((cpuUsage / cpuSystem) * 100)
-              },
-              network: {
-                rx_bytes: stats.networks?.eth0?.rx_bytes || 0,
-                tx_bytes: stats.networks?.eth0?.tx_bytes || 0
-              },
-              status: container.State,
-              source: 'docker'
-            }
-          }
+        if (!containerMetrics[containerName]) {
+          containerMetrics[containerName] = {}
         }
-      } catch (error) {
-        console.error(`[METRICS] Erreur collecte métriques container ${containerName}:`, error)
-      }
+        containerMetrics[containerName].memory = {
+          usage: memoryUsage,
+          limit: 100, // Pourcentage
+          percentage: Math.min(100, Math.max(0, memoryUsage))
+        }
+      })
     }
 
-    containerMetrics = metrics
-    return metrics
+    console.log(`[CONTAINERS] Métriques collectées pour ${Object.keys(containerMetrics).length} conteneurs`)
+    console.log('[CONTAINERS] === FIN COLLECTE CONTENEURS ===')
+    return containerMetrics
 
   } catch (error) {
-    console.error('[METRICS] Erreur collecte métriques conteneurs:', error)
+    console.error('[METRICS] Erreur collecte métriques conteneurs depuis Prometheus:', error.message)
+    console.log('[CONTAINERS] === ERREUR COLLECTE CONTENEURS ===')
     return {}
   }
 }
 
 // Fonction principale de collecte des métriques
 async function collectAllMetrics() {
+  console.log('[COLLECTOR] === DÉBUT COLLECTE ===')
   try {
     console.log('[COLLECTOR] Démarrage de la collecte des métriques...')
 
@@ -364,6 +266,7 @@ async function collectAllMetrics() {
     }
 
     console.log(`[COLLECTOR] Métriques collectées pour ${Object.keys(servicesMetrics).length} services`)
+    console.log('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket
     io.emit('metrics-update', {
@@ -375,6 +278,7 @@ async function collectAllMetrics() {
 
   } catch (error) {
     console.error('[COLLECTOR] Erreur lors de la collecte:', error)
+    console.log('[COLLECTOR] === ERREUR COLLECTE ===')
   }
 }
 

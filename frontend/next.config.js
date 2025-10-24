@@ -26,6 +26,9 @@ const nextConfig = {
         ];
     },
     webpack: (config, { isServer }) => {
+        // Désactiver le cache webpack pour éviter les erreurs de cache corrompu
+        config.cache = false;
+
         config.watchOptions = {
             poll: 1000,
             aggregateTimeout: 300,

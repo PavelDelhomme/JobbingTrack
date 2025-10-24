@@ -1,6 +1,117 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
+// Fonction getSystemMetrics pour récupérer les métriques système
+const getSystemMetrics = async (req, res) => {
+  try {
+    // Essayer de récupérer les métriques depuis le service system-metrics-service
+    try {
+      const systemMetricsServiceUrl = process.env.SYSTEM_METRICS_SERVICE_URL || 'http://system-metrics-service:3005';
+      const response = await axios.get(`${systemMetricsServiceUrl}/api/v1/metrics/system`, {
+        headers: {
+          Authorization: req.headers.authorization
+        },
+        timeout: 5000
+      });
+
+      if (response.data && response.data.success) {
+        res.json({
+          success: true,
+          metrics: response.data.data,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+    } catch (systemMetricsError) {
+      logger.warn('Service system-metrics-service non disponible, utilisation fallback:', systemMetricsError.message);
+    }
+
+    // Fallback : métriques basiques du système via os-utils
+    const os = require('os-utils');
+    const si = require('systeminformation');
+
+    try {
+      const cpuUsage = await new Promise((resolve) => {
+        os.cpuUsage((percentage) => {
+          resolve(Math.round(percentage * 100));
+        });
+      });
+
+      const memData = await si.mem();
+      const memoryUsage = Math.round((memData.used / memData.total) * 100);
+
+      const diskData = await si.fsSize();
+      const diskUsage = diskData.length > 0 ? Math.round((diskData[0].used / diskData[0].size) * 100) : 0;
+
+      const systemMetrics = {
+        cpu: {
+          usage: cpuUsage,
+          cores: os.cpuCount(),
+          model: 'N/A'
+        },
+        memory: {
+          total: Math.round(memData.total / 1024 / 1024 / 1024), // GB
+          used: Math.round(memData.used / 1024 / 1024 / 1024), // GB
+          free: Math.round(memData.free / 1024 / 1024 / 1024), // GB
+          usage: memoryUsage
+        },
+        load: {
+          average: os.loadavg(1),
+          cores: os.loadavg()
+        },
+        disk: diskData.map(disk => ({
+          mount: disk.mount,
+          total: Math.round(disk.size / 1024 / 1024 / 1024), // GB
+          used: Math.round(disk.used / 1024 / 1024 / 1024), // GB
+          usage: Math.round((disk.used / disk.size) * 100)
+        }))
+      };
+
+      res.json({
+        success: true,
+        metrics: systemMetrics,
+        timestamp: new Date().toISOString()
+      });
+    } catch (fallbackError) {
+      logger.error('Erreur fallback métriques système:', fallbackError);
+
+      // Dernier fallback : métriques mockées
+      const systemMetrics = {
+        cpu: {
+          usage: '45%',
+          cores: '4',
+          model: 'Intel i7'
+        },
+        memory: {
+          total: '16GB',
+          used: '8GB',
+          free: '8GB',
+          usage: '50%'
+        },
+        load: {
+          average: '1.2',
+          cores: ['0.8', '1.2', '1.5']
+        },
+        disk: []
+      };
+
+      res.json({
+        success: true,
+        metrics: systemMetrics,
+        timestamp: new Date().toISOString(),
+        warning: 'Données mockées - services de métriques non disponibles'
+      });
+    }
+  } catch (error) {
+    logger.error('Erreur récupération métriques système:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des métriques système',
+      message: error.message
+    });
+  }
+};
+
 // Détecteur de doublons
 const findDuplicates = async (req, res) => {
   try {

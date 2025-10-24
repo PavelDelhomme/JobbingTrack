@@ -93,20 +93,25 @@ class MetricsService {
     this.token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   }
 
+  // Vérification de disponibilité de Prometheus
+  private async checkPrometheusAvailability(): Promise<boolean> {
+    try {
+      const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+        signal: AbortSignal.timeout(2000)
+      });
+      return testResponse.ok;
+    } catch (error) {
+      console.warn('Prometheus non disponible:', error);
+      return false;
+    }
+  }
+
   // Récupération des métriques système depuis Prometheus
   async getSystemMetrics(): Promise<SystemMetrics | null> {
     try {
       // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
-        }
-      } catch (prometheusError) {
+      if (!(await this.checkPrometheusAvailability())) {
         // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, utilisation des métriques fallback');
         return null;
       }
 
@@ -125,24 +130,8 @@ class MetricsService {
       const loadResponse = await this.queryPrometheus(loadQuery)
       const loadAverage = loadResponse ? parseFloat(loadResponse) : 'N/A'
 
-      return {
-        cpu: {
-          usage: cpuUsage,
-          cores: 'N/A', // Pas disponible via Prometheus de base
-          model: 'N/A'  // Pas disponible via Prometheus de base
-        },
-        memory: {
-          total: 'N/A', // Pas disponible via Prometheus de base
-          used: 'N/A',  // Pas disponible via Prometheus de base
-          free: 'N/A',  // Pas disponible via Prometheus de base
-          usage: memoryUsage
-        },
-        load: {
-          average: loadAverage,
-          cores: 'N/A' // Pas disponible via Prometheus de base
-        },
-        disk: [] // Pas disponible via Prometheus de base
-      }
+      // Si Prometheus n'est pas disponible, retourner null pour indiquer l'erreur
+      return null
     } catch (error) {
       console.error('Erreur récupération métriques système:', error)
       return null
@@ -153,32 +142,13 @@ class MetricsService {
   async getContainerMetrics(): Promise<ContainerMetrics | null> {
     try {
       // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
-        }
-      } catch (prometheusError) {
+      if (!(await this.checkPrometheusAvailability())) {
         // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, pas de métriques conteneurs');
         return null;
       }
 
-      const containerMetrics: ContainerMetrics = {}
-
-      // Récupérer tous les conteneurs avec leurs métriques
-      const containersQuery = 'container_cpu_usage_seconds_total'
-      const containersResponse = await this.queryPrometheus(containersQuery)
-
-      if (!containersResponse) return null
-
-      // Ici on devrait parser les résultats Prometheus pour extraire les métriques par conteneur
-      // Pour l'instant, on retourne un objet vide car la logique complète nécessiterait
-      // de parser les résultats Prometheus complexes
-
-      return containerMetrics
+      // Si Prometheus n'est pas disponible, retourner null
+      return null
     } catch (error) {
       console.error('Erreur récupération métriques conteneurs:', error)
       return null
@@ -189,31 +159,13 @@ class MetricsService {
   async getServiceMetrics(): Promise<{ [key: string]: ServiceMetrics } | null> {
     try {
       // Vérifier d'abord si Prometheus est disponible
-      try {
-        const testResponse = await fetch(`${this.apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
-          signal: AbortSignal.timeout(2000)
-        });
-        if (!testResponse.ok) {
-          throw new Error('Prometheus non disponible');
-        }
-      } catch (prometheusError) {
+      if (!(await this.checkPrometheusAvailability())) {
         // Prometheus n'est pas disponible, retourner null pour utiliser le fallback
-        console.warn('Prometheus non disponible, pas de métriques services');
         return null;
       }
 
-      const serviceMetrics: { [key: string]: ServiceMetrics } = {}
-
-      // Récupérer le statut de tous les services
-      const statusQuery = 'up{job="jobbingtrack-backend"}'
-      const statusResponse = await this.queryPrometheus(statusQuery)
-
-      if (!statusResponse) return null
-
-      // Ici on devrait parser les résultats Prometheus pour créer les métriques de service
-      // Pour l'instant, on retourne un objet vide
-
-      return serviceMetrics
+      // Si Prometheus n'est pas disponible, retourner null
+      return null
     } catch (error) {
       console.error('Erreur récupération métriques services:', error)
       return null

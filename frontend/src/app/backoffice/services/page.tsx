@@ -45,7 +45,6 @@ export default function ServicesPage() {
     { name: 'Frontend', url: 'http://localhost:3000', port: 3000, serviceType: 'frontend' },
     { name: 'Base de données', url: 'http://localhost:5432', port: 5432, serviceType: 'database' },
     { name: 'Redis', url: 'http://localhost:6379', port: 6379, serviceType: 'cache' },
-    { name: 'cAdvisor', url: 'http://localhost:8080/api/v1.3/docker/', port: 8080, serviceType: 'monitoring' },
     { name: 'Prometheus', url: 'http://localhost:9090/-/healthy', port: 9090, serviceType: 'monitoring' }
   ]
 
@@ -467,29 +466,11 @@ export default function ServicesPage() {
     }
   }
 
-  // Fonction pour tester cAdvisor
+  // Fonction pour tester cAdvisor (désactivée car non accessible depuis les conteneurs)
   const testCadvisor = async () => {
-    try {
-      const response = await axios.get('http://localhost:8080/api/v1.3/docker/', {
-        timeout: 5000
-      })
-
-      if (response.status === 200 && response.data) {
-        return {
-          status: 'online',
-          message: `cAdvisor accessible - ${Object.keys(response.data).length} conteneurs surveillés`
-        }
-      } else {
-        return {
-          status: 'offline',
-          message: 'cAdvisor non accessible'
-        }
-      }
-    } catch (error: any) {
-      return {
-        status: 'offline',
-        message: `Erreur cAdvisor: ${error.message}`
-      }
+    return {
+      status: 'offline',
+      message: 'cAdvisor non accessible depuis les conteneurs'
     }
   }
 
