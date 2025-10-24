@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Filter, X, Clock, TrendingUp, Zap, Database, Settings, Users, Bell, Archive, Trash2, Calendar, FileText } from 'lucide-react';
 import { useSearchIndex } from '@/hooks/useSearchIndex';
 import { searchService } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui';
+import { Input } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
+import { Badge } from '@/components/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
+import { Alert, AlertDescription } from '@/components/ui';
 
 interface OptimizedSearchProps {
   onResultSelect?: (result: any, module: string) => void;

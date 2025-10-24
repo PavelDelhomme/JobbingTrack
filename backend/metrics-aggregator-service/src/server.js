@@ -167,7 +167,7 @@ async function collectContainerMetrics() {
     console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
 
     // Configuration Prometheus
-    const prometheusUrl = process.env.PROMETHEUS_URL || 'http://localhost:9090'
+    const prometheusUrl = process.env.PROMETHEUS_URL || 'http://127.0.0.1:9090'
 
     // Récupérer les métriques CPU des conteneurs
     const cpuQuery = 'rate(container_cpu_usage_seconds_total[5m]) * 100'
