@@ -193,11 +193,7 @@ class TestRunner {
       timestamp: new Date().toISOString(),
       duration: Date.now() - this.startTime,
       results: this.results,
-      summary: {
-        total: Object.keys(this.results).length,
-        passed: Object.values(this.results).filter(r => r.success).length,
-        failed: Object.values(this.results).filter(r => !r.success).length
-      }
+      summary: this.calculateSummary()
     };
 
     fs.mkdirSync(path.dirname(reportPath), { recursive: true });
@@ -205,6 +201,41 @@ class TestRunner {
 
     this.log(`📊 Rapport généré: ${reportPath}`);
     return report;
+  }
+
+  calculateSummary() {
+    let totalTests = 0;
+    let passedTests = 0;
+    let failedTests = 0;
+
+    // Compter les tests dans chaque résultat
+    Object.values(this.results).forEach(result => {
+      if (result.output && typeof result.output === 'string') {
+        // Extraire les informations de Jest
+        const jestOutput = result.output;
+
+        // Chercher les lignes de résumé Jest
+        const testResults = jestOutput.match(/Tests?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
+        const testSuiteResults = jestOutput.match(/Test Suites?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
+
+        if (testResults) {
+          passedTests += parseInt(testResults[1]) || 0;
+          failedTests += parseInt(testResults[2]) || 0;
+          totalTests += (parseInt(testResults[1]) || 0) + (parseInt(testResults[2]) || 0);
+        } else if (testSuiteResults) {
+          // Fallback sur les test suites si pas de détails de tests
+          passedTests += parseInt(testSuiteResults[1]) || 0;
+          failedTests += parseInt(testSuiteResults[2]) || 0;
+          totalTests += (parseInt(testSuiteResults[1]) || 0) + (parseInt(testSuiteResults[2]) || 0);
+        }
+      }
+    });
+
+    return {
+      total: totalTests,
+      passed: passedTests,
+      failed: failedTests
+    };
   }
 }
 

@@ -1,0 +1,77 @@
+{
+  "timestamp": "2025-10-24T21:29:35.938Z",
+  "tests": [
+    {
+      "service": "apiGateway",
+      "endpoint": "/health",
+      "totalRequests": 50,
+      "concurrent": 5,
+      "successful": 50,
+      "failed": 0,
+      "totalTime": 87.64619200000014,
+      "averageTime": 55.1288317,
+      "requestsPerSecond": 570,
+      "successRate": "100.0%",
+      "timestamp": "2025-10-24T21:29:30.990Z"
+    },
+    {
+      "service": "companies",
+      "endpoint": "/api/v1/companies",
+      "totalRequests": 100,
+      "concurrent": 10,
+      "successful": 0,
+      "failed": 100,
+      "totalTime": 14.573598999999149,
+      "averageTime": 29.02350228000002,
+      "requestsPerSecond": 6862,
+      "successRate": "0.0%",
+      "timestamp": "2025-10-24T21:29:32.429Z"
+    },
+    {
+      "service": "applications",
+      "endpoint": "/api/v1/applications",
+      "totalRequests": 75,
+      "concurrent": 8,
+      "successful": 0,
+      "failed": 75,
+      "totalTime": 7.56211900000153,
+      "averageTime": 17.556123480000053,
+      "requestsPerSecond": 9918,
+      "successRate": "0.0%",
+      "timestamp": "2025-10-24T21:29:33.852Z"
+    },
+    {
+      "service": "auth",
+      "endpoint": "/health",
+      "totalRequests": 30,
+      "concurrent": 5,
+      "successful": 30,
+      "failed": 0,
+      "totalTime": 14.715063999999984,
+      "averageTime": 18.69333653333333,
+      "requestsPerSecond": 2039,
+      "successRate": "100.0%",
+      "timestamp": "2025-10-24T21:29:34.874Z"
+    },
+    {
+      "service": "apiGateway",
+      "endpoint": "/health",
+      "totalRequests": 200,
+      "concurrent": 50,
+      "successful": 200,
+      "failed": 0,
+      "totalTime": 231.43932099999893,
+      "averageTime": 184.88108664999984,
+      "requestsPerSecond": 864,
+      "successRate": "100.0%",
+      "timestamp": "2025-10-24T21:29:35.938Z"
+    }
+  ],
+  "summary": {
+    "totalRequests": 455,
+    "totalSuccessful": 280,
+    "overallSuccessRate": "61.5%",
+    "overallThroughput": "1278 req/s",
+    "evaluation": "poor"
+  }
+}

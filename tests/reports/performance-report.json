@@ -1,126 +1,42 @@
 {
-  "timestamp": "2025-10-24T20:51:14.021Z",
-  "api": [
-    {
-      "path": "/health",
-      "method": "GET",
-      "success": false,
-      "duration": 18.476616,
-      "error": "Error"
-    },
-    {
-      "path": "/api/auth/health",
-      "method": "GET",
-      "success": false,
-      "duration": 1.763103000000001,
-      "error": "Error"
-    },
-    {
-      "path": "/api/users/health",
-      "method": "GET",
-      "success": false,
-      "duration": 1.5291129999999953,
-      "error": "Error"
-    },
-    {
-      "path": "/api/companies/health",
-      "method": "GET",
-      "success": false,
-      "duration": 1.1008640000000014,
-      "error": "Error"
-    },
-    {
-      "path": "/api/applications/health",
-      "method": "GET",
-      "success": false,
-      "duration": 0.9779659999999808,
-      "error": "Error"
-    },
-    {
-      "path": "/api/dashboard/metrics",
-      "method": "GET",
-      "success": false,
-      "duration": 1.2233439999999973,
-      "error": "Error"
-    }
-  ],
+  "timestamp": "2025-10-24T21:36:26.294Z",
+  "availableServices": [],
+  "api": [],
   "load": {
-    "successful": 0,
-    "total": 50,
-    "averageTime": 47.749608640000005
+    "tests": [],
+    "overall": {
+      "successful": 0,
+      "total": 0,
+      "averageTime": null,
+      "successRate": "NaN%"
+    }
   },
-  "database": [
-    {
-      "query": "SELECT COUNT(*) FROM users...",
-      "duration": 3.741491999999994,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "query": "SELECT COUNT(*) FROM companies...",
-      "duration": 1.0247930000000451,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "query": "SELECT COUNT(*) FROM applications...",
-      "duration": 0.7607860000000528,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "query": "SELECT u.name, c.name, a.title\n       FROM applica...",
-      "duration": 0.6794390000000021,
-      "success": false,
-      "error": "Error"
-    }
-  ],
-  "frontend": [
-    {
-      "page": "/",
-      "duration": 0.7048849999999902,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "page": "/login",
-      "duration": 0.6243160000000216,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "page": "/dashboard",
-      "duration": 0.6405130000000554,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "page": "/applications",
-      "duration": 0.595536999999922,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "page": "/companies",
-      "duration": 0.6201210000000401,
-      "success": false,
-      "error": "Error"
-    },
-    {
-      "page": "/backoffice",
-      "duration": 0.6278409999999894,
-      "success": false,
-      "error": "Error"
-    }
-  ],
+  "database": [],
+  "frontend": [],
   "memory": {
-    "rss": 6553600,
-    "heapUsed": 6326328,
-    "heapTotal": 8912896
+    "rss": 45535232,
+    "heapUsed": 30724752,
+    "heapTotal": 45088768
   },
+  "stress": [],
   "summary": {
-    "totalTests": 17,
+    "totalTests": 0,
     "successfulTests": 0,
-    "averageResponseTime": 0
+    "averageResponseTime": 0,
+    "totalRequests": 0,
+    "successfulRequests": 0
+  },
+  "system": {
+    "platform": "linux",
+    "nodeVersion": "v24.7.0",
+    "memory": {
+      "rss": 126136320,
+      "heapTotal": 55775232,
+      "heapUsed": 39769512,
+      "external": 3396477,
+      "arrayBuffers": 19061
+    },
+    "uptime": 19.30529297,
+    "timestamp": "2025-10-24T21:36:26.464Z"
   }
 }

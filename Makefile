@@ -687,9 +687,12 @@ test-frontend: ## Tests frontend
 	@echo "⚛️ Tests frontend..."
 	cd frontend && npm run test
 
-# Tests de performance
-test-performance: ## Tests de performance
-	@echo "⚡ Tests de performance..."
+# Tests de performance adaptatifs
+test-performance: ## Tests de performance adaptatifs (détection automatique des services)
+	@echo "⚡ Tests de performance adaptatifs..."
+	@echo "🔍 Détection automatique des services disponibles"
+	@echo "🚀 Démarrage intelligent des services nécessaires"
+	@echo "🛑 Arrêt automatique des services temporaires"
 	node tests/performance/test-performance.js
 
 # Tests de sécurité
