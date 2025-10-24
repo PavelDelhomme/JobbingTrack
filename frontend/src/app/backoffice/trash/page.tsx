@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import { adminService } from '@/lib/api'
 
 interface DeletedItem {

@@ -17,16 +17,13 @@ export * from './modals'
 export * from './integrations'
 
 // Features
-export { default as AdminLayout } from './features/AdminLayout'
-export { default as Breadcrumb } from './Breadcrumb'
-export { GlobalSearch } from './GlobalSearch'
-export { OfflineActions } from './OfflineActions'
-export { SettingsPopup } from './SettingsPopup'
-export { ThemeProvider } from './ThemeProvider'
-export { AdvancedDataExporter } from './AdvancedDataExporter'
-export { OfflineNotification } from './OfflineNotification'
-export { OfflineStatus } from './OfflineStatus'
-export { OptimizedSearch } from './OptimizedSearch'
+export * from './features'
+
+// Badges
+export * from './badges'
+
+// Providers (vide pour le moment)
+// export * from './providers'
 
 // UI Components
 export * from './ui/'

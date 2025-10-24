@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Filter, Download, TrendingUp, Clock, AlertCircle, Zap } from 'lucide-react';
-import AdminLayout from '@/components/AdminLayout';
+import { AdminLayout } from '@/components/features';
 import { searchService } from '@/lib/api';
-import { OptimizedSearch } from '@/components/OptimizedSearch';
+import { OptimizedSearch } from '@/components/features';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { GlobalSearch } from '@/components/GlobalSearch';
+import { GlobalSearch } from '@/components/features';
 
 interface SearchResult {
   module: string;
