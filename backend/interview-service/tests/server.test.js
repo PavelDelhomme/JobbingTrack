@@ -1,14 +1,14 @@
 const request = require('supertest');
 const app = require('../src/server');
 
-describe('Contact Service - Tests de base', () => {
+describe('Interview Service - Tests de base', () => {
   test('GET /health devrait retourner 200', async () => {
     const response = await request(app)
       .get('/health')
       .expect(200);
 
     expect(response.body).toHaveProperty('status', 'OK');
-    expect(response.body).toHaveProperty('service', 'contact-service');
+    expect(response.body).toHaveProperty('service', 'interview-service');
     expect(response.body).toHaveProperty('timestamp');
     expect(response.body).toHaveProperty('version');
   });
@@ -19,20 +19,20 @@ describe('Contact Service - Tests de base', () => {
       .expect(404);
   });
 
-  test('GET /api/v1/contacts devrait retourner des données mockées', async () => {
+  test('GET /api/v1/interviews devrait retourner des données mockées', async () => {
     const response = await request(app)
-      .get('/api/v1/contacts')
+      .get('/api/v1/interviews')
       .expect(200);
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message');
-    expect(response.body).toHaveProperty('contacts');
+    expect(response.body).toHaveProperty('interviews');
     expect(response.body).toHaveProperty('total');
   });
 
-  test('OPTIONS /api/v1/contacts devrait retourner 204 pour CORS', async () => {
+  test('OPTIONS /api/v1/interviews devrait retourner 204 pour CORS', async () => {
     const response = await request(app)
-      .options('/api/v1/contacts')
+      .options('/api/v1/interviews')
       .expect(204);
 
     expect(response.status).toBe(204);
