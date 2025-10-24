@@ -118,7 +118,7 @@ const mobileEmulatorStyles = `
     border: none;
   }
 `
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import MobileNotificationCenter from '@/app/backoffice/components/MobileNotificationCenter'
 import { useAuth } from '@/lib/hooks/auth'
 import { api } from '@/lib/api'

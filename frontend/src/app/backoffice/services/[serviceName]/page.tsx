@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 
 export default function ServiceDetailPage() {
   const router = useRouter()

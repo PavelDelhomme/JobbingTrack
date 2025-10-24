@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import axios from 'axios'
 

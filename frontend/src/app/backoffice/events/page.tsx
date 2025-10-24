@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { eventService } from '@/lib/api'
-import { EventTypeBadge } from '@/components/EventTypeBadge'
+import { EventTypeBadge } from '@/components/badges'
 
 interface Event {
   id: string

@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar, Wifi } from 'lucide-react';
-import AdminLayout from '@/components/AdminLayout';
+import { AdminLayout } from '@/components/features';
 import { useCustomization } from '@/hooks/useCustomization';
-import { OfflineStatus } from '@/components/OfflineStatus';
-import { LinkedInIntegration } from '@/components/LinkedInIntegration';
-import { CalendarIntegration } from '@/components/CalendarIntegration';
+import { OfflineStatus } from '@/components/widgets';
+import { LinkedInIntegration } from '@/components/integrations';
+import { CalendarIntegration } from '@/components/integrations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';

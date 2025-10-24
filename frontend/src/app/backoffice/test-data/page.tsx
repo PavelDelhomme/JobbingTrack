@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import AdminLayout from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/features'
 import { adminService, authService } from '@/lib/api'
 
 interface GenerationConfig {

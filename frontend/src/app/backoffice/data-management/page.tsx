@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Edit, Trash2 } from 'lucide-react'
-import AdminLayout from '@/components/AdminLayout'
-import { AdvancedEditModal } from '@/components/AdvancedEditModal'
-import { AdvancedDataExporter } from '@/components/AdvancedDataExporter'
+import { AdminLayout } from '@/components/features'
+import { AdvancedEditModal } from '@/components/modals'
+import { AdvancedDataExporter } from '@/components/widgets'
 import { useAuth } from '@/lib/hooks/auth'
 
 interface Table {

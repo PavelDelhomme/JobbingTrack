@@ -5,7 +5,7 @@ import './styles/customization.css'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/hooks/auth'
 import { ThemeProvider } from '@/lib/hooks/theme'
-import { OfflineNotification } from '@/components/OfflineNotification'
+import { OfflineNotification } from '@/components/widgets'
 
 const inter = Inter({ subsets: ['latin'] })
 
