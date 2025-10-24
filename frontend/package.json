@@ -24,6 +24,10 @@
         "test:e2e:debug": "playwright test --debug",
         "test:e2e:report": "playwright show-report",
         "test:e2e:full": "./scripts/test-e2e.sh",
+        "test:e2e:mobile": "./scripts/test-mobile.sh",
+        "test:e2e:mobile:integrated": "./scripts/test-mobile-integrated.sh",
+        "test:e2e:api": "./scripts/test-api-only.sh",
+        "dev:mobile": "cd ../flutter-mobile-app && flutter run -d web-server --web-port 8090",
         "test:a11y": "playwright test --grep @accessibility",
         "test:all": "npm run test && npm run test:e2e"
     },

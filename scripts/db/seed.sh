@@ -131,7 +131,7 @@ create_admin_user() {
     INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
     VALUES (
         '$user_id',
-        '${ADMIN_EMAIL:-pavel@jobbingtrack.com}',
+        '${ADMIN_EMAIL}',
         '$hashed_password',
         'Super',
         'Administrateur',
@@ -149,8 +149,16 @@ create_admin_user() {
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Utilisateur administrateur créé${NC}"
-        echo "📧 Email: ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
-        echo "🔐 Mot de passe: SuperAdmin123!"
+        if [ -n "${ADMIN_EMAIL:-}" ]; then
+            echo "📧 Email: $ADMIN_EMAIL"
+        else
+            echo "📧 Email: [Défini dans le fichier .env]"
+        fi
+        if [ -n "${ADMIN_PASSWORD:-}" ]; then
+            echo "🔐 Mot de passe: $ADMIN_PASSWORD"
+        else
+            echo "🔐 Mot de passe: [Défini dans le fichier .env]"
+        fi
     else
         echo -e "${RED}❌ Échec de la création de l'utilisateur${NC}"
         return 1
@@ -225,8 +233,16 @@ main() {
     echo -e "\n${GREEN}✅ Seed de la base de données terminé avec succès !${NC}"
     echo ""
     echo -e "${BLUE}🔑 Informations de connexion :${NC}"
-    echo "   📧 Email: ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
-    echo "   🔐 Mot de passe: SuperAdmin123!"
+    if [ -n "${ADMIN_EMAIL:-}" ]; then
+        echo "   📧 Email: $ADMIN_EMAIL"
+    else
+        echo "   📧 Email: [Défini dans le fichier .env]"
+    fi
+    if [ -n "${ADMIN_PASSWORD:-}" ]; then
+        echo "   🔐 Mot de passe: $ADMIN_PASSWORD"
+    else
+        echo "   🔐 Mot de passe: [Défini dans le fichier .env]"
+    fi
     echo ""
     echo -e "${BLUE}🌐 Accédez à l'application :${NC}"
     echo "   Frontend: http://localhost:8080"

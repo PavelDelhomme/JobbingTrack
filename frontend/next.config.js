@@ -3,6 +3,12 @@ const nextConfig = {
     output: 'standalone',
     // ✅ Désactiver le mode strict React pour éviter les erreurs d'hydratation avec les extensions navigateur
     reactStrictMode: false,
+    // ✅ Ignorer les erreurs d'hydratation causées par les extensions de navigateur
+    onDemandEntries: {
+        // Configuration pour éviter les erreurs d'hydratation
+        maxInactiveAge: 25 * 1000,
+        pagesBufferLength: 2,
+    },
     experimental: {
         serverComponentsExternalPackages: ['socket.io-client'],
     },

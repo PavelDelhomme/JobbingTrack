@@ -7,81 +7,13 @@ import { AuthProvider } from '@/lib/hooks/auth'
 import { ThemeProvider, applyTheme, getSystemTheme } from '@/lib/hooks/theme'
 import { OfflineNotification } from '@/components/widgets'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { setupBrowserExtensionCleanup } from '@/utils/cleanBrowserExtensions'
 import { useEffect } from 'react'
 
 // Composant pour nettoyer les attributs d'extensions de navigateur
 function HydrationFix() {
   useEffect(() => {
-    // Nettoyer les attributs problématiques ajoutés par les extensions de navigateur
-    const cleanAttributes = () => {
-      const selectors = [
-        '[data-protonpass-form]',
-        '[data-lastpass-form]',
-        '[data-bitwarden-form]',
-        '[data-dashlane-form]',
-        '[data-keeper-form]',
-        '[data-1password-form]',
-        '[data-roboform-form]',
-        '[data-enpass-form]',
-        '[data-sticky-password-form]',
-        '[data-password-boss-form]'
-      ]
-
-      selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector)
-        elements.forEach(element => {
-          // Supprimer tous les attributs data-* qui peuvent causer des erreurs d'hydratation
-          Array.from(element.attributes)
-            .filter(attr => attr.name.startsWith('data-'))
-            .forEach(attr => element.removeAttribute(attr.name))
-        })
-      })
-    }
-
-    // Nettoyer immédiatement et plusieurs fois pour s'assurer que c'est fait
-    cleanAttributes()
-
-    // Nettoyer après le chargement du DOM
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', cleanAttributes)
-    } else {
-      // DOM déjà chargé, nettoyer à nouveau après un court délai
-      setTimeout(cleanAttributes, 10)
-      setTimeout(cleanAttributes, 100)
-    }
-
-    // Nettoyer après chaque interaction utilisateur
-    const handleInput = (e: Event) => {
-      cleanAttributes()
-    }
-
-    document.addEventListener('input', handleInput, true)
-    document.addEventListener('focus', handleInput, true)
-    document.addEventListener('click', handleInput, true)
-
-    // Observer les mutations du DOM pour nettoyer les nouveaux éléments
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' || mutation.type === 'attributes') {
-          cleanAttributes()
-        }
-      })
-    })
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-protonpass-form', 'data-lastpass-form', 'data-bitwarden-form']
-    })
-
-    return () => {
-      document.removeEventListener('DOMContentLoaded', cleanAttributes)
-      document.removeEventListener('input', handleInput, true)
-      document.removeEventListener('focus', handleInput, true)
-      document.removeEventListener('click', handleInput, true)
-      observer.disconnect()
-    }
+    return setupBrowserExtensionCleanup()
   }, [])
 
   return null

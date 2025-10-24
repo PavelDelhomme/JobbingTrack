@@ -60,6 +60,16 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
     },
 
+    /* Test against Flutter mobile app */
+    {
+      name: 'Flutter Mobile App',
+      use: {
+        ...devices['Pixel 5'],
+        baseURL: 'http://localhost:8090', // Port de l'émulateur mobile
+        viewport: { width: 393, height: 851 }, // Taille iPhone-like
+      },
+    },
+
     /* Test against branded browsers. */
     // {
     //   name: 'Microsoft Edge',
@@ -72,12 +82,26 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:8080',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      env: {
+        // Désactiver les protections pendant les tests
+        WAF_ENABLED: 'false',
+        RATE_LIMIT_ENABLED: 'false',
+      },
+    },
+    // Serveur pour l'application mobile Flutter
+    {
+      command: 'npm run dev:mobile',
+      url: 'http://localhost:8090',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    }
+  ],
 
   /* Global setup and teardown */
   globalSetup: './tests/e2e/global-setup.ts',

@@ -63,6 +63,7 @@ make health # Vérifier santé
 | [🔧 Services](docs/SERVICES.md) | Services disponibles |
 | [📡 API](docs/API.md) | Documentation API |
 | [🐛 Dépannage](docs/TROUBLESHOOTING.md) | Résolution problèmes |
+| [🧪 Tests](tests/README.md) | Suite de tests complète |
 
 ### Scripts
 
@@ -72,6 +73,7 @@ make health # Vérifier santé
 | [Docker](scripts/docker/README.md) | Gestion Docker |
 | [Database](scripts/db/README.md) | Scripts BDD |
 | [Health](scripts/health/README.md) | Santé services |
+| [Tests](tests/README.md) | Suite de tests complète |
 
 ---
 
@@ -89,6 +91,17 @@ make start-auth
 make stop-service SERVICE=backend
 make logs-service SERVICE=frontend
 
+
+### Tests
+
+make test-setup # Configuration tests
+make test # Tests complets
+make test-unit # Tests unitaires
+make test-e2e # Tests E2E (Playwright)
+make test-docker-images # Tests images Docker
+make test-system-verify # Vérification système
+
+📖 **[Guide des tests](tests/README.md)**
 
 ### Diagnostics
 

@@ -242,7 +242,7 @@ export default function BackofficePage() {
       try {
         setLoadingSystemMetrics(true)
 
-        // Vérifier d'abord que les services sont disponibles
+        // Vérifier d'abord que les services sont disponibles (gestion d'erreur silencieuse)
         try {
           const healthResponse = await fetch('http://localhost:3000/health', {
             signal: AbortSignal.timeout(2000)
@@ -252,7 +252,7 @@ export default function BackofficePage() {
             throw new Error('Services non disponibles')
           }
         } catch (healthError) {
-          console.log('Services non disponibles, métriques désactivées')
+          // Erreur silencieuse - services non disponibles (normal)
           setSystemMetrics({
             cpu: { usage: 'N/A', cores: 'N/A', model: 'Services indisponibles' },
             memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
