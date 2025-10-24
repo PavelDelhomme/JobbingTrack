@@ -1,12 +1,110 @@
 {
-  "timestamp": "2025-10-24T23:01:03.939Z",
-  "totalVulnerabilities": 66,
+  "timestamp": "2025-10-24T23:05:37.511Z",
+  "totalVulnerabilities": 70,
   "critical": 0,
-  "high": 1,
+  "high": 15,
   "medium": 1,
   "low": 0,
-  "secure": 59,
+  "secure": 45,
   "vulnerabilities": [
+    {
+      "endpoint": "/login",
+      "payload": "<script>alert(\"XSS\")</script>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "<img src=\"x\" onerror=\"alert(1)\">",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "javascript:alert(\"XSS\")",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "<svg onload=alert(1)>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "\"><script>alert(1)</script>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "'-alert(1)-'",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/login",
+      "payload": "'; DROP TABLE users; --",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "<script>alert(\"XSS\")</script>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "<img src=\"x\" onerror=\"alert(1)\">",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "javascript:alert(\"XSS\")",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "<svg onload=alert(1)>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "\"><script>alert(1)</script>",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "'-alert(1)-'",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
+    {
+      "endpoint": "/register",
+      "payload": "'; DROP TABLE users; --",
+      "vulnerability": "XSS",
+      "severity": "HIGH",
+      "description": "Injection XSS détectée"
+    },
     {
       "endpoint": "/api/applications",
       "vulnerability": "CSRF",
@@ -17,25 +115,25 @@
       "endpoint": "/api/users/profile",
       "vulnerability": "Auth Bypass",
       "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
+      "description": "Erreur inattendue: Request failed with status code 404"
     },
     {
       "endpoint": "/api/applications",
       "vulnerability": "Auth Bypass",
       "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
+      "description": "Erreur inattendue: Request failed with status code 404"
     },
     {
       "endpoint": "/api/companies",
       "vulnerability": "Auth Bypass",
       "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
+      "description": "Erreur inattendue: Request failed with status code 404"
     },
     {
       "endpoint": "/api/dashboard/metrics",
       "vulnerability": "Auth Bypass",
       "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
+      "description": "Erreur inattendue: Request failed with status code 404"
     },
     {
       "endpoint": "http://localhost:8080/api/auth/login",
@@ -44,9 +142,24 @@
       "description": "Aucun rate limiting détecté"
     },
     {
-      "header": "all",
-      "status": "ERROR",
-      "error": "Error"
+      "header": "x-content-type-options",
+      "status": "MISSING"
+    },
+    {
+      "header": "x-frame-options",
+      "status": "MISSING"
+    },
+    {
+      "header": "x-xss-protection",
+      "status": "MISSING"
+    },
+    {
+      "header": "strict-transport-security",
+      "status": "MISSING"
+    },
+    {
+      "header": "content-security-policy",
+      "status": "MISSING"
     }
   ]
 }

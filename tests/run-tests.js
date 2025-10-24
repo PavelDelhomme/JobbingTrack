@@ -216,6 +216,9 @@ class TestRunner {
         const jestOutput = result.output;
         const lines = jestOutput.split('\n');
 
+        let passedCount = 0;
+        let failedCount = 0;
+
         // Chercher les lignes de résumé Jest
         const testResultsMatch = jestOutput.match(/Tests?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
         const testSuiteResultsMatch = jestOutput.match(/Test Suites?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
@@ -230,13 +233,11 @@ class TestRunner {
           totalTests += (parseInt(testSuiteResultsMatch[1]) || 0) + (parseInt(testSuiteResultsMatch[2]) || 0);
         } else {
           // Compter les tests individuels plus précisément
-          let passedCount = 0;
-          let failedCount = 0;
-
           lines.forEach(line => {
+            const trimmed = line.trim();
             // Chercher les lignes de tests individuels
-            if (line.trim().match(/^✓/) || line.includes('✓')) passedCount++;
-            if (line.trim().match(/^✕/) || line.includes('✕')) failedCount++;
+            if (trimmed.startsWith('✓') || trimmed.includes('✓')) passedCount++;
+            if (trimmed.startsWith('✕') || trimmed.includes('✕')) failedCount++;
           });
 
           if (passedCount > 0 || failedCount > 0) {
