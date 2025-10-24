@@ -177,6 +177,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
         { name: 'Données de Test', href: '/backoffice/test-data', icon: '🎲' },
         { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
+        { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
+        { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
       ]
     },
   ]

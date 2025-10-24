@@ -391,6 +391,13 @@ export default function BackofficePage() {
                 Analytics
               </button>
               <button
+                onClick={() => router.push('/backoffice/performance-tests')}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors shadow-sm"
+              >
+                <Zap className="h-4 w-4" />
+                Tests Performance
+              </button>
+              <button
                 onClick={() => setShowServicesPopup(true)}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors shadow-sm"
               >
@@ -582,11 +589,12 @@ export default function BackofficePage() {
             href="/backoffice/security-analysis"
           />
           <MetricCard
-            title="Qualité Code"
+            title="Tests Performance"
             value="N/A"
-            subtitle="Coverage"
-            icon={<Database className="h-6 w-6" />}
-            color="green"
+            subtitle="Score"
+            icon={<Zap className="h-6 w-6" />}
+            color="purple"
+            href="/backoffice/performance-tests"
           />
         </div>
 

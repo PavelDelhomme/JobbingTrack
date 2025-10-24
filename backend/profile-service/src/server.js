@@ -37,7 +37,7 @@ app.get('/api/v1/profile-service', (req, res) => {
 
   res.json({
     success: true,
-    ...mockData.profile-service,
+    ...mockData,
     message: 'Données de démonstration'
   });
 });

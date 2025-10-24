@@ -1071,6 +1071,9 @@ test.describe('Tests de Sécurité', () => {
   return (
     <AdminLayout>
       <div className="h-screen flex flex-col bg-[#1e1e1e] text-white">
+        <>
+          {/* Menu bar - Style VS Code */}
+          <div className="bg-[#323233] border-b border-[#3e3e42] px-4 py-2 flex items-center justify-between">
         {/* Menu bar - Style VS Code */}
         <div className="bg-[#323233] border-b border-[#3e3e42] px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -1235,7 +1238,7 @@ test.describe('Tests de Sécurité', () => {
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
                         <RefreshCw className="h-3 w-3" />
                       </Button>
-      </div>
+                    </div>
 
                     {/* Structure des dossiers */}
                     <div className="space-y-1 text-sm">
@@ -1319,7 +1322,7 @@ test.describe('Tests de Sécurité', () => {
 
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-gray-300 mb-2">Environnements</h3>
-                      <Select value={selectedEnvironment} onValueChange={(value: any) => setSelectedEnvironment(value)}>
+                      <Select value={selectedEnvironment} onChange={(e) => setSelectedEnvironment(e.target.value)}>
                         <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1333,7 +1336,7 @@ test.describe('Tests de Sécurité', () => {
 
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-gray-300 mb-2">Base de données</h3>
-                      <Select value={testDatabase} onValueChange={(value: any) => setTestDatabase(value)}>
+                      <Select value={testDatabase} onChange={(e) => setTestDatabase(e.target.value)}>
                         <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1490,15 +1493,11 @@ test.describe('Tests de Sécurité', () => {
                           >
                             <Play className="h-3 w-3" />
                             <span>{project.name}</span>
-        </div>
-              ))}
-            </div>
-          </div>
-        </div>
-                )}
-              </div>
-            </div>
-          )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
         {/* Éditeur de code (centre) */}
         <div className="flex-1 flex flex-col">
@@ -1620,7 +1619,7 @@ test.describe('Tests de Sécurité', () => {
                 />
               </div>
             </div>
-          )}
+                  )}
 
           {/* Terminal (bas) */}
           {terminalVisible && (
@@ -1666,7 +1665,6 @@ test.describe('Tests de Sécurité', () => {
           </div>
         </div>
           )}
-      </div>
       </div>
 
       {/* Modal de création d'utilisateur de test */}

@@ -991,7 +991,24 @@ async function main() {
   const tester = new PerformanceTester();
 
   try {
-    await tester.runAllTests();
+    // Vérifier s'il y a une configuration via les variables d'environnement (lorsque appelé via API)
+    const configEnv = process.env.PERFORMANCE_TEST_CONFIG;
+    if (configEnv) {
+      try {
+        const config = JSON.parse(configEnv);
+        console.log(`⚙️ Configuration API détectée: ${config.testType} - ${config.services.join(', ')}`);
+
+        // Utiliser la configuration de l'API
+        await tester.runAPITests(config);
+      } catch (error) {
+        console.error('❌ Erreur parsing configuration API:', error.message);
+        await tester.runAllTests();
+      }
+    } else {
+      // Mode normal (ligne de commande)
+      await tester.runAllTests();
+    }
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Erreur fatale:', error.message);
@@ -999,8 +1016,119 @@ async function main() {
   }
 }
 
+// Mode API pour les tests personnalisés
+async function runAPITests(config) {
+  const tester = new PerformanceTester();
+
+  console.log(`🚀 Mode API: ${config.testType} tests`);
+  console.log(`📋 Services demandés: ${config.services.join(', ')}`);
+  console.log(`⏱️ Durée: ${config.duration}s`);
+  console.log(`👥 Utilisateurs concurrents: ${config.concurrentUsers}`);
+
+  try {
+    // 1. Détecter les services disponibles
+    const availableServiceNames = await tester.detectAvailableServices();
+
+    // 2. Marquer l'état initial des services
+    for (const [serviceName, serviceInfo] of tester.availableServices) {
+      serviceInfo.wasRunning = serviceInfo.status === 'running' || serviceInfo.status === 'healthy';
+    }
+
+    // 3. Filtrer les services selon la configuration API
+    const servicesToTest = config.services.length > 0
+      ? config.services.filter(service => availableServiceNames.includes(service))
+      : availableServiceNames.length > 0 ? availableServiceNames : ['apiGateway', 'frontend'];
+
+    console.log(`🎯 Services à tester: ${servicesToTest.join(', ')}`);
+
+    // 4. Démarrer les services nécessaires
+    await tester.startRequiredServices(servicesToTest);
+
+    // 5. Attendre que les services soient prêts
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 6. Redétecter les services après démarrage
+    await tester.detectAvailableServices();
+
+    const report = {
+      timestamp: new Date().toISOString(),
+      availableServices: Array.from(tester.availableServices.keys()),
+      config: config,
+      api: await tester.testAPIPerformance(),
+      load: await tester.testLoadPerformance(),
+      database: await tester.testDatabasePerformance(),
+      frontend: await tester.testFrontendPerformance(),
+      memory: await tester.testMemoryUsage(),
+      stress: await tester.testStressPerformance(),
+      summary: {
+        totalTests: 0,
+        successfulTests: 0,
+        averageResponseTime: 0,
+        totalRequests: 0,
+        successfulRequests: 0
+      }
+    };
+
+    // Calculer le résumé
+    const allResults = [
+      ...report.api,
+      ...report.database,
+      ...report.frontend
+    ];
+
+    const loadResults = report.load.tests || [];
+    const stressResults = report.stress || [];
+
+    report.summary.totalTests = allResults.length + loadResults.length + stressResults.length;
+    report.summary.successfulTests = allResults.filter(r => r.success).length +
+                                   loadResults.filter(r => r.successful > 0).length +
+                                   stressResults.filter(r => r.successful > 0).length;
+
+    report.summary.totalRequests = loadResults.reduce((sum, r) => sum + r.total, 0) +
+                                 stressResults.reduce((sum, r) => sum + r.total, 0);
+
+    report.summary.successfulRequests = loadResults.reduce((sum, r) => sum + r.successful, 0) +
+                                      stressResults.reduce((sum, r) => sum + r.successful, 0);
+
+    const successfulTimes = allResults
+      .filter(r => r.success && r.duration)
+      .map(r => r.duration);
+
+    if (successfulTimes.length > 0) {
+      report.summary.averageResponseTime = successfulTimes.reduce((sum, time) => sum + time, 0) / successfulTimes.length;
+    }
+
+    // Ajouter des métriques de performance système
+    report.system = {
+      platform: process.platform,
+      nodeVersion: process.version,
+      memory: process.memoryUsage(),
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    };
+
+    // Sauvegarder le rapport
+    const fs = require('fs');
+    const path = require('path');
+    const reportPath = path.join('tests', 'reports', 'performance-report.json');
+
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+
+    // 7. Arrêter les services temporaires
+    await tester.stopTemporaryServices();
+
+    console.log(`✅ Rapport API sauvegardé: ${reportPath}`);
+    return report;
+
+  } catch (error) {
+    console.error('❌ Erreur tests API:', error.message);
+    throw error;
+  }
+}
+
 if (require.main === module) {
   main();
 }
 
-module.exports = PerformanceTester;
+module.exports = { PerformanceTester, runAPITests };
