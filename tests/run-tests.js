@@ -213,22 +213,37 @@ class TestRunner {
     // Compter les tests dans chaque résultat
     Object.values(this.results).forEach(result => {
       if (result.output && typeof result.output === 'string') {
-        // Extraire les informations de Jest
         const jestOutput = result.output;
+        const lines = jestOutput.split('\n');
 
         // Chercher les lignes de résumé Jest
-        const testResults = jestOutput.match(/Tests?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
-        const testSuiteResults = jestOutput.match(/Test Suites?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
+        const testResultsMatch = jestOutput.match(/Tests?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
+        const testSuiteResultsMatch = jestOutput.match(/Test Suites?:\s*(\d+)\s*passed(?:,\s*(\d+)\s*failed)?/i);
 
-        if (testResults) {
-          passedTests += parseInt(testResults[1]) || 0;
-          failedTests += parseInt(testResults[2]) || 0;
-          totalTests += (parseInt(testResults[1]) || 0) + (parseInt(testResults[2]) || 0);
-        } else if (testSuiteResults) {
-          // Fallback sur les test suites si pas de détails de tests
-          passedTests += parseInt(testSuiteResults[1]) || 0;
-          failedTests += parseInt(testSuiteResults[2]) || 0;
-          totalTests += (parseInt(testSuiteResults[1]) || 0) + (parseInt(testSuiteResults[2]) || 0);
+        if (testResultsMatch) {
+          passedTests += parseInt(testResultsMatch[1]) || 0;
+          failedTests += parseInt(testResultsMatch[2]) || 0;
+          totalTests += (parseInt(testResultsMatch[1]) || 0) + (parseInt(testResultsMatch[2]) || 0);
+        } else if (testSuiteResultsMatch) {
+          passedTests += parseInt(testSuiteResultsMatch[1]) || 0;
+          failedTests += parseInt(testSuiteResultsMatch[2]) || 0;
+          totalTests += (parseInt(testSuiteResultsMatch[1]) || 0) + (parseInt(testSuiteResultsMatch[2]) || 0);
+        } else {
+          // Compter les tests individuels plus précisément
+          let passedCount = 0;
+          let failedCount = 0;
+
+          lines.forEach(line => {
+            // Chercher les lignes de tests individuels
+            if (line.trim().match(/^✓/) || line.includes('✓')) passedCount++;
+            if (line.trim().match(/^✕/) || line.includes('✕')) failedCount++;
+          });
+
+          if (passedCount > 0 || failedCount > 0) {
+            passedTests += passedCount;
+            failedTests += failedCount;
+            totalTests += passedCount + failedCount;
+          }
         }
       }
     });
