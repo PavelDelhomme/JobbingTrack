@@ -11,55 +11,195 @@ if (!fs.existsSync(pdfsDir)) {
   console.log('📁 Dossier pdfs créé');
 }
 
-// Liste des fichiers markdown à convertir (fichiers principaux mis à jour)
-const markdownFiles = [
-  'ARCHITECTURE.md',
-  'API.md',
-  'SERVICES.md',
-  'DEVELOPMENT.md'
+// Liste des fichiers markdown pour la documentation complète (nouvelle structure)
+const documentationCompleteFiles = [
+  // Index principal et navigation
+  'README.md',
+  'navigation.md',
+
+  // Architecture et infrastructure
+  'core/architecture.md',
+  'core/services.md',
+  'core/database.md',
+
+  // API et intégration
+  'api/api-reference.md',
+  'api/endpoints.md',
+
+  // Déploiement
+  'deployment/getting-started.md',
+  'deployment/production.md',
+  'deployment/security.md',
+
+  // Développement
+  'development/setup.md',
+  'development/workflow.md',
+  'development/testing.md',
+
+  // Guides spécialisés
+  'frontend/guide.md',
+  'mobile/guide.md',
+  'administration/guide.md',
+  'troubleshooting/guide.md',
+  'performance/guide.md',
+  'security/guide.md'
 ];
 
-// Liste complète des fichiers pour la documentation complète
-const allMarkdownFiles = [
-  'README.md',
-  'ARCHITECTURE.md',
-  'API.md',
-  'SERVICES.md',
-  'DEVELOPMENT.md',
-  'MAKEFILE.md',
-  'TESTING-GUIDE.md',
-  'TROUBLESHOOTING.md',
-  'deployment-guide.md',
-  'deployment-production.md',
-  'deployment-security-guide.md',
-  'security-guide.md',
+// Liste des anciens fichiers pour conversion (backward compatibility)
+const legacyMarkdownFiles = [
   'environment-variables.md',
-  'environment-variables-secure.md',
-  'getting-started.md',
-  'makefile-guide.md',
-  'frontend-guide.md',
-  'database-guide.md',
-  'administration-guide.md',
-  'api-guide.md',
-  'architecture-guide.md',
-  'CI-CD-PIPELINE.md',
-  'DEVELOPMENT-WORKFLOW.md',
-  'DOCKER_DETECTION_GUIDE.md',
-  'METRICS_SYSTEM_README.md',
-  'navigation-links.md',
-  'performance-guide.md',
-  'PORTABILITY_GUIDE.md',
-  'portainer-guide.md',
-  'postgresql-configuration.md',
-  'production-guide.md',
-  'STRUCTURE_FINALE.md',
-  'version-history.md'
+  'environment-variables-secure.md'
 ];
+
+// Fonction pour générer un PDF unique avec toute la documentation
+async function generateCompleteDocumentationPDF() {
+  console.log('📚 Génération du PDF de documentation complète...\n');
+
+  try {
+    const { mdToPdf } = require('md-to-pdf');
+
+    // Créer le contenu complet avec table des matières
+    let completeContent = `# 📚 Documentation Complète JobbingTrack v4.1
+
+## 🎯 Vue d'ensemble
+
+Documentation exhaustive du système JobbingTrack incluant architecture, APIs, déploiement, développement et guides pratiques.
+
+## 📋 Table des matières
+
+`;
+
+    // Générer la table des matières
+    const tocEntries = [];
+    let pageNumber = 1;
+
+    for (const file of documentationCompleteFiles) {
+      const filePath = path.join(docsDir, file);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : path.basename(file, '.md');
+
+        completeContent += `- [${title}](#${title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')})\n`;
+        tocEntries.push({ title, file, page: pageNumber });
+        pageNumber += Math.ceil(content.length / 2000); // Estimation du nombre de pages
+      }
+    }
+
+    completeContent += `\n---\n\n`;
+
+    // Ajouter le contenu de chaque fichier
+    for (const file of documentationCompleteFiles) {
+      const filePath = path.join(docsDir, file);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : path.basename(file, '.md');
+
+        completeContent += `\n\n<div style="page-break-before: always;"></div>\n\n`;
+        completeContent += `# ${title}\n\n`;
+        completeContent += `*Source: ${file}*\n\n`;
+        completeContent += content.replace(/^#\s+.+$/m, ''); // Supprimer le titre principal
+        completeContent += `\n\n---\n\n`;
+      }
+    }
+
+    // Écrire le fichier temporaire
+    const tempMdPath = path.join(docsDir, 'temp-documentation-complete.md');
+    fs.writeFileSync(tempMdPath, completeContent);
+
+    // Générer le PDF
+    const pdfPath = path.join(pdfsDir, 'documentation-complete.pdf');
+
+    // S'assurer que le dossier pdfs existe
+    if (!fs.existsSync(pdfsDir)) {
+      fs.mkdirSync(pdfsDir, { recursive: true });
+    }
+
+    await mdToPdf(
+      { path: tempMdPath },
+      {
+        dest: pdfPath,
+        pdf_options: {
+          format: 'A4',
+          margin: '1cm',
+          printBackground: true,
+          displayHeaderFooter: true,
+          headerTemplate: '<div style="font-size: 10px; text-align: center; width: 100%;">JobbingTrack Documentation Complète v4.1</div>',
+          footerTemplate: '<div style="font-size: 8px; text-align: center; width: 100%;"><span class="pageNumber"></span> / <span class="totalPages"></span></div>'
+        },
+        stylesheet: [path.join(docsDir, 'pdf-style.css')],
+        body_class: 'markdown-body',
+        css: `
+          .markdown-body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #24292e;
+          }
+          .markdown-body h1 {
+            color: #1f2328;
+            border-bottom: 2px solid #d0d7de;
+            padding-bottom: 0.3em;
+            page-break-after: avoid;
+          }
+          .markdown-body h2 {
+            border-bottom: 1px solid #d0d7de;
+            padding-bottom: 0.2em;
+            page-break-after: avoid;
+          }
+          .markdown-body code {
+            background-color: #f6f8fa;
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+          }
+          .markdown-body pre {
+            background-color: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 16px;
+            page-break-inside: avoid;
+          }
+          .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+          }
+          .markdown-body th, .markdown-body td {
+            border: 1px solid #d0d7de;
+            padding: 6px 13px;
+          }
+          .markdown-body th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+          }
+        `
+      }
+    );
+
+    // Nettoyer le fichier temporaire
+    fs.unlinkSync(tempMdPath);
+
+    console.log(`✅ PDF de documentation complète généré: ${pdfPath}`);
+    console.log(`📄 Nombre de pages estimé: ${pageNumber}`);
+
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération du PDF complet:', error.message);
+    return false;
+  }
+}
 
 async function generatePDF(markdownPath, pdfPath) {
   try {
     // Importer md-to-pdf correctement
     const { mdToPdf } = require('md-to-pdf');
+
+    // Créer le dossier parent si nécessaire
+    const parentDir = path.dirname(pdfPath);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+      console.log(`📁 Dossier créé: ${parentDir}`);
+    }
 
     await mdToPdf(
       { path: markdownPath },
@@ -129,13 +269,22 @@ async function generatePDF(markdownPath, pdfPath) {
 
 async function generatePDFs() {
   console.log('🚀 Début de la génération des PDFs...\n');
-  console.log('📋 Génération des fichiers principaux mis à jour...\n');
 
   let successCount = 0;
   let errorCount = 0;
 
-  // Générer les PDFs pour les fichiers principaux mis à jour
-  for (const file of markdownFiles) {
+  // 1. Générer le PDF de documentation complète
+  console.log('📚 Étape 1: Génération du PDF de documentation complète...\n');
+  const completePDFSuccess = await generateCompleteDocumentationPDF();
+  if (completePDFSuccess) {
+    successCount++;
+  } else {
+    errorCount++;
+  }
+
+  // 2. Générer les PDFs individuels (nouveaux fichiers)
+  console.log('\n📋 Étape 2: Génération des PDFs individuels (nouvelle structure)...\n');
+  for (const file of documentationCompleteFiles) {
     const markdownPath = path.join(docsDir, file);
     const pdfPath = path.join(pdfsDir, file.replace('.md', '.pdf'));
 
@@ -146,8 +295,13 @@ async function generatePDFs() {
       continue;
     }
 
-    console.log(`📄 Conversion de ${file}...`);
+    // Skip README.md (inclus dans le PDF complet)
+    if (file === 'README.md') {
+      console.log(`⏭️  Fichier inclus dans le PDF complet: ${file}`);
+      continue;
+    }
 
+    console.log(`📄 Conversion de ${file}...`);
     const success = await generatePDF(markdownPath, pdfPath);
     if (success) {
       successCount++;
@@ -156,10 +310,9 @@ async function generatePDFs() {
     }
   }
 
-  console.log(`\n📋 Génération des fichiers de documentation complets...\n`);
-
-  // Générer les PDFs pour tous les fichiers de documentation (sauf les principaux déjà traités)
-  for (const file of allMarkdownFiles) {
+  // 3. Générer les PDFs des anciens fichiers (backward compatibility)
+  console.log('\n📋 Étape 3: Génération des PDFs legacy (compatibilité)...\n');
+  for (const file of legacyMarkdownFiles) {
     const markdownPath = path.join(docsDir, file);
     const pdfPath = path.join(pdfsDir, file.replace('.md', '.pdf'));
 
@@ -170,14 +323,13 @@ async function generatePDFs() {
       continue;
     }
 
-    // Vérifier si c'est un fichier principal (déjà traité)
-    if (markdownFiles.includes(file)) {
-      console.log(`⏭️  Fichier déjà traité: ${file}`);
+    // Vérifier si c'est un fichier de la nouvelle structure (déjà traité)
+    if (documentationCompleteFiles.includes(file)) {
+      console.log(`⏭️  Fichier déjà traité dans la nouvelle structure: ${file}`);
       continue;
     }
 
-    console.log(`📄 Conversion de ${file}...`);
-
+    console.log(`📄 Conversion legacy de ${file}...`);
     const success = await generatePDF(markdownPath, pdfPath);
     if (success) {
       successCount++;
@@ -195,6 +347,13 @@ async function generatePDFs() {
     const pdfFiles = fs.readdirSync(pdfsDir).filter(file => file.endsWith('.pdf'));
     console.log(`\n📄 Fichiers PDF générés (${pdfFiles.length}):`);
     pdfFiles.forEach(file => console.log(`   - ${file}`));
+
+    // Mettre en évidence le PDF complet
+    if (pdfFiles.includes('documentation-complete.pdf')) {
+      console.log(`\n🌟 PDF PRINCIPAL: documentation-complete.pdf`);
+      console.log(`   📚 Documentation complète avec table des matières`);
+      console.log(`   📄 Contient tous les guides dans un seul fichier`);
+    }
   }
 }
 
