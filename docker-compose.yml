@@ -266,32 +266,6 @@ services:
       - full
     restart: unless-stopped
 
-  # Service d'authentification
-  #auth-service:
-  #  build:
-  #    context: ./backend/auth-service
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-auth-service
-  #  ports:
-  #    - "3001:3001"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3001
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.test:admin@jobbingtrack.test@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
-  #    - SMTP_HOST=smtp.ovh.net
-  #    - SMTP_PORT=587
-  #    - SMTP_USER=candidatures@example.invalid
-  #    - SMTP_PASS=V**Uw61^3*bz5c2AFrx&2d&%
-  #    - SMTP_FROM=JobbingTrack <candidatures@example.invalid>
-  #    - FRONTEND_URL=http://localhost:5173
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #  networks:
-  #    - jobbingtrack-network
-
   # Service Application
   application-service:
     image: jobbingtrack-application-service
@@ -320,27 +294,7 @@ services:
       - full
     restart: unless-stopped
 
-  # Service des candidatures
-  #application-service:
-  #  build:
-  #    context: ./backend/application-service
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-application-service
-  #  ports:
-  #    - "3002:3002"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3002
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.test:admin@jobbingtrack.test@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
+  # Service des candidatures - DÉFINI CI-DESSUS
 
   # Service Company
   company-service:
@@ -989,6 +943,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - full
+    restart: unless-stopped
+
+  # Service de statistiques Docker
+  docker-stats-service:
+    image: jobbingtrack-docker-stats-service
+    build:
+      context: ./backend/docker-stats-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-docker-stats
+    ports:
+      - "3015:3015"
+    environment:
+      - NODE_ENV=development
+      - PORT=3015
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
     profiles:
