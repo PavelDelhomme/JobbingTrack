@@ -46,7 +46,6 @@ services:
   # API Gateway Ancien
   # api-gateway:
   #   build:
-  #     context: ./backend/api-gateway
   #     dockerfile: Dockerfile
   #   container_name: jobbingtrack-api-gateway
   #   ports:
@@ -285,8 +284,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      auth-service:
-        condition: service_started
     networks:
       - jobbingtrack-network
     profiles:
@@ -327,27 +324,7 @@ services:
       - full
     restart: unless-stopped
 
-  # Service des entreprises
-  #company-service:
-  #  build:
-  #    context: ./backend/company-service
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-company-service
-  #  ports:
-  #    - "3003:3003"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3003
-   #    - DATABASE_URL=postgresql://pavel@jobbingtrack.com:pavel@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
+  # Service des entreprises - DÉFINI CI-DESSUS
 
 
   # Service Contact
@@ -384,7 +361,6 @@ services:
   # Service des contacts
   #contact-service:
   #  build:
-  #    context: ./backend/contact-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-contact-service
   #  ports:
@@ -437,7 +413,6 @@ services:
   # Service des entretiens
   #interview-service:
   #  build:
-  #    context: ./backend/interview-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-interview-service
   #  ports:
@@ -490,7 +465,6 @@ services:
 
   #call-service:
   #  build:
-  #    context: ./backend/call-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-call-service
   #  ports:
@@ -541,7 +515,6 @@ services:
     restart: unless-stopped
   #event-service:
   #  build:
-  #    context: ./backend/event-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-event-service
   #  ports:
@@ -593,7 +566,6 @@ services:
     restart: unless-stopped
   #followup-service:
   #  build:
-  #    context: ./backend/followup-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-followup-service
   #  ports:
@@ -644,7 +616,6 @@ services:
     restart: unless-stopped
   #profile-service:
   #  build:
-  #    context: ./backend/profile-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-profile-service
   #  ports:
@@ -702,7 +673,6 @@ services:
   # Service des notifications
   #notification-service:
   #  build:
-  #    context: ./backend/notification-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-notification-service
   #  ports:
@@ -750,7 +720,6 @@ services:
   # Service du dashboard
   #dashboard-service:
   #  build:
-  #    context: ./backend/dashboard-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-dashboard-service
   #  ports:
@@ -803,7 +772,6 @@ services:
   # Service de gestion des workflows
   #workflow-service:
   #  build:
-  #    context: ./backend/workflow-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-workflow-service
   #  ports:
@@ -829,7 +797,6 @@ services:
   #jobbingtrack-metrics-aggregator:
   #  image: jobbingtrack-metrics-aggregator
   #  build:
-  #    context: ./backend/metrics-aggregator-service
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-metrics-aggregator
   #  ports:
@@ -860,7 +827,6 @@ services:
   # Frontend
   #frontend:
   #  build:
-  #    context: ./frontend
   #    dockerfile: Dockerfile
   #  container_name: jobbingtrack-frontend
   #  ports:
