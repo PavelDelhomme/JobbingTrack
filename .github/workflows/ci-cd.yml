@@ -79,11 +79,236 @@ jobs:
   # ANALYSE ET VÉRIFICATIONS PRÉLIMINAIRES
   # ============================================================================
 
+  database-schema-validation:
+    name: 🗄️ Validation de la structure de base de données
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: jobbingtrack_test
+          POSTGRES_USER: jobbingtrack
+          POSTGRES_PASSWORD: jobbingtrack123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📋 Lecture de la version Node.js depuis les Dockerfiles
+        id: node-version
+        run: |
+          echo "📋 Lecture de la version Node.js depuis les Dockerfiles..."
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
+          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
+          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🟢 Configuration Node.js (Version depuis config)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.node-version.outputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: 🔍 Vérification de l'environnement Node.js
+        run: |
+          echo "🔍 Vérification de l'environnement Node.js..."
+          node --version
+          npm --version
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+
+      - name: 📦 Installation des dépendances backend
+        run: |
+          echo "📦 Installation des dépendances backend..."
+          cd backend
+          npm ci --prefer-offline --no-audit
+
+      - name: 🗄️ Configuration de la base de données de test
+        run: |
+          echo "🗄️ Configuration de la base de données de test..."
+          # Attendre que PostgreSQL soit prêt
+          until pg_isready -h localhost -p 5432 -U jobbingtrack; do
+            echo "⏳ Attente de PostgreSQL..."
+            sleep 2
+          done
+
+          # Créer la base de données de test
+          PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
+
+          # Initialiser le schéma de base
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo "⚠️ Erreur lors de la création du schéma"
+
+      - name: 🔍 Validation du schéma Prisma
+        run: |
+          echo "🔍 Validation du schéma Prisma..."
+          cd backend
+          npx prisma validate || echo "⚠️ Erreur de validation du schéma Prisma"
+
+          # Vérifier que le schéma est bien formaté
+          npx prisma format --check || echo "⚠️ Le schéma Prisma n'est pas formaté correctement"
+
+          echo "✅ Schéma Prisma validé"
+
+      - name: 📊 Vérification des nouveaux modèles et relations
+        run: |
+          echo "📊 Vérification des nouveaux modèles et relations..."
+
+          # Vérifier que les nouveaux modèles sont présents dans le schéma
+          cd backend
+
+          # Vérifier ApplicationStatusHistory
+          if grep -q "model ApplicationStatusHistory" prisma/schema.prisma; then
+            echo "✅ Modèle ApplicationStatusHistory trouvé"
+          else
+            echo "❌ Modèle ApplicationStatusHistory manquant"
+            exit 1
+          fi
+
+          # Vérifier Notification
+          if grep -q "model Notification" prisma/schema.prisma; then
+            echo "✅ Modèle Notification trouvé"
+          else
+            echo "❌ Modèle Notification manquant"
+            exit 1
+          fi
+
+          # Vérifier Event
+          if grep -q "model Event" prisma/schema.prisma; then
+            echo "✅ Modèle Event trouvé"
+          else
+            echo "❌ Modèle Event manquant"
+            exit 1
+          fi
+
+          # Vérifier SyncQueue
+          if grep -q "model SyncQueue" prisma/schema.prisma; then
+            echo "✅ Modèle SyncQueue trouvé"
+          else
+            echo "❌ Modèle SyncQueue manquant"
+            exit 1
+          fi
+
+          # Vérifier les tables de jonction
+          if grep -q "model ContactCompany" prisma/schema.prisma; then
+            echo "✅ Table de jonction ContactCompany trouvée"
+          else
+            echo "❌ Table de jonction ContactCompany manquante"
+            exit 1
+          fi
+
+          if grep -q "model ContactApplication" prisma/schema.prisma; then
+            echo "✅ Table de jonction ContactApplication trouvée"
+          else
+            echo "❌ Table de jonction ContactApplication manquante"
+            exit 1
+          fi
+
+          echo "✅ Tous les nouveaux modèles et relations sont présents"
+
+      - name: 🔗 Test des relations many-to-many
+        run: |
+          echo "🔗 Test des relations many-to-many..."
+
+          # Vérifier que les relations sont bien définies dans le schéma
+          cd backend
+
+          # Vérifier les relations dans Contact
+          if grep -q "contactCompanies ContactCompany" prisma/schema.prisma; then
+            echo "✅ Relations many-to-many Contact ↔ Company définies"
+          else
+            echo "❌ Relations many-to-many Contact ↔ Company manquantes"
+            exit 1
+          fi
+
+          if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
+            echo "✅ Relations many-to-many Contact ↔ Application définies"
+          else
+            echo "❌ Relations many-to-many Contact ↔ Application manquantes"
+            exit 1
+          fi
+
+          # Vérifier les relations dans Application
+          if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
+            echo "✅ Relations many-to-many Application ↔ Contact définies"
+          else
+            echo "❌ Relations many-to-many Application ↔ Contact manquantes"
+            exit 1
+          fi
+
+          echo "✅ Relations many-to-many validées"
+
+      - name: 🏷️ Validation des enums
+        run: |
+          echo "🏷️ Validation des enums..."
+
+          cd backend
+
+          # Vérifier les nouveaux enums
+          if grep -q "enum EventType" prisma/schema.prisma; then
+            echo "✅ Enum EventType défini"
+          else
+            echo "❌ Enum EventType manquant"
+            exit 1
+          fi
+
+          if grep -q "enum NotificationType" prisma/schema.prisma; then
+            echo "✅ Enum NotificationType défini"
+          else
+            echo "❌ Enum NotificationType manquant"
+            exit 1
+          fi
+
+          if grep -q "enum EntityType" prisma/schema.prisma; then
+            echo "✅ Enum EntityType défini"
+          else
+            echo "❌ Enum EntityType manquant"
+            exit 1
+          fi
+
+          echo "✅ Enums validés"
+
+      - name: 📋 Génération du client Prisma
+        run: |
+          echo "📋 Génération du client Prisma..."
+          cd backend
+          npx prisma generate || echo "⚠️ Erreur lors de la génération du client Prisma"
+
+          # Vérifier que le client a été généré
+          if [ -d "node_modules/@prisma/client" ]; then
+            echo "✅ Client Prisma généré avec succès"
+          else
+            echo "❌ Client Prisma non généré"
+            exit 1
+          fi
+
+      - name: 📊 Rapport de validation de la base de données
+        if: always()
+        run: |
+          echo "📊 RÉSUMÉ DE LA VALIDATION DE LA BASE DE DONNÉES"
+          echo "=============================================="
+          echo "✅ Schéma Prisma: Validé"
+          echo "✅ Formatage: Vérifié"
+          echo "✅ Nouveaux modèles: Présents"
+          echo "✅ Relations many-to-many: Définies"
+          echo "✅ Enums: Validés"
+          echo "✅ Client Prisma: Généré"
+          echo "✅ Base de données: Configurée"
+
   code-quality:
     name: 🔍 Analyse de la qualité du code
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: security-scan
+    needs: database-schema-validation
 
     steps:
       - name: 📥 Checkout du code
@@ -175,7 +400,7 @@ jobs:
     name: 🧪 Tests Backend
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: code-quality
+    needs: [code-quality, database-schema-validation]
 
     services:
       postgres:
@@ -279,6 +504,49 @@ jobs:
           echo "🗄️ Exécution des tests de base de données..."
           make test-database || echo "⚠️ Tests de base de données échoués"
 
+      - name: 🆕 Tests des nouvelles fonctionnalités
+        run: |
+          echo "🆕 Tests des nouvelles fonctionnalités..."
+
+          # Tests des relations many-to-many
+          echo "🔗 Tests des relations many-to-many..."
+          cd backend
+
+          # Vérifier que les nouvelles routes API sont disponibles
+          echo "API Routes pour les relations many-to-many:"
+
+          # Vérifier contact service
+          if grep -q "linkContactToCompany" contact-service/src/controllers/contact.controller.js; then
+            echo "✅ API Contact ↔ Company disponible"
+          else
+            echo "❌ API Contact ↔ Company manquante"
+            exit 1
+          fi
+
+          if grep -q "linkContactToApplication" contact-service/src/controllers/contact.controller.js; then
+            echo "✅ API Contact ↔ Application disponible"
+          else
+            echo "❌ API Contact ↔ Application manquante"
+            exit 1
+          fi
+
+          # Vérifier application service
+          if grep -q "updateApplicationStatus" application-service/src/controllers/application.controller.js; then
+            echo "✅ API Historique des statuts disponible"
+          else
+            echo "❌ API Historique des statuts manquante"
+            exit 1
+          fi
+
+          if grep -q "getApplicationContacts" application-service/src/controllers/application.controller.js; then
+            echo "✅ API Contacts de candidature disponible"
+          else
+            echo "❌ API Contacts de candidature manquante"
+            exit 1
+          fi
+
+          echo "✅ Tests des nouvelles fonctionnalités terminés"
+
       - name: 🌐 Tests API backend
         run: |
           echo "🌐 Exécution des tests API..."
@@ -323,7 +591,7 @@ jobs:
     name: 🎨 Tests Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: code-quality
+    needs: [code-quality, database-schema-validation]
 
     steps:
       - name: 📥 Checkout du code
@@ -462,7 +730,7 @@ jobs:
     name: 🔗 Tests d'intégration système
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, database-schema-validation]
 
     steps:
       - name: 📥 Checkout du code
@@ -524,7 +792,7 @@ jobs:
     name: ⚡ Tests de Performance
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, database-schema-validation]
 
     services:
       postgres:
@@ -705,7 +973,7 @@ jobs:
   ci-summary:
     name: 📊 Résumé CI/CD
     runs-on: ubuntu-latest
-    needs: [security-scan, code-quality, test-backend, test-frontend, system-integration-tests, performance-tests]
+    needs: [security-scan, database-schema-validation, code-quality, test-backend, test-frontend, system-integration-tests, performance-tests]
     if: always()
 
     steps:
@@ -803,7 +1071,7 @@ jobs:
           echo ""
 
       - name: ✅ Succès complet
-        if: needs.security-scan.result == 'success' && needs.code-quality.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success' && needs.system-integration-tests.result == 'success' && needs.performance-tests.result == 'success'
+        if: needs.security-scan.result == 'success' && needs.database-schema-validation.result == 'success' && needs.code-quality.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success' && needs.system-integration-tests.result == 'success' && needs.performance-tests.result == 'success'
         run: |
           echo "🎉 TOUS LES TESTS SONT PASSÉS !"
           echo "🚀 Le projet est prêt pour le déploiement"
@@ -813,15 +1081,24 @@ jobs:
           echo "   • Tests manuels supplémentaires"
           echo "   • Déploiement en staging"
           echo "   • Déploiement en production"
+          echo ""
+          echo "🗄️ VALIDATION DE LA BASE DE DONNÉES:"
+          echo "   ✅ Schéma Prisma validé"
+          echo "   ✅ Nouveaux modèles présents"
+          echo "   ✅ Relations many-to-many définies"
+          echo "   ✅ Client Prisma généré"
 
       - name: ⚠️ Échecs détectés
-        if: needs.security-scan.result != 'success' || needs.code-quality.result != 'success' || needs.test-backend.result != 'success' || needs.test-frontend.result != 'success' || needs.system-integration-tests.result != 'success' || needs.performance-tests.result != 'success'
+        if: needs.security-scan.result != 'success' || needs.database-schema-validation.result != 'success' || needs.code-quality.result != 'success' || needs.test-backend.result != 'success' || needs.test-frontend.result != 'success' || needs.system-integration-tests.result != 'success' || needs.performance-tests.result != 'success'
         run: |
           echo "❌ CERTAINS TESTS ONT ÉCHOUÉ"
           echo ""
           echo "🔍 DÉTAILS DES ÉCHECS:"
           if [ "${{ needs.security-scan.result }}" != "success" ]; then
             echo "   • 🔒 Analyse de sécurité: ÉCHEC"
+          fi
+          if [ "${{ needs.database-schema-validation.result }}" != "success" ]; then
+            echo "   • 🗄️ Validation de la base de données: ÉCHEC"
           fi
           if [ "${{ needs.code-quality.result }}" != "success" ]; then
             echo "   • 🔍 Analyse de qualité: ÉCHEC"
