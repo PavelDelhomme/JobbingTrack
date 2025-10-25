@@ -452,6 +452,7 @@ const services = {
   '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
   '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },
+  '/api/v1/workflows': { url: process.env.WORKFLOW_SERVICE_URL || 'http://workflow-service:3013', serviceName: 'workflow-service' },
   '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
   '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
   '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
@@ -460,40 +461,40 @@ const services = {
   '/api/v1/vulnerabilities': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' }
 };
 
-// Temporairement désactivé pour tester les routes admin
-// Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
-//   app.all(path, MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
-//     try {
-//       const targetPath = req.originalUrl.replace(path, '') || '/';
-//       const targetUrl = `${target}${targetPath}`;
+// ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
+Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
+  app.all(path + '*', MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
+    try {
+      const targetPath = req.originalUrl.replace(path, '') || '/';
+      const targetUrl = `${target}${targetPath}`;
 
-//       logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`);
+      logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`);
 
-//       const response = await axios({
-//         method: req.method,
-//         url: targetUrl,
-//         data: req.body,
-//         headers: req.headers,
-//         timeout: 5000,
-//         validateStatus: () => true
-//       });
+      const response = await axios({
+        method: req.method,
+        url: targetUrl,
+        data: req.body,
+        headers: req.headers,
+        timeout: 5000,
+        validateStatus: () => true
+      });
 
-//       Object.keys(response.headers).forEach(key => {
-//         res.set(key, response.headers[key]);
-//       });
+      Object.keys(response.headers).forEach(key => {
+        res.set(key, response.headers[key]);
+      });
 
-//       res.status(response.status).json(response.data);
-//     } catch (error) {
-//       logger.error(`Error proxying ${path}:`, error.message);
-//       res.status(200).json({
-//         success: true,
-//         data: [],
-//         fallback: true,
-//         message: `Service ${path} non disponible - données de démonstration`
-//       });
-//     }
-//   });
-// });
+      res.status(response.status).json(response.data);
+    } catch (error) {
+      logger.error(`Error proxying ${path}:`, error.message);
+      res.status(200).json({
+        success: true,
+        data: [],
+        fallback: true,
+        message: `Service ${path} non disponible - données de démonstration`
+      });
+    }
+  });
+});
 
 // ✅ Route pour récupérer la liste des services disponibles
 app.get('/api/v1/services', async (req, res) => {

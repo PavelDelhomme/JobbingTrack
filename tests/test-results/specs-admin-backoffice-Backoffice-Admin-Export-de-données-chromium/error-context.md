@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: 🎯
+          - button "☀️" [ref=e9] [cursor=pointer]:
+            - generic [ref=e10]: ☀️
+        - generic [ref=e11]:
+          - heading "JobbingTrack" [level=2] [ref=e12]
+          - paragraph [ref=e13]: Backoffice Administrateur
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: ❌
+          - generic [ref=e17]: Route non trouvée
+        - generic [ref=e18]:
+          - generic [ref=e19]: 📧 Email
+          - textbox "redacted@example.invalid" [ref=e20]: admin@jobbingtrack.test
+        - generic [ref=e21]:
+          - generic [ref=e22]: 🔐 Mot de passe
+          - generic [ref=e23]:
+            - textbox "••••••••" [ref=e24]: admin123
+            - button "👁️" [ref=e25] [cursor=pointer]
+        - button "🚀 Se connecter" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]:
+            - generic [ref=e28]: 🚀
+            - generic [ref=e29]: Se connecter
+        - generic [ref=e31]:
+          - generic [ref=e32]: 🧪
+          - generic [ref=e33]:
+            - paragraph [ref=e34]: "Compte de test :"
+            - generic [ref=e35]:
+              - paragraph [ref=e36]:
+                - strong [ref=e37]: "Email:"
+                - text: admin@jobbingtrack.test
+              - paragraph [ref=e38]:
+                - strong [ref=e39]: "Mot de passe:"
+                - text: password123
+            - paragraph [ref=e40]: 💡 Les champs sont pré-remplis pour faciliter les tests
+      - paragraph [ref=e42]: © 2025 JobbingTrack • Version 1.0.0
+    - paragraph [ref=e44]: 🖥️ Interface responsive - Accessible sur tous vos appareils
+  - alert [ref=e45]
+```

@@ -1,19 +1,16 @@
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>'],
   testMatch: [
-    '**/unit/**/*.test.js',
-    '**/unit/**/*.spec.js',
-    '**/integration/**/*.test.js',
-    '**/integration/**/*.spec.js',
-    '**/api/**/*.test.js',
-    '**/api/**/*.spec.js',
-    '**/backend/**/*.test.js',
-    '**/backend/**/*.spec.js',
-    '**/frontend/**/*.test.js',
-    '**/frontend/**/*.spec.js',
-    '**/mobile/**/*.test.js',
-    '**/mobile/**/*.spec.js'
+    '<rootDir>/unit/test-utils.js',
+    '<rootDir>/unit/test-environment-variables.js',
+    '<rootDir>/integration/test-frontend-integration.js',
+    '<rootDir>/integration/test-full-system.js',
+    '<rootDir>/integration/test-hydration-fixes.js',
+    '<rootDir>/integration/test-implementation.js',
+    '<rootDir>/integration/test-websocket.js',
+    '<rootDir>/integration/verify-test-system.js',
+    '**/tests/**/*.test.js',
+    '**/tests/**/*.spec.js'
   ],
   collectCoverageFrom: [
     '**/*.js',

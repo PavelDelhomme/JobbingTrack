@@ -1,0 +1,631 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modèle Utilisateur
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  password       String
+  firstName      String
+  lastName       String
+  phone          String?
+  profilePicture String?
+
+  // Champs pour reset password
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  // Champs administratifs
+  role     UserRole   @default(USER)
+  roles    String[]   @default([]) // Rôles multiples pour cumul : TESTER, ADMIN, etc.
+  isActive Boolean    @default(true)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  archivedAt DateTime?
+
+  // Champs de synchronisation
+  isDeleted  Boolean   @default(false)
+  isArchived Boolean   @default(false)
+  syncHash   String    @default("")
+  entityHash String    @default("")
+  lastSyncAt DateTime?
+
+  applications Application[]
+  contacts     Contact[]
+  reminders    Reminder[]
+  documents    Document[]
+  templates    MessageTemplate[]
+  maintenances ServiceMaintenance[]
+}
+
+// Modèle Entreprise
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications Application[]
+  contacts     Contact[]
+}
+
+// Modèle Plateforme de Candidature
+model Platform {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  website     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications Application[]
+}
+
+// Modèle Candidature
+model Application {
+  id              String            @id @default(cuid())
+  userId          String
+  companyId       String
+  platformId      String? // Plateforme de candidature utilisée
+  position        String
+  description     String?
+  location        String?
+  type            JobType           @default(FULL_TIME)
+  salary          String?
+  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime          @default(now()) // Date et heure d'envoi
+  jobUrl          String?
+  notes           String?
+  // Champs d'archivage
+  isArchived      Boolean           @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?           // ID de l'utilisateur qui a archivé
+  archivedReason  String?           // Raison de l'archivage
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    Company               @relation(fields: [companyId], references: [id])
+  platform   Platform?             @relation(fields: [platformId], references: [id])
+  interviews Interview[]
+  followUps  FollowUp[]
+  documents  ApplicationDocument[]
+  activities Activity[]
+  calls      Call[]
+}
+
+// Modèle Entretien
+model Interview {
+  id            String          @id @default(cuid())
+  applicationId String
+  type          InterviewType
+  scheduledAt   DateTime // Date et heure programmée
+  duration      Int? // en minutes
+  location      String?
+  meetingUrl    String?
+  interviewer   String?
+  notes         String?
+  status        InterviewStatus @default(PENDING)
+  feedback      String?
+  completedAt   DateTime? // Date et heure de fin
+  // Champs d'archivage
+  isArchived    Boolean         @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?         // ID de l'utilisateur qui a archivé
+  archivedReason String?        // Raison de l'archivage
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Contact
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String?
+  firstName       String
+  lastName        String
+  position        String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  notes           String?
+  lastContactDate DateTime?
+  // Champs d'archivage
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?   // ID de l'utilisateur qui a archivé
+  archivedReason  String?   // Raison de l'archivage
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company    Company?   @relation(fields: [companyId], references: [id])
+  followUps  FollowUp[]
+  activities Activity[]
+  calls      Call[]
+}
+
+// Modèle Relance
+model FollowUp {
+  id            String         @id @default(cuid())
+  applicationId String
+  contactId     String?
+  type          FollowUpType
+  scheduledDate DateTime // Date et heure programmée
+  completed     Boolean        @default(false)
+  completedDate DateTime? // Date et heure de fin
+  sentDate      DateTime? // Date et heure d'envoi effectif
+  subject       String
+  message       String?
+  response      String?
+  responseDate  DateTime? // Date et heure de réponse
+  status        FollowUpStatus @default(PENDING_FOLLOWUP)
+  // Champs d'archivage
+  isArchived    Boolean       @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?       // ID de l'utilisateur qui a archivé
+  archivedReason String?      // Raison de l'archivage
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact     Contact?    @relation(fields: [contactId], references: [id])
+}
+
+// ✅ NOUVEAU - Modèle Appel Téléphonique
+model Call {
+  id             String     @id @default(cuid())
+  applicationId  String // ⚠️ OBLIGATOIRE - Lié à une candidature
+  contactId      String? // Optionnel - Contact appelé
+  type           CallType   @default(OUTGOING)
+  scheduledDate  DateTime?
+  callDate       DateTime?
+  duration       Int? // en secondes
+  status         CallStatus @default(SCHEDULED)
+  notes          String?
+  outcome        String? // Résultat de l'appel
+  followUpNeeded Boolean    @default(false)
+  // Champs d'archivage
+  isArchived     Boolean    @default(false)
+  archivedAt     DateTime?
+  archivedBy     String?    // ID de l'utilisateur qui a archivé
+  archivedReason String?    // Raison de l'archivage
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+}
+
+// Modèle Document
+model Document {
+  id        String       @id @default(cuid())
+  userId    String
+  name      String
+  type      DocumentType
+  url       String
+  size      Int // en bytes
+  mimeType  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications ApplicationDocument[]
+}
+
+// Table de liaison Application-Document
+model ApplicationDocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  documentId    String
+  version       Int      @default(1)
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  document    Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, documentId, version])
+}
+
+// Modèle Rappel
+model Reminder {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  dueDate     DateTime
+  type        ReminderType
+  relatedId   String? // ID de l'application, interview, etc.
+  completed   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Template de Message
+model MessageTemplate {
+  id        String              @id @default(cuid())
+  userId    String
+  name      String
+  subject   String
+  content   String
+  type      MessageTemplateType
+  variables String[] // Variables disponibles: {{firstName}}, {{companyName}}, etc.
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Activité (pour l'historique)
+model Activity {
+  id            String       @id @default(cuid())
+  applicationId String?
+  contactId     String?
+  type          ActivityType
+  description   String
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+// Modèle Maintenance des Services
+model ServiceMaintenance {
+  id          String   @id @default(cuid())
+  serviceName String   @unique // Nom du service (ex: "auth-service", "application-service")
+  isActive    Boolean  @default(false) // Si le mode maintenance est activé
+  message     String? // Message personnalisé affiché pendant la maintenance
+  scheduledStart DateTime? // Date de début programmée
+  scheduledEnd   DateTime? // Date de fin programmée
+  activatedBy    String? // ID de l'utilisateur qui a activé la maintenance
+  activatedAt    DateTime @default(now())
+  deactivatedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations vers l'utilisateur qui a activé la maintenance (optionnel)
+  activator User? @relation(fields: [activatedBy], references: [id], onDelete: SetNull)
+}
+
+// === MODÈLES DE SÉCURITÉ ===
+
+// Logs de sécurité collectés en temps réel
+model SecurityLog {
+  id                String           @id @default(cuid())
+  timestamp         DateTime         @default(now())
+  level             SecurityLevel
+  category          SecurityCategory
+  eventType         SecurityEventType
+  message           String           @db.Text
+  sourceIP          String?          @db.VarChar(45)
+  userAgent         String?          @db.Text
+  userId            String?          @db.VarChar(100)
+  endpoint          String?          @db.VarChar(500)
+  method            String?          @db.VarChar(10)
+  statusCode        Int?
+  responseTime      Int?             // en millisecondes
+  country           String?          @db.VarChar(2)
+  city              String?          @db.VarChar(100)
+  riskScore         Float?           // score de risque de 0 à 100
+  isBlocked         Boolean          @default(false)
+  metadata          Json?            // informations supplémentaires
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@map("security_logs")
+}
+
+// Gestion des vulnérabilités de sécurité
+model Vulnerability {
+  id                String              @id @default(cuid())
+  title             String              @db.VarChar(200)
+  description       String              @db.Text
+  severity          VulnerabilitySeverity
+  cveId             String?             @db.VarChar(50)
+  cvssScore         Float?
+  affectedComponent String              @db.VarChar(100) // nom du composant/service affecté
+  status            VulnerabilityStatus  @default(OPEN)
+  discoveredAt      DateTime            @default(now())
+  resolvedAt        DateTime?
+  assignedTo        String?             @db.VarChar(100)
+  remediation       String?             @db.Text
+  tags              String[]            // technologies, frameworks, etc.
+  metadata          Json?               // informations supplémentaires
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("vulnerabilities")
+}
+
+// Tentatives d'intrusion détectées
+model IntrusionAttempt {
+  id                String     @id @default(cuid())
+  timestamp         DateTime   @default(now())
+  sourceIP          String     @db.VarChar(45)
+  country           String?    @db.VarChar(2)
+  city              String?    @db.VarChar(100)
+  attackType        AttackType
+  targetEndpoint    String     @db.VarChar(500)
+  method            String     @db.VarChar(10)
+  userAgent         String?    @db.Text
+  payload           String?    @db.Text // requête malveillante
+  riskScore         Float      // score de risque de 0 à 100
+  isBlocked         Boolean    @default(false)
+  blockReason       String?    @db.VarChar(200)
+  metadata          Json?      // informations supplémentaires
+
+  createdAt         DateTime   @default(now())
+
+  @@map("intrusion_attempts")
+}
+
+// Attaques DDoS détectées
+model DDoSAttack {
+  id                String        @id @default(cuid())
+  timestamp         DateTime      @default(now())
+  sourceIPs         String[]      // liste des IPs impliquées
+  countries         String[]      // pays d'origine
+  attackType        DDoSAttackType
+  targetEndpoint    String        @db.VarChar(500)
+  duration          Int           // durée en secondes
+  totalRequests     Int           // nombre total de requêtes
+  requestsPerSecond Float
+  isMitigated       Boolean       @default(false)
+  mitigationTime    Int?          // temps de mitigation en secondes
+  metadata          Json?         // informations supplémentaires
+
+  createdAt         DateTime      @default(now())
+
+  @@map("ddos_attacks")
+}
+
+// Alertes de sécurité générées
+model SecurityAlert {
+  id                String           @id @default(cuid())
+  timestamp         DateTime         @default(now())
+  level             SecurityLevel
+  title             String           @db.VarChar(200)
+  description       String           @db.Text
+  category          SecurityCategory
+  source            String           @db.VarChar(100) // IP, user, service
+  isAcknowledged    Boolean          @default(false)
+  acknowledgedBy    String?          @db.VarChar(100)
+  acknowledgedAt    DateTime?
+  resolvedAt        DateTime?
+  metadata          Json?            // informations supplémentaires
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@map("security_alerts")
+}
+
+// Métriques de sécurité collectées
+model SecurityMetric {
+  id                String   @id @default(cuid())
+  timestamp         DateTime @default(now())
+  metricType        String   @db.VarChar(50) // intrusion_attempts, ddos_attacks, vulnerabilities, etc.
+  value             Float
+  unit              String   @db.VarChar(20) // count, percentage, score, etc.
+  period            String   @db.VarChar(20) // hour, day, week, month
+  metadata          Json?    // informations supplémentaires
+
+  createdAt         DateTime @default(now())
+
+  @@map("security_metrics")
+}
+
+// ENUMS
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+  TEMPORARY
+  REMOTE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  CANDIDATE_PENDING // "Candidaté et en attente"
+  NO_RESPONSE // "Aucune réponse"
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP // "Aucune réponse après 1 relance"
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // "Aucune réponse après 2 relance"
+  FIRST_INTERVIEW_PENDING // "1er entretien en attente"
+  OTHER_INTERVIEW_PENDING // "Autre entretien en attente"
+  ACCEPTED_AFTER_INTERVIEW // "Retenue après entretien"
+  REJECTED_WITHOUT_INTERVIEW // "Non retenue sans entretien"
+  REJECTED_AFTER_INTERVIEW // "Non retenue après entretien"
+}
+
+enum InterviewType {
+  PHONE_SCREENING
+  VIDEO
+  ON_SITE
+  TECHNICAL
+  HR
+  MANAGER
+  TEAM
+  FINAL
+}
+
+enum InterviewStatus {
+  UPCOMING_ARRIVAL // "Entretien arrivé"
+  COMPLETED // "Entretien passé"
+  FEEDBACK_PENDING // "Retour prévu d'ici (plage de retour)"
+  PENDING // "Entretien en attente"
+}
+
+enum FollowUpType {
+  EMAIL
+  PHONE
+  LINKEDIN
+  MESSAGE
+  MEETING
+}
+
+enum FollowUpStatus {
+  PENDING_FOLLOWUP // "Relance et en attente"
+  POSITIVE_RESPONSE // "Retour positif reçu"
+  NEGATIVE_RESPONSE // "Retour négatif reçu"
+  NO_RESPONSE // "Aucun retour"
+  SCHEDULED_FOLLOWUP // "Relance prévisionnel"
+}
+
+// ✅ NOUVEAUX ENUMS pour les appels
+enum CallType {
+  OUTGOING // Appel sortant
+  INCOMING // Appel entrant
+  MISSED // Appel manqué
+}
+
+enum CallStatus {
+  SCHEDULED // Planifié
+  COMPLETED // Terminé
+  CANCELLED // Annulé
+  NO_ANSWER // Pas de réponse
+  VOICEMAIL // Message vocal laissé
+  RESCHEDULED // Replanifié
+}
+
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+  PORTFOLIO
+  CERTIFICATE
+  REFERENCE
+  OTHER
+}
+
+enum ReminderType {
+  APPLICATION_FOLLOWUP
+  INTERVIEW
+  DOCUMENT_UPDATE
+  GENERAL
+}
+
+enum MessageTemplateType {
+  APPLICATION
+  FOLLOWUP
+  THANK_YOU
+  WITHDRAWAL
+  NEGOTIATION
+}
+
+enum ActivityType {
+  APPLICATION_CREATED
+  APPLICATION_UPDATED
+  STATUS_CHANGED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  DOCUMENT_UPLOADED
+  FOLLOWUP_SENT
+  CONTACT_ADDED
+  NOTE_ADDED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  TESTER
+}
+
+// Enums pour la sécurité
+enum SecurityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VulnerabilitySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ACCEPTED_RISK
+}
+
+enum AttackType {
+  SQL_INJECTION
+  XSS
+  BRUTE_FORCE
+  CSRF
+  LFI
+  RFI
+  DIRECTORY_TRAVERSAL
+  COMMAND_INJECTION
+  FILE_UPLOAD
+  DOS
+  DDOS
+  SCANNING
+  SUSPICIOUS_ACTIVITY
+}
+
+enum DDoSAttackType {
+  VOLUMETRIC
+  PROTOCOL
+  APPLICATION
+}
+
+enum SecurityCategory {
+  AUTHENTICATION
+  AUTHORIZATION
+  INTRUSION
+  DDOS
+  VULNERABILITY
+  MALWARE
+  SUSPICIOUS_ACTIVITY
+  SYSTEM_ERROR
+  CONFIGURATION
+  COMPLIANCE
+}
+
+enum SecurityEventType {
+  LOGIN_ATTEMPT
+  LOGOUT
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+  SUSPICIOUS_ACTIVITY
+  BLOCKED_REQUEST
+  RATE_LIMIT_EXCEEDED
+  UNAUTHORIZED_ACCESS
+  DATA_BREACH
+  CONFIGURATION_CHANGE
+  SERVICE_ERROR
+  DEPENDENCY_VULNERABILITY
+}

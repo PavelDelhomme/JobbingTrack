@@ -3,5 +3,8 @@
     "axe-core": "^4.11.0",
     "lint": "^0.8.19",
     "playwright": "^1.56.1"
+  },
+  "devDependencies": {
+    "md-to-pdf": "^5.2.4"
   }
 }

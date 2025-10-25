@@ -190,6 +190,16 @@ export const applicationService = {
     update: (id: string, data: any) => apiClient.put(`/applications/${id}`, data),
     delete: (id: string) => apiClient.delete(`/applications/${id}`),
     getStats: () => apiClient.get('/applications/stats'),
+
+    // NOUVELLES MÉTHODES - Historique des statuts
+    updateStatus: (id: string, status: string, comment?: string) =>
+        apiClient.put(`/applications/${id}/status`, { status, comment }),
+    getStatusHistory: (id: string) =>
+        apiClient.get(`/applications/${id}/status-history`),
+
+    // NOUVELLES MÉTHODES - Contacts liés
+    getContacts: (id: string) =>
+        apiClient.get(`/applications/${id}/contacts`),
 };
 
 export const companyService = {
@@ -206,6 +216,16 @@ export const contactService = {
     create: (data: any) => apiClient.post('/contacts', data),
     update: (id: string, data: any) => apiClient.put(`/contacts/${id}`, data),
     delete: (id: string) => apiClient.delete(`/contacts/${id}`),
+
+    // NOUVELLES MÉTHODES - Relations many-to-many
+    linkToCompany: (id: string, companyId: string) =>
+        apiClient.post(`/contacts/${id}/link-company`, { companyId }),
+    linkToApplication: (id: string, applicationId: string) =>
+        apiClient.post(`/contacts/${id}/link-application`, { applicationId }),
+    getByCompany: (companyId: string) =>
+        apiClient.get(`/contacts/company/${companyId}`),
+    getByApplication: (applicationId: string) =>
+        apiClient.get(`/contacts/application/${applicationId}`),
 };
 
 export const interviewService = {

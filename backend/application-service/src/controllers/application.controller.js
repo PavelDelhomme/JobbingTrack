@@ -324,6 +324,145 @@ const deleteApplication = async (req, res, next) => {
   }
 };
 
+// NOUVEAU - Changer le statut d'une candidature
+const updateApplicationStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, comment } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Statut requis'
+      });
+    }
+
+    const existingApplication = await prisma.application.findFirst({
+      where: { id, userId: req.user.id }
+    });
+
+    if (!existingApplication) {
+      return res.status(404).json({
+        success: false,
+        error: 'Candidature non trouvée'
+      });
+    }
+
+    // Créer l'historique du changement de statut
+    const statusHistory = await prisma.applicationStatusHistory.create({
+      data: {
+        applicationId: id,
+        previousStatus: existingApplication.status,
+        newStatus: status,
+        comment: comment || null,
+        changedBy: req.user.id
+      }
+    });
+
+    // Mettre à jour le statut de la candidature
+    const application = await prisma.application.update({
+      where: { id },
+      data: { status }
+    });
+
+    res.json({
+      success: true,
+      message: 'Statut de la candidature mis à jour',
+      application,
+      statusHistory
+    });
+
+    logger.info(`Statut candidature ${id} changé de ${existingApplication.status} à ${status} par ${req.user.email}`);
+  } catch (error) {
+    logger.error('Erreur changement statut candidature:', error);
+    next(error);
+  }
+};
+
+// NOUVEAU - Obtenir l'historique des statuts d'une candidature
+const getApplicationStatusHistory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id }
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        error: 'Candidature non trouvée'
+      });
+    }
+
+    const statusHistory = await prisma.applicationStatusHistory.findMany({
+      where: { applicationId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: { changedAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      statusHistory,
+      total: statusHistory.length
+    });
+  } catch (error) {
+    logger.error('Erreur récupération historique statuts:', error);
+    next(error);
+  }
+};
+
+// NOUVEAU - Obtenir les contacts d'une candidature
+const getApplicationContacts = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const application = await prisma.application.findFirst({
+      where: { id, userId: req.user.id }
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        error: 'Candidature non trouvée'
+      });
+    }
+
+    const contacts = await prisma.contact.findMany({
+      where: {
+        userId: req.user.id,
+        contactApplications: {
+          some: {
+            applicationId: id
+          }
+        }
+      },
+      include: {
+        company: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      contacts,
+      total: contacts.length
+    });
+  } catch (error) {
+    logger.error('Erreur récupération contacts de la candidature:', error);
+    next(error);
+  }
+};
+
 const getHealth = async (req, res) => {
   res.json({
     success: true,
@@ -339,5 +478,8 @@ module.exports = {
   getApplication,
   updateApplication,
   deleteApplication,
+  updateApplicationStatus,
+  getApplicationStatusHistory,
+  getApplicationContacts,
   getHealth
 };
