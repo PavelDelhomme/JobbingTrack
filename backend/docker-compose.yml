@@ -89,7 +89,7 @@ services:
       # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
       - ./docker-compose.yml:/app/docker-compose.yml:ro
     #depends_on:
-    #  - docker-stats-service
+    #  - postgres
     networks:
       - jobbingtrack-network
 
@@ -289,27 +289,7 @@ services:
     networks:
       - jobbingtrack-network
   
-  # Gestion du calendrier et disponibilités
-  # calendar-service:
-  #   build:
-  #     context: ./calendar-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-calendar-service
-  #   ports:
-  #     - "3010:3010"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3010
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
-  #   networks:
-  #     - jobbingtrack-network
+  # Gestion du calendrier et disponibilités - SERVICE NON IMPLÉMENTÉ
 
   # Service des événements globaux
   event-service:
@@ -382,68 +362,11 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Service de gestion des workflows
-  # ⚠️ DÉSACTIVÉ - Service non implémenté
-  # scheduler-service:
-  #   build:
-  #     context: ./scheduler-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-scheduler-service
-  #   ports:
-  #     - "3014:3014"
-  #   networks:
-  #     - jobbingtrack-network
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3014
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
+  # Service de gestion des workflows - SERVICE NON IMPLÉMENTÉ
 
-  # Service de tracking de candidatures
-  # tracking-service:
-  #   build:
-  #     context: ./tracking-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-tracking-service
-  #   ports:
-  #     - "3008:3008"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3008
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
-  #   networks:
-  #     - jobbingtrack-network
+  # Service de tracking de candidatures - SERVICE NON IMPLÉMENTÉ
 
-  # Service de tests - temporairement commenté (fichier test-microservices.sh manquant)
-  # test-runner:
-  #   image: curlimages/curl:latest
-  #   container_name: jobbingtrack-test-runner
-  #   depends_on:
-  #     - api-gateway
-  #     - docker-stats-service
-  #     - deployment-service
-  #     - system-metrics-service
-  #     - security-service
-  #     # - scheduler-service  # ⚠️ DÉSACTIVÉ
-  #   networks:
-  #     - jobbingtrack-network
-  #   volumes:
-  #     - ./test-microservices.sh:/test-microservices.sh
-  #   command: ["sh", "/test-microservices.sh"]
-  #   profiles: ["testing"]
+  # Service de tests - SERVICE NON IMPLÉMENTÉ
 
 
 volumes:
