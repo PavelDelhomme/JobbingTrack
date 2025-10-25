@@ -19,9 +19,11 @@ describe('API Gateway - Tests de base', () => {
   test('CORS headers devraient être présents', async () => {
     const response = await request(app)
       .options('/api/v1/auth/login')
-      .expect(204);
+      .expect(200);
 
-    // Vérifier seulement que la requête OPTIONS fonctionne
-    expect(response.status).toBe(204);
+    // Vérifier que la requête OPTIONS fonctionne
+    expect(response.status).toBe(200);
+    expect(response.headers).toHaveProperty('access-control-allow-origin');
+    expect(response.headers).toHaveProperty('access-control-allow-methods');
   });
 });

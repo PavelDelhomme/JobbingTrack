@@ -89,11 +89,6 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
       - REDIS_URL=redis://redis:6379
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - jobbingtrack-network
     healthcheck:

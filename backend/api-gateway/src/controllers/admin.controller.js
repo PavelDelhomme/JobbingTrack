@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
+const axios = require('axios');
 
 // Map des noms de services frontend vers Docker (avec toutes les variantes possibles)
 const SERVICE_MAP = {
@@ -34,7 +35,14 @@ const SERVICE_MAP = {
  */
 const restartService = async (req, res) => {
   try {
-    const { serviceName } = req.body;
+    console.log('🔄 restartService appelé avec:');
+    console.log('  - req.body:', JSON.stringify(req.body));
+    console.log('  - req.params:', JSON.stringify(req.params));
+    console.log('  - req.user:', JSON.stringify(req.user));
+
+    // Extraire le nom du service du body ou des params
+    let serviceName = req.body?.serviceName || req.params?.serviceName;
+    console.log('  - serviceName extrait:', serviceName);
     
     // Vérifier les permissions admin
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
@@ -93,7 +101,8 @@ const restartService = async (req, res) => {
  */
 const stopService = async (req, res) => {
   try {
-    const { serviceName } = req.body;
+    // Extraire le nom du service du body ou des params
+    let serviceName = req.body?.serviceName || req.params?.serviceName;
     
     // Vérifier les permissions admin
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
@@ -160,7 +169,8 @@ const stopService = async (req, res) => {
  */
 const startService = async (req, res) => {
   try {
-    const { serviceName } = req.body;
+    // Extraire le nom du service du body ou des params
+    let serviceName = req.body?.serviceName || req.params?.serviceName;
     
     // Vérifier les permissions admin
     if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
@@ -216,9 +226,133 @@ const startService = async (req, res) => {
   }
 };
 
+/**
+ * Récupérer la liste de tous les services avec leur statut
+ */
+const getServicesList = async (req, res) => {
+  try {
+    logger.info('📋 Récupération de l\'état de tous les services');
+
+    // Essayer de récupérer les vraies informations depuis le service de métriques
+    try {
+      const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/metrics`, {
+        timeout: 5000
+      });
+
+      if (response.data && response.data.services) {
+        // Convertir les services du format du service metrics-aggregator vers notre format
+        const servicesStatus = Object.entries(response.data.services).map(([key, service]) => {
+          // Extraire le nom du service à partir de la clé Docker (jobbingtrack-api-gateway -> api-gateway)
+          const serviceName = key.replace('jobbingtrack-', '').replace('-service', '');
+
+          return {
+            name: serviceName,
+            status: service.health?.status || service.status || 'unknown',
+            port: service.port || 'N/A',
+            url: `http://localhost:${service.port || 'N/A'}`,
+            health: service.health?.status || service.status || 'unknown',
+            version: service.health?.version || '1.0.0',
+            environment: process.env.NODE_ENV || 'development',
+            type: service.type || 'service',
+            dataSource: 'metrics-aggregator',
+            lastCheck: service.lastCheck || new Date().toISOString(),
+            responseTime: service.health?.responseTime || 'N/A',
+            error: service.health?.error || undefined,
+            metrics: service.metrics || {}
+          };
+        });
+
+        logger.info(`✅ Services récupérés depuis le service de métriques (${servicesStatus.length} services) - données temps réel`);
+
+        return res.status(200).json({
+          success: true,
+          services: servicesStatus,
+          total: servicesStatus.length,
+          running: servicesStatus.filter(s => s.status === 'running' || s.status === 'online').length,
+          dataSource: 'metrics-aggregator',
+          message: 'Liste des services (données temps réel du système de monitoring)',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        throw new Error('Format de réponse invalide du service de métriques');
+      }
+    } catch (metricsError) {
+      logger.error('Service de métriques non disponible:', {
+        error: metricsError.message,
+        url: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
+        timestamp: new Date().toISOString()
+      });
+
+      // Fallback : retourner des données mockées si le service de métriques n'est pas disponible
+      const fallbackServices = [
+        {
+          name: 'api-gateway',
+          status: 'running',
+          port: 3000,
+          url: 'http://localhost:3000',
+          health: 'healthy',
+          version: '1.0.0',
+          environment: 'development',
+          type: 'api-gateway',
+          dataSource: 'fallback',
+          lastCheck: new Date().toISOString(),
+          responseTime: '45ms'
+        },
+        {
+          name: 'auth-service',
+          status: 'running',
+          port: 3001,
+          url: 'http://localhost:3001',
+          health: 'healthy',
+          version: '1.0.0',
+          environment: 'development',
+          type: 'auth',
+          dataSource: 'fallback',
+          lastCheck: new Date().toISOString(),
+          responseTime: '25ms'
+        },
+        {
+          name: 'frontend',
+          status: 'running',
+          port: 8080,
+          url: 'http://localhost:8080',
+          health: 'healthy',
+          version: '1.0.0',
+          environment: 'development',
+          type: 'frontend',
+          dataSource: 'fallback',
+          lastCheck: new Date().toISOString(),
+          responseTime: '120ms'
+        }
+      ];
+
+      return res.status(200).json({
+        success: true,
+        services: fallbackServices,
+        total: fallbackServices.length,
+        running: fallbackServices.filter(s => s.status === 'running').length,
+        dataSource: 'fallback',
+        fallback: true,
+        message: 'Liste des services (données de fallback - service de métriques indisponible)',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    logger.error('Error in services list:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur interne du serveur lors de la récupération des services',
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   restartService,
   stopService,
-  startService
+  startService,
+  getServicesList
 };
 
