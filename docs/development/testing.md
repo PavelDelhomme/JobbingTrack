@@ -1,0 +1,21 @@
+# 🧪 Tests et Qualité - JobbingTrack
+
+Guide des tests et de la qualité du code pour JobbingTrack v4.1.
+
+[← Retour au README principal](../../README.md)
+
+## 🎯 Vue d'ensemble
+
+Stratégies de tests complètes : unitaires, d'intégration, E2E et performance.
+
+---
+
+## 📚 Ressources
+
+- [Configuration développement](setup.md) - Environnement de développement
+- [Workflow développement](workflow.md) - Processus de développement
+
+---
+
+**Version**: 4.1 - Tests et qualité
+**Dernière mise à jour**: Octobre 2025
