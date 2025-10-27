@@ -156,7 +156,7 @@
   color: var(--accent-color) !important;
 }
 
-/* Animations personnalisées */
+/* Animations personnalisées améliorées */
 @keyframes slideInFromRight {
   from {
     transform: translateX(100%);
@@ -179,6 +179,28 @@
   }
 }
 
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -190,7 +212,7 @@
 
 @keyframes scaleIn {
   from {
-    transform: scale(0.9);
+    transform: scale(0.95);
     opacity: 0;
   }
   to {
@@ -199,13 +221,93 @@
   }
 }
 
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wiggle {
+  0%, 7% {
+    transform: rotateZ(0);
+  }
+  15% {
+    transform: rotateZ(-15deg);
+  }
+  20% {
+    transform: rotateZ(10deg);
+  }
+  25% {
+    transform: rotateZ(-10deg);
+  }
+  30% {
+    transform: rotateZ(6deg);
+  }
+  35% {
+    transform: rotateZ(-4deg);
+  }
+  40%, 100% {
+    transform: rotateZ(0);
+  }
+}
+
 /* Classes d'animation conditionnelles */
 .animate-slide-in-right {
-  animation: slideInFromRight 0.3s ease-out;
+  animation: slideInFromRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-slide-in-left {
-  animation: slideInFromLeft 0.3s ease-out;
+  animation: slideInFromLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-in-top {
+  animation: slideInFromTop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-fade-in {
@@ -213,7 +315,311 @@
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+}
+
+.animate-rotate {
+  animation: rotate 1s linear infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 1s ease-in-out infinite;
+}
+
+/* Animations de page */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Animations de modales */
+.modal-overlay-enter {
+  opacity: 0;
+}
+
+.modal-overlay-enter-active {
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+
+.modal-overlay-exit {
+  opacity: 1;
+}
+
+.modal-overlay-exit-active {
+  opacity: 0;
+  transition: opacity 0.15s ease-in;
+}
+
+.modal-content-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+}
+
+.modal-content-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-content-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.modal-content-exit-active {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transition: opacity 0.15s ease-in, transform 0.15s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Animations de cartes et éléments */
+.card-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+}
+
+.card-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stagger-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.stagger-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animations de liste */
+.list-item-enter {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.list-item-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.list-item-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.list-item-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Animations de chargement */
+.loading-dots {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 20px;
+}
+
+.loading-dots div {
+  position: absolute;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-dots div:nth-child(1) {
+  left: 8px;
+  animation: loading-dots1 0.6s infinite;
+}
+
+.loading-dots div:nth-child(2) {
+  left: 8px;
+  animation: loading-dots2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(3) {
+  left: 32px;
+  animation: loading-dots2 0.6s infinite;
+}
+
+.loading-dots div:nth-child(4) {
+  left: 56px;
+  animation: loading-dots3 0.6s infinite;
+}
+
+@keyframes loading-dots1 {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+@keyframes loading-dots3 {
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+
+@keyframes loading-dots2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(24px, 0); }
+}
+
+/* Animations de skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Transitions fluides pour les thèmes */
+.theme-transition {
+  transition: background-color 0.3s ease,
+              border-color 0.3s ease,
+              color 0.3s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease;
+}
+
+/* Animations pour les notifications */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+
+.notification-enter-active {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notification-exit {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.notification-exit-active {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+  transition: opacity 0.2s ease-in, transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Animations pour les graphiques */
+.chart-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.chart-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animations pour les formulaires */
+.form-field-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.form-field-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Transitions pour les onglets */
+.tab-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.tab-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease-out, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animations de succès/échec */
+.success-animation {
+  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.error-animation {
+  animation: wiggle 0.8s ease-in-out;
+}
+
+/* Transitions pour les boutons */
+.button-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button-hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Animations pour les métriques */
+.metric-enter {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.metric-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.metric-update {
+  animation: pulse 0.6s ease-in-out;
 }
 
 /* Responsive design pour les paramètres personnalisés */

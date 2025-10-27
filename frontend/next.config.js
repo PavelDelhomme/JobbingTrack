@@ -11,6 +11,28 @@ const nextConfig = {
     },
     experimental: {
         serverComponentsExternalPackages: ['socket.io-client'],
+        // ✅ Compression et optimisation des assets
+        optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+        // ✅ Optimisation CSS
+        optimizeCss: true,
+        // ✅ Tree shaking amélioré
+        turbo: {
+            rules: {
+                '*.svg': {
+                    loaders: ['@svgr/webpack'],
+                    as: '*.js',
+                },
+            },
+        },
+    },
+    // ✅ Compression des assets
+    compress: true,
+    // ✅ Optimisation des images
+    images: {
+        formats: ['image/webp', 'image/avif'],
+        deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+        imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+        minimumCacheTTL: 60,
     },
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
@@ -37,7 +59,49 @@ const nextConfig = {
             },
         ];
     },
-    webpack: (config, { isServer }) => {
+    webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+        // ✅ Optimisations de performance avancées
+        if (!dev) {
+            // Compression Gzip/Brotli
+            config.optimization = {
+                ...config.optimization,
+                splitChunks: {
+                    chunks: 'all',
+                    cacheGroups: {
+                        vendor: {
+                            test: /[\\/]node_modules[\\/]/,
+                            name: 'vendors',
+                            chunks: 'all',
+                        },
+                        default: {
+                            minChunks: 2,
+                            chunks: 'all',
+                            name: 'commons',
+                        },
+                    },
+                },
+                minimize: true,
+                minimizer: [
+                    new webpack.optimize.ModuleConcatenationPlugin(),
+                ],
+            };
+
+            // Tree shaking amélioré
+            config.optimization.usedExports = true;
+            config.optimization.sideEffects = false;
+        }
+
+        // ✅ Bundle analyzer pour la production
+        if (process.env.ANALYZE === 'true') {
+            const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+            config.plugins.push(
+                new BundleAnalyzerPlugin({
+                    analyzerMode: 'static',
+                    openAnalyzer: false,
+                })
+            );
+        }
+
         // Désactiver le cache webpack pour éviter les erreurs de cache corrompu
         config.cache = false;
 
@@ -67,7 +131,7 @@ const nextConfig = {
                 config.externals['socket.io-client'] = 'socket.io-client';
             }
         }
-        
+
         // Configuration fallback existante
         config.resolve.fallback = {
             ...config.resolve.fallback,
@@ -75,7 +139,7 @@ const nextConfig = {
             net: false,
             tls: false,
         };
-        
+
         return config;
     },
     
