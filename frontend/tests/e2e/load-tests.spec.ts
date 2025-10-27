@@ -37,8 +37,10 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
     const contexts = [];
     const pages = [];
 
-    for (let i = 0; i < userCount; i++) {
-      const context = await page.context().browser().newContext();
+  for (let i = 0; i < userCount; i++) {
+      const browser = page.context().browser();
+      if (!browser) throw new Error('Browser not available');
+      const context = await browser.newContext();
       const userPage = await context.newPage();
 
       contexts.push(context);
@@ -628,24 +630,23 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   test('devrait gérer efficacement les grandes quantités de données DOM', async ({ page }) => {
     await page.goto('/login');
 
-    await page.route('**/api/v1/auth/login', async route => {
-      await page.route('**/api/v1/auth/login', async route => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            user: {
-              id: '1',
-              email: 'admin@jobbingtrack.com',
-              firstName: 'Admin',
-              lastName: 'JobbingTrack',
-              role: 'SUPER_ADMIN'
-            },
-            token: 'admin-jwt-token-12345'
-          })
-        });
+  await page.route('**/api/v1/auth/login', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          user: {
+            id: '1',
+            email: 'admin@jobbingtrack.com',
+            firstName: 'Admin',
+            lastName: 'JobbingTrack',
+            role: 'SUPER_ADMIN'
+          },
+          token: 'admin-jwt-token-12345'
+        })
       });
+    });
 
     await page.fill('input[type="email"]', 'admin@jobbingtrack.com');
     await page.fill('input[type="password"]', 'password123');
