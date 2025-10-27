@@ -107,7 +107,7 @@ interface UserCustomization {
 class CentralMetricsService {
   private apiUrl: string
   private prometheusUrl: string
-  private token: string | null
+  private token: string | null = null
   private customization: UserCustomization | null = null
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0

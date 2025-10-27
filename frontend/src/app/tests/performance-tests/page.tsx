@@ -88,7 +88,7 @@ import {
   Check as CheckIcon,
   Info,
   AlertTriangle as Warning,
-  AlertCircle as Error,
+  AlertCircle as ErrorIcon,
   CheckCircle as Success,
   Timer,
   Gauge,
