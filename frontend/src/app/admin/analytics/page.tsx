@@ -39,12 +39,12 @@ interface ErrorLog {
 
 interface TimelineData {
   period: string
-  applications: number
-  companies: number
-  users: number
-  interviews: number
-  successRate: number
-  avgResponseTime: number
+  applications: number | string
+  companies: number | string
+  users: number | string
+  interviews: number | string
+  successRate: number | string
+  avgResponseTime: number | string
 }
 
 interface DevMetrics {
@@ -587,7 +587,7 @@ function AnalyticsContent() {
                 { id: 'performance', label: '📈 Performances', count: null },
                 { id: 'errors', label: '❌ Erreurs', count: errorLogs.length },
                 { id: 'timeline', label: '📅 Timeline', count: null },
-                { id: 'security', label: '🛡️ Sécurité', count: devMetrics.apiRateLimitHits > 0 ? devMetrics.apiRateLimitHits : null },
+                { id: 'security', label: '🛡️ Sécurité', count: (typeof devMetrics.apiRateLimitHits === 'number' && devMetrics.apiRateLimitHits > 0) ? devMetrics.apiRateLimitHits : null },
                 { id: 'developer', label: '🔧 Développeur', count: null }
               ].map(tab => (
                 <button
@@ -670,11 +670,11 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score Performance</p>
-                      <p className={`text-3xl font-bold ${devMetrics.performanceScore >= 80 ? 'text-green-600 dark:text-green-400' : devMetrics.performanceScore >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {devMetrics.performanceScore}
+                      <p className={`text-3xl font-bold ${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-600 dark:text-green-400' : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {typeof devMetrics.performanceScore === 'number' ? devMetrics.performanceScore : devMetrics.performanceScore}
                       </p>
                     </div>
-                    <div className={`${devMetrics.performanceScore >= 80 ? 'text-green-500' : devMetrics.performanceScore >= 60 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className={`${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-500' : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-500' : 'text-red-500'}`}>
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                       </svg>
@@ -716,7 +716,7 @@ function AnalyticsContent() {
                     💻 Métriques Système
                   </h3>
                   <div className="space-y-4">
-                    <MetricWithSource label="Utilisation CPU" value={devMetrics.cpuUsage > 0 ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'} source="REAL" />
+                    <MetricWithSource label="Utilisation CPU" value={(typeof devMetrics.cpuUsage === 'number' && devMetrics.cpuUsage > 0) ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'} source="REAL" />
                     <MetricWithSource label="Utilisation Mémoire" value="N/A" source="REAL" />
                   </div>
                 </div>
@@ -939,8 +939,10 @@ function AnalyticsContent() {
                 </h3>
                 <div className="h-64 flex items-end justify-between gap-2">
                   {timelineData.map((data, index) => {
-                    const maxValue = Math.max(...timelineData.map(d => d.applications))
-                    const height = maxValue > 0 ? (data.applications / maxValue) * 100 : 0
+                    const values = timelineData.map(d => Number(d.applications)).filter(v => Number.isFinite(v))
+                    const maxValue = values.length > 0 ? Math.max(...values) : 0
+                    const current = Number(data.applications)
+                    const height = maxValue > 0 && Number.isFinite(current) ? (current / maxValue) * 100 : 0
                     return (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg relative">
@@ -998,11 +1000,11 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score Sécurité</p>
-                      <p className={`text-3xl font-bold ${devMetrics.securityScore >= 90 ? 'text-green-600 dark:text-green-400' : devMetrics.securityScore >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                      <p className={`text-3xl font-bold ${Number(devMetrics.securityScore) >= 90 ? 'text-green-600 dark:text-green-400' : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
                         {devMetrics.securityScore}
                       </p>
                     </div>
-                    <div className={`${devMetrics.securityScore >= 90 ? 'text-green-500' : devMetrics.securityScore >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className={`${Number(devMetrics.securityScore) >= 90 ? 'text-green-500' : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                       </svg>
@@ -1068,11 +1070,11 @@ function AnalyticsContent() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-red-600 dark:text-red-400">Critiques</p>
-                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{Math.floor(devMetrics.vulnerabilities * 0.1)}</p>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.1) : 'N/A'}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Élevées</p>
-                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{Math.floor(devMetrics.vulnerabilities * 0.3)}</p>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.3) : 'N/A'}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">CVSS Moyen</p>
@@ -1160,7 +1162,7 @@ function AnalyticsContent() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Temps de déploiement</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">{Math.round(devMetrics.avgDeploymentTime / 60)}min</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">{typeof devMetrics.avgDeploymentTime === 'number' ? Math.round(devMetrics.avgDeploymentTime / 60) + 'min' : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Rollbacks ce mois</span>

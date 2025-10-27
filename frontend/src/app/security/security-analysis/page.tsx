@@ -26,14 +26,14 @@ interface SecurityRiskAnalysis {
     byCountry: any
   }
   vulnerabilityAssessment: {
-    total: number
+    total: number | string
     bySeverity: any
     byComponent: any
-    critical: number
-    high: number
-    medium: number
-    low: number
-    averageCVSS: number
+    critical: number | string
+    high: number | string
+    medium: number | string
+    low: number | string
+    averageCVSS: number | string
   }
   ipReputation: any
   recommendations: any[]

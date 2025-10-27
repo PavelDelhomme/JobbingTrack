@@ -39,13 +39,14 @@ interface SystemMetricsWidgetProps {
 
 export default function SystemMetricsWidget({ metrics, className = '' }: SystemMetricsWidgetProps) {
   // Générer des données de tendance basées sur les vraies métriques
+  const baseCpu = typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : (typeof metrics.cpu?.usage === 'number' ? metrics.cpu.usage : 0)
   const cpuTrendData = [
-    { label: '00:00', value: Math.max(0, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 20) },
-    { label: '04:00', value: Math.max(0, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 15) },
-    { label: '08:00', value: (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) - 10 },
-    { label: '12:00', value: typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0 },
-    { label: '16:00', value: Math.min(100, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) + 5) },
-    { label: '20:00', value: Math.min(100, (typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : 0) + 10) },
+    { label: '00:00', value: Math.max(0, baseCpu - 20) },
+    { label: '04:00', value: Math.max(0, baseCpu - 15) },
+    { label: '08:00', value: Math.max(0, baseCpu - 10) },
+    { label: '12:00', value: Math.max(0, baseCpu) },
+    { label: '16:00', value: Math.min(100, baseCpu + 5) },
+    { label: '20:00', value: Math.min(100, baseCpu + 10) },
   ]
 
   return (
@@ -76,12 +77,12 @@ export default function SystemMetricsWidget({ metrics, className = '' }: SystemM
 
         <MetricCard
           title="Disque"
-          value={metrics.disk && metrics.disk.length > 0 ? `${metrics.disk[0].usage}%` : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
+          value={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? `${metrics.disk[0].usage}%` : 'N/A') : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
           change={{
             value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.disk && metrics.disk.length > 0 ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : 'neutral'}
+          trend={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : 'neutral') : 'neutral'}
           icon={<span className="text-purple-500">💾</span>}
         />
 

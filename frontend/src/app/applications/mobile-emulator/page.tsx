@@ -119,7 +119,7 @@ const mobileEmulatorStyles = `
   }
 `
 import { AdminLayout } from '@/components/features'
-import MobileNotificationCenter from '@/app/backoffice/components/MobileNotificationCenter'
+import MobileNotificationCenter from '@/app/shared/components/MobileNotificationCenter'
 import { useAuth } from '@/lib/hooks/auth'
 import { api } from '@/lib/api'
 import { isMobileEmulator } from '@/lib/utils'
