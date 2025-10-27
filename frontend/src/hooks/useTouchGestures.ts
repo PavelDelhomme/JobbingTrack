@@ -42,7 +42,7 @@ interface TouchState {
 }
 
 export const useTouchGestures = (config: GestureConfig) => {
-  const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<HTMLElement | null>(null);
   const touchStateRef = useRef<TouchState>({
     touches: [],
     startTime: 0,
