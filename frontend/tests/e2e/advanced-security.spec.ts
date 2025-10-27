@@ -129,7 +129,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter normalement
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -200,7 +200,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter normalement
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -285,7 +285,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
