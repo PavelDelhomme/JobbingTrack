@@ -1150,42 +1150,97 @@ jobs:
           echo "===================================="
           echo ""
 
-          # Fonction pour afficher le statut avec couleur
-          print_status() {
-            local job_name="$1"
-            local result_var="${2:-needs.$job_name.result}"
-            local status=""
-
-            if [ "${result_var}" = "success" ]; then
-              echo "   ✅ $job_name: RÉUSSI"
-            elif [ "${result_var}" = "failure" ]; then
-              echo "   ❌ $job_name: ÉCHEC"
-            elif [ "${result_var}" = "cancelled" ]; then
-              echo "   ⚠️ $job_name: ANNULÉ"
-            elif [ "${result_var}" = "skipped" ]; then
-              echo "   ⏭️ $job_name: IGNORÉ"
-            else
-              echo "   ❓ $job_name: ${{ result_var }}"
-            fi
-          }
-
           echo "🔍 ANALYSES OBLIGATOIRES"
           echo "======================="
-          print_status "Analyse de sécurité" "needs.security-scan.result"
-          print_status "Validation de la base de données" "needs.database-schema-validation.result"
-          print_status "Analyse de qualité du code" "needs.code-quality.result"
+          if [ "${{ needs.security-scan.result }}" = "success" ]; then
+            echo "   ✅ Analyse de sécurité: RÉUSSI"
+          elif [ "${{ needs.security-scan.result }}" = "failure" ]; then
+            echo "   ❌ Analyse de sécurité: ÉCHEC"
+          elif [ "${{ needs.security-scan.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Analyse de sécurité: ANNULÉ"
+          elif [ "${{ needs.security-scan.result }}" = "skipped" ]; then
+            echo "   ⏭️ Analyse de sécurité: IGNORÉ"
+          else
+            echo "   ❓ Analyse de sécurité: ${{ needs.security-scan.result }}"
+          fi
+
+          if [ "${{ needs.database-schema-validation.result }}" = "success" ]; then
+            echo "   ✅ Validation de la base de données: RÉUSSI"
+          elif [ "${{ needs.database-schema-validation.result }}" = "failure" ]; then
+            echo "   ❌ Validation de la base de données: ÉCHEC"
+          elif [ "${{ needs.database-schema-validation.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Validation de la base de données: ANNULÉ"
+          elif [ "${{ needs.database-schema-validation.result }}" = "skipped" ]; then
+            echo "   ⏭️ Validation de la base de données: IGNORÉ"
+          else
+            echo "   ❓ Validation de la base de données: ${{ needs.database-schema-validation.result }}"
+          fi
+
+          if [ "${{ needs.code-quality.result }}" = "success" ]; then
+            echo "   ✅ Analyse de qualité du code: RÉUSSI"
+          elif [ "${{ needs.code-quality.result }}" = "failure" ]; then
+            echo "   ❌ Analyse de qualité du code: ÉCHEC"
+          elif [ "${{ needs.code-quality.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Analyse de qualité du code: ANNULÉ"
+          elif [ "${{ needs.code-quality.result }}" = "skipped" ]; then
+            echo "   ⏭️ Analyse de qualité du code: IGNORÉ"
+          else
+            echo "   ❓ Analyse de qualité du code: ${{ needs.code-quality.result }}"
+          fi
           echo ""
 
           echo "🧪 TESTS OBLIGATOIRES"
           echo "===================="
-          print_status "Tests Backend" "needs.test-backend.result"
-          print_status "Tests Frontend (unitaires/lint/coverage)" "needs.test-frontend.result"
+          if [ "${{ needs.test-backend.result }}" = "success" ]; then
+            echo "   ✅ Tests Backend: RÉUSSI"
+          elif [ "${{ needs.test-backend.result }}" = "failure" ]; then
+            echo "   ❌ Tests Backend: ÉCHEC"
+          elif [ "${{ needs.test-backend.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Tests Backend: ANNULÉ"
+          elif [ "${{ needs.test-backend.result }}" = "skipped" ]; then
+            echo "   ⏭️ Tests Backend: IGNORÉ"
+          else
+            echo "   ❓ Tests Backend: ${{ needs.test-backend.result }}"
+          fi
+
+          if [ "${{ needs.test-frontend.result }}" = "success" ]; then
+            echo "   ✅ Tests Frontend (unitaires/lint/coverage): RÉUSSI"
+          elif [ "${{ needs.test-frontend.result }}" = "failure" ]; then
+            echo "   ❌ Tests Frontend (unitaires/lint/coverage): ÉCHEC"
+          elif [ "${{ needs.test-frontend.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Tests Frontend (unitaires/lint/coverage): ANNULÉ"
+          elif [ "${{ needs.test-frontend.result }}" = "skipped" ]; then
+            echo "   ⏭️ Tests Frontend (unitaires/lint/coverage): IGNORÉ"
+          else
+            echo "   ❓ Tests Frontend (unitaires/lint/coverage): ${{ needs.test-frontend.result }}"
+          fi
           echo ""
 
           echo "🔗 TESTS OPTIONNELS"
           echo "=================="
-          print_status "Tests d'intégration système" "needs.system-integration-tests.result"
-          print_status "Tests de Performance" "needs.performance-tests.result"
+          if [ "${{ needs.system-integration-tests.result }}" = "success" ]; then
+            echo "   ✅ Tests d'intégration système: RÉUSSI"
+          elif [ "${{ needs.system-integration-tests.result }}" = "failure" ]; then
+            echo "   ❌ Tests d'intégration système: ÉCHEC"
+          elif [ "${{ needs.system-integration-tests.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Tests d'intégration système: ANNULÉ"
+          elif [ "${{ needs.system-integration-tests.result }}" = "skipped" ]; then
+            echo "   ⏭️ Tests d'intégration système: IGNORÉ"
+          else
+            echo "   ❓ Tests d'intégration système: ${{ needs.system-integration-tests.result }}"
+          fi
+
+          if [ "${{ needs.performance-tests.result }}" = "success" ]; then
+            echo "   ✅ Tests de Performance: RÉUSSI"
+          elif [ "${{ needs.performance-tests.result }}" = "failure" ]; then
+            echo "   ❌ Tests de Performance: ÉCHEC"
+          elif [ "${{ needs.performance-tests.result }}" = "cancelled" ]; then
+            echo "   ⚠️ Tests de Performance: ANNULÉ"
+          elif [ "${{ needs.performance-tests.result }}" = "skipped" ]; then
+            echo "   ⏭️ Tests de Performance: IGNORÉ"
+          else
+            echo "   ❓ Tests de Performance: ${{ needs.performance-tests.result }}"
+          fi
           echo ""
 
           echo "🎭 TESTS E2E (CONDITIONNELS)"
