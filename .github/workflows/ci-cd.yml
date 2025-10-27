@@ -149,13 +149,13 @@ jobs:
         run: |
           echo "Installation des dependances backend..."
           cd backend
-          if npm ci --prefer-offline --no-audit --loglevel=error; then
-            echo "Dependances backend installees avec succes"
+          if [ -f package-lock.json ]; then
+            npm ci --prefer-offline --no-audit --loglevel=error && echo "Dependances backend installees avec succes" || {
+              echo "ERREUR: npm ci a echoue"; npm ci --prefer-offline --no-audit --loglevel=error || true; exit 1; }
           else
-            echo "ERREUR: Echec de l'installation des dependances backend"
-            echo "Affichage des logs d'erreur:"
-            npm ci --prefer-offline --no-audit --loglevel=error || true
-            exit 1
+            echo "⚠️ Aucun package-lock.json trouve. Utilisation de npm install..."
+            npm install --prefer-offline --no-audit --loglevel=error && echo "Dependances backend installees (npm install)" || {
+              echo "ERREUR: npm install a echoue"; npm install --prefer-offline --no-audit --loglevel=error || true; exit 1; }
           fi
 
       - name: 🗄️ Configuration de la base de données de test
@@ -525,14 +525,26 @@ jobs:
             if [ -f "$service/package.json" ]; then
               echo "Installation pour $(basename $service)..."
               cd "$service"
-              if npm ci --prefer-offline --no-audit --loglevel=error; then
-                echo "Dependances installees avec succes pour $(basename $service)"
-                cd - > /dev/null
+              if [ -f package-lock.json ]; then
+                if npm ci --prefer-offline --no-audit --loglevel=error; then
+                  echo "Dependances installees avec succes pour $(basename $service)"
+                  cd - > /dev/null
+                else
+                  echo "ERREUR: npm ci a echoue pour $(basename $service)"
+                  echo "Affichage des logs d'erreur:"
+                  npm ci --prefer-offline --no-audit --loglevel=error || true
+                  exit 1
+                fi
               else
-                echo "ERREUR: Echec de l'installation des dependances pour $(basename $service)"
-                echo "Affichage des logs d'erreur:"
-                npm ci --prefer-offline --no-audit --loglevel=error || true
-                exit 1
+                echo "⚠️ $(basename $service): package-lock.json absent, fallback npm install"
+                if npm install --prefer-offline --no-audit --loglevel=error; then
+                  echo "Dependances installees (npm install) pour $(basename $service)"
+                  cd - > /dev/null
+                else
+                  echo "ERREUR: npm install a echoue pour $(basename $service)"
+                  npm install --prefer-offline --no-audit --loglevel=error || true
+                  exit 1
+                fi
               fi
             fi
           done

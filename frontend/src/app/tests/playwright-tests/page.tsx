@@ -1071,11 +1071,8 @@ test.describe('Tests de Sécurité', () => {
   return (
     <AdminLayout>
       <div className="h-screen flex flex-col bg-[#1e1e1e] text-white">
-        <>
           {/* Menu bar - Style VS Code */}
           <div className="bg-[#323233] border-b border-[#3e3e42] px-4 py-2 flex items-center justify-between">
-        {/* Menu bar - Style VS Code */}
-        <div className="bg-[#323233] border-b border-[#3e3e42] px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <TestTube className="h-5 w-5 text-[#007acc]" />
@@ -1351,6 +1348,7 @@ test.describe('Tests de Sécurité', () => {
                 )}
 
                 {activeView === 'run' && (
+                  <>
                   <div className="p-2">
                     {/* Contrôles d'exécution */}
                     <div className="mb-4 p-3 bg-[#252526] rounded-lg">
@@ -1497,6 +1495,7 @@ test.describe('Tests de Sécurité', () => {
                         ))}
                       </div>
                     </div>
+                  </>
                   )}
 
         {/* Éditeur de code (centre) */}
