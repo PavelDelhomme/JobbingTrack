@@ -157,8 +157,8 @@ if [[ "$SEARCH_BACKEND" == true ]]; then
     done < <(find_dockerfiles "backend" "Dockerfile*")
 fi
 
-# Version par défaut si aucune n'est trouvée
-DEFAULT_VERSION="20.10.0"
+# Version par défaut si aucune n'est trouvée (LTS stable)
+DEFAULT_VERSION="20.18.0"
 
 # Analyse des résultats
 if [[ ${#versions_found[@]} -eq 0 ]]; then

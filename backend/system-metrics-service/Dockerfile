@@ -1,4 +1,4 @@
-FROM node:20.19.5
+FROM node:20.18.0
 
 # Installer OpenSSL pour Prisma
 RUN apk add --no-cache openssl
