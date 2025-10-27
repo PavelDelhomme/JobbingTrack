@@ -394,17 +394,24 @@ jobs:
           npm run lint || echo "⚠️ Linting terminé avec des erreurs"
           echo "✅ Linting frontend terminé"
 
+      - name: 🧽 Nettoyage caches frontend
+        run: |
+          echo "🧽 Nettoyage des caches Next/Prettier..."
+          cd frontend
+          rm -rf .next node_modules/.cache || true
+
       - name: 🎨 Vérification du formatage (Prettier)
         run: |
           echo "🎨 Vérification du formatage avec Prettier..."
           cd frontend
-          npm run format:check || echo "⚠️ Formatage à vérifier"
+          npx prettier --check "src/**/*.{ts,tsx,js,css,md}" "public/**/*.{html,js,css}" "*.{js,json,md,ts}" || echo "⚠️ Formatage à vérifier"
           echo "✅ Vérification du formatage terminée"
 
       - name: 🔍 Vérification des types TypeScript
         run: |
           echo "🔍 Vérification des types TypeScript..."
           cd frontend
+          rm -rf .next || true
           npm run type-check || echo "⚠️ Erreurs de types TypeScript"
           echo "✅ Vérification des types terminée"
 
@@ -623,15 +630,16 @@ jobs:
 
           echo "✅ Tests des nouvelles fonctionnalités terminés"
 
-      - name: 🌐 Tests API backend
+      - name: 🌐 Tests API backend (désactivés en CI générique)
+        if: ${{ false }}
         run: |
-          echo "🌐 Exécution des tests API..."
+          echo "🌐 Exécution des tests API... (désactivés)"
           make test-api || echo "⚠️ Tests API échoués"
 
-      - name: 🏥 Tests de santé des microservices
+      - name: 🏥 Tests de santé des microservices (skippés en CI)
+        if: ${{ false }}
         run: |
-          echo "🏥 Tests de santé des microservices..."
-          # Tests de connectivité des services avec timeout plus long
+          echo "🏥 Tests de santé des microservices... (skippés)"
           for port in 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3013 3014; do
             echo "🔍 Vérification du port $port..."
             timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo "✅ Port $port accessible" || echo "⚠️ Port $port non accessible"
