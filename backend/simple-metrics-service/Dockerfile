@@ -1,5 +1,5 @@
 # Simple Metrics Service Dockerfile
-FROM node:20.19.5-alpine
+FROM node:20.18.0-alpine
 
 # Créer le répertoire de l'application
 WORKDIR /app

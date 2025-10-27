@@ -31,9 +31,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -53,7 +62,7 @@ jobs:
         run: |
           echo "Audit des dependances frontend..."
           cd frontend
-          npm audit --audit-level=high || echo " Vulnérabilités détectées dans le frontend"
+          npm audit --audit-level=high || echo "⚠️ Vulnérabilités détectées dans le frontend"
 
       - name: Audit des vulnerabilites backend
         run: |
@@ -62,18 +71,18 @@ jobs:
             if [ -f "$service/package.json" ]; then
               echo "Audit pour $(basename $service)..."
               cd "$service"
-              npm audit --audit-level=high || echo " Vulnérabilités détectées dans $(basename $service)"
+              npm audit --audit-level=high || echo "⚠️ Vulnérabilités détectées dans $(basename $service)"
               cd - > /dev/null
             fi
           done
 
-      - name:  Rapport de sécurité
+      - name: 📊 Rapport de sécurité
         if: always()
         run: |
           echo "RAPPORT DE SECURITE"
           echo "===================="
-          echo " Audit de sécurité terminé"
-          echo " Vérifiez les logs pour les détails des vulnérabilités"
+          echo "✅ Audit de sécurité terminé"
+          echo "🔍 Vérifiez les logs pour les détails des vulnérabilités"
 
   # ============================================================================
   # ANALYSE ET VÉRIFICATIONS PRÉLIMINAIRES
@@ -109,9 +118,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -120,12 +138,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name:  Vérification de l'environnement Node.js
+      - name: 🔍 Vérification de l'environnement Node.js
         run: |
-          echo " Vérification de l'environnement Node.js..."
+          echo "🔍 Vérification de l'environnement Node.js..."
           node --version
           npm --version
-          echo " Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances backend
         run: |
@@ -133,9 +151,9 @@ jobs:
           cd backend
           npm ci --prefer-offline --no-audit
 
-      - name:  Configuration de la base de données de test
+      - name: 🗄️ Configuration de la base de données de test
         run: |
-          echo " Configuration de la base de données de test..."
+          echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
           until pg_isready -h localhost -p 5432 -U jobbingtrack; do
             echo "⏳ Attente de PostgreSQL..."
@@ -146,163 +164,163 @@ jobs:
           PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma de base
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo " Erreur lors de la création du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo "⚠️ Erreur lors de la création du schéma"
 
-      - name:  Validation du schéma Prisma
+      - name: 🔍 Validation du schéma Prisma
         run: |
-          echo " Validation du schéma Prisma..."
+          echo "🔍 Validation du schéma Prisma..."
           cd backend
-          npx prisma validate || echo " Erreur de validation du schéma Prisma"
+          npx prisma validate || echo "⚠️ Erreur de validation du schéma Prisma"
 
           # Vérifier que le schéma est bien formaté
-          npx prisma format --check || echo " Le schéma Prisma n'est pas formaté correctement"
+          npx prisma format --check || echo "⚠️ Le schéma Prisma n'est pas formaté correctement"
 
-          echo " Schéma Prisma validé"
+          echo "✅ Schéma Prisma validé"
 
-      - name:  Vérification des nouveaux modèles et relations
+      - name: 📊 Vérification des nouveaux modèles et relations
         run: |
-          echo " Vérification des nouveaux modèles et relations..."
+          echo "📊 Vérification des nouveaux modèles et relations..."
 
           # Vérifier que les nouveaux modèles sont présents dans le schéma
           cd backend
 
           # Vérifier ApplicationStatusHistory
           if grep -q "model ApplicationStatusHistory" prisma/schema.prisma; then
-            echo " Modèle ApplicationStatusHistory trouvé"
+            echo "✅ Modèle ApplicationStatusHistory trouvé"
           else
-            echo " Modèle ApplicationStatusHistory manquant"
+            echo "❌ Modèle ApplicationStatusHistory manquant"
             exit 1
           fi
 
           # Vérifier Notification
           if grep -q "model Notification" prisma/schema.prisma; then
-            echo " Modèle Notification trouvé"
+            echo "✅ Modèle Notification trouvé"
           else
-            echo " Modèle Notification manquant"
+            echo "❌ Modèle Notification manquant"
             exit 1
           fi
 
           # Vérifier Event
           if grep -q "model Event" prisma/schema.prisma; then
-            echo " Modèle Event trouvé"
+            echo "✅ Modèle Event trouvé"
           else
-            echo " Modèle Event manquant"
+            echo "❌ Modèle Event manquant"
             exit 1
           fi
 
           # Vérifier SyncQueue
           if grep -q "model SyncQueue" prisma/schema.prisma; then
-            echo " Modèle SyncQueue trouvé"
+            echo "✅ Modèle SyncQueue trouvé"
           else
-            echo " Modèle SyncQueue manquant"
+            echo "❌ Modèle SyncQueue manquant"
             exit 1
           fi
 
           # Vérifier les tables de jonction
           if grep -q "model ContactCompany" prisma/schema.prisma; then
-            echo " Table de jonction ContactCompany trouvée"
+            echo "✅ Table de jonction ContactCompany trouvée"
           else
-            echo " Table de jonction ContactCompany manquante"
+            echo "❌ Table de jonction ContactCompany manquante"
             exit 1
           fi
 
           if grep -q "model ContactApplication" prisma/schema.prisma; then
-            echo " Table de jonction ContactApplication trouvée"
+            echo "✅ Table de jonction ContactApplication trouvée"
           else
-            echo " Table de jonction ContactApplication manquante"
+            echo "❌ Table de jonction ContactApplication manquante"
             exit 1
           fi
 
-          echo " Tous les nouveaux modèles et relations sont présents"
+          echo "✅ Tous les nouveaux modèles et relations sont présents"
 
-      - name:  Test des relations many-to-many
+      - name: 🔗 Test des relations many-to-many
         run: |
-          echo " Test des relations many-to-many..."
+          echo "🔗 Test des relations many-to-many..."
 
           # Vérifier que les relations sont bien définies dans le schéma
           cd backend
 
           # Vérifier les relations dans Contact
           if grep -q "contactCompanies ContactCompany" prisma/schema.prisma; then
-            echo " Relations many-to-many Contact ↔ Company définies"
+            echo "✅ Relations many-to-many Contact ↔ Company définies"
           else
-            echo " Relations many-to-many Contact ↔ Company manquantes"
+            echo "❌ Relations many-to-many Contact ↔ Company manquantes"
             exit 1
           fi
 
           if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
-            echo " Relations many-to-many Contact ↔ Application définies"
+            echo "✅ Relations many-to-many Contact ↔ Application définies"
           else
-            echo " Relations many-to-many Contact ↔ Application manquantes"
+            echo "❌ Relations many-to-many Contact ↔ Application manquantes"
             exit 1
           fi
 
           # Vérifier les relations dans Application
           if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
-            echo " Relations many-to-many Application ↔ Contact définies"
+            echo "✅ Relations many-to-many Application ↔ Contact définies"
           else
-            echo " Relations many-to-many Application ↔ Contact manquantes"
+            echo "❌ Relations many-to-many Application ↔ Contact manquantes"
             exit 1
           fi
 
-          echo " Relations many-to-many validées"
+          echo "✅ Relations many-to-many validées"
 
-      - name:  Validation des enums
+      - name: 🏷️ Validation des enums
         run: |
-          echo " Validation des enums..."
+          echo "🏷️ Validation des enums..."
 
           cd backend
 
           # Vérifier les nouveaux enums
           if grep -q "enum EventType" prisma/schema.prisma; then
-            echo " Enum EventType défini"
+            echo "✅ Enum EventType défini"
           else
-            echo " Enum EventType manquant"
+            echo "❌ Enum EventType manquant"
             exit 1
           fi
 
           if grep -q "enum NotificationType" prisma/schema.prisma; then
-            echo " Enum NotificationType défini"
+            echo "✅ Enum NotificationType défini"
           else
-            echo " Enum NotificationType manquant"
+            echo "❌ Enum NotificationType manquant"
             exit 1
           fi
 
           if grep -q "enum EntityType" prisma/schema.prisma; then
-            echo " Enum EntityType défini"
+            echo "✅ Enum EntityType défini"
           else
-            echo " Enum EntityType manquant"
+            echo "❌ Enum EntityType manquant"
             exit 1
           fi
 
-          echo " Enums validés"
+          echo "✅ Enums validés"
 
-      - name:  Génération du client Prisma
+      - name: 📋 Génération du client Prisma
         run: |
-          echo " Génération du client Prisma..."
+          echo "📋 Génération du client Prisma..."
           cd backend
-          npx prisma generate || echo " Erreur lors de la génération du client Prisma"
+          npx prisma generate || echo "⚠️ Erreur lors de la génération du client Prisma"
 
           # Vérifier que le client a été généré
           if [ -d "node_modules/@prisma/client" ]; then
-            echo " Client Prisma généré avec succès"
+            echo "✅ Client Prisma généré avec succès"
           else
-            echo " Client Prisma non généré"
+            echo "❌ Client Prisma non généré"
             exit 1
           fi
 
-      - name:  Rapport de validation de la base de données
+      - name: 📊 Rapport de validation de la base de données
         if: always()
         run: |
-          echo " RÉSUMÉ DE LA VALIDATION DE LA BASE DE DONNÉES"
+          echo "📊 RÉSUMÉ DE LA VALIDATION DE LA BASE DE DONNÉES"
           echo "=============================================="
-          echo " Schéma Prisma: Validé"
-          echo " Formatage: Vérifié"
-          echo " Nouveaux modèles: Présents"
-          echo " Relations many-to-many: Définies"
-          echo " Enums: Validés"
-          echo " Client Prisma: Généré"
-          echo " Base de données: Configurée"
+          echo "✅ Schéma Prisma: Validé"
+          echo "✅ Formatage: Vérifié"
+          echo "✅ Nouveaux modèles: Présents"
+          echo "✅ Relations many-to-many: Définies"
+          echo "✅ Enums: Validés"
+          echo "✅ Client Prisma: Généré"
+          echo "✅ Base de données: Configurée"
 
   code-quality:
     name: Analyse de la qualite du code
@@ -320,9 +338,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -334,12 +361,12 @@ jobs:
             backend/*/package-lock.json
             tests/package-lock.json
 
-      - name:  Vérification de l'environnement Node.js
+      - name: 🔍 Vérification de l'environnement Node.js
         run: |
-          echo " Vérification de l'environnement Node.js..."
+          echo "🔍 Vérification de l'environnement Node.js..."
           node --version
           npm --version
-          echo " Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances frontend
         run: |
@@ -350,47 +377,47 @@ jobs:
         run: |
           echo "🧹 Linting frontend avec ESLint..."
           cd frontend
-          npm run lint || echo " Linting terminé avec des erreurs"
-          echo " Linting frontend terminé"
+          npm run lint || echo "⚠️ Linting terminé avec des erreurs"
+          echo "✅ Linting frontend terminé"
 
-      - name:  Vérification du formatage (Prettier)
+      - name: 🎨 Vérification du formatage (Prettier)
         run: |
-          echo " Vérification du formatage avec Prettier..."
+          echo "🎨 Vérification du formatage avec Prettier..."
           cd frontend
-          npm run format:check || echo " Formatage à vérifier"
-          echo " Vérification du formatage terminée"
+          npm run format:check || echo "⚠️ Formatage à vérifier"
+          echo "✅ Vérification du formatage terminée"
 
-      - name:  Vérification des types TypeScript
+      - name: 🔍 Vérification des types TypeScript
         run: |
-          echo " Vérification des types TypeScript..."
+          echo "🔍 Vérification des types TypeScript..."
           cd frontend
-          npm run type-check || echo " Erreurs de types TypeScript"
-          echo " Vérification des types terminée"
+          npm run type-check || echo "⚠️ Erreurs de types TypeScript"
+          echo "✅ Vérification des types terminée"
 
-      - name:  Analyse de la qualité du code backend
+      - name: 📊 Analyse de la qualité du code backend
         run: |
-          echo " Analyse de la qualité du code backend..."
+          echo "📊 Analyse de la qualité du code backend..."
           for service in backend/*/; do
             if [ -f "$service/package.json" ]; then
               echo "Analyse pour $(basename $service)..."
               cd "$service"
               # Installation ESLint si disponible
               if npm list eslint > /dev/null 2>&1; then
-                npx eslint src/ --ext .js,.ts || echo " ESLint échoué pour $(basename $service)"
+                npx eslint src/ --ext .js,.ts || echo "⚠️ ESLint échoué pour $(basename $service)"
               fi
               cd - > /dev/null
             fi
           done
 
-      - name:  Rapport d'analyse de qualité
+      - name: 📊 Rapport d'analyse de qualité
         if: always()
         run: |
-          echo " RAPPORT D'ANALYSE DE QUALITÉ"
+          echo "📊 RAPPORT D'ANALYSE DE QUALITÉ"
           echo "=============================="
-          echo " ESLint: Exécuté"
-          echo " Prettier: Vérifié"
-          echo " TypeScript: Vérifié"
-          echo " Backend: Analysé"
+          echo "✅ ESLint: Exécuté"
+          echo "✅ Prettier: Vérifié"
+          echo "✅ TypeScript: Vérifié"
+          echo "✅ Backend: Analysé"
 
   # ============================================================================
   # TESTS BACKEND
@@ -435,9 +462,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -448,12 +484,12 @@ jobs:
             backend/*/package-lock.json
             tests/package-lock.json
 
-      - name:  Vérification de l'environnement Node.js
+      - name: 🔍 Vérification de l'environnement Node.js
         run: |
-          echo " Vérification de l'environnement Node.js..."
+          echo "🔍 Vérification de l'environnement Node.js..."
           node --version
           npm --version
-          echo " Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances des tests
         run: |
@@ -473,9 +509,9 @@ jobs:
             fi
           done
 
-      - name:  Configuration de la base de données de test
+      - name: 🗄️ Configuration de la base de données de test
         run: |
-          echo " Configuration de la base de données de test..."
+          echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
           until pg_isready -h localhost -p 5432 -U jobbingtrack; do
             echo "⏳ Attente de PostgreSQL..."
@@ -486,30 +522,30 @@ jobs:
           PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma si nécessaire
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo " Erreur lors de l'initialisation du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
 
       - name: 🧪 Tests unitaires des services backend
         run: |
           echo "🧪 Exécution des tests unitaires backend..."
           # Utiliser le Makefile pour les tests backend
-          make test-backend || echo " Tests backend échoués"
+          make test-backend || echo "⚠️ Tests backend échoués"
 
-      - name:  Tests d'intégration backend
+      - name: 🔗 Tests d'intégration backend
         run: |
-          echo " Exécution des tests d'intégration..."
-          make test-integration || echo " Tests d'intégration échoués"
+          echo "🔗 Exécution des tests d'intégration..."
+          make test-integration || echo "⚠️ Tests d'intégration échoués"
 
-      - name:  Tests de base de données
+      - name: 🗄️ Tests de base de données
         run: |
-          echo " Exécution des tests de base de données..."
-          make test-database || echo " Tests de base de données échoués"
+          echo "🗄️ Exécution des tests de base de données..."
+          make test-database || echo "⚠️ Tests de base de données échoués"
 
       - name: 🆕 Tests des nouvelles fonctionnalités
         run: |
           echo "🆕 Tests des nouvelles fonctionnalités..."
 
           # Tests des relations many-to-many
-          echo " Tests des relations many-to-many..."
+          echo "🔗 Tests des relations many-to-many..."
           cd backend
 
           # Vérifier que les nouvelles routes API sont disponibles
@@ -517,71 +553,71 @@ jobs:
 
           # Vérifier contact service
           if grep -q "linkContactToCompany" contact-service/src/controllers/contact.controller.js; then
-            echo " API Contact ↔ Company disponible"
+            echo "✅ API Contact ↔ Company disponible"
           else
-            echo " API Contact ↔ Company manquante"
+            echo "❌ API Contact ↔ Company manquante"
             exit 1
           fi
 
           if grep -q "linkContactToApplication" contact-service/src/controllers/contact.controller.js; then
-            echo " API Contact ↔ Application disponible"
+            echo "✅ API Contact ↔ Application disponible"
           else
-            echo " API Contact ↔ Application manquante"
+            echo "❌ API Contact ↔ Application manquante"
             exit 1
           fi
 
           # Vérifier application service
           if grep -q "updateApplicationStatus" application-service/src/controllers/application.controller.js; then
-            echo " API Historique des statuts disponible"
+            echo "✅ API Historique des statuts disponible"
           else
-            echo " API Historique des statuts manquante"
+            echo "❌ API Historique des statuts manquante"
             exit 1
           fi
 
           if grep -q "getApplicationContacts" application-service/src/controllers/application.controller.js; then
-            echo " API Contacts de candidature disponible"
+            echo "✅ API Contacts de candidature disponible"
           else
-            echo " API Contacts de candidature manquante"
+            echo "❌ API Contacts de candidature manquante"
             exit 1
           fi
 
-          echo " Tests des nouvelles fonctionnalités terminés"
+          echo "✅ Tests des nouvelles fonctionnalités terminés"
 
-      - name:  Tests API backend
+      - name: 🌐 Tests API backend
         run: |
-          echo " Exécution des tests API..."
-          make test-api || echo " Tests API échoués"
+          echo "🌐 Exécution des tests API..."
+          make test-api || echo "⚠️ Tests API échoués"
 
       - name: 🏥 Tests de santé des microservices
         run: |
           echo "🏥 Tests de santé des microservices..."
           # Tests de connectivité des services avec timeout plus long
           for port in 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3013 3014; do
-            echo " Vérification du port $port..."
-            timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo " Port $port accessible" || echo " Port $port non accessible"
+            echo "🔍 Vérification du port $port..."
+            timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo "✅ Port $port accessible" || echo "⚠️ Port $port non accessible"
           done
 
-      - name:  Collecte des rapports de test backend
+      - name: 📊 Collecte des rapports de test backend
         if: always()
         run: |
-          echo " Collecte des rapports de test backend..."
+          echo "📊 Collecte des rapports de test backend..."
           mkdir -p test-reports/backend
           # Copier les rapports de coverage s'ils existent
-          find backend/ -name "coverage" -type d -exec cp -r {} test-reports/backend/ \; 2>/dev/null || echo " Aucun rapport de coverage trouvé"
+          find backend/ -name "coverage" -type d -exec cp -r {} test-reports/backend/ \; 2>/dev/null || echo "ℹ️ Aucun rapport de coverage trouvé"
           # Copier les rapports Jest s'ils existent
-          find backend/ -name "test-results.json" -exec cp {} test-reports/backend/ \; 2>/dev/null || echo " Aucun rapport Jest trouvé"
+          find backend/ -name "test-results.json" -exec cp {} test-reports/backend/ \; 2>/dev/null || echo "ℹ️ Aucun rapport Jest trouvé"
 
-      - name:  Rapport des tests backend
+      - name: 📊 Rapport des tests backend
         if: always()
         run: |
-          echo " RÉSUMÉ DES TESTS BACKEND"
+          echo "📊 RÉSUMÉ DES TESTS BACKEND"
           echo "==========================="
-          echo " Tests unitaires: Exécutés"
-          echo " Tests d'intégration: Exécutés"
-          echo " Tests de base de données: Exécutés"
-          echo " Tests API: Exécutés"
-          echo " Tests de santé: Exécutés"
-          echo " Base de données: Configurée"
+          echo "✅ Tests unitaires: Exécutés"
+          echo "✅ Tests d'intégration: Exécutés"
+          echo "✅ Tests de base de données: Exécutés"
+          echo "✅ Tests API: Exécutés"
+          echo "✅ Tests de santé: Exécutés"
+          echo "✅ Base de données: Configurée"
 
   # ============================================================================
   # TESTS FRONTEND
@@ -601,9 +637,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -612,12 +657,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name:  Vérification de l'environnement Node.js
+      - name: 🔍 Vérification de l'environnement Node.js
         run: |
-          echo " Vérification de l'environnement Node.js..."
+          echo "🔍 Vérification de l'environnement Node.js..."
           node --version
           npm --version
-          echo " Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances frontend
         run: |
@@ -629,22 +674,22 @@ jobs:
         run: |
           echo "🧪 Exécution des tests unitaires avec Jest..."
           cd frontend
-          npm run test:ci || echo " Tests unitaires échoués"
-          echo " Tests unitaires terminés"
+          npm run test:ci || echo "⚠️ Tests unitaires échoués"
+          echo "✅ Tests unitaires terminés"
 
-      - name:  Vérification du coverage des tests
+      - name: 🔍 Vérification du coverage des tests
         run: |
-          echo " Vérification du coverage des tests..."
+          echo "🔍 Vérification du coverage des tests..."
           cd frontend
           # Vérifier si le coverage respecte les seuils
           if [ -d "coverage" ]; then
-            echo " Rapport de coverage généré"
+            echo "✅ Rapport de coverage généré"
             # Extraire les métriques de coverage si possible
             if command -v nyc > /dev/null 2>&1; then
-              nyc report --reporter=text || echo " Impossible de générer le rapport de coverage"
+              nyc report --reporter=text || echo "⚠️ Impossible de générer le rapport de coverage"
             fi
           else
-            echo " Aucun rapport de coverage trouvé"
+            echo "⚠️ Aucun rapport de coverage trouvé"
           fi
 
       - name: 🎭 Tests E2E avec Playwright (Chromium uniquement)
@@ -652,75 +697,75 @@ jobs:
           echo "🎭 Tests E2E avec Playwright (Chromium)..."
           cd frontend
           npx playwright install chromium --with-deps
-          npm run test:e2e:ci || echo " Tests E2E échoués"
-          echo " Tests E2E (Chromium) terminés"
+          npm run test:e2e:ci || echo "⚠️ Tests E2E échoués"
+          echo "✅ Tests E2E (Chromium) terminés"
 
-      - name:  Tests E2E multi-navigateurs
+      - name: 🌐 Tests E2E multi-navigateurs
         run: |
-          echo " Tests E2E multi-navigateurs..."
+          echo "🌐 Tests E2E multi-navigateurs..."
           cd frontend
           npx playwright install firefox webkit --with-deps
-          npx playwright test --project=firefox --project=webkit --reporter=json || echo " Tests multi-navigateurs échoués"
-          echo " Tests multi-navigateurs terminés"
+          npx playwright test --project=firefox --project=webkit --reporter=json || echo "⚠️ Tests multi-navigateurs échoués"
+          echo "✅ Tests multi-navigateurs terminés"
 
-      - name:  Tests E2E mobile
+      - name: 📱 Tests E2E mobile
         run: |
-          echo " Tests E2E mobile..."
+          echo "📱 Tests E2E mobile..."
           cd frontend
-          npx playwright test --project="Mobile Chrome" --project="Mobile Safari" --reporter=json || echo " Tests mobile échoués"
-          echo " Tests mobile terminés"
+          npx playwright test --project="Mobile Chrome" --project="Mobile Safari" --reporter=json || echo "⚠️ Tests mobile échoués"
+          echo "✅ Tests mobile terminés"
 
-      - name:  Tests d'accessibilité
+      - name: ♿ Tests d'accessibilité
         run: |
-          echo " Tests d'accessibilité..."
+          echo "♿ Tests d'accessibilité..."
           cd frontend
-          npm run test:a11y || echo " Tests d'accessibilité échoués"
-          echo " Tests d'accessibilité terminés"
+          npm run test:a11y || echo "⚠️ Tests d'accessibilité échoués"
+          echo "✅ Tests d'accessibilité terminés"
 
-      - name:  Build de production
+      - name: 🏗️ Build de production
         run: |
-          echo " Build de production..."
+          echo "🏗️ Build de production..."
           cd frontend
-          npm run build || echo " Build échoué"
-          echo " Build de production terminé"
+          npm run build || echo "⚠️ Build échoué"
+          echo "✅ Build de production terminé"
 
-      - name:  Tests de performance du build
+      - name: 📊 Tests de performance du build
         run: |
-          echo " Tests de performance du build..."
+          echo "📊 Tests de performance du build..."
           cd frontend
           if [ -d ".next" ]; then
-            echo " Build Next.js réussi"
+            echo "✅ Build Next.js réussi"
             # Vérifier la taille du build
-            du -sh .next/ || echo " Impossible de vérifier la taille du build"
+            du -sh .next/ || echo "⚠️ Impossible de vérifier la taille du build"
           else
-            echo " Build Next.js non trouvé"
+            echo "⚠️ Build Next.js non trouvé"
           fi
 
-      - name:  Collecte des rapports de test frontend
+      - name: 📊 Collecte des rapports de test frontend
         if: always()
         run: |
-          echo " Collecte des rapports de test frontend..."
+          echo "📊 Collecte des rapports de test frontend..."
           mkdir -p test-reports/frontend
           # Copier les rapports de coverage
-          cp -r frontend/coverage test-reports/frontend/ 2>/dev/null || echo " Aucun rapport de coverage frontend trouvé"
+          cp -r frontend/coverage test-reports/frontend/ 2>/dev/null || echo "ℹ️ Aucun rapport de coverage frontend trouvé"
           # Copier les rapports Playwright
-          cp -r frontend/test-results* test-reports/frontend/ 2>/dev/null || echo " Aucun rapport Playwright trouvé"
+          cp -r frontend/test-results* test-reports/frontend/ 2>/dev/null || echo "ℹ️ Aucun rapport Playwright trouvé"
           # Copier les rapports de build
-          cp -r frontend/.next test-reports/frontend/ 2>/dev/null || echo " Aucun rapport de build trouvé"
+          cp -r frontend/.next test-reports/frontend/ 2>/dev/null || echo "ℹ️ Aucun rapport de build trouvé"
 
-      - name:  Rapport des tests frontend
+      - name: 📊 Rapport des tests frontend
         if: always()
         run: |
-          echo " RÉSUMÉ DES TESTS FRONTEND"
+          echo "📊 RÉSUMÉ DES TESTS FRONTEND"
           echo "============================"
-          echo " Tests unitaires (Jest): Exécutés"
-          echo " Tests de coverage: Vérifiés"
-          echo " Tests E2E (Chromium): Exécutés"
-          echo " Tests multi-navigateurs: Exécutés"
-          echo " Tests mobile: Exécutés"
-          echo " Tests d'accessibilité: Exécutés"
-          echo " Build de production: Exécuté"
-          echo " Tests de performance: Exécutés"
+          echo "✅ Tests unitaires (Jest): Exécutés"
+          echo "✅ Tests de coverage: Vérifiés"
+          echo "✅ Tests E2E (Chromium): Exécutés"
+          echo "✅ Tests multi-navigateurs: Exécutés"
+          echo "✅ Tests mobile: Exécutés"
+          echo "✅ Tests d'accessibilité: Exécutés"
+          echo "✅ Build de production: Exécuté"
+          echo "✅ Tests de performance: Exécutés"
 
   # ============================================================================
   # TESTS D'INTÉGRATION SYSTÈME
@@ -740,9 +785,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -760,29 +814,29 @@ jobs:
       - name: 🏥 Tests de santé système complet
         run: |
           echo "🏥 Tests de santé système complet..."
-          make health || echo " Tests de santé système échoués"
-          echo " Tests de santé système terminés"
+          make health || echo "⚠️ Tests de santé système échoués"
+          echo "✅ Tests de santé système terminés"
 
       - name: 🔄 Tests d'intégration complète
         run: |
           echo "🔄 Tests d'intégration complète..."
-          make test-integration || echo " Tests d'intégration complète échoués"
-          echo " Tests d'intégration complète terminés"
+          make test-integration || echo "⚠️ Tests d'intégration complète échoués"
+          echo "✅ Tests d'intégration complète terminés"
 
       - name: 🧪 Tests système avancés
         run: |
           echo "🧪 Tests système avancés..."
-          make test-all || echo " Tests système avancés échoués"
-          echo " Tests système avancés terminés"
+          make test-all || echo "⚠️ Tests système avancés échoués"
+          echo "✅ Tests système avancés terminés"
 
-      - name:  Rapport des tests d'intégration système
+      - name: 📊 Rapport des tests d'intégration système
         if: always()
         run: |
-          echo " RÉSUMÉ DES TESTS D'INTÉGRATION SYSTÈME"
+          echo "📊 RÉSUMÉ DES TESTS D'INTÉGRATION SYSTÈME"
           echo "========================================"
-          echo " Tests de santé système: Exécutés"
-          echo " Tests d'intégration complète: Exécutés"
-          echo " Tests système avancés: Exécutés"
+          echo "✅ Tests de santé système: Exécutés"
+          echo "✅ Tests d'intégration complète: Exécutés"
+          echo "✅ Tests système avancés: Exécutés"
 
   # ============================================================================
   # TESTS DE PERFORMANCE
@@ -827,9 +881,18 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
+
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
 
       - name: Configuration Node.js (Version depuis config)
         uses: actions/setup-node@v4
@@ -838,12 +901,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/package-lock.json
 
-      - name:  Vérification de l'environnement Node.js
+      - name: 🔍 Vérification de l'environnement Node.js
         run: |
-          echo " Vérification de l'environnement Node.js..."
+          echo "🔍 Vérification de l'environnement Node.js..."
           node --version
           npm --version
-          echo " Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
+          echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
       - name: 📦 Installation des dépendances des tests
         run: |
@@ -851,9 +914,9 @@ jobs:
           cd tests
           npm ci --prefer-offline --no-audit
 
-      - name:  Configuration de la base de données de test
+      - name: 🗄️ Configuration de la base de données de test
         run: |
-          echo " Configuration de la base de données de test..."
+          echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
           until pg_isready -h localhost -p 5432 -U jobbingtrack; do
             echo "⏳ Attente de PostgreSQL..."
@@ -864,93 +927,93 @@ jobs:
           PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma si nécessaire
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo " Erreur lors de l'initialisation du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
 
       - name: 🏥 Démarrage des services de base pour les tests de performance
         run: |
           echo "🏥 Démarrage des services de base pour les tests de performance..."
           # Démarrer seulement les services de base (postgres, redis, frontend)
-          docker-compose up -d postgres redis frontend || echo " Erreur lors du démarrage des services de base"
+          docker-compose up -d postgres redis frontend || echo "⚠️ Erreur lors du démarrage des services de base"
 
           # Attendre que les services de base soient prêts
           echo "⏳ Attente du démarrage des services de base..."
           sleep 15
 
           # Vérifier que les services de base sont bien démarrés
-          echo " Vérification des services de base..."
+          echo "🔍 Vérification des services de base..."
           for port in 5432 6379 8080; do
-            timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo " Port $port accessible (service de base)" || echo " Port $port non accessible"
+            timeout 10 bash -c "</dev/tcp/localhost/$port" 2>/dev/null && echo "✅ Port $port accessible (service de base)" || echo "⚠️ Port $port non accessible"
           done
 
-      - name:  Tests de performance adaptatifs
+      - name: ⚡ Tests de performance adaptatifs
         run: |
-          echo " Exécution des tests de performance adaptatifs..."
-          echo " Les tests détecteront automatiquement les services disponibles"
-          echo " Les services nécessaires seront démarrés temporairement"
+          echo "⚡ Exécution des tests de performance adaptatifs..."
+          echo "🔍 Les tests détecteront automatiquement les services disponibles"
+          echo "🚀 Les services nécessaires seront démarrés temporairement"
           echo "🛑 Les services temporaires seront arrêtés après les tests"
 
           # Exécuter les tests avec la nouvelle approche adaptative
-          node tests/performance/test-performance.js || echo " Tests de performance échoués"
-          echo " Tests de performance adaptatifs terminés"
+          node tests/performance/test-performance.js || echo "⚠️ Tests de performance échoués"
+          echo "✅ Tests de performance adaptatifs terminés"
 
-      - name:  Validation du système de tests adaptatifs
+      - name: 📊 Validation du système de tests adaptatifs
         run: |
-          echo " Validation du système de tests adaptatifs..."
-          echo " Vérification que les tests s'adaptent correctement aux services disponibles"
+          echo "📊 Validation du système de tests adaptatifs..."
+          echo "🔍 Vérification que les tests s'adaptent correctement aux services disponibles"
 
           # Vérifier que le rapport de performance a été généré
           if [ -f "tests/reports/performance-report.json" ]; then
-            echo " Rapport de performance généré avec succès"
+            echo "✅ Rapport de performance généré avec succès"
 
             # Vérifier que le rapport contient les informations sur les services détectés
             if jq -e '.availableServices' tests/reports/performance-report.json > /dev/null 2>&1; then
-              echo " Services détectés dynamiquement"
+              echo "✅ Services détectés dynamiquement"
             else
-              echo " Services non détectés dans le rapport"
+              echo "⚠️ Services non détectés dans le rapport"
             fi
 
             # Vérifier que les tests se sont adaptés
             TOTAL_TESTS=$(jq '.summary.totalTests' tests/reports/performance-report.json)
             SUCCESSFUL_TESTS=$(jq '.summary.successfulTests' tests/reports/performance-report.json)
 
-            echo " Tests exécutés: $TOTAL_TESTS"
-            echo " Tests réussis: $SUCCESSFUL_TESTS"
+            echo "📊 Tests exécutés: $TOTAL_TESTS"
+            echo "✅ Tests réussis: $SUCCESSFUL_TESTS"
 
             if [ "$TOTAL_TESTS" -gt 0 ]; then
-              echo " Système de tests adaptatifs fonctionnel"
+              echo "✅ Système de tests adaptatifs fonctionnel"
             else
-              echo " Aucun test n'a été exécuté"
+              echo "⚠️ Aucun test n'a été exécuté"
             fi
           else
-            echo " Aucun rapport de performance généré"
+            echo "❌ Aucun rapport de performance généré"
           fi
 
-      - name:  Collecte des rapports de performance
+      - name: 📊 Collecte des rapports de performance
         if: always()
         run: |
-          echo " Collecte des rapports de performance..."
+          echo "📊 Collecte des rapports de performance..."
           mkdir -p test-reports/performance
           # Copier les rapports de performance s'ils existent
-          cp -r tests/reports/performance-report.json test-reports/performance/ 2>/dev/null || echo " Aucun rapport de performance trouvé"
-          cp -r tests/reports/*.json test-reports/performance/ 2>/dev/null || echo " Aucun rapport JSON trouvé"
+          cp -r tests/reports/performance-report.json test-reports/performance/ 2>/dev/null || echo "ℹ️ Aucun rapport de performance trouvé"
+          cp -r tests/reports/*.json test-reports/performance/ 2>/dev/null || echo "ℹ️ Aucun rapport JSON trouvé"
           # Copier les métriques système
-          cp -r tests/reports/*.log test-reports/performance/ 2>/dev/null || echo " Aucun log de performance trouvé"
+          cp -r tests/reports/*.log test-reports/performance/ 2>/dev/null || echo "ℹ️ Aucun log de performance trouvé"
 
-      - name:  Rapport des tests de performance adaptatifs
+      - name: 📊 Rapport des tests de performance adaptatifs
         if: always()
         run: |
-          echo " RÉSUMÉ DES TESTS DE PERFORMANCE ADAPTATIFS"
+          echo "📊 RÉSUMÉ DES TESTS DE PERFORMANCE ADAPTATIFS"
           echo "=============================================="
-          echo " Tests de performance adaptatifs: Exécutés"
-          echo " Détection automatique des services: Implémentée"
-          echo " Démarrage intelligent des services: Fonctionnel"
-          echo " Arrêt automatique des services temporaires: Configuré"
-          echo " Base de données: Configurée"
+          echo "✅ Tests de performance adaptatifs: Exécutés"
+          echo "✅ Détection automatique des services: Implémentée"
+          echo "✅ Démarrage intelligent des services: Fonctionnel"
+          echo "✅ Arrêt automatique des services temporaires: Configuré"
+          echo "✅ Base de données: Configurée"
 
           # Analyser le rapport de performance s'il existe
           if [ -f "tests/reports/performance-report.json" ]; then
             echo ""
-            echo " RÉSULTATS DE PERFORMANCE ADAPTATIVE:"
+            echo "📈 RÉSULTATS DE PERFORMANCE ADAPTATIVE:"
             node -e "
               const report = require('./tests/reports/performance-report.json');
               console.log('   Services détectés:', report.availableServices ? report.availableServices.length : 0);
@@ -963,7 +1026,7 @@ jobs:
               console.log('   Score global:', report.globalScore || 'N/A');
             "
           else
-            echo " Aucun rapport de performance généré"
+            echo "⚠️ Aucun rapport de performance généré"
           fi
 
   # ============================================================================
@@ -984,17 +1047,26 @@ jobs:
         id: node-version
         run: |
           echo "Lecture de la version Node.js depuis les Dockerfiles..."
-          NODE_VERSION=$(./scripts/get-docker-node-version.sh)
-          echo "Version Node.js trouvée dans Dockerfiles: $NODE_VERSION"
-          echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          # Capture seulement la dernière ligne (la version) et ignore le reste
+          NODE_VERSION=$(./scripts/get-docker-node-version.sh | tail -n 1)
+          echo "Version Node.js trouvee dans Dockerfiles: $NODE_VERSION"
 
-      - name:  Collecte des artefacts
+          # Validation du format (proposition de GitHub Copilot)
+          if [[ $NODE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "node-version=$NODE_VERSION" >> $GITHUB_OUTPUT
+            echo "Version Node.js detectee: $NODE_VERSION"
+          else
+            echo "Erreur: Format de version invalide: '$NODE_VERSION'"
+            exit 1
+          fi
+
+      - name: 📊 Collecte des artefacts
         if: always()
         run: |
-          echo " Collecte des artefacts de test..."
+          echo "📊 Collecte des artefacts de test..."
           mkdir -p ci-artifacts
           # Copier tous les rapports de test
-          cp -r test-reports/ ci-artifacts/ 2>/dev/null || echo " Aucun artefact de test trouvé"
+          cp -r test-reports/ ci-artifacts/ 2>/dev/null || echo "ℹ️ Aucun artefact de test trouvé"
           # Créer un résumé JSON
           cat > ci-artifacts/summary.json << EOF
           {
@@ -1012,111 +1084,111 @@ jobs:
           }
           EOF
 
-      - name:  Rapport final détaillé
+      - name: 📊 Rapport final détaillé
         if: always()
         run: |
-          echo " RÉSUMÉ COMPLET DE LA PIPELINE CI/CD"
+          echo "📊 RÉSUMÉ COMPLET DE LA PIPELINE CI/CD"
           echo "======================================"
           echo ""
-          echo " ANALYSE DE SÉCURITÉ"
+          echo "🔍 ANALYSE DE SÉCURITÉ"
           echo "   Statut: ${{ needs.security-scan.result }}"
-          echo "    Audit des vulnérabilités: Exécuté"
+          echo "   ✅ Audit des vulnérabilités: Exécuté"
           echo ""
-          echo " ANALYSE DE QUALITÉ DU CODE"
+          echo "🔍 ANALYSE DE QUALITÉ DU CODE"
           echo "   Statut: ${{ needs.code-quality.result }}"
-          echo "    ESLint: Exécuté"
-          echo "    Prettier: Vérifié"
-          echo "    TypeScript: Vérifié"
-          echo "    Backend: Analysé"
+          echo "   ✅ ESLint: Exécuté"
+          echo "   ✅ Prettier: Vérifié"
+          echo "   ✅ TypeScript: Vérifié"
+          echo "   ✅ Backend: Analysé"
           echo ""
           echo "🧪 TESTS BACKEND"
           echo "   Statut: ${{ needs.test-backend.result }}"
-          echo "    Tests unitaires: Exécutés"
-          echo "    Tests d'intégration: Exécutés"
-          echo "    Tests de base de données: Exécutés"
-          echo "    Tests API: Exécutés"
-          echo "    Tests de santé: Exécutés"
+          echo "   ✅ Tests unitaires: Exécutés"
+          echo "   ✅ Tests d'intégration: Exécutés"
+          echo "   ✅ Tests de base de données: Exécutés"
+          echo "   ✅ Tests API: Exécutés"
+          echo "   ✅ Tests de santé: Exécutés"
           echo ""
-          echo " TESTS FRONTEND"
+          echo "🎨 TESTS FRONTEND"
           echo "   Statut: ${{ needs.test-frontend.result }}"
-          echo "    Tests unitaires (Jest): Exécutés"
-          echo "    Tests E2E (Playwright): Exécutés"
-          echo "    Tests multi-navigateurs: Exécutés"
-          echo "    Tests mobile: Exécutés"
-          echo "    Tests d'accessibilité: Exécutés"
-          echo "    Build de production: Exécuté"
+          echo "   ✅ Tests unitaires (Jest): Exécutés"
+          echo "   ✅ Tests E2E (Playwright): Exécutés"
+          echo "   ✅ Tests multi-navigateurs: Exécutés"
+          echo "   ✅ Tests mobile: Exécutés"
+          echo "   ✅ Tests d'accessibilité: Exécutés"
+          echo "   ✅ Build de production: Exécuté"
           echo ""
-          echo " TESTS D'INTÉGRATION SYSTÈME"
+          echo "🔗 TESTS D'INTÉGRATION SYSTÈME"
           echo "   Statut: ${{ needs.system-integration-tests.result }}"
-          echo "    Tests de santé système: Exécutés"
-          echo "    Tests d'intégration complète: Exécutés"
+          echo "   ✅ Tests de santé système: Exécutés"
+          echo "   ✅ Tests d'intégration complète: Exécutés"
           echo ""
-          echo " TESTS DE PERFORMANCE"
+          echo "⚡ TESTS DE PERFORMANCE"
           echo "   Statut: ${{ needs.performance-tests.result }}"
-          echo "    Tests de performance API: Exécutés"
-          echo "    Tests de charge: Exécutés"
-          echo "    Tests de stress: Exécutés"
-          echo "    Tests mémoire: Exécutés"
+          echo "   ✅ Tests de performance API: Exécutés"
+          echo "   ✅ Tests de charge: Exécutés"
+          echo "   ✅ Tests de stress: Exécutés"
+          echo "   ✅ Tests mémoire: Exécutés"
           echo ""
-          echo " CONFIGURATION"
+          echo "📋 CONFIGURATION"
           echo "   Version Node.js: ${{ steps.node-version.outputs.node-version }}"
           echo "   Commit: ${{ github.sha }}"
           echo "   Branche: ${{ github.ref_name }}"
           echo "   Run ID: ${{ github.run_id }}"
           echo ""
-          echo " ARTEFACTS"
+          echo "📊 ARTEFACTS"
           echo "   Répertoire: ci-artifacts/"
-          echo "    Rapports de test collectés"
-          echo "    Résumé JSON généré"
+          echo "   ✅ Rapports de test collectés"
+          echo "   ✅ Résumé JSON généré"
           echo ""
 
-      - name:  Succès complet
+      - name: ✅ Succès complet
         if: needs.security-scan.result == 'success' && needs.database-schema-validation.result == 'success' && needs.code-quality.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success' && needs.system-integration-tests.result == 'success' && needs.performance-tests.result == 'success'
         run: |
-          echo " TOUS LES TESTS SONT PASSÉS !"
-          echo " Le projet est prêt pour le déploiement"
+          echo "🎉 TOUS LES TESTS SONT PASSÉS !"
+          echo "🚀 Le projet est prêt pour le déploiement"
           echo ""
-          echo " Prochaines étapes recommandées:"
+          echo "📋 Prochaines étapes recommandées:"
           echo "   • Revue du code (Code Review)"
           echo "   • Tests manuels supplémentaires"
           echo "   • Déploiement en staging"
           echo "   • Déploiement en production"
           echo ""
-          echo " VALIDATION DE LA BASE DE DONNÉES:"
-          echo "    Schéma Prisma validé"
-          echo "    Nouveaux modèles présents"
-          echo "    Relations many-to-many définies"
-          echo "    Client Prisma généré"
+          echo "🗄️ VALIDATION DE LA BASE DE DONNÉES:"
+          echo "   ✅ Schéma Prisma validé"
+          echo "   ✅ Nouveaux modèles présents"
+          echo "   ✅ Relations many-to-many définies"
+          echo "   ✅ Client Prisma généré"
 
-      - name:  Échecs détectés
+      - name: ⚠️ Échecs détectés
         if: needs.security-scan.result != 'success' || needs.database-schema-validation.result != 'success' || needs.code-quality.result != 'success' || needs.test-backend.result != 'success' || needs.test-frontend.result != 'success' || needs.system-integration-tests.result != 'success' || needs.performance-tests.result != 'success'
         run: |
-          echo " CERTAINS TESTS ONT ÉCHOUÉ"
+          echo "❌ CERTAINS TESTS ONT ÉCHOUÉ"
           echo ""
-          echo " DÉTAILS DES ÉCHECS:"
+          echo "🔍 DÉTAILS DES ÉCHECS:"
           if [ "${{ needs.security-scan.result }}" != "success" ]; then
             echo "   • 🔒 Analyse de sécurité: ÉCHEC"
           fi
           if [ "${{ needs.database-schema-validation.result }}" != "success" ]; then
-            echo "   •  Validation de la base de données: ÉCHEC"
+            echo "   • 🗄️ Validation de la base de données: ÉCHEC"
           fi
           if [ "${{ needs.code-quality.result }}" != "success" ]; then
-            echo "   •  Analyse de qualité: ÉCHEC"
+            echo "   • 🔍 Analyse de qualité: ÉCHEC"
           fi
           if [ "${{ needs.test-backend.result }}" != "success" ]; then
             echo "   • 🧪 Tests backend: ÉCHEC"
           fi
           if [ "${{ needs.test-frontend.result }}" != "success" ]; then
-            echo "   •  Tests frontend: ÉCHEC"
+            echo "   • 🎨 Tests frontend: ÉCHEC"
           fi
           if [ "${{ needs.system-integration-tests.result }}" != "success" ]; then
-            echo "   •  Tests d'intégration système: ÉCHEC"
+            echo "   • 🔗 Tests d'intégration système: ÉCHEC"
           fi
           if [ "${{ needs.performance-tests.result }}" != "success" ]; then
-            echo "   •  Tests de performance: ÉCHEC"
+            echo "   • ⚡ Tests de performance: ÉCHEC"
           fi
           echo ""
-          echo " ACTIONS RECOMMANDÉES:"
+          echo "🔧 ACTIONS RECOMMANDÉES:"
           echo "   • Vérifiez les logs détaillés dans chaque job"
           echo "   • Corrigez les erreurs identifiées"
           echo "   • Relancez la pipeline après corrections"
