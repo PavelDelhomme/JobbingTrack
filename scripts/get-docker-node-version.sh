@@ -9,16 +9,26 @@
 
 set -e
 
-# Couleurs pour les messages
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Couleurs pour les messages (optionnelles pour CI/CD)
+if [[ -t 1 ]]; then
+    # Terminal interactif - utiliser les couleurs
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    RED='\033[0;31m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    # Mode non-interactif (CI/CD) - pas de couleurs
+    GREEN=''
+    YELLOW=''
+    RED=''
+    BLUE=''
+    NC=''
+fi
 
 # Fonction pour afficher l'aide
 show_help() {
-    echo -e "${BLUE}🐳 Détection de version Node.js - JobbingTrack${NC}"
+    echo -e "${BLUE}Detection de version Node.js - JobbingTrack${NC}"
     echo "=============================================="
     echo ""
     echo "Usage: $0 [OPTIONS]"
@@ -61,7 +71,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo -e "${RED}❌ Option inconnue: $1${NC}"
+            echo -e "${RED}Option inconnue: $1${NC}"
             show_help
             exit 1
             ;;
@@ -104,25 +114,25 @@ find_dockerfiles() {
 }
 
 # Recherche des versions Node.js
-echo -e "${BLUE}🔍 Recherche des versions Node.js dans les Dockerfiles...${NC}"
+echo -e "${BLUE}Recherche des versions Node.js dans les Dockerfiles...${NC}"
 
 declare -A versions_found
 versions_list=()
 
 # Recherche dans les Dockerfiles frontend
 if [[ "$SEARCH_FRONTEND" == true ]]; then
-    echo -e "\n${YELLOW}📁 Recherche dans les Dockerfiles frontend...${NC}"
+    echo -e "\n${YELLOW}Recherche dans les Dockerfiles frontend...${NC}"
 
     while IFS= read -r dockerfile; do
         if [[ -n "$dockerfile" ]]; then
-            echo "  📄 $dockerfile"
+            echo "  $dockerfile"
             version=$(extract_node_version "$dockerfile")
             if [[ -n "$version" && "$version" != "latest" ]]; then
-                echo "    📦 Version trouvée: $version"
+                echo "    Version trouvee: $version"
                 versions_found["$version"]=1
                 versions_list+=("$version")
             else
-                echo "    ⚠️ Aucune version spécifique trouvée"
+                echo "    Aucune version specifique trouvee"
             fi
         fi
     done < <(find_dockerfiles "frontend" "Dockerfile*")
@@ -130,18 +140,18 @@ fi
 
 # Recherche dans les Dockerfiles backend
 if [[ "$SEARCH_BACKEND" == true ]]; then
-    echo -e "\n${YELLOW}🔧 Recherche dans les Dockerfiles backend...${NC}"
+    echo -e "\n${YELLOW}Recherche dans les Dockerfiles backend...${NC}"
 
     while IFS= read -r dockerfile; do
         if [[ -n "$dockerfile" ]]; then
-            echo "  📄 $dockerfile"
+            echo "  $dockerfile"
             version=$(extract_node_version "$dockerfile")
             if [[ -n "$version" && "$version" != "latest" ]]; then
-                echo "    📦 Version trouvée: $version"
+                echo "    Version trouvee: $version"
                 versions_found["$version"]=1
                 versions_list+=("$version")
             else
-                echo "    ⚠️ Aucune version spécifique trouvée"
+                echo "    Aucune version specifique trouvee"
             fi
         fi
     done < <(find_dockerfiles "backend" "Dockerfile*")
@@ -152,8 +162,8 @@ DEFAULT_VERSION="20.10.0"
 
 # Analyse des résultats
 if [[ ${#versions_found[@]} -eq 0 ]]; then
-    echo -e "\n${YELLOW}⚠️ Aucune version Node.js spécifique trouvée dans les Dockerfiles${NC}"
-    echo -e "${YELLOW}📦 Utilisation de la version par défaut: ${DEFAULT_VERSION}${NC}"
+    echo -e "\n${YELLOW}Aucune version Node.js specifique trouvee dans les Dockerfiles${NC}"
+    echo -e "${YELLOW}Utilisation de la version par defaut: ${DEFAULT_VERSION}${NC}"
     echo "$DEFAULT_VERSION"
     exit 0
 fi
@@ -169,10 +179,10 @@ for version in "${versions_list[@]}"; do
     fi
 done
 
-echo -e "\n${GREEN}✅ Version Node.js déterminée: ${latest_version}${NC}"
+echo -e "\n${GREEN}Version Node.js determinee: ${latest_version}${NC}"
 
 # Vérifier si la version est supportée par GitHub Actions
-echo -e "\n${BLUE}🔍 Vérification de la compatibilité...${NC}"
+echo -e "\n${BLUE}Verification de la compatibilite...${NC}"
 
 # Liste des versions supportées par GitHub Actions (approximative)
 supported_versions=("18.0.0" "18.17.0" "18.18.0" "18.19.0" "18.20.0" "19.0.0" "19.9.0" "20.0.0" "20.10.0" "20.11.0" "20.12.0" "21.0.0" "21.6.0" "22.0.0")
@@ -186,10 +196,10 @@ for supported in "${supported_versions[@]}"; do
 done
 
 if [[ "$is_supported" == true ]]; then
-    echo -e "${GREEN}✅ Version ${latest_version} supportée par GitHub Actions${NC}"
+    echo -e "${GREEN}Version ${latest_version} supportee par GitHub Actions${NC}"
 else
-    echo -e "${YELLOW}⚠️ Version ${latest_version} peut ne pas être supportée${NC}"
-    echo -e "${YELLOW}💡 Considérez utiliser une version LTS: 18.20.0, 20.12.0, ou 22.0.0${NC}"
+    echo -e "${YELLOW}Version ${latest_version} peut ne pas etre supportee${NC}"
+    echo -e "${YELLOW}Considerez utiliser une version LTS: 18.20.0, 20.12.0, ou 22.0.0${NC}"
 fi
 
 echo "$latest_version"
