@@ -42,7 +42,7 @@ import {
   Building,
   Briefcase,
   Shield,
-  Lightning,
+  // Lightning,
   AlertCircle,
   Check,
   X,
@@ -84,7 +84,7 @@ import {
   Check as CheckIcon,
   Info,
   AlertTriangle as Warning,
-  AlertCircle as Error,
+  AlertCircle as ErrorIcon,
   CheckCircle as Success,
   Timer,
   Gauge,
@@ -92,6 +92,7 @@ import {
   HardDrive,
   Wifi,
   WifiOff,
+  Terminal,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -441,7 +442,8 @@ export default function PerformanceTestsPage() {
               variant="outline"
               className="flex items-center gap-2"
             >
-              <Terminal className="h-4 w-4" />
+              {/* Terminal icon non importé ici; remplacé par un fallback */}
+              <span className="h-4 w-4">🖥️</span>
               {terminalVisible ? 'Masquer' : 'Terminal'}
             </Button>
           </div>
@@ -730,7 +732,7 @@ export default function PerformanceTestsPage() {
                           }}
                           variant="outline"
                         >
-                          <RotateCcw className="h-4 w-4" />
+                          <RotateCcwIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

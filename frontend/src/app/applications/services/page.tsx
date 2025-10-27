@@ -78,7 +78,7 @@ export default function ServicesPage() {
     if (metrics && metrics.services) {
       const updatedServices = REAL_SERVICES.map(service => {
         // Recherche plus intelligente du service dans les métriques
-        let serviceKey = null
+        let serviceKey: string | null = null
 
         // Essayer différents patterns de recherche
         const searchPatterns = [
@@ -90,13 +90,13 @@ export default function ServicesPage() {
         ]
 
         for (const pattern of searchPatterns) {
-          if (metrics.services[pattern]) {
+          if (metrics.services && metrics.services[pattern]) {
             serviceKey = pattern
             break
           }
         }
 
-        const serviceMetrics = serviceKey ? metrics.services[serviceKey] : null
+      const serviceMetrics = serviceKey && metrics.services ? metrics.services[serviceKey as string] : null
 
         if (serviceMetrics && serviceMetrics.health) {
           return {
@@ -168,7 +168,7 @@ export default function ServicesPage() {
     const prometheusTimeout = setTimeout(async () => {
       try {
         // Vérifier d'abord si Prometheus est disponible
-        const testResponse = await fetch(`${apiUrl}/api/v1/metrics/prometheus/query?query=up`, {
+        const testResponse = await fetch(`${API_GATEWAY_URL}/api/v1/metrics/prometheus/query?query=up`, {
           signal: AbortSignal.timeout(2000)
         });
 
@@ -365,13 +365,13 @@ export default function ServicesPage() {
     try {
       if (metrics && metrics.services) {
         // Chercher le service dans les métriques
-        const serviceKey = Object.keys(metrics.services).find(key =>
+        const serviceKey = Object.keys(metrics.services || {}).find((key: string) =>
           key.includes(service.name.toLowerCase().replace(' ', '-')) ||
           key === service.serviceType
         )
 
-        if (serviceKey && metrics.services[serviceKey]) {
-          const serviceData = metrics.services[serviceKey]
+        if (serviceKey && metrics.services && metrics.services[serviceKey as string]) {
+          const serviceData = metrics.services[serviceKey as string]
 
           // Générer des logs basés sur les métriques
           const logs = []
@@ -482,9 +482,9 @@ export default function ServicesPage() {
       // Simulation d'une maintenance activée
       setMaintenances(prev => ({
         ...prev,
-        [service.serviceType]: {
+        [(service.serviceType ?? service.name.toLowerCase())]: {
           isActive: true,
-          serviceName: service.serviceType,
+          serviceName: service.serviceType ?? service.name.toLowerCase(),
           message: `Maintenance activée pour ${service.name} (simulation)`,
           activatedAt: new Date().toISOString()
         }
@@ -501,7 +501,8 @@ export default function ServicesPage() {
       // Simulation d'une maintenance désactivée
       setMaintenances(prev => {
         const updated = { ...prev }
-        delete updated[service.serviceType]
+        const key = service.serviceType ?? service.name.toLowerCase()
+        delete (updated as any)[key]
         return updated
       })
     } catch (error) {
@@ -519,7 +520,7 @@ export default function ServicesPage() {
   // Fonction pour récupérer les métriques Prometheus via l'API Gateway
   const fetchPrometheusMetrics = async (serviceName: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const apiUrl = API_GATEWAY_URL
 
       // Vérifier d'abord si Prometheus est disponible
       try {
@@ -619,13 +620,13 @@ export default function ServicesPage() {
       ]
 
       for (const pattern of searchPatterns) {
-        if (metrics.services[pattern]) {
+        if (pattern && metrics.services && metrics.services[pattern]) {
           serviceKey = pattern
           break
         }
       }
 
-      const serviceMetrics = serviceKey ? metrics.services[serviceKey] : null
+      const serviceMetrics = serviceKey && metrics.services ? metrics.services[serviceKey as string] : null
 
       if (serviceMetrics && serviceMetrics.metrics) {
         // Retourner les métriques de service si disponibles
@@ -641,7 +642,7 @@ export default function ServicesPage() {
     }
 
     // Sinon, chercher dans les métriques de conteneurs
-    if (metrics?.containers) {
+      if (metrics?.containers && !Array.isArray(metrics.containers)) {
       // Recherche du nom du conteneur correspondant au service
       const containerName = Object.keys(metrics.containers).find(containerKey => {
         // Essaie différents patterns pour faire correspondre le service au conteneur
@@ -650,14 +651,14 @@ export default function ServicesPage() {
 
         return containerLower.includes(serviceLower) ||
                serviceLower.includes(containerLower) ||
-               containerLower.includes(service.serviceType) ||
-               service.serviceType === containerKey
+               (service.serviceType ? containerLower.includes(service.serviceType) : false) ||
+               (service.serviceType ? service.serviceType === containerKey : false)
       })
 
       if (containerName) {
         return {
           type: 'container',
-          data: metrics.containers[containerName]
+          data: (metrics.containers as any)[containerName]
         }
       }
     }
@@ -792,7 +793,7 @@ export default function ServicesPage() {
                 </div>
               </div>
               <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {averageResponseTime && averageResponseTime !== 'N/A' ? `${Math.round(averageResponseTime)}ms` : 'N/A'}
+                {Number.isFinite(averageResponseTime) ? `${Math.round(averageResponseTime as number)}ms` : 'N/A'}
               </p>
             </div>
           </div>

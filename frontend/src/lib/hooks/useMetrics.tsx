@@ -38,9 +38,31 @@ interface SystemMetrics {
   hostname: string
 }
 
+interface ServiceMetricsHealth {
+  status?: string
+  responseTime?: number | string
+  version?: string
+  error?: string
+}
+
+interface ServiceMetricsDetails {
+  memory?: { usage?: number | string; limit?: number | string; percentage?: number | string }
+  cpu?: { usage?: number | string; system?: number | string; percentage?: number | string }
+}
+
+interface ServiceMetrics {
+  health?: ServiceMetricsHealth
+  metrics?: ServiceMetricsDetails
+  status?: string
+  version?: string
+  lastCheck?: string
+}
+
 interface MetricsData {
-  containers: ContainerMetrics[]
-  system: SystemMetrics
+  services?: Record<string, ServiceMetrics>
+  // containers peut être un tableau (flux WS brut) ou une map (agrégateur)
+  containers?: ContainerMetrics[] | Record<string, any>
+  system?: SystemMetrics | Record<string, any>
   timestamp: string
 }
 
