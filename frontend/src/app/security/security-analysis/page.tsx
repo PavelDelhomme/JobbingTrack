@@ -242,7 +242,7 @@ export default function SecurityAnalysisPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score de Sécurité</p>
                     <p className={`text-3xl font-bold ${riskAnalysis.overallRisk === 'critical' || riskAnalysis.overallRisk === 'high' ? 'text-red-600 dark:text-red-400' : riskAnalysis.overallRisk === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {systemMetrics.averageRiskScore.toFixed(1)}
+                      {Number(systemMetrics.averageRiskScore).toFixed(1)}
                     </p>
                   </div>
                   <div className={`${riskAnalysis.overallRisk === 'critical' || riskAnalysis.overallRisk === 'high' ? 'text-red-500' : riskAnalysis.overallRisk === 'medium' ? 'text-yellow-500' : 'text-green-500'}`}>
@@ -356,8 +356,15 @@ export default function SecurityAnalysisPage() {
                 </h3>
                 <div className="h-48 flex items-end justify-between gap-1">
                   {riskAnalysis.attackTrends.hourly.slice(-24).map((trend: any, index: number) => {
-                    const maxTotal = Math.max(...riskAnalysis.attackTrends.hourly.map((t: any) => t.total))
-                    const height = maxTotal > 0 ? (trend.total / maxTotal) * 100 : 0
+                    const maxTotal = Math.max(
+                      ...riskAnalysis.attackTrends.hourly.map((t: any) => {
+                        const value = Number(t.total)
+                        return Number.isFinite(value) ? value : 0
+                      }),
+                      0
+                    )
+                    const currentTotal = Number.isFinite(Number(trend.total)) ? Number(trend.total) : 0
+                    const height = maxTotal > 0 ? (currentTotal / maxTotal) * 100 : 0
                     return (
                       <div key={index} className="flex flex-col items-center flex-1">
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg relative">
