@@ -1348,6 +1348,7 @@ test.describe('Tests de Sécurité', () => {
                 )}
 
                 {activeView === 'run' && (
+                  <>
                   <div className="p-2">
                     {/* Contrôles d'exécution */}
                     <div className="mb-4 p-3 bg-[#252526] rounded-lg">
@@ -1494,6 +1495,7 @@ test.describe('Tests de Sécurité', () => {
                         ))}
                       </div>
                     </div>
+                  </>
                   )}
 
         {/* Éditeur de code (centre) */}
