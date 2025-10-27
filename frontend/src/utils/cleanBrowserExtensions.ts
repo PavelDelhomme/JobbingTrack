@@ -66,12 +66,14 @@ export function setupBrowserExtensionCleanup(): void {
     attributeFilter: ['data-protonpass-form', 'data-lastpass-form', 'data-bitwarden-form']
   })
 
-  // Cleanup function
-  return () => {
+  // Cleanup (fonction interne, sans changer le type de retour)
+  const cleanup = () => {
     document.removeEventListener('DOMContentLoaded', cleanBrowserExtensionAttributes)
     document.removeEventListener('input', handleInput, true)
     document.removeEventListener('focus', handleInput, true)
     document.removeEventListener('click', handleInput, true)
     observer.disconnect()
   }
+  // Optionnel: retourner la fonction de nettoyage pour un usage externe si nécessaire
+  // return cleanup
 }

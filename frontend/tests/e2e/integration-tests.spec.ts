@@ -583,7 +583,11 @@ test.describe('🔗 Tests d\'Intégration - Microservices', () => {
     await page.locator('button[type="submit"]').click();
 
     // Ouvrir une nouvelle page/context pour simuler un autre utilisateur
-    const newContext = await page.context().browser().newContext();
+    const browser = page.context().browser();
+    if (!browser) {
+      throw new Error('Browser non disponible dans ce contexte');
+    }
+    const newContext = await browser.newContext();
     const newPage = await newContext.newPage();
 
     await newPage.goto('/login');
