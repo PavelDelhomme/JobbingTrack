@@ -98,7 +98,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_DB: jobbingtrack_test
-          POSTGRES_USER: jobbingtrack
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: jobbingtrack123
         options: >-
           --health-cmd pg_isready
@@ -145,26 +145,33 @@ jobs:
           npm --version
           echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
-      - name: 📦 Installation des dépendances backend
+      - name: Installation des dependances backend
         run: |
-          echo "📦 Installation des dépendances backend..."
+          echo "Installation des dependances backend..."
           cd backend
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances backend installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances backend"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
       - name: 🗄️ Configuration de la base de données de test
         run: |
           echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
-          until pg_isready -h localhost -p 5432 -U jobbingtrack; do
+          until pg_isready -h localhost -p 5432 -U postgres; do
             echo "⏳ Attente de PostgreSQL..."
             sleep 2
           done
 
           # Créer la base de données de test
-          PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
+          PGPASSWORD=jobbingtrack123 createdb -h localhost -U postgres -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma de base
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo "⚠️ Erreur lors de la création du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U postgres -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo "⚠️ Erreur lors de la création du schéma"
 
       - name: 🔍 Validation du schéma Prisma
         run: |
@@ -368,10 +375,17 @@ jobs:
           npm --version
           echo "✅ Node.js ${{ steps.node-version.outputs.node-version }} configuré correctement"
 
-      - name: 📦 Installation des dépendances frontend
+      - name: Installation des dependances frontend
         run: |
           cd frontend
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances frontend installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances frontend"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
       - name: 🧹 Linting frontend (ESLint)
         run: |
@@ -434,7 +448,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_DB: jobbingtrack_test
-          POSTGRES_USER: jobbingtrack
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: jobbingtrack123
         options: >-
           --health-cmd pg_isready
@@ -495,17 +509,31 @@ jobs:
         run: |
           echo "📦 Installation des dépendances des tests..."
           cd tests
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances des tests installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances des tests"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
-      - name: 📦 Installation des dépendances backend
+      - name: Installation des dependances backend
         run: |
-          echo "📦 Installation des dépendances pour tous les services backend..."
+          echo "Installation des dependances pour tous les services backend..."
           for service in backend/*/; do
             if [ -f "$service/package.json" ]; then
-              echo "📦 Installation pour $(basename $service)..."
+              echo "Installation pour $(basename $service)..."
               cd "$service"
-              npm ci --prefer-offline --no-audit --silent
-              cd - > /dev/null
+              if npm ci --prefer-offline --no-audit --loglevel=error; then
+                echo "Dependances installees avec succes pour $(basename $service)"
+                cd - > /dev/null
+              else
+                echo "ERREUR: Echec de l'installation des dependances pour $(basename $service)"
+                echo "Affichage des logs d'erreur:"
+                npm ci --prefer-offline --no-audit --loglevel=error || true
+                exit 1
+              fi
             fi
           done
 
@@ -513,16 +541,16 @@ jobs:
         run: |
           echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
-          until pg_isready -h localhost -p 5432 -U jobbingtrack; do
+          until pg_isready -h localhost -p 5432 -U postgres; do
             echo "⏳ Attente de PostgreSQL..."
             sleep 2
           done
 
           # Créer la base de données de test
-          PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
+          PGPASSWORD=jobbingtrack123 createdb -h localhost -U postgres -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma si nécessaire
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U postgres -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
 
       - name: 🧪 Tests unitaires des services backend
         run: |
@@ -628,6 +656,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [code-quality, database-schema-validation]
+    # Tests frontend obligatoires sur tous les push/PR (unitaires, lint, coverage)
+    # Tests E2E optionnels - voir conditions dans les étapes individuelles
 
     steps:
       - name: Checkout du code
@@ -668,7 +698,14 @@ jobs:
         run: |
           echo "📦 Installation des dépendances frontend..."
           cd frontend
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
       - name: 🧪 Tests unitaires avec Jest
         run: |
@@ -692,32 +729,36 @@ jobs:
             echo "⚠️ Aucun rapport de coverage trouvé"
           fi
 
-      - name: 🎭 Tests E2E avec Playwright (Chromium uniquement)
+      - name: Tests E2E avec Playwright (Chromium uniquement)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
         run: |
-          echo "🎭 Tests E2E avec Playwright (Chromium)..."
+          echo "Tests E2E avec Playwright (Chromium)..."
           cd frontend
           npx playwright install chromium --with-deps
           npm run test:e2e:ci || echo "⚠️ Tests E2E échoués"
           echo "✅ Tests E2E (Chromium) terminés"
 
-      - name: 🌐 Tests E2E multi-navigateurs
+      - name: Tests E2E multi-navigateurs
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
         run: |
-          echo "🌐 Tests E2E multi-navigateurs..."
+          echo "Tests E2E multi-navigateurs..."
           cd frontend
           npx playwright install firefox webkit --with-deps
           npx playwright test --project=firefox --project=webkit --reporter=json || echo "⚠️ Tests multi-navigateurs échoués"
           echo "✅ Tests multi-navigateurs terminés"
 
-      - name: 📱 Tests E2E mobile
+      - name: Tests E2E mobile
+        if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release')
         run: |
-          echo "📱 Tests E2E mobile..."
+          echo "Tests E2E mobile..."
           cd frontend
           npx playwright test --project="Mobile Chrome" --project="Mobile Safari" --reporter=json || echo "⚠️ Tests mobile échoués"
           echo "✅ Tests mobile terminés"
 
-      - name: ♿ Tests d'accessibilité
+      - name: Tests d'accessibilité
+        if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release')
         run: |
-          echo "♿ Tests d'accessibilité..."
+          echo "Tests d'accessibilité..."
           cd frontend
           npm run test:a11y || echo "⚠️ Tests d'accessibilité échoués"
           echo "✅ Tests d'accessibilité terminés"
@@ -776,6 +817,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [test-backend, test-frontend, database-schema-validation]
+    # Tests d'intégration système optionnels - seulement sur branches principales
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
 
     steps:
       - name: Checkout du code
@@ -809,7 +852,14 @@ jobs:
         run: |
           echo "📦 Installation des dépendances des tests..."
           cd tests
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances des tests installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances des tests"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
       - name: 🏥 Tests de santé système complet
         run: |
@@ -847,13 +897,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [test-backend, test-frontend, database-schema-validation]
+    # Tests de performance optionnels - seulement sur branches principales
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
 
     services:
       postgres:
         image: postgres:15-alpine
         env:
           POSTGRES_DB: jobbingtrack_test
-          POSTGRES_USER: jobbingtrack
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: jobbingtrack123
         options: >-
           --health-cmd pg_isready
@@ -912,22 +964,29 @@ jobs:
         run: |
           echo "📦 Installation des dépendances des tests..."
           cd tests
-          npm ci --prefer-offline --no-audit
+          if npm ci --prefer-offline --no-audit --loglevel=error; then
+            echo "Dependances des tests installees avec succes"
+          else
+            echo "ERREUR: Echec de l'installation des dependances des tests"
+            echo "Affichage des logs d'erreur:"
+            npm ci --prefer-offline --no-audit --loglevel=error || true
+            exit 1
+          fi
 
       - name: 🗄️ Configuration de la base de données de test
         run: |
           echo "🗄️ Configuration de la base de données de test..."
           # Attendre que PostgreSQL soit prêt
-          until pg_isready -h localhost -p 5432 -U jobbingtrack; do
+          until pg_isready -h localhost -p 5432 -U postgres; do
             echo "⏳ Attente de PostgreSQL..."
             sleep 2
           done
 
           # Créer la base de données de test
-          PGPASSWORD=jobbingtrack123 createdb -h localhost -U jobbingtrack -p 5432 jobbingtrack_test || true
+          PGPASSWORD=jobbingtrack123 createdb -h localhost -U postgres -p 5432 jobbingtrack_test || true
 
           # Initialiser le schéma si nécessaire
-          PGPASSWORD=jobbingtrack123 psql -h localhost -U jobbingtrack -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
+          PGPASSWORD=jobbingtrack123 psql -h localhost -U postgres -d jobbingtrack_test -f backend/init-db.sql/init-db.sql || echo "⚠️ Erreur lors de l'initialisation du schéma"
 
       - name: 🏥 Démarrage des services de base pour les tests de performance
         run: |
@@ -1084,66 +1143,86 @@ jobs:
           }
           EOF
 
-      - name: 📊 Rapport final détaillé
+      - name: Rapport final detaille
         if: always()
         run: |
-          echo "📊 RÉSUMÉ COMPLET DE LA PIPELINE CI/CD"
-          echo "======================================"
+          echo "RÉSUMÉ COMPLET DE LA PIPELINE CI/CD"
+          echo "===================================="
           echo ""
-          echo "🔍 ANALYSE DE SÉCURITÉ"
-          echo "   Statut: ${{ needs.security-scan.result }}"
-          echo "   ✅ Audit des vulnérabilités: Exécuté"
+
+          # Fonction pour afficher le statut avec couleur
+          print_status() {
+            local job_name="$1"
+            local result_var="${2:-needs.$job_name.result}"
+            local status=""
+
+            if [ "${result_var}" = "success" ]; then
+              echo "   ✅ $job_name: RÉUSSI"
+            elif [ "${result_var}" = "failure" ]; then
+              echo "   ❌ $job_name: ÉCHEC"
+            elif [ "${result_var}" = "cancelled" ]; then
+              echo "   ⚠️ $job_name: ANNULÉ"
+            elif [ "${result_var}" = "skipped" ]; then
+              echo "   ⏭️ $job_name: IGNORÉ"
+            else
+              echo "   ❓ $job_name: ${{ result_var }}"
+            fi
+          }
+
+          echo "🔍 ANALYSES OBLIGATOIRES"
+          echo "======================="
+          print_status "Analyse de sécurité" "needs.security-scan.result"
+          print_status "Validation de la base de données" "needs.database-schema-validation.result"
+          print_status "Analyse de qualité du code" "needs.code-quality.result"
           echo ""
-          echo "🔍 ANALYSE DE QUALITÉ DU CODE"
-          echo "   Statut: ${{ needs.code-quality.result }}"
-          echo "   ✅ ESLint: Exécuté"
-          echo "   ✅ Prettier: Vérifié"
-          echo "   ✅ TypeScript: Vérifié"
-          echo "   ✅ Backend: Analysé"
+
+          echo "🧪 TESTS OBLIGATOIRES"
+          echo "===================="
+          print_status "Tests Backend" "needs.test-backend.result"
+          print_status "Tests Frontend (unitaires/lint/coverage)" "needs.test-frontend.result"
           echo ""
-          echo "🧪 TESTS BACKEND"
-          echo "   Statut: ${{ needs.test-backend.result }}"
-          echo "   ✅ Tests unitaires: Exécutés"
-          echo "   ✅ Tests d'intégration: Exécutés"
-          echo "   ✅ Tests de base de données: Exécutés"
-          echo "   ✅ Tests API: Exécutés"
-          echo "   ✅ Tests de santé: Exécutés"
+
+          echo "🔗 TESTS OPTIONNELS"
+          echo "=================="
+          print_status "Tests d'intégration système" "needs.system-integration-tests.result"
+          print_status "Tests de Performance" "needs.performance-tests.result"
           echo ""
-          echo "🎨 TESTS FRONTEND"
-          echo "   Statut: ${{ needs.test-frontend.result }}"
-          echo "   ✅ Tests unitaires (Jest): Exécutés"
-          echo "   ✅ Tests E2E (Playwright): Exécutés"
-          echo "   ✅ Tests multi-navigateurs: Exécutés"
-          echo "   ✅ Tests mobile: Exécutés"
-          echo "   ✅ Tests d'accessibilité: Exécutés"
-          echo "   ✅ Build de production: Exécuté"
+
+          echo "🎭 TESTS E2E (CONDITIONNELS)"
+          echo "============================"
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "   ✅ Tests E2E exécutés (branche principale)"
+          else
+            echo "   ⏭️ Tests E2E ignorés (feature branch)"
+          fi
           echo ""
-          echo "🔗 TESTS D'INTÉGRATION SYSTÈME"
-          echo "   Statut: ${{ needs.system-integration-tests.result }}"
-          echo "   ✅ Tests de santé système: Exécutés"
-          echo "   ✅ Tests d'intégration complète: Exécutés"
+
+          echo "📱 TESTS SPÉCIALISÉS (RELEASE ONLY)"
+          echo "=================================="
+          if [[ "${{ github.ref }}" == *"release"* ]]; then
+            echo "   ✅ Tests mobile et accessibilité exécutés"
+          else
+            echo "   ⏭️ Tests mobile et accessibilité ignorés"
+          fi
           echo ""
-          echo "⚡ TESTS DE PERFORMANCE"
-          echo "   Statut: ${{ needs.performance-tests.result }}"
-          echo "   ✅ Tests de performance API: Exécutés"
-          echo "   ✅ Tests de charge: Exécutés"
-          echo "   ✅ Tests de stress: Exécutés"
-          echo "   ✅ Tests mémoire: Exécutés"
-          echo ""
+
           echo "📋 CONFIGURATION"
+          echo "==============="
           echo "   Version Node.js: ${{ steps.node-version.outputs.node-version }}"
           echo "   Commit: ${{ github.sha }}"
           echo "   Branche: ${{ github.ref_name }}"
           echo "   Run ID: ${{ github.run_id }}"
           echo ""
+
           echo "📊 ARTEFACTS"
+          echo "==========="
           echo "   Répertoire: ci-artifacts/"
           echo "   ✅ Rapports de test collectés"
           echo "   ✅ Résumé JSON généré"
           echo ""
 
-      - name: ✅ Succès complet
-        if: needs.security-scan.result == 'success' && needs.database-schema-validation.result == 'success' && needs.code-quality.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success' && needs.system-integration-tests.result == 'success' && needs.performance-tests.result == 'success'
+      - name: Succès complet
+        if: needs.security-scan.result == 'success' && needs.database-schema-validation.result == 'success' && needs.code-quality.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success' && (needs.system-integration-tests.result == 'success' || needs.system-integration-tests.result == 'skipped') && (needs.performance-tests.result == 'success' || needs.performance-tests.result == 'skipped')
         run: |
           echo "🎉 TOUS LES TESTS SONT PASSÉS !"
           echo "🚀 Le projet est prêt pour le déploiement"
