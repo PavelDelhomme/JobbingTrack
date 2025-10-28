@@ -349,7 +349,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -416,7 +416,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -518,7 +518,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -584,7 +584,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter en tant qu'admin
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -708,7 +708,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -780,7 +780,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
@@ -805,9 +805,10 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
     // Essayer d'envoyer des données sérialisées malveillantes
     const maliciousData = {
       // Payload de désérialisation malveillant
-      __proto__: {
-        toString: () => 'Malicious code executed'
-      },
+      ...Object.defineProperty({}, 'toString', {
+        value: () => 'Malicious code executed',
+        enumerable: false
+      }),
       constructor: {
         prototype: {
           toString: () => 'Malicious code executed'
@@ -820,7 +821,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
       const body = route.request().postDataJSON();
 
       // Le serveur devrait rejeter les données malformées
-      if (body && (body.__proto__ || body.constructor)) {
+      if (body && (Object.getPrototypeOf(body) || body.constructor)) {
         await route.fulfill({
           status: 400,
           contentType: 'application/json',
@@ -854,7 +855,11 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
     await page.evaluate(() => {
       // Tenter de manipuler les objets JavaScript
       const malicious = {};
-      malicious.__proto__.toString = () => 'Hacked!';
+      Object.defineProperty(Object.getPrototypeOf(malicious), 'toString', {
+        value: () => 'Hacked!',
+        writable: true,
+        configurable: true
+      });
       malicious.constructor.prototype.toString = () => 'Hacked!';
 
       // Envoyer via fetch
@@ -877,7 +882,7 @@ test.describe('🔐 Tests de Sécurité Avancés', () => {
 
     // Se connecter
     await page.route('**/api/v1/auth/login', async route => {
-      await page.fulfill({
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({

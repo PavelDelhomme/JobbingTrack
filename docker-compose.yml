@@ -101,25 +101,33 @@ services:
   
   # Frontend Dashboard Administrateur
   frontend:
-    image: jobbingtrack-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
+      args:
+        - NODE_ENV=development
     container_name: jobbingtrack-frontend
     ports:
       - "8080:3000"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXT_PUBLIC_API_URL=http://api-gateway:3000
       - NEXT_PUBLIC_METRICS_URL=http://localhost:3014
+      - NEXT_PUBLIC_APP_NAME=JobbingTrack
+      - NEXT_PUBLIC_APP_VERSION=1.0.0
+      - WATCHPACK_POLLING=true
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
     volumes:
-      - ./frontend:/app:cached
+      - ./frontend:/app
       - /app/node_modules
       - /app/.next
-    profiles:
-      - full
+    user: "1001:1001"
+    working_dir: /app
     networks:
       - jobbingtrack-network
+    command: sh -c "npm run dev -- -H 0.0.0.0"
     depends_on:
       - api-gateway
     restart: unless-stopped

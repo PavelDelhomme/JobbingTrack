@@ -39,6 +39,7 @@ up: ## Démarrer services essentiels uniquement (postgres, redis, api-gateway, f
 	@echo " Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, jobbingtrack-metrics-aggregator"
 	$(call check_docker)
 	$(call check_and_free_ports)
+	$(call ensure_docker_network)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
 	@echo ""
 	@echo " Services essentiels démarrés avec succès !"
@@ -92,11 +93,13 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo " Démarrage complet de JobbingTrack..."
 	@echo " Tous les services avec métriques complètes"
 	$(call check_docker)
+	$(call ensure_docker_network)
 	# Nettoyer les conteneurs existants pour éviter les conflits
 	@echo " Nettoyage des conteneurs existants..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes) || true
-	# Démarrer tous les services en ignorant les dépendances problématiques
-	$(call docker_compose_env, DOCKER_COMPOSE_IGNORE_ORPHANS=1, $(COMPOSE_FILES_FULL) up -d --remove-orphans)
+	$(call docker_compose, $(COMPOSE_FILES_FULL) down -v --remove-orphans) || true
+	# Démarrer tous les services
+	@echo " Démarrage de tous les services..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d --remove-orphans)
 	# Attendre que les services soient prêts
 	@echo " Attente du démarrage des services..."
 	@sleep 15
@@ -109,9 +112,11 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo " Interfaces disponibles :"
 	@echo "   Frontend:           http://localhost:8080"
 	@echo "   API Gateway:        http://localhost:3000"
+	@echo "   Auth Service:       http://localhost:3001"
+	@echo "   Dashboard Service:  http://localhost:3007"
+	@echo "   JobbingTrack Metrics: http://localhost:3014"
 	@echo "   Prometheus:         http://localhost:9090"
 	@echo "   cAdvisor:           http://localhost:8081"
-	@echo "   JobbingTrack Metrics:    http://localhost:3014"
 
 # Arrêter tous les services
 down: ## Arrêter tous les services

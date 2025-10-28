@@ -44,6 +44,21 @@ define check_command
 	fi
 endef
 
+# Fonction pour vérifier et créer le réseau Docker si nécessaire
+define ensure_docker_network
+	@if ! docker network inspect backend_jobbingtrack-network &> /dev/null; then \
+		echo "🌐 Création du réseau Docker 'backend_jobbingtrack-network'..."; \
+		if ! docker network create backend_jobbingtrack-network &> /dev/null; then \
+			echo "❌ Erreur lors de la création du réseau Docker"; \
+			exit 1; \
+		else \
+			echo "✅ Réseau Docker créé avec succès"; \
+		fi; \
+	else \
+		echo "🌐 Le réseau Docker 'backend_jobbingtrack-network' existe déjà"; \
+	fi
+endef
+
 # Fonction pour attendre que PostgreSQL soit prêt
 define wait_for_postgres
 	@echo "⏳ Attente de PostgreSQL..."; \
