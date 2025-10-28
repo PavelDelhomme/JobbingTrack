@@ -12,8 +12,8 @@ RUN npm ci --only=production
 COPY src/ ./src/
 
 # Créer un utilisateur non-root pour la sécurité
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S metrics -u 1001
+RUN groupadd -r nodejs -g 1001 && \
+    useradd -r -u 1001 -g nodejs -s /sbin/nologin -c "Metrics user" metrics
 
 # Changer la propriété des fichiers
 RUN chown -R metrics:nodejs /app

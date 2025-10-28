@@ -47,13 +47,27 @@ make up
 docker-compose up -d postgres redis api-gateway frontend
 ```
 
-### 4. Vérification de l'installation
+### 4. Ports et accès
+
+Une fois les services démarrés, vous pouvez accéder aux différentes interfaces :
+
+- **Frontend** : http://localhost:8000
+- **API Gateway** : http://localhost:3000
+- **cAdvisor** : http://localhost:8081
+- **Metrics Aggregator** : http://localhost:8082
+- **Grafana** : http://localhost:8083 (admin/admin)
+- **Prometheus** : http://localhost:9090
+- **Alertmanager** : http://localhost:8085
+- **Node Exporter** : http://localhost:8084
+- **Blackbox Exporter** : http://localhost:8086
+
+### 5. Vérification de l'installation
 ```bash
 # Vérifier que tous les services sont démarrés
 curl http://localhost:3000/health
 
 # Accéder à l'interface web
-open http://localhost:8080
+open http://localhost:8000
 
 # Vérifier les logs
 make logs
@@ -67,11 +81,11 @@ make logs
 ```bash
 make up  # Démarre automatiquement :
 ├── 🗄️ PostgreSQL (5432)       - Base de données
-├── 💾 Redis (6379)             - Cache et sessions
-├── 🚪 API Gateway (3000)       - Point d'entrée API
-├── 🌐 Frontend (8080)          - Interface web
-├── 📊 Metrics Aggregator (3014) - Monitoring
-└── 🖥️ cAdvisor (8081)          - Métriques Docker
+├── 💾 Redis (6379)            - Cache et sessions
+├── 🚪 API Gateway (3000)      - Point d'entrée API
+├── 🌐 Frontend (8000)         - Interface web
+├── 📊 Metrics Aggregator (8082) - Monitoring
+└── 🖥️ cAdvisor (8081)         - Métriques Docker
 ```
 
 ### Services optionnels
@@ -121,8 +135,8 @@ JWT_REFRESH_EXPIRES_IN=30d
 #### Services
 ```env
 REDIS_URL=redis://redis:6379
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
-FRONTEND_URL=http://localhost:8080
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+FRONTEND_URL=http://localhost:8000
 ```
 
 #### Email (SMTP)
@@ -260,12 +274,12 @@ class ApiService {
 ```bash
 # Vérifier les ports occupés
 lsof -i :3000
-lsof -i :8080
+lsof -i :8000
 
 # Modifier les ports dans docker-compose.yml
 # ports:
 #   - "3001:3000"  # API Gateway
-#   - "8081:8080"  # Frontend
+#   - "8001:8000"  # Frontend
 ```
 
 #### 2. Base de données non accessible
@@ -336,3 +350,12 @@ make up
 
 **Version**: 4.1 - Installation simplifiée
 **Dernière mise à jour**: Octobre 2025
+
+### Outils de Monitoring
+
+- **cAdvisor** : http://localhost:8081
+- **Prometheus** : http://localhost:9090
+- **Grafana** : http://localhost:8083 (admin/admin)
+- **Node Exporter** : http://localhost:8084
+- **Alertmanager** : http://localhost:8085
+- **Blackbox Exporter** : http://localhost:808600/health

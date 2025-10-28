@@ -33,7 +33,7 @@ export default function RootLayout({
         <meta name="description" content="JobbingTrack - Plateforme de gestion des candidatures" />
         <meta name="theme-color" content="#111827" />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <HydrationFix />
         <ErrorBoundary>
           <ThemeProvider>

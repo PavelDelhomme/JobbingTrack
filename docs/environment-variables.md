@@ -17,7 +17,28 @@ POSTGRES_PASSWORD=jobbingtrack123 # Mot de passe PostgreSQL
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:3000           # URL de l'API Gateway
 NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3001  # URL du service d'authentification
-NEXT_PUBLIC_METRICS_URL=http://localhost:3014       # URL du service de métriques
+NEXT_PUBLIC_METRICS_URL=http://localhost:8082       # URL du service de métriques (Metrics Aggregator)
+```
+
+### Monitoring
+```bash
+# cAdvisor - Surveillance des conteneurs
+CADVISOR_URL=http://localhost:8081
+
+# Prometheus - Collecte de métriques
+PROMETHEUS_URL=http://localhost:9090
+
+# Grafana - Tableaux de bord
+GRAFANA_URL=http://localhost:8083
+
+# Node Exporter - Métriques système
+NODE_EXPORTER_URL=http://localhost:8084
+
+# Alertmanager - Gestion des alertes
+ALERTMANAGER_URL=http://localhost:8085
+
+# Blackbox Exporter - Surveillance des endpoints
+BLACKBOX_EXPORTER_URL=http://localhost:8086
 ```
 
 ### JWT

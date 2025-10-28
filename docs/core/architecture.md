@@ -31,16 +31,21 @@ JobbingTrack est construit sur une **architecture microservices moderne**, conç
 ```mermaid
 graph TB
     subgraph "Clients"
-        Web[🌐 Frontend Next.js<br/>Port: 8080]
+        Web[🌐 Frontend Next.js<br/>Port: 8000]
         Mobile[📱 Flutter Mobile<br/>Port: 8090]
         API[🔌 API Gateway<br/>Port: 3000]
     end
 
     subgraph "Services Essentiels"
         Postgres[(🗄️ PostgreSQL<br/>Port: 5432)]
-        Redis[(💾 Redis Cache<br/>Port: 6379)]
-        MetricsAgg[📊 Metrics Aggregator<br/>Port: 3014]
-        cAdvisor[🖥️ cAdvisor<br/>Port: 8081]
+        Redis[(💾 Redis Cache<br/>Port: 6379]
+        MetricsAgg[📊 Metrics Aggregator<br/>Port: 8082:3014]
+        cAdvisor[🖥️ cAdvisor<br/>Port: 8081:8080]
+        Prometheus[📈 Prometheus<br/>Port: 9090]
+        Grafana[📊 Grafana<br/>Port: 8083:3000]
+        NodeExp[💻 Node Exporter<br/>Port: 8084:9100]
+        AlertMgr[⚠️ Alertmanager<br/>Port: 8085:9093]
+        Blackbox[📦 Blackbox Exporter<br/>Port: 8086:9115]
     end
 
     subgraph "Services Backend"

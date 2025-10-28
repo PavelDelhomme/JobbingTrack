@@ -13,27 +13,42 @@ const { authRateLimiter, adminRateLimiter } = require('./middleware/rateLimiter'
 const MaintenanceController = require('./controllers/maintenance.controller');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3000;
 
 // Configuration CORS simple
 app.use(cors({
   origin: [
     // Développement local (prioritaires)
-    'http://localhost:8080',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://127.0.0.1:8080',
+    'http://localhost:8000',  // Frontend
+    'http://localhost:3000',  // API Gateway
+    'http://localhost:8081',  // cAdvisor
+    'http://localhost:8082',  // Metrics Aggregator
+    'http://localhost:8083',  // Grafana
+    'http://localhost:8084',  // Node Exporter
+    'http://localhost:8085',  // Alertmanager
+    'http://localhost:8086',  // Blackbox Exporter
+    'http://127.0.0.1:8000',
     'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:3002',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:8082',
+    'http://127.0.0.1:8083',
+    'http://127.0.0.1:8084',
+    'http://127.0.0.1:8085',
+    'http://127.0.0.1:8086',
     // IPv6 localhost
-    'http://[::1]:8080',
+    'http://[::1]:8000',
     'http://[::1]:3000',
-    'http://[::1]:3001',
+    'http://[::1]:8081',
+    'http://[::1]:8082',
+    'http://[::1]:8083',
+    'http://[::1]:8084',
+    'http://[::1]:8085',
     // Services Docker
     'http://frontend:3000',
     'http://api-gateway:3000',
+    'http://cadvisor:8080',
+    'http://jobbingtrack-metrics-aggregator:3014',
+    // Autres services
     'http://auth-service:3001',
     'http://application-service:3002',
     'http://company-service:3003',
@@ -45,9 +60,7 @@ app.use(cors({
     'http://profile-service:3009',
     'http://event-service:3011',
     'http://followup-service:3012',
-    'http://workflow-service:3013',
-    'http://jobbingtrack-metrics-aggregator:3014',
-      'http://localhost:8081'
+    'http://workflow-service:3013'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
