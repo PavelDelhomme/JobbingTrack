@@ -37,30 +37,31 @@ scrape_configs:
 
   # Services backend de JobbingTrack
   - job_name: 'jobbingtrack-backend'
-    static_configs:
-      - targets:
-          - 'host.docker.internal:3000'  # API Gateway
-          - 'host.docker.internal:3001'  # Auth Service
-          - 'host.docker.internal:3002'  # Application Service
-          - 'host.docker.internal:3003'  # Company Service
-          - 'host.docker.internal:3004'  # Contact Service
-          - 'host.docker.internal:3005'  # Interview Service
-          - 'host.docker.internal:3006'  # Notification Service
-          - 'host.docker.internal:3007'  # Dashboard Service
-          - 'host.docker.internal:3008'  # Call Service
-          - 'host.docker.internal:3009'  # Event Service
-          - 'host.docker.internal:3010'  # Followup Service
-          - 'host.docker.internal:3011'  # Profile Service
-          - 'host.docker.internal:3013'  # Workflow Service
-          - 'host.docker.internal:3014'  # Metrics Aggregator
-          - 'host.docker.internal:3015'  # Docker Stats Service
+    dns_sd_configs:
+      - names: 
+          - 'api-gateway'
+          - 'auth-service'
+          - 'application-service'
+          - 'company-service'
+          - 'contact-service'
+          - 'interview-service'
+          - 'notification-service'
+          - 'dashboard-service'
+          - 'call-service'
+          - 'event-service'
+          - 'followup-service'
+          - 'profile-service'
+          - 'workflow-service'
+          - 'jobbingtrack-metrics-aggregator'
+        type: 'A'
+        port: 3000  # Tous les services sont exposés sur le port 3000 dans le réseau Docker
     scrape_interval: 15s
     metrics_path: '/metrics'  # Les services doivent exposer des métriques sur /metrics
 
   # Frontend de JobbingTrack
   - job_name: 'jobbingtrack-frontend'
     static_configs:
-      - targets: ['host.docker.internal:3000']  # Frontend sur le même port que API Gateway en externe
+      - targets: ['frontend:3000']  # Frontend dans le réseau Docker
     scrape_interval: 30s
 
   # Base de données PostgreSQL

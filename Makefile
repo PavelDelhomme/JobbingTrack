@@ -90,16 +90,87 @@ up-mickdevil: up-no-check ## Alias MickDevil de up-no-check (pour rigoler)
 
 # Démarrer tous les services avec tous les profils
 up-full: ## Démarrer TOUS les services avec tous les profils
-	@echo " Démarrage complet de JobbingTrack..."
-	@echo " Tous les services avec métriques complètes"
+	@echo " 🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
+	@echo " 🚀 Tous les services avec métriques complètes"
+	
+	# Vérification des prérequis Docker
 	$(call check_docker)
-	$(call ensure_docker_network)
-	# Nettoyer les conteneurs existants pour éviter les conflits
-	@echo " Nettoyage des conteneurs existants..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) down -v --remove-orphans) || true
-	# Démarrer tous les services
-	@echo " Démarrage de tous les services..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d --remove-orphans)
+	
+	# Nettoyage complet en premier
+	@echo "🧹 Nettoyage complet de l'environnement Docker..."
+	@echo " 1/4 Arrêt et suppression des conteneurs en cours..."
+	@docker-compose -f docker-compose.yml -f docker-compose.metrics.yml down --remove-orphans --volumes --timeout 30 2>/dev/null || true
+	
+	@echo " 2/4 Suppression des conteneurs orphelins..."
+	@docker ps -aq --filter "name=jobbingtrack-" | xargs -r docker rm -f 2>/dev/null || true
+	
+	@echo " 3/4 Nettoyage des réseaux..."
+	@docker network rm backend_jobbingtrack-network jobbingtrack_jobbingtrack-network 2>/dev/null || true
+	
+	@echo " 4/4 Nettoyage des volumes orphelins..."
+	@docker volume ls -q --filter "name=jobbingtrack" | xargs -r docker volume rm -f 2>/dev/null || true
+	
+	# Création du réseau si nécessaire
+	@echo "🌐 Vérification du réseau Docker..."
+	@if ! docker network inspect backend_jobbingtrack-network >/dev/null 2>&1; then \
+		echo "  ✓ Création du réseau 'backend_jobbingtrack-network'..."; \
+		docker network create backend_jobbingtrack-network; \
+	else \
+		echo "  ✓ Réseau 'backend_jobbingtrack-network' existe déjà"; \
+	fi
+	
+	# Démarrer les services de base d'abord
+	@echo "🚀 Démarrage des services de base (PostgreSQL, Redis)..."
+	@docker-compose -f docker-compose.yml up -d postgres redis
+	
+	# Attendre que PostgreSQL soit prêt
+	@echo "⏳ Attente du démarrage de PostgreSQL..."
+	@for i in $$(seq 1 30); do \
+		if docker-compose -f docker-compose.yml exec -T postgres pg_isready -U jobbingtrack >/dev/null 2>&1; then \
+			echo "  ✓ PostgreSQL est prêt"; \
+			break; \
+		fi; \
+		echo -n "."; \
+		sleep 1; \
+		if [ $$i -eq 30 ]; then \
+			echo "❌ Timeout en attendant PostgreSQL"; \
+			exit 1; \
+		fi; \
+	done
+	
+	# Démarrer les autres services
+	@echo "🚀 Démarrage des services principaux..."
+	@docker-compose -f docker-compose.yml up -d api-gateway auth-service
+
+	# Correction rôle/DB si nécessaire
+	$(MAKE) db-fix-role
+	
+	# Démarrer le frontend
+	@echo "🚀 Démarrage du frontend..."
+	@docker-compose -f docker-compose.yml up -d frontend
+	
+	# Démarrer les services de monitoring si disponibles
+	@if [ -f "docker-compose.metrics.yml" ]; then \
+		echo "📊 Démarrage des services de monitoring..."; \
+		docker-compose -f docker-compose.metrics.yml up -d; \
+	fi
+	
+	# Vérification de l'état des services
+	@echo "✅ Tous les services ont été démarrés"
+	@echo ""
+	@echo "🌐 Accès aux services :"
+	@echo "  - Frontend:           http://localhost:8080"
+	@echo "  - API Gateway:        http://localhost:3000"
+	@echo "  - cAdvisor:           http://localhost:8081"
+	@echo "  - JobbingTrack Metrics: http://localhost:3014"
+	@echo ""
+	@echo "🔍 Pour voir les logs : make logs"
+	@echo "🔍 Pour vérifier l'état : make status"
+	@if docker ps -a --format "{{.Names}}" | grep -qE "^jobbingtrack-frontend$$|^jobbingtrack-api-gateway$$"; then \
+		echo " Conflit de nom détecté, nettoyage forcé puis relance..."; \
+		$(MAKE) clean-force; \
+		$(call docker_compose, $(COMPOSE_FILES_FULL) up -d --remove-orphans) || true; \
+	fi
 	# Attendre que les services soient prêts
 	@echo " Attente du démarrage des services..."
 	@sleep 15
@@ -1021,3 +1092,11 @@ help: ## Afficher l'aide organisée par catégories
 	@echo "  • Utilisez 'make help-<commande>' pour l'aide détaillée d'une commande"
 	@echo "  • Ex: 'make help-health' pour l'aide de la commande health"
 	@echo "  • Toutes les commandes supportent les variables d'environnement"
+
+# Réparer rôle/db Postgres si manquants (idempotent)
+.PHONY: db-fix-role
+
+db-fix-role: ## Crée le rôle et la base 'jobbingtrack' si manquants
+	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
+	@docker exec -i jobbingtrack-postgres sh -c 'psql -U postgres -v ON_ERROR_STOP=1 <<SQL\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = ''jobbingtrack'') THEN\n    CREATE ROLE jobbingtrack LOGIN PASSWORD ''jobbingtrack123'';\n  END IF;\nEND$$;\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = ''jobbingtrack'') THEN\n    CREATE DATABASE jobbingtrack OWNER jobbingtrack;\n  END IF;\nEND$$;\nSQL' 2>/dev/null || true
+	@echo "✅ Rôle/DB vérifiés"

@@ -41,7 +41,13 @@ make up
 
 #### 3. Accéder
 
-open http://localhost:8080
+- **Frontend** : http://localhost:8000
+- **API Gateway** : http://localhost:3000
+- **cAdvisor** : http://localhost:8081
+- **Metrics Aggregator** : http://localhost:8082
+- **Grafana** : http://localhost:8083 (admin/admin)
+- **Prometheus** : http://localhost:9090
+- **Alertmanager** : http://localhost:8085
 
 ### Commandes Essentielles
 
