@@ -4,7 +4,36 @@
 # Build, rebuild et nettoyage des images Docker
 # ============================================================================
 
-.PHONY: build rebuild clean clean-force
+.PHONY: build rebuild clean clean-force help-compilation
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-compilation: ## Afficher l'aide compilation
+	@echo "================================================================"
+	@echo "🔨 COMPILATION - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "🔨 BUILD:"
+	@echo "  make build                 - Build tous les services Docker"
+	@echo "  make rebuild               - Rebuild sans cache (complet)"
+	@echo ""
+	@echo "🧹 NETTOYAGE:"
+	@echo "  make clean                 - Nettoyage complet (containers, volumes, réseaux)"
+	@echo "  make clean-force           - Nettoyage d'urgence (force)"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make build                 # Build normal"
+	@echo "  make clean && make rebuild # Nettoyage puis rebuild"
+	@echo ""
+	@echo "⌚ TEMPS ESTIMÉ:"
+	@echo "  Build:   ~5-10 minutes (première fois)"
+	@echo "  Rebuild: ~10-15 minutes (sans cache)"
+	@echo "  Clean:   ~1-2 minutes"
+	@echo ""
+	@echo "📖 Documentation: docs/development/makefile/README.md"
+	@echo ""
 
 # ============================================================================
 # BUILD ET COMPILATION

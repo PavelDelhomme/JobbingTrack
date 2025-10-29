@@ -1,6 +1,8 @@
 # 📘 Guide Makefile - JobbingTrack
 
-## ✨ Nouveau système modulaire et aide contextuelle
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
+
+## ✨ Système modulaire avec aide contextuelle intégrée
 
 ### 🎯 Problème résolu
 
@@ -66,17 +68,28 @@ make db-backup          # Sauvegarde
 
 ---
 
-## 💡 NOUVEAUTÉ : Aide contextuelle
+## 💡 NOUVEAUTÉ : Aide contextuelle intégrée
 
-### Système `help-<commande>`
+### Système `help-<module>`
 
-Chaque commande importante dispose d'une aide détaillée :
+Chaque module dispose maintenant d'une aide complète et détaillée :
 
 ```bash
-make help-up              # Aide détaillée pour 'make up'
-make help-down            # Aide pour arrêter les services
-make help-status          # Aide pour vérifier l'état
-make help-logs            # Aide pour les logs
+# Aide par module
+make help-services        # Aide services (up, down, restart, etc.)
+make help-backend         # Aide backend/monitoring
+make help-frontend        # Aide frontend Next.js
+make help-database        # Aide base de données
+make help-compilation     # Aide build/rebuild
+make help-diagnostic      # Aide diagnostic et corrections
+make help-tests           # Aide tous les tests
+make help-utils           # Aide utilitaires monitoring
+
+# Aide générale (depuis makefiles/help/Makefile)
+make help-up              # Aide détaillée 'make up'
+make help-down            # Aide arrêter services
+make help-status          # Aide vérifier état
+make help-logs            # Aide logs
 make help-monitoring-up   # Aide monitoring
 make help-test            # Aide tests
 make help-build           # Aide build

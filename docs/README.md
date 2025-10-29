@@ -1,7 +1,6 @@
 # 📚 Documentation JobbingTrack
 
-[← Retour au README principal](../../README.md)
-
+[← Retour au README principal](../README.md)
 
 ## 🎯 Vue d'ensemble
 
@@ -46,25 +45,48 @@ docs/
 ## 📚 Documentation principale
 
 ### 🏗️ Architecture et Infrastructure
-- **[Architecture Microservices](core/architecture.md)** - Vue complète de l'architecture
-- **[Services Backend](core/services.md)** - Détail des 18+ microservices
-- **[Base de Données](core/database.md)** - Schema PostgreSQL et relations
+- **[Architecture Microservices](core/architecture/README.md)** - Vue complète de l'architecture
+- **[Base de Données](database/README.md)** - Schema PostgreSQL et relations
+- **[Analyse BDD](database/analysis/)** - Analyses comparatives et audits
 
 ### 📡 API et Intégration
-- **[API Reference](api/api-reference.md)** - Documentation complète des APIs
-- **[Endpoints](api/endpoints.md)** - Liste exhaustive des endpoints
+- **[API Reference](api/api-reference/README.md)** - Documentation complète des APIs
+- **[Endpoints](api/endpoints/README.md)** - Liste exhaustive des endpoints
 
 ### 🚀 Déploiement
-- **[Démarrage Rapide](deployment/getting-started.md)** - Installation et configuration
-- **[Production](deployment/production.md)** - Déploiement en production
-- **[Sécurité](deployment/security.md)** - Configuration sécurité
+- **[Démarrage Rapide](deployment/getting-started/README.md)** - Installation et configuration
+- **[Production](deployment/production/README.md)** - Déploiement en production
+- **[Sécurité](deployment/security/README.md)** - Configuration sécurité
 
 ### 💻 Développement
-- **[Configuration](development/setup.md)** - Environnement de développement
-- **[Workflow](development/workflow.md)** - Processus de développement
-- **[Tests](development/testing.md)** - Stratégies et outils de test
+- **[Configuration](development/setup/README.md)** - Environnement de développement
+- **[Workflow](development/workflow/README.md)** - Processus de développement
+- **[Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
+- **[Tests](development/testing/README.md)** - Stratégies et outils de test
 
 ## 🆕 Nouveautés v4.1
+
+### ⭐ Système Makefile Avancé
+**Chaque module dispose maintenant d'une aide contextuelle complète !**
+
+```bash
+# Aide par module
+make help-services        # Services (up, down, restart)
+make help-frontend        # Frontend Next.js
+make help-backend         # Backend/monitoring
+make help-database        # Base de données
+make help-compilation     # Build/rebuild
+make help-diagnostic      # Diagnostic et corrections
+make help-tests           # Tous les tests
+make help-utils           # Utilitaires monitoring
+
+# Aide générale depuis la racine
+make help                 # Aide complète
+make help-up              # Aide détaillée 'make up'
+make help-monitoring-up   # Aide monitoring
+```
+
+📖 **[Guide complet Makefile](development/makefile/README.md)**
 
 ### ✅ Base de données étendue
 - **Historique des statuts** : Suivi complet des changements de statut des candidatures

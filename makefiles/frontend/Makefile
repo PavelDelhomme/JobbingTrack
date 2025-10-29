@@ -4,9 +4,46 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend
 
 FRONTEND_DIR := frontend
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-frontend: ## Afficher l'aide frontend
+	@echo "================================================================"
+	@echo "🖥️  FRONTEND - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "🚀 DÉVELOPPEMENT:"
+	@echo "  make dev-frontend          - Démarrer serveur dev Next.js (port 3000)"
+	@echo "  make build-frontend        - Build production optimisé"
+	@echo "  make install-frontend      - Installer toutes les dépendances"
+	@echo ""
+	@echo "🔍 QUALITÉ DU CODE:"
+	@echo "  make lint-frontend         - Vérifier avec ESLint"
+	@echo "  make type-check-frontend   - Vérifier types TypeScript"
+	@echo "  make format-frontend       - Formater avec Prettier"
+	@echo "  make format-check-frontend - Vérifier formatage"
+	@echo ""
+	@echo "🧪 TESTS:"
+	@echo "  make test-unit-frontend    - Tests unitaires Jest"
+	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
+	@echo "  make test-all-frontend     - Tous les tests"
+	@echo ""
+	@echo "🧹 MAINTENANCE:"
+	@echo "  make clean-frontend        - Nettoyer cache et builds"
+	@echo "  make rebuild-frontend      - Rebuild complet"
+	@echo "  make check-frontend        - Diagnostic frontend"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make dev-frontend                    # Développement"
+	@echo "  make lint-frontend && make build-frontend  # QA + Build"
+	@echo ""
+	@echo "📖 Documentation: docs/development/setup/README.md"
+	@echo ""
 
 # ============================================================================
 # DÉVELOPPEMENT

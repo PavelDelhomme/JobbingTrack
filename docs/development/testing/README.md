@@ -2,7 +2,7 @@
 
 Guide des tests et de la qualité du code pour JobbingTrack v4.1.
 
-[← Retour au README principal](../../README.md)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
 
 ## 🎯 Vue d'ensemble
 

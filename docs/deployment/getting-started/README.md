@@ -2,7 +2,7 @@
 
 Guide d'installation et configuration pour JobbingTrack v4.1.
 
-[← Retour au README principal](../../../README.md)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
 
 ## 🎯 Prérequis
 

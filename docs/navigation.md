@@ -3,28 +3,30 @@
 ## 🎯 Navigation principale
 
 ### 📖 **Documentation du Projet**
-- **[🏠 Accueil](../../README.md)** | **[📚 Documentation Centralisée](../../README.md)**
+- **[🏠 README Principal](../README.md)** | **[📚 Documentation Centralisée](README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[⚡ Installation](./deployment/getting-started.md)** | **[💻 Configuration Développement](./development/setup.md)**
+- **[⚡ Installation](deployment/getting-started/README.md)** | **[💻 Configuration Développement](development/setup/README.md)**
+- **[🛠️ Guide Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
 
 ### 🏗️ **Architecture et Infrastructure**
-- **[🏛️ Architecture Microservices](./core/architecture.md)** | **[🔧 Services](./core/services.md)** | **[💾 Base de Données](./core/database.md)**
+- **[🏛️ Architecture Microservices](core/architecture/README.md)** | **[💾 Base de Données](database/README.md)** | **[📊 Analyse BDD](database/analysis/)**
 
 ### 📡 **API et Intégration**
-- **[📖 API Reference](./api/api-reference.md)** | **[🔗 Endpoints](./api/endpoints.md)**
+- **[📖 API Reference](api/api-reference/README.md)** | **[🔗 Endpoints](api/endpoints/README.md)**
 
 ### 🚀 **Déploiement**
-- **[🎯 Démarrage](./deployment/getting-started.md)** | **[🏭 Production](./deployment/production.md)** | **[🔐 Sécurité](./deployment/security.md)**
+- **[🎯 Démarrage](deployment/getting-started/README.md)** | **[🏭 Production](deployment/production/README.md)** | **[🔐 Sécurité](deployment/security/README.md)**
 
 ### 💻 **Développement**
-- **[⚙️ Configuration](./development/setup.md)** | **[🔄 Workflow](./development/workflow.md)** | **[🧪 Tests](./development/testing.md)**
+- **[⚙️ Configuration](development/setup/README.md)** | **[🔄 Workflow](development/workflow/README.md)** | **[🧪 Tests](development/testing/README.md)**
+- **[🛠️ Guide Makefile](development/makefile/README.md)** - Système complet avec aide intégrée
 
 ### 📱 **Applications**
-- **[🖥️ Frontend](./frontend/guide.md)** | **[📱 Mobile](./mobile/guide.md)**
+- **[🖥️ Frontend Next.js](development/setup/README.md#frontend)** | **[📱 Mobile Flutter](../mobile/README.md)**
 
 ### 🔧 **Administration**
-- **[⚙️ Guide Administration](./administration/guide.md)** | **[🐛 Dépannage](./troubleshooting/guide.md)**
+- **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/guide.md)**
 
 ### 📊 **Performance et Sécurité**
 - **[⚡ Performance](./performance/guide.md)** | **[🔒 Sécurité](./security/guide.md)**

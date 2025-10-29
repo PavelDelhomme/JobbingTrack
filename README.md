@@ -51,27 +51,44 @@ make up
 
 ### Commandes Essentielles
 
-make # Afficher l'aide
-make up # Service essentiels
-make up-full # Tous les services
-make health # Vérifier santé
+```bash
+make              # Afficher l'aide complète
+make up           # Services essentiels
+make up-full      # Tous les services
+make health       # Vérifier santé
+```
 
-📖 **[Guide complet Makefile](docs/MAKEFILE.md)**
+### ⭐ Nouveau : Aide Contextuelle Intégrée
+
+```bash
+# Aide par module
+make help-services     # Services (up, down, restart)
+make help-frontend     # Frontend Next.js
+make help-backend      # Backend/monitoring
+make help-database     # Base de données
+make help-compilation  # Build/rebuild
+make help-diagnostic   # Diagnostic
+make help-tests        # Tests
+make help-utils        # Utilitaires
+```
+
+📖 **[Guide complet Makefile](docs/development/makefile/README.md)**
 
 ---
 
 ## 📖 Documentation
 
-| Document | Description |
-|----------|-------------|
-| [🏗️ Architecture](docs/ARCHITECTURE.md) | Architecture système |
-| [🚀 Développement](docs/DEVELOPMENT.md) | Guide développement |
-| [🔧 Services](docs/SERVICES.md) | Services disponibles |
-| [📡 API](docs/API.md) | Documentation API |
-| [🐛 Dépannage](docs/TROUBLESHOOTING.md) | Résolution problèmes |
-| [🧪 Tests](tests/README.md) | Suite de tests complète |
-| [📋 Journal des Modifications](docs/changelog/all-changes.md) | Historique des changements |
-| [🚀 Démarrage Rapide Tests](docs/tests/quick-start-tests.md) | Guide de démarrage des tests |
+### 📚 [Documentation Complète](docs/README.md)
+
+| Catégorie | Documents |
+|-----------|----------|
+| 🚀 **Démarrage** | [Installation](docs/deployment/getting-started/README.md) • [Configuration Dev](docs/development/setup/README.md) |
+| 🏗️ **Architecture** | [Microservices](docs/core/architecture/README.md) • [Base de Données](docs/database/README.md) |
+| 📡 **API** | [API Reference](docs/api/api-reference/README.md) • [Endpoints](docs/api/endpoints/README.md) |
+| 💻 **Développement** | [Workflow](docs/development/workflow/README.md) • [Tests](docs/development/testing/README.md) |
+| 🛠️ **Makefile** | ⭐ [Guide Complet avec Aide Intégrée](docs/development/makefile/README.md) |
+| 📊 **Base de Données** | [Structure](docs/database/README.md) • [Analyses](docs/database/analysis/) |
+| 🔧 **Administration** | [Guide Admin](docs/administration/README.md) |
 
 ### Scripts
 

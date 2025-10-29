@@ -1,6 +1,6 @@
 # Variables d'environnement sécurisées - JobbingTrack
 
-[← Retour au README principal](../../README.md)
+[← Retour au README principal](../README.md) | [← Documentation](README.md)
 
 ## Configuration sécurisée par variables d'environnement
 

@@ -2,7 +2,7 @@
 
 Liste exhaustive de tous les endpoints disponibles dans l'API JobbingTrack v4.1.
 
-[← Retour au README principal](../../)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
 
 ## 🎯 Vue d'ensemble
 

@@ -4,7 +4,51 @@
 # Tous les tests : unitaires, intégration, E2E, performance, sécurité
 # ============================================================================
 
-.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage test-docker-images test-docker-clean test-system-verify test-hydration test-implementation test-secure-env test-setup test-clean test-verify lint format format-check init-with-tests generate-test-data refresh-test-data enhance-tests start-test-runner full-setup
+.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage test-docker-images test-docker-clean test-system-verify test-hydration test-implementation test-secure-env test-setup test-clean test-verify lint format format-check init-with-tests generate-test-data refresh-test-data enhance-tests start-test-runner full-setup help-tests
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-tests: ## Afficher l'aide tests
+	@echo "================================================================"
+	@echo "🧪 TESTS - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "🧪 TESTS PRINCIPAUX:"
+	@echo "  make test                  - Tous les tests (unitaires + intégration + E2E)"
+	@echo "  make test-unit             - Tests unitaires uniquement"
+	@echo "  make test-integration      - Tests d'intégration"
+	@echo "  make test-e2e              - Tests end-to-end Playwright"
+	@echo ""
+	@echo "🎯 TESTS PAR COMPOSANT:"
+	@echo "  make test-backend          - Tests backend (services)"
+	@echo "  make test-frontend         - Tests frontend (React/Next.js)"
+	@echo "  make test-database         - Tests base de données"
+	@echo "  make test-api              - Tests API REST"
+	@echo "  make test-mobile           - Tests applications mobiles"
+	@echo ""
+	@echo "🛡️ TESTS AVANCÉS:"
+	@echo "  make test-security         - Tests de sécurité"
+	@echo "  make test-performance      - Tests de performance"
+	@echo "  make test-coverage         - Couverture de code"
+	@echo ""
+	@echo "📊 QUALITÉ:"
+	@echo "  make lint                  - Linting (ESLint + Prettier)"
+	@echo "  make format                - Formater le code"
+	@echo "  make format-check          - Vérifier formatage"
+	@echo ""
+	@echo "⌚ TESTS RAPIDES:"
+	@echo "  make test-quick            - Tests rapides (unités uniquement)"
+	@echo "  make test-backend-only     - Backend uniquement"
+	@echo "  make test-frontend-only    - Frontend uniquement"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make test-unit && make test-integration  # Tests complets"
+	@echo "  make test-coverage                       # Avec coverage"
+	@echo ""
+	@echo "📖 Documentation: docs/development/testing/README.md"
+	@echo ""
 
 # ============================================================================
 # TESTS PRINCIPAUX
