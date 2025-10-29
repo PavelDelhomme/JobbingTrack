@@ -1,6 +1,6 @@
 # 📚 Documentation JobbingTrack
 
-[← Retour au README principal](../README.md)
+[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md)
 
 ## 🎯 Vue d'ensemble
 
