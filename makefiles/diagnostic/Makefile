@@ -4,7 +4,42 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services help-diagnostic
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-diagnostic: ## Afficher l'aide diagnostic
+	@echo "================================================================"
+	@echo "🔍 DIAGNOSTIC - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "💚 SANTÉ & VÉRIFICATIONS:"
+	@echo "  make health                - Vérifier santé de tous les services"
+	@echo "  make check-deps            - Vérifier dépendances (Docker, etc.)"
+	@echo "  make show-docker-info      - Afficher infos Docker"
+	@echo ""
+	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
+	@echo "  make diagnostic            - Diagnostic complet système"
+	@echo "  make diagnostic-docker     - Diagnostic Docker uniquement"
+	@echo "  make diagnostic-cors       - Diagnostic CORS"
+	@echo "  make diagnostic-network    - Diagnostic réseau"
+	@echo "  make diag-services         - Diagnostic services backend"
+	@echo ""
+	@echo "🔧 CORRECTIONS AUTOMATIQUES:"
+	@echo "  make diagnostic-fix        - Correction automatique complète"
+	@echo "  make cors-fix              - Corriger problèmes CORS"
+	@echo "  make cors-fix-auto         - Correction CORS automatique"
+	@echo "  make docker-compose-fix    - Corriger Docker Compose"
+	@echo "  make clean-docker-cache    - Nettoyer cache Docker"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make health && make diagnostic    # Santé + Diagnostic"
+	@echo "  make diagnostic-fix               # Correction auto"
+	@echo ""
+	@echo "📖 Documentation: docs/troubleshooting/guide.md"
+	@echo ""
 
 # ============================================================================
 # VÉRIFICATIONS SANTÉ

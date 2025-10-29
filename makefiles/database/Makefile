@@ -4,7 +4,45 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-database: ## Afficher l'aide base de données
+	@echo "================================================================"
+	@echo "🗄️  DATABASE - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "🔄 MIGRATIONS & DONNÉES:"
+	@echo "  make db-migrate            - Appliquer migrations Prisma"
+	@echo "  make db-seed               - Insérer données de test"
+	@echo "  make db-reset              - Reset complet de la DB"
+	@echo ""
+	@echo "💾 SAUVEGARDE & RESTAURATION:"
+	@echo "  make db-backup             - Créer sauvegarde"
+	@echo "  make db-restore file=x.sql - Restaurer depuis fichier"
+	@echo ""
+	@echo "🌍 ENVIRONNEMENTS:"
+	@echo "  make up-dev                - DB développement"
+	@echo "  make up-test               - DB test"
+	@echo "  make up-staging            - DB staging"
+	@echo "  make up-prod               - DB production"
+	@echo "  make up-all-dbs            - Tous les environnements"
+	@echo ""
+	@echo "🔧 MAINTENANCE:"
+	@echo "  make db-fix-role           - Corriger rôle PostgreSQL"
+	@echo "  make switch-db ENV=test    - Basculer environnement"
+	@echo "  make copy-prod-to-dev      - Copier prod vers dev"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make db-backup && make db-reset    # Sauvegarder puis reset"
+	@echo "  make db-restore file=backup.sql    # Restaurer"
+	@echo "  make up-test && make db-seed       # Test avec données"
+	@echo ""
+	@echo "📖 Documentation: docs/database/README.md"
+	@echo ""
 
 # ============================================================================
 # MIGRATIONS ET DONNÉES

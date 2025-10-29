@@ -2,7 +2,7 @@
 
 Documentation complète de l'architecture technique de JobbingTrack v4.1.
 
-[← Retour au README principal](../../)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
 
 ## 🎯 Vue d'ensemble
 

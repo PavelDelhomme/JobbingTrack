@@ -4,7 +4,34 @@
 # Utilitaires divers (monitoring quick access, etc.)
 # ============================================================================
 
-.PHONY: metrics cadvisor logs-metrics
+.PHONY: metrics cadvisor logs-metrics help-utils
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-utils: ## Afficher l'aide utilitaires
+	@echo "================================================================"
+	@echo "🛠️  UTILS - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "📊 ACCÈS RAPIDE MONITORING:"
+	@echo "  make metrics               - Ouvrir Prometheus (http://localhost:9090)"
+	@echo "  make cadvisor              - Ouvrir cAdvisor (http://localhost:8081)"
+	@echo "  make logs-metrics          - Logs du système de métriques"
+	@echo ""
+	@echo "🌍 URLS DISPONIBLES:"
+	@echo "  Prometheus:        http://localhost:9090"
+	@echo "  cAdvisor:          http://localhost:8081"
+	@echo "  Grafana:           http://localhost:8083"
+	@echo "  Metrics Aggreg.:   http://localhost:8082"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make metrics               # Ouvrir Prometheus"
+	@echo "  make cadvisor              # Ouvrir cAdvisor"
+	@echo ""
+	@echo "📖 Documentation: docs/administration/README.md"
+	@echo ""
 
 # ============================================================================
 # ACCÈS RAPIDE MONITORING

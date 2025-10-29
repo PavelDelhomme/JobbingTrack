@@ -2,7 +2,7 @@
 
 Guide de développement de l'application mobile Flutter pour JobbingTrack v4.1.
 
-[← Retour au README principal](../../README.md)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
 
 ## 🎯 Vue d'ensemble
 

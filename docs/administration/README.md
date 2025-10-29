@@ -2,7 +2,7 @@
 
 Guide d'administration et dashboard pour JobbingTrack v4.1.
 
-[← Retour au README principal](../)
+[← Retour à la documentation](../README.md) | [← README principal](../../README.md)
 
 ## 🎯 Vue d'ensemble
 

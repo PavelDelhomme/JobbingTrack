@@ -4,7 +4,50 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: up down up-full up-no-check up-mickdevil restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps
+.PHONY: up down up-full up-no-check up-mickdevil restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+
+# ============================================================================
+# AIDE
+# ============================================================================
+
+help-services: ## Afficher l'aide services
+	@echo "================================================================"
+	@echo "🚀 SERVICES - Commandes disponibles"
+	@echo "================================================================"
+	@echo ""
+	@echo "🚀 DÉMARRAGE:"
+	@echo "  make up                    - Services essentiels (postgres, redis, gateway, frontend, auth)"
+	@echo "  make up-no-check           - Sans vérification Docker"
+	@echo "  make up-full               - TOUS les services"
+	@echo "  make up-profile PROFILE=x  - Par profil (auth, applications, companies, etc.)"
+	@echo ""
+	@echo "🛑 ARRÊT:"
+	@echo "  make down                  - Arrêter tous les services"
+	@echo "  make stop-service SERVICE=x - Arrêter un service"
+	@echo ""
+	@echo "🔄 RESTART:"
+	@echo "  make restart               - Redémarrer services actifs"
+	@echo "  make restart-clean         - Redémarrage + nettoyage"
+	@echo "  make restart-service SERVICE=x - Redémarrer un service"
+	@echo ""
+	@echo "📊 STATUS & LOGS:"
+	@echo "  make status                - Statut détaillé des services"
+	@echo "  make ps                    - Liste conteneurs actifs"
+	@echo "  make logs                  - Tous les logs"
+	@echo "  make logs-service SERVICE=x - Logs d'un service"
+	@echo ""
+	@echo "🎯 PROFILS DISPONIBLES:"
+	@echo "  auth, applications, companies, contacts, interviews"
+	@echo "  calls, events, followups, profiles, notifications"
+	@echo "  workflows, dashboard, security, monitoring, full"
+	@echo ""
+	@echo "💡 EXEMPLES:"
+	@echo "  make up                              # Essentiels"
+	@echo "  make up-profile PROFILE=applications # + Candidatures"
+	@echo "  make logs-service SERVICE=api-gateway # Logs gateway"
+	@echo ""
+	@echo "📖 Documentation: docs/development/makefile/README.md"
+	@echo ""
 
 # ============================================================================
 # DÉMARRAGE DES SERVICES
