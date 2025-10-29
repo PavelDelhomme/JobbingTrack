@@ -2,7 +2,7 @@ name: CI/CD Pipeline - JobbingTrack
 
 on:
   push:
-    branches: [ main, develop, feat/*, fix/* ]
+    branches: [ main, develop, feat/*, fix/*, hotfix/* , tech/*]
   pull_request:
     branches: [ main, develop ]
 
