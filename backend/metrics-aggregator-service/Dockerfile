@@ -6,18 +6,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Installer les dépendances
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copier le code source
 COPY src/ ./src/
 
-# Créer un utilisateur non-root pour la sécurité
-RUN groupadd -r nodejs -g 1001 && \
-    useradd -r -u 1001 -g nodejs -s /sbin/nologin -c "Metrics user" metrics
-
-# Changer la propriété des fichiers
-RUN chown -R metrics:nodejs /app
-USER metrics
+# Note: Le service tourne en root pour accéder au Docker socket et /proc
+# C'est nécessaire pour un service de monitoring système
 
 # Exposer le port
 EXPOSE 3014

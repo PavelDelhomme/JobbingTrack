@@ -25,6 +25,34 @@ app.use(cors({
 app.use(morgan('combined'))
 app.use(express.json())
 
+// Middleware d'authentification pour les métriques
+const authenticateMetrics = (req, res, next) => {
+  const authHeader = req.headers.authorization
+  const apiKey = req.headers['x-api-key']
+  
+  // Vérifier API Key ou Bearer token
+  const validApiKey = process.env.METRICS_API_KEY || 'jobbingtrack-metrics-secret-key'
+  
+  if (apiKey === validApiKey) {
+    return next()
+  }
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    // Pour le développement, accepter un token simple
+    if (token === validApiKey || process.env.NODE_ENV === 'development') {
+      return next()
+    }
+  }
+  
+  // En développement, permettre l'accès depuis localhost
+  if (process.env.NODE_ENV === 'development' && (req.ip === '127.0.0.1' || req.ip === '::1')) {
+    return next()
+  }
+  
+  res.status(401).json({ error: 'Unauthorized', message: 'API key or token required' })
+}
+
 // Docker non accessible depuis les conteneurs
 
 // Configuration des services connus
@@ -160,79 +188,104 @@ async function collectSystemMetrics() {
   }
 }
 
-// Fonction pour collecter les métriques des conteneurs depuis Prometheus
+// Fonction pour collecter les métriques des conteneurs depuis /proc natif
 async function collectContainerMetrics() {
   console.log('[CONTAINERS] === DÉBUT COLLECTE CONTENEURS ===')
+  const containerMetrics = {}
+  
   try {
-    console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
-
-    // Configuration Prometheus
-    const prometheusUrl = process.env.PROMETHEUS_URL || 'http://127.0.0.1:9090'
-
-    // Récupérer les métriques CPU des conteneurs
-    const cpuQuery = 'rate(container_cpu_usage_seconds_total[5m]) * 100'
-    const memoryQuery = 'container_memory_usage_bytes / container_spec_memory_limit_bytes * 100'
-
-    const [cpuResponse, memoryResponse] = await Promise.all([
-      axios.get(`${prometheusUrl}/api/v1/query`, {
-        params: { query: cpuQuery },
-        timeout: 5000
-      }),
-      axios.get(`${prometheusUrl}/api/v1/query`, {
-        params: { query: memoryQuery },
-        timeout: 5000
-      })
-    ])
-
-    const containerMetrics = {}
-
-    // Traiter les métriques CPU
-    if (cpuResponse.data.status === 'success' && cpuResponse.data.data.result) {
-      console.log(`[PROMETHEUS] Traitement de ${cpuResponse.data.data.result.length} métriques CPU`)
-      cpuResponse.data.data.result.forEach(metric => {
-        const containerId = metric.metric.id || metric.metric.name || 'unknown'
-        const containerName = containerId.replace('/', '').replace(/^\//, '') || 'system'
-        const cpuUsage = parseFloat(metric.value[1])
-
-        console.log(`[PROMETHEUS] CPU ${containerName}: ${cpuUsage}`)
-
-        if (!containerMetrics[containerName]) {
-          containerMetrics[containerName] = {}
+    const Docker = require('dockerode')
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' })
+    const fs = require('fs').promises
+    
+    // Lister tous les conteneurs
+    const containers = await docker.listContainers({ all: false })
+    console.log(`[PROC] ${containers.length} conteneurs en cours d'exécution`)
+    
+    for (const containerInfo of containers) {
+      const containerId = containerInfo.Id.substring(0, 12)
+      const containerName = containerInfo.Names[0].replace(/^\//, '')
+      
+      try {
+        // Inspecter le conteneur pour obtenir le PID
+        const container = docker.getContainer(containerInfo.Id)
+        const inspect = await container.inspect()
+        const pid = inspect.State.Pid
+        
+        if (!pid || pid === 0) {
+          console.log(`[PROC] ${containerName}: PID non disponible (conteneur arrêté?)`)
+          continue
         }
-        containerMetrics[containerName].cpu = {
-          usage: cpuUsage,
-          percentage: Math.min(100, Math.max(0, cpuUsage))
+        
+        // Lire /host/proc/[pid]/stat pour CPU (mount depuis l'hôte en read-only)
+        const statPath = `/host/proc/${pid}/stat`
+        const statData = await fs.readFile(statPath, 'utf8')
+        const statFields = statData.split(' ')
+        
+        // Champs importants de /proc/[pid]/stat:
+        // 14: utime (user CPU time)
+        // 15: stime (system CPU time)
+        // 22: starttime
+        const utime = parseInt(statFields[13]) || 0
+        const stime = parseInt(statFields[14]) || 0
+        const totalTime = utime + stime
+        
+        // Lire /host/proc/[pid]/status pour mémoire (mount depuis l'hôte en read-only)
+        const statusPath = `/host/proc/${pid}/status`
+        const statusData = await fs.readFile(statusPath, 'utf8')
+        
+        // Extraire VmRSS (Resident Set Size = mémoire physique utilisée)
+        const vmrssMatch = statusData.match(/VmRSS:\s+(\d+)\s+kB/)
+        const memoryKB = vmrssMatch ? parseInt(vmrssMatch[1]) : 0
+        const memoryMB = Math.round(memoryKB / 1024)
+        
+        // Extraire VmSize (taille virtuelle totale)
+        const vmsizeMatch = statusData.match(/VmSize:\s+(\d+)\s+kB/)
+        const vmsizeKB = vmsizeMatch ? parseInt(vmsizeMatch[1]) : 0
+        const vmsizeMB = Math.round(vmsizeKB / 1024)
+        
+        // Obtenir les limites de mémoire du conteneur depuis Docker
+        const memoryLimit = inspect.HostConfig.Memory || 0
+        const memoryLimitMB = memoryLimit > 0 ? Math.round(memoryLimit / 1024 / 1024) : vmsizeMB || 2048
+        
+        // Calculer le pourcentage de mémoire
+        const memoryPercent = memoryLimitMB > 0 ? (memoryMB / memoryLimitMB) * 100 : 0
+        
+        // Pour le CPU, on utilise le temps total (sera calculé en différentiel)
+        const cpuPercent = 0 // Sera calculé par différence entre 2 collectes
+        
+        containerMetrics[containerName] = {
+          cpu: {
+            usage: cpuPercent,
+            percentage: cpuPercent,
+            totalTime: totalTime, // Pour calcul différentiel
+            lastUpdate: Date.now()
+          },
+          memory: {
+            usage: memoryMB,
+            limit: memoryLimitMB,
+            percentage: Math.min(100, Math.max(0, memoryPercent))
+          },
+          network: {
+            rx_bytes: 0, // À implémenter via /proc/net/dev si nécessaire
+            tx_bytes: 0
+          },
+          status: inspect.State.Status || 'running',
+          pid: pid
         }
-      })
+        
+        console.log(`[PROC] ${containerName}: PID ${pid}, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
+        
+      } catch (err) {
+        console.error(`[PROC] Erreur pour ${containerName}:`, err.message)
+      }
     }
-
-    // Traiter les métriques mémoire
-    if (memoryResponse.data.status === 'success' && memoryResponse.data.data.result) {
-      console.log(`[PROMETHEUS] Traitement de ${memoryResponse.data.data.result.length} métriques mémoire`)
-      memoryResponse.data.data.result.forEach(metric => {
-        const containerId = metric.metric.id || metric.metric.name || 'unknown'
-        const containerName = containerId.replace('/', '').replace(/^\//, '') || 'system'
-        const memoryUsage = parseFloat(metric.value[1]) * 100
-
-        console.log(`[PROMETHEUS] Mémoire ${containerName}: ${memoryUsage}%`)
-
-        if (!containerMetrics[containerName]) {
-          containerMetrics[containerName] = {}
-        }
-        containerMetrics[containerName].memory = {
-          usage: memoryUsage,
-          limit: 100, // Pourcentage
-          percentage: Math.min(100, Math.max(0, memoryUsage))
-        }
-      })
-    }
-
-    console.log(`[CONTAINERS] Métriques collectées pour ${Object.keys(containerMetrics).length} conteneurs`)
-    console.log('[CONTAINERS] === FIN COLLECTE CONTENEURS ===')
+    
+    console.log(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés depuis /proc`)
     return containerMetrics
-
+    
   } catch (error) {
-    console.error('[METRICS] Erreur collecte métriques conteneurs depuis Prometheus:', error.message)
+    console.error('[METRICS] Erreur collecte depuis /proc:', error.message)
     console.log('[CONTAINERS] === ERREUR COLLECTE CONTENEURS ===')
     return {}
   }
@@ -265,6 +318,25 @@ async function collectAllMetrics() {
       }
     }
 
+    // Calculer les métriques système agrégées depuis TOUS les conteneurs
+    const allContainers = Object.entries(containerMetrics)
+    
+    let systemTotalCpu = 0
+    let systemTotalMemoryUsed = 0
+    let systemTotalMemoryLimit = 0
+    let systemContainerCount = 0
+
+    allContainers.forEach(([name, metrics]) => {
+      if (metrics.cpu?.percentage) {
+        systemTotalCpu += metrics.cpu.percentage
+        systemContainerCount++
+      }
+      if (metrics.memory?.usage && metrics.memory?.limit) {
+        systemTotalMemoryUsed += metrics.memory.usage
+        systemTotalMemoryLimit += metrics.memory.limit
+      }
+    })
+
     // Calculer les métriques agrégées pour les conteneurs JobbingTrack uniquement
     const jobbingtrackContainers = Object.entries(containerMetrics)
       .filter(([name]) => name.toLowerCase().includes('jobbingtrack'))
@@ -287,6 +359,20 @@ async function collectAllMetrics() {
 
     // Ajouter les métriques agrégées au systemMetrics
     if (systemMetrics) {
+      // Remplacer les métriques système par les métriques réelles des conteneurs
+      systemMetrics.containersAggregate = {
+        cpu: {
+          percent: systemContainerCount > 0 ? (systemTotalCpu / systemContainerCount).toFixed(2) : 0,
+          total: systemTotalCpu.toFixed(2),
+          containers: systemContainerCount
+        },
+        memory: {
+          used: Math.round(systemTotalMemoryUsed),
+          limit: Math.round(systemTotalMemoryLimit),
+          percent: systemTotalMemoryLimit > 0 ? ((systemTotalMemoryUsed / systemTotalMemoryLimit) * 100).toFixed(2) : 0
+        }
+      }
+      
       systemMetrics.jobbingtrack = {
         containers: {
           count: jobbingtrackContainers.length,
@@ -305,6 +391,25 @@ async function collectAllMetrics() {
 
     console.log(`[COLLECTOR] Métriques collectées pour ${Object.keys(servicesMetrics).length} services`)
     console.log(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
+    
+    // Construire l'objet de métriques complet
+    const metricsData = {
+      containers: containerMetrics,
+      system: systemMetrics,
+      services: servicesMetrics,
+      timestamp: new Date().toISOString()
+    }
+    
+    // Exporter vers /tmp/metrics/latest.json (partage avec l'hôte)
+    try {
+      const fs = require('fs').promises
+      const exportPath = '/tmp/metrics/latest.json'
+      await fs.writeFile(exportPath, JSON.stringify(metricsData, null, 2), 'utf8')
+      console.log(`[EXPORT] Métriques exportées vers ${exportPath}`)
+    } catch (err) {
+      console.error('[EXPORT] Erreur export /tmp/metrics:', err.message)
+    }
+    
     console.log('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket
@@ -331,7 +436,7 @@ app.get('/api/v1/health', (req, res) => {
   })
 })
 
-app.get('/api/v1/metrics', (req, res) => {
+app.get('/api/v1/metrics', authenticateMetrics, (req, res) => {
   res.json({
     services: servicesMetrics,
     system: systemMetrics,

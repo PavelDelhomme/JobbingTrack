@@ -149,9 +149,13 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🚀 Démarrage du frontend..."
 	@docker-compose -f docker-compose.yml up -d frontend
 	
-	# Démarrer les services de monitoring si disponibles
+	# Démarrer le service de monitoring
+	@echo "📊 Démarrage du service de métriques..."
+	@docker-compose -f docker-compose.yml up -d jobbingtrack-metrics-aggregator
+	
+	# Démarrer les services de monitoring supplémentaires si disponibles
 	@if [ -f "docker-compose.metrics.yml" ]; then \
-		echo "📊 Démarrage des services de monitoring..."; \
+		echo "📊 Démarrage des services de monitoring supplémentaires..."; \
 		docker-compose -f docker-compose.metrics.yml up -d; \
 	fi
 	

@@ -146,15 +146,14 @@ services:
       - NODE_ENV=development
       - PORT=3014
       - CADVISOR_URL=http://cadvisor:8080
+      - FRONTEND_URL=http://localhost:8080
+      - METRICS_API_KEY=jobbingtrack-metrics-secret-key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - cadvisor
+      - /proc:/host/proc:ro
+      - metrics_data:/tmp/metrics
     networks:
       - jobbingtrack-network
-    profiles:
-      - monitoring
-      - full
     restart: unless-stopped
   
   # cAdvisor (monitoring conteneurs)
@@ -172,9 +171,6 @@ services:
       - /dev/disk/:/dev/disk:ro
     networks:
       - jobbingtrack-network
-    profiles:
-      - monitoring
-      - full
     restart: unless-stopped
   
 
@@ -876,30 +872,6 @@ services:
       - full
     restart: unless-stopped
 
-  # Service de métriques système
-  system-metrics-service:
-    image: jobbingtrack-system-metrics-service
-    build:
-      context: ./backend/system-metrics-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-system-metrics
-    ports:
-      - "3018:3018"
-    environment:
-      - NODE_ENV=development
-      - PORT=3018
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=metrics
-      - FRONTEND_URL=http://localhost:3000
-      - LOG_LEVEL=info
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - jobbingtrack-network
-    profiles:
-      - full
-    restart: unless-stopped
-
   # Service de gestion des déploiements
   deployment-service:
     image: jobbingtrack-deployment-service
@@ -924,31 +896,10 @@ services:
       - full
     restart: unless-stopped
 
-  # Service de statistiques Docker
-  docker-stats-service:
-    image: jobbingtrack-docker-stats-service
-    build:
-      context: ./backend/docker-stats-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-docker-stats
-    ports:
-      - "3015:3015"
-    environment:
-      - NODE_ENV=development
-      - PORT=3015
-      - FRONTEND_URL=http://localhost:3000
-      - LOG_LEVEL=info
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - jobbingtrack-network
-    profiles:
-      - full
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   prometheus_data:
+  metrics_data:
 
 networks:
   jobbingtrack-network:

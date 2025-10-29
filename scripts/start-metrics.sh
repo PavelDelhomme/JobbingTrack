@@ -5,32 +5,38 @@
 
 set -e
 
-echo "🚀 Démarrage des services de métriques..."
+echo "🚀 Démarrage Metrics Aggregator (Read-Only + Export)"
+echo "===================================================="
+echo ""
 
-cd "$(dirname "$0")/.."
+cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
 
-# Vérifier que Docker est en cours d'exécution
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker n'est pas en cours d'exécution"
+# 1. Créer le dossier d'export
+echo "📁 Création /tmp/jobbingtrack-metrics..."
+mkdir -p /tmp/jobbingtrack-metrics
+chmod 777 /tmp/jobbingtrack-metrics
+
+# 2. Arrêter et nettoyer
+echo "🧹 Nettoyage..."
+docker stop jobbingtrack-metrics-aggregator 2>/dev/null || true
+docker rm jobbingtrack-metrics-aggregator 2>/dev/null || true
+docker rmi jobbingtrack-metrics-aggregator 2>/dev/null || true
+
+# 3. Construire
+echo ""
+echo "🔨 Construction de l'image..."
+docker build -t jobbingtrack-metrics-aggregator backend/metrics-aggregator-service/
+
+if [ $? -ne 0 ]; then
+    echo "❌ Erreur construction"
     exit 1
 fi
 
-echo "✅ Docker est actif"
-
-# Démarrer cAdvisor
-echo "📊 Démarrage de cAdvisor..."
+# 4. Démarrer
+echo ""
+echo "🚀 Démarrage..."
 docker-compose up -d cadvisor
-
-# Attendre que cAdvisor soit prêt
-echo "⏳ Attente de cAdvisor..."
-for i in {1..30}; do
-    if curl -s http://localhost:8081/healthz > /dev/null 2>&1; then
-        echo "✅ cAdvisor est prêt"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo "⚠️  cAdvisor prend du temps à démarrer (normal)"
-    fi
+sleep 2
     sleep 1
 done
 
