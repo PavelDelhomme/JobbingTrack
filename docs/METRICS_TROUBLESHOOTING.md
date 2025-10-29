@@ -1,5 +1,8 @@
 # 🔧 Résolution des Problèmes de Métriques
 
+[← Retour au README principal](../../README.md)
+
+
 ## 📋 Résumé des Corrections Effectuées
 
 ### 1. **Cache Frontend Désactivé**

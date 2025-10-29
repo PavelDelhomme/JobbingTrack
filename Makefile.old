@@ -1,0 +1,130 @@
+# ============================================================================
+# Makefile Principal - JobbingTrack
+# ============================================================================
+# Ce Makefile est le point d'entrée unique qui inclut tous les sous-Makefiles
+# Toutes les commandes des sous-makefiles sont accessibles depuis la racine
+# ============================================================================
+
+# Définir le répertoire racine
+ROOT_DIR := $(shell pwd)
+export ROOT_DIR
+
+# ============================================================================
+# INCLUDES - Charger tous les sous-Makefiles
+# ============================================================================
+
+# 1. Charger les fonctions communes en premier
+include makefiles/shared/common.mk
+
+# 2. Charger le Makefile principal (commandes générales)
+include makefiles/Makefile
+
+# 3. Charger les Makefiles spécifiques
+-include makefiles/backend/Makefile
+-include makefiles/frontend/Makefile
+
+# ============================================================================
+# CONFIGURATION GLOBALE
+# ============================================================================
+
+# Commande par défaut
+.DEFAULT_GOAL := help
+
+# Variables exportées pour les sous-makefiles
+export BACKEND_DIR := backend
+export FRONTEND_DIR := frontend
+export SCRIPTS_DIR := scripts
+export TESTS_DIR := tests
+export MONITORING_DIR := monitoring
+
+# ============================================================================
+# PHONY DECLARATIONS
+# ============================================================================
+
+.PHONY: help version info
+
+# ============================================================================
+# AIDE PRINCIPALE
+# ============================================================================
+
+help: ## Afficher l'aide complète
+	@echo ""
+	$(call print_section,🚀 JOBBINGTRACK - SYSTÈME DE GESTION DE CANDIDATURES)
+	@echo ""
+	@echo "$(BOLD)$(CYAN)📚 AIDES DISPONIBLES:$(NC)"
+	@echo "  $(GREEN)make help$(NC)              - Cette aide"
+	@echo "  $(GREEN)make help-backend$(NC)      - Commandes backend"
+	@echo "  $(GREEN)make help-frontend$(NC)     - Commandes frontend"
+	@echo "  $(GREEN)make help-monitoring$(NC)   - Commandes monitoring"
+	@echo ""
+	@echo "$(BOLD)$(CYAN)🎯 COMMANDES RAPIDES:$(NC)"
+	@echo "  $(GREEN)make up$(NC)                - Démarrer tout"
+	@echo "  $(GREEN)make down$(NC)              - Arrêter tout"
+	@echo "  $(GREEN)make status$(NC)            - Status des services"
+	@echo "  $(GREEN)make logs$(NC)              - Voir les logs"
+	@echo ""
+	@echo "$(BOLD)$(CYAN)💡 POUR PLUS DE DÉTAILS:$(NC)"
+	@echo "  Consultez les Makefiles dans $(YELLOW)makefiles/$(NC)"
+	@echo "  Chaque sous-makefile a sa propre commande help"
+	@echo ""
+
+# Afficher la version
+version: ## Afficher les versions des outils
+	@echo "$(BOLD)$(CYAN)📦 Versions des outils:$(NC)"
+	@echo "  Docker: $$(docker --version 2>/dev/null || echo 'Non installé')"
+	@echo "  Docker Compose: $$(docker compose version 2>/dev/null || docker-compose --version 2>/dev/null || echo 'Non installé')"
+	@echo "  Node: $$(node --version 2>/dev/null || echo 'Non installé')"
+	@echo "  npm: $$(npm --version 2>/dev/null || echo 'Non installé')"
+
+# Informations sur le projet
+info: ## Informations sur la structure du projet
+	@echo "$(BOLD)$(CYAN)📁 Structure du projet JobbingTrack:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Makefiles:$(NC)"
+	@echo "  • $(BLUE)Makefile$(NC) (racine)           - Point d'entrée unique"
+	@echo "  • $(BLUE)makefiles/Makefile$(NC)          - Commandes principales"
+	@echo "  • $(BLUE)makefiles/backend/$(NC)          - Commandes backend"
+	@echo "  • $(BLUE)makefiles/frontend/$(NC)         - Commandes frontend"
+	@echo "  • $(BLUE)makefiles/shared/$(NC)           - Fonctions communes"
+	@echo ""
+	@echo "$(YELLOW)Services:$(NC)"
+	@echo "  • $(BLUE)backend/$(NC)                    - Microservices Node.js"
+	@echo "  • $(BLUE)frontend/$(NC)                   - Application Next.js"
+	@echo "  • $(BLUE)monitoring/$(NC)                 - Stack Prometheus/Loki"
+	@echo ""
+	@echo "$(YELLOW)Scripts & Tests:$(NC)"
+	@echo "  • $(BLUE)scripts/$(NC)                    - Scripts utilitaires"
+	@echo "  • $(BLUE)tests/$(NC)                      - Tests automatisés"
+	@echo ""
+
+# Alias help-backend vers makefiles/backend
+help-backend: ## Aide backend complète
+	@cd makefiles/backend && $(MAKE) help
+
+# Alias help-frontend vers makefiles/frontend  
+help-frontend: ## Aide frontend complète
+	@cd makefiles/frontend && $(MAKE) help
+
+# Alias help-monitoring
+help-monitoring: ## Aide monitoring complète
+	@cd makefiles/backend && $(MAKE) help | grep -A 20 "MONITORING"
+
+# ============================================================================
+# NOTES IMPORTANTES
+# ============================================================================
+# 
+# Ce Makefile sert de point d'entrée unique et délègue aux sous-makefiles.
+# 
+# Structure des includes:
+#   1. makefiles/shared/common.mk  → Fonctions communes
+#   2. makefiles/Makefile          → Commandes principales
+#   3. makefiles/backend/Makefile  → Backend (avec monitoring)
+#   4. makefiles/frontend/Makefile → Frontend
+#
+# Pour ajouter de nouvelles commandes:
+#   - Commandes générales    → makefiles/Makefile
+#   - Commandes backend      → makefiles/backend/Makefile
+#   - Commandes frontend     → makefiles/frontend/Makefile
+#   - Fonctions réutilisables→ makefiles/shared/common.mk
+#
+# ============================================================================

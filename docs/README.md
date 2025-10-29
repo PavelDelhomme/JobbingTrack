@@ -1,5 +1,8 @@
 # 📚 Documentation JobbingTrack
 
+[← Retour au README principal](../../README.md)
+
+
 ## 🎯 Vue d'ensemble
 
 Documentation complète et organisée du projet **JobbingTrack v4.1** - Système de suivi de candidatures avec architecture microservices, dashboard administrateur et applications mobiles.

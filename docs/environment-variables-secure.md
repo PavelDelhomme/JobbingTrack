@@ -1,5 +1,7 @@
 # Variables d'environnement sécurisées - JobbingTrack
 
+[← Retour au README principal](../../README.md)
+
 ## Configuration sécurisée par variables d'environnement
 
 **JobbingTrack utilise exclusivement des variables d'environnement** pour la configuration. Aucune valeur sensible n'est hardcodée ou affichée par défaut.
