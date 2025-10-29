@@ -27,10 +27,10 @@
 - **[🖥️ Frontend Next.js](development/setup/README.md#frontend)** | **[📱 Mobile Flutter](../mobile/README.md)**
 
 ### 🔧 **Administration**
-- **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/guide.md)**
+- **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/README.md)**
 
 ### 📊 **Performance et Sécurité**
-- **[⚡ Performance](./performance/guide.md)** | **[🔒 Sécurité](./security/guide.md)**
+- **[⚡ Performance](./performance/README.md)** | **[🔒 Sécurité](./security/README.md)**
 
 ---
 
@@ -82,13 +82,13 @@ docs/
 ### Pour les administrateurs
 - **[Administration](./administration/README.md)** - Guide administration
 - **[Déploiement](./deployment/production/README.md)** - Production
-- **[Sécurité](./security/guide/README.md)** - Bonnes pratiques
+- **[Sécurité](./security/README.md)** - Bonnes pratiques
 - **[Monitoring](../monitoring/README.md)** - Surveillance système
 
 ### Pour les utilisateurs
 - **[Démarrage](./deployment/getting-started/README.md)** - Installation
-- **[Dépannage](./troubleshooting/guide/README.md)** - Résolution problèmes
-- **[Performance](./performance/guide/README.md)** - Optimisation
+- **[Dépannage](./troubleshooting/README.md)** - Résolution problèmes
+- **[Performance](./performance/README.md)** - Optimisation
 
 ---
 
