@@ -2,7 +2,7 @@
 
 [← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
-📖 **[Monitoring Global](../../monitoring/README.md)** | **[Architecture Métriques](../../docs/ARCHITECTURE_METRICS_FINAL.md)**
+📖 **[Monitoring Global](../../monitoring/README.md)** | **[Architecture Métriques](../../docs/architecture/metrics/README.md)**
 
 Stack complète de monitoring pour métriques et logs des conteneurs Docker avec API sécurisée.
 

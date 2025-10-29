@@ -129,7 +129,7 @@ make help-utils        # Utilitaires
 |----------|-------------|
 | [Audit Complet Projet](docs/database/analysis/comprehensive-project-audit/README.md) | Audit complet du projet v4.1 |
 | [Analyse Structure Données](docs/database/analysis/data-structure-analysis/README.md) | Analyse comparative structure BDD |
-| [Architecture Métriques](docs/ARCHITECTURE_METRICS_FINAL.md) | Système de métriques final |
+| [Architecture Métriques](docs/architecture/metrics/README.md) | Système de métriques final |
 | [Changelog](docs/changelog/all-changes.md) | Historique complet des modifications |
 
 ### Scripts

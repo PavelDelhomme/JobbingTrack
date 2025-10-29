@@ -46,6 +46,7 @@ docs/
 
 ### 🏗️ Architecture et Infrastructure
 - **[Architecture Microservices](core/architecture/README.md)** - Vue complète de l'architecture
+- **[Architecture Métriques](architecture/metrics/README.md)** - Système de collecte de métriques
 - **[Base de Données](database/README.md)** - Schema PostgreSQL et relations
 - **[Analyse BDD](database/analysis/)** - Analyses comparatives et audits
 
