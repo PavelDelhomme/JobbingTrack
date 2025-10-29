@@ -1,19 +1,32 @@
-# JobbingTrack Metrics Aggregator Service
+# Metrics Aggregator Service
 
 [← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
-📖 **[Architecture Métriques](../../docs/architecture/metrics/README.md)** | **[Dépannage](../../docs/architecture/metrics/troubleshooting/README.md)**
-
 Service d'agrégation de métriques avec auto-discovery pour la plateforme JobbingTrack.
+
+## 📖 Documentation complète
+
+- **[Architecture Métriques](../../docs/architecture/metrics/README.md)** - Documentation technique complète
+- **[Dépannage Métriques](../../docs/architecture/metrics/troubleshooting/README.md)** - Résolution des problèmes
+- **[Monitoring Global](../../monitoring/README.md)** - Vue d'ensemble du monitoring
+
+## 🚀 Démarrage rapide
+
+```bash
+# Depuis la racine du projet
+make help-backend      # Voir toutes les commandes disponibles
+make up                # Démarrer tous les services
+```
+
+Pour plus d'informations, consultez la [documentation complète](../../docs/architecture/metrics/README.md).
 
 ## Fonctionnalités
 
-- **Auto-discovery** : Détection automatique des conteneurs Docker en cours d'exécution
-- **Collecte de métriques** : Récupération des métriques système, mémoire, CPU et réseau
-- **Test de santé** : Vérification automatique de l'état de chaque service
-- **WebSocket** : Diffusion temps réel des métriques vers le frontend
-- **API REST** : Interface pour récupérer les métriques
-
+- Auto-discovery : déction automatique des conteneurs docker en cours d'exécution
+- Collect de métriques : récupération des métriques système, mémoire, CPU et réseau
+- Test de santé : vérification automatique de l'état de chaque service
+- WebSocket : diffusion temps réel des métriques vers le frontend
+- API REST : Interface pour récupérer les métriques
 ## Architecture
 
 ```

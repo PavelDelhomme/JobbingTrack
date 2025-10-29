@@ -1,10 +1,24 @@
-# 📊 JobbingTrack - Système de Monitoring Complet
+# Système de Monitoring Backend
 
 [← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
-📖 **[Monitoring Global](../../monitoring/README.md)** | **[Architecture Métriques](../../docs/architecture/metrics/README.md)**
-
 Stack complète de monitoring pour métriques et logs des conteneurs Docker avec API sécurisée.
+
+## 📖 Documentation complète
+
+- **[Monitoring Global](../../monitoring/README.md)** - Configuration et architecture complète
+- **[Architecture Métriques](../../docs/architecture/metrics/README.md)** - Système de collecte de métriques
+- **[Dépannage](../../docs/architecture/metrics/troubleshooting/README.md)** - Résolution des problèmes
+
+## 🚀 Démarrage rapide
+
+```bash
+# Depuis la racine du projet
+make help-backend      # Voir toutes les commandes
+make help-utils        # Accès rapide au monitoring
+```
+
+Pour plus d'informations, consultez la [documentation du monitoring](../../monitoring/README.md).
 
 ## 🏗️ Architecture
 
