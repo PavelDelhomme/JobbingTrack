@@ -1,6 +1,6 @@
 # Scripts Core - JobbingTrack
 
-[← Retour à la documentation des scripts](../README.md)
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
 ## 🎯 Vue d'ensemble
 

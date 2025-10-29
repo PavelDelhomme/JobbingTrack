@@ -1,5 +1,7 @@
 # Scripts de Setup - JobbingTrack
 
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
+
 Ce dossier contient les scripts d'installation et de configuration initiale du système JobbingTrack.
 
 ## Scripts disponibles

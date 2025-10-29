@@ -1,5 +1,9 @@
 # JobbingTrack Metrics Aggregator Service
 
+[← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
+
+📖 **[Architecture Métriques](../../docs/ARCHITECTURE_METRICS_FINAL.md)** | **[Dépannage](../../docs/METRICS_TROUBLESHOOTING.md)**
+
 Service d'agrégation de métriques avec auto-discovery pour la plateforme JobbingTrack.
 
 ## Fonctionnalités

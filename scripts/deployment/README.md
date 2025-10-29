@@ -1,4 +1,6 @@
-# Scripts de déploiement - JobbingTrack
+# Scripts de Déploiement - JobbingTrack
+
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
 Ce dossier contient les scripts liés au déploiement et à la gestion du cycle de vie des services.
 

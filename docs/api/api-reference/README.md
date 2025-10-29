@@ -2,7 +2,7 @@
 
 Documentation complète des APIs REST de JobbingTrack v4.1.
 
-[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md) | [🧭 Navigation](../../navigation.md)
 
 ## 🎯 Vue d'ensemble
 

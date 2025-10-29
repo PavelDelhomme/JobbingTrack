@@ -1,6 +1,6 @@
 # 📋 Audit Complet du Projet JobbingTrack
 
-[← Retour à la documentation](../../../README.md) | [← README principal](../../../../README.md)
+[← Retour à la documentation](../../../README.md) | [← README principal](../../../../README.md) | [🧭 Navigation](../../../navigation.md)
 
 
 ## 🎯 Vue d'ensemble

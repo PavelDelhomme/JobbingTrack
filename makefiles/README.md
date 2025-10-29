@@ -1,5 +1,9 @@
 # 📁 Makefiles - Organisation Modulaire
 
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
+📖 **[Guide complet Makefile](../docs/development/makefile/README.md)** - Nouveau système avec aide intégrée
+
 ## 🎯 Objectif
 
 Tous les Makefiles sont organisés de manière modulaire dans ce dossier. Le `Makefile` racine les inclut automatiquement, rendant **TOUTES** les commandes accessibles depuis la racine du projet.

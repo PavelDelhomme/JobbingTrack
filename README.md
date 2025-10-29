@@ -78,17 +78,59 @@ make help-utils        # Utilitaires
 
 ## 📖 Documentation
 
-### 📚 [Documentation Complète](docs/README.md)
+### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md)
 
-| Catégorie | Documents |
-|-----------|----------|
-| 🚀 **Démarrage** | [Installation](docs/deployment/getting-started/README.md) • [Configuration Dev](docs/development/setup/README.md) |
-| 🏗️ **Architecture** | [Microservices](docs/core/architecture/README.md) • [Base de Données](docs/database/README.md) |
-| 📡 **API** | [API Reference](docs/api/api-reference/README.md) • [Endpoints](docs/api/endpoints/README.md) |
-| 💻 **Développement** | [Workflow](docs/development/workflow/README.md) • [Tests](docs/development/testing/README.md) |
-| 🛠️ **Makefile** | ⭐ [Guide Complet avec Aide Intégrée](docs/development/makefile/README.md) |
-| 📊 **Base de Données** | [Structure](docs/database/README.md) • [Analyses](docs/database/analysis/) |
-| 🔧 **Administration** | [Guide Admin](docs/administration/README.md) |
+#### 🚀 Démarrage et Installation
+| Guide | Description |
+|-------|-------------|
+| [Installation Rapide](docs/deployment/getting-started/README.md) | Guide d'installation et configuration initiale |
+| [Configuration Développement](docs/development/setup/README.md) | Environnement de développement Node.js, Docker, Prisma |
+| [Workflow Développement](docs/development/workflow/README.md) | Processus et bonnes pratiques de développement |
+| ⭐ [Guide Makefile](docs/development/makefile/README.md) | **NOUVEAU** : Système complet avec aide intégrée |
+
+#### 🏗️ Architecture et Services
+| Guide | Description |
+|-------|-------------|
+| [Architecture Microservices](docs/core/architecture/README.md) | Architecture technique complète 18+ microservices |
+| [Services Détaillés](docs/core/services/README.md) | Documentation de chaque microservice |
+| [Base de Données](docs/database/README.md) | Structure PostgreSQL, schémas et relations |
+| [Analyses BDD](docs/database/analysis/) | Audits et analyses comparatives |
+
+#### 📡 API et Intégration
+| Guide | Description |
+|-------|-------------|
+| [API Reference](docs/api/api-reference/README.md) | Documentation complète des APIs REST |
+| [Endpoints](docs/api/endpoints/README.md) | Liste exhaustive de tous les endpoints |
+
+#### 💻 Développement et Tests
+| Guide | Description |
+|-------|-------------|
+| [Tests et Qualité](docs/development/testing/README.md) | Stratégies de tests (unit, integration, E2E) |
+| [Guide Tests](tests/README.md) | Suite de tests complète et exécution |
+| [Frontend Next.js](docs/frontend/guide/README.md) | Développement interface TypeScript + Tailwind |
+| [Mobile Flutter](docs/mobile/guide/README.md) | Application mobile cross-platform |
+
+#### 🚀 Déploiement et Production
+| Guide | Description |
+|-------|-------------|
+| [Déploiement Production](docs/deployment/production/README.md) | Configuration et déploiement production |
+| [Sécurité](docs/deployment/security/README.md) | Configuration sécurité et bonnes pratiques |
+| [Guide Sécurité](docs/security/guide/README.md) | Authentification, autorisations, protection |
+
+#### 🔧 Administration et Maintenance
+| Guide | Description |
+|-------|-------------|
+| [Guide Administration](docs/administration/README.md) | Administration système et dashboard |
+| [Dépannage](docs/troubleshooting/guide/README.md) | Solutions aux problèmes courants |
+| [Performance](docs/performance/guide/README.md) | Optimisations et monitoring performance |
+
+#### 📊 Analyses et Audits
+| Document | Description |
+|----------|-------------|
+| [Audit Complet Projet](docs/database/analysis/comprehensive-project-audit/README.md) | Audit complet du projet v4.1 |
+| [Analyse Structure Données](docs/database/analysis/data-structure-analysis/README.md) | Analyse comparative structure BDD |
+| [Architecture Métriques](docs/ARCHITECTURE_METRICS_FINAL.md) | Système de métriques final |
+| [Changelog](docs/changelog/all-changes.md) | Historique complet des modifications |
 
 ### Scripts
 

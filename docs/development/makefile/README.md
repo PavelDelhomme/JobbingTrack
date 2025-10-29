@@ -1,6 +1,6 @@
 # 📘 Guide Makefile - JobbingTrack
 
-[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md)
+[← Retour à la documentation](../../README.md) | [← README principal](../../../README.md) | [🧭 Navigation](../../navigation.md)
 
 ## ✨ Système modulaire avec aide contextuelle intégrée
 

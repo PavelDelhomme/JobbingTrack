@@ -1,5 +1,7 @@
 # 🧪 Suite de Tests JobbingTrack
 
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
 Suite complète de tests pour la plateforme JobbingTrack, incluant tests unitaires, d'intégration, E2E, de performance et de sécurité.
 
 ## 📋 Structure des Tests

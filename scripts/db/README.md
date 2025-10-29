@@ -1,5 +1,7 @@
 # Scripts de Base de Données - JobbingTrack
 
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
+
 Ce dossier contient les scripts de gestion de la base de données PostgreSQL de JobbingTrack.
 
 ## Scripts disponibles

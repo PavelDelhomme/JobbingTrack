@@ -1,5 +1,7 @@
 # Scripts Docker - JobbingTrack
 
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
+
 Ce dossier contient les scripts utilitaires pour la gestion et la maintenance de l'environnement Docker de JobbingTrack.
 
 ## Scripts disponibles
