@@ -1431,22 +1431,22 @@ app.use('/login', async (req, res) => {
 ## 📚 Ressources supplémentaires
 
 ### Documentation technique
-- [Guide de développement](../development/setup.md) - Environnement de développement
-- [Documentation API](../api/api-reference.md) - Endpoints et spécifications
-- [Guide de déploiement](../deployment/production.md) - Déploiement en production
-- [Documentation Makefile](../development/makefile.md) - Commandes et automatisations
-- [Guide des tests](../development/testing.md) - Stratégies de tests
+- [Guide de développement](../../development/setup/README.md) - Environnement de développement
+- [Documentation API](../../api/api-reference/README.md) - Endpoints et spécifications
+- [Guide de déploiement](../../deployment/production/README.md) - Déploiement en production
+- [Documentation Makefile](../../development/makefile/README.md) - Commandes et automatisations
+- [Guide des tests](../../development/testing/README.md) - Stratégies de tests
 
 ### Guides spécialisés
-- [Guide de sécurité](../security/guide.md) - Bonnes pratiques sécurité
-- [Guide des performances](../performance/guide.md) - Optimisations
-- [Guide de monitoring](../administration/monitoring.md) - Surveillance système
-- [Guide Portainer](../deployment/portainer.md) - Interface de gestion Docker
+- [Guide de sécurité](../../security/README.md) - Bonnes pratiques sécurité
+- [Guide des performances](../../performance/README.md) - Optimisations
+- [Guide de monitoring](../../monitoring/README.md) - Surveillance système
+- [Guide Portainer](../../deployment/portainer/README.md) - Interface de gestion Docker
 
 ### Outils et utilitaires
-- [Scripts d'administration](../../scripts/) - Automatisations
-- [Configuration des tests](../../tests/) - Suite de tests complète
-- [Monitoring et métriques](../../monitoring/) - Dashboards Prometheus/Grafana
+- [Scripts d'administration](../../scripts/README.md) - Automatisations
+- [Configuration des tests](../../tests/README.md) - Suite de tests complète
+- [Monitoring et métriques](../../monitoring/README.md) - Dashboards Prometheus/Grafana
 
 ---
 
@@ -1454,12 +1454,12 @@ app.use('/login', async (req, res) => {
 
 | Document | Description |
 |----------|-------------|
-| [🏠 README Principal](../../README.md) | Vue d'ensemble du projet |
-| [📚 Index Documentation](../README.md) | Liste de tous les guides |
-| [🔧 Services](../services.md) | Détail des microservices |
-| [📡 API](../api/api-reference.md) | Documentation des APIs |
+| [🏠 README Principal](../../../README.md) | Vue d'ensemble du projet |
+| [📚 Index Documentation](../../README.md) | Liste de tous les guides |
+| [🔧 Services](../services/README.md) | Détail des microservices |
+| [📡 API](../../api/api-reference/README.md) | Documentation des APIs |
 | [🧪 Tests](../../tests/README.md) | Stratégies de test |
-| [🚨 Dépannage](../troubleshooting/guide.md) | Résolution des problèmes |
+| [🚨 Dépannage](../../troubleshooting/README.md) | Résolution des problèmes |
 
 ---
 
