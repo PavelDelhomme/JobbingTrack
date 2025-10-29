@@ -186,7 +186,7 @@ make ps # Liste conteneurs
 make status # Statut détaillé
 
 
-📖 **[Documentation complète](docs/MAKEFILE.md)**
+📖 **[Documentation complète Makefile](docs/development/makefile/README.md)** | 📄 **[Documentation PDF Complète](docs/pdfs/documentation-complete.pdf)**
 
 ---
 

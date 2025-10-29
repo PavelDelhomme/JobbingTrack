@@ -11,86 +11,149 @@ if (!fs.existsSync(pdfsDir)) {
   console.log('📁 Dossier pdfs créé');
 }
 
-// Ordre logique des sections pour le PDF complet
-const documentStructure = [
-  // 1. Introduction
-  { section: '📖 Introduction', files: [
-    'README.md',
-    'navigation.md'
-  ]},
+/**
+ * Scanne récursivement le dossier docs/ pour trouver tous les fichiers .md
+ * @returns {Array} - Liste des fichiers .md trouvés
+ */
+function scanMarkdownFiles(directory = docsDir, excludeDirs = ['node_modules', 'pdfs', 'temp']) {
+  const files = [];
   
-  // 2. Architecture et Infrastructure
-  { section: '🏗️ Architecture et Infrastructure', files: [
-    'core/architecture/README.md',
-    'core/services/README.md',
-    'architecture/metrics/README.md',
-    'architecture/metrics/troubleshooting/README.md'
-  ]},
+  function scan(dir) {
+    const items = fs.readdirSync(dir);
+    
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      const relativePath = path.relative(docsDir, fullPath);
+      const stat = fs.statSync(fullPath);
+      
+      // Ignorer les dossiers exclus
+      if (stat.isDirectory()) {
+        const dirName = path.basename(fullPath);
+        if (!excludeDirs.includes(dirName) && !dirName.startsWith('.')) {
+          scan(fullPath);
+        }
+      } else if (stat.isFile() && item.endsWith('.md')) {
+        files.push(relativePath);
+      }
+    }
+  }
   
-  // 3. Base de Données
-  { section: '💾 Base de Données', files: [
-    'database/README.md',
-    'database/analysis/README.md',
-    'database/analysis/comprehensive-project-audit/README.md',
-    'database/analysis/data-structure-analysis/README.md',
-    'database/analysis/data-structure-comparison/README.md',
-    'database/architecture/database/README.md'
-  ]},
+  scan(directory);
+  return files.sort(); // Trier alphabétiquement
+}
+
+/**
+ * Organise automatiquement les fichiers par structure de dossiers
+ * @param {Array} files - Liste des fichiers
+ * @returns {Array} - Structure organisée
+ */
+function organizeFilesByStructure(files) {
+  const structure = [];
+  const sections = new Map();
   
-  // 4. API et Intégration
-  { section: '📡 API et Intégration', files: [
-    'api/api-reference/README.md',
-    'api/endpoints/README.md'
-  ]},
+  // Organiser par dossier principal
+  for (const file of files) {
+    const parts = file.split('/');
+    const mainDir = parts[0];
+    
+    // Ignorer les fichiers à la racine sauf README.md et navigation.md
+    if (parts.length === 1) {
+      if (file === 'README.md' || file === 'navigation.md') {
+        if (!sections.has('📖 Introduction')) {
+          sections.set('📖 Introduction', []);
+        }
+        sections.get('📖 Introduction').push(file);
+      }
+      continue;
+    }
+    
+    // Créer une section basée sur le dossier principal
+    const sectionName = getSectionName(mainDir);
+    if (!sections.has(sectionName)) {
+      sections.set(sectionName, []);
+    }
+    sections.get(sectionName).push(file);
+  }
   
-  // 5. Déploiement
-  { section: '🚀 Déploiement', files: [
-    'deployment/getting-started/README.md',
-    'deployment/production/README.md',
-    'deployment/security/README.md',
-    'deployment/portainer/README.md'
-  ]},
+  // Convertir en structure de tableau
+  const sectionOrder = [
+    '📖 Introduction',
+    '🏗️ Architecture',
+    '💾 Base de Données',
+    '📡 API',
+    '🚀 Déploiement',
+    '💻 Développement',
+    '📱 Applications',
+    '📚 Administration',
+    '🔧 Scripts',
+    '🧪 Tests',
+    '📊 Monitoring',
+    '🔐 Sécurité',
+    '⚡ Performance',
+    '🐛 Dépannage',
+    '⚙️ Configuration'
+  ];
   
-  // 6. Développement
-  { section: '💻 Développement', files: [
-    'development/setup/README.md',
-    'development/workflow/README.md',
-    'development/makefile/README.md',
-    'development/testing/README.md'
-  ]},
+  for (const section of sectionOrder) {
+    if (sections.has(section)) {
+      structure.push({
+        section,
+        files: sections.get(section)
+      });
+    }
+  }
   
-  // 7. Applications
-  { section: '📱 Applications', files: [
-    'frontend/README.md',
-    'mobile/README.md'
-  ]},
+  // Ajouter les sections non prévues
+  for (const [section, files] of sections) {
+    if (!sectionOrder.includes(section)) {
+      structure.push({ section, files });
+    }
+  }
   
-  // 8. Guides Spécialisés
-  { section: '📚 Guides Spécialisés', files: [
-    'administration/README.md',
-    'security/README.md',
-    'performance/README.md',
-    'troubleshooting/README.md'
-  ]},
+  return structure;
+}
+
+/**
+ * Détermine le nom de section basé sur le dossier
+ */
+function getSectionName(dirName) {
+  const sectionMap = {
+    'core': '🏗️ Architecture',
+    'architecture': '🏗️ Architecture',
+    'database': '💾 Base de Données',
+    'api': '📡 API',
+    'deployment': '🚀 Déploiement',
+    'development': '💻 Développement',
+    'frontend': '📱 Applications',
+    'mobile': '📱 Applications',
+    'administration': '📚 Administration',
+    'scripts': '🔧 Scripts',
+    'tests': '🧪 Tests',
+    'monitoring': '📊 Monitoring',
+    'security': '🔐 Sécurité',
+    'performance': '⚡ Performance',
+    'troubleshooting': '🐛 Dépannage'
+  };
   
-  // 9. Scripts et Tests
-  { section: '🔧 Scripts et Tests', files: [
-    'scripts/README.md',
-    'scripts/deployment/README.md',
-    'tests/README.md'
-  ]},
+  return sectionMap[dirName] || `📄 ${dirName.charAt(0).toUpperCase() + dirName.slice(1)}`;
+}
+
+// Cette fonction sera appelée dynamiquement pour obtenir la structure
+function getDocumentStructure() {
+  console.log('🔍 Scan automatique des fichiers markdown...\n');
+  const allFiles = scanMarkdownFiles();
+  console.log(`   ✓ ${allFiles.length} fichiers .md trouvés\n`);
   
-  // 10. Monitoring
-  { section: '📊 Monitoring', files: [
-    'monitoring/README.md'
-  ]},
+  const structure = organizeFilesByStructure(allFiles);
   
-  // 11. Variables d'Environnement
-  { section: '⚙️ Configuration', files: [
-    'environment-variables.md',
-    'environment-variables-secure.md'
-  ]}
-];
+  console.log('📊 Structure organisée:');
+  for (const { section, files } of structure) {
+    console.log(`   ${section}: ${files.length} fichiers`);
+  }
+  console.log('');
+  
+  return structure;
+}
 
 /**
  * Convertit les liens markdown relatifs en ancres internes au PDF
@@ -186,6 +249,9 @@ async function generateCompleteDocumentationPDF() {
   console.log('📚 Génération du PDF de documentation complète...\n');
   
   try {
+    // Obtenir la structure automatiquement
+    const documentStructure = getDocumentStructure();
+    
     // Map pour stocker les fichiers et leurs ancres
     const anchorMap = new Map();
     const fileContents = [];
@@ -481,17 +547,91 @@ async function generateAllPDFs() {
   console.log('🚀 GÉNÉRATION DE LA DOCUMENTATION PDF');
   console.log('='.repeat(60) + '\n');
   
-  // Générer le PDF complet
-  const success = await generateCompleteDocumentationPDF();
+  let totalSuccess = 0;
+  let totalErrors = 0;
   
-  if (success) {
-    console.log('\n✨ Documentation PDF générée avec succès!');
-    console.log('\n💡 Pour générer des PDFs individuels, utilisez:');
-    console.log('   node generate-pdfs.js <chemin/vers/fichier.md>');
+  // 1. Générer le PDF complet
+  console.log('📚 ÉTAPE 1: Génération du PDF complet\n');
+  const completeSuccess = await generateCompleteDocumentationPDF();
+  if (completeSuccess) {
+    totalSuccess++;
   } else {
-    console.log('\n❌ Échec de la génération du PDF');
-    process.exit(1);
+    totalErrors++;
   }
+  
+  // 2. Générer les PDFs individuels
+  console.log('\n📄 ÉTAPE 2: Génération des PDFs individuels\n');
+  const allFiles = scanMarkdownFiles();
+  console.log(`   → ${allFiles.length} fichiers à traiter\n`);
+  
+  for (const file of allFiles) {
+    const markdownPath = path.join(docsDir, file);
+    const pdfPath = path.join(pdfsDir, 'individual', file.replace('.md', '.pdf'));
+    
+    // Créer le message de progression
+    const fileName = path.basename(file);
+    const dirName = path.dirname(file) === '.' ? 'racine' : path.dirname(file);
+    
+    process.stdout.write(`   📝 ${dirName}/${fileName}... `);
+    
+    const success = await generateIndividualPDF(markdownPath, pdfPath);
+    
+    if (success) {
+      console.log('✅');
+      totalSuccess++;
+    } else {
+      console.log('❌');
+      totalErrors++;
+    }
+  }
+  
+  // 3. Afficher le résumé
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 RÉSUMÉ DE LA GÉNÉRATION');
+  console.log('='.repeat(60));
+  console.log(`✅ Succès: ${totalSuccess}`);
+  console.log(`❌ Erreurs: ${totalErrors}`);
+  console.log(`📁 PDF complet: docs/pdfs/documentation-complete.pdf`);
+  console.log(`📁 PDFs individuels: docs/pdfs/individual/`);
+  console.log('='.repeat(60));
+  
+  if (totalErrors === 0) {
+    console.log('\n🎉 Tous les PDFs ont été générés avec succès!\n');
+  } else {
+    console.log(`\n⚠️  ${totalErrors} erreur(s) détectée(s)\n`);
+  }
+  
+  // 4. Lister les PDFs générés
+  console.log('📋 Liste des PDFs générés:\n');
+  const pdfFiles = [];
+  
+  function listPDFs(dir, prefix = '') {
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        listPDFs(fullPath, prefix + item + '/');
+      } else if (item.endsWith('.pdf')) {
+        pdfFiles.push(prefix + item);
+      }
+    }
+  }
+  
+  if (fs.existsSync(pdfsDir)) {
+    listPDFs(pdfsDir);
+    console.log(`   Total: ${pdfFiles.length} fichiers PDF`);
+    if (pdfFiles.length <= 20) {
+      pdfFiles.forEach(f => console.log(`   • ${f}`));
+    } else {
+      pdfFiles.slice(0, 10).forEach(f => console.log(`   • ${f}`));
+      console.log(`   ... et ${pdfFiles.length - 10} autres fichiers`);
+    }
+  }
+  
+  console.log('\n💡 Astuce: Pour mettre à jour les PDFs, relancez simplement:');
+  console.log('   make docs-pdf-all\n');
+  console.log('   Les nouveaux fichiers .md seront automatiquement détectés!\n');
 }
 
 // Point d'entrée du script
