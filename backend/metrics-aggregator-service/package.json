@@ -1,26 +1,29 @@
 {
-  "name": "jobbingtrack-metrics-aggregator",
+  "name": "jobbingtrack-metrics-aggregator-api",
   "version": "1.0.0",
-  "description": "Service d'agrégation des métriques JobbingTrack",
-  "main": "src/server.js",
+  "description": "API sécurisée pour exposer les métriques Prometheus et logs Loki",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:unit": "jest tests/*.test.js",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
   },
+  "keywords": ["metrics", "monitoring", "prometheus", "loki", "api"],
+  "author": "JobbingTrack Team",
+  "license": "MIT",
   "dependencies": {
-    "axios": "^1.7.7",
-    "cors": "^2.8.5",
-    "dockerode": "^4.0.2",
     "express": "^4.18.2",
-    "helmet": "^7.0.0",
-    "morgan": "^1.10.0",
-    "node-cron": "^3.0.3",
-    "socket.io": "^4.7.2",
-    "systeminformation": "^5.21.20",
-    "ws": "^8.18.3"
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.2"
   },
   "engines": {
     "node": ">=18.0.0"

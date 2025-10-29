@@ -1,254 +1,137 @@
 const express = require('express');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const { authenticateToken } = require('./middlewares/auth.middleware');
+const metricsRoutes = require('./routes/metrics.routes');
+const logsRoutes = require('./routes/logs.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
 
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://prometheus:9090';
 const LOKI_URL = process.env.LOKI_URL || 'http://loki:3100';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Middleware
-app.use(cors());
+// ============================================
+// MIDDLEWARE GLOBAL
+// ============================================
+
+// CORS - Autoriser les requêtes depuis le frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  credentials: true
+}));
+
+// Parse JSON bodies
 app.use(express.json());
 
-// Middleware d'authentification JWT
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token manquant' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Token invalide' });
-    }
-    req.user = user;
-    next();
-  });
-};
+// Logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  next();
+});
 
 // ============================================
-// ROUTES MÉTRIQUES
+// ROUTES PUBLIQUES (sans authentification)
 // ============================================
 
-// Health check (pas d'auth nécessaire)
+/**
+ * GET /health
+ * Health check endpoint - accessible sans authentification
+ */
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    service: 'metrics-aggregator-api',
+    version: '1.0.0',
+    uptime: process.uptime(),
     prometheus: PROMETHEUS_URL,
     loki: LOKI_URL
   });
 });
 
-// Métriques globales de la machine
-app.get('/api/metrics/system', authenticateToken, async (req, res) => {
-  try {
-    const queries = {
-      cpu_cores: 'machine_cpu_cores',
-      memory_total: 'machine_memory_bytes',
-      containers_running: 'count(container_last_seen{name!=""})'
-    };
-
-    const results = {};
-    for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      results[key] = response.data.data.result;
-    }
-
-    res.json({ success: true, data: results });
-  } catch (error) {
-    console.error('Erreur métriques système:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Liste de tous les conteneurs avec leurs métriques
-app.get('/api/metrics/containers', authenticateToken, async (req, res) => {
-  try {
-    const queries = {
-      cpu: 'rate(container_cpu_usage_seconds_total{name!=""}[5m])',
-      memory: 'container_memory_usage_bytes{name!=""}',
-      network_rx: 'rate(container_network_receive_bytes_total{name!=""}[5m])',
-      network_tx: 'rate(container_network_transmit_bytes_total{name!=""}[5m])'
-    };
-
-    const results = {};
-    for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      results[key] = response.data.data.result;
-    }
-
-    res.json({ success: true, data: results });
-  } catch (error) {
-    console.error('Erreur métriques conteneurs:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Métriques d'un conteneur spécifique
-app.get('/api/metrics/container/:name', authenticateToken, async (req, res) => {
-  try {
-    const { name } = req.params;
-    
-    const queries = {
-      cpu: `rate(container_cpu_usage_seconds_total{name="${name}"}[5m])`,
-      memory_usage: `container_memory_usage_bytes{name="${name}"}`,
-      memory_limit: `container_spec_memory_limit_bytes{name="${name}"}`,
-      network_rx: `rate(container_network_receive_bytes_total{name="${name}"}[5m])`,
-      network_tx: `rate(container_network_transmit_bytes_total{name="${name}"}[5m])`,
-      fs_usage: `container_fs_usage_bytes{name="${name}"}`,
-      fs_limit: `container_fs_limit_bytes{name="${name}"}`
-    };
-
-    const results = {};
-    for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      results[key] = response.data.data.result;
-    }
-
-    res.json({ success: true, container: name, data: results });
-  } catch (error) {
-    console.error(`Erreur métriques conteneur ${req.params.name}:`, error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Historique des métriques (range query)
-app.get('/api/metrics/history', authenticateToken, async (req, res) => {
-  try {
-    const { query, start, end, step = '1m' } = req.query;
-    
-    if (!query || !start || !end) {
-      return res.status(400).json({
-        success: false,
-        error: 'Paramètres manquants: query, start, end requis'
-      });
-    }
-
-    const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query_range`, {
-      params: { query, start, end, step },
-      timeout: 10000
-    });
-
-    res.json({ success: true, data: response.data.data.result });
-  } catch (error) {
-    console.error('Erreur historique métriques:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
+/**
+ * GET /
+ * Root endpoint - information sur l'API
+ */
+app.get('/', (req, res) => {
+  res.json({
+    service: 'JobbingTrack Metrics Aggregator API',
+    version: '1.0.0',
+    description: 'API sécurisée pour accéder aux métriques Prometheus et logs Loki',
+    endpoints: {
+      health: 'GET /health',
+      metrics: {
+        system: 'GET /api/metrics/system',
+        containers: 'GET /api/metrics/containers',
+        container: 'GET /api/metrics/container/:name',
+        history: 'GET /api/metrics/history'
+      },
+      logs: {
+        container: 'GET /api/logs/container/:name',
+        all: 'GET /api/logs/all',
+        search: 'GET /api/logs/search/:name',
+        stream: 'GET /api/logs/stream/:name'
+      }
+    },
+    authentication: 'JWT Bearer token required for /api/* routes'
+  });
 });
 
 // ============================================
-// ROUTES LOGS
+// ROUTES PROTÉGÉES (avec authentification JWT)
 // ============================================
 
-// Logs d'un conteneur spécifique
-app.get('/api/logs/container/:name', authenticateToken, async (req, res) => {
-  try {
-    const { name } = req.params;
-    const { limit = 100, start, end } = req.query;
+// Appliquer le middleware d'authentification sur toutes les routes /api/*
+app.use('/api/metrics', authenticateToken, metricsRoutes);
+app.use('/api/logs', authenticateToken, logsRoutes);
 
-    // Query Loki LogQL
-    const query = `{container="${name}"}`;
-    
-    const params = {
-      query,
-      limit: parseInt(limit),
-      direction: 'backward'
-    };
+// ============================================
+// GESTION DES ERREURS
+// ============================================
 
-    if (start) params.start = start;
-    if (end) params.end = end;
-
-    const response = await axios.get(`${LOKI_URL}/loki/api/v1/query_range`, {
-      params,
-      timeout: 10000
-    });
-
-    res.json({ success: true, container: name, logs: response.data.data.result });
-  } catch (error) {
-    console.error(`Erreur logs conteneur ${req.params.name}:`, error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Route 404 - Non trouvée
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route non trouvée',
+    path: req.path,
+    method: req.method
+  });
 });
 
-// Logs de tous les services
-app.get('/api/logs/all', authenticateToken, async (req, res) => {
-  try {
-    const { limit = 100, start, end } = req.query;
-
-    const query = `{job="docker"}`;
-    
-    const params = {
-      query,
-      limit: parseInt(limit),
-      direction: 'backward'
-    };
-
-    if (start) params.start = start;
-    if (end) params.end = end;
-
-    const response = await axios.get(`${LOKI_URL}/loki/api/v1/query_range`, {
-      params,
-      timeout: 10000
-    });
-
-    res.json({ success: true, logs: response.data.data.result });
-  } catch (error) {
-    console.error('Erreur logs globaux:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Gestionnaire d'erreurs global
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.stack);
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Erreur serveur interne',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
-// Stream logs en temps réel (SSE)
-app.get('/api/logs/stream/:name', authenticateToken, async (req, res) => {
-  try {
-    const { name } = req.params;
-    const query = `{container="${name}"}`;
+// ============================================
+// DÉMARRAGE DU SERVEUR
+// ============================================
 
-    // Setup SSE
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
-    const response = await axios.get(`${LOKI_URL}/loki/api/v1/tail`, {
-      params: { query },
-      responseType: 'stream'
-    });
-
-    response.data.pipe(res);
-
-    req.on('close', () => {
-      response.data.destroy();
-    });
-  } catch (error) {
-    console.error(`Erreur stream logs ${req.params.name}:`, error.message);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-});
-
-// Démarrage serveur
-app.listen(PORT, () => {
-  console.log(`✅ Metrics Aggregator API démarré sur port ${PORT}`);
-  console.log(`📊 Prometheus: ${PROMETHEUS_URL}`);
-  console.log(`📝 Loki: ${LOKI_URL}`);
-});
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('╔════════════════════════════════════════════════════════╗');
+    console.log('║   JobbingTrack Metrics Aggregator API                 ║');
+    console.log('╚════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`📊 Prometheus: ${PROMETHEUS_URL}`);
+    console.log(`📝 Loki: ${LOKI_URL}`);
+    console.log('');
+    console.log('Endpoints:');
+    console.log(`  Health:    http://localhost:${PORT}/health`);
+    console.log(`  Metrics:   http://localhost:${PORT}/api/metrics/*`);
+    console.log(`  Logs:      http://localhost:${PORT}/api/logs/*`);
+    console.log('');
+    console.log('🔐 Authentication: JWT Bearer token required for /api/* routes');
+  });
+}
 
 module.exports = app; // Pour les tests

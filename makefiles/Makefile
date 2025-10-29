@@ -875,6 +875,20 @@ metrics-stop: ## Arrêter le système de métriques
 	fi
 	@echo "✅ Système de métriques arrêté"
 
+# ============================================
+# TESTS MONITORING
+# ============================================
+
+test-monitoring: ## Tests monitoring complets
+	$(call print_message,$(PURPLE),🧪 Tests monitoring...)
+	@cd tests/monitoring && npm install --silent
+	@cd tests/monitoring && npm test
+	@echo "$(GREEN)✅ Tests monitoring terminés$(NC)"
+
+test-monitoring-watch: ## Tests monitoring en mode watch
+	@cd tests/monitoring && npm install --silent
+	@cd tests/monitoring && npm run test:watch
+
 # ============================================================================
 # WORKFLOW RECOMMANDE
 # ============================================================================

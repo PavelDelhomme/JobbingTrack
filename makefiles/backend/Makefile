@@ -54,6 +54,10 @@ help: ## Afficher l'aide complète pour le backend
 	@echo "  $(PURPLE)make monitoring-down$(NC)  - Arrêter monitoring"
 	@echo "  $(PURPLE)make monitoring-logs$(NC)  - Logs monitoring"
 	@echo "  $(PURPLE)make monitoring-test$(NC)  - Tester API metrics"
+	@echo "  $(PURPLE)make monitoring-ps$(NC)         - Status services"
+	@echo "  $(PURPLE)make monitoring-logs-service$(NC) SERVICE=<nom>"
+	@echo "  $(PURPLE)make monitoring-test-auth$(NC) TOKEN=<jwt>"
+	@echo "  $(PURPLE)make test-monitoring$(NC)    - Tests complets"
 	@echo ""
 	@echo "$(BOLD)$(CYAN)🔨 BUILD & CLEAN:$(NC)"
 	@echo "  $(CYAN)make build$(NC)            - Build tous les services"
@@ -182,6 +186,31 @@ monitoring-test: ## Tester API metrics
 	$(call print_message,$(PURPLE),🧪 Test API metrics...)
 	@curl -s http://localhost:3008/health | jq || echo "$(RED)❌ API non accessible$(NC)"
 	@echo "$(GREEN)✅ Test terminé$(NC)"
+
+monitoring-ps: ## Status services monitoring
+	@echo "📊 Status services monitoring..."
+	@cd ../../monitoring && docker-compose -f docker-compose.monitoring.yml ps
+
+monitoring-logs-service: ## Logs service monitoring (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Erreur : SERVICE non spécifié"; \
+		echo "Usage : make monitoring-logs-service SERVICE=prometheus"; \
+		exit 1; \
+	fi
+	@cd ../../monitoring && docker-compose -f docker-compose.monitoring.yml logs -f $(SERVICE)
+
+monitoring-test-auth: ## Test API avec JWT (TOKEN=xxx)
+	@if [ -z "$(TOKEN)" ]; then \
+		echo "❌ Erreur : TOKEN non spécifié"; \
+		echo "Usage : make monitoring-test-auth TOKEN=eyJhbGc..."; \
+		exit 1; \
+	fi
+	@echo "🔐 Test avec JWT..."
+	@curl -s -H "Authorization: Bearer $(TOKEN)" http://localhost:3008/api/metrics/system | jq || echo "❌ Erreur requête"
+
+test-monitoring: ## Tests suite monitoring
+	@echo "🧪 Tests monitoring..."
+	@cd ../../tests/monitoring && npm test
 
 # ============================================================================
 # BASE DE DONNÉES
