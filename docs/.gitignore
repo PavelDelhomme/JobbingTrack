@@ -1,0 +1,11 @@
+# PDFs générés automatiquement
+pdfs/
+
+# Fichiers temporaires
+temp-*.md
+*.tmp
+*.bak
+.backup
+
+# Node modules si installés localement
+node_modules/
