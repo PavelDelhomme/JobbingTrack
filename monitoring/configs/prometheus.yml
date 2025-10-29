@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'jobbingtrack'
+    environment: 'production'
+
+scrape_configs:
+  # Auto-découverte de TOUS les conteneurs Docker via cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    relabel_configs:
+      # Garde uniquement les conteneurs actifs
+      - source_labels: [__meta_docker_container_id]
+        action: keep
+        regex: .+
+
+  # Métriques de Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
