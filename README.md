@@ -2,12 +2,21 @@
 
 > Système de suivi de candidatures avec dashboard administrateur
 
-## 📑 Table des Matières
+## 📖 Documentation
 
+### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md)
+
+Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.
+
+---
+
+## 📋 Table des Matières
+
+- [📖 Documentation](#-documentation)
 - [🎯 Fonctionnalités](#-fonctionnalités)
 - [🚀 Démarrage Rapide](#-démarrage-rapide)
-- [📖 Documentation](#-documentation)
 - [🛠️ Commandes Make](#️-commandes-make)
+- [📖 Documentation Détaillée](#-documentation-détaillée)
 
 ---
 
@@ -76,7 +85,7 @@ make help-utils        # Utilitaires
 
 ---
 
-## 📖 Documentation
+## 📖 Documentation Détaillée
 
 ### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md)
 
