@@ -50,8 +50,8 @@ const nextConfig = {
         return [
             {
                 source: '/api/v1/:path*',
-                // ✅ Utiliser le nom du conteneur Docker exact
-                destination: 'http://jobbingtrack-api-gateway:3000/api/v1/:path*',
+                // Utiliser localhost pour le développement
+                destination: 'http://localhost:3000/api/v1/:path*',
             },
             {
                 source: '/api/health',

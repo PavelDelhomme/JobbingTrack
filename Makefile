@@ -166,10 +166,10 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo ""
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
-	@if docker ps -a --format "{{.Names}}" | grep -qE "^jobbingtrack-frontend$$|^jobbingtrack-api-gateway$$"; then \
+	@if docker ps -a --format '{{.Names}}' | grep -qE '^jobbingtrack-frontend$$|^jobbingtrack-api-gateway$$'; then \
 		echo " Conflit de nom détecté, nettoyage forcé puis relance..."; \
 		$(MAKE) clean-force; \
-		$(call docker_compose, $(COMPOSE_FILES_FULL) up -d --remove-orphans) || true; \
+		$(DOCKER_COMPOSE_CMD) -f docker-compose.yml -f docker-compose.metrics.yml up -d --remove-orphans || true; \
 	fi
 	# Attendre que les services soient prêts
 	@echo " Attente du démarrage des services..."

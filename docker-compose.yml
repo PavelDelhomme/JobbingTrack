@@ -109,11 +109,12 @@ services:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
     ports:
-      - "8000:3000"
+      - "8080:3000"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://api-gateway:3000
-      - NEXT_PUBLIC_METRICS_URL=http://metrics-aggregator:3014
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3000
+      - NEXT_PUBLIC_METRICS_URL=http://localhost:3014
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
       - WATCHPACK_POLLING=true
@@ -140,7 +141,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
     ports:
-      - "8082:3014"  # Metrics Aggregator (externe:interne)
+      - "3014:3014"
     environment:
       - NODE_ENV=development
       - PORT=3014
@@ -162,7 +163,7 @@ services:
     container_name: jobbingtrack-cadvisor
     privileged: true
     ports:
-      - "8081:8080"  # cAdvisor UI
+      - "8081:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

@@ -5,6 +5,9 @@ const metricsController = require('../controllers/metricsController');
 // Récupérer les métriques système actuelles
 router.get('/system', metricsController.getSystemMetrics);
 
+// Récupérer les métriques système en temps réel
+router.get('/system/realtime', metricsController.getRealtimeSystemMetrics);
+
 // Récupérer les métriques d'endpoints
 router.get('/endpoints', metricsController.getEndpointMetrics);
 
