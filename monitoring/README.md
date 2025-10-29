@@ -2,7 +2,7 @@
 
 [← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
 
-📖 **[Architecture Métriques](../docs/ARCHITECTURE_METRICS_FINAL.md)** | **[Dépannage Métriques](../docs/METRICS_TROUBLESHOOTING.md)**
+📖 **[Architecture Métriques](../docs/architecture/metrics/README.md)** | **[Dépannage Métriques](../docs/architecture/metrics/troubleshooting/README.md)**
 
 ## Vue d'ensemble
 

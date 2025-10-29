@@ -2,7 +2,7 @@
 
 [← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
-📖 **[Architecture Métriques](../../docs/ARCHITECTURE_METRICS_FINAL.md)** | **[Dépannage](../../docs/METRICS_TROUBLESHOOTING.md)**
+📖 **[Architecture Métriques](../../docs/architecture/metrics/README.md)** | **[Dépannage](../../docs/architecture/metrics/troubleshooting/README.md)**
 
 Service d'agrégation de métriques avec auto-discovery pour la plateforme JobbingTrack.
 
