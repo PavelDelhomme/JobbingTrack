@@ -3,7 +3,7 @@
 ## 🎯 Navigation principale
 
 ### 📖 **Documentation du Projet**
-- **[🏠 Accueil](./README.md)** | **[📚 Documentation Centralisée](./README.md)**
+- **[🏠 Accueil](../../README.md)** | **[📚 Documentation Centralisée](../../README.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Installation](./deployment/getting-started.md)** | **[💻 Configuration Développement](./development/setup.md)**

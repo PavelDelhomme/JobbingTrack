@@ -1,0 +1,162 @@
+# ============================================================================
+# Makefile Database - JobbingTrack
+# ============================================================================
+# Gestion des bases de données (migrations, seed, backup, restore, environnements)
+# ============================================================================
+
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs
+
+# ============================================================================
+# MIGRATIONS ET DONNÉES
+# ============================================================================
+
+# Migrations de base de données
+db-migrate: ## Appliquer les migrations de base de données
+	@echo "🗄️  Application des migrations..."
+	@echo "⚠️  Les migrations ne sont pas encore implémentées"
+	@echo "💡 Cette commande sera implémentée avec Prisma ou un outil de migration"
+
+# Seed de données de test
+db-seed: ## Insérer des données de test
+	@echo "🌱 Insertion de données de test..."
+	./scripts/db/seed.sh
+
+# Reset complet de la base de données
+db-reset: ## Reset complet de la DB
+	@echo "🔄 Reset complet de la base de données..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	@echo "✅ Base de données réinitialisée"
+	@echo "💡 Relancez 'make db-seed' pour recréer les données"
+
+# Sauvegarde de la base de données
+db-backup: ## Créer une sauvegarde de la DB
+	@echo "💾 Création d'une sauvegarde..."
+	./scripts/db/backup.sh
+
+# Restauration de la base de données
+db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
+	@if [ -z "$(file)" ]; then \
+		echo "❌ Spécifiez le fichier avec file=<nom_du_fichier.sql>"; \
+		echo "📋 Exemple: make db-restore file=backup_20231001.sql"; \
+		exit 1; \
+	fi
+	@echo "📥 Restauration depuis $(file)..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) exec -T postgres psql -U jobbingtrack -d jobbingtrack < $(file))
+	@echo "✅ Base de données restaurée"
+
+# Réparer rôle/DB Postgres
+db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
+	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "CREATE USER jobbingtrack WITH PASSWORD 'jobbingtrack123';" 2>/dev/null || echo "  Rôle jobbingtrack existe déjà"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;" 2>/dev/null || echo "  Base jobbingtrack existe déjà"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
+	@echo "✅ Rôle et base de données vérifiés"
+
+# ============================================================================
+# ENVIRONNEMENTS MULTIPLES
+# ============================================================================
+
+# Démarrer environnement de développement
+up-dev: ## Démarrer l'environnement de développement
+	@echo "🚀 Démarrage de l'environnement de développement..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-dev redis-dev)
+	@echo "✅ Environnement DEV démarré"
+	@echo "📦 PostgreSQL DEV: localhost:5433"
+	@echo "📦 Redis DEV: localhost:6380"
+
+# Démarrer environnement de test
+up-test: ## Démarrer l'environnement de test
+	@echo "🚀 Démarrage de l'environnement de test..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-test redis-test)
+	@echo "✅ Environnement TEST démarré"
+	@echo "📦 PostgreSQL TEST: localhost:5434"
+	@echo "📦 Redis TEST: localhost:6381"
+
+# Démarrer environnement de staging
+up-staging: ## Démarrer l'environnement de staging
+	@echo "🚀 Démarrage de l'environnement de staging..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-staging redis-staging)
+	@echo "✅ Environnement STAGING démarré"
+	@echo "📦 PostgreSQL STAGING: localhost:5435"
+	@echo "📦 Redis STAGING: localhost:6382"
+
+# Démarrer environnement de production (simulation)
+up-prod: ## Démarrer l'environnement de production (simulation)
+	@echo "🚀 Démarrage de l'environnement de production (simulation)..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.yml -f docker-compose.test.yml up -d postgres-prod redis-prod)
+	@echo "✅ Environnement PROD démarré"
+	@echo "📦 PostgreSQL PROD: localhost:5436"
+	@echo "📦 Redis PROD: localhost:6383"
+
+# Démarrer tous les environnements
+up-all-dbs: ## Démarrer toutes les bases de données (dev, test, staging, prod)
+	@echo "🚀 Démarrage de tous les environnements de base de données..."
+	$(call check_docker)
+	$(call docker_compose, -f docker-compose.test.yml up -d postgres-dev redis-dev postgres-test redis-test postgres-staging redis-staging postgres-prod redis-prod)
+	@echo "✅ Tous les environnements démarrés"
+	@echo ""
+	@echo "📦 PostgreSQL DEV: localhost:5433"
+	@echo "📦 PostgreSQL TEST: localhost:5434"
+	@echo "📦 PostgreSQL STAGING: localhost:5435"
+	@echo "📦 PostgreSQL PROD: localhost:5436"
+	@echo ""
+	@echo "📦 Redis DEV: localhost:6380"
+	@echo "📦 Redis TEST: localhost:6381"
+	@echo "📦 Redis STAGING: localhost:6382"
+	@echo "📦 Redis PROD: localhost:6383"
+
+# ============================================================================
+# GESTION DES ENVIRONNEMENTS
+# ============================================================================
+
+# Basculer vers la base de développement
+switch-db: ## Basculer vers la base de données de développement
+	@echo "🔄 Basculement vers la base de données de développement..."
+	@echo "export DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@localhost:5433/jobbingtrack?schema=public" > /tmp/db_config.sh
+	@echo "export REDIS_URL=redis://localhost:6380" >> /tmp/db_config.sh
+	@echo "✅ Basculé vers DEV DB"
+	@echo "💡 Sourcez le fichier: source /tmp/db_config.sh"
+
+# Reset d'une base spécifique
+reset-db: ## Reset d'une base de données (DB=dev|test|staging|prod)
+	@if [ -z "$(DB)" ]; then \
+		echo "❌ Spécifiez la DB avec DB=<nom>"; \
+		echo ""; \
+		echo "📋 Exemples:"; \
+		echo "   make reset-db DB=dev"; \
+		echo "   make reset-db DB=test"; \
+		echo "   make reset-db DB=staging"; \
+		echo "   make reset-db DB=prod"; \
+		exit 1; \
+	fi
+	@echo "🔄 Reset de la base de données $(DB)..."
+	$(call docker_compose, -f docker-compose.test.yml stop postgres-$(DB))
+	$(call docker_compose, -f docker-compose.test.yml rm -f postgres-$(DB))
+	docker volume rm jobbingtrack_postgres_$(DB)_data 2>/dev/null || echo "Volume non trouvé"
+	$(call docker_compose, -f docker-compose.test.yml up -d postgres-$(DB))
+	@echo "✅ Base de données $(DB) réinitialisée"
+
+# Copier prod vers dev
+copy-prod-to-dev: ## Copier la base de prod vers dev
+	@echo "📋 Copie de PROD vers DEV..."
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod pg_dump -U jobbingtrack -d jobbingtrack_prod > /tmp/prod_dump.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+	$(call docker_compose, -f docker-compose.test.yml exec -T postgres-dev psql -U jobbingtrack -d jobbingtrack < /tmp/prod_dump.sql)
+	rm /tmp/prod_dump.sql
+	@echo "✅ Données de PROD copiées vers DEV"
+
+# Initialiser toutes les bases
+init-all-dbs: ## Initialiser toutes les bases de données avec le schéma
+	@echo "🚀 Initialisation de toutes les bases de données..."
+	$(call check_docker)
+	@echo "⏳ Attente que toutes les bases soient prêtes..."
+	@sleep 10
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-dev psql -U jobbingtrack -d jobbingtrack -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-test psql -U jobbingtrack -d jobbingtrack_test -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-staging psql -U jobbingtrack -d jobbingtrack_staging -f /docker-entrypoint-initdb.d/init-db.sql)
+	$(call docker_compose, -f docker-compose.test.yml exec postgres-prod psql -U jobbingtrack -d jobbingtrack_prod -f /docker-entrypoint-initdb.d/init-db.sql)
+	@echo "✅ Toutes les bases de données initialisées"
