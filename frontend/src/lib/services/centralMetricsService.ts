@@ -288,7 +288,8 @@ class CentralMetricsService {
         if (data.system) {
           return {
             cpu: {
-              usage: data.system.cpu?.usage || 0,
+              // Le backend renvoie 'percent', on le mappe vers 'usage'
+              usage: data.system.cpu?.percent ?? data.system.cpu?.usage ?? 0,
               cores: data.system.cpu?.cores || 'N/A',
               model: data.system.cpu?.model || 'N/A'
             },
@@ -296,10 +297,11 @@ class CentralMetricsService {
               total: data.system.memory?.total || 'N/A',
               used: data.system.memory?.used || 'N/A',
               free: data.system.memory?.free || 'N/A',
-              usage: data.system.memory?.usage || 0
+              // Le backend renvoie 'percent', on le mappe vers 'usage'
+              usage: data.system.memory?.percent ?? data.system.memory?.usage ?? 0
             },
             load: {
-              average: data.system.load?.average || 0,
+              average: data.system.load?.average || data.system.uptime ? (data.system.uptime / 3600).toFixed(1) : 0,
               cores: data.system.load?.cores || 'N/A'
             },
             disk: data.system.disk || []

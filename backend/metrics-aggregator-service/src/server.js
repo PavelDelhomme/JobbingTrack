@@ -265,7 +265,46 @@ async function collectAllMetrics() {
       }
     }
 
+    // Calculer les métriques agrégées pour les conteneurs JobbingTrack uniquement
+    const jobbingtrackContainers = Object.entries(containerMetrics)
+      .filter(([name]) => name.toLowerCase().includes('jobbingtrack'))
+    
+    let totalCpuPercent = 0
+    let totalMemoryUsed = 0
+    let totalMemoryLimit = 0
+    let containerCount = 0
+
+    jobbingtrackContainers.forEach(([name, metrics]) => {
+      if (metrics.cpu?.percentage) {
+        totalCpuPercent += metrics.cpu.percentage
+        containerCount++
+      }
+      if (metrics.memory?.usage && metrics.memory?.limit) {
+        totalMemoryUsed += metrics.memory.usage
+        totalMemoryLimit += metrics.memory.limit
+      }
+    })
+
+    // Ajouter les métriques agrégées au systemMetrics
+    if (systemMetrics) {
+      systemMetrics.jobbingtrack = {
+        containers: {
+          count: jobbingtrackContainers.length,
+          cpu: {
+            averagePercent: containerCount > 0 ? Math.round(totalCpuPercent / containerCount) : 0,
+            totalPercent: Math.round(totalCpuPercent)
+          },
+          memory: {
+            used: Math.round(totalMemoryUsed),
+            limit: Math.round(totalMemoryLimit),
+            percent: totalMemoryLimit > 0 ? Math.round((totalMemoryUsed / totalMemoryLimit) * 100) : 0
+          }
+        }
+      }
+    }
+
     console.log(`[COLLECTOR] Métriques collectées pour ${Object.keys(servicesMetrics).length} services`)
+    console.log(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
     console.log('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket

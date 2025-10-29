@@ -20,6 +20,7 @@ app.use(cors({
   origin: [
     // Développement local (prioritaires)
     'http://localhost:8000',  // Frontend
+    'http://localhost:8080',  // Frontend (port Next.js dev)
     'http://localhost:3000',  // API Gateway
     'http://localhost:8081',  // cAdvisor
     'http://localhost:8082',  // Metrics Aggregator
@@ -28,6 +29,7 @@ app.use(cors({
     'http://localhost:8085',  // Alertmanager
     'http://localhost:8086',  // Blackbox Exporter
     'http://127.0.0.1:8000',
+    'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8081',
     'http://127.0.0.1:8082',
@@ -37,6 +39,7 @@ app.use(cors({
     'http://127.0.0.1:8086',
     // IPv6 localhost
     'http://[::1]:8000',
+    'http://[::1]:8080',
     'http://[::1]:3000',
     'http://[::1]:8081',
     'http://[::1]:8082',
@@ -93,39 +96,40 @@ if (process.env.WAF_ENABLED === 'true') {
   app.use(wafCheck);
 }
 
-// 3. Rate limiting général (après WAF pour éviter les faux positifs)
-if (process.env.RATE_LIMIT_ENABLED !== 'false') {
-  app.use((req, res, next) => {
+// 3. Configuration du rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: parseInt(process.env.RATE_LIMIT_REQUESTS) || 100,
+  message: {
+    success: false,
+    error: 'Trop de requêtes',
+    retryAfter: 60,
+    message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
     // Ignorer le rate limiting pour les tests
-    if (req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright')) {
-      return next();
-    }
-    return rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: parseInt(process.env.RATE_LIMIT_REQUESTS) || 100,
-    message: {
+    return req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright');
+  },
+  handler: (req, res) => {
+    logger.warn('Rate limit général dépassé', {
+      ip: req.ip,
+      url: req.url,
+      userAgent: req.get('User-Agent')
+    });
+    res.status(429).json({
       success: false,
       error: 'Trop de requêtes',
       retryAfter: 60,
       message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-      logger.warn('Rate limit général dépassé', {
-        ip: req.ip,
-        url: req.url,
-        userAgent: req.get('User-Agent')
-      });
-      res.status(429).json({
-        success: false,
-        error: 'Trop de requêtes',
-        retryAfter: 60,
-        message: 'Limite de requêtes atteinte. Réessayez dans 60 secondes.'
-      });
-    }
-    })(req, res, next);
-  });
+    });
+  }
+});
+
+// 4. Appliquer le rate limiting
+if (process.env.RATE_LIMIT_ENABLED !== 'false') {
+  app.use(apiLimiter);
 }
 
 // ✅ Health check
