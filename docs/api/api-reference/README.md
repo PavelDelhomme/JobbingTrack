@@ -478,11 +478,12 @@ curl -X POST http://localhost:3000/companies \
 
 ## 📚 Ressources
 
-- [Architecture](../core/architecture.md) - Vue technique complète
-- [Base de données](../core/database.md) - Schémas et relations
-- [Services](../core/services.md) - Détail des microservices
-- [Postman Collection](https://api.jobbingtrack.com/postman) - Collection Postman
-- [OpenAPI Spec](https://api.jobbingtrack.com/openapi.json) - Spécification OpenAPI
+- **[Architecture Microservices](../../core/architecture/README.md)** - Vue technique complète
+- **[Base de Données](../../database/README.md)** - Schémas PostgreSQL et relations
+- **[Services Détaillés](../../core/services/README.md)** - Détail de tous les microservices
+- **[Endpoints API](../endpoints/README.md)** - Liste complète des endpoints
+- **[Guide de Déploiement](../../deployment/getting-started/README.md)** - Installation et configuration
+- **[Guide de Développement](../../development/setup/README.md)** - Configuration environnement
 
 ---
 

@@ -10,7 +10,8 @@
 - **[🛠️ Guide Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
 
 ### 🏗️ **Architecture et Infrastructure**
-- **[🏛️ Architecture Microservices](core/architecture/README.md)** | **[💾 Base de Données](database/README.md)** | **[📊 Analyse BDD](database/analysis/)**
+- **[🏛️ Architecture Microservices](core/architecture/README.md)** | **[💾 Base de Données](database/README.md)** | **[📊 Analyses BDD](database/analysis/README.md)**
+- **[⚡ Architecture Métriques](architecture/metrics/README.md)** | **[🔧 Dépannage Métriques](architecture/metrics/troubleshooting/README.md)**
 
 ### 📡 **API et Intégration**
 - **[📖 API Reference](api/api-reference/README.md)** | **[🔗 Endpoints](api/endpoints/README.md)**
@@ -73,21 +74,21 @@ docs/
 ## 🔗 Liens rapides
 
 ### Pour les développeurs
-- **[Configuration](./development/setup.md)** - Environnement de développement
-- **[API](./api/api-reference.md)** - Documentation des APIs
-- **[Architecture](./core/architecture.md)** - Vue technique
-- **[Tests](./development/testing.md)** - Stratégies de tests
+- **[Configuration](./development/setup/README.md)** - Environnement de développement
+- **[API](./api/api-reference/README.md)** - Documentation des APIs
+- **[Architecture](./core/architecture/README.md)** - Vue technique
+- **[Tests](./development/testing/README.md)** - Stratégies de tests
 
 ### Pour les administrateurs
-- **[Administration](./administration/guide.md)** - Guide administration
-- **[Déploiement](./deployment/production.md)** - Production
-- **[Sécurité](./security/guide.md)** - Bonnes pratiques
-- **[Monitoring](./core/architecture.md#monitoring)** - Surveillance
+- **[Administration](./administration/README.md)** - Guide administration
+- **[Déploiement](./deployment/production/README.md)** - Production
+- **[Sécurité](./security/guide/README.md)** - Bonnes pratiques
+- **[Monitoring](../monitoring/README.md)** - Surveillance système
 
 ### Pour les utilisateurs
-- **[Démarrage](./deployment/getting-started.md)** - Installation
-- **[Dépannage](./troubleshooting/guide.md)** - Résolution problèmes
-- **[Performance](./performance/guide.md)** - Optimisation
+- **[Démarrage](./deployment/getting-started/README.md)** - Installation
+- **[Dépannage](./troubleshooting/guide/README.md)** - Résolution problèmes
+- **[Performance](./performance/guide/README.md)** - Optimisation
 
 ---
 

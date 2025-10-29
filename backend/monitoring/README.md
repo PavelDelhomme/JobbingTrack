@@ -2,23 +2,35 @@
 
 [← Backend](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
 
-Stack complète de monitoring pour métriques et logs des conteneurs Docker avec API sécurisée.
+Configuration et services de monitoring pour le backend JobbingTrack.
 
 ## 📖 Documentation complète
 
-- **[Monitoring Global](../../monitoring/README.md)** - Configuration et architecture complète
-- **[Architecture Métriques](../../docs/architecture/metrics/README.md)** - Système de collecte de métriques
-- **[Dépannage](../../docs/architecture/metrics/troubleshooting/README.md)** - Résolution des problèmes
+- **[📊 Monitoring Global](../../docs/monitoring/README.md)** - Documentation complète du système de monitoring
+- **[⚡ Architecture Métriques](../../docs/architecture/metrics/README.md)** - Système de collecte de métriques
+- **[🔧 Dépannage Métriques](../../docs/architecture/metrics/troubleshooting/README.md)** - Résolution des problèmes
+- **[🏗️ Monitoring Racine](../../monitoring/README.md)** - Configuration monitoring système
 
 ## 🚀 Démarrage rapide
 
 ```bash
 # Depuis la racine du projet
-make help-backend      # Voir toutes les commandes
-make help-utils        # Accès rapide au monitoring
+make up-monitoring     # Démarrer stack monitoring
+make help-backend      # Voir toutes les commandes backend
+make help-utils        # Commandes monitoring et métriques
 ```
 
-Pour plus d'informations, consultez la [documentation du monitoring](../../monitoring/README.md).
+## 🔗 Services monitoring
+
+| Service | Description | Documentation |
+|---------|-------------|---------------|
+| **cAdvisor** | Métriques conteneurs | [Monitoring Global](../../docs/monitoring/README.md#services) |
+| **Prometheus** | Stockage métriques | [Monitoring Global](../../docs/monitoring/README.md#prometheus) |
+| **Loki** | Agrégation logs | [Monitoring Global](../../docs/monitoring/README.md#loki) |
+| **Grafana** | Dashboards | [Monitoring Global](../../docs/monitoring/README.md#grafana) |
+| **Metrics Aggregator** | API métriques | [Architecture Métriques](../../docs/architecture/metrics/README.md) |
+
+Pour toute la documentation technique, configuration détaillée et exemples d'utilisation, consultez la [documentation complète du monitoring](../../docs/monitoring/README.md).
 
 ## 🏗️ Architecture
 
