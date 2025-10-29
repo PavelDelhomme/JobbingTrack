@@ -1,0 +1,139 @@
+# ============================================
+# Makefile pour la gestion du monitoring
+# JobbingTrack - Monitoring Stack
+# ============================================
+
+.PHONY: help monitoring-up monitoring-down monitoring-restart monitoring-logs monitoring-rebuild monitoring-clean monitoring-status
+
+# Couleurs
+RED=\033[0;31m
+GREEN=\033[0;32m
+YELLOW=\033[1;33m
+BLUE=\033[0;34m
+NC=\033[0m # No Color
+
+help:
+	@echo "$(BLUE)╔════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(BLUE)║     JobbingTrack - Monitoring Management              ║$(NC)"
+	@echo "$(BLUE)╚════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(GREEN)Commandes disponibles:$(NC)"
+	@echo "  $(YELLOW)make monitoring-up$(NC)        - Démarrer la stack de monitoring"
+	@echo "  $(YELLOW)make monitoring-down$(NC)      - Arrêter la stack de monitoring"
+	@echo "  $(YELLOW)make monitoring-restart$(NC)   - Redémarrer la stack de monitoring"
+	@echo "  $(YELLOW)make monitoring-logs$(NC)      - Voir les logs en temps réel"
+	@echo "  $(YELLOW)make monitoring-rebuild$(NC)   - Rebuild et redémarrer"
+	@echo "  $(YELLOW)make monitoring-status$(NC)    - Statut des services"
+	@echo "  $(YELLOW)make monitoring-clean$(NC)     - Nettoyer (supprime les données!)"
+	@echo ""
+	@echo "$(GREEN)URLs d'accès:$(NC)"
+	@echo "  Prometheus:   $(BLUE)http://localhost:9090$(NC)"
+	@echo "  Grafana:      $(BLUE)http://localhost:3002$(NC) (admin/admin)"
+	@echo "  cAdvisor:     $(BLUE)http://localhost:8082$(NC)"
+	@echo "  Metrics API:  $(BLUE)http://localhost:3015$(NC)"
+	@echo ""
+
+monitoring-up:
+	@echo "$(GREEN)🚀 Démarrage de la stack de monitoring...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml up -d
+	@echo ""
+	@echo "$(GREEN)✅ Stack démarrée!$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Vérification de la santé des services...$(NC)"
+	@sleep 5
+	@make monitoring-status
+
+monitoring-down:
+	@echo "$(YELLOW)🛑 Arrêt de la stack de monitoring...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml down
+	@echo "$(GREEN)✅ Stack arrêtée$(NC)"
+
+monitoring-restart:
+	@echo "$(YELLOW)🔄 Redémarrage de la stack...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml restart
+	@echo "$(GREEN)✅ Stack redémarrée$(NC)"
+
+monitoring-logs:
+	@echo "$(BLUE)📋 Logs en temps réel (Ctrl+C pour quitter)...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml logs -f
+
+monitoring-logs-api:
+	@echo "$(BLUE)📋 Logs Metrics API...$(NC)"
+	@docker logs jobbingtrack-metrics-api -f
+
+monitoring-logs-prometheus:
+	@echo "$(BLUE)📋 Logs Prometheus...$(NC)"
+	@docker logs jobbingtrack-prometheus -f
+
+monitoring-logs-loki:
+	@echo "$(BLUE)📋 Logs Loki...$(NC)"
+	@docker logs jobbingtrack-loki -f
+
+monitoring-logs-promtail:
+	@echo "$(BLUE)📋 Logs Promtail...$(NC)"
+	@docker logs jobbingtrack-promtail -f
+
+monitoring-rebuild:
+	@echo "$(YELLOW)🔨 Rebuild de la stack...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml build --no-cache
+	@docker-compose -f docker-compose.monitoring.yml up -d
+	@echo "$(GREEN)✅ Stack rebuild et redémarrée$(NC)"
+
+monitoring-rebuild-api:
+	@echo "$(YELLOW)🔨 Rebuild Metrics API uniquement...$(NC)"
+	@docker-compose -f docker-compose.monitoring.yml build --no-cache metrics-aggregator-api
+	@docker-compose -f docker-compose.monitoring.yml up -d metrics-aggregator-api
+	@echo "$(GREEN)✅ Metrics API rebuild$(NC)"
+
+monitoring-status:
+	@echo "$(BLUE)📊 Statut des services de monitoring:$(NC)"
+	@echo ""
+	@docker ps --filter "name=jobbingtrack-prometheus" --filter "name=jobbingtrack-loki" --filter "name=jobbingtrack-grafana" --filter "name=jobbingtrack-cadvisor" --filter "name=jobbingtrack-promtail" --filter "name=jobbingtrack-metrics-api" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "$(RED)❌ Aucun conteneur de monitoring actif$(NC)"
+	@echo ""
+	@echo "$(BLUE)🔍 Vérification de santé:$(NC)"
+	@curl -s http://localhost:3015/health | jq . || echo "$(RED)❌ Metrics API non accessible$(NC)"
+	@curl -s http://localhost:9090/-/healthy > /dev/null && echo "$(GREEN)✅ Prometheus: OK$(NC)" || echo "$(RED)❌ Prometheus: KO$(NC)"
+	@curl -s http://localhost:3100/ready > /dev/null && echo "$(GREEN)✅ Loki: OK$(NC)" || echo "$(RED)❌ Loki: KO$(NC)"
+
+monitoring-clean:
+	@echo "$(RED)⚠️  ATTENTION: Cette commande va supprimer toutes les données de monitoring!$(NC)"
+	@echo "$(RED)   - Historique des métriques Prometheus$(NC)"
+	@echo "$(RED)   - Logs stockés dans Loki$(NC)"
+	@echo "$(RED)   - Configuration Grafana$(NC)"
+	@echo ""
+	@read -p "Êtes-vous sûr? (tapez 'yes' pour confirmer): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "$(YELLOW)🧹 Nettoyage en cours...$(NC)"; \
+		docker-compose -f docker-compose.monitoring.yml down -v; \
+		echo "$(GREEN)✅ Nettoyage terminé$(NC)"; \
+	else \
+		echo "$(BLUE)Annulé$(NC)"; \
+	fi
+
+monitoring-test-api:
+	@echo "$(BLUE)🧪 Test de l'API de métriques...$(NC)"
+	@echo ""
+	@echo "$(YELLOW)1. Health check:$(NC)"
+	@curl -s http://localhost:3015/health | jq .
+	@echo ""
+	@echo "$(YELLOW)2. Test authentification (nécessite token):$(NC)"
+	@echo "   Générer un token: curl -X POST http://localhost:3015/auth/token -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"your-password\"}'"
+	@echo ""
+
+monitoring-backup:
+	@echo "$(BLUE)💾 Sauvegarde des données de monitoring...$(NC)"
+	@mkdir -p backups/monitoring
+	@docker run --rm -v jobbingtrack_prometheus-data:/data -v $(PWD)/backups/monitoring:/backup alpine tar czf /backup/prometheus-$(shell date +%Y%m%d-%H%M%S).tar.gz -C /data .
+	@docker run --rm -v jobbingtrack_loki-data:/data -v $(PWD)/backups/monitoring:/backup alpine tar czf /backup/loki-$(shell date +%Y%m%d-%H%M%S).tar.gz -C /data .
+	@echo "$(GREEN)✅ Sauvegarde terminée dans backups/monitoring/$(NC)"
+
+monitoring-urls:
+	@echo "$(BLUE)🌐 URLs d'accès aux services:$(NC)"
+	@echo ""
+	@echo "  $(GREEN)Prometheus:$(NC)       http://localhost:9090"
+	@echo "  $(GREEN)Grafana:$(NC)          http://localhost:3002 (admin/admin)"
+	@echo "  $(GREEN)cAdvisor:$(NC)         http://localhost:8082"
+	@echo "  $(GREEN)Loki:$(NC)             http://localhost:3100"
+	@echo "  $(GREEN)Metrics API:$(NC)      http://localhost:3015"
+	@echo ""
+	@echo "$(YELLOW)📚 Documentation:$(NC) backend/monitoring/README.md"
