@@ -1,6 +1,10 @@
-# jobbingtrack_mobile
+# 📱 JobbingTrack Mobile - Flutter
 
-A new Flutter project.
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
+📖 **[Guide Mobile Flutter](../docs/mobile/guide/README.md)** - Documentation complète
+
+Application mobile Flutter pour JobbingTrack.
 
 ## Getting Started
 

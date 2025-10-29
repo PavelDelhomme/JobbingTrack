@@ -1,6 +1,6 @@
 # 🔧 Résolution des Problèmes de Métriques
 
-[← Retour au README principal](../README.md) | [← Documentation](README.md)
+[← Retour au README principal](../README.md) | [← Documentation](README.md) | [🧭 Navigation](navigation.md)
 
 
 ## 📋 Résumé des Corrections Effectuées

@@ -1,5 +1,7 @@
 # Scripts de Health Checks - JobbingTrack
 
+[← Scripts](../README.md) | [← README principal](../../README.md) | [📚 Documentation](../../docs/README.md) | [🧭 Navigation](../../docs/navigation.md)
+
 Ce dossier contient les scripts de vérification de santé et de diagnostic du système JobbingTrack.
 
 ## Scripts disponibles

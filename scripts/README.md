@@ -1,5 +1,7 @@
 # Scripts JobbingTrack
 
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
 Cette documentation présente la structure organisée des scripts du projet JobbingTrack. Tous les scripts ont été centralisés et consolidés pour une meilleure maintenabilité et utilisabilité.
 
 ## 📁 Structure des dossiers

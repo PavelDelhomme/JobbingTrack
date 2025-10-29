@@ -1,5 +1,7 @@
 # JobbingTrack Backend
 
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
 Backend monorepo pour la plateforme JobbingTrack avec microservices Node.js.
 
 ## Structure

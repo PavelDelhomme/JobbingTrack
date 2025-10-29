@@ -1,5 +1,9 @@
 # Système de Monitoring Complet - JobbingTrack
 
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
+
+📖 **[Architecture Métriques](../docs/ARCHITECTURE_METRICS_FINAL.md)** | **[Dépannage Métriques](../docs/METRICS_TROUBLESHOOTING.md)**
+
 ## Vue d'ensemble
 
 Ce système de monitoring complet fournit une surveillance avancée de votre plateforme JobbingTrack avec des métriques détaillées, des visualisations et des alertes automatiques.
