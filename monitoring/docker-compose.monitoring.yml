@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # COLLECTE MÉTRIQUES CONTENEURS
+  # ============================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "127.0.0.1:8081:8080"  # Port 8081 pour éviter conflit avec frontend:8080
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # ============================================
+  # COLLECTE LOGS CONTENEURS
+  # ============================================
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./configs/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  # ============================================
+  # STOCKAGE MÉTRIQUES (90 jours rétention)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    user: root
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "127.0.0.1:9090:9090"  # Localhost only (pas exposé publiquement)
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - cadvisor
+
+  # ============================================
+  # STOCKAGE LOGS (30 jours rétention)
+  # ============================================
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    user: root
+    volumes:
+      - ./configs/loki.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "127.0.0.1:3100:3100"  # Localhost only
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # ============================================
+  # VISUALISATION (Grafana - optionnel)
+  # ============================================
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    user: root
+    volumes:
+      - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    ports:
+      - "127.0.0.1:3001:3000"  # Localhost only
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  prometheus-data:
+    driver: local
+  loki-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  jobbingtrack-network:
+    external: true  # Utilise le réseau créé par backend/docker-compose.yml
