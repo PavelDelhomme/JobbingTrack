@@ -12,34 +12,45 @@ Documentation complète et organisée du projet **JobbingTrack v4.1** - Système
 
 ```
 docs/
-├── 📖 README.md                 # Ce fichier - index principal
-├── 🏗️ core/                     # Documentation technique de base
-│   ├── architecture.md          # Architecture microservices
-│   ├── services.md              # Détail des microservices
-│   └── database.md              # Structure base de données
-├── 📡 api/                      # Documentation API
-│   ├── api-reference.md         # Guide API complet
-│   └── endpoints.md             # Liste des endpoints
-├── 🚀 deployment/               # Guides de déploiement
-│   ├── getting-started.md       # Démarrage rapide
-│   ├── production.md            # Déploiement production
-│   └── security.md              # Sécurité déploiement
-├── 💻 development/              # Guides développement
-│   ├── setup.md                 # Configuration environnement
-│   ├── workflow.md              # Workflow développement
-│   └── testing.md               # Stratégies de tests
-├── 🖥️ frontend/                 # Guide frontend
-│   └── guide.md                 # Développement frontend
-├── 📱 mobile/                   # Guide mobile
-│   └── guide.md                 # Développement mobile
-├── 🔧 administration/           # Guide administration
-│   └── guide.md                 # Dashboard administrateur
-├── 🐛 troubleshooting/           # Dépannage
-│   └── guide.md                 # Guide de résolution
-├── ⚡ performance/              # Optimisation
-│   └── guide.md                 # Guide performance
-└── 🔒 security/                 # Sécurité
-    └── guide.md                 # Guide sécurité
+├── 📖 README.md                        # Ce fichier - index principal
+├── 🧭 navigation.md                    # Navigation complète
+├── 🏗️ core/                            # Documentation technique de base
+│   ├── architecture/README.md          # Architecture microservices
+│   └── services/README.md              # Détail des microservices
+├── 🏗️ architecture/                    # Architecture détaillée
+│   └── metrics/                        # Système de métriques
+│       ├── README.md                   # Architecture métriques
+│       └── troubleshooting/README.md   # Dépannage métriques
+├── 💾 database/                        # Base de données
+│   ├── README.md                       # Documentation BDD
+│   ├── analysis/                       # Analyses et audits
+│   │   ├── README.md                   # Index analyses
+│   │   ├── comprehensive-project-audit/
+│   │   ├── data-structure-analysis/
+│   │   └── data-structure-comparison/
+│   └── architecture/database/README.md # Architecture PostgreSQL
+├── 📡 api/                             # Documentation API
+│   ├── api-reference/README.md         # Guide API complet
+│   └── endpoints/README.md             # Liste des endpoints
+├── 🚀 deployment/                      # Guides de déploiement
+│   ├── getting-started/README.md       # Démarrage rapide
+│   ├── production/README.md            # Déploiement production
+│   └── security/README.md              # Sécurité déploiement
+├── 💻 development/                     # Guides développement
+│   ├── setup/README.md                 # Configuration environnement
+│   ├── workflow/README.md              # Workflow développement
+│   ├── makefile/README.md              # Guide Makefile complet
+│   └── testing/README.md               # Stratégies de tests
+├── 📊 monitoring/                      # Monitoring système
+│   └── README.md                       # Stack monitoring complète
+├── 🖥️ frontend/guide/README.md        # Guide frontend
+├── 📱 mobile/guide/README.md           # Guide mobile
+├── 🔧 administration/README.md         # Guide administration
+├── 🐛 troubleshooting/guide/README.md  # Dépannage
+├── ⚡ performance/guide/README.md      # Optimisation
+├── 🔒 security/guide/README.md         # Sécurité
+└── 📄 pdfs/                            # PDFs générés
+    └── documentation-complete.pdf      # PDF global
 ```
 
 ## 📚 Documentation principale
@@ -48,7 +59,8 @@ docs/
 - **[Architecture Microservices](core/architecture/README.md)** - Vue complète de l'architecture
 - **[Architecture Métriques](architecture/metrics/README.md)** - Système de collecte de métriques
 - **[Base de Données](database/README.md)** - Schema PostgreSQL et relations
-- **[Analyse BDD](database/analysis/)** - Analyses comparatives et audits
+- **[Analyses BDD](database/analysis/README.md)** - Analyses comparatives et audits
+- **[Monitoring](monitoring/README.md)** - Système de monitoring complet
 
 ### 📡 API et Intégration
 - **[API Reference](api/api-reference/README.md)** - Documentation complète des APIs
