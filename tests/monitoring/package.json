@@ -1,0 +1,33 @@
+{
+  "name": "jobbingtrack-monitoring-tests",
+  "version": "1.0.0",
+  "description": "Tests d'intégration pour la stack de monitoring JobbingTrack",
+  "scripts": {
+    "test": "jest --verbose",
+    "test:watch": "jest --watch",
+    "test:api": "jest test-metrics-api.js",
+    "test:prometheus": "jest test-prometheus-integration.js",
+    "test:loki": "jest test-loki-integration.js",
+    "test:cadvisor": "jest test-cadvisor-integration.js",
+    "test:workflow": "jest test-monitoring-workflow.js",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
+  },
+  "keywords": [
+    "monitoring",
+    "prometheus",
+    "loki",
+    "cadvisor",
+    "metrics",
+    "integration-tests"
+  ],
+  "author": "JobbingTrack Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
