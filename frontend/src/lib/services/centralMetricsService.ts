@@ -111,7 +111,7 @@ class CentralMetricsService {
   private customization: UserCustomization | null = null
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0
-  private cacheDuration: number = 60000 // 60 secondes
+  private cacheDuration: number = 10000 // 10 secondes pour données temps réel
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
 
@@ -143,16 +143,18 @@ class CentralMetricsService {
 
   // Gestion du cache pour éviter les requêtes multiples
   private getCachedMetrics(): MetricsData | null {
+    // DÉSACTIVÉ pour tests - toujours retourner null pour forcer le rechargement
+    console.log('[CACHE] Cache désactivé pour tests - rechargement des données')
+    return null
+    /* Cache normal (réactiver après tests)
     const now = Date.now()
     if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration) {
+      console.log('[CACHE] Données récupérées depuis le cache')
       return this.metricsCache
     }
-    // Ne pas vider le cache si la durée n'est pas encore écoulée (pour éviter les requêtes multiples au démarrage)
-    if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration * 2) {
-      return this.metricsCache
-    }
-    this.metricsCache = null
+    console.log('[CACHE] Cache expiré, rechargement des données')
     return null
+    */
   }
 
   private setCachedMetrics(metrics: MetricsData): void {
@@ -533,17 +535,54 @@ class CentralMetricsService {
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
+      const metricsApiKey = process.env.NEXT_PUBLIC_METRICS_API_KEY || 'jobbingtrack-metrics-secret-key'
+      
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
+          'X-API-Key': metricsApiKey,
         },
       })
 
       if (response.ok) {
         const data = await response.json()
+        
+        console.log('[AGGREGATOR] Données brutes reçues:', {
+          cpu_percent: data.system?.cpu?.percent,
+          memory_percent: data.system?.memory?.percent,
+          timestamp: data.timestamp
+        })
+        
+        // Mapper les données du backend vers le format attendu par le frontend
+        const mappedSystem = data.system ? {
+          cpu: {
+            usage: data.system.cpu?.percent ?? data.system.cpu?.usage ?? 0,
+            cores: data.system.cpu?.cores || 'N/A',
+            model: data.system.cpu?.model || 'N/A'
+          },
+          memory: {
+            total: data.system.memory?.total || 'N/A',
+            used: data.system.memory?.used || 'N/A',
+            free: data.system.memory?.free || 'N/A',
+            usage: data.system.memory?.percent ?? data.system.memory?.usage ?? 0
+          },
+          load: {
+            average: data.system.load?.average || (data.system.uptime ? (data.system.uptime / 3600).toFixed(1) : 0),
+            cores: data.system.load?.cores || 'N/A'
+          },
+          disk: data.system.disk || [],
+          // Ajouter les métriques des conteneurs JobbingTrack si disponibles
+          jobbingtrack: data.system.jobbingtrack || null
+        } : {
+          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
+          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
+          load: { average: 'N/A', cores: 'N/A' },
+          disk: []
+        }
+        
         return {
           services: data.services || {},
-          system: data.system || {},
+          system: mappedSystem,
           containers: data.containers || {},
           timestamp: data.timestamp || new Date().toISOString()
         }

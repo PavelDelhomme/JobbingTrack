@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
+import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick } from 'lucide-react'
@@ -39,6 +40,7 @@ export default function BackofficePage() {
   const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
   const [showServicesPopup, setShowServicesPopup] = useState(false)
   const [systemMetrics, setSystemMetrics] = useState<any>(null)
+  const [containerMetrics, setContainerMetrics] = useState<any>(null)
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false)
 
   // Liste des services disponibles
@@ -152,9 +154,20 @@ export default function BackofficePage() {
     const loadSystemMetrics = async () => {
       try {
         setLoadingSystemMetrics(true)
-        const metrics = await centralMetricsService.getSystemMetrics()
-        if (metrics) {
-          setSystemMetrics(metrics)
+        
+        // Récupérer toutes les métriques depuis le service centralisé
+        const allMetrics = await centralMetricsService.fetchMetrics()
+        
+        if (allMetrics) {
+          setSystemMetrics(allMetrics.system || null)
+          setContainerMetrics(allMetrics.containers || null)
+        } else {
+          // Fallback vers les métriques individuelles
+          const systemMetricsData = await centralMetricsService.getSystemMetrics()
+          setSystemMetrics(systemMetricsData)
+          
+          const containerMetricsData = await centralMetricsService.getContainerMetrics()
+          setContainerMetrics(containerMetricsData)
         }
       } catch (error) {
         console.error('Erreur chargement métriques système:', error)
@@ -335,16 +348,156 @@ export default function BackofficePage() {
           />
         </div>
 
+        {/* Métriques système principales */}
+        <MetricsErrorBoundary>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-600" />
+              État du système
+              <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded">📊 Prometheus</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${!loadingSystemMetrics && systemMetrics ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <span className={`text-sm ${!loadingSystemMetrics && systemMetrics ? 'text-green-600' : 'text-yellow-600'}`}>
+                {!loadingSystemMetrics && systemMetrics ? 'Connecté' : loadingSystemMetrics ? 'Chargement...' : 'Déconnecté'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {systemMetrics?.containersAggregate?.cpu?.percent || systemMetrics?.cpu?.usage || 'N/A'}
+                {(systemMetrics?.containersAggregate?.cpu?.percent || systemMetrics?.cpu?.usage !== 'N/A') && '%'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">CPU</div>
+              {systemMetrics?.containersAggregate && (
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {systemMetrics.containersAggregate.cpu.containers} conteneurs
+                </div>
+              )}
+            </div>
+
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                {systemMetrics?.containersAggregate?.memory?.percent || systemMetrics?.memory?.usage || 'N/A'}
+                {(systemMetrics?.containersAggregate?.memory?.percent || systemMetrics?.memory?.usage !== 'N/A') && '%'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
+              {systemMetrics?.containersAggregate && (
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {systemMetrics.containersAggregate.memory.used}MB / {systemMetrics.containersAggregate.memory.limit}MB
+                </div>
+              )}
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {systemMetrics && systemMetrics.load && systemMetrics.load.average !== 'N/A' && systemMetrics.load.average !== null ? (typeof systemMetrics.load.average === 'number' ? systemMetrics.load.average.toFixed(2) : systemMetrics.load.average) : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {containerMetrics ? Object.keys(containerMetrics).length : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {containerMetrics && Object.keys(containerMetrics).length > 0 ? '✅' : '❌'}
+              </div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {services ? services.length : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {services && services.length > 0 ? '🟢' : '🔴'}
+              </div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {systemMetrics && systemMetrics.disk && systemMetrics.disk.length > 0 && systemMetrics.disk[0].usage !== 'N/A' ? `${systemMetrics.disk[0].usage}%` : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
+              {systemMetrics && systemMetrics.disk && systemMetrics.disk.length > 0 && systemMetrics.disk[0].usage !== 'N/A' && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemMetrics.disk[0].usage > 80 ? '🔴' : '✅'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Métriques des conteneurs JobbingTrack */}
+          {systemMetrics && systemMetrics.jobbingtrack && systemMetrics.jobbingtrack.containers && (
+            <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h3 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                📦 Conteneurs JobbingTrack ({systemMetrics.jobbingtrack.containers.count})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">CPU Moyen</span>
+                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {systemMetrics.jobbingtrack.containers.cpu.averagePercent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all" 
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Total: {systemMetrics.jobbingtrack.containers.cpu.totalPercent}%
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Mémoire Utilisée</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {systemMetrics.jobbingtrack.containers.memory.percent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all" 
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory.percent, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {systemMetrics.jobbingtrack.containers.memory.used} MB / {systemMetrics.jobbingtrack.containers.memory.limit} MB
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
+        </MetricsErrorBoundary>
+
         {/* Services et métriques avancées */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* État des services */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              État des Services
-            </h3>
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
+            onClick={() => setShowServicesPopup(true)}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                État des Services
+              </h3>
+              <button className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                Voir tous
+              </button>
+            </div>
             <div className="space-y-3">
-              {generateServiceStatus().map((service, index) => (
+              {generateServiceStatus().slice(0, 5).map((service, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
