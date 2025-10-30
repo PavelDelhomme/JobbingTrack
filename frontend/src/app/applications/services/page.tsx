@@ -41,7 +41,7 @@ export default function ServicesPage() {
     { name: 'FollowUp Service', url: 'http://localhost:3010/api/v1/followups/health', port: 3010, serviceType: 'followup' },
     { name: 'Profile Service', url: 'http://localhost:3011/api/v1/profile/health', port: 3011, serviceType: 'profile' },
     { name: 'Workflow Service', url: 'http://localhost:3013/api/v1/workflow/health', port: 3013, serviceType: 'workflow' },
-    { name: 'Metrics Aggregator', url: 'http://localhost:3014/api/v1/health', port: 3014, serviceType: 'metrics' },
+    { name: 'Metrics Aggregator', url: 'http://localhost:8014/api/v1/health', port: 8014, serviceType: 'metrics' },
     { name: 'Frontend', url: 'http://localhost:3000', port: 3000, serviceType: 'frontend' },
     { name: 'Base de données', url: 'http://localhost:5432', port: 5432, serviceType: 'database' },
     { name: 'Redis', url: 'http://localhost:6379', port: 6379, serviceType: 'cache' },
