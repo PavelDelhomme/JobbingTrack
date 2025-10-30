@@ -1,0 +1,65 @@
+
+services:
+  # cAdvisor pour la surveillance des conteneurs
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: jobbingtrack-cadvisor
+    ports:
+      - "8081:8080"  # cAdvisor UI
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg:rw
+    privileged: true
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # Service d'agrégation de métriques
+  jobbingtrack-metrics-aggregator:
+    build:
+      context: ./backend/metrics-aggregator-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-metrics-aggregator
+    user: "0:0"
+    ports:
+      - "8014:3014"
+    environment:
+      - NODE_ENV=development
+      - PORT=3014
+      - FRONTEND_URL=http://frontend:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - jobbingtrack-network
+
+  # Prometheus pour les métriques avancées (optionnel)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jobbingtrack-prometheus
+    ports:
+      - "9090:9090"  # Prometheus
+    volumes:
+      - ./backend/metrics-aggregator-service/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+networks:
+  jobbingtrack-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
