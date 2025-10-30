@@ -56,20 +56,42 @@ help-db: help-database ## Alias de help-database
 # ============================================================================
 
 # Migrations de base de données
-db-migrate: ## Appliquer les migrations Prisma
+db-migrate: ## Appliquer les migrations Prisma sur tous les services
 	@echo "📦 Application des migrations Prisma..."
 	@echo ""
 	@echo "🔍 Vérification de la disponibilité de PostgreSQL..."
 	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
-	@echo "📂 Migration du service auth-service..."
-	@docker exec -w /app jobbingtrack-auth-service npx prisma migrate deploy 2>&1 || echo "⚠️  Erreur sur auth-service"
-	@echo ""
-	@echo "📂 Migration du service application-service..."
-	@docker exec -w /app jobbingtrack-application-service npx prisma migrate deploy 2>&1 || echo "⚠️  Erreur sur application-service"
-	@echo ""
-	@echo "✅ Migrations appliquées !"
+	@echo "📂 Recherche des services avec Prisma..."
+	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator-service"; \
+	MIGRATED=0; \
+	SKIPPED=0; \
+	for service in $$SERVICES; do \
+		CONTAINER="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
+			echo "  🔍 Vérification de $$service..."; \
+			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
+				echo "  📦 Migration de $$service..."; \
+				if docker exec -w /app $$CONTAINER npx prisma migrate deploy 2>&1 | grep -q "No pending migrations"; then \
+					echo "  ✅ $$service - Aucune migration en attente"; \
+				else \
+					echo "  ✅ $$service - Migrations appliquées"; \
+				fi; \
+				MIGRATED=$$((MIGRATED + 1)); \
+			else \
+				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
+		else \
+			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
+			SKIPPED=$$((SKIPPED + 1)); \
+		fi; \
+		echo ""; \
+	done; \
+	echo "✅ Migrations terminées !"; \
+	echo "   📦 Services migrés: $$MIGRATED"; \
+	echo "   ⏭️  Services ignorés: $$SKIPPED"
 
 # Seed de données de test
 db-seed: ## Insérer des données de test

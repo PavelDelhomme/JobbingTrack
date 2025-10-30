@@ -163,6 +163,10 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "📊 Démarrage du service de métriques..."
 	@docker-compose -f docker-compose.yml up -d jobbingtrack-metrics-aggregator
 	
+	# Démarrer TOUS les autres services avec le profil 'full'
+	@echo "🚀 Démarrage de tous les microservices (profil full)..."
+	@docker-compose -f docker-compose.yml --profile full up -d
+	
 	# Services monitoring supplémentaires
 	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, cAdvisor, etc.
 	# docker-compose.metrics.yml est obsolète, utilisez monitoring/docker-compose.monitoring.yml
@@ -170,6 +174,10 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	# 	echo "📊 Démarrage des services de monitoring supplémentaires..."; \
 	# 	docker-compose -f docker-compose.metrics.yml up -d; \
 	# fi
+	
+	# Attendre que les services soient prêts
+	@echo "⏳ Attente que les services soient prêts (5s)..."
+	@sleep 5
 	
 	# Vérification
 	@echo "✅ Tous les services ont été démarrés"
@@ -277,6 +285,23 @@ restart-force: ## Redémarrer avec nettoyage forcé complet
 	@sleep 5
 	$(MAKE) up-full
 	@echo "✅ Système redémarré après nettoyage forcé"
+
+# Rebuild de toutes les images
+rebuild: ## Reconstruire toutes les images Docker (sans cache)
+	@echo "🔨 Reconstruction de toutes les images Docker..."
+	@echo ""
+	@echo "🛑 Arrêt des services..."
+	@$(MAKE) down
+	@echo ""
+	@echo "🗑️  Suppression des anciennes images JobbingTrack..."
+	@docker images | grep "jobbingtrack-" | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
+	@echo ""
+	@echo "🔨 Rebuild avec --no-cache..."
+	@docker-compose -f docker-compose.yml --profile full build --no-cache
+	@echo ""
+	@echo "✅ Rebuild terminé !"
+	@echo ""
+	@echo "💡 Pour démarrer: make up-full"
 
 # ============================================================================
 # PROFILS ET SERVICES INDIVIDUELS

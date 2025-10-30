@@ -16,8 +16,14 @@ RUN apt-get update && \
 # Copier les fichiers de dépendances
 COPY package*.json ./
 
+# Copier le schéma Prisma
+COPY prisma ./prisma/
+
 # Installer les dépendances
 RUN npm install --omit=dev
+
+# Générer le client Prisma
+RUN npx prisma generate
 
 # Copier le code source
 COPY src/ ./src/

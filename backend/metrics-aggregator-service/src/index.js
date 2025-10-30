@@ -3,7 +3,9 @@ const cors = require('cors');
 const { authenticateToken } = require('./middlewares/auth.middleware');
 const metricsRoutes = require('./routes/metrics.routes');
 const logsRoutes = require('./routes/logs.routes');
+const adminRoutes = require('./routes/admin');
 const prometheusService = require('./services/prometheus.service');
+const metricsCollector = require('./collectors/metricsCollector');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -294,6 +296,9 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/metrics', authenticateToken, metricsRoutes);
 app.use('/api/logs', authenticateToken, logsRoutes);
 
+// Routes admin (historique des métriques)
+app.use('/api/admin', adminRoutes);
+
 // ============================================
 // GESTION DES ERREURS
 // ============================================
@@ -337,8 +342,70 @@ if (require.main === module) {
     console.log(`  Health:    http://localhost:${PORT}/health`);
     console.log(`  Metrics:   http://localhost:${PORT}/api/metrics/*`);
     console.log(`  Logs:      http://localhost:${PORT}/api/logs/*`);
+    console.log(`  Admin:     http://localhost:${PORT}/api/admin/*`);
     console.log('');
     console.log('🔐 Authentication: JWT Bearer token required for /api/* routes');
+    console.log('');
+    
+    // Démarrer le collecteur de métriques
+    if (process.env.ENABLE_METRICS_COLLECTION !== 'false') {
+      console.log('📊 Démarrage du collecteur de métriques...');
+      metricsCollector.start();
+      
+      // Planifier le nettoyage quotidien (tous les jours à 2h du matin)
+      const scheduleCleanup = () => {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(2, 0, 0, 0); // 2h du matin
+        
+        const msUntilCleanup = tomorrow.getTime() - now.getTime();
+        
+        setTimeout(() => {
+          console.log('🧹 Démarrage du nettoyage quotidien...');
+          metricsCollector.cleanup();
+          scheduleCleanup(); // Replanifier pour le lendemain
+        }, msUntilCleanup);
+        
+        console.log(`🕐 Prochain nettoyage: ${tomorrow.toISOString()}`);
+      };
+      
+      // Planifier le calcul des stats quotidiennes (tous les jours à 0h05)
+      const scheduleDailyStats = () => {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 5, 0, 0); // 0h05
+        
+        const msUntilStats = tomorrow.getTime() - now.getTime();
+        
+        setTimeout(() => {
+          console.log('📊 Calcul des statistiques quotidiennes...');
+          metricsCollector.calculateDailyStats();
+          scheduleDailyStats(); // Replanifier pour le lendemain
+        }, msUntilStats);
+        
+        console.log(`📈 Prochain calcul stats: ${tomorrow.toISOString()}`);
+      };
+      
+      scheduleCleanup();
+      scheduleDailyStats();
+    } else {
+      console.log('⚠️  Collecteur de métriques désactivé (ENABLE_METRICS_COLLECTION=false)');
+    }
+  });
+  
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM reçu, arrêt du serveur...');
+    metricsCollector.stop();
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('🛑 SIGINT reçu, arrêt du serveur...');
+    metricsCollector.stop();
+    process.exit(0);
   });
 }
 

@@ -23,11 +23,16 @@ model User {
   role     UserRole @default(USER)
   isActive Boolean  @default(true)
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations pour call-service
-  calls Call[]
+  applications Application[]
+  contacts     Contact[]
+  calls        Call[]
+  followUps    FollowUp[]
+  interviews   Interview[]
+  events       Event[]
 }
 
 // Modèle Entreprise (simplifié pour call-service)
@@ -44,7 +49,12 @@ model Company {
   updatedAt   DateTime @updatedAt
 
   // Relations pour call-service
-  calls Call[]
+  applications     Application[]
+  contacts         Contact[]
+  calls            Call[]
+  followUps        FollowUp[]
+  interviews       Interview[]
+  contactCompanies ContactCompany[]
 }
 
 // Modèle Contact (simplifié pour call-service)
@@ -68,9 +78,15 @@ model Contact {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company Company?  @relation(fields: [companyId], references: [id])
-  calls  Call[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company?             @relation(fields: [companyId], references: [id])
+  calls               Call[]
+  contactCompanies    ContactCompany[]
+  contactApplications ContactApplication[]
+  followUpContacts    FollowUpContact[]
+  interviewContacts   InterviewContact[]
+  contactEvents       ContactEvent[]
+  FollowUp            FollowUp[]
 }
 
 // Modèle Candidature (simplifié pour call-service)
@@ -91,15 +107,20 @@ model Application {
   // Champs d'archivage
   isArchived      Boolean           @default(false)
   archivedAt      DateTime?
-  archivedBy      String?           // ID de l'utilisateur qui a archivé
-  archivedReason  String?           // Raison de l'archivage
+  archivedBy      String? // ID de l'utilisateur qui a archivé
+  archivedReason  String? // Raison de l'archivage
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company Company    @relation(fields: [companyId], references: [id])
-  platform Platform? @relation(fields: [platformId], references: [id])
-  calls  Call[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company              @relation(fields: [companyId], references: [id])
+  platform            Platform?            @relation(fields: [platformId], references: [id])
+  calls               Call[]
+  interviews          Interview[]
+  followUps           FollowUp[]
+  contactApplications ContactApplication[]
+  // Relation polymorphe avec Event
+  event               Event?               @relation("ApplicationEvent")
 }
 
 // Modèle Plateforme (simplifié pour call-service)
@@ -134,8 +155,8 @@ model Call {
   // Champs d'archivage
   isArchived     Boolean    @default(false)
   archivedAt     DateTime?
-  archivedBy     String?    // ID de l'utilisateur qui a archivé
-  archivedReason String?    // Raison de l'archivage
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -145,10 +166,8 @@ model Call {
   contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   followUp    FollowUp?   @relation(fields: [followUpId], references: [id])
 
-  // Relations avec les nouveaux modèles
-  events Event[]
-  // Relation polymorphe avec Event
-  event  Event? @relation("CallEvent")
+  // Relation polymorphe avec Event (un Call = un Event calendrier)
+  event Event? @relation("CallEvent")
 
   @@index([userId])
   @@index([applicationId])
@@ -158,34 +177,37 @@ model Call {
 
 // Modèle Relance (simplifié pour call-service)
 model FollowUp {
-  id            String         @id @default(cuid())
-  userId        String
-  applicationId String
-  companyId     String
-  contactId     String?
-  type          FollowUpType
-  scheduledDate DateTime // Date et heure programmée
-  completed     Boolean        @default(false)
-  completedDate DateTime? // Date et heure de fin
-  sentDate      DateTime? // Date et heure d'envoi effectif
-  subject       String
-  message       String?
-  response      String?
-  responseDate  DateTime? // Date et heure de réponse
-  status        FollowUpStatus @default(PENDING_FOLLOWUP)
+  id             String         @id @default(cuid())
+  userId         String
+  applicationId  String
+  companyId      String
+  contactId      String?
+  type           FollowUpType
+  scheduledDate  DateTime // Date et heure programmée
+  completed      Boolean        @default(false)
+  completedDate  DateTime? // Date et heure de fin
+  sentDate       DateTime? // Date et heure d'envoi effectif
+  subject        String
+  message        String?
+  response       String?
+  responseDate   DateTime? // Date et heure de réponse
+  status         FollowUpStatus @default(PENDING_FOLLOWUP)
   // Champs d'archivage
-  isArchived    Boolean        @default(false)
-  archivedAt    DateTime?
-  archivedBy    String?        // ID de l'utilisateur qui a archivé
-  archivedReason String?       // Raison de l'archivage
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  isArchived     Boolean        @default(false)
+  archivedAt     DateTime?
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  company     Company     @relation(fields: [companyId], references: [id])
-  contact     Contact?    @relation(fields: [contactId], references: [id])
-  calls       Call[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application      Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company          Company           @relation(fields: [companyId], references: [id])
+  contact          Contact?          @relation(fields: [contactId], references: [id])
+  calls            Call[]
+  followUpContacts FollowUpContact[]
+  // Relation polymorphe avec Event
+  event            Event?            @relation("FollowUpEvent")
 }
 
 // Modèle Événement (calendrier - simplifié pour call-service)
@@ -214,6 +236,7 @@ model Event {
   interview     Interview?     @relation("InterviewEvent", fields: [interviewId], references: [id], onDelete: Cascade)
   followUp      FollowUp?      @relation("FollowUpEvent", fields: [followUpId], references: [id], onDelete: Cascade)
   call          Call?          @relation("CallEvent", fields: [callId], references: [id], onDelete: Cascade)
+  contactEvents ContactEvent[]
 
   // Contraintes pour s'assurer qu'un seul lien polymorphe est actif
   @@unique([applicationId])
@@ -227,31 +250,34 @@ model Event {
 
 // Modèle Entretien (simplifié pour call-service)
 model Interview {
-  id            String          @id @default(cuid())
-  userId        String
-  applicationId String
-  companyId     String
-  type          InterviewType
-  scheduledAt   DateTime // Date et heure programmée
-  duration      Int? // en minutes
-  location      String?
-  meetingUrl    String?
-  interviewer   String?
-  notes         String?
-  status        InterviewStatus @default(PENDING)
-  feedback      String?
-  completedAt   DateTime? // Date et heure de fin
+  id             String          @id @default(cuid())
+  userId         String
+  applicationId  String
+  companyId      String
+  type           InterviewType
+  scheduledAt    DateTime // Date et heure programmée
+  duration       Int? // en minutes
+  location       String?
+  meetingUrl     String?
+  interviewer    String?
+  notes          String?
+  status         InterviewStatus @default(PENDING)
+  feedback       String?
+  completedAt    DateTime? // Date et heure de fin
   // Champs d'archivage
-  isArchived    Boolean         @default(false)
-  archivedAt    DateTime?
-  archivedBy    String?         // ID de l'utilisateur qui a archivé
-  archivedReason String?        // Raison de l'archivage
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  isArchived     Boolean         @default(false)
+  archivedAt     DateTime?
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  company     Company     @relation(fields: [companyId], references: [id])
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company           Company            @relation(fields: [companyId], references: [id])
+  interviewContacts InterviewContact[]
+  // Relation polymorphe avec Event
+  event             Event?             @relation("InterviewEvent")
 }
 
 // === TABLES DE JONCTION MANY-TO-MANY ===
