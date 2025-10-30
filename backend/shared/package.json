@@ -1,0 +1,38 @@
+{
+  "name": "@jobbingtrack/database",
+  "version": "1.0.0",
+  "description": "Schéma Prisma partagé pour JobbingTrack - Base de données unique avec relations réelles",
+  "main": "index.js",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset",
+    "seed": "node prisma/seed.js",
+    "studio": "prisma studio",
+    "format": "prisma format",
+    "validate": "prisma validate",
+    "db:push": "prisma db push"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "keywords": [
+    "prisma",
+    "database",
+    "jobbingtrack",
+    "shared-schema",
+    "orm"
+  ],
+  "author": "JobbingTrack Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
