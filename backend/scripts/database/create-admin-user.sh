@@ -59,8 +59,9 @@ if command -v docker &> /dev/null; then
         docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
         INSERT INTO \"User\" (email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
         VALUES ('$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
-        " 2>/dev/null || {
+        " 2>&1 || {
             echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
+            echo -e "${YELLOW}💡 La table User existe-t-elle ? Lancez 'make db-migrate' si nécessaire${NC}"
             exit 1
         }
     else

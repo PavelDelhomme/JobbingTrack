@@ -46,7 +46,7 @@ services:
     user: root
     volumes:
       - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+      - jobbingtrack_prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -71,7 +71,7 @@ services:
     user: root
     volumes:
       - ./configs/loki.yml:/etc/loki/config.yml:ro
-      - loki-data:/loki
+      - jobbingtrack_loki_data:/loki
     command: -config.file=/etc/loki/config.yml
     ports:
       - "127.0.0.1:3100:3100"  # Localhost only
@@ -88,9 +88,9 @@ services:
     user: root
     volumes:
       - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - grafana-data:/var/lib/grafana
+      - jobbingtrack_grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3013
     ports:
@@ -124,11 +124,14 @@ services:
     restart: unless-stopped
 
 volumes:
-  prometheus-data:
+  jobbingtrack_prometheus_data:
+    name: jobbingtrack_prometheus_data
     driver: local
-  loki-data:
+  jobbingtrack_loki_data:
+    name: jobbingtrack_loki_data
     driver: local
-  grafana-data:
+  jobbingtrack_grafana_data:
+    name: jobbingtrack_grafana_data
     driver: local
 
 networks:
