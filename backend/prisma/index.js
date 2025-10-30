@@ -5,7 +5,7 @@
  * Ce module exporte une instance singleton du client Prisma
  * qui se connecte à la base de données PostgreSQL unique.
  * 
- * Toutes les tables et relations sont définies dans prisma/schema.prisma
+ * Toutes les tables et relations sont définies dans schema.prisma
  */
 
 const { PrismaClient } = require('@prisma/client');

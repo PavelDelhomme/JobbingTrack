@@ -8,14 +8,14 @@
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "migrate:reset": "prisma migrate reset",
-    "seed": "node prisma/seed.js",
+    "seed": "node seed.js",
     "studio": "prisma studio",
     "format": "prisma format",
     "validate": "prisma validate",
     "db:push": "prisma db push"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node seed.js"
   },
   "keywords": [
     "prisma",
