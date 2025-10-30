@@ -1,125 +1,95 @@
-# Structure des dossiers Frontend
+# 📂 Structure du Frontend JobbingTrack
 
-Cette documentation décrit la nouvelle organisation des dossiers dans `frontend/src/app` pour une meilleure maintenabilité et organisation du code.
+Cette structure utilise les **Route Groups** de Next.js (dossiers entre parenthèses) pour organiser logiquement l'application sans affecter les URLs.
 
-## Structure actuelle
+## 🗂️ Organisation
 
-```
-frontend/src/app/
-├── access-denied/          # Pages d'accès refusé
-├── admin/                  # Fonctionnalités d'administration
-│   ├── analytics/         # Analytics et métriques
-│   ├── archives/          # Gestion des archives
-│   ├── data-management/   # Gestion des données
-│   ├── deployments/       # Gestion des déploiements
-│   ├── logs/             # Logs système
-│   ├── maintenance/      # Maintenance système
-│   ├── notifications/    # Notifications
-│   ├── search/           # Recherche
-│   ├── settings/         # Paramètres
-│   ├── statistics/       # Statistiques
-│   ├── test-data/        # Données de test
-│   └── trash/            # Corbeille
-├── api/                   # API routes (Next.js)
-├── applications/          # Gestion des applications
-│   ├── applications/     # CRUD des applications
-│   ├── mobile-emulator/  # Émulateur mobile
-│   └── services/         # Gestion des services
-├── backoffice/           # Backoffice principal
-├── entities/             # Entités métier
-│   ├── calls/           # Gestion des appels
-│   ├── companies/       # Gestion des entreprises
-│   ├── contacts/        # Gestion des contacts
-│   ├── events/          # Gestion des événements
-│   ├── followups/       # Gestion des suivis
-│   ├── interviews/      # Gestion des entretiens
-│   └── users/           # Gestion des utilisateurs
-├── forgot-password/      # Mot de passe oublié
-├── globals.css          # Styles globaux
-├── layout.tsx           # Layout principal
-├── login/               # Connexion
-├── page.tsx             # Page d'accueil
-├── register/            # Inscription
-├── reset-password/      # Réinitialisation mot de passe
-├── security/            # Fonctionnalités de sécurité
-│   ├── security-alerts/       # Alertes de sécurité
-│   ├── security-analysis/     # Analyse de sécurité
-│   ├── security-data-generator/ # Générateur de données de test sécurité
-│   ├── security-ddos/         # Protection DDoS
-│   ├── security-intrusions/   # Détection d'intrusions
-│   ├── security-logs/         # Logs de sécurité
-│   └── security-vulnerabilities/ # Vulnérabilités
-├── shared/              # Composants partagés
-│   └── components/      # Composants réutilisables
-├── styles/              # Fichiers de styles
-└── tests/               # Tests et outils de test
-    ├── api-tester/      # Testeur d'API
-    ├── performance-tests/ # Tests de performance
-    └── playwright-tests/  # Tests Playwright
-```
+### `(public)/` - Pages Publiques
+Pages accessibles sans authentification :
+- `/login` - Connexion
+- `/register` - Inscription
+- `/forgot-password` - Mot de passe oublié
+- `/reset-password/[token]` - Réinitialisation mot de passe
+- `/access-denied` - Accès refusé
 
-## Règles d'organisation
+### `(dashboard)/` - Dashboard Utilisateur
+Pages principales de l'application (authentification requise) :
+- `/` - Page d'accueil dashboard
+- `/applications` - Gestion des candidatures
+  - `/applications/applications` - Liste des candidatures
+  - `/applications/applications/[id]` - Détail candidature
+- `/entities` - Entités métier
+  - `/entities/calls` - Appels
+  - `/entities/companies` - Entreprises
+  - `/entities/contacts` - Contacts
+  - `/entities/events` - Événements
+  - `/entities/followups` - Suivis
+  - `/entities/interviews` - Entretiens
+  - `/entities/users` - Utilisateurs
 
-### 1. **Tests** (`/tests/`)
-Tous les éléments liés aux tests :
-- Tests E2E (Playwright)
-- Tests de performance
-- Tests d'API
-- Outils de test
+### `(admin)/` - Administration
+Pages d'administration système (rôle admin requis) :
+- `/backoffice` - Vue d'ensemble administration
+  - `/backoffice/analytics` - Analyses admin
+- `/analytics` - Métriques et analyses système
+- `/settings` - Configuration système
+- `/notifications` - Gestion des notifications
+- `/search` - Recherche avancée
+- `/statistics` - Statistiques globales
+- `/data-management` - Gestion des données
+- `/archives` - Archives
+- `/trash` - Corbeille
+- `/maintenance` - Maintenance système
+- `/deployments` - Déploiements
+- `/test-data` - Données de test
 
-### 2. **Sécurité** (`/security/`)
-Tous les éléments liés à la sécurité :
-- Alertes de sécurité
-- Analyse de sécurité
-- Protection DDoS
-- Détection d'intrusions
-- Logs de sécurité
-- Gestion des vulnérabilités
+### `(security)/` - Sécurité
+Pages de sécurité (rôles admin/security requis) :
+- `/alerts` - Alertes de sécurité
+- `/analysis` - Analyse de sécurité
+- `/logs` - Logs de sécurité
+- `/intrusions` - Détection d'intrusions
+- `/vulnerabilities` - Vulnérabilités
+- `/ddos` - Protection DDoS
+- `/data-generator` - Générateur de données de test
 
-### 3. **Entités** (`/entities/`)
-Entités métier de l'application :
-- Utilisateurs (users)
-- Entreprises (companies)
-- Contacts (contacts)
-- Candidatures (applications)
-- Entretiens (interviews)
-- Appels (calls)
-- Événements (events)
-- Suivis (followups)
+### `(development)/` - Outils Développement
+Outils de développement (mode dev uniquement, rôle admin requis) :
+- `/tests/api-tester` - Testeur d'API
+- `/tests/performance` - Tests de performance
+- `/tests/playwright` - Tests Playwright
+- `/mobile-emulator` - Émulateur mobile
+- `/services/applications` - Services applicatifs
+- `/services/backoffice` - Services backoffice
 
-### 4. **Administration** (`/admin/`)
-Fonctionnalités d'administration système :
-- Analytics et métriques
-- Gestion des déploiements
-- Logs système
-- Maintenance
-- Paramètres
-- Statistiques
-- Corbeille
+### `api/` - API Routes
+Routes API Next.js :
+- `/api/health` - Health check
+- `/api/cadvisor` - Proxy cAdvisor
+- `/api/middleware-test` - Test middleware
+- `/api/v1.3/docker` - API Docker
 
-### 5. **Applications** (`/applications/`)
-Gestion des applications et services :
-- CRUD des applications
-- Gestion des services
-- Émulateur mobile
+## 🎯 Avantages de cette Structure
 
-### 6. **Backoffice** (`/backoffice/`)
-Interface d'administration principale
+1. **Organisation Claire** : Chaque section a son propre groupe
+2. **Sécurité** : Layouts de groupe pour gérer l'authentification
+3. **URLs Propres** : Les parenthèses n'affectent pas les URLs
+4. **Maintenabilité** : Facile de trouver et maintenir le code
+5. **Scalabilité** : Ajout facile de nouvelles sections
 
-### 7. **Shared** (`/shared/`)
-Composants et utilitaires partagés entre les modules
+## 🔐 Sécurité
 
-## Bonnes pratiques
+Chaque groupe a son propre `layout.tsx` qui gère :
+- **(public)** : Aucune auth requise
+- **(dashboard)** : Auth requise
+- **(admin)** : Auth + rôle admin requis
+- **(security)** : Auth + rôle admin/security requis
+- **(development)** : Mode dev + rôle admin requis
 
-1. **Nommage cohérent** : Utiliser des noms en kebab-case pour les dossiers
-2. **Regroupement logique** : Regrouper les fonctionnalités similaires
-3. **Séparation des préoccupations** : Chaque dossier a une responsabilité claire
-4. **Évolutivité** : Structure facile à étendre avec de nouvelles fonctionnalités
+## 📝 Convention de Nommage
 
-## Navigation
-
-- **Tests** : `/backoffice/tests/` ou directement `/tests/`
-- **Sécurité** : `/backoffice/security/` ou directement `/security/`
-- **Entités** : `/backoffice/entities/` ou directement `/entities/`
-- **Admin** : `/backoffice/admin/` ou directement `/admin/`
-- **Applications** : `/backoffice/applications/` ou directement `/applications/`
+- Groupes de routes : `(nom-groupe)/`
+- Pages : `page.tsx`
+- Layouts : `layout.tsx`
+- Routes dynamiques : `[param]/`
+- Routes API : `route.ts`

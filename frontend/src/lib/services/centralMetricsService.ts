@@ -273,47 +273,9 @@ class CentralMetricsService {
         }
       }
 
-      // Fallback vers cAdvisor directement si disponible
-      try {
-        const cadvisorResponse = await fetch('http://localhost:8081/api/v1.3/docker/', {
-          signal: AbortSignal.timeout(3000)
-        })
-
-        if (cadvisorResponse.ok) {
-          const containersData = await cadvisorResponse.json()
-          const containerMetrics: ContainerMetrics = {}
-
-          Object.keys(containersData).forEach(containerName => {
-            const container = containersData[containerName]
-            if (container && container.stats && container.stats.length > 0) {
-              const latestStats = container.stats[container.stats.length - 1]
-
-              containerMetrics[containerName] = {
-                memory: {
-                  usage: latestStats.memory?.usage || 0,
-                  limit: latestStats.memory?.limit || 0,
-                  percentage: latestStats.memory?.percentage || 0
-                },
-                cpu: {
-                  usage: latestStats.cpu?.usage || 0,
-                  system: latestStats.cpu?.system || 0,
-                  percentage: latestStats.cpu?.percentage || 0
-                },
-                network: {
-                  rx_bytes: latestStats.network?.rx_bytes || 0,
-                  tx_bytes: latestStats.network?.tx_bytes || 0
-                },
-                status: container.status || 'unknown'
-              }
-            }
-          })
-
-          console.log('[CONTAINERS] ✅ Métriques cAdvisor récupérées')
-          return containerMetrics
-        }
-      } catch (cadvisorError) {
-        console.warn('[CONTAINERS] cAdvisor non disponible');
-      }
+      // NOTE: cAdvisor n'est pas accessible directement depuis le frontend
+      // Le frontend doit utiliser uniquement l'API metrics-aggregator (port 8014)
+      // qui se charge de récupérer les données depuis Prometheus/cAdvisor en interne
 
       // Retourner un objet vide si aucune source n'est disponible
       console.log('[CONTAINERS] Aucune source de métriques conteneurs disponible')

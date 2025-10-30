@@ -47,14 +47,19 @@ help-backend: ## Afficher l'aide backend
 
 monitoring-up: ## Démarrer stack monitoring
 	@echo "📊 Démarrage stack monitoring..."
+	@echo "🧹 Nettoyage des conteneurs conflictuels..."
+	@docker stop cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker rm cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml up -d
 	@echo "✅ Monitoring démarré"
 	@echo ""
 	@echo "📊 Accès monitoring:"
-	@echo "  Prometheus:  http://localhost:9090"
-	@echo "  Loki:        http://localhost:3100"
-	@echo "  Grafana:     http://localhost:3001"
-	@echo "  API Metrics: http://localhost:3008"
+	@echo "  Prometheus:     http://localhost:9090"
+	@echo "  Grafana:        http://localhost:3013 (admin/admin123)"
+	@echo "  cAdvisor:       http://localhost:8082"
+	@echo "  Node Exporter:  http://localhost:9100"
+	@echo "  Loki:           http://localhost:3100"
+	@echo "  API Metrics:    http://localhost:8014"
 
 monitoring-down: ## Arrêter stack monitoring
 	@echo "🛑 Arrêt stack monitoring..."
@@ -66,6 +71,41 @@ monitoring-restart: ## Redémarrer stack monitoring
 	@$(MAKE) monitoring-down
 	@sleep 2
 	@$(MAKE) monitoring-up
+
+metrics-rebuild: ## Rebuild et redémarrer metrics-aggregator
+	@echo "🔨 Rebuild metrics-aggregator..."
+	@docker stop jobbingtrack-metrics-aggregator 2>/dev/null || true
+	@docker rm jobbingtrack-metrics-aggregator 2>/dev/null || true
+	@docker rmi jobbingtrack-metrics-aggregator 2>/dev/null || true
+	@docker-compose up -d --build jobbingtrack-metrics-aggregator
+	@echo "✅ Metrics-aggregator reconstruit et redémarré"
+	@sleep 5
+	@docker logs jobbingtrack-metrics-aggregator --tail 20
+
+monitoring-full: ## Démarrer JobbingTrack + Monitoring (propre)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║   Démarrage Complet: JobbingTrack + Monitoring        ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🧹 Nettoyage des conteneurs conflictuels..."
+	@docker stop cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker rm cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@echo "🛑 Arrêt de la stack monitoring..."
+	@cd monitoring && docker-compose -f docker-compose.monitoring.yml down 2>/dev/null || true
+	@echo ""
+	@echo "🚀 Démarrage de la stack principale..."
+	@$(MAKE) up-full
+	@echo "⏳ Attente de l'initialisation (10s)..."
+	@sleep 10
+	@echo ""
+	@echo "📊 Démarrage du monitoring..."
+	@$(MAKE) monitoring-up
+	@echo "⏳ Attente de Prometheus (15s)..."
+	@sleep 15
+	@echo ""
+	@echo "✅ Système complet démarré !"
+	@echo ""
+	@make status
 
 monitoring-ps: ## Status des services monitoring
 	@echo "📊 Status services monitoring:"

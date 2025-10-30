@@ -164,10 +164,12 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@docker-compose -f docker-compose.yml up -d jobbingtrack-metrics-aggregator
 	
 	# Services monitoring supplémentaires
-	@if [ -f "docker-compose.metrics.yml" ]; then \
-		echo "📊 Démarrage des services de monitoring supplémentaires..."; \
-		docker-compose -f docker-compose.metrics.yml up -d; \
-	fi
+	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, cAdvisor, etc.
+	# docker-compose.metrics.yml est obsolète, utilisez monitoring/docker-compose.monitoring.yml
+	# @if [ -f "docker-compose.metrics.yml" ]; then \
+	# 	echo "📊 Démarrage des services de monitoring supplémentaires..."; \
+	# 	docker-compose -f docker-compose.metrics.yml up -d; \
+	# fi
 	
 	# Vérification
 	@echo "✅ Tous les services ont été démarrés"

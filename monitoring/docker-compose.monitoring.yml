@@ -4,7 +4,7 @@ services:
   # ============================================
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
-    container_name: cadvisor-monitoring
+    container_name: jobbingtrack-cadvisor
     privileged: true
     devices:
       - /dev/kmsg
@@ -15,7 +15,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "127.0.0.1:8081:8080"  # Port 8081 pour éviter conflit avec frontend:8080
+      - "8082:8080"  # Port 8082 cAdvisor
     networks:
       - jobbingtrack-network
     restart: unless-stopped
@@ -25,7 +25,7 @@ services:
   # ============================================
   promtail:
     image: grafana/promtail:2.9.0
-    container_name: promtail
+    container_name: jobbingtrack-promtail
     volumes:
       - ./configs/promtail.yml:/etc/promtail/config.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -42,7 +42,7 @@ services:
   # ============================================
   prometheus:
     image: prom/prometheus:v2.47.0
-    container_name: prometheus
+    container_name: jobbingtrack-prometheus
     user: root
     volumes:
       - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -67,7 +67,7 @@ services:
   # ============================================
   loki:
     image: grafana/loki:2.9.0
-    container_name: loki
+    container_name: jobbingtrack-loki
     user: root
     volumes:
       - ./configs/loki.yml:/etc/loki/config.yml:ro
@@ -84,7 +84,7 @@ services:
   # ============================================
   grafana:
     image: grafana/grafana:10.1.0
-    container_name: grafana
+    container_name: jobbingtrack-grafana
     user: root
     volumes:
       - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
@@ -107,7 +107,7 @@ services:
   # ============================================
   node-exporter:
     image: prom/node-exporter:v1.8.2
-    container_name: node-exporter
+    container_name: jobbingtrack-node-exporter
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
