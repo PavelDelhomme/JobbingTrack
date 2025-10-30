@@ -377,7 +377,7 @@ export default function BackofficePage() {
                 Analytics
               </button>
               <button
-                onClick={() => setShowServicesPopup(true)}
+                onClick={() => router.push('/backoffice/services')}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
               >
                 <Activity className="h-4 w-4" />
@@ -579,7 +579,13 @@ export default function BackofficePage() {
                 <Settings className="h-5 w-5" />
                 État des Services
               </h3>
-              <button className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push('/backoffice/services');
+                }}
+                className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+              >
                 Voir tous
               </button>
             </div>
