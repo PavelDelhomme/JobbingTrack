@@ -109,7 +109,7 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	# Nettoyage complet
 	@echo "🧹 Nettoyage complet de l'environnement Docker..."
 	@echo "  1/4 Arrêt et suppression des conteneurs..."
-	@docker-compose -f docker-compose.yml -f docker-compose.metrics.yml down --remove-orphans --volumes --timeout 30 2>/dev/null || true
+	@docker-compose -f docker-compose.yml down --remove-orphans --volumes --timeout 30 2>/dev/null || true
 	
 	@echo "  2/4 Suppression des conteneurs orphelins..."
 	@docker ps -aq --filter "name=jobbingtrack-" | xargs -r docker rm -f 2>/dev/null || true
@@ -177,8 +177,10 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:8080"
 	@echo "  - API Gateway:        http://localhost:3000"
-	@echo "  - cAdvisor:           http://localhost:8081"
-	@echo "  - Metrics:            http://localhost:8014"
+	@echo "  - Metrics Aggregator: http://localhost:8014"
+	@echo ""
+	@echo "📊 Pour démarrer le monitoring complet (Prometheus, cAdvisor, Grafana):"
+	@echo "    make monitoring-full"
 	@echo ""
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
