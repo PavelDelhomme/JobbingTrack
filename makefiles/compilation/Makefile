@@ -4,7 +4,7 @@
 # Build, rebuild et nettoyage des images Docker
 # ============================================================================
 
-.PHONY: build rebuild clean clean-force help-compilation
+.PHONY: build rebuild-old clean clean-force help-compilation
 
 # ============================================================================
 # AIDE
@@ -17,7 +17,7 @@ help-compilation: ## Afficher l'aide compilation
 	@echo ""
 	@echo "🔨 BUILD:"
 	@echo "  make build                 - Build tous les services Docker"
-	@echo "  make rebuild               - Rebuild sans cache (complet)"
+	@echo "  make rebuild               - Rebuild sans cache (complet) ⭐ NOUVELLE VERSION"
 	@echo ""
 	@echo "🧹 NETTOYAGE:"
 	@echo "  make clean                 - Nettoyage complet (containers, volumes, réseaux)"
@@ -25,7 +25,8 @@ help-compilation: ## Afficher l'aide compilation
 	@echo ""
 	@echo "💡 EXEMPLES:"
 	@echo "  make build                 # Build normal"
-	@echo "  make clean && make rebuild # Nettoyage puis rebuild"
+	@echo "  make rebuild               # Rebuild complet (sans cache)"
+	@echo "  make clean && make up-full # Nettoyage puis redémarrage"
 	@echo ""
 	@echo "⌚ TEMPS ESTIMÉ:"
 	@echo "  Build:   ~5-10 minutes (première fois)"
@@ -46,8 +47,11 @@ build: ## Build tous les services
 	$(call docker_compose, $(COMPOSE_FILES_FULL) build)
 	@echo "✅ Tous les services construits"
 
-# Rebuild sans cache
-rebuild: ## Rebuild sans cache
+# Rebuild sans cache (OBSOLÈTE - utilisez 'make rebuild' à la racine)
+rebuild-old: ## Rebuild sans cache (ancienne version)
+	@echo "⚠️  Cette commande est obsolète"
+	@echo "💡 Utilisez 'make rebuild' à la place"
+	@echo ""
 	@echo "🔨 Rebuild complet sans cache..."
 	$(call check_docker)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) build --no-cache)

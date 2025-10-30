@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Installer les dépendances
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copier le code source
 COPY src ./src/
@@ -16,8 +16,8 @@ COPY src ./src/
 RUN npx prisma generate
 
 # Créer un utilisateur non-root
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN groupadd -g 1001 nodejs || true
+RUN useradd -u 1001 -g nodejs -s /bin/bash -m nextjs || true
 
 # Changer les permissions
 RUN chown -R nextjs:nodejs /app

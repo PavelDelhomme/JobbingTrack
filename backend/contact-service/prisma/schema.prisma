@@ -10,74 +10,202 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle Utilisateur
-
-  // Champs pour reset password
+// Modèle Utilisateur (simplifié pour contact-service)
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  firstName      String
+  lastName       String
+  phone          String?
+  profilePicture String?
 
   // Champs administratifs
+  role     UserRole @default(USER)
+  isActive Boolean  @default(true)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Champs de synchronisation
+  // Relations pour contact-service
+  contacts     Contact[]
+  companies    Company[]
+  applications Application[]
+}
 
+// Modèle Entreprise (simplifié pour contact-service)
+model Company {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-// Modèle Entreprise
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts         Contact[]
+  applications     Application[]
+  contactCompanies ContactCompany[]
 
+  @@index([userId])
+}
 
-// Modèle Plateforme de Candidature
+// ✅ Modèle Contact - MODÈLE PRINCIPAL POUR CE SERVICE
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String?
+  firstName       String
+  lastName        String
+  position        String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  notes           String?
+  lastContactDate DateTime?
+  // Champs d'archivage
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String? // ID de l'utilisateur qui a archivé
+  archivedReason  String? // Raison de l'archivage
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company?             @relation(fields: [companyId], references: [id])
+  contactCompanies    ContactCompany[]
+  contactApplications ContactApplication[]
+  activities          Activity[]
 
-// Modèle Plateforme de Candidature
+  @@index([userId])
+  @@index([companyId])
+  @@index([email])
+}
 
+// Modèle Candidature (simplifié pour contact-service)
+model Application {
+  id              String            @id @default(cuid())
+  userId          String
+  companyId       String
+  position        String
+  description     String?
+  location        String?
+  type            JobType           @default(FULL_TIME)
+  salary          String?
+  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime          @default(now())
+  jobUrl          String?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-// Modèle Candidature
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company              @relation(fields: [companyId], references: [id])
+  contactApplications ContactApplication[]
+  activities          Activity[]
 
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+}
 
-// Modèle Entretien
+// === TABLES DE JONCTION MANY-TO-MANY ===
 
+// Table de jonction Contact-Entreprise
+model ContactCompany {
+  id        String   @id @default(cuid())
+  contactId String
+  companyId String
+  createdAt DateTime @default(now())
 
-// ✅ NOUVEAU - Modèle Appel Téléphonique
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  @@unique([contactId, companyId])
+  @@index([contactId])
+  @@index([companyId])
+}
 
-// Modèle Contact
+// Table de jonction Contact-Candidature
+model ContactApplication {
+  id            String   @id @default(cuid())
+  contactId     String
+  applicationId String
+  createdAt     DateTime @default(now())
 
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
-// Modèle Relance
-
-
-// ✅ NOUVEAU - Table de liaison Application-Contact
-// Permet de lier plusieurs contacts à une candidature
-
-
-
-// Modèle Document
-
-
-// Table de liaison Application-Document
-
-
-
-// Modèle Rappel
-
-
-// Modèle Template de Message
-
+  @@unique([contactId, applicationId])
+  @@index([contactId])
+  @@index([applicationId])
+}
 
 // Modèle Activité (pour l'historique)
+model Activity {
+  id            String       @id @default(cuid())
+  userId        String?
+  contactId     String?
+  applicationId String?
+  type          ActivityType
+  description   String
+  metadata      Json?
+  createdAt     DateTime     @default(now())
 
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([applicationId])
+  @@index([createdAt])
+}
 
 // ENUMS
 
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+  TEMPORARY
+  REMOTE
+  HYBRID
+}
 
+enum ApplicationStatus {
+  CANDIDATE_PENDING // "Candidaté et en attente"
+  NO_RESPONSE // "Aucune réponse"
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP // "Aucune réponse après 1 relance"
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // "Aucune réponse après 2 relance"
+  FIRST_INTERVIEW_PENDING // "1er entretien en attente"
+  OTHER_INTERVIEW_PENDING // "Autre entretien en attente"
+  ACCEPTED_AFTER_INTERVIEW // "Retenue après entretien"
+  REJECTED_WITHOUT_INTERVIEW // "Non retenue sans entretien"
+  REJECTED_AFTER_INTERVIEW // "Non retenue après entretien"
+}
 
+enum ActivityType {
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  CONTACT_DELETED
+  APPLICATION_LINKED
+  APPLICATION_UNLINKED
+  COMPANY_LINKED
+  COMPANY_UNLINKED
+  NOTE_ADDED
+  EMAIL_SENT
+  PHONE_CALL
+  MEETING_SCHEDULED
+}
 
-
-
-
-
-
-
-
-
-
-// ✅ NOUVEAUX ENUMS pour les appels
-
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  TESTER
+}

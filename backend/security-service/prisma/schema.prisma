@@ -11,70 +11,70 @@ datasource db {
 }
 
 model SecurityLog {
-  id                String   @id @default(cuid())
-  timestamp         DateTime @default(now())
-  level             String   @db.VarChar(20) // info, warning, error, critical
-  category          String   @db.VarChar(50) // authentication, intrusion, ddos, vulnerability, etc.
-  eventType         String   @db.VarChar(100) // login_attempt, suspicious_activity, etc.
-  message           String   @db.Text
-  sourceIP          String?  @db.VarChar(45)
-  userAgent         String?  @db.Text
-  userId            String?  @db.VarChar(100)
-  endpoint          String?  @db.VarChar(500)
-  method            String?  @db.VarChar(10)
-  statusCode        Int?
-  responseTime      Int?     // en millisecondes
-  country           String?  @db.VarChar(2)
-  city              String?  @db.VarChar(100)
-  riskScore         Float?   // score de risque de 0 à 100
-  isBlocked         Boolean  @default(false)
-  metadata          Json?    // informations supplémentaires
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  level        String   @db.VarChar(20) // info, warning, error, critical
+  category     String   @db.VarChar(50) // authentication, intrusion, ddos, vulnerability, etc.
+  eventType    String   @db.VarChar(100) // login_attempt, suspicious_activity, etc.
+  message      String   @db.Text
+  sourceIP     String?  @db.VarChar(45)
+  userAgent    String?  @db.Text
+  userId       String?  @db.VarChar(100)
+  endpoint     String?  @db.VarChar(500)
+  method       String?  @db.VarChar(10)
+  statusCode   Int?
+  responseTime Int? // en millisecondes
+  country      String?  @db.VarChar(2)
+  city         String?  @db.VarChar(100)
+  riskScore    Float? // score de risque de 0 à 100
+  isBlocked    Boolean  @default(false)
+  metadata     Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("security_logs")
 }
 
 model Vulnerability {
-  id                String   @id @default(cuid())
-  title             String   @db.VarChar(200)
-  description       String   @db.Text
-  severity          String   @db.VarChar(20) // low, medium, high, critical
-  cveId             String?  @db.VarChar(50)
+  id                String    @id @default(cuid())
+  title             String    @db.VarChar(200)
+  description       String    @db.Text
+  severity          String    @db.VarChar(20) // low, medium, high, critical
+  cveId             String?   @db.VarChar(50)
   cvssScore         Float?
-  affectedComponent String   @db.VarChar(100) // nom du composant/service affecté
-  status            String   @db.VarChar(20) // open, in_progress, resolved, accepted_risk
-  discoveredAt      DateTime @default(now())
+  affectedComponent String    @db.VarChar(100) // nom du composant/service affecté
+  status            String    @db.VarChar(20) // open, in_progress, resolved, accepted_risk
+  discoveredAt      DateTime  @default(now())
   resolvedAt        DateTime?
-  assignedTo        String?  @db.VarChar(100)
-  remediation       String?  @db.Text
+  assignedTo        String?   @db.VarChar(100)
+  remediation       String?   @db.Text
   tags              String[] // technologies, frameworks, etc.
-  metadata          Json?    // informations supplémentaires
+  metadata          Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("vulnerabilities")
 }
 
 model IntrusionAttempt {
-  id                String   @id @default(cuid())
-  timestamp         DateTime @default(now())
-  sourceIP          String   @db.VarChar(45)
-  country           String?  @db.VarChar(2)
-  city              String?  @db.VarChar(100)
-  attackType        String   @db.VarChar(50) // sql_injection, xss, brute_force, etc.
-  targetEndpoint    String   @db.VarChar(500)
-  method            String   @db.VarChar(10)
-  userAgent         String?  @db.Text
-  payload           String?  @db.Text // requête malveillante
-  riskScore         Float    // score de risque de 0 à 100
-  isBlocked         Boolean  @default(false)
-  blockReason       String?  @db.VarChar(200)
-  metadata          Json?    // informations supplémentaires
+  id             String   @id @default(cuid())
+  timestamp      DateTime @default(now())
+  sourceIP       String   @db.VarChar(45)
+  country        String?  @db.VarChar(2)
+  city           String?  @db.VarChar(100)
+  attackType     String   @db.VarChar(50) // sql_injection, xss, brute_force, etc.
+  targetEndpoint String   @db.VarChar(500)
+  method         String   @db.VarChar(10)
+  userAgent      String?  @db.Text
+  payload        String?  @db.Text // requête malveillante
+  riskScore      Float // score de risque de 0 à 100
+  isBlocked      Boolean  @default(false)
+  blockReason    String?  @db.VarChar(200)
+  metadata       Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("intrusion_attempts")
 }
@@ -86,48 +86,48 @@ model DDoSAttack {
   countries         String[] // pays d'origine
   attackType        String   @db.VarChar(50) // volumetric, protocol, application
   targetEndpoint    String   @db.VarChar(500)
-  duration          Int      // durée en secondes
-  totalRequests     Int      // nombre total de requêtes
+  duration          Int // durée en secondes
+  totalRequests     Int // nombre total de requêtes
   requestsPerSecond Float
   isMitigated       Boolean  @default(false)
-  mitigationTime    Int?     // temps de mitigation en secondes
-  metadata          Json?    // informations supplémentaires
+  mitigationTime    Int? // temps de mitigation en secondes
+  metadata          Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("ddos_attacks")
 }
 
 model SecurityAlert {
-  id                String   @id @default(cuid())
-  timestamp         DateTime @default(now())
-  level             String   @db.VarChar(20) // low, medium, high, critical
-  title             String   @db.VarChar(200)
-  description       String   @db.Text
-  category          String   @db.VarChar(50) // intrusion, vulnerability, ddos, etc.
-  source            String   @db.VarChar(100) // IP, user, service
-  isAcknowledged    Boolean  @default(false)
-  acknowledgedBy    String?  @db.VarChar(100)
-  acknowledgedAt    DateTime?
-  resolvedAt        DateTime?
-  metadata          Json?    // informations supplémentaires
+  id             String    @id @default(cuid())
+  timestamp      DateTime  @default(now())
+  level          String    @db.VarChar(20) // low, medium, high, critical
+  title          String    @db.VarChar(200)
+  description    String    @db.Text
+  category       String    @db.VarChar(50) // intrusion, vulnerability, ddos, etc.
+  source         String    @db.VarChar(100) // IP, user, service
+  isAcknowledged Boolean   @default(false)
+  acknowledgedBy String?   @db.VarChar(100)
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  metadata       Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("security_alerts")
 }
 
 model SecurityMetric {
-  id                String   @id @default(cuid())
-  timestamp         DateTime @default(now())
-  metricType        String   @db.VarChar(50) // intrusion_attempts, ddos_attacks, vulnerabilities, etc.
-  value             Float
-  unit              String   @db.VarChar(20) // count, percentage, score, etc.
-  period            String   @db.VarChar(20) // hour, day, week, month
-  metadata          Json?    // informations supplémentaires
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  metricType String   @db.VarChar(50) // intrusion_attempts, ddos_attacks, vulnerabilities, etc.
+  value      Float
+  unit       String   @db.VarChar(20) // count, percentage, score, etc.
+  period     String   @db.VarChar(20) // hour, day, week, month
+  metadata   Json? // informations supplémentaires
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("security_metrics")
 }
