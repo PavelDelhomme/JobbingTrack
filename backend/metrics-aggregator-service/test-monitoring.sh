@@ -13,10 +13,10 @@ echo "╚═══════════════════════�
 echo ""
 
 # Configuration
-API_URL="http://localhost:3008"
+API_URL="http://localhost:8014"
 PROMETHEUS_URL="http://localhost:9090"
 NODE_EXPORTER_URL="http://localhost:9100"
-CADVISOR_URL="http://localhost:8081"
+CADVISOR_URL="http://localhost:8082"
 
 # Couleurs
 RED='\033[0;31m'

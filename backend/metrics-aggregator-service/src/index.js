@@ -3,6 +3,7 @@ const cors = require('cors');
 const { authenticateToken } = require('./middlewares/auth.middleware');
 const metricsRoutes = require('./routes/metrics.routes');
 const logsRoutes = require('./routes/logs.routes');
+const prometheusService = require('./services/prometheus.service');
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -97,6 +98,33 @@ if (process.env.NODE_ENV === 'development') {
   // Route publique pour les métriques système
   app.get('/api/v1/metrics', async (req, res) => {
     try {
+      // Essayer d'abord les métriques Prometheus (plus complètes)
+      try {
+        const prometheusMetrics = await prometheusService.getSystemMetrics();
+        
+        // Formater pour correspondre au format attendu par le frontend
+        const formatted = {
+          success: true,
+          timestamp: prometheusMetrics.timestamp,
+          system: {
+            cpus: prometheusMetrics.data.cpu_cores,
+            cpu_percent: prometheusMetrics.data.cpu_usage_percent,
+            memory_total: prometheusMetrics.data.memory_total,
+            memory_used: prometheusMetrics.data.memory_used,
+            memory_percent: prometheusMetrics.data.memory_used_percent,
+            containers: {
+              total: prometheusMetrics.data.containers_total || 0,
+              running: prometheusMetrics.data.containers_jobbingtrack || 0
+            }
+          }
+        };
+        
+        return res.json(formatted);
+      } catch (prometheusError) {
+        console.warn('[Public Route] Prometheus non disponible, fallback vers Docker:', prometheusError.message);
+      }
+      
+      // Fallback vers Docker si Prometheus n'est pas disponible
       const info = await dockerService.getSystemInfo();
       const formatted = dockerService.formatSystemInfoForAPI(info);
       res.json(formatted);

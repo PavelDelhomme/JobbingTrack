@@ -146,7 +146,9 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3014
-      - CADVISOR_URL=http://cadvisor:8080
+      - CADVISOR_URL=http://jobbingtrack-cadvisor:8080
+      - PROMETHEUS_URL=http://jobbingtrack-prometheus:9090
+      - LOKI_URL=http://jobbingtrack-loki:3100
       - FRONTEND_URL=http://localhost:8080
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
     volumes:
@@ -157,22 +159,27 @@ services:
       - jobbingtrack-network
     restart: unless-stopped
   
-  # cAdvisor (monitoring conteneurs)
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
-    container_name: jobbingtrack-cadvisor
-    privileged: true
-    ports:
-      - "8081:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    networks:
-      - jobbingtrack-network
-    restart: unless-stopped
+  # ============================================
+  # NOTE: cAdvisor est maintenant dans monitoring/docker-compose.monitoring.yml
+  # Utilisez 'make monitoring-up' pour démarrer la stack complète de monitoring
+  # ============================================
+  
+  # # cAdvisor (monitoring conteneurs) - DÉSACTIVÉ - Utilisez monitoring/docker-compose.monitoring.yml
+  # cadvisor:
+  #   image: gcr.io/cadvisor/cadvisor:v0.47.2
+  #   container_name: jobbingtrack-cadvisor
+  #   privileged: true
+  #   ports:
+  #     - "8081:8080"
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:ro
+  #     - /sys:/sys:ro
+  #     - /var/lib/docker/:/var/lib/docker:ro
+  #     - /dev/disk/:/dev/disk:ro
+  #   networks:
+  #     - jobbingtrack-network
+  #   restart: unless-stopped
   
 
   # # cAdvisor pour la surveillance des conteneurs
@@ -214,24 +221,29 @@ services:
   #     - jobbingtrack-network
   #   restart: unless-stopped
 
-  # Prometheus (monitoring avancé)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: jobbingtrack-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - jobbingtrack-network
-    profiles:
-      - monitoring
-      - full
-    restart: unless-stopped
+  # ============================================
+  # NOTE: Prometheus est maintenant dans monitoring/docker-compose.monitoring.yml
+  # Utilisez 'make monitoring-up' pour démarrer la stack complète de monitoring
+  # ============================================
+  
+  # # Prometheus (monitoring avancé) - DÉSACTIVÉ - Utilisez monitoring/docker-compose.monitoring.yml
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: jobbingtrack-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #   networks:
+  #     - jobbingtrack-network
+  #   profiles:
+  #     - monitoring
+  #     - full
+  #   restart: unless-stopped
 
   # =====================================
   # SERVICES OPTIONNELS (avec profiles)
