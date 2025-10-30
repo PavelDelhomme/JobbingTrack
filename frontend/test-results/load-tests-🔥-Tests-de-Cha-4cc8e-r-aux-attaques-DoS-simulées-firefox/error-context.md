@@ -35,7 +35,7 @@
             - generic [ref=e35]:
               - paragraph [ref=e36]:
                 - strong [ref=e37]: "Email:"
-                - text: pavel@jobbingtrack.com
+                - text: admin@jobbingtrack.com
               - paragraph [ref=e38]:
                 - strong [ref=e39]: "Mot de passe:"
                 - text: password123

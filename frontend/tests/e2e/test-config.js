@@ -3,7 +3,7 @@
 module.exports = {
   // Utilisateur de test par défaut
   testUser: {
-    email: process.env.ADMIN_EMAIL || 'pavel@jobbingtrack.com',
+    email: process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com',
     password: process.env.ADMIN_PASSWORD || 'password123',
     firstName: 'Pavel',
     lastName: 'Delhomme',

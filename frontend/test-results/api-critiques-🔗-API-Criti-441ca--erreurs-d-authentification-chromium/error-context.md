@@ -15,7 +15,7 @@
       - generic [ref=e14]:
         - generic [ref=e15]:
           - generic [ref=e16]: 📧 Email
-          - textbox "votre.email@exemple.com" [ref=e17]: pavel@jobbingtrack.com
+          - textbox "votre.email@exemple.com" [ref=e17]: admin@jobbingtrack.com
         - generic [ref=e18]:
           - generic [ref=e19]: 🔐 Mot de passe
           - generic [ref=e20]:
@@ -32,7 +32,7 @@
             - generic [ref=e32]:
               - paragraph [ref=e33]:
                 - strong [ref=e34]: "Email:"
-                - text: pavel@jobbingtrack.com
+                - text: admin@jobbingtrack.com
               - paragraph [ref=e35]:
                 - strong [ref=e36]: "Mot de passe:"
                 - text: password123

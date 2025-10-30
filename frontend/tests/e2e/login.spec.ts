@@ -27,7 +27,7 @@ test.describe('🔐 Authentification - Page de connexion', () => {
     await expect(page.locator('button[type="submit"]')).toBeVisible();
 
     // Vérifier les valeurs par défaut des champs de test
-    await expect(page.locator('input[type="email"]')).toHaveValue('pavel@jobbingtrack.com');
+    await expect(page.locator('input[type="email"]')).toHaveValue('admin@jobbingtrack.com');
     await expect(page.locator('input[type="password"]')).toHaveValue('password123');
   });
 
@@ -50,7 +50,7 @@ test.describe('🔐 Authentification - Page de connexion', () => {
   test('devrait afficher la section des informations de compte de test', async ({ page }) => {
     // Vérifier la présence de la section d'informations de test
     await expect(page.locator('text=Compte de test')).toBeVisible();
-    await expect(page.locator('text=pavel@jobbingtrack.com')).toBeVisible();
+    await expect(page.locator('text=admin@jobbingtrack.com')).toBeVisible();
     await expect(page.locator('text=password123')).toBeVisible();
   });
 
@@ -64,7 +64,7 @@ test.describe('🔐 Authentification - Page de connexion', () => {
           success: true,
           user: {
             id: '1',
-            email: 'pavel@jobbingtrack.com',
+            email: 'admin@jobbingtrack.com',
             firstName: 'Pavel',
             lastName: 'Test',
             role: 'SUPER_ADMIN'

@@ -377,13 +377,9 @@ export default function MobileEmulatorPage() {
       }
     } catch (error) {
       console.error('Erreur chargement utilisateurs:', error)
-      addLog('Erreur chargement utilisateurs, utilisation de données de test', 'error')
-      // Fallback sur les utilisateurs de test si l'API ne fonctionne pas
-      setUsers([
-        { id: '1', email: 'admin@jobbingtrack.com', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
-        { id: '2', email: 'pavel@jobbingtrack.com', firstName: 'Pavel', lastName: 'Delhomme', role: 'SUPER_ADMIN' },
-        { id: '3', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' },
-      ])
+      addLog('Erreur chargement utilisateurs depuis l\'API', 'error')
+      // Ne pas utiliser de fallback - l'API doit fonctionner
+      throw error
     }
   }
 

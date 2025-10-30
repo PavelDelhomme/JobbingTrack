@@ -158,9 +158,9 @@
             - generic:
               - img
             - textbox "Rechercher..." [ref=e146]
-          - button "AJ pavel@jobbingtrack.com" [ref=e147] [cursor=pointer]:
+          - button "AJ admin@jobbingtrack.com" [ref=e147] [cursor=pointer]:
             - generic [ref=e148]: AJ
-            - generic [ref=e149]: pavel@jobbingtrack.com
+            - generic [ref=e149]: admin@jobbingtrack.com
           - button "Paramètres" [ref=e150] [cursor=pointer]:
             - img [ref=e151]
           - button "☀️ Clair" [ref=e154] [cursor=pointer]:

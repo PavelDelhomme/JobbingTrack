@@ -1,6 +1,7 @@
 'use client'
 
 import './globals.css'
+import '@/styles/customization.css'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/hooks/auth'
 import { ThemeProvider, applyTheme, getSystemTheme } from '@/lib/hooks/theme'
