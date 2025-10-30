@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================
-# Script de Fix Complet
+# Script de Fix Complet JobbingTrack
 # ============================================
 
 set -e
@@ -46,6 +46,17 @@ echo "✅ Frontend reconstruit"
 echo ""
 
 # ============================================
+# Fix 4 : Créer l'utilisateur super admin
+# ============================================
+echo "👤 Création de l'utilisateur super administrateur..."
+chmod +x backend/scripts/database/create-admin-user.sh
+./backend/scripts/database/create-admin-user.sh || {
+    echo "⚠️  Erreur lors de la création de l'utilisateur admin"
+    echo "   Vous pouvez le faire manuellement avec: make create-admin-user"
+}
+echo ""
+
+# ============================================
 # Attendre que les services démarrent
 # ============================================
 echo "⏳ Attente du démarrage des services (15s)..."
@@ -73,4 +84,8 @@ echo ""
 echo "🌐 Accès:"
 echo "  Frontend:    http://localhost:8080"
 echo "  API Metrics: http://localhost:8014/api/v1/metrics"
+echo ""
+echo "🔑 Identifiants Admin:"
+echo "  Email:       admin@jobbingtrack.test"
+echo "  Password:    password123"
 echo ""

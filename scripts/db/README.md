@@ -16,7 +16,7 @@ Script de seed de la base de données - insère des données de test.
 ```
 
 **Données insérées:**
-- Utilisateur administrateur (`admin@jobbingtrack.test` / `SuperAdmin123!`)
+- Utilisateur administrateur (`admin@jobbingtrack.test` / `password123`)
 - Entreprises d'exemple (Google, Microsoft, Apple, Amazon, Meta)
 - Candidatures de test
 - Entretiens programmés
