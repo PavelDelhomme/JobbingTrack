@@ -10,11 +10,16 @@ scrape_configs:
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
-    relabel_configs:
+    #relabel_configs:
       # Garde uniquement les conteneurs actifs
-      - source_labels: [__meta_docker_container_id]
-        action: keep
-        regex: .+
+      #- source_labels: [__meta_docker_container_id]
+        #action: keep
+        #regex: .+
+  
+  # Métriques système hôte (Node Exporter)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
 
   # Métriques de Prometheus lui-même
   - job_name: 'prometheus'
