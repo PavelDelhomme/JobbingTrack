@@ -11,13 +11,13 @@ services:
     image: postgres:15-alpine
     container_name: jobbingtrack-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-jobbingtrack}
-      POSTGRES_USER: ${POSTGRES_USER:-jobbingtrack}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobbingtrack123}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - jobbingtrack_postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
@@ -43,35 +43,6 @@ services:
       - jobbingtrack-network
     restart: unless-stopped
 
-  # API Gateway Ancien
-  # api-gateway:
-  #   build:
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-api-gateway
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3000
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #     - APPLICATION_SERVICE_URL=http://application-service:3002
-  #     - COMPANY_SERVICE_URL=http://company-service:3003
-  #     - CONTACT_SERVICE_URL=http://contact-service:3004
-  #     - INTERVIEW_SERVICE_URL=http://interview-service:3005
-  #     - NOTIFICATION_SERVICE_URL=http://notification-service:3006
-  #     - DASHBOARD_SERVICE_URL=http://dashboard-service:3007
-  #     - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
-  #   depends_on:
-  #     - auth-service
-  #     - application-service
-  #     - company-service
-  #     - contact-service
-  #     - interview-service
-  #     - notification-service
-  #     - dashboard-service
-  #   networks:
-  #     - jobbingtrack-network
-
   # API Gateway (coeur du système)
   api-gateway:
     image: jobbingtrack-api-gateway
@@ -82,12 +53,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-development}
       - WAF_ENABLED=false
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
     networks:
       - jobbingtrack-network
     healthcheck:
@@ -154,97 +125,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
-      - metrics_data:/tmp/metrics
+      - jobbingtrack_metrics_data:/tmp/metrics
     networks:
       - jobbingtrack-network
     restart: unless-stopped
   
-  # ============================================
-  # NOTE: cAdvisor est maintenant dans monitoring/docker-compose.monitoring.yml
-  # Utilisez 'make monitoring-up' pour démarrer la stack complète de monitoring
-  # ============================================
-  
-  # # cAdvisor (monitoring conteneurs) - DÉSACTIVÉ - Utilisez monitoring/docker-compose.monitoring.yml
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:v0.47.2
-  #   container_name: jobbingtrack-cadvisor
-  #   privileged: true
-  #   ports:
-  #     - "8081:8080"
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:ro
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /dev/disk/:/dev/disk:ro
-  #   networks:
-  #     - jobbingtrack-network
-  #   restart: unless-stopped
-  
-
-  # # cAdvisor pour la surveillance des conteneurs
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:v0.47.2
-  #   container_name: jobbingtrack-cadvisor
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:ro
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /dev/disk/:/dev/disk:ro
-  #   devices:
-  #     - /dev/kmsg:/dev/kmsg:rw
-  #   privileged: true
-  #   networks:
-  #     - jobbingtrack-network
-  #   restart: unless-stopped
-
-  # Prometheus pour les métriques avancées (optionnel)
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: jobbingtrack-prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./backend/metrics-aggregator-service/prometheus.yml:/etc/prometheus/prometheus.yml
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
-  #     - '--web.console.templates=/etc/prometheus/consoles'
-  #     - '--storage.tsdb.retention.time=200h'
-  #     - '--web.enable-lifecycle'
-  #   networks:
-  #     - jobbingtrack-network
-  #   restart: unless-stopped
-
-  # ============================================
-  # NOTE: Prometheus est maintenant dans monitoring/docker-compose.monitoring.yml
-  # Utilisez 'make monitoring-up' pour démarrer la stack complète de monitoring
-  # ============================================
-  
-  # # Prometheus (monitoring avancé) - DÉSACTIVÉ - Utilisez monitoring/docker-compose.monitoring.yml
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: jobbingtrack-prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #   networks:
-  #     - jobbingtrack-network
-  #   profiles:
-  #     - monitoring
-  #     - full
-  #   restart: unless-stopped
-
   # =====================================
   # SERVICES OPTIONNELS (avec profiles)
   # =====================================
@@ -259,18 +144,18 @@ services:
     ports:
       - "8001:3001"
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-change-too-2025}
-      - SMTP_HOST=${SMTP_HOST:-smtp.ovh.net}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-candidatures@delhomme.ovh}
-      - SMTP_PASS=${SMTP_PASS:-V**Uw61^3*bz5c2AFrx&2d&%}
-      - SMTP_FROM=${SMTP_FROM:-JobbingTrack <candidatures@delhomme.ovh>}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8081,http://localhost:3000,http://localhost:8080}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
     networks:
       - jobbingtrack-network
     depends_on:
@@ -294,7 +179,7 @@ services:
       - "8002:3002"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth-service:3001
       - PORT=3002
@@ -322,16 +207,7 @@ services:
       - "8003:3003"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3003
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -356,16 +232,7 @@ services:
       - "8004:3004"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3004
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -375,27 +242,6 @@ services:
       - contacts
       - full
     restart: unless-stopped
-
-  # Service des contacts
-  #contact-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-contact-service
-  #  ports:
-  #    - "3004:3004"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3004
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
   
   # Service Interview
   interview-service:
@@ -408,16 +254,7 @@ services:
       - "8005:3005"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3005
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -427,28 +264,6 @@ services:
       - interviews
       - full
     restart: unless-stopped
-
-  # Service des entretiens
-  #interview-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-interview-service
-  #  ports:
-  #    - "3005:3005"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3005
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
-
 
   # Service Call
   call-service:
@@ -461,16 +276,7 @@ services:
       - "8006:3006"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3006
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -481,26 +287,6 @@ services:
       - full
     restart: unless-stopped
 
-  #call-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-call-service
-  #  ports:
-  #    - "3008:3008"
-  #  networks:
-  #    - jobbingtrack-network
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3008
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  
   # Service Event
   event-service:
     image: jobbingtrack-event-service
@@ -512,16 +298,7 @@ services:
       - "8007:3007"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3007
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -531,26 +308,6 @@ services:
       - events
       - full
     restart: unless-stopped
-  #event-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-event-service
-  #  ports:
-  #    - "3009:3009"
-  #  networks:
-  #    - jobbingtrack-network
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3009
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #
 
   # Service Followup
   followup-service:
@@ -563,16 +320,7 @@ services:
       - "8008:3008"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3008
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -582,25 +330,6 @@ services:
       - followups
       - full
     restart: unless-stopped
-  #followup-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-followup-service
-  #  ports:
-  #    - "3010:3010"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3010
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
   
   # Service Profile
   profile-service:
@@ -613,16 +342,7 @@ services:
       - "8009:3009"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3009
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -632,25 +352,6 @@ services:
       - profiles
       - full
     restart: unless-stopped
-  #profile-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-profile-service
-  #  ports:
-  #    - "3011:3011"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3011
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
 
   # Service Notification
   notification-service:
@@ -663,19 +364,8 @@ services:
       - "8010:3010"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
-      #- SMTP_HOST=smtp.ovh.net
-      #- SMTP_PORT=587
-      #- SMTP_USER=candidatures@delhomme.ovh
-      #- SMTP_PASS=V**Uw61^3*bz5c2AFrx&2d&%
-      #- SMTP_FROM=JobbingTrack <candidatures@delhomme.ovh>
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
     depends_on:
       postgres:
         condition: service_healthy
@@ -688,31 +378,6 @@ services:
       - full
     restart: unless-stopped
 
-  # Service des notifications
-  #notification-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-notification-service
-  #  ports:
-  #    - "3006:3006"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3006
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - REDIS_URL=redis://redis:6379
-  #    - SMTP_HOST=smtp.ovh.net
-  #    - SMTP_PORT=587
-  #    - SMTP_USER=candidatures@delhomme.ovh
-  #    - SMTP_PASS=V**Uw61^3*bz5c2AFrx&2d&%
-  #    - SMTP_FROM=JobbingTrack <candidatures@delhomme.ovh>
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    redis:
-  #      condition: service_healthy
-  #  networks:
-  #    - jobbingtrack-network
-
   # Service Dashboard (si différent du frontend)
   dashboard-service:
     image: jobbingtrack-dashboard-service
@@ -724,7 +389,7 @@ services:
       - "8012:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -734,27 +399,6 @@ services:
       - dashboard
       - full
     restart: no
-
-  # Service du dashboard
-  #dashboard-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-dashboard-service
-  #  ports:
-  #    - "3007:3007"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3007
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-  #  networks:
-  #    - jobbingtrack-network
 
   # Service Workflow
   workflow-service:
@@ -767,16 +411,7 @@ services:
       - "8011:3011"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      #- JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      #- AUTH_SERVICE_URL=http://auth-service:3001
-      #- PORT=3011
-      #- LOG_LEVEL=debug
-      #- LOG_FORMAT=json
-      #- LOG_TIMESTAMP=true
-      #- LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_LOCAL=%Y-%m-%dT%H:%M:%S.%L%z
-      #- LOG_TIMESTAMP_FORMAT_UTC=%Y-%m-%dT%H:%M:%S.%L%z
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
@@ -786,46 +421,6 @@ services:
       - workflows
       - full
     restart: unless-stopped
-
-  # Service de gestion des workflows
-  #workflow-service:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-workflow-service
-  #  ports:
-  #    - "3013:3013"
-  #  networks:
-  #    - jobbingtrack-network
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3013
-   #    - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres-dev:5432/jobbingtrack_dev?schema=public
-  #    - JWT_SECRET=your-secret-key-change-in-production-2025
-  #    - AUTH_SERVICE_URL=http://auth-service:3001
-  #    - APPLICATION_SERVICE_URL=http://application-service:3002
-  #    - FOLLOWUP_SERVICE_URL=http://followup-service:3010
-  #    - NOTIFICATION_SERVICE_URL=http://notification-service:3006
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #    auth-service:
-  #      condition: service_started
-
-  # Service d'agrégation de métriques
-  #jobbingtrack-metrics-aggregator:
-  #  image: jobbingtrack-metrics-aggregator
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-metrics-aggregator
-  #  ports:
-  #    - "3014:3014"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - PORT=3014
-  #    - FRONTEND_URL=http://frontend:3000
-  #  networks:
-  #    - jobbingtrack-network
-
 
   # Application mobile Flutter
   flutter-mobile:
@@ -842,23 +437,6 @@ services:
     profiles:
       - mobile
 
-  # Frontend
-  #frontend:
-  #  build:
-  #    dockerfile: Dockerfile
-  #  container_name: jobbingtrack-frontend
-  #  ports:
-  #    - "3001:3000"
-  #  environment:
-  #    - NODE_ENV=development
-  #    - NEXT_PUBLIC_API_URL=http://api-gateway:3000
-  #    - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:3001
-  #  depends_on:
-  #    - api-gateway
-  #    - auth-service
-  #  networks:
-  #    - jobbingtrack-network
-
   # Security Service
   security-service:
     image: jobbingtrack-security-service
@@ -871,7 +449,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3017
-      - DATABASE_URL=postgresql://admin@jobbingtrack.com:admin@jobbingtrack.com@postgres:5432/jobbingtrack
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - FRONTEND_URL=http://localhost:8080
       - LOG_LEVEL=info
       - SECURITY_SERVICE_URL=http://security-service:3017
@@ -897,7 +475,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3016
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=deployment
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=deployment
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
     depends_on:
@@ -910,9 +488,12 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  prometheus_data:
-  metrics_data:
+  jobbingtrack_postgres_data:
+    name: jobbingtrack_postgres_data
+  jobbingtrack_prometheus_data:
+    name: jobbingtrack_prometheus_data
+  jobbingtrack_metrics_data:
+    name: jobbingtrack_metrics_data
 
 networks:
   jobbingtrack-network:

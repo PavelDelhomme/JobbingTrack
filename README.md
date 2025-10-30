@@ -4,7 +4,8 @@
 
 ## 📖 Documentation
 
-### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md)
+### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md) 
+##  **[⚡ Guide de Démarrage Rapide](docs/getting-started/README.md)** - Commencez ici !
 
 Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.
 

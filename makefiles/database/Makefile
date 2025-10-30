@@ -11,14 +11,23 @@
 # ============================================================================
 
 help-database: ## Afficher l'aide base de données
-	@echo "================================================================"
-	@echo "🗄️  DATABASE - Commandes disponibles"
-	@echo "================================================================"
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🗄️  DATABASE - Commandes disponibles                         ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🔄 MIGRATIONS & DONNÉES:"
 	@echo "  make db-migrate            - Appliquer migrations Prisma"
 	@echo "  make db-seed               - Insérer données de test"
-	@echo "  make db-reset              - Reset complet de la DB"
+	@echo "  make db-fix-role           - Réparer rôle et DB PostgreSQL"
+	@echo ""
+	@echo "👤 GESTION UTILISATEUR ADMIN:"
+	@echo "  make create-admin-user     - Créer l'utilisateur super admin"
+	@echo "  make recreate-admin-user   - Supprimer et recréer l'admin"
+	@echo ""
+	@echo "🗑️  NETTOYAGE & RESET:"
+	@echo "  make db-clean              - Supprimer UNIQUEMENT les volumes JobbingTrack"
+	@echo "  make db-reset              - Reset COMPLET (arrêt + clean + up + migrate + admin)"
+	@echo "                              ⚠️  Demande confirmation (taper 'oui')"
 	@echo ""
 	@echo "💾 SAUVEGARDE & RESTAURATION:"
 	@echo "  make db-backup             - Créer sauvegarde"
@@ -28,16 +37,14 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make up-dev                - DB développement"
 	@echo "  make up-test               - DB test"
 	@echo "  make up-staging            - DB staging"
-	@echo "  make up-prod               - DB production"
-	@echo "  make up-all-dbs            - Tous les environnements"
 	@echo ""
-	@echo "🔧 MAINTENANCE:"
-	@echo "  make db-fix-role           - Corriger rôle PostgreSQL"
-	@echo "  make switch-db ENV=test    - Basculer environnement"
-	@echo "  make copy-prod-to-dev      - Copier prod vers dev"
+	@echo "🔑 Identifiants Admin par défaut:"
+	@echo "  📧 Email:    admin@jobbingtrack.com"
+	@echo "  🔑 Password: password123"
 	@echo ""
-	@echo "💡 EXEMPLES:"
-	@echo "  make db-backup && make db-reset    # Sauvegarder puis reset"
+	@echo "💡 Personnalisation: Modifier les variables dans le fichier .env"
+
+help-db: help-database ## Alias de help-database
 	@echo "  make db-restore file=backup.sql    # Restaurer"
 	@echo "  make up-test && make db-seed       # Test avec données"
 	@echo ""
@@ -49,22 +56,25 @@ help-database: ## Afficher l'aide base de données
 # ============================================================================
 
 # Migrations de base de données
-db-migrate: ## Appliquer les migrations de base de données
-	@echo "🗄️  Application des migrations..."
-	@echo "⚠️  Les migrations ne sont pas encore implémentées"
-	@echo "💡 Cette commande sera implémentée avec Prisma ou un outil de migration"
+db-migrate: ## Appliquer les migrations Prisma
+	@echo "📦 Application des migrations Prisma..."
+	@echo ""
+	@echo "🔍 Vérification de la disponibilité de PostgreSQL..."
+	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
+	@echo "✅ PostgreSQL est disponible"
+	@echo ""
+	@echo "📂 Migration du service auth-service..."
+	@docker exec -w /app jobbingtrack-auth-service npx prisma migrate deploy 2>&1 || echo "⚠️  Erreur sur auth-service"
+	@echo ""
+	@echo "📂 Migration du service application-service..."
+	@docker exec -w /app jobbingtrack-application-service npx prisma migrate deploy 2>&1 || echo "⚠️  Erreur sur application-service"
+	@echo ""
+	@echo "✅ Migrations appliquées !"
 
 # Seed de données de test
 db-seed: ## Insérer des données de test
 	@echo "🌱 Insertion de données de test..."
 	./scripts/db/seed.sh
-
-# Reset complet de la base de données
-db-reset: ## Reset complet de la DB
-	@echo "🔄 Reset complet de la base de données..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) exec postgres psql -U jobbingtrack -d jobbingtrack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-	@echo "✅ Base de données réinitialisée"
-	@echo "💡 Relancez 'make db-seed' pour recréer les données"
 
 # Sauvegarde de la base de données
 db-backup: ## Créer une sauvegarde de la DB
@@ -98,6 +108,57 @@ create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 	@echo "✅ Utilisateur créé !"
 	@echo "📧 Email: admin@jobbingtrack.com"
 	@echo "🔑 Password: password123"
+
+recreate-admin-user: ## Supprimer et recréer l'utilisateur administrateur
+	@echo "🔄 Recréation de l'utilisateur administrateur..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "DELETE FROM \"User\" WHERE email = 'admin@jobbingtrack.com';" 2>/dev/null || true
+	@echo "✅ Utilisateur existant supprimé"
+	@$(MAKE) create-admin-user
+
+db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
+	@echo "🗑️  Suppression des volumes JobbingTrack..."
+	@docker volume rm jobbingtrack_postgres_data 2>/dev/null && echo "  ✅ jobbingtrack_postgres_data supprimé" || echo "  ⚠️  jobbingtrack_postgres_data n'existe pas"
+	@docker volume rm jobbingtrack_prometheus_data 2>/dev/null && echo "  ✅ jobbingtrack_prometheus_data supprimé" || echo "  ⚠️  jobbingtrack_prometheus_data n'existe pas"
+	@docker volume rm jobbingtrack_metrics_data 2>/dev/null && echo "  ✅ jobbingtrack_metrics_data supprimé" || echo "  ⚠️  jobbingtrack_metrics_data n'existe pas"
+	@docker volume rm jobbingtrack_loki_data 2>/dev/null && echo "  ✅ jobbingtrack_loki_data supprimé" || echo "  ⚠️  jobbingtrack_loki_data n'existe pas"
+	@docker volume rm jobbingtrack_grafana_data 2>/dev/null && echo "  ✅ jobbingtrack_grafana_data supprimé" || echo "  ⚠️  jobbingtrack_grafana_data n'existe pas"
+	@echo ""
+	@echo "✅ Nettoyage terminé !"
+
+db-reset: ## Réinitialisation complète (ATTENTION: Supprime toutes les données !)
+	@echo "⚠️  ATTENTION: Cette commande va supprimer TOUTES les données !"
+	@echo "   - Arrêt des services"
+	@echo "   - Suppression des volumes"
+	@echo "   - Redémarrage complet"
+	@echo ""
+	@read -p "Êtes-vous sûr ? (tapez 'oui' pour confirmer): " confirm && [ "$$confirm" = "oui" ] || (echo "❌ Annulé" && exit 1)
+	@echo ""
+	@echo "🛑 Arrêt des services..."
+	@$(MAKE) down
+	@echo ""
+	@$(MAKE) db-clean
+	@echo ""
+	@echo "🚀 Redémarrage complet..."
+	@$(MAKE) up-full
+	@echo ""
+	@echo "⏳ Attente du démarrage de PostgreSQL (10s)..."
+	@sleep 10
+	@echo ""
+	@echo "📦 Application des migrations Prisma..."
+	@$(MAKE) db-migrate
+	@echo ""
+	@echo "👤 Création de l'utilisateur administrateur..."
+	@$(MAKE) create-admin-user
+	@echo ""
+	@echo "✅ Réinitialisation complète terminée !"
+	@echo ""
+	@echo "🌐 Accès:"
+	@echo "  Frontend:    http://localhost:8080"
+	@echo "  API Gateway: http://localhost:3000"
+	@echo ""
+	@echo "🔑 Identifiants Admin:"
+	@echo "  Email:       admin@jobbingtrack.com"
+	@echo "  Password:    password123"
 
 # ============================================================================
 # ENVIRONNEMENTS MULTIPLES

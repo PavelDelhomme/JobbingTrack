@@ -179,6 +179,40 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "  - API Gateway:        http://localhost:3000"
 	@echo "  - Metrics Aggregator: http://localhost:8014"
 	@echo ""
+	
+	# Vérification Prisma migrations
+	@echo "🔍 Vérification des migrations Prisma..."
+	@if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt \"User\"" 2>&1 | grep -q "Did not find any relation"; then \
+		echo "⚠️  ATTENTION: Les migrations Prisma ne sont pas appliquées !"; \
+		echo ""; \
+		echo "💡 Pour appliquer les migrations, lancez:"; \
+		echo "    make db-migrate"; \
+		echo ""; \
+	else \
+		echo "✅ Migrations Prisma appliquées"; \
+	fi
+	
+	# Vérification utilisateur admin
+	@echo "🔍 Vérification de l'utilisateur administrateur..."
+	@if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.com';" 2>/dev/null | grep -q "^\\s*0"; then \
+		echo "⚠️  ATTENTION: L'utilisateur administrateur n'existe pas !"; \
+		echo ""; \
+		echo "💡 Pour créer l'utilisateur admin, lancez:"; \
+		echo "    make create-admin-user"; \
+		echo ""; \
+		echo "🔑 Identifiants qui seront créés:"; \
+		echo "    Email:    admin@jobbingtrack.com"; \
+		echo "    Password: password123"; \
+		echo ""; \
+	else \
+		echo "✅ Utilisateur administrateur existe"; \
+		echo ""; \
+		echo "🔑 Identifiants Admin:"; \
+		echo "    Email:    admin@jobbingtrack.com"; \
+		echo "    Password: password123"; \
+		echo ""; \
+	fi
+	
 	@echo "📊 Pour démarrer le monitoring complet (Prometheus, cAdvisor, Grafana):"
 	@echo "    make monitoring-full"
 	@echo ""

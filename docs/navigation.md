@@ -6,8 +6,10 @@
 - **[🏠 README Principal](../README.md)** | **[📚 Documentation Centralisée](README.md)**
 
 ### 🚀 **Démarrage Rapide**
-- **[⚡ Installation](deployment/getting-started/README.md)** | **[💻 Configuration Développement](development/setup/README.md)**
-- **[🛠️ Guide Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
+- **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !
+- **[🛠️ Commandes Makefile](development/COMMANDES_MAKEFILE.md)** - Guide complet des commandes
+- **[💻 Configuration Développement](development/setup/README.md)** - Configuration complète du développement
+- **[🎯 Configuration Déploiement](deployment/getting-started/README.md)** | **[🏭 Production](deployment/production/README.md)** - Configuration complète du déploiement
 
 ### 🏗️ **Architecture et Infrastructure**
 - **[🏛️ Architecture Microservices](core/architecture/README.md)** | **[💾 Base de Données](database/README.md)** | **[📊 Analyses BDD](database/analysis/README.md)**

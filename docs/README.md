@@ -2,6 +2,8 @@
 
 [← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md)
 
+##  **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
+
 ## 🎯 Vue d'ensemble
 
 Documentation complète et organisée du projet **JobbingTrack v4.1** - Système de suivi de candidatures avec architecture microservices, dashboard administrateur et applications mobiles.
