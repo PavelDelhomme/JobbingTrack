@@ -1,108 +1,11 @@
-interface SystemMetrics {
-  cpu: {
-    usage: number | string
-    cores: number | string
-    model: string
-  }
-  memory: {
-    total: number | string
-    used: number | string
-    free: number | string
-    usage: number | string
-  }
-  load: {
-    average: number | string
-    cores: number[] | string
-  }
-  disk: Array<{
-    mount: string
-    total: number | string
-    used: number | string
-    usage: number | string
-  }>
-}
-
-interface ServiceMetrics {
-  name: string
-  url: string
-  port: number
-  status: string
-  responseTime?: number | string
-  version?: string
-  error?: string
-  health?: {
-    status: string
-    responseTime: number | string
-    version?: string
-    error?: string
-  }
-  lastCheck: string
-  metrics?: {
-    memory?: {
-      usage: number | string
-      limit: number | string
-      percentage: number | string
-    }
-    cpu?: {
-      usage: number | string
-      system: number | string
-      percentage: number | string
-    }
-    network?: {
-      rx_bytes: number | string
-      tx_bytes: number | string
-    }
-  }
-}
-
-interface ContainerMetrics {
-  [containerName: string]: {
-    memory: {
-      usage: number | string
-      limit: number | string
-      percentage: number | string
-    }
-    cpu: {
-      usage: number | string
-      system: number | string
-      percentage: number | string
-    }
-    network: {
-      rx_bytes: number | string
-      tx_bytes: number | string
-    }
-    status: string
-  }
-}
-
-interface MetricsData {
-  services: { [key: string]: ServiceMetrics }
-  system: SystemMetrics
-  containers: ContainerMetrics
-  timestamp: string
-}
-
-interface UserCustomization {
-  theme: string
-  language: string
-  dashboardLayout: string
-  notifications: {
-    email: boolean
-    push: boolean
-    sms: boolean
-  }
-  features: {
-    analytics: boolean
-    maintenance: boolean
-    security: boolean
-  }
-  metrics: {
-    refreshInterval: number
-    defaultView: string
-    showContainers: boolean
-    showServices: boolean
-  }
-}
+import {
+  SystemMetrics,
+  ServiceMetrics,
+  ContainerMetrics,
+  MetricsData,
+  UserCustomization
+} from '@/lib/interfaces'
+import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
 
 class CentralMetricsService {
   private apiUrl: string
@@ -277,7 +180,7 @@ class CentralMetricsService {
       console.log('[SYSTEM] Endpoint non disponible, utilisation du service de métriques')
 
       // Utiliser le service de métriques agrégateur
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -292,11 +195,11 @@ class CentralMetricsService {
             cpu: {
               // Le backend renvoie 'percent', on le mappe vers 'usage'
               usage: data.system.cpu?.percent ?? data.system.cpu?.usage ?? 0,
-              cores: data.system.cpu?.cores || 'N/A',
-              model: data.system.cpu?.model || 'N/A'
+              cores: data.system.cpus || data.system.cpu?.cores || 'N/A',
+              model: data.system.cpu?.model || data.system.architecture || 'N/A'
             },
             memory: {
-              total: data.system.memory?.total || 'N/A',
+              total: data.system.memory_total || data.system.memory?.total || 'N/A',
               used: data.system.memory?.used || 'N/A',
               free: data.system.memory?.free || 'N/A',
               // Le backend renvoie 'percent', on le mappe vers 'usage'
@@ -304,7 +207,7 @@ class CentralMetricsService {
             },
             load: {
               average: data.system.load?.average || data.system.uptime ? (data.system.uptime / 3600).toFixed(1) : 0,
-              cores: data.system.load?.cores || 'N/A'
+              cores: data.system.cpus || data.system.load?.cores || 'N/A'
             },
             disk: data.system.disk || []
           }
@@ -354,7 +257,7 @@ class CentralMetricsService {
       console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
 
       // Utiliser le service de métriques agrégateur qui se connecte à Prometheus
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -435,8 +338,8 @@ class CentralMetricsService {
       // Utiliser le service de métriques agrégateur
       console.log('[SERVICES] Récupération depuis le service de métriques')
 
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      const response = await fetch(`${metricsUrl}/api/v1/services`, {
         headers: {
           'Accept': 'application/json',
         },
@@ -445,8 +348,13 @@ class CentralMetricsService {
 
       if (response.ok) {
         const data = await response.json()
-        if (data.services) {
-          return data.services
+        if (data.containers && Array.isArray(data.containers)) {
+          // Convertir le tableau en objet avec name comme clé
+          const servicesMap: any = {}
+          data.containers.forEach((container: any) => {
+            servicesMap[container.name] = container
+          })
+          return servicesMap
         }
       }
 
@@ -534,7 +442,7 @@ class CentralMetricsService {
   // Récupération des métriques depuis le service agrégateur
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
       const metricsApiKey = process.env.NEXT_PUBLIC_METRICS_API_KEY || 'jobbingtrack-metrics-secret-key'
       
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
@@ -606,7 +514,7 @@ class CentralMetricsService {
 
     try {
       // Essayer d'abord le service de métriques agrégateur qui a les vraies données
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://127.0.0.1:3014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
       const response = await fetch(`${metricsUrl}/api/v1/services`, {
         headers: {
           'Accept': 'application/json',
@@ -695,84 +603,6 @@ class CentralMetricsService {
     return null
   }
 
-  // Formater le nom du service pour l'affichage
-  private formatServiceName(containerName: string): string {
-    // Convertir les noms de conteneurs en noms lisibles
-    const nameMap: {[key: string]: string} = {
-      'jobbingtrack-auth-service': 'Service d\'Authentification',
-      'jobbingtrack-application-service': 'Service des Candidatures',
-      'jobbingtrack-company-service': 'Service des Entreprises',
-      'jobbingtrack-contact-service': 'Service des Contacts',
-      'jobbingtrack-interview-service': 'Service des Entretiens',
-      'jobbingtrack-notification-service': 'Service de Notifications',
-      'jobbingtrack-dashboard-service': 'Service du Tableau de Bord',
-      'jobbingtrack-call-service': 'Service des Appels',
-      'jobbingtrack-profile-service': 'Service des Profils',
-      'jobbingtrack-event-service': 'Service des Événements',
-      'jobbingtrack-followup-service': 'Service de Suivi',
-      'jobbingtrack-workflow-service': 'Service de Workflow',
-      'jobbingtrack-api-gateway': 'API Gateway',
-      'jobbingtrack-frontend': 'Frontend',
-      'jobbingtrack-postgres': 'Base de Données',
-      'jobbingtrack-redis': 'Cache Redis',
-      'jobbingtrack-prometheus': 'Prometheus',
-      'jobbingtrack-grafana': 'Grafana',
-      'jobbingtrack-cadvisor': 'cAdvisor',
-      'jobbingtrack-simple-metrics': 'Service de Métriques'
-    }
-
-    return nameMap[containerName] || containerName.replace(/jobbingtrack-/g, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  }
-
-  // Obtenir l'URL du service
-  private getServiceUrl(serviceType: string): string {
-    const urlMap: {[key: string]: string} = {
-      'auth-service': 'http://localhost:3001',
-      'application-service': 'http://localhost:3002',
-      'company-service': 'http://localhost:3003',
-      'contact-service': 'http://localhost:3004',
-      'interview-service': 'http://localhost:3005',
-      'notification-service': 'http://localhost:3006',
-      'dashboard-service': 'http://localhost:3007',
-      'call-service': 'http://localhost:3008',
-      'profile-service': 'http://localhost:3009',
-      'event-service': 'http://localhost:3011',
-      'followup-service': 'http://localhost:3012',
-      'workflow-service': 'http://localhost:3013',
-      'api-gateway': 'http://localhost:3000',
-      'frontend': 'http://localhost:3003',
-      'database': 'http://localhost:5432',
-      'cache': 'http://localhost:6379',
-      'monitoring': 'http://localhost:9090'
-    }
-
-    return urlMap[serviceType] || 'http://localhost:3000'
-  }
-
-  // Obtenir le port du service
-  private getServicePort(serviceType: string): number {
-    const portMap: {[key: string]: number} = {
-      'auth-service': 3001,
-      'application-service': 3002,
-      'company-service': 3003,
-      'contact-service': 3004,
-      'interview-service': 3005,
-      'notification-service': 3006,
-      'dashboard-service': 3007,
-      'call-service': 3008,
-      'profile-service': 3009,
-      'event-service': 3011,
-      'followup-service': 3012,
-      'workflow-service': 3013,
-      'api-gateway': 3000,
-      'frontend': 8080,
-      'database': 5432,
-      'cache': 6379,
-      'monitoring': 9090
-    }
-
-    return portMap[serviceType] || 3000
-  }
 
   // Méthode principale pour récupérer les métriques avec cache et fallback intelligent
   async fetchMetrics(): Promise<MetricsData | null> {
@@ -838,6 +668,26 @@ class CentralMetricsService {
             )
           ])
 
+          // Calculer les moyennes CPU/mémoire depuis les conteneurs
+          let totalCpu = 0
+          let totalMemoryUsed = 0
+          let totalMemoryLimit = 0
+          let validContainersCount = 0
+
+          allServices.forEach((service: any) => {
+            if (service.metrics?.cpu?.percent !== undefined) {
+              totalCpu += service.metrics.cpu.percent
+              validContainersCount++
+            }
+            if (service.metrics?.memory) {
+              totalMemoryUsed += service.metrics.memory.usage || 0
+              totalMemoryLimit += service.metrics.memory.limit || 0
+            }
+          })
+
+          const avgCpu = validContainersCount > 0 ? totalCpu / validContainersCount : 0
+          const memoryPercent = totalMemoryLimit > 0 ? (totalMemoryUsed / totalMemoryLimit) * 100 : 0
+
           // Convertir les services en format compatible
           const servicesMap: {[key: string]: any} = {}
           allServices.forEach((service: any) => {
@@ -852,14 +702,42 @@ class CentralMetricsService {
             }
           })
 
+          // Enrichir systemMetrics avec les données calculées
+          const enrichedSystemMetrics = systemMetrics ? {
+            ...systemMetrics,
+            cpu: {
+              ...systemMetrics.cpu,
+              usage: avgCpu > 0 ? avgCpu.toFixed(2) : systemMetrics.cpu.usage
+            },
+            memory: {
+              total: totalMemoryLimit > 0 ? totalMemoryLimit : systemMetrics.memory.total,
+              used: totalMemoryUsed > 0 ? totalMemoryUsed : systemMetrics.memory.used,
+              free: totalMemoryLimit > 0 && totalMemoryUsed > 0 ? totalMemoryLimit - totalMemoryUsed : systemMetrics.memory.free,
+              usage: memoryPercent > 0 ? memoryPercent.toFixed(2) : systemMetrics.memory.usage
+            }
+          } : {
+            cpu: { usage: avgCpu > 0 ? avgCpu.toFixed(2) : 0, cores: 'N/A', model: 'N/A' },
+            memory: { 
+              total: totalMemoryLimit > 0 ? totalMemoryLimit : 'N/A', 
+              used: totalMemoryUsed > 0 ? totalMemoryUsed : 'N/A', 
+              free: totalMemoryLimit > 0 ? totalMemoryLimit - totalMemoryUsed : 'N/A', 
+              usage: memoryPercent > 0 ? memoryPercent.toFixed(2) : 0
+            },
+            load: { average: 'N/A', cores: 'N/A' },
+            disk: []
+          }
+          
+          console.log('[CENTRAL METRICS] 📊 Métriques calculées:', {
+            avgCpu: avgCpu.toFixed(2) + '%',
+            memoryUsed: (totalMemoryUsed / 1024 / 1024 / 1024).toFixed(2) + ' GB',
+            memoryTotal: (totalMemoryLimit / 1024 / 1024 / 1024).toFixed(2) + ' GB',
+            memoryPercent: memoryPercent.toFixed(2) + '%',
+            containersCount: validContainersCount
+          })
+
           const metrics = {
             services: servicesMap,
-            system: systemMetrics || {
-              cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
-              memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
-              load: { average: 'N/A', cores: 'N/A' },
-              disk: []
-            },
+            system: enrichedSystemMetrics,
             containers: {},
             timestamp: new Date().toISOString()
           }

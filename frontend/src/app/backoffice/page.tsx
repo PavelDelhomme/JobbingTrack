@@ -377,7 +377,7 @@ export default function BackofficePage() {
                 Analytics
               </button>
               <button
-                onClick={() => router.push('/backoffice/services')}
+                onClick={() => setShowServicesPopup(true)}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
               >
                 <Activity className="h-4 w-4" />
@@ -750,12 +750,23 @@ export default function BackofficePage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {(servicesWithMetrics.length > 0 ? servicesWithMetrics : services).length} services disponibles
                   </p>
-                  <button
-                    onClick={() => setShowServicesPopup(false)}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-                  >
-                    Fermer
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setShowServicesPopup(false);
+                        router.push('/backoffice/services');
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Gestion Complète
+                    </button>
+                    <button
+                      onClick={() => setShowServicesPopup(false)}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                    >
+                      Fermer
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

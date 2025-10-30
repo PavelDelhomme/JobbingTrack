@@ -523,30 +523,43 @@ app.get('/api/v1/services', async (req, res) => {
     // Essayer de récupérer les vraies informations depuis le service de métriques
     try {
       const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
-      const response = await axios.get(`${metricsServiceUrl}/api/v1/metrics`, {
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/services`, {
         timeout: 5000
       });
 
-      if (response.data && response.data.services) {
-        // Convertir les services du format du service metrics-aggregator vers notre format
-        servicesStatus = Object.entries(response.data.services).map(([key, service]) => {
-          // Extraire le nom du service à partir de la clé Docker (jobbingtrack-api-gateway -> api-gateway)
-          const serviceName = key.replace('jobbingtrack-', '').replace('-service', '');
+      if (response.data && response.data.containers) {
+        // Convertir les conteneurs du format du service metrics-aggregator vers notre format
+        servicesStatus = response.data.containers.map((container) => {
+          // Extraire le nom du service à partir du nom du conteneur
+          const serviceName = container.name.replace('jobbingtrack-', '').replace('-service', '');
+          
+          // Déterminer le statut réel : si CPU > 0 ou PIDs > 0, c'est vraiment running
+          const isActuallyRunning = (container.cpu?.percent > 0 || container.pids > 0);
+          const status = isActuallyRunning ? 'running' : 'stopped';
 
           return {
             name: serviceName,
-            status: service.health?.status || service.status || 'unknown',
-            port: service.port || 'N/A',
-            url: `http://localhost:${service.port || 'N/A'}`,
-            health: service.health?.status || service.status || 'unknown',
-            version: service.health?.version || '1.0.0',
+            status: status,
+            port: 'N/A', // Port non exposé par cAdvisor, nécessiterait inspection Docker
+            url: `http://localhost:N/A`,
+            health: status,
+            version: 'N/A', // Version non disponible via métriques conteneur
             environment: process.env.NODE_ENV || 'development',
-            type: service.type || 'service',
+            type: 'service',
             dataSource: 'metrics-aggregator',
-            lastCheck: service.lastCheck || new Date().toISOString(),
-            responseTime: service.health?.responseTime || 'N/A',
-            error: service.health?.error || undefined,
-            metrics: service.metrics || {}
+            lastCheck: new Date().toISOString(),
+            responseTime: 'N/A',
+            error: undefined,
+            metrics: {
+              cpu: container.cpu?.percent !== undefined ? container.cpu.percent : 'N/A',
+              memory: {
+                usage: container.memory?.usage || 'N/A',
+                limit: container.memory?.limit || 'N/A',
+                percent: container.memory?.percent !== undefined ? container.memory.percent : 'N/A'
+              },
+              network: container.network || { rx_bytes: 'N/A', tx_bytes: 'N/A' },
+              pids: container.pids !== undefined ? container.pids : 'N/A'
+            }
           };
         });
 
