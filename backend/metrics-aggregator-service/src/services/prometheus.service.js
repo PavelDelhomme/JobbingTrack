@@ -9,41 +9,65 @@ const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://prometheus:9090';
 async function getSystemMetrics() {
   try {
     const queries = {
-      // CPU
+      // CPU - Nombre de cœurs
       cpu_cores: 'count(node_cpu_seconds_total{mode="idle"})',
-      cpu_usage_percent: '100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
       
-      // Mémoire
-      memory_total_bytes: 'node_memory_MemTotal_bytes',
-      memory_available_bytes: 'node_memory_MemAvailable_bytes',
-      memory_used_bytes: 'node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes',
+      // CPU - Utilisation système (%)
+      cpu_usage_percent: '100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)',
+      
+      // Mémoire totale machine (bytes)
+      memory_total: 'node_memory_MemTotal_bytes',
+      
+      // Mémoire disponible (bytes)
+      memory_available: 'node_memory_MemAvailable_bytes',
+      
+      // Mémoire utilisée (bytes)
+      memory_used: 'node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes',
+      
+      // Mémoire utilisée (%)
       memory_used_percent: '100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))',
       
-      // Disque
-      disk_total_bytes: 'node_filesystem_size_bytes{mountpoint="/"}',
-      disk_used_bytes: 'node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"}',
-      disk_used_percent: '100 * (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}))',
+      // Espace disque total (bytes) - tous les filesystems
+      disk_total: 'sum(node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs"})',
+      
+      // Espace disque utilisé (bytes)
+      disk_used: 'sum(node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs"}) - sum(node_filesystem_avail_bytes{fstype=~"ext4|xfs|btrfs"})',
+      
+      // Espace disque utilisé (%)
+      disk_used_percent: '100 * (1 - (sum(node_filesystem_avail_bytes{fstype=~"ext4|xfs|btrfs"}) / sum(node_filesystem_size_bytes{fstype=~"ext4|xfs|btrfs"})))',
       
       // Load average
       load_1min: 'node_load1',
       load_5min: 'node_load5',
-      load_15min: 'node_load15'
+      load_15min: 'node_load15',
+      
+      // Nombre de conteneurs actifs JobbingTrack
+      containers_jobbingtrack: 'count(container_last_seen{container_label_com_docker_compose_project=~"jobbingtrack.*", name!=""})',
+      
+      // Nombre total de conteneurs (tous projets)
+      containers_total: 'count(container_last_seen{name!=""})'
     };
 
     const results = {};
     
     for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      
-      const data = response.data.data.result;
-      results[key] = data.length > 0 ? parseFloat(data[0].value[1]) : null;
+      try {
+        const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
+          params: { query },
+          timeout: 5000
+        });
+        
+        const data = response.data.data.result;
+        results[key] = data.length > 0 ? parseFloat(data[0].value[1]) : null;
+      } catch (error) {
+        console.error(`Erreur query ${key}:`, error.message);
+        results[key] = null;
+      }
     }
 
     return {
       success: true,
+      timestamp: new Date().toISOString(),
       data: results
     };
   } catch (error) {
@@ -61,43 +85,98 @@ async function getSystemMetrics() {
 
 async function getJobbingTrackContainersMetrics() {
   try {
-    // Filtre UNIQUEMENT les conteneurs du projet JobbingTrack
-    const projectLabel = 'com.docker.compose.project';
-    const projectName = 'jobbingtrack'; // OU récupère dynamiquement depuis env
-    
     const queries = {
-      // CPU par conteneur (filtré JobbingTrack)
-      cpu_usage: `sum by (name, container_label_${projectLabel.replace(/\./g, '_')}) (rate(container_cpu_usage_seconds_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m]))`,
+      // CPU par conteneur JobbingTrack (rate sur 1 min)
+      cpu_usage: `
+        rate(container_cpu_usage_seconds_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m])
+      `,
       
-      // Mémoire par conteneur
-      memory_usage: `container_memory_usage_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}`,
-      memory_limit: `container_spec_memory_limit_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}`,
+      // Mémoire utilisée par conteneur (bytes)
+      memory_usage: `
+        container_memory_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }
+      `,
       
-      // Réseau par conteneur
-      network_rx: `rate(container_network_receive_bytes_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m])`,
-      network_tx: `rate(container_network_transmit_bytes_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m])`,
+      // Limite mémoire par conteneur (bytes)
+      memory_limit: `
+        container_spec_memory_limit_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }
+      `,
       
-      // Filesystem par conteneur
-      fs_usage: `container_fs_usage_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}`,
-      fs_limit: `container_fs_limit_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}`,
+      // Pourcentage mémoire par conteneur
+      memory_percent: `
+        100 * (
+          container_memory_usage_bytes{container_label_com_docker_compose_project=~"jobbingtrack.*", name!=""} /
+          container_spec_memory_limit_bytes{container_label_com_docker_compose_project=~"jobbingtrack.*", name!=""}
+        )
+      `,
       
-      // Nombre de conteneurs actifs JobbingTrack
-      containers_count: `count(container_last_seen{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""})`
+      // Réseau RX (bytes/sec)
+      network_rx: `
+        rate(container_network_receive_bytes_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m])
+      `,
+      
+      // Réseau TX (bytes/sec)
+      network_tx: `
+        rate(container_network_transmit_bytes_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m])
+      `,
+      
+      // Filesystem usage (bytes)
+      fs_usage: `
+        container_fs_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }
+      `,
+      
+      // Filesystem limit (bytes)
+      fs_limit: `
+        container_fs_limit_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }
+      `,
+      
+      // Nombre de conteneurs actifs
+      containers_count: `
+        count(container_last_seen{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        })
+      `
     };
 
     const results = {};
     
     for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      
-      results[key] = response.data.data.result;
+      try {
+        const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
+          params: { query },
+          timeout: 5000
+        });
+        results[key] = response.data.data.result;
+      } catch (error) {
+        console.error(`Erreur query JobbingTrack containers ${key}:`, error.message);
+        results[key] = [];
+      }
     }
 
     return {
       success: true,
+      timestamp: new Date().toISOString(),
       data: results
     };
   } catch (error) {
@@ -116,34 +195,59 @@ async function getJobbingTrackContainersMetrics() {
 async function getContainerMetrics(containerName) {
   try {
     const queries = {
-      cpu_usage: `rate(container_cpu_usage_seconds_total{name=~".*${containerName}.*"}[5m])`,
-      cpu_usage_percent: `100 * rate(container_cpu_usage_seconds_total{name=~".*${containerName}.*"}[5m])`,
+      // CPU usage (rate)
+      cpu_usage: `rate(container_cpu_usage_seconds_total{name=~".*${containerName}.*"}[1m])`,
       
+      // CPU usage en pourcentage
+      cpu_usage_percent: `100 * rate(container_cpu_usage_seconds_total{name=~".*${containerName}.*"}[1m])`,
+      
+      // Mémoire utilisée (bytes)
       memory_usage: `container_memory_usage_bytes{name=~".*${containerName}.*"}`,
+      
+      // Limite mémoire (bytes)
       memory_limit: `container_spec_memory_limit_bytes{name=~".*${containerName}.*"}`,
+      
+      // Pourcentage mémoire
       memory_usage_percent: `100 * (container_memory_usage_bytes{name=~".*${containerName}.*"} / container_spec_memory_limit_bytes{name=~".*${containerName}.*"})`,
       
-      network_rx: `rate(container_network_receive_bytes_total{name=~".*${containerName}.*"}[5m])`,
-      network_tx: `rate(container_network_transmit_bytes_total{name=~".*${containerName}.*"}[5m])`,
+      // Réseau RX (bytes/sec)
+      network_rx: `rate(container_network_receive_bytes_total{name=~".*${containerName}.*"}[1m])`,
       
+      // Réseau TX (bytes/sec)
+      network_tx: `rate(container_network_transmit_bytes_total{name=~".*${containerName}.*"}[1m])`,
+      
+      // Filesystem usage (bytes)
       fs_usage: `container_fs_usage_bytes{name=~".*${containerName}.*"}`,
-      fs_limit: `container_fs_limit_bytes{name=~".*${containerName}.*"}`
+      
+      // Filesystem limit (bytes)
+      fs_limit: `container_fs_limit_bytes{name=~".*${containerName}.*"}`,
+      
+      // Filesystem usage percent
+      fs_usage_percent: `100 * (container_fs_usage_bytes{name=~".*${containerName}.*"} / container_fs_limit_bytes{name=~".*${containerName}.*"})`,
+      
+      // Uptime (seconds)
+      uptime: `time() - container_start_time_seconds{name=~".*${containerName}.*"}`
     };
 
     const results = {};
     
     for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      
-      results[key] = response.data.data.result;
+      try {
+        const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
+          params: { query },
+          timeout: 5000
+        });
+        results[key] = response.data.data.result;
+      } catch (error) {
+        console.error(`Erreur query conteneur ${containerName} ${key}:`, error.message);
+        results[key] = [];
+      }
     }
 
     return {
       success: true,
       container: containerName,
+      timestamp: new Date().toISOString(),
       data: results
     };
   } catch (error) {
@@ -161,47 +265,125 @@ async function getContainerMetrics(containerName) {
 
 async function getJobbingTrackStats() {
   try {
-    const projectLabel = 'com.docker.compose.project';
-    const projectName = 'jobbingtrack';
-    
     const queries = {
-      // CPU total utilisé par JobbingTrack (en cores)
-      total_cpu_usage: `sum(rate(container_cpu_usage_seconds_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m]))`,
+      // CPU total utilisé par TOUS les conteneurs JobbingTrack
+      total_cpu_usage: `
+        sum(rate(container_cpu_usage_seconds_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]))
+      `,
       
-      // CPU moyen par conteneur
-      avg_cpu_usage: `avg(rate(container_cpu_usage_seconds_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m]))`,
+      // CPU moyen par conteneur JobbingTrack
+      avg_cpu_usage: `
+        avg(rate(container_cpu_usage_seconds_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]))
+      `,
       
-      // CPU max parmi les conteneurs
-      max_cpu_usage: `max(rate(container_cpu_usage_seconds_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m]))`,
+      // CPU max parmi les conteneurs JobbingTrack
+      max_cpu_usage: `
+        max(rate(container_cpu_usage_seconds_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]))
+      `,
       
-      // CPU min parmi les conteneurs
-      min_cpu_usage: `min(rate(container_cpu_usage_seconds_total{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""}[5m]))`,
+      // CPU min parmi les conteneurs JobbingTrack
+      min_cpu_usage: `
+        min(rate(container_cpu_usage_seconds_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]) > 0)
+      `,
       
-      // Mémoire totale utilisée par JobbingTrack
-      total_memory_usage: `sum(container_memory_usage_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""})`,
+      // Mémoire totale utilisée par JobbingTrack (bytes)
+      total_memory_usage: `
+        sum(container_memory_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        })
+      `,
       
-      // Mémoire moyenne par conteneur
-      avg_memory_usage: `avg(container_memory_usage_bytes{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""})`,
+      // Mémoire moyenne par conteneur (bytes)
+      avg_memory_usage: `
+        avg(container_memory_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        })
+      `,
+      
+      // Mémoire max parmi les conteneurs
+      max_memory_usage: `
+        max(container_memory_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        })
+      `,
+      
+      // Mémoire min parmi les conteneurs
+      min_memory_usage: `
+        min(container_memory_usage_bytes{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        } > 0)
+      `,
+      
+      // Pourcentage mémoire JobbingTrack / mémoire totale système
+      memory_percent_of_system: `
+        100 * (
+          sum(container_memory_usage_bytes{container_label_com_docker_compose_project=~"jobbingtrack.*", name!=""})
+          / node_memory_MemTotal_bytes
+        )
+      `,
+      
+      // Réseau total RX JobbingTrack (bytes/sec)
+      total_network_rx: `
+        sum(rate(container_network_receive_bytes_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]))
+      `,
+      
+      // Réseau total TX JobbingTrack (bytes/sec)
+      total_network_tx: `
+        sum(rate(container_network_transmit_bytes_total{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        }[1m]))
+      `,
       
       // Nombre de conteneurs actifs
-      active_containers: `count(container_last_seen{container_label_${projectLabel.replace(/\./g, '_')}="${projectName}", name!=""})`
+      active_containers: `
+        count(container_last_seen{
+          container_label_com_docker_compose_project=~"jobbingtrack.*",
+          name!=""
+        })
+      `
     };
 
     const results = {};
     
     for (const [key, query] of Object.entries(queries)) {
-      const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
-        params: { query },
-        timeout: 5000
-      });
-      
-      const data = response.data.data.result;
-      results[key] = data.length > 0 ? parseFloat(data[0].value[1]) : null;
+      try {
+        const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
+          params: { query },
+          timeout: 5000
+        });
+        
+        const data = response.data.data.result;
+        results[key] = data.length > 0 ? parseFloat(data[0].value[1]) : null;
+      } catch (error) {
+        console.error(`Erreur query agrégation ${key}:`, error.message);
+        results[key] = null;
+      }
     }
 
     return {
       success: true,
-      project: projectName,
+      project: 'jobbingtrack',
+      timestamp: new Date().toISOString(),
       data: results
     };
   } catch (error) {
