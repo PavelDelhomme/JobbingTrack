@@ -66,10 +66,10 @@ SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>  # Email expéditeur formaté
 
 ### Utilisateur Administrateur
 ```bash
-ADMIN_EMAIL=pavel@jobbingtrack.com      # Email de l'administrateur
+ADMIN_EMAIL=admin@jobbingtrack.com      # Email de l'administrateur
 ADMIN_PASSWORD=password123              # Mot de passe de l'administrateur
-ADMIN_FIRST_NAME=Pavel                  # Prénom de l'administrateur
-ADMIN_LAST_NAME=Delhomme               # Nom de l'administrateur
+ADMIN_FIRST_NAME=Admin                  # Prénom de l'administrateur
+ADMIN_LAST_NAME=JobbingTrack           # Nom de l'administrateur
 ```
 
 ## Configuration Docker Compose
@@ -123,10 +123,10 @@ JWT_SECRET=dev-secret-key-2025-change-in-production
 JWT_REFRESH_SECRET=dev-refresh-secret-2025
 
 # Utilisateur administrateur
-ADMIN_EMAIL=pavel@jobbingtrack.com
+ADMIN_EMAIL=admin@jobbingtrack.com
 ADMIN_PASSWORD=password123
-ADMIN_FIRST_NAME=Pavel
-ADMIN_LAST_NAME=Delhomme
+ADMIN_FIRST_NAME=Admin
+ADMIN_LAST_NAME=JobbingTrack
 
 # Configuration
 NODE_ENV=development
@@ -148,7 +148,7 @@ JWT_SECRET=prod_super_secret_jwt_key_2025_unique_and_secure
 JWT_REFRESH_SECRET=prod_super_secret_refresh_key_2025
 
 # Utilisateur administrateur
-ADMIN_EMAIL=admin@votredomaine.com
+ADMIN_EMAIL=admin@jobbingtrack.com
 ADMIN_PASSWORD=votre_password_admin_securise_2025!
 ADMIN_FIRST_NAME=Admin
 ADMIN_LAST_NAME=JobbingTrack

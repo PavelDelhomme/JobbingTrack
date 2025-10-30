@@ -24,10 +24,10 @@ async function main() {
   
   const testUser = await prisma.user.create({
     data: {
-      email: 'pavel@jobbingtrack.com',
+      email: 'admin@jobbingtrack.com',
       password: hashedPassword,
-      firstName: 'Pavel',
-      lastName: 'Delhomme',
+      firstName: 'Admin',
+      lastName: 'JobbingTrack',
       phone: '+33123456789',
     }
   })
@@ -124,7 +124,7 @@ async function main() {
   console.log('✅ Données de test créées avec succès!')
   console.log('')
   console.log('🔐 Compte de test:')
-  console.log('   Email: pavel@jobbingtrack.com')
+  console.log('   Email: admin@jobbingtrack.com')
   console.log('   Mot de passe: password123')
 }
 

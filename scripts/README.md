@@ -136,8 +136,8 @@ Plusieurs scripts supportent des variables d'environnement :
 
 ```bash
 # Configuration admin par défaut
-export SUPER_ADMIN_EMAIL="admin@example.com"
-export SUPER_ADMIN_PASSWORD="MySecurePassword123!"
+export SUPER_ADMIN_EMAIL="admin@jobbingtrack.com"
+export SUPER_ADMIN_PASSWORD="password123"
 
 # Configuration des timeouts
 export DB_CONNECTION_TIMEOUT=30

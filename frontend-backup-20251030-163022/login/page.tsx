@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/hooks/auth';
 import { useTheme } from '@/lib/hooks/theme';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('pavel@jobbingtrack.com');
+  const [email, setEmail] = useState('admin@jobbingtrack.com');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -205,7 +205,7 @@ export default function LoginPage() {
                 <div className="flex-1 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
                   <p className="font-bold mb-2 text-sm sm:text-base">Compte de test :</p>
                   <div className="space-y-1">
-                    <p><strong>Email:</strong> pavel@jobbingtrack.com</p>
+                    <p><strong>Email:</strong> admin@jobbingtrack.com</p>
                     <p><strong>Mot de passe:</strong> password123</p>
                   </div>
                   <p className="mt-3 text-xs text-blue-700 dark:text-blue-300 italic">

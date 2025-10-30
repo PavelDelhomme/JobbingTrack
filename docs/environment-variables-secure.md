@@ -44,7 +44,7 @@ SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>  # Email expéditeur formaté
 
 ### Utilisateur Administrateur
 ```bash
-ADMIN_EMAIL=votre-email-admin@jobbingtrack.com  # ⚠️ Email administrateur
+ADMIN_EMAIL=admin@jobbingtrack.com              # ⚠️ Email administrateur
 ADMIN_PASSWORD=VOTRE_PASSWORD_ADMIN_SÉCURISÉ    # ⚠️ Mot de passe administrateur
 ADMIN_FIRST_NAME=VotrePrénom                    # Prénom administrateur
 ADMIN_LAST_NAME=VotreNom                       # Nom administrateur
@@ -74,10 +74,10 @@ JWT_SECRET=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab
 JWT_REFRESH_SECRET=fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fe
 
 # Utilisateur administrateur
-ADMIN_EMAIL=user1@jobbingtrack.com
+ADMIN_EMAIL=admin@jobbingtrack.com
 ADMIN_PASSWORD=password123
-ADMIN_FIRST_NAME=Pavel
-ADMIN_LAST_NAME=Delhomme
+ADMIN_FIRST_NAME=Admin
+ADMIN_LAST_NAME=JobbingTrack
 
 # Configuration
 NODE_ENV=development
@@ -99,7 +99,7 @@ JWT_SECRET=prod_abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
 JWT_REFRESH_SECRET=prod_fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321fe
 
 # Utilisateur administrateur de production
-ADMIN_EMAIL=admin@monentreprise.com
+ADMIN_EMAIL=admin@jobbingtrack.com
 ADMIN_PASSWORD=production_admin_password_2025!
 
 # Configuration production

@@ -73,7 +73,7 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   cAdvisor:           http://localhost:8081"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@echo "   Email:    ${ADMIN_EMAIL:-pavel@jobbingtrack.com}"
+	@echo "   Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.com}"
 	@echo "   Password: ${ADMIN_PASSWORD:-password123}"
 	@echo ""
 	@echo "💡 Utilisez 'make up-full' pour démarrer tous les services"

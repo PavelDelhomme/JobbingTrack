@@ -22,7 +22,7 @@ DB_PASSWORD=${DB_PASSWORD:-jobbingtrack123}
 
 # Informations de l'administrateur à créer
 ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.com}
-ADMIN_PASSWORD=${ADMIN_PASSWORD:-SuperAdmin123!}
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
 ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Admin}
 ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-JobbingTrack}
 
@@ -58,7 +58,7 @@ if command -v docker &> /dev/null; then
         echo "🔧 Création de l'utilisateur administrateur..."
         docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
         INSERT INTO \"User\" (email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
-        VALUES ('$ADMIN_EMAIL', '\$2b\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
+        VALUES ('$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
         " 2>/dev/null || {
             echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
             exit 1
@@ -92,7 +92,7 @@ else
         if [ "$EXISTS" = "0" ]; then
             PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
             INSERT INTO \"User\" (email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
-            VALUES ('$ADMIN_EMAIL', '\$2b\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
+            VALUES ('$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
             " 2>/dev/null || {
                 echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
                 exit 1

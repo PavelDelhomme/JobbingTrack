@@ -90,6 +90,15 @@ db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
 	@echo "✅ Rôle et base de données vérifiés"
 
+create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
+	@echo "👤 Création de l'utilisateur super administrateur..."
+	@chmod +x backend/scripts/database/create-admin-user.sh
+	@./backend/scripts/database/create-admin-user.sh
+	@echo ""
+	@echo "✅ Utilisateur créé !"
+	@echo "📧 Email: admin@jobbingtrack.com"
+	@echo "🔑 Password: password123"
+
 # ============================================================================
 # ENVIRONNEMENTS MULTIPLES
 # ============================================================================

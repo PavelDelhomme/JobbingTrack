@@ -381,7 +381,7 @@ export default function MobileEmulatorPage() {
       // Fallback sur les utilisateurs de test si l'API ne fonctionne pas
       setUsers([
         { id: '1', email: 'admin@jobbingtrack.com', firstName: 'Admin', lastName: 'JobbingTrack', role: 'SUPER_ADMIN' },
-        { id: '2', email: 'pavel@jobbingtrack.com', firstName: 'Pavel', lastName: 'Delhomme', role: 'SUPER_ADMIN' },
+        { id: '2', email: 'admin@jobbingtrack.com', firstName: 'Pavel', lastName: 'Delhomme', role: 'SUPER_ADMIN' },
         { id: '3', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'USER' },
       ])
     }
