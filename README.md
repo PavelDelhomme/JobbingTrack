@@ -189,6 +189,7 @@ make status # Statut détaillé
 
 📖 **[Documentation complète Makefile](docs/development/makefile/README.md)** | 📄 **[Documentation PDF Complète](docs/pdfs/documentation-complete.pdf)**
 
+**TODO: Ajouter du vecteur et de l'embedding pour le traitement des données et analyse, afin de déterminer les profil utilisateur et le matching avec la candidature a laquelle il ont postuler afin de savoir si le profil est compatible avec la candidature**
 ---
 
 **[⬆ Retour en haut](#jobbingtrack-)**
