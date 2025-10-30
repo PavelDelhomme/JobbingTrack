@@ -102,6 +102,10 @@ if (process.env.NODE_ENV === 'development') {
       try {
         const prometheusMetrics = await prometheusService.getSystemMetrics();
         
+        // Compter les conteneurs via Docker CLI (plus fiable)
+        const stats = await dockerService.getAllContainersStats();
+        const jobbingtrackContainers = stats.filter(c => c.name.startsWith('jobbingtrack-'));
+        
         // Formater pour correspondre au format attendu par le frontend
         const formatted = {
           success: true,
@@ -113,8 +117,8 @@ if (process.env.NODE_ENV === 'development') {
             memory_used: prometheusMetrics.data.memory_used,
             memory_percent: prometheusMetrics.data.memory_used_percent,
             containers: {
-              total: prometheusMetrics.data.containers_total || 0,
-              running: prometheusMetrics.data.containers_jobbingtrack || 0
+              total: stats.length,
+              running: jobbingtrackContainers.length
             }
           }
         };

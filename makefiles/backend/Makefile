@@ -82,6 +82,11 @@ metrics-rebuild: ## Rebuild et redémarrer metrics-aggregator
 	@sleep 5
 	@docker logs jobbingtrack-metrics-aggregator --tail 20
 
+fix-all: ## Fix complet (frontend + metrics-aggregator)
+	@echo "🔧 Fix complet en cours..."
+	@chmod +x scripts/fix-all.sh
+	@./scripts/fix-all.sh
+
 monitoring-full: ## Démarrer JobbingTrack + Monitoring (propre)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║   Démarrage Complet: JobbingTrack + Monitoring        ║"
