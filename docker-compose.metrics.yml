@@ -25,6 +25,7 @@ services:
       context: ./backend/metrics-aggregator-service
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
+    user: "0:0"
     ports:
       - "8014:3014"
     environment:

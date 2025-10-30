@@ -234,22 +234,22 @@ endef
 # Fonction wrapper simple pour Docker Compose
 define docker_compose
 	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
-		docker compose $(1); \
+		docker compose --ansi never $(1); \
 	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
-		docker-compose $(1); \
+		docker-compose --ansi never $(1); \
 	else \
-		$(DOCKER_COMPOSE_CMD) $(1); \
+		$(DOCKER_COMPOSE_CMD) --ansi never $(1); \
 	fi
 endef
 
 # Fonction wrapper pour Docker Compose avec variables d'environnement
 define docker_compose_env
 	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
-		$(1) docker compose $(2); \
+		$(1) docker compose --ansi never $(2); \
 	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
-		$(1) docker-compose $(2); \
+		$(1) docker-compose --ansi never $(2); \
 	else \
-		$(1) $(DOCKER_COMPOSE_CMD) $(2); \
+		$(1) $(DOCKER_COMPOSE_CMD) --ansi never $(2); \
 	fi
 endef
 
