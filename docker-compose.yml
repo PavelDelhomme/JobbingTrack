@@ -141,7 +141,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
     ports:
-      - "3014:3014"
+      - "8014:3014"
     environment:
       - NODE_ENV=development
       - PORT=3014
@@ -244,7 +244,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-auth-service
     ports:
-      - "3001:3001"
+      - "8001:3001"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -278,7 +278,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-application-service
     ports:
-      - "3002:3002"
+      - "8002:3002"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -306,7 +306,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-company-service
     ports:
-      - "3003:3003"
+      - "8003:3003"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -340,7 +340,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-contact-service
     ports:
-      - "3004:3004"
+      - "8004:3004"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -392,7 +392,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-interview-service
     ports:
-      - "3005:3005"
+      - "8005:3005"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -445,7 +445,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-call-service
     ports:
-      - "3006:3006"
+      - "8006:3006"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -496,7 +496,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-event-service
     ports:
-      - "3007:3007"
+      - "8007:3007"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -547,7 +547,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-followup-service
     ports:
-      - "3008:3008"
+      - "8008:3008"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -597,7 +597,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-profile-service
     ports:
-      - "3009:3009"
+      - "8009:3009"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -647,7 +647,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-notification-service
     ports:
-      - "3010:3010"
+      - "8010:3010"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -708,7 +708,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
     ports:
-      - "3007:3000"
+      - "8012:3000"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -751,7 +751,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-workflow-service
     ports:
-      - "3011:3011"
+      - "8011:3011"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
@@ -854,7 +854,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-security-service
     ports:
-      - "3017:3017"
+      - "8017:3017"
     environment:
       - NODE_ENV=development
       - PORT=3017
@@ -880,7 +880,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-deployment-service
     ports:
-      - "3016:3016"
+      - "8016:3016"
     environment:
       - NODE_ENV=development
       - PORT=3016

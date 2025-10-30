@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   # ============================================
   # COLLECTE MÉTRIQUES CONTENEURS
   # ============================================
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
-    container_name: cadvisor
+    container_name: cadvisor-monitoring
     privileged: true
     devices:
       - /dev/kmsg
@@ -94,9 +92,9 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_SERVER_ROOT_URL=http://localhost:3013
     ports:
-      - "127.0.0.1:3001:3000"  # Localhost only
+      - "127.0.0.1:3013:3000"  # ✅ Changé de 3001 à 3013 pour éviter conflit avec auth-service
     networks:
       - jobbingtrack-network
     restart: unless-stopped
@@ -114,4 +112,5 @@ volumes:
 
 networks:
   jobbingtrack-network:
-    external: true  # Utilise le réseau créé par backend/docker-compose.yml
+    name: jobbingtrack_jobbingtrack-network
+    external: true  # Utilise le réseau créé par docker-compose.yml
