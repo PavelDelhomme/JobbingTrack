@@ -255,7 +255,7 @@ tests/temp/                # Fichiers temporaires
 {
   "admin": {
     "email": "admin@jobbingtrack.test",
-    "password": "admin123",
+    "password": "password123",
     "role": "admin"
   },
   "user": {
