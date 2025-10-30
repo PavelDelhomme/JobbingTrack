@@ -72,7 +72,7 @@ async function testEnvironmentVariables() {
     if (fs.existsSync('./Makefile')) {
         const makefile = fs.readFileSync('./Makefile', 'utf8');
         if (makefile.includes('${ADMIN_EMAIL:-') ||
-            makefile.includes('pavel@jobbingtrack.com') ||
+            makefile.includes('admin@jobbingtrack.com') ||
             makefile.includes('jobbingtrack')) {
             console.log('✅ Makefile utilise des variables d\'environnement ou valeurs configurées');
         } else {
@@ -96,7 +96,7 @@ async function testEnvironmentVariables() {
         if (fs.existsSync(script)) {
             scriptsChecked++;
             const content = fs.readFileSync(script, 'utf8');
-            if (content.includes('${ADMIN_EMAIL:-pavel@jobbingtrack.com}') ||
+            if (content.includes('${ADMIN_EMAIL:-admin@jobbingtrack.com}') ||
                 content.includes('${ADMIN_EMAIL:-') ||
                 content.includes('process.env.ADMIN_EMAIL')) {
                 console.log(`✅ ${path.basename(script)} utilise des variables d\'environnement`);
@@ -151,7 +151,7 @@ async function testEnvironmentVariables() {
             filesChecked++;
             const content = fs.readFileSync(file, 'utf8');
             if (content.includes('admin@jobbingtrack.com') && !content.includes('${ADMIN_EMAIL}') &&
-                !content.includes('${ADMIN_EMAIL:-') && !content.includes('pavel@jobbingtrack.com')) {
+                !content.includes('${ADMIN_EMAIL:-') && !content.includes('admin@jobbingtrack.com')) {
                 console.log(`⚠️ ${file} contient encore des références hardcodées`);
                 hardcodeTestsPassed = false;
             }
@@ -205,7 +205,7 @@ async function testEnvironmentVariables() {
         console.log('');
         console.log('💡 Utilisation:');
         console.log('   # Développement');
-        console.log('   export ADMIN_EMAIL=pavel@jobbingtrack.com');
+        console.log('   export ADMIN_EMAIL=admin@jobbingtrack.com');
         console.log('   export ADMIN_PASSWORD=password123');
         console.log('   make up-full');
         console.log('');

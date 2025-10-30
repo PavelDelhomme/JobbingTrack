@@ -35,7 +35,7 @@ async function testRuntimeErrorFixes() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                email: 'pavel@jobbingtrack.com',
+                email: 'admin@jobbingtrack.com',
                 password: 'password123'
             })
         });

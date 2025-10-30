@@ -29,7 +29,7 @@ async function testSecureEnvironmentVariables() {
                 const content = fs.readFileSync(script, 'utf8');
                 if (content.includes('[Défini dans le fichier .env]')) {
                     console.log(`✅ ${script}: affichage sécurisé`);
-                } else if (content.includes('pavel@jobbingtrack.com') && !content.includes('${ADMIN_EMAIL}')) {
+                } else if (content.includes('admin@jobbingtrack.com') && !content.includes('${ADMIN_EMAIL}')) {
                     console.log(`❌ ${script}: valeurs hardcodées encore présentes`);
                     secureDisplayTestsPassed = false;
                 } else {

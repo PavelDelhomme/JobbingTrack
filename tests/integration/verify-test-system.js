@@ -19,7 +19,7 @@ async function testDatabaseConnection() {
 
   try {
     const { execSync } = require('child_process');
-    const result = execSync(`docker exec jobbingtrack-postgres-test psql -U pavel@jobbingtrack.com -d jobbingtrack_test -c "SELECT id, email, role FROM \\"User\\" WHERE email LIKE 'user%';" -t`, {
+    const result = execSync(`docker exec jobbingtrack-postgres-test psql -U admin@jobbingtrack.com -d jobbingtrack_test -c "SELECT id, email, role FROM \\"User\\" WHERE email LIKE 'user%';" -t`, {
       encoding: 'utf8'
     });
 
