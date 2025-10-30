@@ -29,6 +29,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const validateJwtToken = (token: string): boolean => {
   if (!token || typeof token !== 'string') return false
   
+  // En mode développement, accepter les tokens mock SANS validation
+  if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token')) {
+    return true
+  }
+  
   // Vérifier le format de base du JWT (3 parties séparées par des points)
   const parts = token.split('.')
   if (parts.length !== 3) {

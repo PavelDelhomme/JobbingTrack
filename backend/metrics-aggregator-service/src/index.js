@@ -90,6 +90,9 @@ app.get('/', (req, res) => {
 // Routes publiques pour les métriques (sans authentification en mode dev)
 if (process.env.NODE_ENV === 'development') {
   const dockerService = require('./services/docker.service');
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
   
   // Route publique pour les métriques système
   app.get('/api/v1/metrics', async (req, res) => {
@@ -124,6 +127,129 @@ if (process.env.NODE_ENV === 'development') {
     } catch (error) {
       console.error(`[Public Route] Erreur /api/v1/container/${req.params.name}:`, error);
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Route pour récupérer les logs d'un service
+  app.get('/api/v1/logs/:serviceName', async (req, res) => {
+    try {
+      const { serviceName } = req.params;
+      const limit = parseInt(req.query.limit || '100');
+      const containerName = `jobbingtrack-${serviceName}`;
+
+      console.log(`[Logs] Récupération des logs pour ${containerName}`);
+
+      // Récupérer les logs via Docker
+      const { stdout } = await execAsync(`docker logs ${containerName} --tail ${limit} --timestamps 2>&1 || true`);
+      
+      // Parser les logs
+      const logs = stdout
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+          // Format: 2025-10-30T10:30:45.123456789Z message
+          const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(.*)$/);
+          if (timestampMatch) {
+            const message = timestampMatch[2];
+            let level = 'info';
+            
+            // Détecter le niveau de log
+            if (message.match(/error|err|fatal|critical/i)) level = 'error';
+            else if (message.match(/warn|warning/i)) level = 'warn';
+            else if (message.match(/debug/i)) level = 'debug';
+            
+            return {
+              timestamp: timestampMatch[1],
+              level,
+              message,
+              service: serviceName
+            };
+          }
+          
+          return {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: line,
+            service: serviceName
+          };
+        })
+        .reverse(); // Plus récent en premier
+
+      res.json({
+        success: true,
+        service: serviceName,
+        container: containerName,
+        count: logs.length,
+        logs
+      });
+    } catch (error) {
+      console.error(`[Logs] Erreur /api/v1/logs/${req.params.serviceName}:`, error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        logs: []
+      });
+    }
+  });
+
+  // Route pour tous les logs des services
+  app.get('/api/v1/logs', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit || '50');
+      
+      // Récupérer tous les conteneurs
+      const { stdout } = await execAsync('docker ps --format "{{.Names}}" | grep jobbingtrack-');
+      const containers = stdout.split('\n').filter(name => name.trim());
+
+      const allLogs = [];
+
+      for (const containerName of containers) {
+        try {
+          const { stdout: logs } = await execAsync(`docker logs ${containerName} --tail ${limit} --timestamps 2>&1 || true`);
+          const serviceName = containerName.replace('jobbingtrack-', '');
+
+          logs.split('\n')
+            .filter(line => line.trim())
+            .forEach(line => {
+              const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(.*)$/);
+              if (timestampMatch) {
+                const message = timestampMatch[2];
+                let level = 'info';
+                
+                if (message.match(/error|err|fatal|critical/i)) level = 'error';
+                else if (message.match(/warn|warning/i)) level = 'warn';
+                else if (message.match(/debug/i)) level = 'debug';
+                
+                allLogs.push({
+                  timestamp: timestampMatch[1],
+                  level,
+                  message,
+                  service: serviceName,
+                  container: containerName
+                });
+              }
+            });
+        } catch (err) {
+          console.error(`[Logs] Erreur pour ${containerName}:`, err.message);
+        }
+      }
+
+      // Trier par timestamp (plus récent en premier)
+      allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      res.json({
+        success: true,
+        count: allLogs.length,
+        containers: containers.length,
+        logs: allLogs.slice(0, limit * 2) // Limiter le total
+      });
+    } catch (error) {
+      console.error('[Logs] Erreur /api/v1/logs:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        logs: []
+      });
     }
   });
 }
