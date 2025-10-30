@@ -16,7 +16,12 @@ const LOKI_URL = process.env.LOKI_URL || 'http://loki:3100';
 
 // CORS - Autoriser les requêtes depuis le frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: [
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://frontend:3000',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true
 }));
 
@@ -77,6 +82,51 @@ app.get('/', (req, res) => {
     authentication: 'JWT Bearer token required for /api/* routes'
   });
 });
+
+// ============================================
+// ROUTES PUBLIQUES POUR LES MÉTRIQUES (développement)
+// ============================================
+
+// Routes publiques pour les métriques (sans authentification en mode dev)
+if (process.env.NODE_ENV === 'development') {
+  const dockerService = require('./services/docker.service');
+  
+  // Route publique pour les métriques système
+  app.get('/api/v1/metrics', async (req, res) => {
+    try {
+      const info = await dockerService.getSystemInfo();
+      const formatted = dockerService.formatSystemInfoForAPI(info);
+      res.json(formatted);
+    } catch (error) {
+      console.error('[Public Route] Erreur /api/v1/metrics:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Route publique pour les services/conteneurs
+  app.get('/api/v1/services', async (req, res) => {
+    try {
+      const stats = await dockerService.getAllContainersStats();
+      const formatted = dockerService.formatStatsForAPI(stats);
+      res.json(formatted);
+    } catch (error) {
+      console.error('[Public Route] Erreur /api/v1/services:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+  
+  // Route publique pour un conteneur spécifique
+  app.get('/api/v1/container/:name', async (req, res) => {
+    try {
+      const { name } = req.params;
+      const stats = await dockerService.getContainerStats(name);
+      res.json({ success: true, timestamp: new Date().toISOString(), container: stats });
+    } catch (error) {
+      console.error(`[Public Route] Erreur /api/v1/container/${req.params.name}:`, error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+}
 
 // ============================================
 // ROUTES PROTÉGÉES (avec authentification JWT)

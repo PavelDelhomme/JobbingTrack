@@ -26,11 +26,13 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-metrics-aggregator
     ports:
-      - "8082:3014"  # Metrics Aggregator
+      - "8014:3014"
     environment:
       - NODE_ENV=development
       - PORT=3014
       - FRONTEND_URL=http://frontend:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
 
