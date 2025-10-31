@@ -51,12 +51,12 @@
 
 | Fichier | Lignes | Cible |
 |---------|--------|-------|
-| `1_1_START_HERE.md` | 50 | Guide ultra-rapide (30 secondes) |
-| `3_3_INSTRUCTIONS_DEMAIN.md` | 300 | Guide complet pour demain matin |
-| `2_2_REVEIL_README.md` | 400 | Guide utilisateur détaillé |
-| `4_4_MIGRATION_GUIDE.md` | 500 | Documentation technique complète |
-| `6_6_TECHNICAL_SUMMARY.md` | 300 | Résumé technique pour devs |
-| `9_9_FICHIERS_CREES.md` | 200 | Liste exhaustive des fichiers |
+| `1_1_1_1_START_HERE.md` | 50 | Guide ultra-rapide (30 secondes) |
+| `3_3_3_3_INSTRUCTIONS_DEMAIN.md` | 300 | Guide complet pour demain matin |
+| `2_2_2_2_REVEIL_README.md` | 400 | Guide utilisateur détaillé |
+| `4_4_4_4_MIGRATION_GUIDE.md` | 500 | Documentation technique complète |
+| `6_6_6_6_TECHNICAL_SUMMARY.md` | 300 | Résumé technique pour devs |
+| `9_9_9_9_FICHIERS_CREES.md` | 200 | Liste exhaustive des fichiers |
 
 **Total** : 1750 lignes de documentation
 
@@ -328,19 +328,19 @@ git push origin tech/monitoring-system
 
 ### Pour Démarrer Rapidement
 
-1. **1_1_START_HERE.md** - Commande unique (30 secondes)
-2. **3_3_INSTRUCTIONS_DEMAIN.md** - Guide complet matin
+1. **1_1_1_1_START_HERE.md** - Commande unique (30 secondes)
+2. **3_3_3_3_INSTRUCTIONS_DEMAIN.md** - Guide complet matin
 
 ### Pour Comprendre
 
-3. **2_2_REVEIL_README.md** - Guide utilisateur
-4. **4_4_MIGRATION_GUIDE.md** - Documentation technique
-5. **6_6_TECHNICAL_SUMMARY.md** - Résumé technique
+3. **2_2_2_2_REVEIL_README.md** - Guide utilisateur
+4. **4_4_4_4_MIGRATION_GUIDE.md** - Documentation technique
+5. **6_6_6_6_TECHNICAL_SUMMARY.md** - Résumé technique
 
 ### Pour Référence
 
-6. **9_9_FICHIERS_CREES.md** - Liste exhaustive
-7. **8_8_SESSION_RECAP_NUIT.md** - Ce fichier
+6. **9_9_9_9_FICHIERS_CREES.md** - Liste exhaustive
+7. **8_8_8_8_SESSION_RECAP_NUIT.md** - Ce fichier
 
 ---
 
@@ -441,7 +441,7 @@ Merci de m'avoir fait confiance pour automatiser tout ce processus.
 
 ## 🌅 BON RÉVEIL !
 
-**Commencez par** : `1_1_START_HERE.md`
+**Commencez par** : `1_1_1_1_START_HERE.md`
 
 **Ou lancez directement** :
 ```bash
