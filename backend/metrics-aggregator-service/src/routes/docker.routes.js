@@ -44,35 +44,119 @@ function normaliseServiceKey(containerName = '') {
   return null;
 }
 
-async function probeServiceHealth(containerName) {
+/**
+ * Détermine le statut de santé d'un service avec plusieurs indicateurs
+ * @param {string} containerName - Nom du conteneur
+ * @param {object} containerStats - Statistiques du conteneur (optionnel)
+ * @returns {Promise<{status: string, responseTime: number|null, error: string}>}
+ */
+async function probeServiceHealth(containerName, containerStats = null) {
   const key = normaliseServiceKey(containerName);
-  if (!key) {
-    return {
-      status: 'unknown',
-      responseTime: null,
-      error: 'Service non référencé dans SERVICE_HEALTH_CONFIG'
-    };
-  }
+  
+  // Si le conteneur a des stats valides, il est au moins "running"
+  const containerIsRunning = containerStats && 
+    typeof containerStats.cpu_percent === 'number' && 
+    containerStats.pids > 0;
 
+  // Essayer le probe HTTP si la config existe
+  if (key && SERVICE_HEALTH_CONFIG[key]) {
   const config = SERVICE_HEALTH_CONFIG[key];
   const url = `http://localhost:${config.port}${config.path}`;
 
   const startTime = Date.now();
   try {
-    await axios.get(url, { timeout: config.timeout || 5000 });
+      const response = await axios.get(url, { 
+        timeout: config.timeout || 3000,
+        validateStatus: (status) => status < 500
+      });
+      
+      const responseTime = Date.now() - startTime;
+      
+      // Statut basé sur le code HTTP et les métriques
+      if (response.status >= 200 && response.status < 300) {
+        return { status: 'healthy', responseTime };
+      } else if (response.status >= 400 && response.status < 500) {
+        // Service répond mais avec des erreurs client
+        return { 
+          status: 'degraded', 
+          responseTime,
+          error: `HTTP ${response.status}`
+        };
+      } else {
     return {
-      status: 'healthy',
-      responseTime: Date.now() - startTime
+          status: 'degraded', 
+          responseTime,
+          error: `HTTP ${response.status}`
     };
+      }
   } catch (error) {
     const duration = Date.now() - startTime;
+      
+      // Si le conteneur tourne mais le probe HTTP échoue
+      if (containerIsRunning) {
+        // Timeout ou erreur réseau = degraded (le service tourne mais ne répond pas bien)
+        if (error?.code === 'ETIMEDOUT' || error?.code === 'ENOTFOUND') {
+          return {
+            status: 'degraded',
+            responseTime: duration,
+            error: 'Service timeout ou inaccessible'
+          };
+        }
+        // Connection refusée = le conteneur tourne mais le service n'écoute pas sur ce port
+        if (error?.code === 'ECONNREFUSED') {
+          return {
+            status: 'degraded',
+            responseTime: duration,
+            error: 'Port inaccessible mais conteneur actif'
+          };
+        }
+        // Autre erreur mais le conteneur tourne = degraded
+        return {
+          status: 'degraded',
+          responseTime: duration,
+          error: error?.message || 'Erreur inconnue'
+        };
+      }
+      
+      // Si le conteneur ne tourne pas ou pas de stats
     const status = error?.code === 'ECONNREFUSED' ? 'offline' : 'degraded';
     return {
       status,
       responseTime: duration,
-      error: error?.message || 'Unknown error'
+        error: error?.message || 'Service inaccessible'
+      };
+    }
+  }
+
+  // Pas de config HTTP, utiliser les stats du conteneur comme indicateur
+  if (containerIsRunning) {
+    // Le conteneur tourne avec des métriques valides
+    // Considérer comme "healthy" si CPU < 95% et pas de surcharge évidente
+    const cpuPercent = containerStats.cpu_percent || 0;
+    const memoryPercent = containerStats.memory_percent || 0;
+    
+    if (cpuPercent > 95 || memoryPercent > 95) {
+      return {
+        status: 'degraded',
+        responseTime: null,
+        error: 'Utilisation ressources très élevée'
     };
   }
+    
+    // Conteneur actif avec des métriques normales
+    return {
+      status: 'healthy',
+      responseTime: null,
+      error: null
+    };
+  }
+
+  // Aucune info disponible
+  return {
+    status: 'unknown',
+    responseTime: null,
+    error: 'Aucune métrique disponible pour ce service'
+  };
 }
 
 function parseLokiCount(result) {
@@ -198,7 +282,8 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
     
     const serviceInsights = await Promise.all(jobbingtrackContainers.map(async stat => {
       const serviceType = stat.name.replace(/^jobbingtrack-/, '');
-      const healthInfo = await probeServiceHealth(stat.name);
+      // Passer les stats du conteneur pour une détermination plus intelligente du statut
+      const healthInfo = await probeServiceHealth(stat.name, stat);
       const errorMetrics = await collectErrorMetrics(stat.name);
 
       const memoryUsageMb = parseFloat((stat.memory_usage / (1024 * 1024)).toFixed(2));
@@ -303,6 +388,24 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       // Informations système
       total_cpus: totalCpus,
       system_memory_total_gb: systemInfo.memory_total ? parseFloat((systemInfo.memory_total / (1024 * 1024 * 1024)).toFixed(2)) : 0,
+
+      // ✅ Informations système Docker complètes
+      system: {
+        server_version: systemInfo.server_version || 'N/A',
+        operating_system: systemInfo.operating_system || 'N/A',
+        os_type: systemInfo.os_type || 'linux',
+        architecture: systemInfo.architecture || 'N/A',
+        kernel_version: systemInfo.kernel_version || 'N/A',
+        cpus: totalCpus,
+        memory_total: parseFloat((systemMemoryTotal / (1024 * 1024 * 1024)).toFixed(2)) + ' GB',
+        docker_root_dir: systemInfo.docker_root_dir || '/var/lib/docker',
+        driver: systemInfo.driver || 'overlay2',
+        containers_total: systemInfo.containers || jobbingtrackContainers.length,
+        containers_running: systemInfo.containers_running || healthyServices,
+        containers_paused: systemInfo.containers_paused || 0,
+        containers_stopped: systemInfo.containers_stopped || 0,
+        images: systemInfo.images || 0
+      },
 
       // Détails enrichis
       containers: serviceInsights,
@@ -461,7 +564,8 @@ router.get('/service/:name', async (req, res) => {
     
     const stats = await dockerService.getContainerStats(serviceName);
     
-    const healthInfo = await probeServiceHealth(serviceName);
+    // Passer les stats du conteneur pour une détermination plus intelligente du statut
+    const healthInfo = await probeServiceHealth(serviceName, stats);
     const errorMetrics = await collectErrorMetrics(serviceName);
     
     res.json({

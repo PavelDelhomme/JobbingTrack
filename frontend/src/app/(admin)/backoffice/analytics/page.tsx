@@ -82,11 +82,29 @@ export default function AnalyticsPage() {
     const loadMetrics = async () => {
       try {
         const data = await centralMetricsService.fetchMetrics();
-        if (mounted) {
-          setMetrics(data);
+        if (mounted && data) {
+          // ✅ FUSIONNER les nouvelles métriques avec les anciennes pour éviter les N/A temporaires
+          setMetrics((prev: any) => {
+            if (!prev) return data;
+            
+            return {
+              ...prev,
+              ...data,
+              // Fusionner les sous-objets pour préserver les anciennes valeurs
+              system: data.system ? { ...prev.system, ...data.system } : prev.system,
+              containers: data.containers ? { ...prev.containers, ...data.containers } : prev.containers,
+              network: data.network ? { ...prev.network, ...data.network } : prev.network,
+              responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
+              errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
+              health: data.health ? { ...prev.health, ...data.health } : prev.health,
+              services: data.services ? { ...prev.services, ...data.services } : prev.services,
+              servicesList: data.servicesList && data.servicesList.length > 0 ? data.servicesList : prev.servicesList,
+            };
+          });
         }
       } catch (error) {
         console.error('Erreur chargement métriques:', error);
+        // ✅ Ne rien faire en cas d'erreur - garder les anciennes valeurs
       } finally {
         if (mounted) {
           setLoading(false);
@@ -270,26 +288,54 @@ export default function AnalyticsPage() {
     setServiceLogs([]);
 
     try {
-      const logsResponse = await centralMetricsService.getAggregatorLogs(containerName, {
-        limit: 200,
+      // ✅ NOUVEAU : Utiliser le service de persistance pour récupérer les logs
+      const analyticsService = await import('@/lib/api/analytics.service').then(m => m.analyticsService);
+      
+      // Essayer d'abord les logs depuis Docker (temps réel)
+      let logs = await analyticsService.getContainerLogsLive(containerName, {
+        tail: 200,
       });
 
-      if (logsResponse?.logs && Array.isArray(logsResponse.logs)) {
-        const parsed = logsResponse.logs.flatMap((stream: any) =>
-          (stream.values || []).map((value: [string, string]) => ({
-            timestamp: value[0],
-            message: value[1],
-          }))
-        );
+      // Si pas de logs en direct, essayer depuis la base de données
+      if (!logs || logs.length === 0) {
+        logs = await analyticsService.getContainerLogs(containerName, {
+          limit: 200,
+        });
+      }
 
-        if (parsed.length === 0) {
-          setLogsError('Aucun log disponible pour cette période.');
-        }
+      if (logs && logs.length > 0) {
+        const parsed = logs.map((log: any) => ({
+          timestamp: log.timestamp,
+          message: log.log || log.message,
+          stream: log.stream || 'stdout',
+          level: log.parsedLevel || null,
+        }));
 
-        parsed.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+        parsed.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setServiceLogs(parsed);
       } else {
-        setLogsError('Aucun log disponible pour cette période.');
+        // Fallback vers l'ancienne méthode
+        const logsResponse = await centralMetricsService.getAggregatorLogs(containerName, {
+          limit: 200,
+        });
+
+        if (logsResponse?.logs && Array.isArray(logsResponse.logs)) {
+          const parsed = logsResponse.logs.flatMap((stream: any) =>
+            (stream.values || []).map((value: [string, string]) => ({
+              timestamp: value[0],
+              message: value[1],
+            }))
+          );
+
+          if (parsed.length === 0) {
+            setLogsError('Aucun log disponible pour cette période.');
+          } else {
+            parsed.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+            setServiceLogs(parsed);
+          }
+        } else {
+          setLogsError('Aucun log disponible pour cette période.');
+        }
       }
     } catch (error) {
       console.error(`Erreur chargement logs pour ${containerName}:`, error);

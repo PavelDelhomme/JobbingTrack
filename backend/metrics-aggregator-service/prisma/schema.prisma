@@ -130,6 +130,110 @@ model AggregatedLog {
   @@index([createdAt])
 }
 
+// ✅ Logs conteneurs Docker (directement depuis les conteneurs)
+model ContainerLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  containerName String
+  containerId   String?
+  stream        String   @default("stdout") // stdout, stderr
+  log           String   @db.Text
+  
+  // Parsing automatique si possible
+  parsedLevel   LogLevel?
+  parsedMessage String?  @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([containerName])
+  @@index([containerId])
+  @@index([stream])
+  @@index([parsedLevel])
+  @@index([createdAt])
+}
+
+// ✅ Historique réseau par service
+model ServiceNetworkHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  
+  // Trafic
+  requestCount       Int      @default(0)
+  successCount       Int      @default(0)
+  errorCount         Int      @default(0)
+  avgResponseTimeMs  Float?
+  minResponseTimeMs  Float?
+  maxResponseTimeMs  Float?
+  p95ResponseTimeMs  Float?
+  p99ResponseTimeMs  Float?
+  
+  // Bande passante
+  bytesReceived   BigInt   @default(0)
+  bytesSent       BigInt   @default(0)
+  
+  // Endpoints les plus utilisés
+  topEndpoints    Json?    // [{path: string, count: number}]
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([createdAt])
+}
+
+// ✅ Historique de disponibilité des services
+model ServiceAvailabilityHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  
+  isAvailable      Boolean
+  responseTimeMs   Int?
+  statusCode       Int?
+  errorMessage     String?
+  
+  // Uptime calculé
+  uptimePercent    Float?
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([isAvailable])
+  @@index([createdAt])
+}
+
+// ✅ Métriques de sécurité
+model SecurityMetric {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  
+  // Tentatives de connexion
+  failedLoginAttempts     Int      @default(0)
+  successfulLogins        Int      @default(0)
+  blockedIPs              Json?    // [string]
+  suspiciousActivities    Int      @default(0)
+  
+  // Requêtes suspectes
+  potentialSqlInjections  Int      @default(0)
+  potentialXssAttempts    Int      @default(0)
+  rateLimitExceeded       Int      @default(0)
+  invalidTokenAttempts    Int      @default(0)
+  
+  // Score de sécurité (0-100)
+  securityScore           Float?
+  
+  // Alertes
+  activeSecurityAlerts    Int      @default(0)
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([createdAt])
+}
+
 // ✅ Statistiques quotidiennes (pré-calculées pour le dashboard)
 model DailyStats {
   id   String   @id @default(cuid())

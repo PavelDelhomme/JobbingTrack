@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock } from 'lucide-react'
 
@@ -22,6 +23,7 @@ interface Service {
 }
 
 export default function ServicesPage() {
+  const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
@@ -150,7 +152,11 @@ export default function ServicesPage() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {runningServices.map((service) => (
-                  <tr key={service.name} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr 
+                    key={service.name} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/backoffice/services/${service.name.replace('jobbingtrack-', '')}`)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Server className="h-5 w-5 text-blue-500 mr-2" />
