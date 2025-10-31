@@ -50,14 +50,14 @@
 
 ### 📚 Documentation (8 fichiers, 2250+ lignes)
 
-1. **1_1_START_HERE.md** (50 lignes) - Guide ultra-rapide 30 secondes
-2. **3_3_INSTRUCTIONS_DEMAIN.md** (300 lignes) - Guide complet matin
-3. **2_2_REVEIL_README.md** (400 lignes) - Guide utilisateur détaillé
-4. **4_4_MIGRATION_GUIDE.md** (500 lignes) - Documentation technique
-5. **6_6_TECHNICAL_SUMMARY.md** (300 lignes) - Résumé technique
-6. **9_9_FICHIERS_CREES.md** (200 lignes) - Liste exhaustive
-7. **8_8_SESSION_RECAP_NUIT.md** (500 lignes) - Récap session
-8. **7_7_COMMIT_INSTRUCTIONS.md** (300 lignes) - Guide Git
+1. **1_1_1_1_START_HERE.md** (50 lignes) - Guide ultra-rapide 30 secondes
+2. **3_3_3_3_INSTRUCTIONS_DEMAIN.md** (300 lignes) - Guide complet matin
+3. **2_2_2_2_REVEIL_README.md** (400 lignes) - Guide utilisateur détaillé
+4. **4_4_4_4_MIGRATION_GUIDE.md** (500 lignes) - Documentation technique
+5. **6_6_6_6_TECHNICAL_SUMMARY.md** (300 lignes) - Résumé technique
+6. **9_9_9_9_FICHIERS_CREES.md** (200 lignes) - Liste exhaustive
+7. **8_8_8_8_SESSION_RECAP_NUIT.md** (500 lignes) - Récap session
+8. **7_7_7_7_COMMIT_INSTRUCTIONS.md** (300 lignes) - Guide Git
 
 ### ⚙️ Configuration (4 fichiers)
 
@@ -262,21 +262,21 @@ Platform (13), FollowUpType (6), FollowUpMethod (7), InterviewType (9), Intervie
 
 ### Pour Démarrer
 
-1. **1_1_START_HERE.md** - Commande unique (30 secondes)
-2. **3_3_INSTRUCTIONS_DEMAIN.md** - Guide complet
-3. **7_7_COMMIT_INSTRUCTIONS.md** - Guide Git
+1. **1_1_1_1_START_HERE.md** - Commande unique (30 secondes)
+2. **3_3_3_3_INSTRUCTIONS_DEMAIN.md** - Guide complet
+3. **7_7_7_7_COMMIT_INSTRUCTIONS.md** - Guide Git
 
 ### Pour Comprendre
 
-4. **2_2_REVEIL_README.md** - Guide utilisateur
-5. **4_4_MIGRATION_GUIDE.md** - Documentation technique
-6. **6_6_TECHNICAL_SUMMARY.md** - Résumé technique
+4. **2_2_2_2_REVEIL_README.md** - Guide utilisateur
+5. **4_4_4_4_MIGRATION_GUIDE.md** - Documentation technique
+6. **6_6_6_6_TECHNICAL_SUMMARY.md** - Résumé technique
 
 ### Pour Référence
 
-7. **9_9_FICHIERS_CREES.md** - Liste exhaustive
-8. **8_8_SESSION_RECAP_NUIT.md** - Récap session
-9. **10_10_FINAL_SUMMARY.md** - Ce fichier
+7. **9_9_9_9_FICHIERS_CREES.md** - Liste exhaustive
+8. **8_8_8_8_SESSION_RECAP_NUIT.md** - Récap session
+9. **10_10_10_10_FINAL_SUMMARY.md** - Ce fichier
 
 ---
 
@@ -345,13 +345,13 @@ Merci d'avoir fait confiance à cette automatisation complète.
 
 | Document | Pour | Durée Lecture |
 |----------|------|---------------|
-| 1_1_START_HERE.md | Démarrer vite | 30 sec |
-| 3_3_INSTRUCTIONS_DEMAIN.md | Guide complet | 5 min |
-| 7_7_COMMIT_INSTRUCTIONS.md | Git | 2 min |
-| 2_2_REVEIL_README.md | Utilisateur | 10 min |
-| 4_4_MIGRATION_GUIDE.md | Dev | 20 min |
-| 6_6_TECHNICAL_SUMMARY.md | Tech | 15 min |
-| 10_10_FINAL_SUMMARY.md | Vue globale | 5 min |
+| 1_1_1_1_START_HERE.md | Démarrer vite | 30 sec |
+| 3_3_3_3_INSTRUCTIONS_DEMAIN.md | Guide complet | 5 min |
+| 7_7_7_7_COMMIT_INSTRUCTIONS.md | Git | 2 min |
+| 2_2_2_2_REVEIL_README.md | Utilisateur | 10 min |
+| 4_4_4_4_MIGRATION_GUIDE.md | Dev | 20 min |
+| 6_6_6_6_TECHNICAL_SUMMARY.md | Tech | 15 min |
+| 10_10_10_10_FINAL_SUMMARY.md | Vue globale | 5 min |
 
 ---
 
@@ -370,4 +370,4 @@ Merci d'avoir fait confiance à cette automatisation complète.
 
 **BON RÉVEIL ET BONNE JOURNÉE ! ☀️**
 
-**Commencez par** : `1_1_START_HERE.md` ou `bash scripts/git-commit-migration.sh`
+**Commencez par** : `1_1_1_1_START_HERE.md` ou `bash scripts/git-commit-migration.sh`
