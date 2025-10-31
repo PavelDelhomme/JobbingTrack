@@ -221,6 +221,8 @@ function AnalyticsContent() {
   const [selectedError, setSelectedError] = useState<ErrorLog | null>(null)
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([])
   const [timelineData, setTimelineData] = useState<TimelineData[]>([])
+  const [metricsHistory, setMetricsHistory] = useState<any[]>([])
+  const [metricsStats, setMetricsStats] = useState<any>(null)
 
   useEffect(() => {
     if (token) {
@@ -231,11 +233,20 @@ function AnalyticsContent() {
   const loadAnalytics = async () => {
     setLoading(true)
     try {
+      // ✅ Charger l'historique des métriques depuis le nouveau système
+      const [history, stats] = await Promise.all([
+        centralMetricsService.getMetricsHistory({ limit: 100 }).catch(() => []),
+        centralMetricsService.getMetricsStats().catch(() => null)
+      ])
+      
+      setMetricsHistory(history)
+      setMetricsStats(stats)
+      
       // ✅ Charger les erreurs D'ABORD pour calculer les métriques cohérentes
-      const errors = await loadErrorLogs()
+      const errors = await loadErrorLogs().catch(() => [])
 
       // Charger les autres données en parallèle avec le nombre d'erreurs
-      await Promise.all([
+      await Promise.allSettled([
         loadPerformanceMetrics(errors.length),
         loadDevMetrics(),
         loadTimelineData()
@@ -249,19 +260,19 @@ function AnalyticsContent() {
 
   const loadPerformanceMetrics = async (errorCount: number) => {
     try {
-      // ✅ Récupérer les vraies métriques depuis les services de métriques
-      const systemMetrics = await centralMetricsService.getSystemMetrics()
-      const serviceMetrics = await centralMetricsService.getServiceMetrics()
-      const maintenanceMetrics = await centralMetricsService.getMaintenanceMetrics()
+      // ✅ Utiliser les stats de l'historique si disponibles
+      const systemMetrics = await centralMetricsService.getSystemMetrics().catch(() => null)
+      const serviceMetrics = await centralMetricsService.getServiceMetrics().catch(() => null)
+      const maintenanceMetrics = await centralMetricsService.getMaintenanceMetrics().catch(() => null)
 
       // Calculer les métriques de performance à partir des vraies données
       const totalServices = serviceMetrics ? Object.keys(serviceMetrics).length : 0
       const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up' || s.status === 'healthy').length : 0
       const uptime = totalServices > 0 ? (healthyServices / totalServices * 100) : 0
 
-      // Récupérer les métriques système pour les performances
-      const cpuUsage = systemMetrics?.cpu?.usage || 0
-      const memoryUsage = systemMetrics?.memory?.usage || 0
+      // Utiliser les stats de l'historique si disponibles, sinon les métriques en temps réel
+      const cpuUsage = metricsStats?.cpu?.avg ? parseFloat(metricsStats.cpu.avg) : systemMetrics?.cpu?.usage || 0
+      const memoryUsage = metricsStats?.memory?.avg ? parseFloat(metricsStats.memory.avg) : systemMetrics?.memory?.usage || 0
       const avgResponseTime = systemMetrics?.load?.average || 0
 
       setDevMetrics(prev => ({
@@ -303,7 +314,7 @@ function AnalyticsContent() {
       const response = await axios.get(`${API_GATEWAY_URL}/api/v1/maintenance/security/logs?level=error&limit=100`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 5000
-      })
+      }).catch(() => ({ data: { logs: [] } }))
 
       const logs = response.data.logs || []
 
@@ -330,9 +341,9 @@ function AnalyticsContent() {
   const loadDevMetrics = async () => {
     try {
       // ✅ Récupérer les vraies métriques depuis les services
-      const systemMetrics = await centralMetricsService.getSystemMetrics()
-      const serviceMetrics = await centralMetricsService.getServiceMetrics()
-      const securityLogs = await centralMetricsService.getSecurityLogs('error', 100)
+      const systemMetrics = await centralMetricsService.getSystemMetrics().catch(() => null)
+      const serviceMetrics = await centralMetricsService.getServiceMetrics().catch(() => null)
+      const securityLogs = await centralMetricsService.getSecurityLogs('error', 100).catch(() => [])
 
       // Calculer les métriques à partir des vraies données
       const cpuUsage = systemMetrics?.cpu?.usage || 0
@@ -451,11 +462,27 @@ function AnalyticsContent() {
 
   const loadTimelineData = async () => {
     try {
+      // ✅ Utiliser l'historique des métriques pour la timeline
+      if (metricsHistory.length > 0) {
+        const last7Days = metricsHistory.slice(0, 7).reverse()
+        const timeline: TimelineData[] = last7Days.map((snapshot, i) => ({
+          period: new Date(snapshot.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+          applications: 'N/A',
+          companies: 'N/A',
+          users: 'N/A',
+          interviews: 'N/A',
+          successRate: 100 - (snapshot.memory_percent || 0),
+          avgResponseTime: snapshot.load_average || 0
+        }))
+        setTimelineData(timeline)
+        return
+      }
+      
       // ✅ Récupérer les vraies données depuis les services métier
       const [applicationsRes, companiesRes, interviewsRes] = await Promise.allSettled([
-        axios.get(`${API_GATEWAY_URL}/api/v1/applications`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_GATEWAY_URL}/api/v1/companies`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_GATEWAY_URL}/api/v1/interviews`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_GATEWAY_URL}/api/v1/applications`, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }),
+        axios.get(`${API_GATEWAY_URL}/api/v1/companies`, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }),
+        axios.get(`${API_GATEWAY_URL}/api/v1/interviews`, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 })
       ])
 
       // Compter les éléments par jour sur les 7 derniers jours

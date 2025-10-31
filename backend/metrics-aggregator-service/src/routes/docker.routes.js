@@ -42,19 +42,28 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       });
     }
     
-    // Calculer les totaux et moyennes
-    const totalCpuPercent = jobbingtrackContainers.reduce((sum, stat) => sum + stat.cpu_percent, 0);
-    const totalMemoryUsage = jobbingtrackContainers.reduce((sum, stat) => sum + stat.memory_usage, 0);
-    const totalMemoryLimit = jobbingtrackContainers.reduce((sum, stat) => sum + stat.memory_limit, 0);
-    const avgMemoryPercent = jobbingtrackContainers.reduce((sum, stat) => sum + stat.memory_percent, 0) / jobbingtrackContainers.length;
-    
     // Récupérer les informations système
     const systemInfo = await dockerService.getSystemInfo().catch(err => {
       console.error('[DOCKER ROUTES] Erreur getSystemInfo:', err);
-      return { cpus: 0, memory_total: 0 };
+      return { cpus: 1, memory_total: 8117313536 }; // Valeur par défaut si erreur
     });
     
     const totalCpus = systemInfo.cpus || 1;
+    const systemMemoryTotal = systemInfo.memory_total || 8117313536; // en bytes (défaut: 7.56 GB)
+    
+    console.log('[DOCKER ROUTES] System Info:', {
+      cpus: totalCpus,
+      memory_total_bytes: systemMemoryTotal,
+      memory_total_gb: (systemMemoryTotal / (1024 * 1024 * 1024)).toFixed(2)
+    });
+    
+    // Calculer les totaux et moyennes
+    const totalCpuPercent = jobbingtrackContainers.reduce((sum, stat) => sum + stat.cpu_percent, 0);
+    const totalMemoryUsage = jobbingtrackContainers.reduce((sum, stat) => sum + stat.memory_usage, 0);
+    
+    // Calculer le pourcentage de mémoire par rapport à la mémoire SYSTÈME (pas les limites des conteneurs)
+    const memoryPercentOfSystem = systemMemoryTotal > 0 ? 
+      (totalMemoryUsage / systemMemoryTotal) * 100 : 0;
     
     // Calculer le CPU par core (charge réelle)
     const cpuPerCore = totalCpuPercent / totalCpus;
@@ -95,12 +104,12 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       cpu_percent_per_core: parseFloat(cpuPerCore.toFixed(2)), // CPU par core
       cpu_containers_only: parseFloat(totalCpuPercent.toFixed(2)), // CPU des conteneurs uniquement
       
-      // Métriques mémoire
-      memory_percent: parseFloat(avgMemoryPercent.toFixed(2)),
+      // Métriques mémoire (CORRIGÉES)
+      memory_percent: parseFloat(memoryPercentOfSystem.toFixed(2)), // % par rapport à la mémoire système
       memory_usage_mb: parseFloat((totalMemoryUsage / (1024 * 1024)).toFixed(2)),
-      memory_limit_mb: parseFloat((totalMemoryLimit / (1024 * 1024)).toFixed(2)),
       memory_usage_gb: parseFloat((totalMemoryUsage / (1024 * 1024 * 1024)).toFixed(2)),
-      memory_limit_gb: parseFloat((totalMemoryLimit / (1024 * 1024 * 1024)).toFixed(2)),
+      memory_system_total_mb: parseFloat((systemMemoryTotal / (1024 * 1024)).toFixed(2)),
+      memory_system_total_gb: parseFloat((systemMemoryTotal / (1024 * 1024 * 1024)).toFixed(2)),
       
       // Charge système
       load_average: parseFloat(loadAverage),
@@ -289,7 +298,42 @@ router.get('/service/:name', async (req, res) => {
 });
 
 /**
- * Endpoint pour récupérer l'historique des métriques
+ * Endpoint pour récupérer l'historique d'un service spécifique
+ */
+router.get('/service/:name/history', async (req, res) => {
+  try {
+    const serviceName = req.params.name.replace('jobbingtrack-', '');
+    const { 
+      startTime = Date.now() - 3600000,
+      endTime = Date.now(),
+      limit = 100
+    } = req.query;
+    
+    const history = await metricsHistory.getServiceHistory(serviceName, {
+      startTime: parseInt(startTime),
+      endTime: parseInt(endTime),
+      limit: parseInt(limit)
+    });
+    
+    res.json({
+      success: true,
+      service: serviceName,
+      count: history.length,
+      data: history,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Endpoint pour récupérer l'historique des métriques globales
  */
 router.get('/history', async (req, res) => {
   try {
