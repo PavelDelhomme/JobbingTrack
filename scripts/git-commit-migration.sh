@@ -71,17 +71,17 @@ echo "  ✅ 5 scripts ajoutés"
 # Documentation
 echo "📚 Documentation..."
 git add 00_INDEX.md 2>/dev/null || true
-git add 0_0_0_0_0_LANCER_MAINTENANT.sh 2>/dev/null || true
-git add 1_1_1_1_1_START_HERE.md 2>/dev/null || true
-git add 2_2_2_2_2_REVEIL_README.md 2>/dev/null || true
-git add 3_3_3_3_3_INSTRUCTIONS_DEMAIN.md 2>/dev/null || true
-git add 4_4_4_4_4_MIGRATION_GUIDE.md 2>/dev/null || true
-git add 5_5_5_5_5_SUIVI_DEPLOYMENT.md 2>/dev/null || true
-git add 6_6_6_6_6_TECHNICAL_SUMMARY.md 2>/dev/null || true
-git add 7_7_7_7_7_COMMIT_INSTRUCTIONS.md 2>/dev/null || true
-git add 8_8_8_8_8_SESSION_RECAP_NUIT.md 2>/dev/null || true
-git add 9_9_9_9_9_FICHIERS_CREES.md 2>/dev/null || true
-git add 10_10_10_10_10_FINAL_SUMMARY.md 2>/dev/null || true
+git add 0_0_0_0_0_0_LANCER_MAINTENANT.sh 2>/dev/null || true
+git add 1_1_1_1_1_1_START_HERE.md 2>/dev/null || true
+git add 2_2_2_2_2_2_REVEIL_README.md 2>/dev/null || true
+git add 3_3_3_3_3_3_INSTRUCTIONS_DEMAIN.md 2>/dev/null || true
+git add 4_4_4_4_4_4_MIGRATION_GUIDE.md 2>/dev/null || true
+git add 5_5_5_5_5_5_SUIVI_DEPLOYMENT.md 2>/dev/null || true
+git add 6_6_6_6_6_6_TECHNICAL_SUMMARY.md 2>/dev/null || true
+git add 7_7_7_7_7_7_COMMIT_INSTRUCTIONS.md 2>/dev/null || true
+git add 8_8_8_8_8_8_SESSION_RECAP_NUIT.md 2>/dev/null || true
+git add 9_9_9_9_9_9_FICHIERS_CREES.md 2>/dev/null || true
+git add 10_10_10_10_10_10_FINAL_SUMMARY.md 2>/dev/null || true
 echo "  ✅ Documentation ajoutée (avec numéros d'ordre)"
 
 # Configuration
@@ -148,13 +148,13 @@ COMMIT_MESSAGE="feat: migration vers schéma Prisma partagé unique
 - git-commit-migration.sh: Automatisation Git
 
 📚 Documentation (2250 lignes)
-- 1_1_1_1_START_HERE.md: Guide ultra-rapide
-- 3_3_3_3_INSTRUCTIONS_DEMAIN.md: Guide complet
-- 2_2_2_2_REVEIL_README.md: Guide utilisateur
-- 4_4_4_4_MIGRATION_GUIDE.md: Documentation technique
-- 6_6_6_6_TECHNICAL_SUMMARY.md: Résumé technique
-- 9_9_9_9_FICHIERS_CREES.md: Liste exhaustive
-- 8_8_8_8_SESSION_RECAP_NUIT.md: Récap session
+- 1_1_1_1_1_START_HERE.md: Guide ultra-rapide
+- 3_3_3_3_3_INSTRUCTIONS_DEMAIN.md: Guide complet
+- 2_2_2_2_2_REVEIL_README.md: Guide utilisateur
+- 4_4_4_4_4_MIGRATION_GUIDE.md: Documentation technique
+- 6_6_6_6_6_TECHNICAL_SUMMARY.md: Résumé technique
+- 9_9_9_9_9_FICHIERS_CREES.md: Liste exhaustive
+- 8_8_8_8_8_SESSION_RECAP_NUIT.md: Récap session
 
 ⚙️ Configuration
 - backend/prisma/.gitignore: Sécurité
