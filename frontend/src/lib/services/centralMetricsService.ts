@@ -2,7 +2,12 @@ import {
   SystemMetrics,
   ServiceMetrics,
   ContainerMetrics,
+  ContainerMetricEntry,
   MetricsData,
+  NetworkMetricsOverview,
+  ResponseTimeOverview,
+  ErrorMetricsOverview,
+  HealthOverview,
   UserCustomization
 } from '@/lib/interfaces'
 import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
@@ -405,75 +410,303 @@ class CentralMetricsService {
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      
-      // Appeler le nouvel endpoint Docker directement
+
       const response = await fetch(`${metricsUrl}/api/v1/docker/jobbingtrack/aggregated`, {
         headers: {
           'Accept': 'application/json',
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        
-        console.log('[AGGREGATOR] Données Docker brutes reçues:', {
-          cpu_percent: data.cpu_percent,
-          memory_percent: data.memory_percent,
-          memory_usage_mb: data.memory_usage_mb,
-          total_cpus: data.total_cpus,
-          containers_count: data.containers_count,
-          timestamp: data.timestamp
-        })
-        
-        // Mapper les données Docker vers le format attendu par le frontend
-        const mappedSystem = {
-          cpu: {
-            usage: data.cpu_percent || 0,
-            cores: data.total_cpus || 'N/A',
-            model: 'Docker Containers',
-            containers_only: data.cpu_containers_only || 0,
-            per_core: data.cpu_percent_per_core || 0
+      if (!response.ok) {
+        return null
+      }
+
+      const data = await response.json()
+      const timestamp = data.timestamp || new Date().toISOString()
+
+      console.log('[AGGREGATOR] Données Docker brutes reçues:', {
+        cpu_percent: data.cpu_percent,
+        memory_percent: data.memory_percent,
+        memory_usage_mb: data.memory_usage_mb,
+        total_cpus: data.total_cpus,
+        containers_count: data.containers_count,
+        network_rx_mb: data.network?.total_rx_mb,
+        network_tx_mb: data.network?.total_tx_mb,
+        availability: data.health?.availability_percent,
+        timestamp
+      })
+
+      const containersArray = Array.isArray(data.containers) ? data.containers : []
+      const servicesArray = Array.isArray(data.services) ? data.services : []
+      const mergedServices = containersArray.length > 0 ? containersArray : servicesArray
+
+      const servicesList: ServiceMetrics[] = mergedServices.map((service: any) => {
+        const rawName = service?.name || service?.container || service?.id || 'unknown-service'
+        const serviceType = service?.service_type || rawName.replace(/^jobbingtrack-/, '')
+        const baseServiceType = serviceType
+          .replace(/-prod$/, '')
+          .replace(/-preview$/, '')
+          .replace(/-staging$/, '')
+
+        const displayName = formatServiceName(rawName)
+        const rawStatus = service?.health_status || service?.status || 'unknown'
+        const status = rawStatus === 'offline' ? 'offline' : rawStatus
+
+        const responseTimeMs = typeof service?.response_time_ms === 'number'
+          ? parseFloat(service.response_time_ms.toFixed(2))
+          : null
+
+        const errorRatePerMin = typeof service?.error_rate_per_min === 'number'
+          ? parseFloat(service.error_rate_per_min.toFixed(2))
+          : 0
+
+        const errorCount5m = typeof service?.error_count_5m === 'number'
+          ? parseFloat(service.error_count_5m.toFixed(2))
+          : 0
+
+        const cpuPercent = typeof service?.cpu_percent === 'number'
+          ? parseFloat(service.cpu_percent.toFixed(2))
+          : (service?.metrics?.cpu_percent ?? 0)
+
+        const memoryPercent = typeof service?.memory_percent === 'number'
+          ? parseFloat(service.memory_percent.toFixed(2))
+          : (service?.metrics?.memory_percent ?? 0)
+
+        const memoryUsageMb = typeof service?.memory_usage_mb === 'number'
+          ? parseFloat(service.memory_usage_mb.toFixed(2))
+          : (service?.metrics?.memory_usage_mb ?? 0)
+
+        const memoryLimitMb = typeof service?.memory_limit_mb === 'number'
+          ? parseFloat(service.memory_limit_mb.toFixed(2))
+          : (service?.metrics?.memory_limit_mb ?? 0)
+
+        const networkRxMb = typeof service?.network_rx_mb === 'number'
+          ? parseFloat(service.network_rx_mb.toFixed(2))
+          : (service?.metrics?.network_rx_mb ?? 0)
+
+        const networkTxMb = typeof service?.network_tx_mb === 'number'
+          ? parseFloat(service.network_tx_mb.toFixed(2))
+          : (service?.metrics?.network_tx_mb ?? 0)
+
+        const pids = typeof service?.pids === 'number'
+          ? service.pids
+          : (service?.metrics?.pids ?? null)
+
+        const healthError = service?.health_error || service?.metrics?.health_error || undefined
+
+        const serviceMetric: ServiceMetrics = {
+          id: rawName,
+          rawName,
+          displayName,
+          serviceType: baseServiceType,
+          name: displayName,
+          url: getServiceUrl(baseServiceType),
+          port: getServicePort(baseServiceType),
+          status,
+          responseTime: responseTimeMs !== null ? responseTimeMs : 'N/A',
+          responseTimeMs,
+          version: 'N/A',
+          healthStatus: status,
+          healthError,
+          health: {
+            status,
+            responseTime: responseTimeMs !== null ? responseTimeMs : 'N/A',
+            error: healthError
           },
-          memory: {
-            total: data.system_memory_total_gb ? `${data.system_memory_total_gb} GB` : 'N/A',
-            used: data.memory_usage_mb ? `${(data.memory_usage_mb / 1024).toFixed(2)} GB` : 'N/A',
-            free: data.memory_usage_mb && data.system_memory_total_gb ? 
-                  `${(data.system_memory_total_gb - data.memory_usage_mb / 1024).toFixed(2)} GB` : 'N/A',
-            usage: data.memory_percent || 0,
-            usage_mb: data.memory_usage_mb || 0,
-            limit_mb: data.memory_limit_mb || 0
-          },
-          load: {
-            average: data.load_average || 0,
-            cores: data.total_cpus || 'N/A'
-          },
-          disk: data.disk || [],
-          // Ajouter les métriques des conteneurs JobbingTrack
-          jobbingtrack: {
-            containers: {
-              count: data.containers_count || 0,
-              cpu: {
-                averagePercent: Math.round(data.cpu_percent || 0),
-                totalPercent: Math.round(data.cpu_percent || 0),
-                perCore: data.cpu_percent_per_core || 0
-              },
-              memory: {
-                used: Math.round(data.memory_usage_mb || 0),
-                limit: Math.round(data.memory_system_total_mb || 0),
-                percent: Math.round(data.memory_percent || 0)
-              }
+          lastCheck: timestamp,
+          pids,
+          errorRatePerMin,
+          errorCount5m,
+          metrics: {
+            memory: {
+              usage: memoryUsageMb,
+              limit: memoryLimitMb,
+              percentage: memoryPercent,
+              usageMb: memoryUsageMb,
+              limitMb: memoryLimitMb
+            },
+            cpu: {
+              usage: cpuPercent,
+              system: cpuPercent,
+              percentage: cpuPercent,
+              perCore: data.cpu_percent_per_core || 0
+            },
+            network: {
+              rx_bytes: networkRxMb * 1024 * 1024,
+              tx_bytes: networkTxMb * 1024 * 1024,
+              rx_mb: networkRxMb,
+              tx_mb: networkTxMb
             }
           },
-          // Détails des conteneurs
-          containers: data.containers || []
+          networkMb: {
+            rx: networkRxMb,
+            tx: networkTxMb
+          }
         }
-        
-        return {
-          services: {},
-          system: mappedSystem,
-          containers: data.containers || {},
-          timestamp: data.timestamp || new Date().toISOString()
+
+        return serviceMetric
+      })
+
+      const servicesMap: { [key: string]: ServiceMetrics } = {}
+      const containersMap: Record<string, ContainerMetricEntry> = {}
+
+      servicesList.forEach(service => {
+        const key = service.rawName || service.name
+        servicesMap[key] = service
+
+        containersMap[key] = {
+          name: service.rawName || service.name,
+          memory: {
+            usage: service.metrics?.memory?.usage ?? 0,
+            limit: service.metrics?.memory?.limit ?? 0,
+            percentage: service.metrics?.memory?.percentage ?? 0,
+            usageMb: service.metrics?.memory?.usageMb,
+            limitMb: service.metrics?.memory?.limitMb
+          },
+          cpu: {
+            usage: service.metrics?.cpu?.usage ?? 0,
+            system: service.metrics?.cpu?.system ?? 0,
+            percentage: service.metrics?.cpu?.percentage ?? 0,
+            perCore: service.metrics?.cpu?.perCore
+          },
+          network: {
+            rx_bytes: service.metrics?.network?.rx_bytes ?? 0,
+            tx_bytes: service.metrics?.network?.tx_bytes ?? 0,
+            rx_mb: service.metrics?.network?.rx_mb,
+            tx_mb: service.metrics?.network?.tx_mb
+          },
+          status: service.status,
+          response_time_ms: service.responseTimeMs ?? null,
+          error_count_5m: service.errorCount5m ?? 0,
+          error_rate_per_min: service.errorRatePerMin ?? 0,
+          pids: service.pids ?? null
         }
+      })
+
+      const networkStats: NetworkMetricsOverview = data.network ? {
+        total_rx_mb: data.network.total_rx_mb,
+        total_tx_mb: data.network.total_tx_mb,
+        per_service: data.network.per_service
+      } : {
+        total_rx_mb: servicesList.reduce((sum, service) => sum + (service.networkMb?.rx ?? 0), 0),
+        total_tx_mb: servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0),
+        per_service: servicesList.map(service => ({
+          name: service.rawName || service.name,
+          rx_mb: service.networkMb?.rx ?? 0,
+          tx_mb: service.networkMb?.tx ?? 0
+        }))
+      }
+
+      const numericResponseTimes = servicesList
+        .filter(service => typeof service.responseTimeMs === 'number')
+        .map(service => service.responseTimeMs as number)
+
+      const averageResponseTime = numericResponseTimes.length > 0
+        ? parseFloat((numericResponseTimes.reduce((sum, value) => sum + value, 0) / numericResponseTimes.length).toFixed(2))
+        : null
+
+      const fastestResponseTime = numericResponseTimes.length > 0
+        ? Math.min(...numericResponseTimes)
+        : null
+
+      const slowestResponseTime = numericResponseTimes.length > 0
+        ? Math.max(...numericResponseTimes)
+        : null
+
+      const responseTimeStats: ResponseTimeOverview = data.response_time || {
+        average_ms: averageResponseTime,
+        fastest_ms: fastestResponseTime,
+        slowest_ms: slowestResponseTime,
+        per_service: servicesList.map(service => ({
+          name: service.rawName || service.name,
+          status: service.status,
+          response_time_ms: service.responseTimeMs ?? null
+        }))
+      }
+
+      const errorStats: ErrorMetricsOverview = data.errors || {
+        total_last_5m: servicesList.reduce((sum, service) => sum + (service.errorCount5m ?? 0), 0),
+        rate_per_min: servicesList.reduce((sum, service) => sum + (service.errorRatePerMin ?? 0), 0),
+        per_service: servicesList.map(service => ({
+          name: service.rawName || service.name,
+          count_last_5m: service.errorCount5m ?? 0,
+          rate_per_min: service.errorRatePerMin ?? 0
+        }))
+      }
+
+      const healthStats: HealthOverview = data.health || {
+        availability_percent: servicesList.length > 0
+          ? parseFloat(((servicesList.filter(service => service.status === 'healthy').length / servicesList.length) * 100).toFixed(2))
+          : 0,
+        system_availability_percent: data.health?.system_availability_percent,
+        healthy: servicesList.filter(service => service.status === 'healthy').length,
+        degraded: servicesList.filter(service => service.status === 'degraded').length,
+        offline: servicesList.filter(service => service.status === 'offline').length,
+        containers_running: data.health?.containers_running,
+        containers_total: data.health?.containers_total ?? servicesList.length
+      }
+
+      const overallLoadScore = typeof data.overall_load_score === 'number'
+        ? data.overall_load_score
+        : undefined
+
+      const mappedSystem: SystemMetrics = {
+        cpu: {
+          usage: data.cpu_percent || 0,
+          cores: data.total_cpus || 'N/A',
+          model: 'Docker Containers',
+          containers_only: data.cpu_containers_only || 0,
+          per_core: data.cpu_percent_per_core || 0,
+          loadScore: overallLoadScore
+        },
+        memory: {
+          total: data.system_memory_total_gb ? `${data.system_memory_total_gb} GB` : 'N/A',
+          used: data.memory_usage_mb ? `${(data.memory_usage_mb / 1024).toFixed(2)} GB` : 'N/A',
+          free: data.memory_usage_mb && data.system_memory_total_gb
+            ? `${(data.system_memory_total_gb - data.memory_usage_mb / 1024).toFixed(2)} GB`
+            : 'N/A',
+          usage: data.memory_percent || 0,
+          usage_mb: data.memory_usage_mb || 0,
+          limit_mb: data.memory_system_total_mb || 0
+        },
+        load: {
+          average: data.load_average || 0,
+          cores: data.total_cpus || 'N/A'
+        },
+        disk: data.disk || [],
+        network: networkStats,
+        availability: healthStats,
+        errors: errorStats,
+        overallLoadScore,
+        jobbingtrack: {
+          containers: {
+            count: data.containers_count || servicesList.length,
+            cpu: {
+              averagePercent: parseFloat((data.cpu_percent || 0).toFixed(2)),
+              totalPercent: parseFloat((data.cpu_percent || 0).toFixed(2)),
+              perCore: data.cpu_percent_per_core || 0
+            },
+            memory: {
+              used: Math.round(data.memory_usage_mb || 0),
+              limit: Math.round(data.memory_system_total_mb || 0),
+              percent: parseFloat((data.memory_percent || 0).toFixed(2))
+            }
+          }
+        },
+        containers: mergedServices
+      }
+
+      return {
+        services: servicesMap,
+        servicesList,
+        system: mappedSystem,
+        containers: containersMap,
+        timestamp,
+        network: networkStats,
+        responseTime: responseTimeStats,
+        errors: errorStats,
+        health: healthStats,
+        overallLoadScore
       }
     } catch (error) {
       console.error('Erreur récupération métriques agrégateur:', error)
@@ -551,6 +784,40 @@ class CentralMetricsService {
       }
     } catch (error) {
       console.error(`Erreur récupération logs pour ${serviceName}:`, error)
+    }
+
+    return null
+  }
+
+  async getAggregatorLogs(containerName: string, options?: { limit?: number; start?: number; end?: number }): Promise<any | null> {
+    const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+    const params = new URLSearchParams()
+
+    if (options?.limit) {
+      params.append('limit', options.limit.toString())
+    }
+    if (options?.start) {
+      params.append('start', options.start.toString())
+    }
+    if (options?.end) {
+      params.append('end', options.end.toString())
+    }
+
+    const queryString = params.toString()
+
+    try {
+      const response = await fetch(`${metricsUrl}/api/v1/logs/container/${containerName}${queryString ? `?${queryString}` : ''}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000)
+      })
+
+      if (response.ok) {
+        return await response.json()
+      }
+    } catch (error) {
+      console.error(`Erreur récupération logs agrégateur pour ${containerName}:`, error)
     }
 
     return null
