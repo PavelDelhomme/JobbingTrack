@@ -284,14 +284,23 @@ export default function BackofficePage() {
         const servicesData = await centralMetricsService.getAllServices()
         if (servicesData && servicesData.length > 0) {
           const updatedServices = services.map(service => {
-            const metricsData = servicesData.find((s: any) => 
-              s.name?.includes(service.id) || s.id === service.id
+            // Chercher le service correspondant dans les données Docker
+            const dockerService = servicesData.find((s: any) => 
+              s.name?.includes(service.id) || s.name === `jobbingtrack-${service.id}`
             )
+            
             return {
               ...service,
-              status: metricsData?.status === 'running' ? 'running' : 'stopped',
-              metrics: metricsData,
-              uptime: metricsData?.status === 'running' ? 'En ligne' : 'Hors ligne'
+              status: dockerService?.is_running ? 'running' : 'stopped',
+              metrics: dockerService?.metrics ? {
+                cpu: dockerService.metrics.cpu_percent,
+                memory: {
+                  percent: dockerService.metrics.memory_percent,
+                  usage: dockerService.metrics.memory_usage_mb
+                },
+                pids: dockerService.metrics.pids
+              } : null,
+              uptime: dockerService?.is_running ? 'En ligne' : 'Hors ligne'
             }
           })
           setServicesWithMetrics(updatedServices)

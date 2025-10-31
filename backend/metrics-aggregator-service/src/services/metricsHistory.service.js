@@ -39,6 +39,11 @@ class MetricsHistoryService {
       
       await fs.writeFile(filepath, JSON.stringify(snapshot, null, 2), 'utf8');
       
+      // Sauvegarder aussi les métriques par service si disponibles
+      if (metrics.containers && Array.isArray(metrics.containers)) {
+        await this.saveServiceSnapshots(metrics.containers, timestamp);
+      }
+      
       // Nettoyer les anciens fichiers si nécessaire
       await this.cleanOldSnapshots();
       
@@ -47,6 +52,91 @@ class MetricsHistoryService {
     } catch (err) {
       console.error('[HISTORY] Erreur sauvegarde snapshot:', err.message);
       return false;
+    }
+  }
+
+  /**
+   * Enregistre les snapshots individuels par service
+   * @param {Array} containers - Liste des conteneurs
+   * @param {number} timestamp - Timestamp
+   */
+  async saveServiceSnapshots(containers, timestamp) {
+    try {
+      for (const container of containers) {
+        const serviceName = container.name.replace('jobbingtrack-', '');
+        const serviceDir = path.join(this.historyDir, 'services', serviceName);
+        
+        // Créer le répertoire du service si nécessaire
+        await fs.mkdir(serviceDir, { recursive: true });
+        
+        const filename = `${timestamp}.json`;
+        const filepath = path.join(serviceDir, filename);
+        
+        const serviceSnapshot = {
+          timestamp: new Date().toISOString(),
+          unix_timestamp: timestamp,
+          service: serviceName,
+          ...container
+        };
+        
+        await fs.writeFile(filepath, JSON.stringify(serviceSnapshot, null, 2), 'utf8');
+      }
+      
+      console.log(`[HISTORY] Snapshots par service sauvegardés: ${containers.length} services`);
+    } catch (err) {
+      console.error('[HISTORY] Erreur sauvegarde snapshots services:', err.message);
+    }
+  }
+
+  /**
+   * Récupère l'historique d'un service spécifique
+   * @param {string} serviceName - Nom du service
+   * @param {Object} options - Options
+   */
+  async getServiceHistory(serviceName, options = {}) {
+    try {
+      const { 
+        startTime = Date.now() - 3600000,
+        endTime = Date.now(),
+        limit = 100
+      } = options;
+      
+      const serviceDir = path.join(this.historyDir, 'services', serviceName);
+      
+      try {
+        await fs.access(serviceDir);
+      } catch {
+        return []; // Répertoire n'existe pas
+      }
+      
+      const files = await fs.readdir(serviceDir);
+      const metricsFiles = files
+        .filter(f => f.endsWith('.json'))
+        .map(f => {
+          const timestamp = parseInt(f.replace('.json', ''));
+          return { filename: f, timestamp };
+        })
+        .filter(f => f.timestamp >= startTime && f.timestamp <= endTime)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, limit);
+      
+      const history = [];
+      for (const file of metricsFiles) {
+        try {
+          const content = await fs.readFile(
+            path.join(serviceDir, file.filename),
+            'utf8'
+          );
+          history.push(JSON.parse(content));
+        } catch (err) {
+          console.error('[HISTORY] Erreur lecture fichier:', file.filename, err.message);
+        }
+      }
+      
+      return history;
+    } catch (err) {
+      console.error('[HISTORY] Erreur récupération historique service:', err.message);
+      return [];
     }
   }
 

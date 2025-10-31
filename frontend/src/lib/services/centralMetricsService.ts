@@ -459,7 +459,7 @@ class CentralMetricsService {
               },
               memory: {
                 used: Math.round(data.memory_usage_mb || 0),
-                limit: Math.round(data.memory_limit_mb || 0),
+                limit: Math.round(data.memory_system_total_mb || 0),
                 percent: Math.round(data.memory_percent || 0)
               }
             }
@@ -495,19 +495,20 @@ class CentralMetricsService {
     try {
       // Essayer d'abord le service de métriques agrégateur qui a les vraies données
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const response = await fetch(`${metricsUrl}/api/v1/services`, {
+      const response = await fetch(`${metricsUrl}/api/v1/docker/services/all`, {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(2000) // Timeout très court
+        signal: AbortSignal.timeout(5000)
       })
 
       if (response.ok) {
         const data = await response.json()
-        return Object.values(data) // Convertir l'objet en tableau
+        console.log('[SERVICES] Services récupérés depuis Docker:', data.total, 'services')
+        return data.services || [] // Retourner le tableau de services
       }
     } catch (error) {
-      // Erreur silencieuse - service de métriques non disponible (normal)
+      console.error('[SERVICES] Erreur récupération depuis Docker:', error)
     }
 
     // Fallback vers l'API Gateway avec timeout aussi
@@ -786,6 +787,61 @@ class CentralMetricsService {
         return null
       }
     })
+  }
+
+  /**
+   * Récupère l'historique des métriques
+   */
+  async getMetricsHistory(options?: { limit?: number; startTime?: number; endTime?: number }) {
+    try {
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      const { limit = 100, startTime, endTime } = options || {}
+      
+      const params = new URLSearchParams()
+      params.append('limit', limit.toString())
+      if (startTime) params.append('startTime', startTime.toString())
+      if (endTime) params.append('endTime', endTime.toString())
+      
+      const response = await fetch(`${metricsUrl}/api/v1/docker/history?${params}`, {
+        headers: { 'Accept': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return data.data || []
+      }
+      return []
+    } catch (error) {
+      console.error('[METRICS] Erreur récupération historique:', error)
+      return []
+    }
+  }
+
+  /**
+   * Récupère les statistiques sur une période
+   */
+  async getMetricsStats(options?: { startTime?: number; endTime?: number }) {
+    try {
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      const { startTime, endTime } = options || {}
+      
+      const params = new URLSearchParams()
+      if (startTime) params.append('startTime', startTime.toString())
+      if (endTime) params.append('endTime', endTime.toString())
+      
+      const response = await fetch(`${metricsUrl}/api/v1/docker/stats?${params}`, {
+        headers: { 'Accept': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return data.stats || null
+      }
+      return null
+    } catch (error) {
+      console.error('[METRICS] Erreur récupération stats:', error)
+      return null
+    }
   }
 }
 
