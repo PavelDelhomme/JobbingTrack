@@ -45,9 +45,9 @@ cd backend/prisma && npm run studio
 
 ## Documentation Complète
 
-- **INSTRUCTIONS_DEMAIN.md** - Guide détaillé étape par étape
-- **REVEIL_README.md** - Guide utilisateur complet
-- **MIGRATION_GUIDE.md** - Documentation technique
+- **3_3_INSTRUCTIONS_DEMAIN.md** - Guide détaillé étape par étape
+- **2_2_REVEIL_README.md** - Guide utilisateur complet
+- **4_4_MIGRATION_GUIDE.md** - Documentation technique
 
 ---
 
