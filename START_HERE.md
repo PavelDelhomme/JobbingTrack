@@ -1,12 +1,20 @@
 # 🚀 DÉMARRAGE RAPIDE
 
-## Commande Unique (10 minutes)
+## 1️⃣ Vérification Setup (30 secondes)
 
 ```bash
-chmod +x scripts/*.sh && bash scripts/deploy-new-database-architecture.sh
+chmod +x scripts/*.sh && bash scripts/verify-docker-setup.sh
 ```
 
-**C'est TOUT !** ✨
+**Vérifie que tout est prêt avant de démarrer** ✅
+
+## 2️⃣ Déploiement (10 minutes)
+
+```bash
+bash scripts/deploy-new-database-architecture.sh
+```
+
+**Lance la migration complète** ✨
 
 ---
 

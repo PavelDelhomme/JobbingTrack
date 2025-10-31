@@ -9,8 +9,16 @@
 # 3. Tests
 # 4. Validation
 # 5. Commit & Push
+# Avec suivi complet des opérations
 
 set -e
+
+# Activer le suivi
+TRACK_SCRIPT="$(dirname "$0")/track-deployment.sh"
+if [ -f "$TRACK_SCRIPT" ]; then
+    bash "$TRACK_SCRIPT" track "automated_deployment"
+    source /tmp/deployment_tracking.env 2>/dev/null || true
+fi
 
 # Couleurs
 GREEN='\033[0;32m'

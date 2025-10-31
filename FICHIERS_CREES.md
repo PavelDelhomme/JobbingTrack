@@ -5,9 +5,9 @@
 
 ---
 
-## ✅ Fichiers à Commit (17 fichiers)
+## ✅ Fichiers à Commit (19 fichiers)
 
-### 📜 Scripts Automatisés (5)
+### 📜 Scripts Automatisés (7)
 
 ```
 scripts/run-prisma-migrations.sh               # 80 lignes
@@ -15,6 +15,8 @@ scripts/deploy-new-database-architecture.sh    # 200 lignes
 scripts/update-prisma-imports.sh               # 120 lignes
 scripts/validate-new-architecture.sh           # 250 lignes
 scripts/git-commit-migration.sh                # 200 lignes
+scripts/verify-docker-setup.sh                 # 450 lignes - NOUVEAU
+scripts/test-containers-access.sh              # 350 lignes - NOUVEAU
 ```
 
 **Commandes pour rendre exécutables** :

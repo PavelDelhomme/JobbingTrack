@@ -62,6 +62,20 @@ Gestion de la base de données PostgreSQL.
 | `create-admin-user.sh` | Crée un utilisateur administrateur | `./scripts/database/create-admin-user.sh [email] [password]` |
 | `wait-for-postgres.sh` | Attend que PostgreSQL soit prêt | `./scripts/database/wait-for-postgres.sh` |
 
+### 🔄 Migration Database (`scripts/`)
+
+Scripts de migration vers le nouveau schéma Prisma partagé.
+
+| Script | Description | Usage |
+|--------|-------------|-------|
+| `run-prisma-migrations.sh` | Exécute migrations Prisma dans Docker | `./scripts/run-prisma-migrations.sh` |
+| `deploy-new-database-architecture.sh` | Déploiement complet automatique | `./scripts/deploy-new-database-architecture.sh` |
+| `update-prisma-imports.sh` | Met à jour imports Prisma dans services | `./scripts/update-prisma-imports.sh` |
+| `validate-new-architecture.sh` | 7 tests de validation automatiques | `./scripts/validate-new-architecture.sh` |
+| `verify-docker-setup.sh` | Vérifie setup Docker avant déploiement | `./scripts/verify-docker-setup.sh` |
+| `test-containers-access.sh` | Test accès depuis conteneurs | `./scripts/test-containers-access.sh` |
+| `git-commit-migration.sh` | Automatise git commit & push | `./scripts/git-commit-migration.sh` |
+
 ### 🚀 Deployment (`scripts/deployment/`)
 
 Scripts de déploiement et gestion des services.
