@@ -288,12 +288,12 @@ make db-reset      # Reset DB (DANGER)
 | `scripts/deploy-new-database-architecture.sh` | Script de déploiement complet |
 | `scripts/update-prisma-imports.sh` | Mise à jour des imports |
 | `scripts/validate-new-architecture.sh` | Tests de validation |
-| `4_4_4_4_MIGRATION_GUIDE.md` | Ce fichier |
+| `4_4_4_4_4_MIGRATION_GUIDE.md` | Ce fichier |
 
 ### Documentation Complète
 
 - **Schéma détaillé** : `docs/DATABASE_SCHEMA_COMPLETE.md`
-- **Guide de migration** : `docs/DATABASE_4_4_4_4_MIGRATION_GUIDE.md`
+- **Guide de migration** : `docs/DATABASE_4_4_4_4_4_MIGRATION_GUIDE.md`
 - **Récapitulatif** : `docs/NOUVELLE_ARCHITECTURE_DB_RECAP.md`
 - **Architecture** : `docs/DATABASE_ARCHITECTURE_SOLUTION.md`
 

@@ -131,11 +131,11 @@ EOF
 - ✅ `scripts/validate-new-architecture.sh` - Tests
 
 ### Documentation (5)
-- ✅ `2_2_2_2_REVEIL_README.md` - Guide utilisateur
-- ✅ `4_4_4_4_MIGRATION_GUIDE.md` - Guide complet
-- ✅ `6_6_6_6_TECHNICAL_SUMMARY.md` - Résumé technique
-- ✅ `9_9_9_9_FICHIERS_CREES.md` - Liste fichiers
-- ✅ `3_3_3_3_INSTRUCTIONS_DEMAIN.md` - Ce fichier
+- ✅ `2_2_2_2_2_REVEIL_README.md` - Guide utilisateur
+- ✅ `4_4_4_4_4_MIGRATION_GUIDE.md` - Guide complet
+- ✅ `6_6_6_6_6_TECHNICAL_SUMMARY.md` - Résumé technique
+- ✅ `9_9_9_9_9_FICHIERS_CREES.md` - Liste fichiers
+- ✅ `3_3_3_3_3_INSTRUCTIONS_DEMAIN.md` - Ce fichier
 
 ### Configuration (3)
 - ✅ `backend/prisma/.env` - DATABASE_URL
@@ -202,7 +202,7 @@ git status
 
 # Ajouter
 git add scripts/*.sh
-git add 2_2_2_2_REVEIL_README.md 4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_FICHIERS_CREES.md 3_3_3_3_INSTRUCTIONS_DEMAIN.md
+git add 2_2_2_2_2_REVEIL_README.md 4_4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_9_FICHIERS_CREES.md 3_3_3_3_3_INSTRUCTIONS_DEMAIN.md
 git add backend/prisma/.gitignore
 git add makefiles/database/Makefile.new
 
@@ -277,10 +277,10 @@ Si besoin de détails :
 
 | Fichier | Pour Qui | Contenu |
 |---------|----------|---------|
-| **2_2_2_2_REVEIL_README.md** | Vous | Guide simple |
-| **4_4_4_4_MIGRATION_GUIDE.md** | Dev | Guide complet |
-| **6_6_6_6_TECHNICAL_SUMMARY.md** | Tech | Détails techniques |
-| **9_9_9_9_FICHIERS_CREES.md** | Admin | Liste fichiers |
+| **2_2_2_2_2_REVEIL_README.md** | Vous | Guide simple |
+| **4_4_4_4_4_MIGRATION_GUIDE.md** | Dev | Guide complet |
+| **6_6_6_6_6_TECHNICAL_SUMMARY.md** | Tech | Détails techniques |
+| **9_9_9_9_9_FICHIERS_CREES.md** | Admin | Liste fichiers |
 
 ---
 

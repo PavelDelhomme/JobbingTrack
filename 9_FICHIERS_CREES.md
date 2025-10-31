@@ -34,11 +34,11 @@ chmod +x scripts/validate-new-architecture.sh
 ### 📚 Documentation (5)
 
 ```
-2_2_2_2_REVEIL_README.md                # 400+ lignes - Guide utilisateur
-4_4_4_4_MIGRATION_GUIDE.md              # 500+ lignes - Guide complet
-6_6_6_6_TECHNICAL_SUMMARY.md            # 300+ lignes - Résumé technique
-9_9_9_9_FICHIERS_CREES.md               # Ce fichier
-5_5_5_5_SUIVI_DEPLOYMENT.md             # 400+ lignes - NOUVEAU (guide suivi)
+2_2_2_2_2_REVEIL_README.md                # 400+ lignes - Guide utilisateur
+4_4_4_4_4_MIGRATION_GUIDE.md              # 500+ lignes - Guide complet
+6_6_6_6_6_TECHNICAL_SUMMARY.md            # 300+ lignes - Résumé technique
+9_9_9_9_9_FICHIERS_CREES.md               # Ce fichier
+5_5_5_5_5_SUIVI_DEPLOYMENT.md             # 400+ lignes - NOUVEAU (guide suivi)
 ```
 
 ---
@@ -122,7 +122,7 @@ git ls-files --others --exclude-standard
 git add scripts/*.sh
 
 # Ajouter toute la documentation
-git add 2_2_2_2_REVEIL_README.md 4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_FICHIERS_CREES.md
+git add 2_2_2_2_2_REVEIL_README.md 4_4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_9_FICHIERS_CREES.md
 
 # Ajouter la configuration
 git add backend/prisma/.gitignore
@@ -155,10 +155,10 @@ git commit -m "feat: migration vers schéma Prisma partagé unique
 - validate-new-architecture.sh: Tests validation
 
 📚 Documentation
-- 2_2_2_2_REVEIL_README.md: Guide utilisateur
-- 4_4_4_4_MIGRATION_GUIDE.md: Guide complet
-- 6_6_6_6_TECHNICAL_SUMMARY.md: Résumé technique
-- 9_9_9_9_FICHIERS_CREES.md: Liste fichiers
+- 2_2_2_2_2_REVEIL_README.md: Guide utilisateur
+- 4_4_4_4_4_MIGRATION_GUIDE.md: Guide complet
+- 6_6_6_6_6_TECHNICAL_SUMMARY.md: Résumé technique
+- 9_9_9_9_9_FICHIERS_CREES.md: Liste fichiers
 
 🎯 Résultat
 - 7 tests de validation automatisés
@@ -267,13 +267,13 @@ JobbingTrack/
 │
 ├── docs/                             # Documentation existante
 │   ├── DATABASE_SCHEMA_COMPLETE.md
-│   ├── DATABASE_4_4_4_4_MIGRATION_GUIDE.md
+│   ├── DATABASE_4_4_4_4_4_MIGRATION_GUIDE.md
 │   └── NOUVELLE_ARCHITECTURE_DB_RECAP.md
 │
-├── 2_2_2_2_REVEIL_README.md                  # ✅ Guide utilisateur
-├── 4_4_4_4_MIGRATION_GUIDE.md                # ✅ Guide complet
-├── 6_6_6_6_TECHNICAL_SUMMARY.md              # ✅ Résumé technique
-└── 9_9_9_9_FICHIERS_CREES.md                 # ✅ Ce fichier
+├── 2_2_2_2_2_REVEIL_README.md                  # ✅ Guide utilisateur
+├── 4_4_4_4_4_MIGRATION_GUIDE.md                # ✅ Guide complet
+├── 6_6_6_6_6_TECHNICAL_SUMMARY.md              # ✅ Résumé technique
+└── 9_9_9_9_9_FICHIERS_CREES.md                 # ✅ Ce fichier
 ```
 
 ---
@@ -334,7 +334,7 @@ Suivez la checklist ci-dessus pour un commit propre.
 
 **Commande rapide** :
 ```bash
-git add scripts/*.sh 2_2_2_2_REVEIL_README.md 4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_FICHIERS_CREES.md backend/prisma/.gitignore makefiles/database/Makefile.new
+git add scripts/*.sh 2_2_2_2_2_REVEIL_README.md 4_4_4_4_4_MIGRATION_GUIDE.md 6_6_6_6_6_TECHNICAL_SUMMARY.md 9_9_9_9_9_FICHIERS_CREES.md backend/prisma/.gitignore makefiles/database/Makefile.new
 git status
 git commit -m "feat: migration schéma Prisma partagé unique"
 git push
