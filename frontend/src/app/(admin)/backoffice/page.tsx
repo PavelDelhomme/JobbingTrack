@@ -197,28 +197,101 @@ export default function BackofficePage() {
     }
   }, [loading, isAuthenticated, router])
 
-  // Charger les métriques système
+  // Charger les métriques système et des services
   useEffect(() => {
     const loadSystemMetrics = async () => {
       try {
-        setLoadingSystemMetrics(true)
+        // ✅ NE PAS mettre loading à true pour le premier chargement uniquement
+        // Cela évite d'afficher N/A pendant les rechargements
+        if (!systemMetrics) {
+          setLoadingSystemMetrics(true)
+        }
         
         // Récupérer toutes les métriques depuis le service centralisé
         const allMetrics = await centralMetricsService.fetchMetrics()
         
         if (allMetrics) {
-          setSystemMetrics(allMetrics.system || null)
-          setContainerMetrics(allMetrics.containers || null)
-        } else {
-          // Fallback vers les métriques individuelles
-          const systemMetricsData = await centralMetricsService.getSystemMetrics()
-          setSystemMetrics(systemMetricsData)
+          // ✅ FUSIONNER les nouvelles métriques avec les anciennes pour garder toutes les valeurs
+          // Ne jamais mettre null ou undefined pour éviter d'afficher N/A
+          if (allMetrics.system) {
+            setSystemMetrics((prev: any) => ({
+              ...prev,
+              ...allMetrics.system,
+              // Préserver les sous-objets en les fusionnant aussi
+              cpu: prev?.cpu ? { ...prev.cpu, ...allMetrics.system.cpu } : allMetrics.system.cpu,
+              memory: prev?.memory ? { ...prev.memory, ...allMetrics.system.memory } : allMetrics.system.memory,
+              load: prev?.load ? { ...prev.load, ...allMetrics.system.load } : allMetrics.system.load,
+              disk: allMetrics.system.disk || prev?.disk,
+              jobbingtrack: prev?.jobbingtrack ? {
+                ...prev.jobbingtrack,
+                ...allMetrics.system.jobbingtrack,
+                containers: allMetrics.system.jobbingtrack?.containers || prev.jobbingtrack.containers
+              } : allMetrics.system.jobbingtrack
+            }))
+          }
+          if (allMetrics.containers) {
+            setContainerMetrics((prev: any) => ({
+              ...prev,
+              ...allMetrics.containers
+            }))
+          }
           
-          const containerMetricsData = await centralMetricsService.getContainerMetrics()
-          setContainerMetrics(containerMetricsData)
+          // ✅ Enrichir les services avec leurs métriques en temps réel
+          const enrichedServices = services.map(service => {
+            // Chercher les métriques du conteneur correspondant au service
+            const serviceKey = service.id.replace('-service', '')
+            let containerMetrics = null
+            
+            // Chercher dans containers si disponible
+            if (allMetrics.containers) {
+              const containerName = `jobbingtrack-${serviceKey}`
+              containerMetrics = Object.entries(allMetrics.containers).find(([name]) => 
+                name.toLowerCase().includes(serviceKey)
+              )?.[1]
+            }
+            
+            // Chercher dans services si disponible
+            let serviceMetrics = null
+            if (allMetrics.services && allMetrics.services[service.id]) {
+              serviceMetrics = allMetrics.services[service.id]
+            }
+            
+            return {
+              ...service,
+              metrics: containerMetrics || serviceMetrics?.metrics,
+              health: serviceMetrics?.health,
+              status: serviceMetrics?.health?.status === 'healthy' ? 'running' : 
+                      serviceMetrics?.health?.status === 'unhealthy' ? 'stopped' : 'testing',
+              responseTime: serviceMetrics?.health?.responseTime || 'N/A',
+              uptime: serviceMetrics?.uptime || 'N/A',
+            }
+          })
+          
+          setServicesWithMetrics(enrichedServices)
+          
+          // ✅ Calculer le temps de réponse moyen depuis les métriques
+          const responseTimes = allMetrics.servicesList
+            ?.filter((svc: any) => typeof svc.responseTimeMs === 'number' && svc.responseTimeMs > 0)
+            .map((svc: any) => svc.responseTimeMs) || []
+          
+          const avgResponseTime = responseTimes.length > 0
+            ? Math.round(responseTimes.reduce((sum: number, time: number) => sum + time, 0) / responseTimes.length)
+            : allMetrics.responseTime?.average_ms 
+              ? Math.round(Number(allMetrics.responseTime.average_ms))
+              : 0
+          
+          // ✅ Mettre à jour les stats avec le temps de réponse
+          if (avgResponseTime > 0) {
+            setStats((prev: any) => ({
+              ...prev,
+              averageResponseTime: avgResponseTime
+            }))
+          }
         }
+        // ✅ Suppression du else - on garde les anciennes valeurs si échec
       } catch (error) {
         console.error('Erreur chargement métriques système:', error)
+        // ✅ Ne rien faire en cas d'erreur - garder les anciennes valeurs
       } finally {
         setLoadingSystemMetrics(false)
       }
@@ -226,12 +299,15 @@ export default function BackofficePage() {
 
     if (isAuthenticated) {
       loadSystemMetrics()
+      loadMaintenances()
+      
       // Actualiser toutes les 5 secondes (rafraîchissement rapide pour les métriques système)
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible') {
           loadSystemMetrics()
         }
       }, 5000)
+      
       return () => clearInterval(interval)
     }
   }, [isAuthenticated])
@@ -400,15 +476,15 @@ export default function BackofficePage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
           <MetricCard
             title="Sessions Actives"
-            value={stats.activeUsers}
-            subtitle={`${stats.totalUsers} utilisateurs`}
+            value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
+            subtitle={`${stats.totalUsers || 0} utilisateurs`}
             icon={<Users className="h-6 w-6" />}
             color="green"
             href="/backoffice/users"
           />
           <MetricCard
             title="Erreurs Récentes"
-            value={stats.recentErrors}
+            value={stats.recentErrors !== undefined ? stats.recentErrors : '...'}
             subtitle="24h dernières"
             icon={<Shield className="h-6 w-6" />}
             color="red"
@@ -416,29 +492,29 @@ export default function BackofficePage() {
           />
           <MetricCard
             title="Santé Système"
-            value={`${stats.systemHealth}%`}
+            value={stats.systemHealth !== undefined ? `${stats.systemHealth}%` : '...'}
             subtitle="Disponibilité"
             icon={<Zap className="h-6 w-6" />}
             color="blue"
           />
           <MetricCard
             title="Temps Réponse"
-            value={`${stats.averageResponseTime}ms`}
+            value={stats.averageResponseTime !== undefined && stats.averageResponseTime > 0 ? `${stats.averageResponseTime}ms` : '...'}
             subtitle="Moyen"
             icon={<Clock className="h-6 w-6" />}
             color="purple"
           />
           <MetricCard
             title="CPU (Conteneurs)"
-            value={systemMetrics && systemMetrics.cpu && typeof systemMetrics.cpu.containers_only === 'number' ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : loadingSystemMetrics ? '...' : 'N/A'}
-            subtitle={systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs • ${systemMetrics.cpu.per_core?.toFixed(1)}% par coeur` : 'Chargement...'}
+            value={systemMetrics?.cpu?.containers_only !== undefined ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : '...'}
+            subtitle={systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs • ${systemMetrics.cpu.per_core?.toFixed(1)}% par coeur` : '...'}
             icon={<Cpu className="h-6 w-6" />}
             color={systemMetrics?.cpu?.containers_only > 80 ? "red" : systemMetrics?.cpu?.containers_only > 60 ? "yellow" : "green"}
           />
           <MetricCard
             title="Mémoire (Conteneurs)"
-            value={systemMetrics && systemMetrics.memory && typeof systemMetrics.memory.usage === 'number' ? `${systemMetrics.memory.usage.toFixed(1)}%` : loadingSystemMetrics ? '...' : 'N/A'}
-            subtitle={systemMetrics?.memory?.used ? `${systemMetrics.memory.used} utilisé / ${systemMetrics.memory.total}` : 'Chargement...'}
+            value={systemMetrics?.memory?.usage !== undefined ? `${systemMetrics.memory.usage.toFixed(1)}%` : '...'}
+            subtitle={systemMetrics?.memory?.used ? `${systemMetrics.memory.used} utilisé / ${systemMetrics.memory.total}` : '...'}
             icon={<MemoryStick className="h-6 w-6" />}
             color={systemMetrics?.memory?.usage > 85 ? "red" : systemMetrics?.memory?.usage > 70 ? "yellow" : "green"}
           />
@@ -464,57 +540,57 @@ export default function BackofficePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {systemMetrics?.cpu?.containers_only !== undefined ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : 'N/A'}
+                {systemMetrics?.cpu?.containers_only !== undefined ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">CPU (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.per_core !== undefined ? `${systemMetrics.cpu.per_core.toFixed(1)}% par coeur` : 'Chargement...'}
+                {systemMetrics?.cpu?.per_core !== undefined ? `${systemMetrics.cpu.per_core.toFixed(1)}% par coeur` : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {systemMetrics?.memory?.usage !== undefined ? `${systemMetrics.memory.usage.toFixed(1)}%` : 'N/A'}
+                {systemMetrics?.memory?.usage !== undefined ? `${systemMetrics.memory.usage.toFixed(1)}%` : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.memory?.used ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` : 'Chargement...'}
+                {systemMetrics?.memory?.used ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {systemMetrics?.load?.average !== undefined ? systemMetrics.load.average : 'N/A'}
+                {systemMetrics?.load?.average !== undefined ? systemMetrics.load.average : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : ''}
+                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {systemMetrics?.jobbingtrack?.containers?.count || systemMetrics?.containers?.length || 'N/A'}
+                {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? systemMetrics.jobbingtrack.containers.count : (systemMetrics?.containers?.length || '...')}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.count > 0 ? '✅ Actifs' : '❌ Aucun'}
+                {systemMetrics?.jobbingtrack?.containers?.count > 0 ? '✅ Actifs' : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {services ? services.length : 'N/A'}
+                {services && services.length > 0 ? services.length : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {services && services.length > 0 ? '🟢 OK' : '🔴 Hors ligne'}
+                {services && services.length > 0 ? '🟢 OK' : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {systemMetrics?.disk?.[0]?.usage_percent !== undefined ? `${systemMetrics.disk[0].usage_percent}%` : 'N/A'}
+                {systemMetrics?.disk?.[0]?.usage_percent !== undefined ? `${systemMetrics.disk[0].usage_percent}%` : `${systemMetrics[0].usage_percent}%`
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -525,8 +601,8 @@ export default function BackofficePage() {
             </div>
           </div>
 
-          {/* Métriques des conteneurs JobbingTrack */}
-          {systemMetrics && systemMetrics.jobbingtrack && systemMetrics.jobbingtrack.containers && (
+          {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
+          {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
             <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
               <h3 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
                 📦 Conteneurs JobbingTrack ({systemMetrics.jobbingtrack.containers.count})
@@ -536,17 +612,17 @@ export default function BackofficePage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">CPU Moyen</span>
                     <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {systemMetrics.jobbingtrack.containers.cpu.averagePercent}%
+                      {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent}%` : `${systemMetrics.jobbingtrack.containers.cpu.averagePercent}`}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-blue-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 100)}%` }}
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || systemMetrics.jobbingtrack.containers.cpu.averagePercent, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total: {systemMetrics.jobbingtrack.containers.cpu.totalPercent}%
+                    Total: {systemMetrics.jobbingtrack.containers.cpu?.totalPercent !== undefined ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent}%` : `${systemMetrics.jobbingtrack.cpu.totalPercent}`}
                   </div>
                 </div>
 
@@ -554,22 +630,24 @@ export default function BackofficePage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Mémoire Utilisée</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {systemMetrics.jobbingtrack.containers.memory.percent}%
+                      {systemMetrics.jobbingtrack.containers.memory?.percent !== undefined ? `${systemMetrics.jobbingtrack.containers.memory.percent}%` : `${systemMetrics.jobbingtrack.containers.memory.percent}%`}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-green-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory.percent, 100)}%` }}
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent || systemMetrics.jobbingtrack.containers.memory.percent, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {systemMetrics.jobbingtrack.containers.memory.used} MB / {systemMetrics.jobbingtrack.containers.memory.limit} MB
+                    {systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics.jobbingtrack.containers.memory?.limit 
+                      ? `${systemMetrics.jobbingtrack.containers.memory.used} MB / ${systemMetrics.jobbingtrack.containers.memory.limit} MB`
+                      : `${systemMetrics.jobbingtrack.containers.memory.used} MB / ${systemMetrics.jobbingtrack.containers.memory.limit} MB`}
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
           </div>
         </MetricsErrorBoundary>
 
@@ -721,17 +799,88 @@ export default function BackofficePage() {
                           {service.description}
                         </p>
 
+                        {/* État de santé et temps de réponse */}
+                        {service.health && (
+                          <div className="mb-2 p-2 bg-white dark:bg-gray-600/50 rounded text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 dark:text-gray-400">État:</span>
+                              <span className={`font-semibold ${
+                                service.health.status === 'healthy' ? 'text-green-600 dark:text-green-400' :
+                                service.health.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' :
+                                'text-yellow-600 dark:text-yellow-400'
+                              }`}>
+                                {service.health.status === 'healthy' ? '✅ Disponible' :
+                                 service.health.status === 'unhealthy' ? '❌ Indisponible' :
+                                 '⚠️ En cours de test'}
+                              </span>
+                            </div>
+                            {service.responseTime !== 'N/A' && (
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
+                                <span className="font-medium text-blue-600 dark:text-blue-400">
+                                  {service.responseTime}ms
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* Informations des métriques */}
                         {service.metrics && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                            <div className="flex justify-between">
-                              <span>CPU:</span>
-                              <span>{service.metrics.cpu ? `${service.metrics.cpu.toFixed(1)}%` : 'N/A'}</span>
+                          <div className="text-xs space-y-1 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-1">
+                                <Cpu className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">CPU:</span>
+                              </div>
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                {service.metrics.cpu?.percentage !== undefined 
+                                  ? `${service.metrics.cpu.percentage.toFixed(1)}%` 
+                                  : service.metrics.cpu 
+                                  ? `${service.metrics.cpu.toFixed(1)}%` 
+                                  : 'N/A'}
+                              </span>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Mémoire:</span>
-                              <span>{service.metrics.memory?.percent ? `${service.metrics.memory.percent.toFixed(1)}%` : 'N/A'}</span>
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-1">
+                                <MemoryStick className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Mémoire:</span>
+                              </div>
+                              <span className="font-semibold text-green-600 dark:text-green-400">
+                                {service.metrics.memory?.percentage !== undefined 
+                                  ? `${service.metrics.memory.percentage.toFixed(1)}%` 
+                                  : service.metrics.memory?.percent 
+                                  ? `${service.metrics.memory.percent.toFixed(1)}%` 
+                                  : 'N/A'}
+                                {service.metrics.memory?.usage && (
+                                  <span className="text-xs ml-1 text-gray-500">
+                                    ({(service.metrics.memory.usage / 1024 / 1024).toFixed(0)} MB)
+                                  </span>
+                                )}
+                              </span>
                             </div>
+                            {service.metrics.pids && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Processus:</span>
+                                <span className="font-semibold text-purple-600 dark:text-purple-400">
+                                  {service.metrics.pids}
+                                </span>
+                              </div>
+                            )}
+                            {service.metrics.network && (service.metrics.network.rx || service.metrics.network.tx) && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">Réseau:</span>
+                                <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                  {((service.metrics.network.rx + service.metrics.network.tx) / 1024 / 1024).toFixed(2)} MB
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {!service.metrics && !service.health && (
+                          <div className="text-xs text-yellow-600 dark:text-yellow-400 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                            ⚠️ Métriques en cours de chargement...
                           </div>
                         )}
 
@@ -741,7 +890,7 @@ export default function BackofficePage() {
                             router.push(service.route)
                             setShowServicesPopup(false)
                           }}
-                          className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          className="mt-3 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-center py-2 bg-blue-50 dark:bg-blue-900/20 rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                         >
                           Voir détails →
                         </div>
