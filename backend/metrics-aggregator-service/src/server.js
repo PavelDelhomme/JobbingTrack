@@ -426,6 +426,9 @@ async function collectAllMetrics() {
   }
 }
 
+// Import des routes
+const dockerRoutes = require('./routes/docker.routes')
+
 // Routes API
 app.get('/api/v1/health', (req, res) => {
   res.json({
@@ -435,6 +438,9 @@ app.get('/api/v1/health', (req, res) => {
     timestamp: new Date().toISOString()
   })
 })
+
+// Routes Docker (métriques directes depuis Docker)
+app.use('/api/v1/docker', dockerRoutes)
 
 app.get('/api/v1/metrics', authenticateMetrics, (req, res) => {
   res.json({
