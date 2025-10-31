@@ -28,8 +28,8 @@ bash scripts/deploy-new-database-architecture.sh
 
 | Fichier | Description |
 |---------|-------------|
-| `MIGRATION_GUIDE.md` | ✅ Guide complet de migration |
-| `REVEIL_README.md` | ✅ Ce fichier (pour vous au réveil) |
+| `4_4_MIGRATION_GUIDE.md` | ✅ Guide complet de migration |
+| `2_2_REVEIL_README.md` | ✅ Ce fichier (pour vous au réveil) |
 | `makefiles/database/Makefile.new` | ✅ Commandes Makefile pratiques |
 | `backend/prisma/.env` | ✅ Configuration DATABASE_URL |
 
@@ -293,9 +293,9 @@ npx prisma migrate reset --force
 
 | Fichier | Description |
 |---------|-------------|
-| **MIGRATION_GUIDE.md** | Guide complet étape par étape |
+| **4_4_MIGRATION_GUIDE.md** | Guide complet étape par étape |
 | **docs/DATABASE_SCHEMA_COMPLETE.md** | Schéma détaillé tous modèles |
-| **docs/DATABASE_MIGRATION_GUIDE.md** | Guide migration |
+| **docs/DATABASE_4_4_MIGRATION_GUIDE.md** | Guide migration |
 | **docs/NOUVELLE_ARCHITECTURE_DB_RECAP.md** | Récapitulatif |
 
 ---

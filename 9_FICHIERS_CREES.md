@@ -5,18 +5,20 @@
 
 ---
 
-## ✅ Fichiers à Commit (19 fichiers)
+## ✅ Fichiers à Commit (25 fichiers)
 
-### 📜 Scripts Automatisés (7)
+### 📜 Scripts Automatisés (9)
 
 ```
 scripts/run-prisma-migrations.sh               # 80 lignes
-scripts/deploy-new-database-architecture.sh    # 200 lignes
+scripts/deploy-new-database-architecture.sh    # 220 lignes (+ suivi intégré)
 scripts/update-prisma-imports.sh               # 120 lignes
 scripts/validate-new-architecture.sh           # 250 lignes
 scripts/git-commit-migration.sh                # 200 lignes
-scripts/verify-docker-setup.sh                 # 450 lignes - NOUVEAU
-scripts/test-containers-access.sh              # 350 lignes - NOUVEAU
+scripts/verify-docker-setup.sh                 # 450 lignes
+scripts/test-containers-access.sh              # 350 lignes
+scripts/track-deployment.sh                    # 400 lignes - NOUVEAU (suivi)
+scripts/dashboard-deployment.sh                # 300 lignes - NOUVEAU (dashboard)
 ```
 
 **Commandes pour rendre exécutables** :
@@ -29,13 +31,14 @@ chmod +x scripts/validate-new-architecture.sh
 
 ---
 
-### 📚 Documentation (4)
+### 📚 Documentation (5)
 
 ```
-REVEIL_README.md                # 400+ lignes - Guide utilisateur
-MIGRATION_GUIDE.md              # 500+ lignes - Guide complet
-TECHNICAL_SUMMARY.md            # 300+ lignes - Résumé technique
-FICHIERS_CREES.md               # Ce fichier
+2_2_REVEIL_README.md                # 400+ lignes - Guide utilisateur
+4_4_MIGRATION_GUIDE.md              # 500+ lignes - Guide complet
+6_6_TECHNICAL_SUMMARY.md            # 300+ lignes - Résumé technique
+9_9_FICHIERS_CREES.md               # Ce fichier
+5_5_SUIVI_DEPLOYMENT.md             # 400+ lignes - NOUVEAU (guide suivi)
 ```
 
 ---
@@ -61,6 +64,19 @@ makefiles/database/Makefile.new # 300+ lignes - Targets Makefile
 - ✅ Vérification relations
 - ✅ Security checks
 - ✅ Best practices
+
+### 📁 Logs & Suivi (2)
+
+```
+logs/.gitignore                 # Ignore logs deployment
+logs/.gitkeep                   # Garde le dossier dans git
+```
+
+**Note** : Le dossier `logs/deployment/` sera créé automatiquement et contiendra :
+- Logs de déploiement (`.log`)
+- Rapports Markdown (`.md`)
+- Historique JSON (`.json`)
+- ⚠️ Ces fichiers ne sont PAS commitées (dans .gitignore)
 
 ---
 
@@ -106,7 +122,7 @@ git ls-files --others --exclude-standard
 git add scripts/*.sh
 
 # Ajouter toute la documentation
-git add REVEIL_README.md MIGRATION_GUIDE.md TECHNICAL_SUMMARY.md FICHIERS_CREES.md
+git add 2_2_REVEIL_README.md 4_4_MIGRATION_GUIDE.md 6_6_TECHNICAL_SUMMARY.md 9_9_FICHIERS_CREES.md
 
 # Ajouter la configuration
 git add backend/prisma/.gitignore
@@ -139,10 +155,10 @@ git commit -m "feat: migration vers schéma Prisma partagé unique
 - validate-new-architecture.sh: Tests validation
 
 📚 Documentation
-- REVEIL_README.md: Guide utilisateur
-- MIGRATION_GUIDE.md: Guide complet
-- TECHNICAL_SUMMARY.md: Résumé technique
-- FICHIERS_CREES.md: Liste fichiers
+- 2_2_REVEIL_README.md: Guide utilisateur
+- 4_4_MIGRATION_GUIDE.md: Guide complet
+- 6_6_TECHNICAL_SUMMARY.md: Résumé technique
+- 9_9_FICHIERS_CREES.md: Liste fichiers
 
 🎯 Résultat
 - 7 tests de validation automatisés
@@ -251,13 +267,13 @@ JobbingTrack/
 │
 ├── docs/                             # Documentation existante
 │   ├── DATABASE_SCHEMA_COMPLETE.md
-│   ├── DATABASE_MIGRATION_GUIDE.md
+│   ├── DATABASE_4_4_MIGRATION_GUIDE.md
 │   └── NOUVELLE_ARCHITECTURE_DB_RECAP.md
 │
-├── REVEIL_README.md                  # ✅ Guide utilisateur
-├── MIGRATION_GUIDE.md                # ✅ Guide complet
-├── TECHNICAL_SUMMARY.md              # ✅ Résumé technique
-└── FICHIERS_CREES.md                 # ✅ Ce fichier
+├── 2_2_REVEIL_README.md                  # ✅ Guide utilisateur
+├── 4_4_MIGRATION_GUIDE.md                # ✅ Guide complet
+├── 6_6_TECHNICAL_SUMMARY.md              # ✅ Résumé technique
+└── 9_9_FICHIERS_CREES.md                 # ✅ Ce fichier
 ```
 
 ---
@@ -318,7 +334,7 @@ Suivez la checklist ci-dessus pour un commit propre.
 
 **Commande rapide** :
 ```bash
-git add scripts/*.sh REVEIL_README.md MIGRATION_GUIDE.md TECHNICAL_SUMMARY.md FICHIERS_CREES.md backend/prisma/.gitignore makefiles/database/Makefile.new
+git add scripts/*.sh 2_2_REVEIL_README.md 4_4_MIGRATION_GUIDE.md 6_6_TECHNICAL_SUMMARY.md 9_9_FICHIERS_CREES.md backend/prisma/.gitignore makefiles/database/Makefile.new
 git status
 git commit -m "feat: migration schéma Prisma partagé unique"
 git push

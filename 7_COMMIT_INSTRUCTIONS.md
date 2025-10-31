@@ -30,14 +30,14 @@ git add scripts/validate-new-architecture.sh
 git add scripts/git-commit-migration.sh
 
 # Documentation (7 fichiers)
-git add START_HERE.md
-git add INSTRUCTIONS_DEMAIN.md
-git add REVEIL_README.md
-git add MIGRATION_GUIDE.md
-git add TECHNICAL_SUMMARY.md
-git add FICHIERS_CREES.md
-git add SESSION_RECAP_NUIT.md
-git add COMMIT_INSTRUCTIONS.md
+git add 1_1_START_HERE.md
+git add 3_3_INSTRUCTIONS_DEMAIN.md
+git add 2_2_REVEIL_README.md
+git add 4_4_MIGRATION_GUIDE.md
+git add 6_6_TECHNICAL_SUMMARY.md
+git add 9_9_FICHIERS_CREES.md
+git add 8_8_SESSION_RECAP_NUIT.md
+git add 7_7_COMMIT_INSTRUCTIONS.md
 
 # Configuration (4 fichiers)
 git add backend/prisma/.gitignore
@@ -109,14 +109,14 @@ git push -u origin tech/database-migration
 - `scripts/git-commit-migration.sh`
 
 ### ✅ Documentation (8)
-- `START_HERE.md`
-- `INSTRUCTIONS_DEMAIN.md`
-- `REVEIL_README.md`
-- `MIGRATION_GUIDE.md`
-- `TECHNICAL_SUMMARY.md`
-- `FICHIERS_CREES.md`
-- `SESSION_RECAP_NUIT.md`
-- `COMMIT_INSTRUCTIONS.md`
+- `1_1_START_HERE.md`
+- `3_3_INSTRUCTIONS_DEMAIN.md`
+- `2_2_REVEIL_README.md`
+- `4_4_MIGRATION_GUIDE.md`
+- `6_6_TECHNICAL_SUMMARY.md`
+- `9_9_FICHIERS_CREES.md`
+- `8_8_SESSION_RECAP_NUIT.md`
+- `7_7_COMMIT_INSTRUCTIONS.md`
 
 ### ✅ Configuration (4)
 - `backend/prisma/.gitignore`

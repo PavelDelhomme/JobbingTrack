@@ -29,9 +29,9 @@ Migrer de l'ancienne architecture (schémas Prisma séparés par service) vers u
 
 | Fichier | Lignes | Description |
 |---------|--------|-------------|
-| `MIGRATION_GUIDE.md` | 500+ | Guide complet étape par étape |
-| `REVEIL_README.md` | 400+ | Guide pour utilisateur au réveil |
-| `TECHNICAL_SUMMARY.md` | 200+ | Ce fichier (résumé technique) |
+| `4_4_MIGRATION_GUIDE.md` | 500+ | Guide complet étape par étape |
+| `2_2_REVEIL_README.md` | 400+ | Guide pour utilisateur au réveil |
+| `6_6_TECHNICAL_SUMMARY.md` | 200+ | Ce fichier (résumé technique) |
 | `makefiles/database/Makefile.new` | 300+ | Targets Makefile pour DB |
 
 ### Configuration (3 fichiers)
@@ -438,9 +438,9 @@ docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
 
 | Fichier | Cible | Contenu |
 |---------|-------|---------|
-| `REVEIL_README.md` | Utilisateur | Guide simple au réveil |
-| `MIGRATION_GUIDE.md` | Dev | Guide complet migration |
-| `TECHNICAL_SUMMARY.md` | Tech | Ce fichier (détails techniques) |
+| `2_2_REVEIL_README.md` | Utilisateur | Guide simple au réveil |
+| `4_4_MIGRATION_GUIDE.md` | Dev | Guide complet migration |
+| `6_6_TECHNICAL_SUMMARY.md` | Tech | Ce fichier (détails techniques) |
 | `makefiles/database/Makefile.new` | Dev | Commandes Makefile |
 
 ---
@@ -457,9 +457,9 @@ docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
 
 ### Documentation
 
-- [x] `REVEIL_README.md` créé
-- [x] `MIGRATION_GUIDE.md` créé
-- [x] `TECHNICAL_SUMMARY.md` créé
+- [x] `2_2_REVEIL_README.md` créé
+- [x] `4_4_MIGRATION_GUIDE.md` créé
+- [x] `6_6_TECHNICAL_SUMMARY.md` créé
 - [x] `Makefile.new` créé
 
 ### Configuration
@@ -503,8 +503,8 @@ docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
 ## 📞 Support
 
 En cas de problème, consultez :
-1. `REVEIL_README.md` - FAQ et troubleshooting
-2. `MIGRATION_GUIDE.md` - Guide détaillé
+1. `2_2_REVEIL_README.md` - FAQ et troubleshooting
+2. `4_4_MIGRATION_GUIDE.md` - Guide détaillé
 3. Logs Docker : `docker-compose logs`
 4. Validation : `bash scripts/validate-new-architecture.sh`
 
