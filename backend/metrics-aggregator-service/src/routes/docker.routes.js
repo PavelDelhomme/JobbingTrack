@@ -1,7 +1,109 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 const dockerService = require('../services/docker.service');
 const metricsHistory = require('../services/metricsHistory.service');
+const lokiService = require('../services/loki.service');
+
+const SERVICE_HEALTH_CONFIG = {
+  'jobbingtrack-auth-service': { port: 8001, path: '/api/v1/auth/health' },
+  'jobbingtrack-application-service': { port: 8002, path: '/api/v1/applications/health' },
+  'jobbingtrack-company-service': { port: 8003, path: '/api/v1/companies/health' },
+  'jobbingtrack-contact-service': { port: 8004, path: '/api/v1/contacts/health' },
+  'jobbingtrack-interview-service': { port: 8005, path: '/api/v1/interviews/health' },
+  'jobbingtrack-call-service': { port: 8006, path: '/api/v1/calls/health' },
+  'jobbingtrack-event-service': { port: 8007, path: '/api/v1/events/health' },
+  'jobbingtrack-followup-service': { port: 8008, path: '/api/v1/followups/health' },
+  'jobbingtrack-profile-service': { port: 8009, path: '/api/v1/profile/health' },
+  'jobbingtrack-notification-service': { port: 8010, path: '/api/v1/notifications/health' },
+  'jobbingtrack-workflow-service': { port: 8011, path: '/api/v1/workflow/health' },
+  'jobbingtrack-dashboard-service': { port: 8012, path: '/api/v1/dashboard/health' },
+  'jobbingtrack-frontend': { port: 8080, path: '/' },
+  'jobbingtrack-api-gateway': { port: 3000, path: '/api/v1/health' }
+};
+
+const FIVE_MINUTES_IN_MINUTES = 5;
+
+function normaliseServiceKey(containerName = '') {
+  if (!containerName) return null;
+  const variants = new Set([
+    containerName,
+    containerName.replace(/-prod$/, ''),
+    containerName.replace(/-preview$/, ''),
+    containerName.replace(/-staging$/, ''),
+    containerName.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
+    containerName.replace(/_[0-9]+$/, '')
+  ]);
+
+  for (const variant of variants) {
+    if (SERVICE_HEALTH_CONFIG[variant]) {
+      return variant;
+    }
+  }
+
+  return null;
+}
+
+async function probeServiceHealth(containerName) {
+  const key = normaliseServiceKey(containerName);
+  if (!key) {
+    return {
+      status: 'unknown',
+      responseTime: null,
+      error: 'Service non référencé dans SERVICE_HEALTH_CONFIG'
+    };
+  }
+
+  const config = SERVICE_HEALTH_CONFIG[key];
+  const url = `http://localhost:${config.port}${config.path}`;
+
+  const startTime = Date.now();
+  try {
+    await axios.get(url, { timeout: config.timeout || 5000 });
+    return {
+      status: 'healthy',
+      responseTime: Date.now() - startTime
+    };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const status = error?.code === 'ECONNREFUSED' ? 'offline' : 'degraded';
+    return {
+      status,
+      responseTime: duration,
+      error: error?.message || 'Unknown error'
+    };
+  }
+}
+
+function parseLokiCount(result) {
+  if (!result) return 0;
+  if (Array.isArray(result) && result.length > 0) {
+    const entry = result[0];
+    if (entry?.value && Array.isArray(entry.value) && entry.value.length >= 2) {
+      const value = parseFloat(entry.value[1]);
+      return Number.isFinite(value) ? value : 0;
+    }
+  }
+  if (typeof result === 'number') return result;
+  return 0;
+}
+
+async function collectErrorMetrics(containerName) {
+  try {
+    const countResponse = await lokiService.countPattern(containerName, 'error|ERROR|Error', '5m');
+    const count = parseLokiCount(countResponse?.count);
+    return {
+      count5m: count,
+      ratePerMinute: count / FIVE_MINUTES_IN_MINUTES
+    };
+  } catch (error) {
+    console.error(`[DOCKER ROUTES] Erreur récupération erreurs pour ${containerName}:`, error.message);
+    return {
+      count5m: 0,
+      ratePerMinute: 0
+    };
+  }
+}
 
 /**
  * Endpoint pour récupérer les métriques agrégées de l'ensemble de la stack JobbingTrack
@@ -94,56 +196,180 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       console.error('[DOCKER ROUTES] Erreur récupération disque:', err.message);
     }
     
+    const serviceInsights = await Promise.all(jobbingtrackContainers.map(async stat => {
+      const serviceType = stat.name.replace(/^jobbingtrack-/, '');
+      const healthInfo = await probeServiceHealth(stat.name);
+      const errorMetrics = await collectErrorMetrics(stat.name);
+
+      const memoryUsageMb = parseFloat((stat.memory_usage / (1024 * 1024)).toFixed(2));
+      const memoryLimitMb = parseFloat((stat.memory_limit / (1024 * 1024)).toFixed(2));
+      const networkRxMb = parseFloat((stat.network_rx / (1024 * 1024)).toFixed(2));
+      const networkTxMb = parseFloat((stat.network_tx / (1024 * 1024)).toFixed(2));
+
+      return {
+        name: stat.name,
+        service_type: serviceType,
+        cpu_percent: parseFloat(stat.cpu_percent.toFixed(2)),
+        memory_percent: parseFloat(stat.memory_percent.toFixed(2)),
+        memory_usage_mb: memoryUsageMb,
+        memory_limit_mb: memoryLimitMb,
+        network_rx_mb: networkRxMb,
+        network_tx_mb: networkTxMb,
+        pids: stat.pids,
+        health_status: healthInfo.status,
+        response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
+        health_error: healthInfo.error || null,
+        error_count_5m: parseFloat(errorMetrics.count5m.toFixed(2)),
+        error_rate_per_min: parseFloat(errorMetrics.ratePerMinute.toFixed(2))
+      };
+    }));
+
+    const totalNetworkRxMb = serviceInsights.reduce((sum, svc) => sum + (Number.isFinite(svc.network_rx_mb) ? svc.network_rx_mb : 0), 0);
+    const totalNetworkTxMb = serviceInsights.reduce((sum, svc) => sum + (Number.isFinite(svc.network_tx_mb) ? svc.network_tx_mb : 0), 0);
+
+    const responseTimes = serviceInsights
+      .filter(svc => Number.isFinite(svc.response_time_ms))
+      .map(svc => svc.response_time_ms);
+
+    const averageResponseTime = responseTimes.length > 0
+      ? parseFloat((responseTimes.reduce((acc, value) => acc + value, 0) / responseTimes.length).toFixed(2))
+      : null;
+
+    const fastestResponseTime = responseTimes.length > 0 ? Math.min(...responseTimes) : null;
+    const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : null;
+
+    const totalErrorCount5m = parseFloat(serviceInsights
+      .reduce((sum, svc) => sum + (Number.isFinite(svc.error_count_5m) ? svc.error_count_5m : 0), 0)
+      .toFixed(2));
+
+    const totalErrorRatePerMin = parseFloat(serviceInsights
+      .reduce((sum, svc) => sum + (Number.isFinite(svc.error_rate_per_min) ? svc.error_rate_per_min : 0), 0)
+      .toFixed(2));
+
+    const healthyServices = serviceInsights.filter(svc => svc.health_status === 'healthy').length;
+    const degradedServices = serviceInsights.filter(svc => svc.health_status === 'degraded').length;
+    const offlineServices = serviceInsights.filter(svc => svc.health_status === 'offline').length;
+
+    const projectAvailabilityPercent = jobbingtrackContainers.length > 0
+      ? parseFloat(((healthyServices / jobbingtrackContainers.length) * 100).toFixed(2))
+      : 0;
+
+    const systemAvailabilityPercent = systemInfo?.containers > 0
+      ? parseFloat(((systemInfo.containers_running / systemInfo.containers) * 100).toFixed(2))
+      : null;
+
+    const overallLoadScore = parseFloat((((cpuPerCore / 100) + (memoryPercentOfSystem / 100)) / 2).toFixed(3));
+
+    const servicesSummary = serviceInsights.map(service => ({
+      name: service.name,
+      status: service.health_status,
+      metrics: {
+        cpu_percent: service.cpu_percent,
+        memory_percent: service.memory_percent,
+        memory_usage_mb: service.memory_usage_mb,
+        memory_limit_mb: service.memory_limit_mb,
+        network_rx_mb: service.network_rx_mb,
+        network_tx_mb: service.network_tx_mb
+      },
+      response_time_ms: service.response_time_ms,
+      error_rate_per_min: service.error_rate_per_min,
+      error_count_5m: service.error_count_5m
+    }));
+
     const response = {
       success: true,
       timestamp: new Date().toISOString(),
       containers_count: jobbingtrackContainers.length,
-      
+
       // Métriques CPU
-      cpu_percent: parseFloat(totalCpuPercent.toFixed(2)), // CPU total utilisé
-      cpu_percent_per_core: parseFloat(cpuPerCore.toFixed(2)), // CPU par core
-      cpu_containers_only: parseFloat(totalCpuPercent.toFixed(2)), // CPU des conteneurs uniquement
-      
-      // Métriques mémoire (CORRIGÉES)
-      memory_percent: parseFloat(memoryPercentOfSystem.toFixed(2)), // % par rapport à la mémoire système
+      cpu_percent: parseFloat(totalCpuPercent.toFixed(2)),
+      cpu_percent_per_core: parseFloat(cpuPerCore.toFixed(2)),
+      cpu_containers_only: parseFloat(totalCpuPercent.toFixed(2)),
+
+      // Métriques mémoire
+      memory_percent: parseFloat(memoryPercentOfSystem.toFixed(2)),
       memory_usage_mb: parseFloat((totalMemoryUsage / (1024 * 1024)).toFixed(2)),
       memory_usage_gb: parseFloat((totalMemoryUsage / (1024 * 1024 * 1024)).toFixed(2)),
       memory_system_total_mb: parseFloat((systemMemoryTotal / (1024 * 1024)).toFixed(2)),
       memory_system_total_gb: parseFloat((systemMemoryTotal / (1024 * 1024 * 1024)).toFixed(2)),
-      
+
       // Charge système
       load_average: parseFloat(loadAverage),
-      
+      overall_load_score: overallLoadScore,
+
       // Disque
       disk: diskStats,
-      
+
       // Informations système
       total_cpus: totalCpus,
       system_memory_total_gb: systemInfo.memory_total ? parseFloat((systemInfo.memory_total / (1024 * 1024 * 1024)).toFixed(2)) : 0,
-      
-      // Détails par conteneur
-      containers: jobbingtrackContainers.map(stat => ({
-        name: stat.name,
-        cpu_percent: stat.cpu_percent,
-        memory_percent: stat.memory_percent,
-        memory_usage_mb: parseFloat((stat.memory_usage / (1024 * 1024)).toFixed(2)),
-        pids: stat.pids
-      }))
+
+      // Détails enrichis
+      containers: serviceInsights,
+      services: servicesSummary,
+
+      // Réseau
+      network: {
+        total_rx_mb: parseFloat(totalNetworkRxMb.toFixed(2)),
+        total_tx_mb: parseFloat(totalNetworkTxMb.toFixed(2)),
+        per_service: serviceInsights.map(service => ({
+          name: service.name,
+          rx_mb: service.network_rx_mb,
+          tx_mb: service.network_tx_mb
+        }))
+      },
+
+      // Temps de réponse
+      response_time: {
+        average_ms: averageResponseTime,
+        fastest_ms: fastestResponseTime,
+        slowest_ms: slowestResponseTime,
+        per_service: serviceInsights.map(service => ({
+          name: service.name,
+          status: service.health_status,
+          response_time_ms: service.response_time_ms
+        }))
+      },
+
+      // Erreurs
+      errors: {
+        total_last_5m: totalErrorCount5m,
+        rate_per_min: totalErrorRatePerMin,
+        per_service: serviceInsights.map(service => ({
+          name: service.name,
+          count_last_5m: service.error_count_5m,
+          rate_per_min: service.error_rate_per_min
+        }))
+      },
+
+      // Santé
+      health: {
+        availability_percent: projectAvailabilityPercent,
+        system_availability_percent: systemAvailabilityPercent,
+        healthy: healthyServices,
+        degraded: degradedServices,
+        offline: offlineServices,
+        containers_running: systemInfo.containers_running || healthyServices,
+        containers_total: systemInfo.containers || jobbingtrackContainers.length
+      }
     };
-    
+
     console.log('[DOCKER ROUTES] ✅ Métriques récupérées:', {
       containers: response.containers_count,
       cpu_total: response.cpu_percent + '%',
       cpu_per_core: response.cpu_percent_per_core + '%',
       memory: response.memory_percent + '%',
-      load: response.load_average
+      load: response.load_average,
+      availability: response.health.availability_percent + '%',
+      network_rx_mb: response.network.total_rx_mb,
+      network_tx_mb: response.network.total_tx_mb,
+      errors_last_5m: response.errors.total_last_5m
     });
-    
-    // Sauvegarder dans l'historique
+
     metricsHistory.saveSnapshot(response).catch(err => {
       console.error('[DOCKER ROUTES] Erreur sauvegarde historique:', err.message);
     });
-    
+
     res.json(response);
     
   } catch (error) {
@@ -235,40 +461,8 @@ router.get('/service/:name', async (req, res) => {
     
     const stats = await dockerService.getContainerStats(serviceName);
     
-    // Tester le temps de réponse du service
-    let responseTime = null;
-    let serviceHealth = 'unknown';
-    
-    const serviceConfigs = {
-      'jobbingtrack-auth-service': { port: 8001, path: '/api/v1/auth/health' },
-      'jobbingtrack-application-service': { port: 8002, path: '/api/v1/applications/health' },
-      'jobbingtrack-company-service': { port: 8003, path: '/api/v1/companies/health' },
-      'jobbingtrack-contact-service': { port: 8004, path: '/api/v1/contacts/health' },
-      'jobbingtrack-interview-service': { port: 8005, path: '/api/v1/interviews/health' },
-      'jobbingtrack-call-service': { port: 8006, path: '/api/v1/calls/health' },
-      'jobbingtrack-event-service': { port: 8007, path: '/api/v1/events/health' },
-      'jobbingtrack-followup-service': { port: 8008, path: '/api/v1/followups/health' },
-      'jobbingtrack-profile-service': { port: 8009, path: '/api/v1/profile/health' },
-      'jobbingtrack-notification-service': { port: 8010, path: '/api/v1/notifications/health' },
-      'jobbingtrack-workflow-service': { port: 8011, path: '/api/v1/workflow/health' },
-      'jobbingtrack-dashboard-service': { port: 8012, path: '/api/v1/dashboard/health' },
-      'jobbingtrack-frontend': { port: 8080, path: '/' },
-      'jobbingtrack-api-gateway': { port: 3000, path: '/api/v1/health' }
-    };
-    
-    if (serviceConfigs[serviceName]) {
-      const axios = require('axios');
-      const startTime = Date.now();
-      try {
-        const config = serviceConfigs[serviceName];
-        await axios.get(`http://localhost:${config.port}${config.path}`, { timeout: 5000 });
-        responseTime = Date.now() - startTime;
-        serviceHealth = 'healthy';
-      } catch (err) {
-        responseTime = Date.now() - startTime;
-        serviceHealth = err.code === 'ECONNREFUSED' ? 'offline' : 'unhealthy';
-      }
-    }
+    const healthInfo = await probeServiceHealth(serviceName);
+    const errorMetrics = await collectErrorMetrics(serviceName);
     
     res.json({
       success: true,
@@ -282,8 +476,13 @@ router.get('/service/:name', async (req, res) => {
         network_rx_mb: parseFloat((stats.network_rx / (1024 * 1024)).toFixed(2)),
         network_tx_mb: parseFloat((stats.network_tx / (1024 * 1024)).toFixed(2)),
         pids: stats.pids,
-        health: serviceHealth,
-        response_time_ms: responseTime
+        health: healthInfo.status,
+        response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
+        health_error: healthInfo.error || null,
+        errors: {
+          count_last_5m: parseFloat(errorMetrics.count5m.toFixed(2)),
+          rate_per_min: parseFloat(errorMetrics.ratePerMinute.toFixed(2))
+        }
       }
     });
     
