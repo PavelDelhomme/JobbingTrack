@@ -4,8 +4,8 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const prometheusService = require('../services/prometheusService');
-const dockerService = require('../services/dockerService');
+const prometheusService = require('../services/prometheus.service');
+const dockerService = require('../services/docker.service');
 
 const prisma = new PrismaClient();
 

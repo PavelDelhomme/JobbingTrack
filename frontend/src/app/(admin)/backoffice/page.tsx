@@ -226,12 +226,12 @@ export default function BackofficePage() {
 
     if (isAuthenticated) {
       loadSystemMetrics()
-      // Actualiser toutes les 30 secondes
+      // Actualiser toutes les 5 secondes (rafraîchissement rapide pour les métriques système)
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible') {
           loadSystemMetrics()
         }
-      }, 30000)
+      }, 5000)
       return () => clearInterval(interval)
     }
   }, [isAuthenticated])
@@ -420,16 +420,16 @@ export default function BackofficePage() {
             color="purple"
           />
           <MetricCard
-            title="CPU"
-            value={systemMetrics && systemMetrics.cpu && typeof systemMetrics.cpu.usage === 'number' ? `${systemMetrics.cpu.usage.toFixed(1)}%` : loadingSystemMetrics ? '...' : 'N/A'}
-            subtitle={systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : 'Chargement...'}
+            title="CPU (Conteneurs)"
+            value={systemMetrics && systemMetrics.cpu && typeof systemMetrics.cpu.containers_only === 'number' ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : loadingSystemMetrics ? '...' : 'N/A'}
+            subtitle={systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs • ${systemMetrics.cpu.per_core?.toFixed(1)}% par coeur` : 'Chargement...'}
             icon={<Cpu className="h-6 w-6" />}
-            color={systemMetrics?.cpu?.usage > 80 ? "red" : systemMetrics?.cpu?.usage > 60 ? "yellow" : "green"}
+            color={systemMetrics?.cpu?.containers_only > 80 ? "red" : systemMetrics?.cpu?.containers_only > 60 ? "yellow" : "green"}
           />
           <MetricCard
-            title="Mémoire"
+            title="Mémoire (Conteneurs)"
             value={systemMetrics && systemMetrics.memory && typeof systemMetrics.memory.usage === 'number' ? `${systemMetrics.memory.usage.toFixed(1)}%` : loadingSystemMetrics ? '...' : 'N/A'}
-            subtitle={systemMetrics?.memory?.total ? `${systemMetrics.memory.total} MB` : 'Chargement...'}
+            subtitle={systemMetrics?.memory?.used ? `${systemMetrics.memory.used} utilisé / ${systemMetrics.memory.total}` : 'Chargement...'}
             icon={<MemoryStick className="h-6 w-6" />}
             color={systemMetrics?.memory?.usage > 85 ? "red" : systemMetrics?.memory?.usage > 70 ? "yellow" : "green"}
           />
@@ -455,44 +455,41 @@ export default function BackofficePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {systemMetrics?.containersAggregate?.cpu?.percent || systemMetrics?.cpu?.usage || 'N/A'}
-                {(systemMetrics?.containersAggregate?.cpu?.percent || systemMetrics?.cpu?.usage !== 'N/A') && '%'}
+                {systemMetrics?.cpu?.containers_only !== undefined ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">CPU</div>
-              {systemMetrics?.containersAggregate && (
-                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {systemMetrics.containersAggregate.cpu.containers} conteneurs
-                </div>
-              )}
+              <div className="text-sm text-gray-600 dark:text-gray-400">CPU (Conteneurs)</div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.cpu?.per_core !== undefined ? `${systemMetrics.cpu.per_core.toFixed(1)}% par coeur` : 'Chargement...'}
+              </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {systemMetrics?.containersAggregate?.memory?.percent || systemMetrics?.memory?.usage || 'N/A'}
-                {(systemMetrics?.containersAggregate?.memory?.percent || systemMetrics?.memory?.usage !== 'N/A') && '%'}
+                {systemMetrics?.memory?.usage !== undefined ? `${systemMetrics.memory.usage.toFixed(1)}%` : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
-              {systemMetrics?.containersAggregate && (
-                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {systemMetrics.containersAggregate.memory.used}MB / {systemMetrics.containersAggregate.memory.limit}MB
-                </div>
-              )}
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.memory?.used ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` : 'Chargement...'}
+              </div>
             </div>
 
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {systemMetrics && systemMetrics.load && systemMetrics.load.average !== 'N/A' && systemMetrics.load.average !== null ? (typeof systemMetrics.load.average === 'number' ? systemMetrics.load.average.toFixed(2) : systemMetrics.load.average) : 'N/A'}
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {systemMetrics?.load?.average !== undefined ? systemMetrics.load.average : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : ''}
+              </div>
             </div>
 
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {containerMetrics ? Object.keys(containerMetrics).length : 'N/A'}
+                {systemMetrics?.jobbingtrack?.containers?.count || systemMetrics?.containers?.length || 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Conteneurs</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {containerMetrics && Object.keys(containerMetrics).length > 0 ? '✅' : '❌'}
+                {systemMetrics?.jobbingtrack?.containers?.count > 0 ? '✅ Actifs' : '❌ Aucun'}
               </div>
             </div>
 
@@ -502,20 +499,20 @@ export default function BackofficePage() {
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {services && services.length > 0 ? '🟢' : '🔴'}
+                {services && services.length > 0 ? '🟢 OK' : '🔴 Hors ligne'}
               </div>
             </div>
 
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {systemMetrics && systemMetrics.disk && systemMetrics.disk.length > 0 && systemMetrics.disk[0].usage !== 'N/A' ? `${systemMetrics.disk[0].usage}%` : 'N/A'}
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {systemMetrics?.disk?.[0]?.usage_percent !== undefined ? `${systemMetrics.disk[0].usage_percent}%` : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
-              {systemMetrics && systemMetrics.disk && systemMetrics.disk.length > 0 && systemMetrics.disk[0].usage !== 'N/A' && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemMetrics.disk[0].usage > 80 ? '🔴' : '✅'}
-                </div>
-              )}
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {systemMetrics?.disk?.[0]?.used && systemMetrics?.disk?.[0]?.total ? 
+                  `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total}` : 
+                  systemMetrics?.disk?.[0]?.usage_percent > 80 ? '⚠️ Plein' : '✅ OK'}
+              </div>
             </div>
           </div>
 

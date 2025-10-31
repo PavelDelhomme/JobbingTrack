@@ -21,7 +21,7 @@ export default function DevelopmentLayout({
     
     if (!loading && !user) {
       router.push('/login')
-    } else if (!loading && user && user.role !== 'admin') {
+    } else if (!loading && user && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       router.push('/access-denied')
     }
   }, [user, loading, router, isDev])
@@ -34,7 +34,7 @@ export default function DevelopmentLayout({
     return <div>Chargement...</div>
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
     return null
   }
 

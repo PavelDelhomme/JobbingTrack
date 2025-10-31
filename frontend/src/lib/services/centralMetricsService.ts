@@ -405,53 +405,71 @@ class CentralMetricsService {
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const metricsApiKey = process.env.NEXT_PUBLIC_METRICS_API_KEY || 'jobbingtrack-metrics-secret-key'
       
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+      // Appeler le nouvel endpoint Docker directement
+      const response = await fetch(`${metricsUrl}/api/v1/docker/jobbingtrack/aggregated`, {
         headers: {
           'Accept': 'application/json',
-          'X-API-Key': metricsApiKey,
         },
       })
 
       if (response.ok) {
         const data = await response.json()
         
-        console.log('[AGGREGATOR] Données brutes reçues:', {
-          cpu_percent: data.system?.cpu?.percent,
-          memory_percent: data.system?.memory?.percent,
+        console.log('[AGGREGATOR] Données Docker brutes reçues:', {
+          cpu_percent: data.cpu_percent,
+          memory_percent: data.memory_percent,
+          memory_usage_mb: data.memory_usage_mb,
+          total_cpus: data.total_cpus,
+          containers_count: data.containers_count,
           timestamp: data.timestamp
         })
         
-        // Mapper les données du backend vers le format attendu par le frontend
-        const mappedSystem = data.system ? {
+        // Mapper les données Docker vers le format attendu par le frontend
+        const mappedSystem = {
           cpu: {
-            usage: data.system.cpu?.percent ?? data.system.cpu?.usage ?? 0,
-            cores: data.system.cpu?.cores || 'N/A',
-            model: data.system.cpu?.model || 'N/A'
+            usage: data.cpu_percent || 0,
+            cores: data.total_cpus || 'N/A',
+            model: 'Docker Containers',
+            containers_only: data.cpu_containers_only || 0,
+            per_core: data.cpu_percent_per_core || 0
           },
           memory: {
-            total: data.system.memory?.total || 'N/A',
-            used: data.system.memory?.used || 'N/A',
-            free: data.system.memory?.free || 'N/A',
-            usage: data.system.memory?.percent ?? data.system.memory?.usage ?? 0
+            total: data.system_memory_total_gb ? `${data.system_memory_total_gb} GB` : 'N/A',
+            used: data.memory_usage_mb ? `${(data.memory_usage_mb / 1024).toFixed(2)} GB` : 'N/A',
+            free: data.memory_usage_mb && data.system_memory_total_gb ? 
+                  `${(data.system_memory_total_gb - data.memory_usage_mb / 1024).toFixed(2)} GB` : 'N/A',
+            usage: data.memory_percent || 0,
+            usage_mb: data.memory_usage_mb || 0,
+            limit_mb: data.memory_limit_mb || 0
           },
           load: {
-            average: data.system.load?.average || (data.system.uptime ? (data.system.uptime / 3600).toFixed(1) : 0),
-            cores: data.system.load?.cores || 'N/A'
+            average: data.load_average || 0,
+            cores: data.total_cpus || 'N/A'
           },
-          disk: data.system.disk || [],
-          // Ajouter les métriques des conteneurs JobbingTrack si disponibles
-          jobbingtrack: data.system.jobbingtrack || null
-        } : {
-          cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
-          memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
-          load: { average: 'N/A', cores: 'N/A' },
-          disk: []
+          disk: data.disk || [],
+          // Ajouter les métriques des conteneurs JobbingTrack
+          jobbingtrack: {
+            containers: {
+              count: data.containers_count || 0,
+              cpu: {
+                averagePercent: Math.round(data.cpu_percent || 0),
+                totalPercent: Math.round(data.cpu_percent || 0),
+                perCore: data.cpu_percent_per_core || 0
+              },
+              memory: {
+                used: Math.round(data.memory_usage_mb || 0),
+                limit: Math.round(data.memory_limit_mb || 0),
+                percent: Math.round(data.memory_percent || 0)
+              }
+            }
+          },
+          // Détails des conteneurs
+          containers: data.containers || []
         }
         
         return {
-          services: data.services || {},
+          services: {},
           system: mappedSystem,
           containers: data.containers || {},
           timestamp: data.timestamp || new Date().toISOString()
