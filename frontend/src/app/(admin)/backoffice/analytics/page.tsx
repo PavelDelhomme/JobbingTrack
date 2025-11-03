@@ -1235,11 +1235,11 @@ export default function AnalyticsPage() {
           </div>
           <div className="flex flex-col items-start gap-2 text-sm text-gray-500 dark:text-gray-400 md:items-end">
             <span>
-              Services actifs :{' '}
+              Services surveillés :{' '}
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {aggregatedStats.healthyCount}
+                {totalServices}
               </span>
-              /{totalServices}
+              {' '}({aggregatedStats.healthyCount} sains • {aggregatedStats.degradedCount} dégradés • {aggregatedStats.offlineCount} hors ligne)
             </span>
             <span>Dernière mise à jour : {lastUpdated}</span>
           </div>
