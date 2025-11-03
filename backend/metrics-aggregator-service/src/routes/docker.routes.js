@@ -172,15 +172,39 @@ function parseLokiCount(result) {
   return 0;
 }
 
+// ✅ Cache pour les métriques d'erreur Loki (éviter rate limiting 429)
+const errorMetricsCache = new Map();
+const ERROR_METRICS_CACHE_TTL = 30000; // 30 secondes
+
 async function collectErrorMetrics(containerName) {
+  // Vérifier le cache
+  const cached = errorMetricsCache.get(containerName);
+  if (cached && (Date.now() - cached.timestamp) < ERROR_METRICS_CACHE_TTL) {
+    return cached.data;
+  }
+
   try {
     const countResponse = await lokiService.countPattern(containerName, 'error|ERROR|Error', '5m');
     const count = parseLokiCount(countResponse?.count);
-    return {
+    const result = {
       count5m: count,
       ratePerMinute: count / FIVE_MINUTES_IN_MINUTES
     };
+    
+    // Mettre en cache
+    errorMetricsCache.set(containerName, {
+      data: result,
+      timestamp: Date.now()
+    });
+    
+    return result;
   } catch (error) {
+    // En cas d'erreur, retourner les données en cache si disponibles
+    if (cached) {
+      console.log(`[DOCKER ROUTES] Utilisation cache pour ${containerName} suite à erreur Loki`);
+      return cached.data;
+    }
+    
     console.error(`[DOCKER ROUTES] Erreur récupération erreurs pour ${containerName}:`, error.message);
     return {
       count5m: 0,

@@ -192,6 +192,12 @@ const login = async (req, res, next) => {
       });
     }
 
+    // ✅ Mettre à jour le lastLoginAt pour le tracking des sessions actives
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
+
     // Générer le token JWT avec le rôle
     const token = jwt.sign(
       { 
@@ -693,52 +699,53 @@ const resetPassword = async (req, res, next) => {
   // Nouvelles méthodes pour les métriques de sécurité et sessions
   const getActiveSessions = async (req, res, next) => {
     try {
-      // Simulation de sessions actives (en vrai, récupérer depuis Redis ou base de données)
-      const activeSessions = [
-        {
-          id: 'session_1',
-          userId: 'user_1',
-          userEmail: 'admin@jobbingtrack.com',
-          userRole: 'SUPER_ADMIN',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          lastActivity: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
+      // ✅ Récupérer les utilisateurs connectés dans les dernières 30 minutes
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      
+      const activeUsers = await prisma.user.findMany({
+        where: {
+          lastLoginAt: {
+            gte: thirtyMinutesAgo
+          },
+          isActive: true
         },
-        {
-          id: 'session_2',
-          userId: 'user_2',
-          userEmail: 'manager@jobbingtrack.com',
-          userRole: 'ADMIN',
-          ipAddress: '192.168.1.101',
-          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
-          lastActivity: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000) // 1 hour ago
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          lastLoginAt: true
         },
-        {
-          id: 'session_3',
-          userId: 'user_3',
-          userEmail: 'user@jobbingtrack.com',
-          userRole: 'USER',
-          ipAddress: '192.168.1.102',
-          userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-          lastActivity: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-          createdAt: new Date(Date.now() - 45 * 60 * 1000) // 45 minutes ago
+        orderBy: {
+          lastLoginAt: 'desc'
         }
-      ]
+      });
+
+      // Formater les sessions pour l'affichage
+      const activeSessions = activeUsers.map(user => ({
+        id: user.id,
+        userId: user.id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        userRole: user.role,
+        lastActivity: user.lastLoginAt,
+        createdAt: user.lastLoginAt
+      }));
 
       res.json({
         success: true,
         sessions: activeSessions,
         total: activeSessions.length,
-        timestamp: new Date().toISOString()
-      })
+        timestamp: new Date().toISOString(),
+        activeUsersLast30Min: activeSessions.length
+      });
     } catch (error) {
-      console.error('Erreur récupération sessions actives:', error)
+      console.error('Erreur récupération sessions actives:', error);
       res.status(500).json({
         success: false,
         error: 'Erreur lors de la récupération des sessions actives'
-      })
+      });
     }
   };
 

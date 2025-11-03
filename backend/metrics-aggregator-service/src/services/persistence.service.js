@@ -1,5 +1,20 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+// ✅ Initialisation conditionnelle de Prisma
+let prisma = null;
+let databaseEnabled = false;
+
+try {
+  if (process.env.DATABASE_URL) {
+    prisma = new PrismaClient();
+    databaseEnabled = true;
+    console.log('[PERSISTENCE] ✅ Base de données connectée');
+  } else {
+    console.log('[PERSISTENCE] ⚠️ DATABASE_URL non définie - Persistance désactivée');
+  }
+} catch (error) {
+  console.error('[PERSISTENCE] ❌ Erreur initialisation Prisma:', error.message);
+}
 
 /**
  * Service de persistance des métriques et logs
@@ -8,9 +23,20 @@ const prisma = new PrismaClient();
 class PersistenceService {
   
   /**
+   * Vérifier si la base de données est disponible
+   */
+  isDatabaseEnabled() {
+    return databaseEnabled && prisma !== null;
+  }
+
+  /**
    * Sauvegarder un snapshot de métriques système
    */
   async saveSystemMetricsSnapshot(metricsData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       const snapshot = await prisma.systemMetricsSnapshot.create({
         data: {
@@ -47,6 +73,10 @@ class PersistenceService {
    * Sauvegarder les métriques d'un conteneur
    */
   async saveContainerMetricsSnapshot(containerName, metricsData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       const snapshot = await prisma.containerMetricsSnapshot.create({
         data: {
@@ -79,6 +109,10 @@ class PersistenceService {
    * Sauvegarder plusieurs métriques de conteneurs en batch
    */
   async saveMultipleContainerMetrics(containersMetrics) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     const results = [];
     for (const [containerName, metrics] of Object.entries(containersMetrics)) {
       try {
@@ -96,6 +130,10 @@ class PersistenceService {
    * Sauvegarder les logs d'un conteneur
    */
   async saveContainerLogs(containerName, containerId, logs) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     try {
       if (!Array.isArray(logs) || logs.length === 0) {
         return [];
@@ -156,6 +194,10 @@ class PersistenceService {
    * Sauvegarder l'historique réseau d'un service
    */
   async saveServiceNetworkHistory(serviceName, networkData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       const history = await prisma.serviceNetworkHistory.create({
         data: {
@@ -186,6 +228,10 @@ class PersistenceService {
    * Sauvegarder la disponibilité d'un service
    */
   async saveServiceAvailability(serviceName, availabilityData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       // Calculer l'uptime (basé sur l'historique des dernières 24h)
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -225,6 +271,10 @@ class PersistenceService {
    * Sauvegarder les métriques de sécurité
    */
   async saveSecurityMetrics(securityData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       // Calculer le score de sécurité (0-100)
       const securityScore = this.calculateSecurityScore(securityData);
@@ -280,6 +330,10 @@ class PersistenceService {
    * Créer un événement système
    */
   async createSystemEvent(eventData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
     try {
       const event = await prisma.systemEvent.create({
         data: {
@@ -306,6 +360,10 @@ class PersistenceService {
    * Nettoyer les anciennes données (> 30 jours par défaut)
    */
   async cleanOldData(daysToKeep = 30) {
+    if (!this.isDatabaseEnabled()) {
+      return 0;
+    }
+    
     try {
       const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
 
@@ -349,6 +407,10 @@ class PersistenceService {
    * Récupérer l'historique des métriques système
    */
   async getSystemMetricsHistory(options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     const {
       limit = 100,
       offset = 0,
@@ -375,6 +437,10 @@ class PersistenceService {
    * Récupérer l'historique des métriques d'un conteneur
    */
   async getContainerMetricsHistory(containerName, options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     const {
       limit = 100,
       offset = 0,
@@ -401,6 +467,10 @@ class PersistenceService {
    * Récupérer les logs d'un conteneur
    */
   async getContainerLogs(containerName, options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     const {
       limit = 100,
       offset = 0,
@@ -441,6 +511,18 @@ class PersistenceService {
    * Récupérer les statistiques de disponibilité d'un service
    */
   async getServiceAvailabilityStats(serviceName, hours = 24) {
+    if (!this.isDatabaseEnabled()) {
+      return {
+        serviceName,
+        uptimePercent: 100,
+        totalChecks: 0,
+        availableChecks: 0,
+        avgResponseTime: 0,
+        maxResponseTime: 0,
+        minResponseTime: 0,
+      };
+    }
+    
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     
     const history = await prisma.serviceAvailabilityHistory.findMany({
@@ -486,6 +568,10 @@ class PersistenceService {
    * Récupérer les métriques de sécurité récentes
    */
   async getSecurityMetrics(hours = 24) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
     
     return await prisma.securityMetric.findMany({
@@ -500,6 +586,18 @@ class PersistenceService {
    * Obtenir un résumé agrégé des métriques de sécurité
    */
   async getSecuritySummary(hours = 24) {
+    if (!this.isDatabaseEnabled()) {
+      return {
+        avgSecurityScore: 100,
+        totalFailedLogins: 0,
+        totalSuspiciousActivities: 0,
+        totalSecurityAlerts: 0,
+        totalSqlInjectionAttempts: 0,
+        totalXssAttempts: 0,
+        uniqueBlockedIPs: 0,
+      };
+    }
+    
     const metrics = await this.getSecurityMetrics(hours);
     
     if (metrics.length === 0) {
