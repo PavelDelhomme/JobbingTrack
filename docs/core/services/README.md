@@ -162,10 +162,10 @@ Tous les services incluent des health checks automatiques :
 
 ## 📚 Ressources
 
-- [Architecture complète](architecture.md) - Vue technique détaillée
-- [Base de données](database.md) - Schémas et relations
-- [API Reference](../api/api-reference.md) - Documentation des endpoints
-- [Déploiement](../deployment/production.md) - Guide production
+- [Architecture complète](../architecture/README.md) - Vue technique détaillée
+- [Base de données](../../database/README.md) - Schémas et relations
+- [API Reference](../../api/api-reference/README.md) - Documentation des endpoints
+- [Déploiement](../../deployment/production/README.md) - Guide production
 
 ---
 
