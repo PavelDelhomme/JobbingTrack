@@ -132,17 +132,25 @@ async function testServiceHealth(serviceName, serviceConfig) {
       validateStatus: (status) => status < 500
     })
 
+    const responseTime = Date.now() - startTime;
+
     return {
-      status: response.status >= 200 && response.status < 400 ? 'online' : 'offline',
-      responseTime: Date.now() - startTime,
+      status: response.status >= 200 && response.status < 400 ? 'healthy' : 'unhealthy',
+      responseTime: responseTime,
+      responseTimeMs: responseTime, // ✅ Ajouter aussi en responseTimeMs pour compatibilité
+      statusCode: response.status,
       version: response.data?.version || '1.0.0',
       error: response.status >= 400 ? `HTTP ${response.status}` : undefined
     }
 
   } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
     return {
       status: 'offline',
-      responseTime: Date.now() - startTime,
+      responseTime: responseTime,
+      responseTimeMs: responseTime, // ✅ Ajouter aussi en responseTimeMs
+      statusCode: null,
       error: error.code === 'ECONNREFUSED' ? 'Service non démarré' :
              error.code === 'ETIMEDOUT' ? 'Timeout' :
              error.message || 'Service inaccessible'
@@ -160,29 +168,71 @@ async function collectSystemMetrics() {
       si.fsSize()
     ])
 
+    // ✅ Calculer la charge moyenne correctement
+    // Si avgLoad n'est pas disponible, estimer à partir de currentLoad
+    const loadAverage = load.avgLoad !== undefined && load.avgLoad > 0 ? load.avgLoad : 
+                       (load.currentLoad ? (load.currentLoad / 100) * (cpu.cores || 1) : 0)
+
+    console.log(`[SYSTEM] Load - avgLoad: ${load.avgLoad}, currentLoad: ${load.currentLoad}, calculated: ${loadAverage}`)
+
+    // ✅ Filtrer les disques pertinents (éviter les snap, loop, etc.)
+    const relevantDisks = disk.filter(d => 
+      !d.mount.includes('/snap') && 
+      !d.mount.includes('/loop') &&
+      d.size > 0 &&
+      (d.mount === '/' || d.mount.startsWith('/var') || d.mount.startsWith('/home'))
+    )
+
+    // ✅ Utiliser le disque principal (/) ou le premier disque valide
+    const mainDisk = relevantDisks.find(d => d.mount === '/') || relevantDisks[0]
+
+    console.log(`[SYSTEM] Disque principal: ${mainDisk?.mount}, ${mainDisk?.used}/${mainDisk?.size}`)
+
     systemMetrics = {
       cpu: {
-        usage: Math.round(cpu.usage || 0),
+        usage: Math.round(load.currentLoad || cpu.usage || 0),
         cores: cpu.cores || 1,
-        model: cpu.brand || 'Unknown'
+        model: cpu.brand || 'Unknown',
+        per_core: cpu.cores ? Math.round((load.currentLoad || 0) / cpu.cores * 10) / 10 : 0
       },
       memory: {
         total: Math.round(mem.total / 1024 / 1024), // MB
         used: Math.round(mem.used / 1024 / 1024),   // MB
         free: Math.round(mem.free / 1024 / 1024),   // MB
-        usage: Math.round((mem.used / mem.total) * 100)
+        usage: Math.round((mem.used / mem.total) * 100),
+        // Format lisible pour l'affichage
+        total_human: `${Math.round(mem.total / 1024 / 1024 / 1024)} GB`,
+        used_human: `${Math.round(mem.used / 1024 / 1024 / 1024)} GB`
       },
       load: {
-        average: Math.round(load.avgload * 100) / 100,
-        cores: load.cpus || []
+        average: Math.round(loadAverage * 100) / 100,
+        load_1: load.avgLoad || loadAverage,
+        load_5: load.avgLoad || loadAverage,
+        load_15: load.avgLoad || loadAverage,
+        current_percent: Math.round(load.currentLoad || 0),
+        cores: cpu.cores || 1
       },
-      disk: disk.map(d => ({
+      disk: mainDisk ? [{
+        mount: mainDisk.mount,
+        total: Math.round(mainDisk.size / 1024 / 1024 / 1024), // GB
+        used: Math.round(mainDisk.used / 1024 / 1024 / 1024),  // GB
+        available: Math.round((mainDisk.size - mainDisk.used) / 1024 / 1024 / 1024), // GB
+        usage_percent: Math.round((mainDisk.used / mainDisk.size) * 100),
+        // Format lisible
+        total_human: `${Math.round(mainDisk.size / 1024 / 1024 / 1024)} GB`,
+        used_human: `${Math.round(mainDisk.used / 1024 / 1024 / 1024)} GB`,
+        available_human: `${Math.round((mainDisk.size - mainDisk.used) / 1024 / 1024 / 1024)} GB`
+      }] : [],
+      // Ajouter tous les disques pour référence
+      all_disks: relevantDisks.map(d => ({
         mount: d.mount,
-        total: Math.round(d.size / 1024 / 1024 / 1024), // GB
-        used: Math.round(d.used / 1024 / 1024 / 1024),  // GB
-        usage: Math.round((d.used / d.size) * 100)
+        total: Math.round(d.size / 1024 / 1024 / 1024),
+        used: Math.round(d.used / 1024 / 1024 / 1024),
+        usage_percent: Math.round((d.used / d.size) * 100)
       }))
     }
+
+    console.log(`[SYSTEM] ✅ Métriques système collectées - CPU: ${systemMetrics.cpu.usage}%, Charge: ${systemMetrics.load.average}, Disque: ${systemMetrics.disk[0]?.usage_percent}%`)
 
     return systemMetrics
 
@@ -228,7 +278,10 @@ async function getContainerNetworkStats(pid) {
   }
 }
 
-// Fonction pour collecter les métriques des conteneurs depuis /proc natif
+// Cache pour le calcul différentiel du CPU
+let previousCpuStats = {}
+
+// Fonction pour collecter les métriques des conteneurs depuis /proc natif ET Docker stats
 async function collectContainerMetrics() {
   console.log('[CONTAINERS] === DÉBUT COLLECTE CONTENEURS ===')
   const containerMetrics = {}
@@ -257,18 +310,20 @@ async function collectContainerMetrics() {
           continue
         }
         
-        // Lire /host/proc/[pid]/stat pour CPU (mount depuis l'hôte en read-only)
-        const statPath = `/host/proc/${pid}/stat`
-        const statData = await fs.readFile(statPath, 'utf8')
-        const statFields = statData.split(' ')
+        // ✅ Récupérer les stats Docker pour le CPU
+        const stats = await container.stats({ stream: false })
         
-        // Champs importants de /proc/[pid]/stat:
-        // 14: utime (user CPU time)
-        // 15: stime (system CPU time)
-        // 22: starttime
-        const utime = parseInt(statFields[13]) || 0
-        const stime = parseInt(statFields[14]) || 0
-        const totalTime = utime + stime
+        // Calculer le CPU à partir des stats Docker
+        let cpuPercent = 0
+        if (stats.cpu_stats && stats.precpu_stats) {
+          const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage
+          const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage
+          const numberCpus = stats.cpu_stats.online_cpus || stats.cpu_stats.cpu_usage.percpu_usage?.length || 1
+          
+          if (systemDelta > 0 && cpuDelta > 0) {
+            cpuPercent = (cpuDelta / systemDelta) * numberCpus * 100
+          }
+        }
         
         // Lire /host/proc/[pid]/status pour mémoire (mount depuis l'hôte en read-only)
         const statusPath = `/host/proc/${pid}/status`
@@ -291,41 +346,37 @@ async function collectContainerMetrics() {
         // Calculer le pourcentage de mémoire
         const memoryPercent = memoryLimitMB > 0 ? (memoryMB / memoryLimitMB) * 100 : 0
         
-        // Pour le CPU, on utilise le temps total (sera calculé en différentiel)
-        const cpuPercent = 0 // Sera calculé par différence entre 2 collectes
-        
         // ✅ Récupérer les statistiques réseau
         const networkStats = await getContainerNetworkStats(pid)
         
         containerMetrics[containerName] = {
           cpu: {
-            usage: cpuPercent,
-            percentage: cpuPercent,
-            totalTime: totalTime, // Pour calcul différentiel
+            usage: Math.round(cpuPercent * 10) / 10,
+            percentage: Math.round(cpuPercent * 10) / 10,
             lastUpdate: Date.now()
           },
           memory: {
             usage: memoryMB,
             limit: memoryLimitMB,
-            percentage: Math.min(100, Math.max(0, memoryPercent))
+            percentage: Math.min(100, Math.max(0, Math.round(memoryPercent * 10) / 10))
           },
           network: networkStats,
           status: inspect.State.Status || 'running',
           pid: pid
         }
         
-        console.log(`[PROC] ${containerName}: PID ${pid}, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
+        console.log(`[PROC] ${containerName}: CPU ${cpuPercent.toFixed(1)}%, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
         
       } catch (err) {
         console.error(`[PROC] Erreur pour ${containerName}:`, err.message)
       }
     }
     
-    console.log(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés depuis /proc`)
+    console.log(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés`)
     return containerMetrics
     
   } catch (error) {
-    console.error('[METRICS] Erreur collecte depuis /proc:', error.message)
+    console.error('[METRICS] Erreur collecte conteneurs:', error.message)
     console.log('[CONTAINERS] === ERREUR COLLECTE CONTENEURS ===')
     return {}
   }
@@ -352,7 +403,12 @@ async function collectAllMetrics() {
 
       servicesMetrics[serviceName] = {
         ...serviceConfig,
+        name: serviceName,
+        displayName: serviceName.replace('jobbingtrack-', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        rawName: serviceName,
         health,
+        status: health.status, // ✅ Ajouter le statut au niveau racine
+        responseTimeMs: health.responseTimeMs, // ✅ Exposer le temps de réponse
         lastCheck: new Date().toISOString(),
         metrics: containerMetrics[serviceName] || {}
       }
@@ -397,6 +453,26 @@ async function collectAllMetrics() {
       }
     })
 
+    // ✅ Calculer les statistiques réseau agrégées
+    let totalNetworkRx = 0;
+    let totalNetworkTx = 0;
+    let jobbingtrackNetworkRx = 0;
+    let jobbingtrackNetworkTx = 0;
+    
+    allContainers.forEach(([name, metrics]) => {
+      if (metrics.network?.rx && metrics.network?.tx) {
+        totalNetworkRx += metrics.network.rx;
+        totalNetworkTx += metrics.network.tx;
+      }
+    });
+    
+    jobbingtrackContainers.forEach(([name, metrics]) => {
+      if (metrics.network?.rx && metrics.network?.tx) {
+        jobbingtrackNetworkRx += metrics.network.rx;
+        jobbingtrackNetworkTx += metrics.network.tx;
+      }
+    });
+
     // Ajouter les métriques agrégées au systemMetrics
     if (systemMetrics) {
       // Remplacer les métriques système par les métriques réelles des conteneurs
@@ -410,6 +486,13 @@ async function collectAllMetrics() {
           used: Math.round(systemTotalMemoryUsed),
           limit: Math.round(systemTotalMemoryLimit),
           percent: systemTotalMemoryLimit > 0 ? ((systemTotalMemoryUsed / systemTotalMemoryLimit) * 100).toFixed(2) : 0
+        },
+        network: {
+          total_rx: totalNetworkRx,
+          total_tx: totalNetworkTx,
+          total_rx_mb: Math.round(totalNetworkRx / 1024 / 1024 * 100) / 100,
+          total_tx_mb: Math.round(totalNetworkTx / 1024 / 1024 * 100) / 100,
+          total_mb: Math.round((totalNetworkRx + totalNetworkTx) / 1024 / 1024 * 100) / 100
         }
       }
       
@@ -424,19 +507,73 @@ async function collectAllMetrics() {
             used: Math.round(totalMemoryUsed),
             limit: Math.round(totalMemoryLimit),
             percent: totalMemoryLimit > 0 ? Math.round((totalMemoryUsed / totalMemoryLimit) * 100) : 0
+          },
+          network: {
+            total_rx: jobbingtrackNetworkRx,
+            total_tx: jobbingtrackNetworkTx,
+            total_rx_mb: Math.round(jobbingtrackNetworkRx / 1024 / 1024 * 100) / 100,
+            total_tx_mb: Math.round(jobbingtrackNetworkTx / 1024 / 1024 * 100) / 100,
+            total_mb: Math.round((jobbingtrackNetworkRx + jobbingtrackNetworkTx) / 1024 / 1024 * 100) / 100
           }
         }
       }
     }
 
-    console.log(`[COLLECTOR] Métriques collectées pour ${Object.keys(servicesMetrics).length} services`)
+    // ✅ Calculer la disponibilité des services
+    const totalServices = Object.keys(servicesMetrics).length;
+    const healthyServices = Object.values(servicesMetrics).filter(s => s.status === 'healthy').length;
+    const degradedServices = Object.values(servicesMetrics).filter(s => s.status === 'unhealthy' || s.status === 'degraded').length;
+    const offlineServices = Object.values(servicesMetrics).filter(s => s.status === 'offline').length;
+    
+    const stackAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 0;
+    const systemAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
+    
+    console.log(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
+    console.log(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
     console.log(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
     
     // Construire l'objet de métriques complet
     const metricsData = {
       containers: containerMetrics,
-      system: systemMetrics,
+      system: {
+        ...systemMetrics,
+        availability: {
+          stack: stackAvailability,
+          system: systemAvailability
+        }
+      },
       services: servicesMetrics,
+      // ✅ Ajouter les métriques agrégées de disponibilité
+      health: {
+        availability_percent: stackAvailability,
+        system_availability_percent: systemAvailability,
+        healthy: healthyServices,
+        degraded: degradedServices,
+        offline: offlineServices,
+        total: totalServices
+      },
+      // ✅ Ajouter le temps de réponse moyen
+      responseTime: {
+        average_ms: Object.values(servicesMetrics)
+          .filter(s => s.responseTimeMs && s.responseTimeMs > 0)
+          .reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / 
+          Math.max(Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).length, 1),
+        fastest_ms: Math.min(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 9999)),
+        slowest_ms: Math.max(...Object.values(servicesMetrics).filter(s => s.responseTimeMs && s.responseTimeMs > 0).map(s => s.responseTimeMs || 0))
+      },
+      // ✅ Ajouter les erreurs (pour l'instant à 0, à implémenter plus tard)
+      errors: {
+        total_last_5m: 0,
+        rate_per_min: 0
+      },
+      // ✅ Ajouter le réseau depuis containersAggregate
+      network: systemMetrics.containersAggregate?.network || {
+        total_rx_mb: 0,
+        total_tx_mb: 0,
+        total_mb: 0
+      },
+      // ✅ Ajouter la liste des services pour compatibilité frontend
+      servicesList: Object.values(servicesMetrics),
       timestamp: new Date().toISOString()
     }
     
@@ -521,11 +658,16 @@ const dockerLogsService = require('./services/docker-logs.service')
 
 // Routes API
 app.get('/api/v1/health', (req, res) => {
+  const startTime = Date.now();
+  
   res.json({
     status: 'online',
     service: 'jobbingtrack-metrics-aggregator',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    responseTime: Date.now() - startTime,
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage()
   })
 })
 

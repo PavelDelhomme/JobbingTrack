@@ -152,13 +152,36 @@ export default function AnalyticsPage() {
   }, [metrics, metricsHistory.length]);
 
   const servicesList = useMemo<ServiceMetrics[]>(() => {
-    if (!metrics) return [];
+    if (!metrics) {
+      console.log('[ANALYTICS] ⚠️ Pas de métriques disponibles');
+      return [];
+    }
+    
+    console.log('[ANALYTICS] Métriques reçues:', {
+      has_servicesList: !!metrics.servicesList,
+      servicesList_length: metrics.servicesList?.length || 0,
+      servicesList_isArray: Array.isArray(metrics.servicesList),
+      has_services: !!metrics.services,
+      services_type: typeof metrics.services,
+      services_keys: metrics.services ? Object.keys(metrics.services).length : 0
+    });
+    
+    // ✅ Priorité 1: servicesList direct depuis le backend
     if (Array.isArray(metrics.servicesList) && metrics.servicesList.length > 0) {
+      console.log('[ANALYTICS] ✅ Services depuis servicesList:', metrics.servicesList.length);
       return metrics.servicesList;
     }
+    
+    // ✅ Priorité 2: services object depuis le backend
     if (metrics.services && typeof metrics.services === 'object') {
-      return Object.values(metrics.services);
+      const servicesArray = Object.values(metrics.services).filter(s => s && typeof s === 'object');
+      console.log('[ANALYTICS] ✅ Services depuis services object:', servicesArray.length);
+      if (servicesArray.length > 0) {
+        return servicesArray;
+      }
     }
+    
+    console.warn('[ANALYTICS] ⚠️ Aucun service trouvé dans les métriques', metrics);
     return [];
   }, [metrics]);
 
@@ -169,49 +192,124 @@ export default function AnalyticsPage() {
   }, [servicesList]);
 
   const aggregatedStats = useMemo(() => {
-    const cpuValues = servicesList.map(service => toNumber(service.metrics?.cpu?.usage));
-    const avgCpu = cpuValues.length
+    // ✅ Log pour déboguer
+    console.log('[ANALYTICS] servicesList:', servicesList.length, servicesList[0]);
+    console.log('[ANALYTICS] metrics:', metrics);
+    
+    // ✅ PRIORITÉ 1: Utiliser les données agrégées du système si disponibles
+    const systemCpu = metrics?.system?.cpu?.usage;
+    const systemMemoryPercent = metrics?.system?.memory?.usage;
+    const systemMemoryUsageMb = metrics?.system?.memory?.usage_mb;
+    const systemMemoryLimitMb = metrics?.system?.memory?.limit_mb;
+    
+    // ✅ PRIORITÉ 2: Utiliser les données des conteneurs JobbingTrack
+    const jobbingtrackCpu = metrics?.system?.jobbingtrack?.containers?.cpu?.averagePercent;
+    const jobbingtrackMemoryUsed = metrics?.system?.jobbingtrack?.containers?.memory?.used;
+    const jobbingtrackMemoryLimit = metrics?.system?.jobbingtrack?.containers?.memory?.limit;
+    const jobbingtrackMemoryPercent = metrics?.system?.jobbingtrack?.containers?.memory?.percent;
+    
+    console.log('[ANALYTICS] Données système:', {
+      systemCpu,
+      systemMemoryPercent,
+      systemMemoryUsageMb,
+      systemMemoryLimitMb,
+      jobbingtrackCpu,
+      jobbingtrackMemoryUsed,
+      jobbingtrackMemoryLimit,
+      jobbingtrackMemoryPercent
+    });
+    
+    // ✅ PRIORITÉ 3: Calculer depuis les services individuels
+    const cpuValues = servicesList.map(service => {
+      const cpu = service.metrics?.cpu?.usage || 
+                  service.metrics?.cpu?.percentage || 
+                  service.cpu?.usage ||
+                  0;
+      return toNumber(cpu);
+    }).filter(v => v > 0);
+    
+    const calculatedAvgCpu = cpuValues.length
       ? cpuValues.reduce((acc, value) => acc + value, 0) / cpuValues.length
       : 0;
 
+    // ✅ Choisir la meilleure source pour le CPU
+    const avgCpu = toNumber(systemCpu) || toNumber(jobbingtrackCpu) || calculatedAvgCpu;
+    
+    console.log('[ANALYTICS] CPU - system:', systemCpu, 'jobbingtrack:', jobbingtrackCpu, 'calculated:', calculatedAvgCpu, 'final:', avgCpu);
+
+    // ✅ Récupérer la mémoire depuis plusieurs sources possibles
     const memoryUsageValues = servicesList.map(service =>
-      toNumber(service.metrics?.memory?.usageMb ?? service.metrics?.memory?.usage)
-    );
+      toNumber(service.metrics?.memory?.usage ?? service.metrics?.memory?.usageMb ?? 0)
+    ).filter(v => v > 0);
+    
     const memoryLimitValues = servicesList.map(service =>
-      toNumber(service.metrics?.memory?.limitMb ?? service.metrics?.memory?.limit)
-    );
-    const totalMemoryUsage = memoryUsageValues.reduce((acc, value) => acc + value, 0);
-    const totalMemoryLimit = memoryLimitValues.reduce((acc, value) => acc + value, 0);
-    const memoryPercent = totalMemoryLimit > 0 ? (totalMemoryUsage / totalMemoryLimit) * 100 : 0;
+      toNumber(service.metrics?.memory?.limit ?? service.metrics?.memory?.limitMb ?? 0)
+    ).filter(v => v > 0);
+    
+    const calculatedMemoryUsage = memoryUsageValues.reduce((acc, value) => acc + value, 0);
+    const calculatedMemoryLimit = memoryLimitValues.reduce((acc, value) => acc + value, 0);
+    const calculatedMemoryPercent = calculatedMemoryLimit > 0 ? (calculatedMemoryUsage / calculatedMemoryLimit) * 100 : 0;
+    
+    // ✅ Choisir la meilleure source pour la mémoire
+    const totalMemoryUsage = toNumber(systemMemoryUsageMb) || toNumber(jobbingtrackMemoryUsed) || calculatedMemoryUsage;
+    const totalMemoryLimit = toNumber(systemMemoryLimitMb) || toNumber(jobbingtrackMemoryLimit) || calculatedMemoryLimit;
+    const memoryPercent = toNumber(systemMemoryPercent) || toNumber(jobbingtrackMemoryPercent) || calculatedMemoryPercent;
+
+    console.log('[ANALYTICS] Memory - usage:', totalMemoryUsage, 'limit:', totalMemoryLimit, 'percent:', memoryPercent);
 
     const networkStats = metrics?.network;
     const totalNetworkRxMb = toNumber(networkStats?.total_rx_mb);
     const totalNetworkTxMb = toNumber(networkStats?.total_tx_mb);
     const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
 
+    console.log('[ANALYTICS] Network:', { totalNetworkRxMb, totalNetworkTxMb, totalNetworkMb });
+
     const responseStats = metrics?.responseTime;
-    const responseValues = servicesList
-      .filter(service => typeof service.responseTimeMs === 'number')
-      .map(service => service.responseTimeMs as number);
+    
+    // ✅ PRIORITÉ 1: Utiliser les données de l'API responseTime
+    let averageResponse = null;
+    let fastestResponse = null;
+    let slowestResponse = null;
+    let responseSamples = 0;
+    
+    if (responseStats) {
+      averageResponse = typeof responseStats.average_ms === 'number' && responseStats.average_ms > 0 
+        ? responseStats.average_ms 
+        : (typeof responseStats.average_ms === 'string' ? toNumber(responseStats.average_ms, 0) || null : null);
+        
+      fastestResponse = typeof responseStats.fastest_ms === 'number' && responseStats.fastest_ms > 0 
+        ? responseStats.fastest_ms 
+        : (typeof responseStats.fastest_ms === 'string' ? toNumber(responseStats.fastest_ms, 0) || null : null);
+        
+      slowestResponse = typeof responseStats.slowest_ms === 'number' && responseStats.slowest_ms > 0 
+        ? responseStats.slowest_ms 
+        : (typeof responseStats.slowest_ms === 'string' ? toNumber(responseStats.slowest_ms, 0) || null : null);
+        
+      responseSamples = responseStats.per_service?.length || 0;
+    }
+    
+    // ✅ PRIORITÉ 2: Calculer depuis servicesList si pas de données API
+    if ((averageResponse === null || averageResponse === 0) && servicesList.length > 0) {
+      const responseValues = servicesList
+        .filter(service => typeof service.responseTimeMs === 'number' && service.responseTimeMs > 0)
+        .map(service => service.responseTimeMs as number);
 
-    const fallbackAverageResponse = responseValues.length
-      ? responseValues.reduce((acc, value) => acc + value, 0) / responseValues.length
-      : null;
+      if (responseValues.length > 0) {
+        averageResponse = responseValues.reduce((acc, value) => acc + value, 0) / responseValues.length;
+        fastestResponse = Math.min(...responseValues);
+        slowestResponse = Math.max(...responseValues);
+        responseSamples = responseValues.length;
+      }
+    }
 
-    const fallbackFastestResponse = responseValues.length ? Math.min(...responseValues) : null;
-    const fallbackSlowestResponse = responseValues.length ? Math.max(...responseValues) : null;
-
-    const averageResponse = typeof responseStats?.average_ms === 'number'
-      ? responseStats.average_ms
-      : fallbackAverageResponse;
-
-    const fastestResponse = typeof responseStats?.fastest_ms === 'number'
-      ? responseStats.fastest_ms
-      : fallbackFastestResponse;
-
-    const slowestResponse = typeof responseStats?.slowest_ms === 'number'
-      ? responseStats.slowest_ms
-      : fallbackSlowestResponse;
+    console.log('[ANALYTICS] Response times:', { 
+      averageResponse, 
+      fastestResponse, 
+      slowestResponse, 
+      samples: responseSamples,
+      from: responseStats ? 'API' : 'calculated',
+      api_data: responseStats
+    });
 
     const errorStats = metrics?.errors;
     const totalErrors = toNumber(
@@ -240,11 +338,19 @@ export default function AnalyticsPage() {
       healthStats?.offline ?? servicesList.filter(service => service.status === 'offline').length;
 
     const overallLoadScore =
-      typeof metrics?.overallLoadScore === 'number'
+      typeof metrics?.overallLoadScore === 'number' && metrics.overallLoadScore > 0
         ? metrics.overallLoadScore
         : (avgCpu / 100 + memoryPercent / 100) / 2;
 
-    return {
+    console.log('[ANALYTICS] Overall load score:', {
+      fromAPI: metrics?.overallLoadScore,
+      calculated: (avgCpu / 100 + memoryPercent / 100) / 2,
+      final: overallLoadScore,
+      avgCpu,
+      memoryPercent
+    });
+
+    const result = {
       avgCpu,
       totalMemoryUsage,
       totalMemoryLimit,
@@ -263,8 +369,12 @@ export default function AnalyticsPage() {
       degradedCount,
       offlineCount,
       overallLoadScore,
-      responseSamples: responseValues.length,
+      responseSamples,
     };
+
+    console.log('[ANALYTICS] ===== AGGREGATED STATS =====', result);
+
+    return result;
   }, [metrics, servicesList]);
 
   const historyRows = useMemo(() => {

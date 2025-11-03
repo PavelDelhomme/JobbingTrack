@@ -12,6 +12,14 @@ import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
+// ✅ Fonction utilitaire pour formater les nombres en toute sécurité
+const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A'): string => {
+  if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+    return value.toFixed(decimals);
+  }
+  return fallback;
+};
+
 export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth()
   const router = useRouter()
@@ -320,24 +328,31 @@ export default function BackofficePage() {
         const [
           applicationsResponse,
           usersResponse,
-          companiesResponse
+          companiesResponse,
+          activeSessionsResponse
         ] = await Promise.all([
           applicationService.getAll().catch(() => ({ data: { total: 0, applications: [] } })),
           authService.getAllUsers().catch(() => ({ data: { users: [] } })),
-          companyService.getAll().catch(() => ({ data: { companies: [] } }))
+          companyService.getAll().catch(() => ({ data: { companies: [] } })),
+          // ✅ Récupérer les sessions actives réelles
+          axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).catch(() => ({ data: { total: 0, activeUsersLast30Min: 0 } }))
         ])
 
         // Calculer les statistiques
         const totalApplications = applicationsResponse.data.total || 0
         const totalUsers = usersResponse.data.users?.length || 0
         const totalCompanies = companiesResponse.data.companies?.length || 0
+        const activeSessions = activeSessionsResponse.data?.total || activeSessionsResponse.data?.activeUsersLast30Min || 0
 
         setStats(prev => ({
           ...prev,
           totalApplications,
           totalUsers,
           totalCompanies,
-          activeUsers: totalUsers,
+          activeUsers: activeSessions, // ✅ Utiliser les sessions réelles
+          activeSessions: activeSessions, // ✅ Ajouter aussi ici
           systemHealth: 100,
           deploymentStatus: 'success'
         }))
@@ -348,10 +363,10 @@ export default function BackofficePage() {
       }
     }
 
-    if (isAuthenticated) {
+    if (isAuthenticated && token) {
       fetchStats()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, token])
 
   // Charger les services avec leurs métriques
   useEffect(() => {
@@ -507,14 +522,14 @@ export default function BackofficePage() {
           <MetricCard
             title="CPU (Conteneurs)"
             value={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-              ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent.toFixed(1)}%` 
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
               : systemMetrics?.cpu?.containers_only !== undefined 
-              ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` 
+              ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
               : '...'}
             subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-              ? `Moy: ${systemMetrics.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+              ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
               : systemMetrics?.cpu?.cores 
-              ? `${systemMetrics.cpu.cores} coeurs • ${systemMetrics.cpu.per_core?.toFixed(1)}% par coeur` 
+              ? `${systemMetrics.cpu.cores} coeurs • ${safeToFixed(systemMetrics.cpu.per_core, 1)}% par coeur` 
               : '...'}
             icon={<Cpu className="h-6 w-6" />}
             color={
@@ -531,12 +546,12 @@ export default function BackofficePage() {
           <MetricCard
             title="Mémoire (Conteneurs)"
             value={systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-              ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%` 
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
               : systemMetrics?.memory?.usage !== undefined 
-              ? `${systemMetrics.memory.usage.toFixed(1)}%` 
+              ? `${safeToFixed(systemMetrics.memory.usage, 1)}%` 
               : '...'}
             subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-              ? `${systemMetrics.jobbingtrack.containers.memory.used.toFixed(0)} MB / ${systemMetrics.jobbingtrack.containers.memory.limit.toFixed(0)} MB`
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB`
               : systemMetrics?.memory?.used 
               ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
               : '...'}
@@ -575,17 +590,17 @@ export default function BackofficePage() {
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-                  ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent.toFixed(1)}%` 
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
                   : systemMetrics?.cpu?.containers_only !== undefined 
-                  ? `${systemMetrics.cpu.containers_only.toFixed(1)}%` 
+                  ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
                   : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">CPU (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                  ? `Moy: ${systemMetrics.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+                  ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
                   : systemMetrics?.cpu?.per_core !== undefined 
-                  ? `${systemMetrics.cpu.per_core.toFixed(1)}% par coeur` 
+                  ? `${safeToFixed(systemMetrics.cpu.per_core, 1)}% par coeur` 
                   : '...'}
               </div>
             </div>
@@ -593,15 +608,15 @@ export default function BackofficePage() {
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                 {systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-                  ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%` 
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
                   : systemMetrics?.memory?.usage !== undefined 
-                  ? `${systemMetrics.memory.usage.toFixed(1)}%` 
+                  ? `${safeToFixed(systemMetrics.memory.usage, 1)}%` 
                   : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                  ? `${systemMetrics.jobbingtrack.containers.memory.used.toFixed(0)} MB / ${systemMetrics.jobbingtrack.containers.memory.limit.toFixed(0)} MB`
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB`
                   : systemMetrics?.memory?.used 
                   ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
                   : '...'}
@@ -610,7 +625,9 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {systemMetrics?.load?.average !== undefined ? systemMetrics.load.average : '...'}
+                {loadingSystemMetrics 
+                  ? '...' 
+                  : safeToFixed(systemMetrics?.load?.average || systemMetrics?.load?.load_1, 2, '0.00')}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
@@ -647,17 +664,19 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {systemMetrics?.disk?.[0]?.usage_percent !== undefined 
-                  ? `${systemMetrics.disk[0].usage_percent.toFixed(1)}%` 
-                  : '...'}
+                {systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent !== null
+                  ? `${systemMetrics.disk[0].usage_percent}%` 
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {systemMetrics?.disk?.[0]?.used && systemMetrics?.disk?.[0]?.total ? 
-                  `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total}` : 
-                  systemMetrics?.disk?.[0]?.usage_percent !== undefined
+                {systemMetrics?.disk?.[0]?.used_human && systemMetrics?.disk?.[0]?.total_human ? 
+                  `${systemMetrics.disk[0].used_human} / ${systemMetrics.disk[0].total_human}` : 
+                  systemMetrics?.disk?.[0]?.used !== undefined && systemMetrics?.disk?.[0]?.total !== undefined ?
+                  `${systemMetrics.disk[0].used} GB / ${systemMetrics.disk[0].total} GB` :
+                  systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent > 0
                   ? (systemMetrics.disk[0].usage_percent > 80 ? '⚠️ Plein' : '✅ OK')
-                  : '...'}
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
             </div>
           </div>
