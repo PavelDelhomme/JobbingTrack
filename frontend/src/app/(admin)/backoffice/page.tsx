@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { AdminLayout } from '@/components/features'
+import AdminLayout from '@/components/features/AdminLayout'
 import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
@@ -590,13 +590,13 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {systemMetrics?.disk?.[0]?.usage_percent !== undefined ? `${systemMetrics.disk[0].usage_percent}%` : `${systemMetrics[0].usage_percent}%`
+                {systemMetrics?.disk?.[0]?.usage_percent !== undefined ? `${systemMetrics?.disk?.[0]?.usage_percent}%` : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {systemMetrics?.disk?.[0]?.used && systemMetrics?.disk?.[0]?.total ? 
-                  `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total}` : 
-                  systemMetrics?.disk?.[0]?.usage_percent > 80 ? '⚠️ Plein' : '✅ OK'}
+                  `${systemMetrics?.disk?.[0]?.used} / ${systemMetrics?.disk?.[0]?.total}` : 
+                  (systemMetrics?.disk?.[0]?.usage_percent !== undefined && (systemMetrics?.disk?.[0]?.usage_percent ?? 0) > 80) ? '⚠️ Plein' : '✅ OK'}
               </div>
             </div>
           </div>
@@ -612,17 +612,21 @@ export default function BackofficePage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">CPU Moyen</span>
                     <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent}%` : `${systemMetrics.jobbingtrack.containers.cpu.averagePercent}`}
+                      {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined 
+                        ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent}%` 
+                        : '...'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-blue-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || systemMetrics.jobbingtrack.containers.cpu.averagePercent, 100)}%` }}
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || 0, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total: {systemMetrics.jobbingtrack.containers.cpu?.totalPercent !== undefined ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent}%` : `${systemMetrics.jobbingtrack.cpu.totalPercent}`}
+                    Total: {systemMetrics.jobbingtrack.containers.cpu?.totalPercent !== undefined 
+                      ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent}%` 
+                      : '...'}
                   </div>
                 </div>
 
@@ -630,19 +634,21 @@ export default function BackofficePage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Mémoire Utilisée</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {systemMetrics.jobbingtrack.containers.memory?.percent !== undefined ? `${systemMetrics.jobbingtrack.containers.memory.percent}%` : `${systemMetrics.jobbingtrack.containers.memory.percent}%`}
+                      {systemMetrics.jobbingtrack.containers.memory?.percent !== undefined 
+                        ? `${systemMetrics.jobbingtrack.containers.memory.percent}%` 
+                        : '...'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-green-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent || systemMetrics.jobbingtrack.containers.memory.percent, 100)}%` }}
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics.jobbingtrack.containers.memory?.limit 
                       ? `${systemMetrics.jobbingtrack.containers.memory.used} MB / ${systemMetrics.jobbingtrack.containers.memory.limit} MB`
-                      : `${systemMetrics.jobbingtrack.containers.memory.used} MB / ${systemMetrics.jobbingtrack.containers.memory.limit} MB`}
+                      : '...'}
                   </div>
                 </div>
               </div>
