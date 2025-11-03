@@ -964,12 +964,6 @@ export default function BackofficePage() {
                             )}
                           </div>
                         )}
-                        
-                        {!service.metrics && !service.health && (
-                          <div className="text-xs text-yellow-600 dark:text-yellow-400 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                            ⚠️ Métriques en cours de chargement...
-                          </div>
-                        )}
 
                         {/* Clic pour naviguer vers la page du service */}
                         <div
