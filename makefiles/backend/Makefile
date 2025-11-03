@@ -16,13 +16,18 @@ help-backend: ## Afficher l'aide backend
 	@echo "🔧 BACKEND - Commandes monitoring disponibles"
 	@echo "================================================================"
 	@echo ""
-	@echo "📊 MONITORING:"
+	@echo "📊 MONITORING (Stack):"
 	@echo "  make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki)"
 	@echo "  make monitoring-down            - Arrêter monitoring"
 	@echo "  make monitoring-restart         - Redémarrer monitoring"
 	@echo "  make monitoring-ps              - Status services monitoring"
 	@echo "  make monitoring-logs            - Logs tous services monitoring"
 	@echo "  make monitoring-logs-service SERVICE=prometheus - Logs service spécifique"
+	@echo ""
+	@echo "📈 MONITORING (Statistiques):"
+	@echo "  make monitoring-stats           - Lancer le script de monitoring complet"
+	@echo "  make monitoring-stats-save      - Sauvegarder les stats dans data/monitoring/"
+	@echo "  make monitoring-stats-watch     - Surveillance continue (60s)"
 	@echo ""
 	@echo "🧪 TESTS:"
 	@echo "  make monitoring-test            - Test health endpoints"
@@ -36,9 +41,10 @@ help-backend: ## Afficher l'aide backend
 	@echo ""
 	@echo "💡 EXEMPLES:"
 	@echo "  make monitoring-up && make monitoring-test   # Démarrer et tester"
+	@echo "  make monitoring-stats-save                    # Collecter et sauvegarder"
 	@echo "  make monitoring-logs-service SERVICE=grafana # Logs Grafana"
 	@echo ""
-	@echo "📖 Documentation: docs/development/makefile/README.md"
+	@echo "📖 Documentation: docs/monitoring/"
 	@echo ""
 
 # ============================================================================
@@ -159,6 +165,22 @@ test-monitoring: ## Suite de tests complète du monitoring
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml logs --tail=5
 	@echo ""
 	@echo "✅ Tests terminés"
+
+monitoring-stats: ## Exécuter le script de monitoring complet
+	@echo "📊 Lancement du monitoring complet JobbingTrack..."
+	@chmod +x scripts/monitoring/monitoring.sh
+	@./scripts/monitoring/monitoring.sh
+
+monitoring-stats-save: ## Sauvegarder les stats dans data/monitoring/history
+	@echo "📊 Collecte et sauvegarde des stats..."
+	@mkdir -p data/monitoring/history
+	@chmod +x scripts/monitoring/monitoring.sh
+	@./scripts/monitoring/monitoring.sh > data/monitoring/history/stats-$$(date +%Y%m%d-%H%M%S).log
+	@echo "✅ Stats sauvegardées dans data/monitoring/history/"
+
+monitoring-stats-watch: ## Surveillance continue (toutes les 60s)
+	@echo "👀 Surveillance en temps réel (Ctrl+C pour arrêter)..."
+	@watch -n 60 'make monitoring-stats'
 
 backend-help: ## Aide complète backend + monitoring
 	@echo "================================================================"
