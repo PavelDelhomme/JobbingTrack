@@ -12,9 +12,9 @@ Processus complet de développement, de la conception à la production.
 
 ## 📚 Ressources
 
-- [Configuration développement](setup.md) - Environnement de développement
-- [Tests et qualité](testing.md) - Stratégies de tests
-- [Architecture](../core/architecture.md) - Vue technique
+- [Configuration développement](../setup/README.md) - Environnement de développement
+- [Tests et qualité](../testing/README.md) - Stratégies de tests
+- [Architecture](../../core/architecture/README.md) - Vue technique
 
 ---
 

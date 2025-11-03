@@ -125,10 +125,10 @@ make help-monitoring-up   # Aide monitoring
 
 ## 🚀 Démarrage rapide
 
-1. **Consulter l'architecture** : [core/architecture.md](core/architecture.md)
-2. **Comprendre la base de données** : [core/database.md](core/database.md)
-3. **Explorer les APIs** : [api/api-reference.md](api/api-reference.md)
-4. **Configurer le développement** : [development/setup.md](development/setup.md)
+1. **Consulter l'architecture** : [core/architecture/README.md](core/architecture/README.md)
+2. **Comprendre la base de données** : [database/README.md](database/README.md)
+3. **Explorer les APIs** : [api/api-reference/README.md](api/api-reference/README.md)
+4. **Configurer le développement** : [development/setup/README.md](development/setup/README.md)
 
 ## 🔧 Services disponibles
 

@@ -372,10 +372,10 @@ CREATE TABLE companies.companies (
 
 ## 📚 Ressources
 
-- [Architecture complète](architecture.md) - Vue technique
-- [Services](services.md) - Détail des microservices
-- [API Reference](../api/api-reference.md) - Documentation API
-- [Prisma Schema](../../../backend/prisma/schema.prisma) - Schéma source
+- [Architecture complète](../../../core/architecture/README.md) - Vue technique
+- [Services](../../../core/services/README.md) - Détail des microservices
+- [API Reference](../../../api/api-reference/README.md) - Documentation API
+- [Prisma Schema](../../../../../backend/prisma/schema.prisma) - Schéma source
 
 ---
 

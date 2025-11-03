@@ -323,9 +323,9 @@ make up
 ## 🚀 Prochaines étapes
 
 ### 1. Configuration complète
-- [Guide de développement](../development/setup.md)
-- [Documentation API](../api/api-reference.md)
-- [Guide d'administration](../administration/guide.md)
+- [Guide de développement](../../development/setup/README.md)
+- [Documentation API](../../api/api-reference/README.md)
+- [Guide d'administration](../../administration/README.md)
 
 ### 2. Déploiement en production
 - [Guide production](production.md)

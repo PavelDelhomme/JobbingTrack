@@ -193,11 +193,13 @@ Cette commande va :
 
 ## 📚 Documentation Complète
 
-- 📖 [Commandes Makefile](./development/COMMANDES_MAKEFILE.md)
-- 🔐 [Variables d'environnement](./environment-variables.md)
-- 📊 [Configuration du monitoring](./monitoring/MONITORING_SETUP.md)
-- 🗄️ [Gestion de la base de données](./database/README.md)
-- 🏗️ [Architecture](./architecture/README.md)
+- 🚀 [Guide de Redémarrage](REDEMARRAGE.md) - Comment redémarrer le projet
+- 📖 [Commandes Makefile](../development/makefile-commands/README.md)
+- 🔐 [Variables d'environnement](../deployment/environment-variables/README.md)
+- 📊 [Configuration du monitoring](../monitoring/README.md)
+- 🗄️ [Gestion de la base de données](../database/README.md)
+- 🏗️ [Architecture](../core/architecture/README.md)
+- 🔧 [Scripts](../scripts/README.md) - Tous les scripts disponibles
 
 ## 🎯 Prochaines Étapes
 

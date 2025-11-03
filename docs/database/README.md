@@ -215,18 +215,18 @@ npx prisma studio --browser none
 4. **Backup** : Sauvegarder avant toute modification
 
 ### Support :
-- 📖 [Documentation API](../../api/api-reference.md)
-- 🏗️ [Architecture](../../core/architecture.md)
-- 🔒 [Sécurité](../../security/guide.md)
+- 📖 [Documentation API](../api/api-reference/README.md)
+- 🏗️ [Architecture](../core/architecture/README.md)
+- 🔒 [Sécurité](../security/README.md)
 
 ---
 
 ## 📚 Ressources Supplémentaires
 
 ### Documentation Technique
-- [Architecture Microservices](../../core/services.md)
-- [Guide de Déploiement](../../deployment/production.md)
-- [Variables d'Environnement](../../environment-variables.md)
+- [Architecture Microservices](../core/services/README.md)
+- [Guide de Déploiement](../deployment/production/README.md)
+- [Variables d'Environnement](../deployment/environment-variables/README.md)
 
 ### Outils et Utilitaires
 - [Prisma Studio](https://www.prisma.io/studio) - Interface web

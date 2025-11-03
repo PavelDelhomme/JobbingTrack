@@ -7,7 +7,9 @@
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !
-- **[🛠️ Commandes Makefile](development/COMMANDES_MAKEFILE.md)** - Guide complet des commandes
+- **[🔄 Guide de Redémarrage](getting-started/REDEMARRAGE.md)** - Comment redémarrer le projet
+- **[🛠️ Commandes Makefile](development/makefile-commands/README.md)** - Guide complet des commandes
+- **[🔧 Scripts](scripts/README.md)** - Tous les scripts disponibles
 - **[💻 Configuration Développement](development/setup/README.md)** - Configuration complète du développement
 - **[🎯 Configuration Déploiement](deployment/getting-started/README.md)** | **[🏭 Production](deployment/production/README.md)** - Configuration complète du déploiement
 
@@ -43,32 +45,31 @@ docs/
 ├── 📖 README.md                 # Index principal
 ├── 🧭 navigation.md             # Ce fichier de navigation
 ├── 🏗️ core/                     # Documentation technique de base
-│   ├── architecture.md          # Architecture microservices
-│   ├── services.md              # Détail des microservices
-│   └── database.md              # Structure base de données
+│   ├── architecture/README.md   # Architecture microservices
+│   └── services/README.md       # Détail des microservices
 ├── 📡 api/                      # Documentation API
-│   ├── api-reference.md         # Guide API complet
-│   └── endpoints.md             # Liste des endpoints
+│   ├── api-reference/README.md  # Guide API complet
+│   └── endpoints/README.md      # Liste des endpoints
 ├── 🚀 deployment/               # Guides de déploiement
-│   ├── getting-started.md       # Démarrage rapide
-│   ├── production.md            # Déploiement production
-│   └── security.md              # Sécurité déploiement
+│   ├── getting-started/README.md # Démarrage rapide
+│   ├── production/README.md      # Déploiement production
+│   └── security/README.md        # Sécurité déploiement
 ├── 💻 development/              # Guides développement
-│   ├── setup.md                 # Configuration environnement
-│   ├── workflow.md              # Workflow développement
-│   └── testing.md               # Stratégies de tests
+│   ├── setup/README.md           # Configuration environnement
+│   ├── workflow/README.md        # Workflow développement
+│   └── testing/README.md         # Stratégies de tests
 ├── 🖥️ frontend/                 # Guide frontend
-│   └── guide.md                 # Développement frontend
+│   └── README.md                 # Développement frontend
 ├── 📱 mobile/                   # Guide mobile
-│   └── guide.md                 # Développement mobile
+│   └── README.md                 # Développement mobile
 ├── 🔧 administration/           # Guide administration
-│   └── guide.md                 # Dashboard administrateur
-├── 🐛 troubleshooting/           # Dépannage
-│   └── guide.md                 # Guide de résolution
+│   └── README.md                 # Dashboard administrateur
+├── 🐛 troubleshooting/          # Dépannage
+│   └── README.md                 # Guide de résolution
 ├── ⚡ performance/              # Optimisation
-│   └── guide.md                 # Guide performance
+│   └── README.md                 # Guide performance
 └── 🔒 security/                 # Sécurité
-    └── guide.md                 # Guide sécurité
+    └── README.md                 # Guide sécurité
 ```
 
 ---

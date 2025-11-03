@@ -398,8 +398,8 @@ GET    /docker-stats/performance
 
 ## 📚 Ressources
 
-- [API Reference complète](api-reference.md) - Guide détaillé
-- [Architecture](../core/architecture.md) - Vue technique
+- [API Reference complète](../api-reference/README.md) - Guide détaillé
+- [Architecture](../../core/architecture/README.md) - Vue technique
 - [Postman Collection](https://api.jobbingtrack.com/postman)
 - [OpenAPI Specification](https://api.jobbingtrack.com/openapi.json)
 
