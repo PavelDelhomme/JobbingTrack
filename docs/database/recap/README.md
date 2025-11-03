@@ -23,9 +23,9 @@
 
 | Fichier | Description |
 |---------|-------------|
-| `docs/DATABASE_SCHEMA_COMPLETE.md` | Schéma détaillé de tous les modèles et relations |
-| `docs/DATABASE_MIGRATION_GUIDE.md` | Guide pas-à-pas pour la migration |
-| `docs/NOUVELLE_ARCHITECTURE_DB_RECAP.md` | Ce fichier |
+| `docs/database/schema/README.md` | Schéma détaillé de tous les modèles et relations |
+| `docs/database/migration-guide/README.md` | Guide pas-à-pas pour la migration |
+| `docs/database/recap/README.md` | Ce fichier |
 
 ---
 
@@ -395,10 +395,10 @@ Pour chaque service, créer les endpoints CRUD :
 | Document | Description |
 |----------|-------------|
 | `backend/shared/README.md` | Documentation du package Prisma |
-| `docs/DATABASE_SCHEMA_COMPLETE.md` | Schéma détaillé de tous les modèles |
-| `docs/DATABASE_MIGRATION_GUIDE.md` | Guide de migration pas-à-pas |
-| `docs/DATABASE_ARCHITECTURE_SOLUTION.md` | Explication de l'architecture |
-| `docs/NOUVELLE_ARCHITECTURE_DB_RECAP.md` | Ce fichier |
+| `docs/database/schema/README.md` | Schéma détaillé de tous les modèles |
+| `docs/database/migration-guide/README.md` | Guide de migration pas-à-pas |
+| `docs/database/architecture-solution/README.md` | Explication de l'architecture |
+| `docs/database/recap/README.md` | Ce fichier |
 
 ---
 
