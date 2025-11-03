@@ -367,11 +367,21 @@ export default function AnalyticsPage() {
 
     const servicesList = metrics.servicesList || Object.values(metrics.services || {});
 
-    // Essayer d'abord d'utiliser les données système globales si disponibles
+    // ✅ Utiliser les données des conteneurs JobbingTrack (source fiable)
     let avgCpuUsage = null;
     let totalMemoryMb = null;
     
-    if (metrics.system?.cpu?.usage && metrics.system.cpu.usage !== 'N/A') {
+    // Priorité 1: Données conteneurs JobbingTrack (la plus fiable)
+    if (metrics.jobbingtrack?.containers?.cpu?.averagePercent !== undefined) {
+      avgCpuUsage = metrics.jobbingtrack.containers.cpu.averagePercent;
+    }
+    
+    if (metrics.jobbingtrack?.containers?.memory?.used !== undefined) {
+      totalMemoryMb = metrics.jobbingtrack.containers.memory.used;
+    }
+
+    // Priorité 2: Données système globales (si conteneurs non disponibles)
+    if (avgCpuUsage === null && metrics.system?.cpu?.usage && metrics.system.cpu.usage !== 'N/A') {
       const cpuStr = metrics.system.cpu.usage.toString().replace('%', '');
       const cpuNum = parseFloat(cpuStr);
       if (!isNaN(cpuNum)) {
@@ -379,7 +389,7 @@ export default function AnalyticsPage() {
       }
     }
     
-    if (metrics.system?.memory?.used && metrics.system.memory.used !== 'N/A') {
+    if (totalMemoryMb === null && metrics.system?.memory?.used && metrics.system.memory.used !== 'N/A') {
       const memoryStr = metrics.system.memory.used.toString().replace(/[^0-9.]/g, '');
       const memoryNum = parseFloat(memoryStr);
       if (!isNaN(memoryNum)) {
@@ -387,7 +397,7 @@ export default function AnalyticsPage() {
       }
     }
 
-    // Si pas de données système, calculer depuis les services
+    // Priorité 3: Calculer depuis les services (dernier recours)
     if (avgCpuUsage === null && servicesList.length > 0) {
       const totalCpuUsage = servicesList.reduce((sum, s: any) => 
         sum + toNumber(s.metrics?.cpu?.percentage, 0), 0);
@@ -833,8 +843,8 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
               const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
               return cpuValue > 0;
             }).length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
                   data={servicesList
                     .filter((s: any) => {
                       const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
@@ -843,34 +853,34 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     .map((s: any) => ({ 
                       name: s.displayName || s.name,
                       cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
-                    }))}
-                  layout="horizontal"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    type="number"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
+                }))}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
                     domain={[0, 100]}
-                  />
-                  <YAxis 
-                    type="category"
-                    dataKey="name"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '11px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
                     width={150}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
-                  <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
-                </BarChart>
-              </ResponsiveContainer>
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
+              </BarChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Cpu className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -885,40 +895,40 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
               ⚡ Temps de Réponse par Service
             </h3>
             {servicesList.filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0).length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
-                  data={servicesList
-                    .filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0)
-                    .map((s: any) => ({ 
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={servicesList
+                  .filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0)
+                  .map((s: any) => ({ 
                       name: s.displayName || s.name,
-                      responseTime: s.responseTimeMs
-                    }))}
-                  layout="horizontal"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    type="number"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
-                    type="category"
-                    dataKey="name"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '11px' }}
+                    responseTime: s.responseTimeMs
+                  }))}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
                     width={150}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
-                  <Bar dataKey="responseTime" fill={COLORS.purple} name="Temps (ms)" />
-                </BarChart>
-              </ResponsiveContainer>
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Bar dataKey="responseTime" fill={COLORS.purple} name="Temps (ms)" />
+              </BarChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -934,40 +944,40 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
               🧠 Mémoire par Service
             </h3>
             {servicesList.filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0).length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
                   data={servicesList
                     .filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0)
                     .map((s: any) => ({ 
                       name: s.displayName || s.name,
-                      memory: toNumber(s.metrics?.memory?.usageMb, 0)
-                    }))}
-                  layout="horizontal"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    type="number"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
-                    type="category"
-                    dataKey="name"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '11px' }}
+                  memory: toNumber(s.metrics?.memory?.usageMb, 0)
+                }))}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
                     width={150}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
-                  <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (MB)" />
-                </BarChart>
-              </ResponsiveContainer>
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (MB)" />
+              </BarChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <MemoryStick className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -982,40 +992,40 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
               ⚠️ Taux d'Erreur par Service
             </h3>
             {servicesList.filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0).length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart 
-                  data={servicesList
-                    .filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0)
-                    .map((s: any) => ({ 
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={servicesList
+                  .filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0)
+                  .map((s: any) => ({ 
                       name: s.displayName || s.name,
-                      errorRate: toNumber(s.errorRatePerMin, 0)
-                    }))}
-                  layout="horizontal"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    type="number"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
-                    type="category"
-                    dataKey="name"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '11px' }}
+                    errorRate: toNumber(s.errorRatePerMin, 0)
+                  }))}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
                     width={150}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                  />
-                  <Bar dataKey="errorRate" fill={COLORS.danger} name="Erreurs/min" />
-                </BarChart>
-              </ResponsiveContainer>
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Bar dataKey="errorRate" fill={COLORS.danger} name="Erreurs/min" />
+              </BarChart>
+            </ResponsiveContainer>
             ) : (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
