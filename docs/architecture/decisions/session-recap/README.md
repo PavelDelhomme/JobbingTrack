@@ -75,8 +75,8 @@
 **Question** : Comment éviter la duplication des données entre services ?
 
 **Réponse documentée dans** :
-- `docs/ARCHITECTURE_DECISION.md` (ADR complet)
-- `docs/DATABASE_ARCHITECTURE_SOLUTION.md` (explication détaillée)
+- `docs/architecture/decisions/ARCHITECTURE_DECISION.md` (ADR complet)
+- `docs/database/DATABASE_ARCHITECTURE_SOLUTION.md` (explication détaillée)
 
 #### Solution Retenue : **DB Unique avec Relations Réelles**
 
@@ -132,9 +132,9 @@ Tous reliés par Foreign Keys réelles !
 6. `backend/metrics-aggregator-service/METRICS_DB_README.md`
 7. `scripts/validate-all-schemas.sh` (mis à jour)
 8. `scripts/init-new-schemas.sh`
-9. `docs/ARCHITECTURE_DECISION.md`
-10. `docs/DATABASE_ARCHITECTURE_SOLUTION.md`
-11. `docs/SESSION_RECAP_ARCHITECTURE.md` (ce fichier)
+9. `docs/architecture/decisions/ARCHITECTURE_DECISION.md`
+10. `docs/database/DATABASE_ARCHITECTURE_SOLUTION.md`
+11. `docs/architecture/decisions/SESSION_RECAP_ARCHITECTURE.md` (ce fichier)
 12. `makefiles/database/Makefile` (mis à jour)
 
 ### Fichiers modifiés (4)
@@ -316,13 +316,13 @@ docker exec -it jobbingtrack-postgres psql -U postgres -d jobbingtrack -c \
 ## 📚 DOCUMENTATION CRÉÉE
 
 1. **Architecture Decision Record**
-   - `docs/ARCHITECTURE_DECISION.md`
+   - `docs/architecture/decisions/ARCHITECTURE_DECISION.md`
    - Explique le choix DB unique vs séparées
    - Patterns microservices
    - Migration future vers Event Sourcing
 
 2. **Solution Architecture DB**
-   - `docs/DATABASE_ARCHITECTURE_SOLUTION.md`
+   - `docs/database/DATABASE_ARCHITECTURE_SOLUTION.md`
    - Répond précisément à la question sur la duplication
    - Exemples concrets de code
    - Schémas d'architecture
