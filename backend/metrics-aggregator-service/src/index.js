@@ -173,9 +173,43 @@ if (process.env.NODE_ENV === 'development') {
 
       console.log(`[Logs] Récupération des logs pour ${containerName}`);
 
+      // Vérifier d'abord si le conteneur existe
+      let containerExists = false;
+      try {
+        const { stdout: containersList } = await execAsync(`docker ps -a --filter "name=${containerName}" --format "{{.Names}}"`);
+        containerExists = containersList.trim().includes(containerName);
+      } catch (err) {
+        console.error('[Logs] Erreur vérification conteneur:', err);
+      }
+
+      if (!containerExists) {
+        console.log(`[Logs] ⚠️  Conteneur ${containerName} non trouvé`);
+        return res.json({
+          success: false,
+          service: serviceName,
+          container: containerName,
+          count: 0,
+          logs: [],
+          error: `Le conteneur ${containerName} n'existe pas ou n'est pas démarré.`,
+          message: 'Service non disponible'
+        });
+      }
+
       // Récupérer les logs via Docker
       const { stdout } = await execAsync(`docker logs ${containerName} --tail ${limit} --timestamps 2>&1 || true`);
       
+      // Vérifier si les logs sont vides
+      if (!stdout || stdout.trim() === '') {
+        return res.json({
+          success: true,
+          service: serviceName,
+          container: containerName,
+          count: 0,
+          logs: [],
+          message: 'Aucun log disponible pour ce service'
+        });
+      }
+
       // Parser les logs
       const logs = stdout
         .split('\n')
@@ -218,10 +252,13 @@ if (process.env.NODE_ENV === 'development') {
       });
     } catch (error) {
       console.error(`[Logs] Erreur /api/v1/logs/${req.params.serviceName}:`, error);
-      res.status(500).json({ 
+      res.json({ 
         success: false, 
         error: error.message,
-        logs: []
+        service: req.params.serviceName,
+        container: `jobbingtrack-${req.params.serviceName}`,
+        logs: [],
+        message: 'Erreur lors de la récupération des logs'
       });
     }
   });

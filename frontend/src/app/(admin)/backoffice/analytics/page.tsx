@@ -102,7 +102,8 @@ const COLORS = {
   purple: '#A855F7',
   cyan: '#06B6D4',
   pink: '#EC4899',
-  indigo: '#6366F1'
+  indigo: '#6366F1',
+  orange: '#FB923C'
 };
 
 export default function AnalyticsPage() {
@@ -305,19 +306,24 @@ export default function AnalyticsPage() {
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.logs) {
+        if (data.success && data.logs && data.logs.length > 0) {
           setServiceLogs(data.logs);
+          setLogsError(null);
+        } else if (data.success && data.logs && data.logs.length === 0) {
+          setLogsError(data.message || 'Aucun log disponible pour ce service');
+          setServiceLogs([]);
         } else {
-          setLogsError('Aucun log disponible');
+          // Service non disponible ou erreur
+          setLogsError(data.error || data.message || 'Service non disponible ou non démarré');
           setServiceLogs([]);
         }
       } else {
-        setLogsError('Erreur lors du chargement des logs');
+        setLogsError(`Erreur ${response.status}: Impossible de récupérer les logs`);
         setServiceLogs([]);
       }
     } catch (error) {
       console.error('Erreur chargement logs:', error);
-      setLogsError('Erreur de connexion au service de logs');
+      setLogsError('Erreur de connexion au service de monitoring (port 8014). Vérifiez que le metrics-aggregator est démarré.');
       setServiceLogs([]);
     } finally {
       setLoadingLogs(false);
@@ -835,7 +841,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                       return cpuValue > 0;
                     })
                     .map((s: any) => ({ 
-                      name: s.displayName?.split(' ')[0] || s.name,
+                      name: s.displayName || s.name,
                       cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
                     }))}
                   layout="horizontal"
@@ -852,7 +858,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     dataKey="name"
                     stroke="#9CA3AF"
                     style={{ fontSize: '11px' }}
-                    width={120}
+                    width={150}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -884,7 +890,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                   data={servicesList
                     .filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0)
                     .map((s: any) => ({ 
-                      name: s.displayName?.split(' ')[0] || s.name,
+                      name: s.displayName || s.name,
                       responseTime: s.responseTimeMs
                     }))}
                   layout="horizontal"
@@ -900,7 +906,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     dataKey="name"
                     stroke="#9CA3AF"
                     style={{ fontSize: '11px' }}
-                    width={120}
+                    width={150}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -933,7 +939,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                   data={servicesList
                     .filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0)
                     .map((s: any) => ({ 
-                      name: s.displayName?.split(' ')[0] || s.name,
+                      name: s.displayName || s.name,
                       memory: toNumber(s.metrics?.memory?.usageMb, 0)
                     }))}
                   layout="horizontal"
@@ -949,7 +955,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     dataKey="name"
                     stroke="#9CA3AF"
                     style={{ fontSize: '11px' }}
-                    width={120}
+                    width={150}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -981,7 +987,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                   data={servicesList
                     .filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0)
                     .map((s: any) => ({ 
-                      name: s.displayName?.split(' ')[0] || s.name,
+                      name: s.displayName || s.name,
                       errorRate: toNumber(s.errorRatePerMin, 0)
                     }))}
                   layout="horizontal"
@@ -997,7 +1003,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     dataKey="name"
                     stroke="#9CA3AF"
                     style={{ fontSize: '11px' }}
-                    width={120}
+                    width={150}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -1194,7 +1200,7 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
                 data={servicesList.map((s: any) => ({ 
-                  name: s.displayName?.split(' ')[0] || s.name,
+                  name: s.displayName || s.name,
                   rx: toNumber(s.networkMb?.rx || s.metrics?.network?.rx_mb, 0),
                   tx: toNumber(s.networkMb?.tx || s.metrics?.network?.tx_mb, 0)
                 }))}
@@ -1203,10 +1209,10 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
                 <XAxis 
                   dataKey="name"
                   stroke="#9CA3AF"
-                  style={{ fontSize: '10px' }}
+                  style={{ fontSize: '9px' }}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
                 />
                 <YAxis 
                   stroke="#9CA3AF"

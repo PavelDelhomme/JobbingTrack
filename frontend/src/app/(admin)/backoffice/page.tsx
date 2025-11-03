@@ -626,9 +626,9 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {loadingSystemMetrics 
-                  ? '...' 
-                  : safeToFixed(systemMetrics?.load?.average || systemMetrics?.load?.load_1, 2, '0.00')}
+                {systemMetrics?.load?.average !== undefined || systemMetrics?.load?.load_1 !== undefined
+                  ? safeToFixed(systemMetrics?.load?.average || systemMetrics?.load?.load_1, 2, '0.00')
+                  : '...'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
