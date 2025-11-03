@@ -64,7 +64,7 @@ db-migrate: ## Appliquer les migrations Prisma sur tous les services
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
 	@echo "📂 Recherche des services avec Prisma..."
-	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator-service"; \
+	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator"; \
 	MIGRATED=0; \
 	SKIPPED=0; \
 	for service in $$SERVICES; do \
@@ -136,6 +136,15 @@ recreate-admin-user: ## Supprimer et recréer l'utilisateur administrateur
 	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "DELETE FROM \"User\" WHERE email = 'admin@jobbingtrack.com';" 2>/dev/null || true
 	@echo "✅ Utilisateur existant supprimé"
 	@$(MAKE) create-admin-user
+
+create-pavel-user: ## Créer l'utilisateur Pavel avec rôle SUPER_ADMIN
+	@echo "👤 Création de l'utilisateur Pavel..."
+	@chmod +x backend/scripts/database/create-pavel-user.sh
+	@./backend/scripts/database/create-pavel-user.sh
+	@echo ""
+	@echo "✅ Utilisateur Pavel créé !"
+	@echo "📧 Email: pavel@jobbingtrack.com"
+	@echo "🔑 Password: password123"
 
 db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@echo "🗑️  Suppression des volumes JobbingTrack..."

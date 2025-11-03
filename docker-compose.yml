@@ -117,6 +117,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3014
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - CADVISOR_URL=http://jobbingtrack-cadvisor:8080
       - PROMETHEUS_URL=http://jobbingtrack-prometheus:9090
       - LOKI_URL=http://jobbingtrack-loki:3100
