@@ -16,7 +16,26 @@ import {
   Server,
   TrendingUp,
   Wifi,
+  Network,
+  Cpu,
+  MemoryStick,
+  Activity
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ComposedChart
+} from 'recharts';
 
 const TABS = [
   { id: 'overview', label: 'Synthèse' },
@@ -53,16 +72,37 @@ const formatLoad = (value?: number | null) => {
   return value.toFixed(3);
 };
 
-const formatTimestamp = (timestamp: string) => {
+const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return timestamp;
-  return date.toLocaleString('fr-FR', { hour12: false });
+  
+  if (timeRange === '1h' || timeRange === '6h') {
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } else if (timeRange === '24h') {
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } else {
+    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit' });
+  }
 };
 
 const formatLogTimestamp = (nanoString: string) => {
   const milliseconds = Number(nanoString) / 1_000_000;
   if (!Number.isFinite(milliseconds)) return nanoString;
   return new Date(milliseconds).toLocaleString('fr-FR', { hour12: false });
+};
+
+// Couleurs pour les graphiques
+const COLORS = {
+  primary: '#3B82F6',
+  secondary: '#10B981',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  info: '#8B5CF6',
+  success: '#22C55E',
+  purple: '#A855F7',
+  cyan: '#06B6D4',
+  pink: '#EC4899',
+  indigo: '#6366F1'
 };
 
 export default function AnalyticsPage() {
@@ -72,25 +112,96 @@ export default function AnalyticsPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [selectedService, setSelectedService] = useState<ServiceMetrics | null>(null);
-  const [serviceLogs, setServiceLogs] = useState<Array<{ timestamp: string; message: string }>>([]);
+  const [serviceLogs, setServiceLogs] = useState<Array<{ timestamp: string; level: string; message: string }>>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Conversion du time range en millisecondes
+  const getTimeRangeMs = () => {
+    const ranges = {
+      '1h': 60 * 60 * 1000,
+      '6h': 6 * 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000
+    };
+    return ranges[timeRange];
+  };
+
+  // Charger les dernières données depuis l'historique pour affichage immédiat
+  const loadLastKnownMetrics = async () => {
+    try {
+      const history = await centralMetricsService.getMetricsHistory({ limit: 1 });
+      if (history && history.length > 0) {
+        const lastMetric = history[0];
+        
+        // Convertir les données de l'historique en format MetricsData
+        const historicalMetrics: MetricsData = {
+          system: {
+            cpu: { 
+              usage: lastMetric.cpu_percent ? `${lastMetric.cpu_percent.toFixed(1)}%` : 'N/A',
+              cores: 'N/A',
+              model: 'N/A'
+            },
+            memory: { 
+              total: 'N/A',
+              used: 'N/A',
+              free: 'N/A',
+              usage: lastMetric.memory_percent ? `${lastMetric.memory_percent.toFixed(1)}%` : 'N/A'
+            },
+            load: { average: 'N/A', cores: 'N/A' },
+            disk: []
+          },
+          containers: {},
+          services: {},
+          timestamp: lastMetric.timestamp || new Date().toISOString(),
+          network: lastMetric.network_rx_mb || lastMetric.network_tx_mb ? {
+            totalRxMb: lastMetric.network_rx_mb || 0,
+            totalTxMb: lastMetric.network_tx_mb || 0,
+            totalMb: (lastMetric.network_rx_mb || 0) + (lastMetric.network_tx_mb || 0)
+          } : undefined,
+          responseTime: lastMetric.response_time_avg ? {
+            avg: lastMetric.response_time_avg
+          } : undefined,
+          errors: lastMetric.error_rate ? {
+            rate: lastMetric.error_rate
+          } : undefined,
+          health: lastMetric.availability_percent ? {
+            availability_percent: lastMetric.availability_percent
+          } : undefined
+        };
+        
+        setMetrics(historicalMetrics);
+        console.log('[ANALYTICS] ✅ Dernières données connues chargées depuis l\'historique');
+      }
+    } catch (error) {
+      console.error('[ANALYTICS] ⚠️ Erreur chargement dernières données:', error);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
 
-    const loadMetrics = async () => {
+    const initializeMetrics = async () => {
+      // 1. Charger d'abord les dernières données disponibles
+      if (!initialLoadDone) {
+        await loadLastKnownMetrics();
+        setInitialLoadDone(true);
+      }
+      
+      // 2. Ensuite charger les données fraîches
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
-          // ✅ FUSIONNER les nouvelles métriques avec les anciennes pour éviter les N/A temporaires
           setMetrics((prev: any) => {
             if (!prev) return data;
             
+            // Ne mettre à jour que si on a de nouvelles données valides
             return {
               ...prev,
               ...data,
-              // Fusionner les sous-objets pour préserver les anciennes valeurs
               system: data.system ? { ...prev.system, ...data.system } : prev.system,
               containers: data.containers ? { ...prev.containers, ...data.containers } : prev.containers,
               network: data.network ? { ...prev.network, ...data.network } : prev.network,
@@ -98,22 +209,44 @@ export default function AnalyticsPage() {
               errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
               health: data.health ? { ...prev.health, ...data.health } : prev.health,
               services: data.services ? { ...prev.services, ...data.services } : prev.services,
-              servicesList: data.servicesList && data.servicesList.length > 0 ? data.servicesList : prev.servicesList,
+              servicesList: data.servicesList ? data.servicesList : prev.servicesList
             };
           });
         }
       } catch (error) {
-        console.error('Erreur chargement métriques:', error);
-        // ✅ Ne rien faire en cas d'erreur - garder les anciennes valeurs
+        console.error('[ANALYTICS] ⚠️ Erreur chargement métriques:', error);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
-    loadMetrics();
-    const interval = setInterval(loadMetrics, 10000);
+    initializeMetrics();
+    const interval = setInterval(async () => {
+      // Lors des actualisations suivantes, ne pas recharger l'historique
+      try {
+        const data = await centralMetricsService.fetchMetrics();
+        if (mounted && data) {
+          setMetrics((prev: any) => {
+            if (!prev) return data;
+            
+            return {
+              ...prev,
+              ...data,
+              system: data.system ? { ...prev.system, ...data.system } : prev.system,
+              containers: data.containers ? { ...prev.containers, ...data.containers } : prev.containers,
+              network: data.network ? { ...prev.network, ...data.network } : prev.network,
+              responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
+              errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
+              health: data.health ? { ...prev.health, ...data.health } : prev.health,
+              services: data.services ? { ...prev.services, ...data.services } : prev.services,
+              servicesList: data.servicesList ? data.servicesList : prev.servicesList
+            };
+          });
+        }
+      } catch (error) {
+        console.error('[ANALYTICS] ⚠️ Erreur actualisation métriques:', error);
+      }
+    }, 30000);
 
     return () => {
       mounted = false;
@@ -121,1148 +254,1132 @@ export default function AnalyticsPage() {
     };
   }, []);
 
+  // Charger l'historique des métriques
   useEffect(() => {
-    if (!metrics || metricsHistory.length > 0) {
-      return;
-    }
-
     let mounted = true;
 
     const loadHistory = async () => {
-      setLoadingHistory(true);
       try {
-        const history = await centralMetricsService.getMetricsHistory({ limit: 24 });
-        if (mounted && Array.isArray(history)) {
+        setLoadingHistory(true);
+        const timeRangeMs = getTimeRangeMs();
+        const endTime = Date.now();
+        const startTime = endTime - timeRangeMs;
+
+        const history = await centralMetricsService.getMetricsHistory({
+          limit: 1000,
+          startTime,
+          endTime
+        });
+
+        if (mounted && history && Array.isArray(history)) {
           setMetricsHistory(history);
         }
       } catch (error) {
-        console.error('Erreur récupération historique des métriques:', error);
+        console.error('Erreur chargement historique:', error);
       } finally {
-        if (mounted) {
-          setLoadingHistory(false);
-        }
+        if (mounted) setLoadingHistory(false);
       }
     };
 
     loadHistory();
+    const interval = setInterval(loadHistory, 60000); // Rafraîchir toutes les minutes
 
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
-  }, [metrics, metricsHistory.length]);
+  }, [timeRange]);
 
-  const servicesList = useMemo<ServiceMetrics[]>(() => {
-    if (!metrics) {
-      console.log('[ANALYTICS] ⚠️ Pas de métriques disponibles');
-      return [];
-    }
-    
-    console.log('[ANALYTICS] Métriques reçues:', {
-      has_servicesList: !!metrics.servicesList,
-      servicesList_length: metrics.servicesList?.length || 0,
-      servicesList_isArray: Array.isArray(metrics.servicesList),
-      has_services: !!metrics.services,
-      services_type: typeof metrics.services,
-      services_keys: metrics.services ? Object.keys(metrics.services).length : 0
-    });
-    
-    // ✅ Priorité 1: servicesList direct depuis le backend
-    if (Array.isArray(metrics.servicesList) && metrics.servicesList.length > 0) {
-      console.log('[ANALYTICS] ✅ Services depuis servicesList:', metrics.servicesList.length);
-      return metrics.servicesList;
-    }
-    
-    // ✅ Priorité 2: services object depuis le backend
-    if (metrics.services && typeof metrics.services === 'object') {
-      const servicesArray = Object.values(metrics.services).filter(s => s && typeof s === 'object');
-      console.log('[ANALYTICS] ✅ Services depuis services object:', servicesArray.length);
-      if (servicesArray.length > 0) {
-        return servicesArray;
-      }
-    }
-    
-    console.warn('[ANALYTICS] ⚠️ Aucun service trouvé dans les métriques', metrics);
-    return [];
-  }, [metrics]);
-
-  const sortedServices = useMemo(() => {
-    return [...servicesList].sort(
-      (a, b) => toNumber(b.metrics?.cpu?.usage) - toNumber(a.metrics?.cpu?.usage)
-    );
-  }, [servicesList]);
-
-  const aggregatedStats = useMemo(() => {
-    // ✅ Log pour déboguer
-    console.log('[ANALYTICS] servicesList:', servicesList.length, servicesList[0]);
-    console.log('[ANALYTICS] metrics:', metrics);
-    
-    // ✅ PRIORITÉ 1: Utiliser les données agrégées du système si disponibles
-    const systemCpu = metrics?.system?.cpu?.usage;
-    const systemMemoryPercent = metrics?.system?.memory?.usage;
-    const systemMemoryUsageMb = metrics?.system?.memory?.usage_mb;
-    const systemMemoryLimitMb = metrics?.system?.memory?.limit_mb;
-    
-    // ✅ PRIORITÉ 2: Utiliser les données des conteneurs JobbingTrack
-    const jobbingtrackCpu = metrics?.system?.jobbingtrack?.containers?.cpu?.averagePercent;
-    const jobbingtrackMemoryUsed = metrics?.system?.jobbingtrack?.containers?.memory?.used;
-    const jobbingtrackMemoryLimit = metrics?.system?.jobbingtrack?.containers?.memory?.limit;
-    const jobbingtrackMemoryPercent = metrics?.system?.jobbingtrack?.containers?.memory?.percent;
-    
-    console.log('[ANALYTICS] Données système:', {
-      systemCpu,
-      systemMemoryPercent,
-      systemMemoryUsageMb,
-      systemMemoryLimitMb,
-      jobbingtrackCpu,
-      jobbingtrackMemoryUsed,
-      jobbingtrackMemoryLimit,
-      jobbingtrackMemoryPercent
-    });
-    
-    // ✅ PRIORITÉ 3: Calculer depuis les services individuels
-    const cpuValues = servicesList.map(service => {
-      const cpu = service.metrics?.cpu?.usage || 
-                  service.metrics?.cpu?.percentage || 
-                  service.cpu?.usage ||
-                  0;
-      return toNumber(cpu);
-    }).filter(v => v > 0);
-    
-    const calculatedAvgCpu = cpuValues.length
-      ? cpuValues.reduce((acc, value) => acc + value, 0) / cpuValues.length
-      : 0;
-
-    // ✅ Choisir la meilleure source pour le CPU
-    const avgCpu = toNumber(systemCpu) || toNumber(jobbingtrackCpu) || calculatedAvgCpu;
-    
-    console.log('[ANALYTICS] CPU - system:', systemCpu, 'jobbingtrack:', jobbingtrackCpu, 'calculated:', calculatedAvgCpu, 'final:', avgCpu);
-
-    // ✅ Récupérer la mémoire depuis plusieurs sources possibles
-    const memoryUsageValues = servicesList.map(service =>
-      toNumber(service.metrics?.memory?.usage ?? service.metrics?.memory?.usageMb ?? 0)
-    ).filter(v => v > 0);
-    
-    const memoryLimitValues = servicesList.map(service =>
-      toNumber(service.metrics?.memory?.limit ?? service.metrics?.memory?.limitMb ?? 0)
-    ).filter(v => v > 0);
-    
-    const calculatedMemoryUsage = memoryUsageValues.reduce((acc, value) => acc + value, 0);
-    const calculatedMemoryLimit = memoryLimitValues.reduce((acc, value) => acc + value, 0);
-    const calculatedMemoryPercent = calculatedMemoryLimit > 0 ? (calculatedMemoryUsage / calculatedMemoryLimit) * 100 : 0;
-    
-    // ✅ Choisir la meilleure source pour la mémoire
-    const totalMemoryUsage = toNumber(systemMemoryUsageMb) || toNumber(jobbingtrackMemoryUsed) || calculatedMemoryUsage;
-    const totalMemoryLimit = toNumber(systemMemoryLimitMb) || toNumber(jobbingtrackMemoryLimit) || calculatedMemoryLimit;
-    const memoryPercent = toNumber(systemMemoryPercent) || toNumber(jobbingtrackMemoryPercent) || calculatedMemoryPercent;
-
-    console.log('[ANALYTICS] Memory - usage:', totalMemoryUsage, 'limit:', totalMemoryLimit, 'percent:', memoryPercent);
-
-    const networkStats = metrics?.network;
-    const totalNetworkRxMb = toNumber(networkStats?.total_rx_mb);
-    const totalNetworkTxMb = toNumber(networkStats?.total_tx_mb);
-    const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
-
-    console.log('[ANALYTICS] Network:', { totalNetworkRxMb, totalNetworkTxMb, totalNetworkMb });
-
-    const responseStats = metrics?.responseTime;
-    
-    // ✅ PRIORITÉ 1: Utiliser les données de l'API responseTime
-    let averageResponse = null;
-    let fastestResponse = null;
-    let slowestResponse = null;
-    let responseSamples = 0;
-    
-    if (responseStats) {
-      averageResponse = typeof responseStats.average_ms === 'number' && responseStats.average_ms > 0 
-        ? responseStats.average_ms 
-        : (typeof responseStats.average_ms === 'string' ? toNumber(responseStats.average_ms, 0) || null : null);
-        
-      fastestResponse = typeof responseStats.fastest_ms === 'number' && responseStats.fastest_ms > 0 
-        ? responseStats.fastest_ms 
-        : (typeof responseStats.fastest_ms === 'string' ? toNumber(responseStats.fastest_ms, 0) || null : null);
-        
-      slowestResponse = typeof responseStats.slowest_ms === 'number' && responseStats.slowest_ms > 0 
-        ? responseStats.slowest_ms 
-        : (typeof responseStats.slowest_ms === 'string' ? toNumber(responseStats.slowest_ms, 0) || null : null);
-        
-      responseSamples = responseStats.per_service?.length || 0;
-    }
-    
-    // ✅ PRIORITÉ 2: Calculer depuis servicesList si pas de données API
-    if ((averageResponse === null || averageResponse === 0) && servicesList.length > 0) {
-      const responseValues = servicesList
-        .filter(service => typeof service.responseTimeMs === 'number' && service.responseTimeMs > 0)
-        .map(service => service.responseTimeMs as number);
-
-      if (responseValues.length > 0) {
-        averageResponse = responseValues.reduce((acc, value) => acc + value, 0) / responseValues.length;
-        fastestResponse = Math.min(...responseValues);
-        slowestResponse = Math.max(...responseValues);
-        responseSamples = responseValues.length;
-      }
-    }
-
-    console.log('[ANALYTICS] Response times:', { 
-      averageResponse, 
-      fastestResponse, 
-      slowestResponse, 
-      samples: responseSamples,
-      from: responseStats ? 'API' : 'calculated',
-      api_data: responseStats
-    });
-
-    const errorStats = metrics?.errors;
-    const totalErrors = toNumber(
-      errorStats?.total_last_5m,
-      servicesList.reduce((acc, service) => acc + toNumber(service.errorCount5m), 0)
-    );
-    const errorRate = toNumber(
-      errorStats?.rate_per_min,
-      servicesList.reduce((acc, service) => acc + toNumber(service.errorRatePerMin), 0)
-    );
-
-    const healthStats = metrics?.health;
-    const availabilityPercent = toNumber(
-      healthStats?.availability_percent,
-      servicesList.length
-        ? (servicesList.filter(service => service.status === 'healthy').length / servicesList.length) *
-            100
-        : 0
-    );
-    const systemAvailability = healthStats?.system_availability_percent ?? null;
-    const healthyCount =
-      healthStats?.healthy ?? servicesList.filter(service => service.status === 'healthy').length;
-    const degradedCount =
-      healthStats?.degraded ?? servicesList.filter(service => service.status === 'degraded').length;
-    const offlineCount =
-      healthStats?.offline ?? servicesList.filter(service => service.status === 'offline').length;
-
-    const overallLoadScore =
-      typeof metrics?.overallLoadScore === 'number' && metrics.overallLoadScore > 0
-        ? metrics.overallLoadScore
-        : (avgCpu / 100 + memoryPercent / 100) / 2;
-
-    console.log('[ANALYTICS] Overall load score:', {
-      fromAPI: metrics?.overallLoadScore,
-      calculated: (avgCpu / 100 + memoryPercent / 100) / 2,
-      final: overallLoadScore,
-      avgCpu,
-      memoryPercent
-    });
-
-    const result = {
-      avgCpu,
-      totalMemoryUsage,
-      totalMemoryLimit,
-      memoryPercent,
-      totalNetworkRxMb,
-      totalNetworkTxMb,
-      totalNetworkMb,
-      averageResponse,
-      fastestResponse,
-      slowestResponse,
-      totalErrors,
-      errorRate,
-      availabilityPercent,
-      systemAvailability,
-      healthyCount,
-      degradedCount,
-      offlineCount,
-      overallLoadScore,
-      responseSamples,
-    };
-
-    console.log('[ANALYTICS] ===== AGGREGATED STATS =====', result);
-
-    return result;
-  }, [metrics, servicesList]);
-
-  const historyRows = useMemo(() => {
-    return metricsHistory.map(entry => ({
-      timestamp: entry.timestamp || entry.unix_timestamp,
-      cpu: toNumber(entry.cpu_percent ?? entry.cpu?.totalPercent ?? entry.cpu),
-      memory: toNumber(entry.memory_percent ?? entry.memory?.percent ?? entry.memory),
-      networkRx: toNumber(entry.network?.total_rx_mb),
-      networkTx: toNumber(entry.network?.total_tx_mb),
-      availability: toNumber(entry.health?.availability_percent),
-    }));
-  }, [metricsHistory]);
-
-  const handleViewLogs = async (service: ServiceMetrics) => {
-    if (!service) return;
-    const containerName = service.rawName || service.id || service.name;
-
-    setSelectedService(service);
+  // Charger les logs d'un service
+  const loadServiceLogs = async (service: ServiceMetrics) => {
     setLoadingLogs(true);
     setLogsError(null);
-    setServiceLogs([]);
-
+    setSelectedService(service);
+    
     try {
-      // ✅ NOUVEAU : Utiliser le service de persistance pour récupérer les logs
-      const analyticsService = await import('@/lib/api/analytics.service').then(m => m.analyticsService);
+      // Extraire le nom du service (sans jobbingtrack-)
+      const serviceName = service.rawName?.replace('jobbingtrack-', '') || service.name;
       
-      // Essayer d'abord les logs depuis Docker (temps réel)
-      let logs = await analyticsService.getContainerLogsLive(containerName, {
-        tail: 200,
-      });
-
-      // Si pas de logs en direct, essayer depuis la base de données
-      if (!logs || logs.length === 0) {
-        logs = await analyticsService.getContainerLogs(containerName, {
-          limit: 200,
-        });
-      }
-
-      if (logs && logs.length > 0) {
-        const parsed = logs.map((log: any) => ({
-          timestamp: log.timestamp,
-          message: log.log || log.message,
-          stream: log.stream || 'stdout',
-          level: log.parsedLevel || null,
-        }));
-
-        parsed.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setServiceLogs(parsed);
-      } else {
-        // Fallback vers l'ancienne méthode
-        const logsResponse = await centralMetricsService.getAggregatorLogs(containerName, {
-          limit: 200,
-        });
-
-        if (logsResponse?.logs && Array.isArray(logsResponse.logs)) {
-          const parsed = logsResponse.logs.flatMap((stream: any) =>
-            (stream.values || []).map((value: [string, string]) => ({
-              timestamp: value[0],
-              message: value[1],
-            }))
-          );
-
-          if (parsed.length === 0) {
-            setLogsError('Aucun log disponible pour cette période.');
-          } else {
-            parsed.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-            setServiceLogs(parsed);
-          }
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=100`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.logs) {
+          setServiceLogs(data.logs);
         } else {
-          setLogsError('Aucun log disponible pour cette période.');
+          setLogsError('Aucun log disponible');
+          setServiceLogs([]);
         }
+      } else {
+        setLogsError('Erreur lors du chargement des logs');
+        setServiceLogs([]);
       }
     } catch (error) {
-      console.error(`Erreur chargement logs pour ${containerName}:`, error);
-      setLogsError('Impossible de récupérer les logs du conteneur.');
+      console.error('Erreur chargement logs:', error);
+      setLogsError('Erreur de connexion au service de logs');
+      setServiceLogs([]);
     } finally {
       setLoadingLogs(false);
     }
   };
 
-  const handleCloseLogs = () => {
-    setSelectedService(null);
-    setServiceLogs([]);
-    setLogsError(null);
-  };
+  // Préparer les données pour les graphiques
+  const chartData = useMemo(() => {
+    if (!metricsHistory || metricsHistory.length === 0) return [];
+    
+    return metricsHistory.map((item: any) => ({
+      time: formatTimestamp(item.timestamp, timeRange),
+      cpu: toNumber(item.cpu_percent, 0),
+      memory: toNumber(item.memory_percent, 0),
+      networkRx: toNumber(item.network_rx_mb, 0),
+      networkTx: toNumber(item.network_tx_mb, 0),
+      responseTime: toNumber(item.response_time_avg, 0),
+      errorRate: toNumber(item.error_rate, 0),
+      availability: toNumber(item.availability_percent, 100),
+      loadScore: toNumber(item.load_score, 0)
+    }));
+  }, [metricsHistory, timeRange]);
 
-  if (loading) {
+  // Calculer les statistiques agrégées
+  const aggregatedStats = useMemo(() => {
+    // Retourner des valeurs par défaut (null) si pas de données, au lieu d'un objet vide
+    if (!metrics) return {
+      servicesTotal: 0,
+      servicesHealthy: 0,
+      servicesDegraded: 0,
+      servicesOffline: 0,
+      avgCpuUsage: null,
+      totalMemoryMb: null,
+      totalNetworkRxMb: null,
+      totalNetworkTxMb: null,
+      totalNetworkMb: null,
+      avgResponseTime: null,
+      totalErrors: 0,
+      avgErrorRate: null
+    };
+
+    const servicesList = metrics.servicesList || Object.values(metrics.services || {});
+
+    // Essayer d'abord d'utiliser les données système globales si disponibles
+    let avgCpuUsage = null;
+    let totalMemoryMb = null;
+    
+    if (metrics.system?.cpu?.usage && metrics.system.cpu.usage !== 'N/A') {
+      const cpuStr = metrics.system.cpu.usage.toString().replace('%', '');
+      const cpuNum = parseFloat(cpuStr);
+      if (!isNaN(cpuNum)) {
+        avgCpuUsage = cpuNum;
+      }
+    }
+    
+    if (metrics.system?.memory?.used && metrics.system.memory.used !== 'N/A') {
+      const memoryStr = metrics.system.memory.used.toString().replace(/[^0-9.]/g, '');
+      const memoryNum = parseFloat(memoryStr);
+      if (!isNaN(memoryNum)) {
+        totalMemoryMb = memoryNum;
+      }
+    }
+
+    // Si pas de données système, calculer depuis les services
+    if (avgCpuUsage === null && servicesList.length > 0) {
+      const totalCpuUsage = servicesList.reduce((sum, s: any) => 
+        sum + toNumber(s.metrics?.cpu?.percentage, 0), 0);
+      avgCpuUsage = totalCpuUsage / servicesList.length;
+    }
+
+    if (totalMemoryMb === null && servicesList.length > 0) {
+      totalMemoryMb = servicesList.reduce((sum, s: any) => 
+        sum + toNumber(s.metrics?.memory?.usageMb, 0), 0);
+    }
+
+    const totalNetworkRxMb = metrics.network?.totalRxMb !== undefined 
+      ? metrics.network.totalRxMb
+      : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.rx_mb, 0), 0);
+      
+    const totalNetworkTxMb = metrics.network?.totalTxMb !== undefined
+      ? metrics.network.totalTxMb
+      : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.tx_mb, 0), 0);
+      
+    const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
+
+    const healthyCount = servicesList.filter((s: any) => s.status === 'healthy').length;
+    const degradedCount = servicesList.filter((s: any) => s.status === 'degraded').length;
+    const offlineCount = servicesList.filter((s: any) => 
+      s.status === 'offline' || s.status === 'unknown').length;
+
+    const responseTimes = servicesList
+      .map((s: any) => s.responseTimeMs)
+      .filter((rt): rt is number => typeof rt === 'number' && rt > 0);
+    let avgResponseTime = metrics.responseTime?.avg || null;
+    
+    if (avgResponseTime === null && responseTimes.length > 0) {
+      avgResponseTime = responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length;
+    }
+
+    const totalErrors = servicesList.reduce((sum, s: any) => 
+      sum + toNumber(s.errorCount5m, 0), 0);
+    const avgErrorRate = metrics.errors?.rate !== undefined
+      ? metrics.errors.rate
+      : servicesList.reduce((sum, s: any) => sum + toNumber(s.errorRatePerMin, 0), 0);
+
+    return {
+      servicesTotal: servicesList.length,
+      servicesHealthy: healthyCount,
+      servicesDegraded: degradedCount,
+      servicesOffline: offlineCount,
+      avgCpuUsage,
+      totalMemoryMb,
+      totalNetworkRxMb,
+      totalNetworkTxMb,
+      totalNetworkMb,
+      avgResponseTime,
+      totalErrors,
+      avgErrorRate
+    };
+  }, [metrics]);
+
+  if (loading && !metrics) {
     return (
       <AdminLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       </AdminLayout>
     );
   }
 
-  if (!metrics) {
-    return (
-      <AdminLayout>
-        <div className="py-20 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            Aucune donnée de métriques disponible
-          </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
-            Le service d'agrégation n'a retourné aucune donnée exploitable.
-          </p>
-        </div>
-      </AdminLayout>
-    );
-  }
+  const servicesList = metrics?.servicesList || Object.values(metrics?.services || {});
 
-  const systemMetrics = metrics.system || {};
-  const lastUpdated = metrics.timestamp ? formatTimestamp(metrics.timestamp) : 'N/A';
-  const totalServices = servicesList.length;
-
-  const renderOverview = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-indigo-100 p-3 dark:bg-indigo-900/40">
-                <Gauge className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Charge globale
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {formatLoad(aggregatedStats.overallLoadScore)}
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">CPU + Mémoire</span>
+  return (
+    <AdminLayout>
+      <div>
+        {/* Header */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+              ⚡ Performances & Analytics
+            </h1>
+            <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
+              Monitoring complet des performances système et services
+            </p>
           </div>
-          <div className="mt-4 h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-              className="h-2 rounded-full bg-indigo-500 dark:bg-indigo-400"
-              style={{
-                width: `${Math.min(aggregatedStats.overallLoadScore * 100, 100)}%`,
-              }}
-            />
-          </div>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="1h">Dernière heure</option>
+            <option value="6h">6 heures</option>
+            <option value="24h">24 heures</option>
+            <option value="7d">7 jours</option>
+            <option value="30d">30 jours</option>
+          </select>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
-              <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                CPU moyen des services
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatPercentage(aggregatedStats.avgCpu)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {servicesList.length} services analysés
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/40">
-              <Database className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Mémoire utilisée
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatBytes(aggregatedStats.totalMemoryUsage * 1024 * 1024)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {formatPercentage(aggregatedStats.memoryPercent)} de la capacité allouée
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-amber-100 p-3 dark:bg-amber-900/40">
-              <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Temps de réponse moyen
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatMs(aggregatedStats.averageResponse)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {aggregatedStats.responseSamples} mesures disponibles
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-sky-100 p-3 dark:bg-sky-900/40">
-              <Wifi className="h-6 w-6 text-sky-600 dark:text-sky-400" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Trafic réseau agrégé
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatMb(aggregatedStats.totalNetworkMb)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                RX {formatMb(aggregatedStats.totalNetworkRxMb)} • TX {formatMb(aggregatedStats.totalNetworkTxMb)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-rose-100 p-3 dark:bg-rose-900/40">
-              <AlertTriangle className="h-6 w-6 text-rose-600 dark:text-rose-400" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Taux d'erreur global
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {aggregatedStats.totalErrors.toFixed(2)} erreurs / 5 min
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {aggregatedStats.errorRate.toFixed(2)} erreurs / min
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Informations Docker
-          </h3>
-          <dl className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Version</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">
-                {systemMetrics?.server_version || 'N/A'}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Système</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">
-                {systemMetrics?.operating_system || 'N/A'}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Architecture</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">
-                {systemMetrics?.architecture || 'N/A'}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">CPU disponibles</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">
-                {systemMetrics?.cpu?.cores || 'N/A'}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500 dark:text-gray-400">Mémoire totale</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">
-                {systemMetrics?.memory?.total || 'N/A'}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Disponibilité & santé
-          </h3>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-              <p className="text-xs uppercase tracking-wide">Disponibilité stack</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {formatPercentage(aggregatedStats.availabilityPercent)}
-              </p>
-              <p className="text-xs text-emerald-800/70 dark:text-emerald-300/70">
-                Système: {systemMetrics?.availability?.system ?
-                  formatPercentage(systemMetrics.availability.system) : 'N/A'}
-              </p>
-            </div>
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/30 dark:text-blue-300">
-              <p className="text-xs uppercase tracking-wide">État des services</p>
-              <p className="mt-1 text-sm">
-                <span className="font-semibold">{aggregatedStats.healthyCount}</span> sains •{' '}
-                <span className="font-semibold">{aggregatedStats.degradedCount}</span> dégradés •{' '}
-                <span className="font-semibold">{aggregatedStats.offlineCount}</span> hors ligne
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            Dernière mise à jour : {lastUpdated}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPerformance = () => (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Performance par service
-            </h2>
-          </div>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {sortedServices.length} services surveillés
-          </span>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          {sortedServices.map(service => {
-            const cpuUsage = toNumber(service.metrics?.cpu?.usage);
-            const memoryPercent = toNumber(service.metrics?.memory?.percentage);
-            const responseTime = service.responseTimeMs ?? null;
-            const errorRate = service.errorRatePerMin ?? 0;
-            const networkRx = service.metrics?.network?.rx_mb ?? service.networkMb?.rx ?? 0;
-            const networkTx = service.metrics?.network?.tx_mb ?? service.networkMb?.tx ?? 0;
-
-            return (
-              <div
-                key={service.rawName || service.id || service.name}
-                className="rounded-lg border border-gray-200 bg-white/60 p-4 dark:border-gray-700 dark:bg-gray-900/60"
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-4 overflow-x-auto">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {service.displayName || service.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {service.rawName || service.name}
-                    </p>
-                  </div>
-                  <span
-                    className={`self-start rounded-full px-3 py-1 text-xs font-medium md:self-center ${
-                      service.status === 'healthy' || service.status === 'running'
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        : service.status === 'degraded'
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                        : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                    }`}
-                  >
-                    {service.status || 'unknown'}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>CPU</span>
-                      <span>{formatPercentage(cpuUsage)}</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                      <div
-                        className={`h-2 rounded-full ${
-                          cpuUsage > 80
-                            ? 'bg-rose-500'
-                            : cpuUsage > 60
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${Math.min(cpuUsage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Mémoire</span>
-                      <span>{formatPercentage(memoryPercent)}</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                      <div
-                        className={`h-2 rounded-full ${
-                          memoryPercent > 80
-                            ? 'bg-rose-500'
-                            : memoryPercent > 60
-                            ? 'bg-amber-500'
-                            : 'bg-sky-500'
-                        }`}
-                        style={{ width: `${Math.min(memoryPercent, 100)}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      {formatBytes(toNumber(service.metrics?.memory?.usageMb) * 1024 * 1024)} /{' '}
-                      {formatBytes(toNumber(service.metrics?.memory?.limitMb) * 1024 * 1024)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Temps de réponse
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {formatMs(responseTime)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Erreurs : {service.errorCount5m ?? 0} (5 min)
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Trafic réseau
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      RX {formatMb(networkRx)} • TX {formatMb(networkTx)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Taux d'erreur : {errorRate.toFixed(2)}/min
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Processus
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      PID actifs : {service.pids ?? 'N/A'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Port : {service.port ?? 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
+
+        {/* Contenu des onglets */}
+        {activeTab === 'overview' && (
+          <OverviewTab 
+            metrics={metrics}
+            chartData={chartData}
+            aggregatedStats={aggregatedStats}
+            loadingHistory={loadingHistory}
+          />
+        )}
+
+        {activeTab === 'performance' && (
+          <PerformanceTab
+            metrics={metrics}
+            chartData={chartData}
+            aggregatedStats={aggregatedStats}
+            servicesList={servicesList}
+            loadingHistory={loadingHistory}
+          />
+        )}
+
+        {activeTab === 'network' && (
+          <NetworkTab
+            metrics={metrics}
+            chartData={chartData}
+            aggregatedStats={aggregatedStats}
+            servicesList={servicesList}
+            loadingHistory={loadingHistory}
+          />
+        )}
+
+        {activeTab === 'services' && (
+          <ServicesTab
+            servicesList={servicesList}
+            selectedService={selectedService}
+            serviceLogs={serviceLogs}
+            loadingLogs={loadingLogs}
+            logsError={logsError}
+            onSelectService={loadServiceLogs}
+          />
+        )}
+      </div>
+    </AdminLayout>
+  );
+}
+
+// Composant Overview Tab
+function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Cartes de synthèse */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Server className="w-6 h-6" />}
+          title="Services"
+          value={aggregatedStats.servicesTotal || 0}
+          subtitle={`${aggregatedStats.servicesHealthy || 0} sains`}
+          color="blue"
+        />
+        <StatCard
+          icon={<Cpu className="w-6 h-6" />}
+          title="CPU Moyen"
+          value={aggregatedStats.avgCpuUsage !== null ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` : '...'}
+          color="purple"
+          loading={aggregatedStats.avgCpuUsage === null}
+        />
+        <StatCard
+          icon={<MemoryStick className="w-6 h-6" />}
+          title="Mémoire Totale"
+          value={aggregatedStats.totalMemoryMb !== null ? formatMb(aggregatedStats.totalMemoryMb) : '...'}
+          color="green"
+          loading={aggregatedStats.totalMemoryMb === null}
+        />
+        <StatCard
+          icon={<Clock className="w-6 h-6" />}
+          title="Temps Réponse Moy."
+          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          color="orange"
+          loading={aggregatedStats.avgResponseTime === null}
+        />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <History className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Historique récent
-            </h2>
+      {/* Graphiques principaux */}
+      {chartData.length > 0 && !loadingHistory && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* CPU & Mémoire */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              💻 CPU & Mémoire
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                  domain={[0, 100]}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.primary} 
+                  strokeWidth={2}
+                  name="CPU (%)"
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="memory" 
+                  stroke={COLORS.secondary} 
+                  strokeWidth={2}
+                  name="Mémoire (%)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          {loadingHistory && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
-              Chargement...
-            </div>
-          )}
-        </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              <tr>
-                <th className="px-4 py-2 text-left">Horodatage</th>
-                <th className="px-4 py-2 text-right">CPU %</th>
-                <th className="px-4 py-2 text-right">Mémoire %</th>
-                <th className="px-4 py-2 text-right">Réseau RX (MB)</th>
-                <th className="px-4 py-2 text-right">Réseau TX (MB)</th>
-                <th className="px-4 py-2 text-right">Disponibilité %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {historyRows.slice(0, 12).map((row, index) => (
-                <tr key={index}>
-                  <td className="whitespace-nowrap px-4 py-2 text-left text-gray-700 dark:text-gray-300">
-                    {formatTimestamp(String(row.timestamp))}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                    {formatPercentage(row.cpu)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                    {formatPercentage(row.memory)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                    {formatMb(row.networkRx)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                    {formatMb(row.networkTx)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                    {row.availability ? formatPercentage(row.availability) : 'N/A'}
-                  </td>
-                </tr>
-              ))}
-              {historyRows.length === 0 && !loadingHistory && (
-                <tr>
-                  <td
-                    className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
-                    colSpan={6}
-                  >
-                    Aucun historique disponible pour le moment.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {/* Réseau */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🌐 Trafic Réseau
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="networkRx" 
+                  stackId="1"
+                  stroke={COLORS.info} 
+                  fill={COLORS.info}
+                  fillOpacity={0.6}
+                  name="RX (MB)"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="networkTx" 
+                  stackId="1"
+                  stroke={COLORS.warning} 
+                  fill={COLORS.warning}
+                  fillOpacity={0.6}
+                  name="TX (MB)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Performance */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ⚡ Temps de Réponse & Erreurs
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="responseTime" 
+                  stroke={COLORS.purple} 
+                  strokeWidth={2}
+                  name="Temps réponse (ms)"
+                  dot={false}
+                />
+                <Bar 
+                  yAxisId="right"
+                  dataKey="errorRate" 
+                  fill={COLORS.danger}
+                  name="Taux d'erreur (%)"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Disponibilité */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              📊 Disponibilité
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                  domain={[90, 100]}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="availability" 
+                  stroke={COLORS.success} 
+                  strokeWidth={3}
+                  name="Disponibilité (%)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
+
+      {loadingHistory && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Chargement de l'historique...</p>
+        </div>
+      )}
     </div>
   );
+}
 
-  const renderNetwork = () => {
-    const perServiceNetwork = metrics.network?.per_service
-      ? metrics.network.per_service
-      : servicesList.map(service => ({
-          name: service.rawName || service.name,
-          rx_mb: service.metrics?.network?.rx_mb ?? service.networkMb?.rx ?? 0,
-          tx_mb: service.metrics?.network?.tx_mb ?? service.networkMb?.tx ?? 0,
-        }));
-
-    const perServiceErrors = metrics.errors?.per_service
-      ? metrics.errors.per_service
-      : servicesList.map(service => ({
-          name: service.rawName || service.name,
-          count_last_5m: service.errorCount5m ?? 0,
-          rate_per_min: service.errorRatePerMin ?? 0,
-        }));
-
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Trafic RX total
-            </p>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {formatMb(aggregatedStats.totalNetworkRxMb)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Depuis la dernière collecte</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Trafic TX total
-            </p>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {formatMb(aggregatedStats.totalNetworkTxMb)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Depuis la dernière collecte</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Erreurs dans les 5 dernières minutes
-            </p>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {aggregatedStats.totalErrors.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {aggregatedStats.errorRate.toFixed(2)} erreurs / min
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Disponibilité système
-            </p>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {formatPercentage(
-                aggregatedStats.systemAvailability ?? aggregatedStats.availabilityPercent
-              )}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Services: {aggregatedStats.healthyCount} sains • {aggregatedStats.degradedCount} dégradés •{' '}
-              {aggregatedStats.offlineCount} hors ligne
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Trafic réseau par service
-          </h3>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                <tr>
-                  <th className="px-4 py-2 text-left">Service</th>
-                  <th className="px-4 py-2 text-right">RX (MB)</th>
-                  <th className="px-4 py-2 text-right">TX (MB)</th>
-                  <th className="px-4 py-2 text-right">Total (MB)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {perServiceNetwork.map((item: any) => {
-                  const rx = toNumber(item.rx_mb);
-                  const tx = toNumber(item.tx_mb);
-                  return (
-                    <tr key={item.name}>
-                      <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {item.name}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                        {formatMb(rx)}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                        {formatMb(tx)}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                        {formatMb(rx + tx)}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {perServiceNetwork.length === 0 && (
-                  <tr>
-                    <td
-                      className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
-                      colSpan={4}
-                    >
-                      Aucune donnée réseau disponible.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Erreurs observées par service
-          </h3>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                <tr>
-                  <th className="px-4 py-2 text-left">Service</th>
-                  <th className="px-4 py-2 text-right">Erreurs (5 min)</th>
-                  <th className="px-4 py-2 text-right">Taux / min</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {perServiceErrors.map((item: any) => (
-                  <tr key={item.name}>
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.name}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                      {toNumber(item.count_last_5m).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-700 dark:text-gray-300">
-                      {toNumber(item.rate_per_min).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-                {perServiceErrors.length === 0 && (
-                  <tr>
-                    <td
-                      className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
-                      colSpan={3}
-                    >
-                      Aucune erreur récente détectée.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderServices = () => (
+// Composant Performance Tab
+function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory }: any) {
+  return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Server className="h-6 w-6 text-slate-600 dark:text-slate-300" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Inventaire des services
-            </h2>
-          </div>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {totalServices} services détectés
-          </span>
-        </div>
+      {/* Métriques de performance */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Clock className="w-5 h-5" />}
+          title="Temps Réponse Moy."
+          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          color="purple"
+          loading={aggregatedStats.avgResponseTime === null}
+        />
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              <tr>
-                <th className="px-4 py-2 text-left">Service</th>
-                <th className="px-4 py-2 text-left">Statut</th>
-                <th className="px-4 py-2 text-right">CPU</th>
-                <th className="px-4 py-2 text-right">Mémoire</th>
-                <th className="px-4 py-2 text-right">Temps de réponse</th>
-                <th className="px-4 py-2 text-right">Erreurs/min</th>
-                <th className="px-4 py-2 text-right">Réseau</th>
-                <th className="px-4 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {sortedServices.map(service => {
-                const key = service.rawName || service.id || service.name;
-                const cpuUsage = toNumber(service.metrics?.cpu?.usage);
-                const memoryPercent = toNumber(service.metrics?.memory?.percentage);
-                const responseTime = service.responseTimeMs ?? null;
-                const errorRate = service.errorRatePerMin ?? 0;
-                const networkRx = service.metrics?.network?.rx_mb ?? service.networkMb?.rx ?? 0;
-                const networkTx = service.metrics?.network?.tx_mb ?? service.networkMb?.tx ?? 0;
+        <StatCard
+          icon={<AlertTriangle className="w-5 h-5" />}
+          title="Erreurs (5 min)"
+          value={aggregatedStats.totalErrors || 0}
+          color="orange"
+        />
 
-                return (
-                  <tr key={key}>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      <div className="flex flex-col">
-                        <span>{service.displayName || service.name}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {service.rawName || service.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          service.status === 'healthy' || service.status === 'running'
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                            : service.status === 'degraded'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                        }`}
-                      >
-                        {service.status}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 dark:text-gray-300">
-                      {formatPercentage(cpuUsage)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 dark:text-gray-300">
-                      {formatPercentage(memoryPercent)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 dark:text-gray-300">
-                      {formatMs(responseTime)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 dark:text-gray-300">
-                      {errorRate.toFixed(2)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700 dark:text-gray-300">
-                      RX {formatMb(networkRx)} • TX {formatMb(networkTx)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleViewLogs(service)}
-                        className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Voir logs
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {sortedServices.length === 0 && (
-                <tr>
-                  <td
-                    className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400"
-                    colSpan={8}
-                  >
-                    Aucun service n'a été détecté.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <StatCard
+          icon={<TrendingUp className="w-5 h-5" />}
+          title="Taux Erreur"
+          value={aggregatedStats.avgErrorRate !== null ? `${aggregatedStats.avgErrorRate.toFixed(2)}/min` : '...'}
+          color="orange"
+          loading={aggregatedStats.avgErrorRate === null}
+        />
+
+        <StatCard
+          icon={<Cpu className="w-5 h-5" />}
+          title="CPU Moyen"
+          value={aggregatedStats.avgCpuUsage !== null ? `${Math.min(aggregatedStats.avgCpuUsage, 100).toFixed(1)}%` : '...'}
+          color="blue"
+          loading={aggregatedStats.avgCpuUsage === null}
+        />
       </div>
 
-      {selectedService && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Logs récents — {selectedService.displayName || selectedService.name}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Conteneur : {selectedService.rawName || selectedService.name}
-              </p>
-            </div>
-            <button
-              onClick={handleCloseLogs}
-              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              Fermer
-            </button>
-          </div>
-
-          <div className="mt-4 max-h-80 overflow-y-auto rounded-lg bg-gray-900 p-4 font-mono text-xs text-gray-100">
-            {loadingLogs && (
-              <div className="flex items-center gap-3 text-gray-300">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
-                Lecture des logs...
+      {/* Graphiques de performance */}
+      {chartData.length > 0 && !loadingHistory && (
+        <div className="space-y-6">
+          {/* CPU par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              💻 CPU Moyen par Service
+            </h3>
+            {servicesList.filter((s: any) => {
+              const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
+              return cpuValue > 0;
+            }).length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={servicesList
+                    .filter((s: any) => {
+                      const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
+                      return cpuValue > 0;
+                    })
+                    .map((s: any) => ({ 
+                      name: s.displayName?.split(' ')[0] || s.name,
+                      cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
+                    }))}
+                  layout="horizontal"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    type="number"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                    domain={[0, 100]}
+                  />
+                  <YAxis 
+                    type="category"
+                    dataKey="name"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '11px' }}
+                    width={120}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                  />
+                  <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Cpu className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée CPU disponible pour les services</p>
               </div>
             )}
+          </div>
 
-            {!loadingLogs && logsError && (
-              <div className="text-rose-300">{logsError}</div>
+          {/* Temps de réponse par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ⚡ Temps de Réponse par Service
+            </h3>
+            {servicesList.filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0).length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={servicesList
+                    .filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0)
+                    .map((s: any) => ({ 
+                      name: s.displayName?.split(' ')[0] || s.name,
+                      responseTime: s.responseTimeMs
+                    }))}
+                  layout="horizontal"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    type="number"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    type="category"
+                    dataKey="name"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '11px' }}
+                    width={120}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                  />
+                  <Bar dataKey="responseTime" fill={COLORS.purple} name="Temps (ms)" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée de temps de réponse disponible</p>
+                <p className="text-sm mt-1">Les services sans temps de réponse sont considérés comme inactifs</p>
+              </div>
             )}
+          </div>
 
-            {!loadingLogs && !logsError && serviceLogs.length === 0 && (
-              <div className="text-gray-300">Aucun log disponible sur la période demandée.</div>
+          {/* Mémoire par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🧠 Mémoire par Service
+            </h3>
+            {servicesList.filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0).length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={servicesList
+                    .filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0)
+                    .map((s: any) => ({ 
+                      name: s.displayName?.split(' ')[0] || s.name,
+                      memory: toNumber(s.metrics?.memory?.usageMb, 0)
+                    }))}
+                  layout="horizontal"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    type="number"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    type="category"
+                    dataKey="name"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '11px' }}
+                    width={120}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                  />
+                  <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (MB)" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <MemoryStick className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée de mémoire disponible pour les services</p>
+              </div>
             )}
+          </div>
 
-            {!loadingLogs && !logsError && serviceLogs.length > 0 && (
-              <ul className="space-y-2">
-                {serviceLogs.slice(0, 200).map((log, index) => (
-                  <li key={`${log.timestamp}-${index}`} className="flex gap-4">
-                    <span className="text-blue-300">{formatLogTimestamp(log.timestamp)}</span>
-                    <span className="flex-1 whitespace-pre-wrap text-gray-100">{log.message}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Taux d'erreur par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ⚠️ Taux d'Erreur par Service
+            </h3>
+            {servicesList.filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0).length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={servicesList
+                    .filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0)
+                    .map((s: any) => ({ 
+                      name: s.displayName?.split(' ')[0] || s.name,
+                      errorRate: toNumber(s.errorRatePerMin, 0)
+                    }))}
+                  layout="horizontal"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    type="number"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    type="category"
+                    dataKey="name"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '11px' }}
+                    width={120}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                  />
+                  <Bar dataKey="errorRate" fill={COLORS.danger} name="Erreurs/min" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune erreur détectée ✅</p>
+                <p className="text-sm mt-1 text-green-600 dark:text-green-400">Tous les services fonctionnent correctement</p>
+              </div>
             )}
+          </div>
+
+          {/* Graphique temporel des performances */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              📈 Évolution des Performances
+            </h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.primary}
+                  fill={COLORS.primary}
+                  fillOpacity={0.3}
+                  name="CPU (%)"
+                />
+                <Area 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="memory" 
+                  stroke={COLORS.secondary}
+                  fill={COLORS.secondary}
+                  fillOpacity={0.3}
+                  name="Mémoire (%)"
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="responseTime" 
+                  stroke={COLORS.purple}
+                  strokeWidth={2}
+                  name="Temps réponse (ms)"
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
     </div>
   );
+}
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'overview':
-        return renderOverview();
-      case 'performance':
-        return renderPerformance();
-      case 'network':
-        return renderNetwork();
-      case 'services':
-        return renderServices();
-      default:
-        return null;
-    }
+// Composant Network Tab
+function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Métriques réseau */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total RX</span>
+            <Network className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {formatMb(aggregatedStats.totalNetworkRxMb)}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total TX</span>
+            <Network className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {formatMb(aggregatedStats.totalNetworkTxMb)}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</span>
+            <Wifi className="w-5 h-5 text-purple-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {formatMb(aggregatedStats.totalNetworkMb)}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Disponibilité</span>
+            <Activity className="w-5 h-5 text-green-600" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {metrics?.health?.availability_percent?.toFixed(1) || 'N/A'}%
+          </div>
+        </div>
+      </div>
+
+      {/* Graphiques réseau */}
+      {chartData.length > 0 && !loadingHistory && (
+        <div className="space-y-6">
+          {/* Trafic réseau global */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🌐 Trafic Réseau Global
+            </h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="networkRx" 
+                  stackId="1"
+                  stroke={COLORS.info} 
+                  fill={COLORS.info}
+                  fillOpacity={0.6}
+                  name="Réception (MB)"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="networkTx" 
+                  stackId="1"
+                  stroke={COLORS.warning} 
+                  fill={COLORS.warning}
+                  fillOpacity={0.6}
+                  name="Émission (MB)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Trafic réseau par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              📊 Trafic Réseau par Service
+            </h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={servicesList.map((s: any) => ({ 
+                  name: s.displayName?.split(' ')[0] || s.name,
+                  rx: toNumber(s.networkMb?.rx || s.metrics?.network?.rx_mb, 0),
+                  tx: toNumber(s.networkMb?.tx || s.metrics?.network?.tx_mb, 0)
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '10px' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="rx" fill={COLORS.info} name="RX (MB)" />
+                <Bar dataKey="tx" fill={COLORS.warning} name="TX (MB)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant Services Tab
+function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, logsError, onSelectService }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Liste des services */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {servicesList.map((service: any) => (
+          <div
+            key={service.id || service.name}
+            onClick={() => onSelectService(service)}
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow p-4 cursor-pointer transition-all ${
+              selectedService?.name === service.name
+                ? 'ring-2 ring-blue-600 dark:ring-blue-400'
+                : 'hover:shadow-lg'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {service.displayName || service.name}
+              </h3>
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                service.status === 'healthy' 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                  : service.status === 'degraded'
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {service.status}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-600 dark:text-gray-400">CPU</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  {toNumber(service.metrics?.cpu?.percentage, 0).toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-600 dark:text-gray-400">Mémoire</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  {formatMb(service.metrics?.memory?.usageMb)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-600 dark:text-gray-400">Temps réponse</span>
+                <span className="font-semibold text-purple-600 dark:text-purple-400">
+                  {formatMs(service.responseTimeMs)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Logs du service sélectionné */}
+      {selectedService && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              📋 Logs: {selectedService.displayName || selectedService.name}
+            </h3>
+            <button
+              onClick={() => onSelectService(selectedService)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              disabled={loadingLogs}
+            >
+              {loadingLogs ? 'Chargement...' : 'Actualiser'}
+            </button>
+          </div>
+
+          {loadingLogs && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+          )}
+
+          {logsError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <p className="text-sm text-red-800 dark:text-red-300">{logsError}</p>
+            </div>
+          )}
+
+          {!loadingLogs && !logsError && serviceLogs.length === 0 && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Aucun log disponible
+            </div>
+          )}
+
+          {!loadingLogs && serviceLogs.length > 0 && (
+            <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-1 font-mono text-xs">
+                {serviceLogs.map((log: any, index: number) => (
+                  <div 
+                    key={index}
+                    className={`${
+                      log.level === 'error' ? 'text-red-400' :
+                      log.level === 'warn' ? 'text-yellow-400' :
+                      log.level === 'debug' ? 'text-gray-500' :
+                      'text-gray-300'
+                    }`}
+                  >
+                    <span className="text-gray-500">{log.timestamp}</span>
+                    <span className="ml-2 font-semibold">[{log.level?.toUpperCase() || 'INFO'}]</span>
+                    <span className="ml-2">{log.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant StatCard
+function StatCard({ icon, title, value, subtitle, color, loading }: any) {
+  const colors = {
+    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+    orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-6 pb-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Analytics & Monitoring
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Analyse approfondie des services JobbingTrack en temps réel.
-            </p>
-          </div>
-          <div className="flex flex-col items-start gap-2 text-sm text-gray-500 dark:text-gray-400 md:items-end">
-            <span>
-              Services surveillés :{' '}
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {totalServices}
-              </span>
-              {' '}({aggregatedStats.healthyCount} sains • {aggregatedStats.degradedCount} dégradés • {aggregatedStats.offlineCount} hors ligne)
-            </span>
-            <span>Dernière mise à jour : {lastUpdated}</span>
-          </div>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 relative">
+      {loading && (
+        <div className="absolute top-2 right-2">
+          <div className="w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin"></div>
         </div>
-
-        <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-800">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-t-md px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab.id
-                  ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-blue-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      )}
+      <div className="flex items-center justify-between mb-2">
+        <div className={`p-2 rounded-lg ${colors[color]}`}>
+          {icon}
         </div>
-
-        {renderActiveTab()}
       </div>
-    </AdminLayout>
+      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+        {title}
+      </h3>
+      <div className={`text-2xl font-bold text-gray-900 dark:text-gray-100 ${loading ? 'opacity-50' : ''}`}>
+        {value}
+      </div>
+      {subtitle && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {subtitle}
+        </div>
+      )}
+    </div>
   );
 }

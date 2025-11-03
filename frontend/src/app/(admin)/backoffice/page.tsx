@@ -52,6 +52,7 @@ export default function BackofficePage() {
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false)
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
+  const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
 
   const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
