@@ -209,7 +209,7 @@ if (process.env.NODE_ENV === 'development') {
           message: 'Aucun log disponible pour ce service'
         });
       }
-
+      
       // Parser les logs
       const logs = stdout
         .split('\n')
