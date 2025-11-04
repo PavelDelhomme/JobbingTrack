@@ -1033,6 +1033,15 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-04 23h50** - ⚠️ PROBLÈME CRITIQUE : User Journey Register échoue
+- ❌ Test Register : Status 500 (attendu 201)
+- ❌ Erreur Prisma : Invalid `prisma.user.findUnique()` invocation dans auth.controller.js:37
+- 🔍 CAUSE PROBABLE : Tous les services métier ne sont pas synchronisés avec le nouveau schéma
+- 🔄 **ACTION PRIORITAIRE** : Synchroniser TOUS les services avec le schéma Prisma complet
+  - application-service, contact-service, interview-service, call-service, followup-service, event-service
+  - Rebuilder toutes les images avec le nouveau schéma
+  - Redémarrer tous les services
+
 **2025-11-04 23h45** - PHASE 1.1 TERMINÉE : company-service fixé ✅
 - ✅ Ajout schéma Prisma complet (User, Company, Application, Contact, etc.)
 - ✅ Configuration variables d'environnement company-service (JWT_SECRET, PORT, AUTH_SERVICE_URL)
@@ -1041,7 +1050,6 @@ Toutes les tables demandées sont implémentées :
 - ✅ Ajout champ loginCount au modèle User
 - ✅ Test company-service : GET /companies fonctionne ✅
 - ✅ Test auth-service : Login fonctionne ✅
-- 🔄 **PROCHAINE ÉTAPE** : Tester User Journey complet (bash scripts/verify-user-journey.sh)
 
 **2025-11-04 23h00** - Préparation PHASE 1 : Stabilisation User Journey
 - ✅ Synchronisation tech/monitoring-system avec dev (fast-forward)
