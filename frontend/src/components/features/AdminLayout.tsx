@@ -115,8 +115,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        { name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },
-        { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
+        /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
+        { name: 'Statistiques', href: '/backoffice/statistique', icon: '📈' },
         { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
     },
@@ -126,8 +126,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
-        { name: 'Logs de Sécurité', href: '/backoffice/logs', icon: '📋' },
-        { name: 'Analyse de Sécurité', href: '/backoffice/security-analysis', icon: '🛡️' },
+        { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
+        { name: 'Analyse de Sécurité', href: '/backoffice/security/analysis', icon: '🛡️' },
       ]
     },
     {

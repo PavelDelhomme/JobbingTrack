@@ -790,12 +790,14 @@ class CentralMetricsService {
   }
 
   // Récupération des logs d'un service spécifique
-  async getServiceLogs(serviceName: string, lines: number = 50): Promise<any | null> {
+  async getServiceLogs(serviceName: string, options?: { lines?: number }): Promise<any | null> {
     try {
-      const response = await fetch(`${this.apiUrl}/api/v1/services/${serviceName}/logs?lines=${lines}`, {
+      const lines = options?.lines || 100;
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      
+      const response = await fetch(`${metricsUrl}/api/v1/docker/service/${serviceName}/logs?lines=${lines}`, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
         },
       })
 

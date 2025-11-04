@@ -78,6 +78,80 @@ class SecurityService {
     }
   }
 
+  // Créer un log de sécurité
+  async createSecurityLog(logData) {
+    try {
+      const {
+        level,
+        category,
+        eventType,
+        message,
+        sourceIP,
+        userAgent,
+        userId,
+        endpoint,
+        method,
+        statusCode,
+        responseTime,
+        country,
+        city,
+        riskScore,
+        isBlocked,
+        metadata
+      } = logData;
+
+      const log = await prisma.securityLog.create({
+        data: {
+          level,
+          category,
+          eventType,
+          message,
+          sourceIP,
+          userAgent,
+          userId,
+          endpoint,
+          method,
+          statusCode,
+          responseTime,
+          country,
+          city,
+          riskScore: riskScore || 0,
+          isBlocked: isBlocked || false,
+          metadata: metadata || {}
+        }
+      });
+
+      // Logger l'événement
+      logger.info(`Log de sécurité créé: ${eventType} - ${message}`, {
+        logId: log.id,
+        level,
+        category,
+        userId
+      });
+
+      // Si le score de risque est élevé, créer une alerte
+      if (riskScore && riskScore >= 70) {
+        await this.createSecurityAlert({
+          level: riskScore >= 90 ? 'critical' : 'high',
+          title: `Activité à haut risque détectée: ${eventType}`,
+          description: message,
+          category,
+          source: sourceIP || userId || 'unknown',
+          metadata: {
+            logId: log.id,
+            riskScore,
+            eventType
+          }
+        });
+      }
+
+      return log;
+    } catch (error) {
+      logger.error('Erreur lors de la création du log de sécurité:', error);
+      throw error;
+    }
+  }
+
   // Analyser les métriques à partir des logs
   async analyzeSecurityMetrics(logs) {
     const metrics = {

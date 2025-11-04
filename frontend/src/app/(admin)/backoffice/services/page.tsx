@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
-import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock } from 'lucide-react'
+import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock, AlertTriangle } from 'lucide-react'
 
 const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
 
 interface Service {
   name: string
   status: string
+  health_status: string
   is_running: boolean
+  is_healthy: boolean
   created: string
   ports: string
   image: string
@@ -51,6 +53,7 @@ export default function ServicesPage() {
 
   const runningServices = services.filter(s => s.is_running)
   const stoppedServices = services.filter(s => !s.is_running)
+  const unhealthyServices = services.filter(s => s.is_running && !s.is_healthy)
 
   if (loading) {
     return (
@@ -87,7 +90,7 @@ export default function ServicesPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -105,6 +108,16 @@ export default function ServicesPage() {
                 <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{runningServices.length}</p>
               </div>
               <Play className="h-12 w-12 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-orange-200 dark:border-orange-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Services unhealthy</p>
+                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1">{unhealthyServices.length}</p>
+              </div>
+              <AlertTriangle className="h-12 w-12 text-orange-500" />
             </div>
           </div>
 
@@ -166,9 +179,20 @@ export default function ServicesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        {service.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          service.is_healthy 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                        }`}>
+                          {service.status}
+                        </span>
+                        {!service.is_healthy && service.health_status && (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            {service.health_status}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {service.metrics ? (

@@ -28,6 +28,7 @@ model SecurityLog {
   city         String?  @db.VarChar(100)
   riskScore    Float? // score de risque de 0 à 100
   isBlocked    Boolean  @default(false)
+  blockReason  String?  @db.Text // raison du blocage si isBlocked = true
   metadata     Json? // informations supplémentaires
 
   createdAt DateTime @default(now())

@@ -1,71 +1,63 @@
-const http = require('http');
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+
+const dashboardRoutes = require('./routes/dashboard.routes');
+const statisticsRoutes = require('./routes/statistics.routes');
+const errorHandler = require('./middlewares/errorHandler');
+const notFound = require('./middlewares/notFound');
 
 const PORT = process.env.PORT || 3007;
 
+const app = express();
+
 console.log(`🚀 Démarrage du dashboard-service sur le port ${PORT}...`);
 
-const server = http.createServer();
+// Middlewares globaux
+app.use(helmet());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-server.on('request', (req, res) => {
-  console.log(`📡 REQUEST: ${req.method} ${req.url} de ${req.socket.remoteAddress}:${req.socket.remotePort}`);
-  console.log(`🔍 URL: ${req.url}`);
-  console.log(`📝 Headers: ${JSON.stringify(req.headers)}`);
-
-  // Headers CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Content-Type', 'application/json');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  if (req.url === '/health') {
-    console.log(`📡 /health appelé`);
-    res.writeHead(200);
-    res.end(JSON.stringify({
-      status: 'OK',
-      service: 'dashboard-service',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      port: PORT
-    }));
-  } else if (req.url === '/test') {
-    console.log(`📡 /test appelé`);
-    res.writeHead(200);
-    res.end(JSON.stringify({
-      success: true,
-      message: 'Test endpoint fonctionne'
-    }));
-  } else {
-    console.log(`🚨 Route non trouvée: ${req.method} ${req.url}`);
-    res.writeHead(404);
-    res.end(JSON.stringify({
-      error: 'Route not found',
-      method: req.method,
-      path: req.url,
-      availableRoutes: ['/health', '/test']
-    }));
-  }
+// Logs des requêtes
+app.use((req, res, next) => {
+  console.log(`📡 REQUEST: ${req.method} ${req.url} de ${req.ip}`);
+  next();
 });
 
-server.on('connection', (socket) => {
-  console.log(`🔗 Nouvelle connexion de ${socket.remoteAddress}:${socket.remotePort}`);
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'dashboard-service',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    port: PORT
+  });
 });
 
-server.on('error', (error) => {
-  console.error(`❌ Erreur serveur:`, error);
-});
+// Routes
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/statistics', statisticsRoutes);
 
-server.listen(PORT, () => {
-  const address = server.address();
+// Gestion des erreurs 404
+app.use(notFound);
+
+// Gestion des erreurs
+app.use(errorHandler);
+
+// Démarrage du serveur
+const server = app.listen(PORT, () => {
   console.log(`✅ dashboard-service démarré avec succès sur le port ${PORT}`);
-  console.log(`🌐 Service accessible sur http://${address.address}:${address.port}`);
-  console.log(`🔗 Mapping externe: localhost:3007 -> container:${PORT}`);
-  console.log(`📊 Adresse d'écoute: ${JSON.stringify(address)}`);
+  console.log(`🌐 Service accessible sur http://localhost:${PORT}`);
+  console.log(`📊 Routes disponibles:`);
+  console.log(`   - GET  /health`);
+  console.log(`   - GET  /api/v1/dashboard/stats`);
+  console.log(`   - GET  /api/v1/statistics`);
 });
 
 // Gestion gracieuse de l'arrêt
@@ -77,4 +69,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-console.log('📋 Serveur HTTP natif configuré et en cours d\'écoute...');
+module.exports = app;

@@ -5,6 +5,12 @@ const securityController = require('../controllers/securityController');
 // Récupérer les métriques de sécurité
 router.get('/metrics', securityController.getSecurityMetrics);
 
+// Récupérer les logs de sécurité
+router.get('/logs', securityController.getSecurityLogs);
+
+// Créer un log de sécurité
+router.post('/logs', securityController.createSecurityLog);
+
 // Récupérer les statistiques de sécurité détaillées
 router.get('/stats', securityController.getSecurityStats);
 

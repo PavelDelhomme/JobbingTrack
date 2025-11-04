@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
+import preferencesService from '@/lib/services/preferencesService';
 import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
 import {
@@ -118,6 +119,23 @@ export default function AnalyticsPage() {
   const [logsError, setLogsError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(10000);
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000);
+
+  // Charger les préférences de rafraîchissement
+  useEffect(() => {
+    const loadRefreshIntervals = async () => {
+      try {
+        const analyticsInterval = await preferencesService.getRefreshInterval('analytics');
+        const metricsInterval = await preferencesService.getRefreshInterval('metrics');
+        setAnalyticsRefreshInterval(analyticsInterval);
+        setMetricsRefreshInterval(metricsInterval);
+      } catch (error) {
+        console.error('Erreur chargement préférences:', error);
+      }
+    };
+    loadRefreshIntervals();
+  }, []);
 
   // Conversion du time range en millisecondes
   const getTimeRangeMs = () => {
@@ -247,13 +265,13 @@ export default function AnalyticsPage() {
       } catch (error) {
         console.error('[ANALYTICS] ⚠️ Erreur actualisation métriques:', error);
       }
-    }, 30000);
+    }, analyticsRefreshInterval); // ⚡ Rafraîchir selon les préférences utilisateur
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [analyticsRefreshInterval]);
 
   // Charger l'historique des métriques
   useEffect(() => {
@@ -283,13 +301,13 @@ export default function AnalyticsPage() {
     };
 
     loadHistory();
-    const interval = setInterval(loadHistory, 60000); // Rafraîchir toutes les minutes
+    const interval = setInterval(loadHistory, metricsRefreshInterval); // ⚡ Rafraîchir selon les préférences utilisateur
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [timeRange]);
+  }, [timeRange, metricsRefreshInterval]);
 
   // Charger les logs d'un service
   const loadServiceLogs = async (service: ServiceMetrics) => {
@@ -473,11 +491,18 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              ⚡ Performances & Analytics
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                ⚡ Performances & Analytics
+              </h1>
+              {/* Indicateur de mise à jour en temps réel */}
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-green-700 dark:text-green-400">Live</span>
+              </div>
+            </div>
             <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
-              Monitoring complet des performances système et services
+              Monitoring complet des performances système et services • Actualisation toutes les 10s
             </p>
           </div>
           <select
@@ -795,6 +820,8 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: an
 
 // Composant Performance Tab
 function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory }: any) {
+  const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'responseTime' | 'errorRate'>('cpu');
+
   return (
     <div className="space-y-6">
       {/* Métriques de performance */}
@@ -824,51 +851,33 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
 
         <StatCard
           icon={<Cpu className="w-5 h-5" />}
-          title="CPU Moyen"
+          title="CPU Moyen Total"
           value={aggregatedStats.avgCpuUsage !== null ? `${Math.min(aggregatedStats.avgCpuUsage, 100).toFixed(1)}%` : '...'}
           color="blue"
           loading={aggregatedStats.avgCpuUsage === null}
         />
       </div>
 
-      {/* Graphiques de performance */}
+      {/* Graphiques de performance avec navigation temporelle */}
       {chartData.length > 0 && !loadingHistory && (
         <div className="space-y-6">
-          {/* CPU par service */}
+          {/* CPU Moyen Total dans le temps */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              💻 CPU Moyen par Service
+              💻 CPU Moyen Total - Évolution temporelle
             </h3>
-            {servicesList.filter((s: any) => {
-              const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
-              return cpuValue > 0;
-            }).length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                  data={servicesList
-                    .filter((s: any) => {
-                      const cpuValue = toNumber(s.metrics?.cpu?.percentage, 0);
-                      return cpuValue > 0;
-                    })
-                    .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                      cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
-                }))}
-                layout="horizontal"
-              >
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  type="number"
+                  dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                    domain={[0, 100]}
                 />
                 <YAxis 
-                  type="category"
-                  dataKey="name"
                   stroke="#9CA3AF"
-                  style={{ fontSize: '11px' }}
-                    width={150}
+                  style={{ fontSize: '12px' }}
+                  domain={[0, 100]}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -878,165 +887,20 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                     color: '#F3F4F6'
                   }}
                 />
-                <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
-              </BarChart>
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.primary} 
+                  strokeWidth={3}
+                  name="CPU Moyen (%)"
+                  dot={false}
+                />
+              </LineChart>
             </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <Cpu className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Aucune donnée CPU disponible pour les services</p>
-              </div>
-            )}
           </div>
-
-          {/* Temps de réponse par service */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚡ Temps de Réponse par Service
-            </h3>
-            {servicesList.filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0).length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                data={servicesList
-                  .filter((s: any) => s.responseTimeMs && s.responseTimeMs > 0)
-                  .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                    responseTime: s.responseTimeMs
-                  }))}
-                layout="horizontal"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  type="number"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="name"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '11px' }}
-                    width={150}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Bar dataKey="responseTime" fill={COLORS.purple} name="Temps (ms)" />
-              </BarChart>
-            </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Aucune donnée de temps de réponse disponible</p>
-                <p className="text-sm mt-1">Les services sans temps de réponse sont considérés comme inactifs</p>
-              </div>
-            )}
-          </div>
-
-          {/* Mémoire par service */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              🧠 Mémoire par Service
-            </h3>
-            {servicesList.filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0).length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                  data={servicesList
-                    .filter((s: any) => toNumber(s.metrics?.memory?.usageMb, 0) > 0)
-                    .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                  memory: toNumber(s.metrics?.memory?.usageMb, 0)
-                }))}
-                layout="horizontal"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  type="number"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="name"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '11px' }}
-                    width={150}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (MB)" />
-              </BarChart>
-            </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <MemoryStick className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Aucune donnée de mémoire disponible pour les services</p>
-              </div>
-            )}
-          </div>
-
-          {/* Taux d'erreur par service */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚠️ Taux d'Erreur par Service
-            </h3>
-            {servicesList.filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0).length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                data={servicesList
-                  .filter((s: any) => s.errorRatePerMin && s.errorRatePerMin > 0)
-                  .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                    errorRate: toNumber(s.errorRatePerMin, 0)
-                  }))}
-                layout="horizontal"
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  type="number"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="name"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '11px' }}
-                    width={150}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Bar dataKey="errorRate" fill={COLORS.danger} name="Erreurs/min" />
-              </BarChart>
-            </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Aucune erreur détectée ✅</p>
-                <p className="text-sm mt-1 text-green-600 dark:text-green-400">Tous les services fonctionnent correctement</p>
-              </div>
-            )}
-          </div>
-
-          {/* Graphique temporel des performances */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+{/* Graphique temporel des performances */}
+<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               📈 Évolution des Performances
             </h3>
@@ -1097,6 +961,298 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
                 />
               </ComposedChart>
             </ResponsiveContainer>
+          </div>
+          {/* CPU par service - État actuel */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                💻 CPU par Service (État actuel)
+              </h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Données en temps réel
+              </span>
+            </div>
+            {servicesList && servicesList.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                  data={servicesList
+                    .map((s: any) => ({ 
+                      name: s.displayName || s.name,
+                      cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
+                }))
+                    .filter((item: any) => item.cpu > 0)} // Filtrer après le map
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                    domain={[0, 100]}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
+                    width={150}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  formatter={(value: any) => [`${value.toFixed(1)}%`, 'CPU']}
+                />
+                <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
+              </BarChart>
+            </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Cpu className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée CPU disponible pour les services</p>
+                {servicesList && <p className="text-xs mt-2">Services détectés: {servicesList.length}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Temps de réponse - Évolution temporelle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ⚡ Temps de Réponse Moyen - Évolution temporelle
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="responseTime" 
+                  stroke={COLORS.purple} 
+                  strokeWidth={3}
+                  name="Temps Réponse (ms)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Temps de réponse par service - État actuel */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                ⚡ Temps de Réponse par Service (État actuel)
+              </h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Données en temps réel
+              </span>
+            </div>
+            {servicesList && servicesList.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={servicesList
+                  .map((s: any) => ({ 
+                      name: s.displayName || s.name,
+                    responseTime: s.responseTimeMs || 0
+                  }))
+                  .filter((item: any) => item.responseTime > 0)}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
+                    width={150}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  formatter={(value: any) => [`${value.toFixed(0)} ms`, 'Temps Réponse']}
+                />
+                <Bar dataKey="responseTime" fill={COLORS.purple} name="Temps (ms)" />
+              </BarChart>
+            </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée de temps de réponse disponible</p>
+                {servicesList && <p className="text-xs mt-2">Services détectés: {servicesList.length}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Mémoire par service */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🧠 Mémoire par Service
+            </h3>
+            {servicesList && servicesList.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                  data={servicesList
+                    .map((s: any) => ({ 
+                      name: s.displayName || s.name,
+                  memory: toNumber(s.metrics?.memory?.usageMb, 0)
+                }))
+                    .filter((item: any) => item.memory > 0)}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
+                    width={150}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  formatter={(value: any) => [`${value.toFixed(0)} MB`, 'Mémoire']}
+                />
+                <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (MB)" />
+              </BarChart>
+            </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <MemoryStick className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune donnée de mémoire disponible pour les services</p>
+                {servicesList && <p className="text-xs mt-2">Services détectés: {servicesList.length}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Taux d'erreur - Évolution temporelle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ⚠️ Taux d'Erreur - Évolution temporelle
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="errorRate" 
+                  stroke={COLORS.danger}
+                  fill={COLORS.danger}
+                  fillOpacity={0.3}
+                  name="Taux d'Erreur (%)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Taux d'erreur par service - État actuel */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                ⚠️ Taux d'Erreur par Service (État actuel)
+              </h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Données en temps réel
+              </span>
+            </div>
+            {servicesList && servicesList.length > 0 && servicesList.some((s: any) => toNumber(s.errorRatePerMin, 0) > 0) ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={servicesList
+                  .map((s: any) => ({ 
+                      name: s.displayName || s.name,
+                    errorRate: toNumber(s.errorRatePerMin, 0)
+                  }))
+                  .filter((item: any) => item.errorRate > 0)}
+                layout="horizontal"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  type="number"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="name"
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '11px' }}
+                    width={150}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  formatter={(value: any) => [`${value.toFixed(2)} erreurs/min`, 'Taux']}
+                />
+                <Bar dataKey="errorRate" fill={COLORS.danger} name="Erreurs/min" />
+              </BarChart>
+            </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucune erreur détectée ✅</p>
+                <p className="text-sm mt-1 text-green-600 dark:text-green-400">Tous les services fonctionnent correctement</p>
+                {servicesList && <p className="text-xs mt-2">Services détectés: {servicesList.length}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
