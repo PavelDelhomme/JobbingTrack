@@ -1,0 +1,20 @@
+{
+  "name": "jobbingtrack-services-tests",
+  "version": "1.0.0",
+  "description": "Tests pour les endpoints de détail des services",
+  "main": "test-service-detail-endpoints.js",
+  "scripts": {
+    "test": "node test-service-detail-endpoints.js",
+    "test:auth": "node test-service-detail-endpoints.js auth-service",
+    "test:postgres": "node test-service-detail-endpoints.js postgres",
+    "test:redis": "node test-service-detail-endpoints.js redis",
+    "test:all": "npm run test:auth && npm run test:postgres && npm run test:redis"
+  },
+  "keywords": ["test", "monitoring", "services"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2"
+  }
+}
+

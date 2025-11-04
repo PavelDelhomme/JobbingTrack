@@ -497,6 +497,11 @@ export default function StatisticsPage() {
       setStats({
         ...mockAppStats,
         system: systemStats,
+        performance: {
+          averageResponseTime: parseFloat(metricsStats?.response_time?.avg || '0'),
+          successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
+          errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
+        },
         services: servicesArray
       })
 
@@ -745,6 +750,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           trend={stats.system.cpu.current - stats.system.cpu.average}
           color="blue"
           subtitle={`Actuel: ${stats.system.cpu.current.toFixed(1)}%`}
+          trendType="positive-is-bad"
         />
         <StatCard
           icon={<MemoryStick className="w-6 h-6" />}
@@ -753,6 +759,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           trend={stats.system.memory.current - stats.system.memory.average}
           color="green"
           subtitle={`Actuelle: ${stats.system.memory.current.toFixed(1)}%`}
+          trendType="positive-is-bad"
         />
         <StatCard
           icon={<Clock className="w-6 h-6" />}
@@ -761,6 +768,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           trend={-5}
           color="purple"
           subtitle="Moyen sur la période"
+          trendType="positive-is-bad"
         />
         <StatCard
           icon={<Activity className="w-6 h-6" />}
@@ -769,6 +777,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           trend={0.5}
           color="green"
           subtitle={`${stats.services.filter((s: any) => s.status === 'healthy').length}/${stats.services.length} services`}
+          trendType="negative-is-bad"
         />
       </div>
 
@@ -2048,13 +2057,26 @@ function LogsTab({ serviceHistory, formatTimestamp }: any) {
   )
 }
 
-// Composant StatCard
-function StatCard({ icon, title, value, trend, color, subtitle }: any) {
+// Composant StatCard avec logique de tendance correcte
+function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'negative-is-bad' }: any) {
   const colors = {
     blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
     orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+  }
+
+  // Déterminer la couleur de la tendance selon le type
+  const getTrendColor = () => {
+    if (trend === undefined || trend === null || trend === 0) return 'text-gray-500'
+    
+    if (trendType === 'positive-is-bad') {
+      // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
+      return trend > 0 ? 'text-red-600' : 'text-green-600'
+    } else {
+      // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
+      return trend > 0 ? 'text-green-600' : 'text-red-600'
+    }
   }
 
   return (
@@ -2063,9 +2085,9 @@ function StatCard({ icon, title, value, trend, color, subtitle }: any) {
         <div className={`p-2 rounded-lg ${colors[color]}`}>
           {icon}
         </div>
-        {trend !== undefined && (
-          <span className={`text-xs font-medium ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend >= 0 ? '↗' : '↘'} {Math.abs(trend).toFixed(1)}%
+        {trend !== undefined && trend !== null && trend !== 0 && (
+          <span className={`text-xs font-medium ${getTrendColor()}`}>
+            {trend > 0 ? '↗' : '↘'} {Math.abs(trend).toFixed(1)}%
           </span>
         )}
       </div>
