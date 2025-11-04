@@ -146,19 +146,43 @@ const getAggregatedStatistics = async (req, res) => {
       errorRate: 0.5 // %
     };
 
-    // Retourner les statistiques agrégées
-    res.json({
+    // Retourner les statistiques agrégées avec format compatible frontend
+    const response = {
       success: true,
-      statistics: {
-        users,
-        applications,
-        companies,
-        contacts,
-        interviews,
+      data: {
+        users: {
+          total: users.total,
+          by_role: users.byRole,
+          active: users.activeUsers,
+          new_this_month: users.newThisMonth
+        },
+        applications: {
+          total: applications.total,
+          by_status: applications.byStatus,
+          by_type: applications.byType,
+          this_month: applications.thisMonth,
+          this_week: applications.thisWeek
+        },
+        companies: {
+          total: companies.total,
+          by_industry: companies.byIndustry,
+          by_size: companies.bySize
+        },
+        contacts: {
+          total: contacts.total
+        },
+        interviews: {
+          total: interviews.total,
+          by_status: interviews.byStatus,
+          upcoming: interviews.upcoming,
+          completed: interviews.completed
+        },
         performance
       },
       timestamp: new Date().toISOString()
-    });
+    };
+
+    res.json(response);
 
   } catch (error) {
     logger.error('Erreur récupération statistiques agrégées:', error);

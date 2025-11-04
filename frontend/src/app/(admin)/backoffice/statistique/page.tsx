@@ -199,9 +199,11 @@ export default function StatisticsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<Statistics | null>(null)
+  const [previousStats, setPreviousStats] = useState<Statistics | null>(null) // Pour calculer les tendances
   const [metricsHistory, setMetricsHistory] = useState<MetricsHistory[]>([])
   const [serviceHistory, setServiceHistory] = useState<ServiceMetricsHistory[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'system' | 'services' | 'network' | 'security' | 'logs'>('overview')
 
@@ -298,26 +300,27 @@ export default function StatisticsPage() {
         setMetricsHistory(formattedHistory)
 
         // Récupérer aussi l'historique par service si disponible
-        if (item.services && Array.isArray(item.services)) {
-          const serviceHistoryData: ServiceMetricsHistory[] = []
-          history.forEach((item: any) => {
-            if (item.services && Array.isArray(item.services)) {
-              item.services.forEach((service: any) => {
-                serviceHistoryData.push({
-                  service: service.name,
-                  timestamp: item.timestamp,
-                  cpu_percent: parseFloat(service.cpu_percent) || 0,
-                  memory_usage_mb: parseFloat(service.memory_usage_mb) || 0,
-                  network_rx_mb: parseFloat(service.network_rx_mb) || 0,
-                  network_tx_mb: parseFloat(service.network_tx_mb) || 0,
-                  response_time_ms: parseFloat(service.response_time_ms) || 0,
-                  error_count_5m: parseInt(service.error_count_5m) || 0,
-                  error_rate_per_min: parseFloat(service.error_rate_per_min) || 0,
-                  status: service.status || 'unknown'
-                })
+        const serviceHistoryData: ServiceMetricsHistory[] = []
+        history.forEach((historyItem: any) => {
+          if (historyItem.services && Array.isArray(historyItem.services)) {
+            historyItem.services.forEach((service: any) => {
+              serviceHistoryData.push({
+                service: service.name,
+                timestamp: historyItem.timestamp,
+                cpu_percent: parseFloat(service.cpu_percent) || 0,
+                memory_usage_mb: parseFloat(service.memory_usage_mb) || 0,
+                network_rx_mb: parseFloat(service.network_rx_mb) || 0,
+                network_tx_mb: parseFloat(service.network_tx_mb) || 0,
+                response_time_ms: parseFloat(service.response_time_ms) || 0,
+                error_count_5m: parseInt(service.error_count_5m) || 0,
+                error_rate_per_min: parseFloat(service.error_rate_per_min) || 0,
+                status: service.status || 'unknown'
               })
-            }
-          })
+            })
+          }
+        })
+        
+        if (serviceHistoryData.length > 0) {
           setServiceHistory(serviceHistoryData)
         }
       }
@@ -394,7 +397,12 @@ export default function StatisticsPage() {
 
   const fetchStatistics = async (skipHistorical = false) => {
     try {
-      setLoading(true)
+      // Utiliser loading seulement au premier chargement, sinon refreshing
+      if (initialLoadDone) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
 
       // 1. Charger d'abord les dernières données disponibles (seulement au premier chargement)
       if (!skipHistorical && !initialLoadDone) {
@@ -467,6 +475,12 @@ export default function StatisticsPage() {
         console.error('[STATISTICS] ⚠️ Erreur récupération stats applicatives:', error)
       }
 
+      // Calculer le temps de réponse moyen depuis les services
+      const servicesWithResponseTime = servicesArray.filter(s => s.responseTime > 0)
+      const averageResponseTime = servicesWithResponseTime.length > 0
+        ? servicesWithResponseTime.reduce((sum, s) => sum + s.responseTime, 0) / servicesWithResponseTime.length
+        : parseFloat(metricsStats?.response_time?.avg || '0')
+
       // Formater les données récupérées ou utiliser des valeurs par défaut
       const mockAppStats = {
         applications: {
@@ -488,47 +502,57 @@ export default function StatisticsPage() {
           bySize: appStats?.companies?.by_size || {}
         },
         performance: {
-          averageResponseTime: parseFloat(metricsStats?.response_time?.avg || '0'),
+          averageResponseTime: averageResponseTime,
           successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
           errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
         }
       }
 
-      setStats({
+      const newStats = {
         ...mockAppStats,
         system: systemStats,
-        performance: {
-          averageResponseTime: parseFloat(metricsStats?.response_time?.avg || '0'),
-          successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
-          errorRate: parseFloat(metricsStats?.errors?.rate || '0.0')
-        },
+        performance: mockAppStats.performance, // Utiliser le temps de réponse calculé
         services: servicesArray
-      })
+      }
+
+      // Sauvegarder les stats actuelles comme stats précédentes avant de mettre à jour
+      if (stats) {
+        setPreviousStats(stats)
+      }
+      
+      setStats(newStats)
 
     } catch (error) {
       console.error('Erreur chargement statistiques:', error)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
-  // Formater le timestamp pour les graphiques
+  // Formater le timestamp pour les graphiques (heure locale de l'utilisateur)
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
     const timeRange = customization.timeRange
 
+    // Utiliser l'heure locale de l'utilisateur
     if (timeRange === '1h' || timeRange === '6h') {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     } else if (timeRange === '24h') {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     } else {
-      return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit' })
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
     }
   }
 
   // Préparer les données pour les graphiques
   const prepareChartData = () => {
-    return metricsHistory.map(item => ({
+    // Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
+    const sortedHistory = [...metricsHistory].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+    
+    return sortedHistory.map(item => ({
       time: formatTimestamp(item.timestamp),
       cpu: item.cpu_percent,
       memory: item.memory_percent,
@@ -541,7 +565,8 @@ export default function StatisticsPage() {
     }))
   }
 
-  if (authLoading || loading) {
+  // Loader uniquement au tout premier chargement
+  if (authLoading || (loading && !stats)) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-64">
@@ -569,8 +594,17 @@ export default function StatisticsPage() {
         {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               📊 Statistiques & Monitoring Global
+              {refreshing && (
+                <span className="text-sm font-normal text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Actualisation...
+                </span>
+              )}
             </h1>
             <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
               Analyse complète des performances, sécurité et monitoring en temps réel
@@ -691,7 +725,8 @@ export default function StatisticsPage() {
         <div>
           {activeTab === 'overview' && (
             <OverviewTab 
-              stats={stats} 
+              stats={stats}
+              previousStats={previousStats}
               chartData={chartData} 
               customization={customization}
               router={router}
@@ -738,7 +773,30 @@ export default function StatisticsPage() {
 }
 
 // Composant Overview Tab
-function OverviewTab({ stats, chartData, customization, router }: any) {
+function OverviewTab({ stats, previousStats, chartData, customization, router }: any) {
+  // Calculer les tendances en comparant avec la moyenne des 30 dernières minutes
+  const last30Minutes = chartData.slice(-30) // Environ 30 points (1 point par minute si collecte toutes les minutes)
+  
+  const cpuAvgLast30 = last30Minutes.length > 0 
+    ? last30Minutes.reduce((sum: number, d: any) => sum + d.cpu, 0) / last30Minutes.length 
+    : stats.system.cpu.current
+  const cpuTrend = stats.system.cpu.current - cpuAvgLast30
+
+  const memoryAvgLast30 = last30Minutes.length > 0 
+    ? last30Minutes.reduce((sum: number, d: any) => sum + d.memory, 0) / last30Minutes.length 
+    : stats.system.memory.current
+  const memoryTrend = stats.system.memory.current - memoryAvgLast30
+
+  const responseTimeAvgLast30 = last30Minutes.length > 0 
+    ? last30Minutes.reduce((sum: number, d: any) => sum + d.responseTime, 0) / last30Minutes.length 
+    : stats.performance.averageResponseTime
+  const responseTimeTrend = stats.performance.averageResponseTime - responseTimeAvgLast30
+
+  const availabilityAvgLast30 = last30Minutes.length > 0 
+    ? last30Minutes.reduce((sum: number, d: any) => sum + d.availability, 0) / last30Minutes.length 
+    : stats.system.availability
+  const availabilityTrend = stats.system.availability - availabilityAvgLast30
+
   return (
     <div className="space-y-6">
       {/* Cartes de résumé */}
@@ -747,7 +805,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           icon={<Cpu className="w-6 h-6" />}
           title="CPU Moyen"
           value={`${stats.system.cpu.average.toFixed(1)}%`}
-          trend={stats.system.cpu.current - stats.system.cpu.average}
+          trend={cpuTrend}
           color="blue"
           subtitle={`Actuel: ${stats.system.cpu.current.toFixed(1)}%`}
           trendType="positive-is-bad"
@@ -756,7 +814,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           icon={<MemoryStick className="w-6 h-6" />}
           title="Mémoire Moyenne"
           value={`${stats.system.memory.average.toFixed(1)}%`}
-          trend={stats.system.memory.current - stats.system.memory.average}
+          trend={memoryTrend}
           color="green"
           subtitle={`Actuelle: ${stats.system.memory.current.toFixed(1)}%`}
           trendType="positive-is-bad"
@@ -765,7 +823,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           icon={<Clock className="w-6 h-6" />}
           title="Temps de Réponse"
           value={`${stats.performance.averageResponseTime.toFixed(0)}ms`}
-          trend={-5}
+          trend={responseTimeTrend}
           color="purple"
           subtitle="Moyen sur la période"
           trendType="positive-is-bad"
@@ -774,7 +832,7 @@ function OverviewTab({ stats, chartData, customization, router }: any) {
           icon={<Activity className="w-6 h-6" />}
           title="Disponibilité"
           value={`${stats.system.availability.toFixed(1)}%`}
-          trend={0.5}
+          trend={availabilityTrend}
           color="green"
           subtitle={`${stats.services.filter((s: any) => s.status === 'healthy').length}/${stats.services.length} services`}
           trendType="negative-is-bad"
@@ -1645,6 +1703,22 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
 
 // Composant Network Tab
 function NetworkTab({ stats, chartData, customization }: any) {
+  // Calculer les moyennes RX et TX depuis l'historique
+  const avgRx = chartData.length > 0 
+    ? chartData.reduce((sum: number, d: any) => sum + (d.networkRx || 0), 0) / chartData.length 
+    : 0
+  const avgTx = chartData.length > 0 
+    ? chartData.reduce((sum: number, d: any) => sum + (d.networkTx || 0), 0) / chartData.length 
+    : 0
+
+  // Calculer les totaux cumulés
+  const totalRx = chartData.length > 0 
+    ? chartData.reduce((sum: number, d: any) => sum + (d.networkRx || 0), 0)
+    : stats.system.network.totalRx
+  const totalTx = chartData.length > 0 
+    ? chartData.reduce((sum: number, d: any) => sum + (d.networkTx || 0), 0)
+    : stats.system.network.totalTx
+
   return (
     <div className="space-y-6">
       {/* Métriques réseau globales */}
@@ -1655,7 +1729,10 @@ function NetworkTab({ stats, chartData, customization }: any) {
             <Network className="w-5 h-5 text-blue-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {stats.system.network.totalRx.toFixed(2)} MB
+            {totalRx.toFixed(2)} MB
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Sur la période
           </div>
         </div>
 
@@ -1665,27 +1742,36 @@ function NetworkTab({ stats, chartData, customization }: any) {
             <Network className="w-5 h-5 text-orange-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {stats.system.network.totalTx.toFixed(2)} MB
+            {totalTx.toFixed(2)} MB
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Sur la période
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Moy. RX</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Moyenne RX</span>
             <TrendingUp className="w-5 h-5 text-purple-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {stats.system.network.avgRx.toFixed(2)} MB
+            {avgRx.toFixed(2)} MB
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Par snapshot
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Moy. TX</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Moyenne TX</span>
             <TrendingUp className="w-5 h-5 text-green-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {stats.system.network.avgTx.toFixed(2)} MB
+            {avgTx.toFixed(2)} MB
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Par snapshot
           </div>
         </div>
       </div>
@@ -1741,27 +1827,18 @@ function NetworkTab({ stats, chartData, customization }: any) {
             </ResponsiveContainer>
           </div>
 
-          {/* Trafic réseau par service */}
+          {/* Évolution du trafic réseau */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              📊 Trafic par Service
+              📈 Évolution du Trafic
             </h3>
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart 
-                data={stats.services.map((s: any) => ({ 
-                  name: s.displayName.split(' ')[0],
-                  rx: 0, // TODO: Ajouter les vraies données si disponibles
-                  tx: 0
-                }))}
-              >
+              <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="name"
+                  dataKey="time" 
                   stroke="#9CA3AF"
-                  style={{ fontSize: '10px' }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
+                  style={{ fontSize: '12px' }}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1776,13 +1853,43 @@ function NetworkTab({ stats, chartData, customization }: any) {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="rx" fill={COLORS.info} name="RX (MB)" />
-                <Bar dataKey="tx" fill={COLORS.warning} name="TX (MB)" />
-              </BarChart>
+                <Area 
+                  type="monotone" 
+                  dataKey="networkRx" 
+                  stroke={COLORS.info} 
+                  fill={COLORS.info}
+                  fillOpacity={0.4}
+                  name="Réception (MB)"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="networkTx" 
+                  stroke={COLORS.warning} 
+                  fill={COLORS.warning}
+                  fillOpacity={0.4}
+                  name="Émission (MB)"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
       )}
+      
+      {/* Informations supplémentaires */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Network className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
+              À propos des métriques réseau
+            </h4>
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              Les données réseau sont collectées depuis les métriques Docker et représentent le trafic total des conteneurs.
+              RX = Réception (Download), TX = Transmission (Upload).
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

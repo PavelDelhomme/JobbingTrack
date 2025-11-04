@@ -38,6 +38,13 @@ model SystemMetricsSnapshot {
   networkRxBytes BigInt?
   networkTxBytes BigInt?
 
+  // Métriques calculées
+  availabilityPercent Float?     // Disponibilité globale des services (%)
+  loadScore           Float?     // Score de charge système (0-1)
+  errorCount          Int?       // Nombre total d'erreurs
+  errorRate           Float?     // Taux d'erreur (%)
+  responseTimeAvg     Float?     // Temps de réponse moyen (ms)
+
   createdAt DateTime @default(now())
 
   @@index([timestamp])

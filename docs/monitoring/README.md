@@ -305,6 +305,23 @@ docker exec jobbingtrack-grafana grafana-cli admin reset-admin-password admin
 docker logs jobbingtrack-cadvisor
 ```
 
+## 📚 Guides Disponibles
+
+### 📖 Guides Principaux
+- **[Quick Start Monitoring](QUICK_START_MONITORING.md)** - 🚀 Démarrage rapide du système de monitoring
+- **[Guide Monitoring Services](GUIDE_MONITORING_SERVICES.md)** - Guide complet pour monitorer les services
+- **[Commandes Monitoring](MONITORING_COMMANDS.md)** - Liste des commandes monitoring utiles
+
+### 📊 Métriques et Statistiques
+- **[Guide Tendances Métriques](GUIDE_TENDANCES_METRIQUES.md)** - Analyse et visualisation des tendances de métriques
+- **[Système Statistiques Applicatives](SYSTEME_STATISTIQUES_APPLICATIVES.md)** - Statistiques applicatives détaillées
+- **[Fichiers Monitoring](FICHIERS_MONITORING.md)** - Organisation des fichiers de monitoring
+
+### 🔧 Améliorations et Corrections
+- **[Améliorations Chargement Métriques](AMELIORATIONS_CHARGEMENT_METRIQUES.md)** - Optimisations du chargement des métriques
+- **[Correction Cohérence Métriques](CORRECTION_COHERENCE_METRIQUES.md)** - Corrections de cohérence des métriques
+- **[Intégration Monitoring - Résumé](INTEGRATION_MONITORING_RESUME.md)** - Résumé de l'intégration du système de monitoring
+
 ## 📚 Ressources
 
 - **[Architecture Métriques](../architecture/metrics/README.md)** - Système de collecte détaillé

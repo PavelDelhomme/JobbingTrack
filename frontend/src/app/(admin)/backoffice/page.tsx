@@ -339,34 +339,59 @@ export default function BackofficePage() {
     const fetchStats = async () => {
       try {
         setLoadingStats(true)
-        // Récupérer les statistiques depuis les services
+        
+        // Récupérer les statistiques depuis les services (avec gestion silencieuse des 404)
+        const fetchWithFallback = async (promise: Promise<any>, fallback: any) => {
+          try {
+            const result = await promise
+            return result
+          } catch (error: any) {
+            // Ne log que les erreurs autres que 404
+            if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
+              console.warn('Erreur récupération données:', error.message)
+            }
+            return fallback
+          }
+        }
+
         const [
           applicationsResponse,
           usersResponse,
           companiesResponse,
           activeSessionsResponse
         ] = await Promise.all([
-          applicationService.getAll().catch(() => ({ data: { total: 0, applications: [] } })),
-          authService.getAllUsers().catch(() => ({ data: { users: [] } })),
-          companyService.getAll().catch(() => ({ data: { companies: [] } })),
-          // ✅ Récupérer les sessions actives réelles
-          axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }).catch(() => ({ data: { total: 0, activeUsersLast30Min: 0 } }))
+          fetchWithFallback(
+            applicationService.getAll(),
+            { data: { total: 0, applications: [] } }
+          ),
+          fetchWithFallback(
+            authService.getAllUsers(),
+            { data: { users: [] } }
+          ),
+          fetchWithFallback(
+            companyService.getAll(),
+            { data: { companies: [] } }
+          ),
+          fetchWithFallback(
+            axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            { data: { total: 0, activeUsersLast30Min: 0 } }
+          )
         ])
 
         // Calculer les statistiques
-        const totalApplications = applicationsResponse.data.total || 0
-        const totalUsers = usersResponse.data.users?.length || 0
-        const totalCompanies = companiesResponse.data.companies?.length || 0
-        const activeSessions = activeSessionsResponse.data?.total || activeSessionsResponse.data?.activeUsersLast30Min || 0
+        const totalApplications = applicationsResponse?.data?.total || 0
+        const totalUsers = usersResponse?.data?.users?.length || 0
+        const totalCompanies = companiesResponse?.data?.companies?.length || 0
+        const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || 0
 
         setStats(prev => ({
           ...prev,
           totalApplications,
           totalUsers,
           totalCompanies,
-          activeUsers: activeSessions, // ✅ Utiliser les sessions réelles
+          activeUsers: activeSessions,
           activeSessions: activeSessions, // ✅ Ajouter aussi ici
           systemHealth: 100,
           deploymentStatus: 'success'

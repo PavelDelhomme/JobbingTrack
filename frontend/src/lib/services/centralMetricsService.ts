@@ -190,7 +190,7 @@ class CentralMetricsService {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(10000) // Augmenté à 10s
       })
 
       if (response.ok) {
@@ -267,7 +267,7 @@ class CentralMetricsService {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(10000) // Augmenté à 10s
       })
 
       if (response.ok) {
@@ -310,7 +310,7 @@ class CentralMetricsService {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(10000) // Augmenté à 10s
       })
 
       if (response.ok) {
@@ -747,45 +747,52 @@ class CentralMetricsService {
     ]
 
     try {
-      // Essayer d'abord le service de métriques agrégateur qui a les vraies données
+      // Priorité 1 : Agrégateur de métriques (source la plus fiable)
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
       const response = await fetch(`${metricsUrl}/api/v1/docker/services/all`, {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(20000) // 20s au lieu de 10s
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[SERVICES] Services récupérés depuis Docker:', data.total, 'services')
-        return data.services || [] // Retourner le tableau de services
+        console.log('[SERVICES] ✅ Services récupérés depuis l\'agrégateur:', data.total, 'services')
+        return data.services || []
       }
-    } catch (error) {
-      console.error('[SERVICES] Erreur récupération depuis Docker:', error)
+    } catch (error: any) {
+      // Logger silencieusement les timeouts uniquement en développement
+      if (error.name === 'TimeoutError' && process.env.NODE_ENV === 'development') {
+        console.warn('[SERVICES] ⏱️ Timeout lors de la récupération des services depuis Docker (20s)')
+      } else if (error.name !== 'TimeoutError') {
+        console.warn('[SERVICES] ⚠️ Agrégateur inaccessible:', error.message)
+      }
     }
 
-    // Fallback vers l'API Gateway avec timeout aussi
+    // Priorité 2 : API Gateway (si disponible)
     try {
       const response = await fetch(`${this.apiUrl}/api/v1/services`, {
         headers: {
           'Accept': 'application/json',
           'Authorization': `Bearer ${this.token}`,
         },
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(12000) // 12s au lieu de 8s
       })
 
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.services) {
+          console.log('[SERVICES] ✅ Services récupérés depuis l\'API Gateway:', data.services.length, 'services')
           return data.services
         }
       }
     } catch (error) {
-      // Erreur silencieuse - API Gateway services non disponible (normal)
+      // Silence - API Gateway endpoint optionnel
     }
 
-    // Retourner des données de test au lieu de null pour éviter les erreurs
+    // Fallback : Données par défaut
+    console.log('[SERVICES] ℹ️ Utilisation des services par défaut')
     return defaultServices
   }
 
@@ -833,7 +840,7 @@ class CentralMetricsService {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(8000)
+        signal: AbortSignal.timeout(15000) // 15s pour l'historique qui peut être volumineux
       })
 
       if (response.ok) {
@@ -908,36 +915,35 @@ class CentralMetricsService {
       try {
         console.log('[CENTRAL METRICS] 🔄 Récupération des métriques...')
 
-        // Essayer d'abord le service agrégateur avec timeout court
-        const aggregatorPromise = this.getAggregatorMetrics().catch(() => null)
-
-        // En parallèle, essayer l'API Gateway avec timeout court
-        const apiGatewayPromise = this.getAllServices().catch(() => null)
-
-        // Attendre la première réponse disponible
-        const [aggregatorMetrics, allServices] = await Promise.race([
-          Promise.all([aggregatorPromise, apiGatewayPromise]),
-          new Promise<[null, null]>(resolve =>
-            setTimeout(() => resolve([null, null]), 3000) // Timeout de 3 secondes
-          )
-        ])
-
-        if (aggregatorMetrics) {
-          console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis l\'agrégateur', {
-            servicesList_length: aggregatorMetrics.servicesList?.length || 0,
-            services_keys: Object.keys(aggregatorMetrics.services || {}).length,
-            containers_keys: Object.keys(aggregatorMetrics.containers || {}).length,
-            cpu: aggregatorMetrics.system?.cpu?.usage,
-            memory: aggregatorMetrics.system?.memory?.usage
-          })
-          this.setCachedMetrics(aggregatorMetrics)
-          return aggregatorMetrics
+        // Priorité 1 : Service agrégateur (source la plus fiable)
+        try {
+          const aggregatorMetrics = await this.getAggregatorMetrics()
+          
+          if (aggregatorMetrics) {
+            console.log('[CENTRAL METRICS] ✅ Métriques depuis l\'agrégateur', {
+              servicesList_length: aggregatorMetrics.servicesList?.length || 0,
+              services_keys: Object.keys(aggregatorMetrics.services || {}).length,
+              containers_keys: Object.keys(aggregatorMetrics.containers || {}).length,
+              cpu: aggregatorMetrics.system?.cpu?.usage,
+              memory: aggregatorMetrics.system?.memory?.usage
+            })
+            this.setCachedMetrics(aggregatorMetrics)
+            return aggregatorMetrics
+          }
+        } catch (error: any) {
+          // Seulement logger les vraies erreurs (pas timeout)
+          if (error.name !== 'TimeoutError') {
+            console.warn('[CENTRAL METRICS] ⚠️ Agrégateur erreur:', error.message)
+          }
         }
         
-        console.log('[CENTRAL METRICS] ⚠️ Agrégateur a retourné null ou undefined')
+        // Priorité 2 : API Gateway + métriques séparées
+        console.log('[CENTRAL METRICS] ↩️ Fallback vers API Gateway')
+        
+        const allServices = await this.getAllServices().catch(() => null)
 
-        if (allServices) {
-          console.log('[CENTRAL METRICS] ✅ Services récupérés depuis API Gateway')
+        if (allServices && allServices.length > 0) {
+          console.log('[CENTRAL METRICS] ✅ Services API Gateway:', allServices.length)
 
           // Récupérer les métriques système avec timeout
           const systemMetrics = await Promise.race([

@@ -485,8 +485,8 @@ const services = {
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
   app.all(path + '*', MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
     try {
-      const targetPath = req.originalUrl.replace(path, '') || '/';
-      const targetUrl = `${target}${targetPath}`;
+      // Garder le path complet pour que chaque service gère ses propres routes
+      const targetUrl = `${target}${req.originalUrl}`;
 
       logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`);
 
