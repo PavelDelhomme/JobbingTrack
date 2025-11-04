@@ -5,6 +5,7 @@ const dataGenerator = require('./dataGenerator');
 class SecurityService {
   constructor() {
     this.analysisCache = new Map();
+    this.prisma = prisma; // ✅ Exposer prisma pour le controller
   }
 
   // Récupérer les métriques de sécurité pour le dashboard

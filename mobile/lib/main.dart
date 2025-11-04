@@ -7,7 +7,9 @@ import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
+import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/login_screen.dart';
+import 'package:jobbingtrack_mobile/screens/register_screen.dart';
 import 'package:jobbingtrack_mobile/screens/home_screen.dart';
 import 'package:jobbingtrack_mobile/screens/applications_screen.dart';
 import 'package:jobbingtrack_mobile/screens/companies_screen.dart';
@@ -22,6 +24,7 @@ import 'package:jobbingtrack_mobile/screens/statistics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/test_data_screen.dart';
 import 'package:jobbingtrack_mobile/screens/trash_screen.dart';
 import 'package:jobbingtrack_mobile/screens/users_screen.dart';
+import 'package:jobbingtrack_mobile/screens/followups_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +49,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ContactProvider()),
         ChangeNotifierProvider(create: (_) => InterviewProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => FollowUpProvider()),
       ],
       child: MaterialApp(
         title: 'JobbingTrack Mobile',
@@ -58,6 +62,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
         home: const LoginScreen(),
         routes: {
           '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
           '/applications': (context) => const ApplicationsScreen(),
           '/companies': (context) => const CompaniesScreen(),
@@ -72,6 +77,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/test-data': (context) => const TestDataScreen(),
           '/trash': (context) => const TrashScreen(),
           '/users': (context) => const UsersScreen(),
+          '/followups': (context) => const FollowUpsScreen(),
         },
       ),
     );

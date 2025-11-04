@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: up down up-full up-no-check up-mickdevil restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+.PHONY: up down up-full up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
 
 # ============================================================================
 # AIDE
@@ -97,6 +97,133 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 up-mickdevil: up-no-check ## Alias de up-no-check (MickDevil approuve!)
 	@echo ""
 	@echo "😎 MickDevil approuve cette commande !"
+
+# Démarrer services pour TESTS de parcours
+up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests de parcours utilisateur
+	@echo "================================================================"
+	@echo "🧪 DÉMARRAGE - Services pour Tests de Parcours"
+	@echo "================================================================"
+	@echo ""
+	@echo "📦 Démarrage des services essentiels pour les tests..."
+	@echo ""
+	$(call check_and_free_ports)
+	@echo "🗄️  1/3 - Base de données..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis)
+	@sleep 3
+	@echo ""
+	@echo "🌐 2/3 - API Gateway et Services Core..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service dashboard-service)
+	@sleep 2
+	@echo ""
+	@echo "📦 3/3 - Services Métier..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d application-service contact-service interview-service event-service followup-service call-service)
+	@sleep 2
+	@echo ""
+	@echo "================================================================"
+	@echo "✅ SERVICES DE TEST DÉMARRÉS !"
+	@echo "================================================================"
+	@echo ""
+	@echo "🌐 Services Actifs :"
+	@echo "   ✅ PostgreSQL       - Base de données"
+	@echo "   ✅ Redis            - Cache"
+	@echo "   ✅ API Gateway      - http://localhost:3000"
+	@echo "   ✅ Auth Service     - Authentification"
+	@echo "   ✅ Dashboard        - Statistiques"
+	@echo "   ✅ Applications     - Candidatures"
+	@echo "   ✅ Contacts         - Gestion contacts"
+	@echo "   ✅ Interviews       - Entretiens"
+	@echo "   ✅ Events           - Événements calendrier"
+	@echo "   ✅ Followups        - Relances"
+	@echo "   ✅ Calls            - Appels téléphoniques"
+	@echo ""
+	@echo "🧪 Page de Test :"
+	@echo "   http://localhost:8080/backoffice/user-journey"
+	@echo ""
+	@echo "🔑 Identifiants :"
+	@echo "   Email:    admin@jobbingtrack.test"
+	@echo "   Password: password123"
+	@echo ""
+	@echo "⏱️  Attendez 10-15 secondes que tous les services soient prêts..."
+	@echo ""
+	@echo "💡 Commandes utiles :"
+	@echo "   make logs              # Voir les logs de tous les services"
+	@echo "   make health            # Vérifier l'état des services"
+	@echo "   make down              # Arrêter tous les services"
+	@echo ""
+
+# Démarrer projet COMPLET avec Mobile
+up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur smartphone)
+	@echo "================================================================"
+	@echo "🚀 DÉMARRAGE COMPLET - JobbingTrack + Mobile"
+	@echo "================================================================"
+	@echo ""
+	@echo "📦 Phase 1/4 - Services Backend..."
+	$(call check_and_free_ports)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis)
+	@sleep 3
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service dashboard-service)
+	@sleep 2
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d application-service company-service contact-service interview-service)
+	@sleep 2
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d call-service event-service followup-service notification-service)
+	@echo "✅ Backend démarré !"
+	@echo ""
+	@echo "📦 Phase 2/4 - Frontend..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
+	@echo "✅ Frontend démarré !"
+	@echo ""
+	@echo "📦 Phase 3/4 - Monitoring..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d jobbingtrack-metrics-aggregator cadvisor)
+	@echo "✅ Monitoring démarré !"
+	@echo ""
+	@echo "📱 Phase 4/4 - Application Mobile Flutter..."
+	@echo ""
+	@echo "🔧 Configuration de l'application mobile :"
+	@echo "   1. Connectez votre smartphone en USB"
+	@echo "   2. Activez le mode développeur sur votre téléphone"
+	@echo "   3. Activez le débogage USB"
+	@echo ""
+	@echo "📲 Pour démarrer l'app Flutter sur votre smartphone :"
+	@echo ""
+	@echo "   cd mobile && flutter devices"
+	@echo "   # Listez les appareils connectés et notez l'ID"
+	@echo ""
+	@echo "   flutter run -d <DEVICE_ID>"
+	@echo "   # Exemple: flutter run -d emulator-5554"
+	@echo "   # Exemple: flutter run -d RZ8N41234AB (Android physique)"
+	@echo ""
+	@echo "🌐 Ou utilisez l'émulateur mobile intégré :"
+	@echo "   http://localhost:8080/backoffice/mobile-emulator"
+	@echo ""
+	@echo "================================================================"
+	@echo "✅ PROJET COMPLET DÉMARRÉ !"
+	@echo "================================================================"
+	@echo ""
+	@echo "🌐 Interfaces disponibles :"
+	@echo "   Frontend/Backoffice:  http://localhost:8080"
+	@echo "   API Gateway:          http://localhost:3000"
+	@echo "   Auth Service:         http://localhost:8001"
+	@echo "   Dashboard Service:    http://localhost:8012"
+	@echo "   Metrics:              http://localhost:8014"
+	@echo "   Émulateur Mobile:     http://localhost:8080/backoffice/mobile-emulator"
+	@echo "   Parcours Utilisateur: http://localhost:8080/backoffice/user-journey"
+	@echo ""
+	@echo "📱 Application Mobile Flutter :"
+	@echo "   - Connectez votre smartphone et lancez: cd mobile && flutter run"
+	@echo "   - OU utilisez l'émulateur intégré dans le backoffice"
+	@echo ""
+	@echo "🔑 Identifiants de connexion :"
+	@echo "   Email:    admin@jobbingtrack.test"
+	@echo "   Password: password123"
+	@echo ""
+	@echo "🧪 Tests disponibles :"
+	@echo "   make test                  # Tous les tests"
+	@echo "   make test-mobile           # Tests mobile spécifiques"
+	@echo ""
+	@echo "📖 Documentation :"
+	@echo "   GUIDE_TESTS_PARCOURS.md    # Guide utilisation des tests"
+	@echo "   RECAPITULATIF_FINAL.md     # Vue d'ensemble complète"
+	@echo ""
 
 # Démarrer TOUS les services
 up-full: ## Démarrer TOUS les services avec tous les profils

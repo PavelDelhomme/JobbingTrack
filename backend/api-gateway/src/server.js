@@ -458,7 +458,7 @@ app.use('/api/v1/maintenance', maintenanceRoutes);
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 const services = {
-  // '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' }, // Temporairement désactivé pour tester
+  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/preferences': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/users': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://application-service:3002', serviceName: 'application-service' },

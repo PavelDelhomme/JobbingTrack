@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -31,6 +32,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
     final applications = appProvider.applications;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Mes Candidatures'),
         centerTitle: true,

@@ -179,6 +179,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
         { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
         { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
+        { name: 'Parcours Utilisateur', href: '/backoffice/user-journey', icon: '🚶' },
       ]
     },
   ]

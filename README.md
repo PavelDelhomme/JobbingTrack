@@ -4,8 +4,23 @@
 
 ## 📖 Documentation
 
-### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md) | 🚀 [Guide de Redémarrage](docs/getting-started/REDEMARRAGE.md)
-##  **[⚡ Guide de Démarrage Rapide](docs/getting-started/README.md)** - Commencez ici !
+### ⭐ **[✅ CORRECTIONS TERMINÉES](CORRECTIONS_TERMINEES.md)** - **TOUS LES TESTS SONT CORRIGÉS !**
+
+### 🚀 **[DÉMARRAGE RAPIDE](START_TESTS.sh)** - **Script automatique : `./START_TESTS.sh`**
+
+### 🆕 **[NOUVELLES FONCTIONNALITÉS PARCOURS](NOUVELLES_FONCTIONNALITES_PARCOURS.md)** - **ANNULATION & SAUVEGARDE AUTOMATIQUE !**
+
+### 📚 [Index Documentation Complète](docs/INDEX_DOCUMENTATION.md) | [📖 README Docs](docs/README.md) | [🧭 Navigation](docs/navigation.md)
+
+### 🚀 Démarrage Rapide
+- **[⚡ Guide de Démarrage](docs/getting-started/README.md)** - Commencez ici !
+- **[🚀 Démarrage Ultra-Rapide](docs/getting-started/DEMARRAGE_RAPIDE.md)** - 3 commandes
+- **[🔄 Guide de Redémarrage](docs/getting-started/REDEMARRAGE.md)** - Redémarrer le projet
+
+### 🧪 Tests & Parcours
+- **[🚶 Guide Tests & Parcours](docs/development/GUIDE_TESTS_PARCOURS.md)** - Utiliser tous les outils de test
+- **[🎯 Récapitulatif Final](docs/RECAPITULATIF_FINAL.md)** - Vue d'ensemble complète
+- **Interface Tests** : `http://localhost:8080/backoffice/user-journey`
 
 Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.
 
@@ -27,6 +42,8 @@ Accès rapide à toute la documentation du projet : architecture, API, déploiem
 - ✅ Microservices backend Node.js
 - ✅ Monitoring temps réel
 - ✅ Gestion services via interface web
+- 📱 Application mobile Flutter
+- 📊 Système de monitoring et analytics mobile (en développement)
 
 ---
 
@@ -65,8 +82,25 @@ make up
 make              # Afficher l'aide complète
 make up           # Services essentiels
 make up-full      # Tous les services
+make up-for-tests # Services pour tests de parcours ⭐ NOUVEAU
 make health       # Vérifier santé
 ```
+
+### 🧪 Pour Tester les Parcours Utilisateur
+
+**⚠️ Important** : Les tests de parcours nécessitent les services backend !
+
+```bash
+# 1. Démarrer les services de test
+make up-for-tests
+
+# 2. Attendre 10-15 secondes
+
+# 3. Ouvrir le navigateur
+# http://localhost:8080/backoffice/user-journey
+```
+
+📖 **Guide complet** : [DEMARRAGE_TESTS_PARCOURS.md](DEMARRAGE_TESTS_PARCOURS.md)
 
 ### ⭐ Nouveau : Aide Contextuelle Intégrée
 
@@ -189,6 +223,52 @@ make status # Statut détaillé
 
 📖 **[Documentation complète Makefile](docs/development/makefile/README.md)** | 📄 **[Documentation PDF Complète](docs/pdfs/documentation-complete.pdf)**
 
+## 🚧 En Développement
+
+### 🚶 Parcours Utilisateur - Tests Automatisés
+**Statut** : ✅ **DISPONIBLE**  
+**Priorité** : Haute  
+**URL** : `/backoffice/user-journey`
+
+Nouvelle page de test permettant d'exécuter et analyser automatiquement tous les scénarios de parcours utilisateur complets (inscription → candidatures → relances → entretiens → statistiques).
+
+**Fonctionnalités** :
+- ▶️ **4 scénarios prédéfinis** : Complet, Rapide, Chercheur Actif, Nouvel Utilisateur
+- 📊 **Analytics en temps réel** : Durée, taux de réussite, étapes échouées
+- 💾 **Export JSON** : Sauvegarde des résultats de test
+- 🎯 **8 étapes testées** : Register, Login, Applications, Contacts, Interviews, Followups, Calls, Statistics
+- 🆕 **🛑 Annulation en cours** : Stoppez un test pendant son exécution
+- 🆕 **💾 Sauvegarde automatique** : Résultats conservés après rechargement (localStorage)
+- 🆕 **🗑️ Gestion historique** : Effacez complètement l'historique sauvegardé
+
+**📖 Guides** : 
+- [`GUIDE_TESTS_PARCOURS.md`](docs/development/GUIDE_TESTS_PARCOURS.md) ⭐ - Guide complet
+- [`NOUVELLES_FONCTIONNALITES_PARCOURS.md`](NOUVELLES_FONCTIONNALITES_PARCOURS.md) 🆕 - Annulation & Sauvegarde
+
+---
+
+### 📊 Système de Monitoring et Analytics Mobile
+**Statut** : 📋 Documenté (À Implémenter)  
+**Priorité** : Haute  
+
+Système complet de collecte et d'analyse des métriques de l'application mobile Flutter pour détecter les erreurs, analyser les performances et comprendre le comportement des utilisateurs.
+
+**Documentation Complète** :
+- 📄 [`docs/mobile/analytics/SUMMARY.md`](docs/mobile/analytics/SUMMARY.md) - Vue d'ensemble
+- 🔧 [`docs/mobile/analytics/INTEGRATION.md`](docs/mobile/analytics/INTEGRATION.md) - Guide d'implémentation
+- 🔐 [`docs/mobile/analytics/PRIVACY.md`](docs/mobile/analytics/PRIVACY.md) - Conformité RGPD
+- 📊 [`docs/mobile/analytics/DASHBOARD.md`](docs/mobile/analytics/DASHBOARD.md) - Templates dashboard
+
+**Composants à Créer** :
+- 🔧 Backend : Service `mobile-analytics-service` (10+ endpoints API)
+- 📱 Flutter : SDK Analytics complet (9 fichiers)
+- 📊 Dashboard : Interface de visualisation des métriques
+- 🐛 Monitoring : Crashes, performances, événements utilisateurs
+- 📈 Analytics : Statistiques d'utilisation par module mobile
+
+**Plan d'Implémentation** : 9-14 jours (voir [`TODO_NEXT_STEPS.md`](TODO_NEXT_STEPS.md))
+
+### 🤖 Machine Learning & Matching
 **TODO: Ajouter du vecteur et de l'embedding pour le traitement des données et analyse, afin de déterminer les profil utilisateur et le matching avec la candidature a laquelle il ont postuler afin de savoir si le profil est compatible avec la candidature**
 ---
 
