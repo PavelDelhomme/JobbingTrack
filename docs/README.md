@@ -1,6 +1,6 @@
 # 📚 Documentation JobbingTrack
 
-[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md)
+[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📁 Organisation](ORGANISATION_DOCUMENTATION.md)
 
 ##  **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
 
@@ -8,7 +8,9 @@
 
 Documentation complète et organisée du projet **JobbingTrack v4.1** - Système de suivi de candidatures avec architecture microservices, dashboard administrateur et applications mobiles.
 
-### 🧭 [Navigation complète](./navigation.md) - Guide de navigation dans toute la documentation
+### 🧭 Navigation
+- **[Navigation complète](./navigation.md)** - Guide de navigation dans toute la documentation
+- **[Organisation](ORGANISATION_DOCUMENTATION.md)** - ⭐ Structure et organisation de la documentation (mise à jour 4 nov 2025)
 
 ## 📋 Structure de la documentation
 
@@ -45,12 +47,29 @@ docs/
 │   └── testing/README.md               # Stratégies de tests
 ├── 📊 monitoring/                      # Monitoring système
 │   └── README.md                       # Stack monitoring complète
-├── 🖥️ frontend/guide/README.md        # Guide frontend
+├── 🖥️ frontend/                        # Guide frontend
+│   ├── README.md                        # Index frontend
+│   ├── GUIDE_ENREGISTREMENT_AUTOMATIQUE.md     # Enregistrement auto
+│   ├── GUIDE_PREFERENCES_UTILISATEUR.md        # Préférences utilisateur
+│   └── GUIDE_PAGE_DETAIL_SERVICE.md            # Page détail service
 ├── 📱 mobile/guide/README.md           # Guide mobile
-├── 🔧 administration/README.md         # Guide administration
-├── 🐛 troubleshooting/guide/README.md  # Dépannage
+├── 🔧 administration/                  # Guide administration
+│   ├── README.md                        # Index administration
+│   └── GUIDE_GESTION_UTILISATEURS.md   # Gestion utilisateurs
+├── 🐛 troubleshooting/                 # Dépannage
+│   ├── README.md                        # Index dépannage
+│   ├── CORRECTIONS_ANALYTICS_DASHBOARD.md      # Corrections analytics
+│   ├── CORRECTIONS_ERREURS_404_TIMEOUTS.md     # Corrections 404/timeouts
+│   ├── CORRECTIONS_FINALES_SESSION.md          # Corrections session
+│   └── CORRECTIONS_GRAPHIQUES_ANALYTICS.md     # Corrections graphiques
 ├── ⚡ performance/guide/README.md      # Optimisation
-├── 🔒 security/guide/README.md         # Sécurité
+├── 🔒 security/                        # Sécurité
+│   ├── README.md                        # Index sécurité
+│   ├── SYSTEME_SECURITE_README.md      # Système sécurité
+│   └── DEMARRAGE_SERVICES_SECURITE.md  # Démarrage services
+├── 🧪 tests/                           # Tests
+│   ├── README.md                        # Stratégie tests
+│   └── TESTS_PAGE_DETAIL_SERVICES.md   # Tests page services
 └── 📄 pdfs/                            # PDFs générés
     └── documentation-complete.pdf      # PDF global
 ```
@@ -78,6 +97,40 @@ docs/
 - **[Workflow](development/workflow/README.md)** - Processus de développement
 - **[Makefile](development/makefile/README.md)** - ⭐ Nouveau système avec aide intégrée
 - **[Tests](development/testing/README.md)** - Stratégies et outils de test
+
+### 🖥️ Frontend
+- **[Guide Frontend](frontend/README.md)** - Guide complet développement frontend Next.js
+- **[Enregistrement Automatique](frontend/GUIDE_ENREGISTREMENT_AUTOMATIQUE.md)** - Système d'enregistrement automatique
+- **[Préférences Utilisateur](frontend/GUIDE_PREFERENCES_UTILISATEUR.md)** - Gestion des préférences
+- **[Page Détail Service](frontend/GUIDE_PAGE_DETAIL_SERVICE.md)** - Page de détail des services
+
+### 🔧 Administration
+- **[Guide Administration](administration/README.md)** - Dashboard administrateur complet
+- **[Gestion Utilisateurs](administration/GUIDE_GESTION_UTILISATEURS.md)** - Gestion complète des utilisateurs
+
+### 📊 Monitoring
+- **[Système Monitoring](monitoring/README.md)** - Stack monitoring complète
+- **[Quick Start](monitoring/QUICK_START_MONITORING.md)** - 🚀 Démarrage rapide
+- **[Guide Services](monitoring/GUIDE_MONITORING_SERVICES.md)** - Monitoring des services
+- **[Tendances Métriques](monitoring/GUIDE_TENDANCES_METRIQUES.md)** - Analyse des tendances
+- **[Commandes](monitoring/MONITORING_COMMANDS.md)** - Commandes monitoring
+- **[Statistiques](monitoring/SYSTEME_STATISTIQUES_APPLICATIVES.md)** - Statistiques applicatives
+
+### 🐛 Dépannage
+- **[Guide Dépannage](troubleshooting/README.md)** - Solutions aux problèmes courants
+- **[Corrections Analytics](troubleshooting/CORRECTIONS_ANALYTICS_DASHBOARD.md)** - Dashboard analytics
+- **[Corrections 404/Timeouts](troubleshooting/CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Erreurs HTTP
+- **[Corrections Session](troubleshooting/CORRECTIONS_FINALES_SESSION.md)** - Gestion des sessions
+- **[Corrections Graphiques](troubleshooting/CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Graphiques analytics
+
+### 🔒 Sécurité
+- **[Guide Sécurité](security/README.md)** - Bonnes pratiques de sécurité
+- **[Système Sécurité](security/SYSTEME_SECURITE_README.md)** - Architecture sécurité complète
+- **[Services Sécurité](security/DEMARRAGE_SERVICES_SECURITE.md)** - Démarrage et configuration
+
+### 🧪 Tests
+- **[Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
+- **[Tests Page Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
 
 ## 🆕 Nouveautés v4.1
 

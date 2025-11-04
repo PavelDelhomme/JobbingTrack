@@ -589,8 +589,19 @@ async function collectAllMetrics() {
     
     // ✅ PERSISTANCE : Sauvegarder dans la base de données
     try {
-      // Sauvegarder les métriques système
-      await persistenceService.saveSystemMetricsSnapshot(systemMetrics)
+      // Calculer le load score (combinaison CPU + mémoire)
+      const cpuPercent = systemMetrics.host?.cpu?.usagePercent || systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent || 0;
+      const memoryPercent = systemMetrics.host?.memory?.usagePercent || systemMetrics.jobbingtrack?.containers?.memory?.percent || 0;
+      const loadScore = parseFloat((((cpuPercent / 100) + (memoryPercent / 100)) / 2).toFixed(3));
+      
+      // Sauvegarder les métriques système avec les valeurs calculées
+      await persistenceService.saveSystemMetricsSnapshot(systemMetrics, {
+        availabilityPercent: stackAvailability,
+        loadScore: loadScore,
+        errorCount: metricsData.errors?.total_last_5m || 0,
+        errorRate: metricsData.errors?.rate_per_min || 0,
+        responseTimeAvg: metricsData.responseTime?.average_ms || null
+      })
       
       // Sauvegarder les métriques des conteneurs
       await persistenceService.saveMultipleContainerMetrics(containerMetrics)

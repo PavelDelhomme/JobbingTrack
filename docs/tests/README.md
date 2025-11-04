@@ -369,6 +369,11 @@ open tests/coverage/index.html
 # Ajouter tests pour fichiers critiques
 ```
 
+## 📚 Tests Spécifiques Disponibles
+
+### 🧪 Tests de Fonctionnalités
+- **[Tests Page Détail Services](TESTS_PAGE_DETAIL_SERVICES.md)** - Tests complets de la page de détail des services Docker avec métriques en temps réel
+
 ## 📚 Ressources
 
 - **[Tests Racine](../../tests/README.md)** - Documentation complète des tests

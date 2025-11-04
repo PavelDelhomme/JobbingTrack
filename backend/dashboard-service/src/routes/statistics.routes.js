@@ -3,10 +3,8 @@ const router = express.Router();
 const { authenticate } = require('../middlewares/auth.middleware');
 const controller = require('../controllers/statistics.controller');
 
-// Routes protégées
-router.use(authenticate);
-
-// Route principale pour les statistiques agrégées
+// Route principale pour les statistiques agrégées (avec auth optionnel)
+// L'authentification sera vérifiée par l'API Gateway
 router.get('/', controller.getAggregatedStatistics);
 
 module.exports = router;

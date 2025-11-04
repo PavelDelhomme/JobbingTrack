@@ -54,6 +54,11 @@ Interface d'administration complète pour la gestion, la surveillance et la main
 - **Thèmes**: Interface utilisateur
 - **Notifications**: Configuration alertes
 
+## 📚 Guides Disponibles
+
+### 👥 Gestion des Utilisateurs
+- **[Guide Gestion Utilisateurs](GUIDE_GESTION_UTILISATEURS.md)** - Guide complet de gestion des utilisateurs (création, modification, rôles, permissions)
+
 ## 🔐 Gestion des utilisateurs
 
 ### Créer un administrateur

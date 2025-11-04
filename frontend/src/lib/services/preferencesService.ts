@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { buildApiUrl, isOptionalEndpoint } from '@/config/api.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -49,7 +50,7 @@ class PreferencesService {
       }
 
       const token = this.getToken();
-      const response = await axios.get(`${API_URL}/api/v1/preferences`, {
+      const response = await axios.get(buildApiUrl('preferences'), {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -63,8 +64,11 @@ class PreferencesService {
 
       // Si pas de préférences, retourner les valeurs par défaut
       return this.getDefaultPreferences();
-    } catch (error) {
-      console.error('Erreur lors de la récupération des préférences:', error);
+    } catch (error: any) {
+      // Ne logger que les erreurs autres que 404 (endpoint optionnel)
+      if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
+        console.warn('⚠️ Erreur récupération préférences:', error.message);
+      }
       // Retourner les préférences par défaut en cas d'erreur
       return this.getDefaultPreferences();
     }

@@ -32,7 +32,7 @@ class PersistenceService {
   /**
    * Sauvegarder un snapshot de métriques système
    */
-  async saveSystemMetricsSnapshot(metricsData) {
+  async saveSystemMetricsSnapshot(metricsData, additionalMetrics = {}) {
     if (!this.isDatabaseEnabled()) {
       return null;
     }
@@ -58,10 +58,16 @@ class PersistenceService {
             : null,
           networkRxBytes: metricsData.network?.rx ? BigInt(metricsData.network.rx) : null,
           networkTxBytes: metricsData.network?.tx ? BigInt(metricsData.network.tx) : null,
+          // Nouvelles métriques calculées
+          availabilityPercent: additionalMetrics.availabilityPercent || null,
+          loadScore: additionalMetrics.loadScore || null,
+          errorCount: additionalMetrics.errorCount || null,
+          errorRate: additionalMetrics.errorRate || null,
+          responseTimeAvg: additionalMetrics.responseTimeAvg || null,
         },
       });
       
-      console.log(`[PERSISTENCE] ✅ Snapshot système sauvegardé: ${snapshot.id}`);
+      console.log(`[PERSISTENCE] ✅ Snapshot système sauvegardé: ${snapshot.id} (availability: ${snapshot.availabilityPercent}%, load: ${snapshot.loadScore})`);
       return snapshot;
     } catch (error) {
       console.error('[PERSISTENCE] ❌ Erreur sauvegarde snapshot système:', error.message);

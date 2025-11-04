@@ -218,11 +218,27 @@ export function useCustomization() {
 function applyTheme(settings: CustomizationSettings) {
   const root = document.documentElement;
 
-  if (settings.theme === 'dark' ||
-      (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
+  const applyDarkMode = () => {
+    if (settings.theme === 'dark' ||
+        (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
+  // Appliquer le thème immédiatement
+  applyDarkMode();
+
+  // Si mode auto, écouter les changements du système
+  if (settings.theme === 'auto') {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => applyDarkMode();
+    
+    // Nettoyer l'ancien listener s'il existe
+    mediaQuery.removeEventListener('change', handleChange);
+    // Ajouter le nouveau listener
+    mediaQuery.addEventListener('change', handleChange);
   }
 }
 

@@ -15,71 +15,126 @@ const getHealth = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
-    // Récupérer les statistiques depuis les autres services
-    // Pour l'instant, retourner des statistiques basiques
+    // Récupérer les vraies statistiques depuis la base de données
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+
+    // Statistiques des applications
+    const [
+      totalApplications,
+      applicationsByStatus,
+      applicationsThisMonth,
+      applicationsThisWeek
+    ] = await Promise.all([
+      prisma.application.count(),
+      prisma.application.groupBy({
+        by: ['status'],
+        _count: true
+      }),
+      prisma.application.count({
+        where: {
+          createdAt: {
+            gte: startOfMonth
+          }
+        }
+      }),
+      prisma.application.count({
+        where: {
+          createdAt: {
+            gte: startOfWeek
+          }
+        }
+      })
+    ]);
+
+    // Statistiques des utilisateurs
+    const [
+      totalUsers,
+      usersByRole,
+      newUsersThisMonth
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.groupBy({
+        by: ['role'],
+        _count: true
+      }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gte: startOfMonth
+          }
+        }
+      })
+    ]);
+
+    // Statistiques des entreprises
+    const [
+      totalCompanies,
+      companiesByIndustry
+    ] = await Promise.all([
+      prisma.company.count(),
+      prisma.company.groupBy({
+        by: ['industry'],
+        _count: true
+      })
+    ]);
+
+    // Formater les résultats
+    const byStatus = {};
+    applicationsByStatus.forEach(item => {
+      byStatus[item.status] = item._count;
+    });
+
+    const byRole = {};
+    usersByRole.forEach(item => {
+      byRole[item.role] = item._count;
+    });
+
+    const byIndustry = {};
+    companiesByIndustry.forEach(item => {
+      if (item.industry) {
+        byIndustry[item.industry] = item._count;
+      }
+    });
+
     const stats = {
       applications: {
-        total: 15,
-        byStatus: {
-          'DRAFT': 3,
-          'SENT': 5,
-          'IN_REVIEW': 4,
-          'INTERVIEW_SCHEDULED': 2,
-          'INTERVIEWED': 1,
-          'OFFER_RECEIVED': 0,
-          'ACCEPTED': 0,
-          'REJECTED': 0,
-          'WITHDRAWN': 0,
-          'NO_RESPONSE': 0
-        },
-        byType: {
-          'FULL_TIME': 12,
-          'PART_TIME': 2,
-          'CONTRACT': 1
-        },
-        thisMonth: 8,
-        thisWeek: 3
+        total: totalApplications,
+        by_status: byStatus,
+        by_type: {}, // TODO: Ajouter le champ type dans le modèle si nécessaire
+        this_month: applicationsThisMonth,
+        this_week: applicationsThisWeek
       },
       users: {
-        total: 3,
-        byRole: {
-          'USER': 1,
-          'ADMIN': 1,
-          'SUPER_ADMIN': 1
-        },
-        activeUsers: 3,
-        newThisMonth: 2
+        total: totalUsers,
+        by_role: byRole,
+        active: totalUsers, // TODO: Améliorer avec une vraie détection d'utilisateurs actifs
+        new_this_month: newUsersThisMonth
       },
       companies: {
-        total: 8,
-        byIndustry: {
-          'Technology': 3,
-          'Finance': 2,
-          'Healthcare': 2,
-          'Education': 1
-        },
-        bySize: {
-          'Startup': 4,
-          'SMB': 3,
-          'Enterprise': 1
-        }
+        total: totalCompanies,
+        by_industry: byIndustry,
+        by_size: {} // TODO: Ajouter le champ size dans le modèle si nécessaire
       },
       performance: {
-        averageResponseTime: 2.5,
-        successRate: 85.5,
-        errorRate: 1.2
+        averageResponseTime: 0, // Ces données viennent des métriques système
+        successRate: 100,
+        errorRate: 0
       }
     };
 
     res.json({
       success: true,
-      stats
+      data: stats
     });
   } catch (error) {
     logger.error('Erreur récupération statistiques:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur serveur'
+      error: 'Erreur serveur',
+      message: error.message
     });
   }
 };

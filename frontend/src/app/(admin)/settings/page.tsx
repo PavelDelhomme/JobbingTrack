@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Save, RotateCcw, Palette, Layout, Bell, Eye, Globe, Database, Linkedin, Calendar, Wifi } from 'lucide-react';
 import { AdminLayout } from '@/components/features';
 import { useCustomization } from '@/hooks/useCustomization';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { OfflineStatus } from '@/components/widgets';
 import { LinkedInIntegration } from '@/components/integrations';
 import { CalendarIntegration } from '@/components/integrations';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui';
 
 export default function SettingsPage() {
   const { settings, saveSettings, resetSettings, isLoading } = useCustomization();
+  const { t, setLocale } = useTranslation();
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -42,11 +44,17 @@ export default function SettingsPage() {
     setHasChanges(false);
   };
 
+  // Gérer le changement de langue
+  const handleLanguageChange = (newLanguage: string) => {
+    updateLocalSettings({ language: newLanguage });
+    setLocale(newLanguage as any); // Mettre à jour immédiatement pour voir les changements
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Chargement des paramètres...</span>
+        <span className="ml-2">{t('settings.loading')}</span>
       </div>
     );
   }
@@ -57,8 +65,8 @@ export default function SettingsPage() {
         {/* En-tête */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Paramètres de personnalisation</h1>
-            <p className="text-gray-600">Personnalisez votre expérience JobbingTrack</p>
+            <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+            <p className="text-gray-600">{t('settings.customization')}</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -67,7 +75,7 @@ export default function SettingsPage() {
               className="text-gray-600"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Réinitialiser
+              {t('settings.reset')}
             </Button>
             <Button
               onClick={handleSave}
@@ -75,7 +83,7 @@ export default function SettingsPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Save className="h-4 w-4 mr-2" />
-              Sauvegarder
+              {t('settings.save')}
             </Button>
           </div>
         </div>
@@ -85,27 +93,27 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Apparence</span>
+            <span className="hidden sm:inline">{t('settings.appearance')}</span>
           </TabsTrigger>
           <TabsTrigger value="layout" className="flex items-center gap-2">
             <Layout className="h-4 w-4" />
-            <span className="hidden sm:inline">Disposition</span>
+            <span className="hidden sm:inline">{t('settings.layout')}</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifications</span>
+            <span className="hidden sm:inline">{t('settings.notifications')}</span>
           </TabsTrigger>
           <TabsTrigger value="accessibility" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">Accessibilité</span>
+            <span className="hidden sm:inline">{t('settings.accessibility')}</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">Données</span>
+            <span className="hidden sm:inline">{t('settings.data')}</span>
           </TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Intégrations</span>
+            <span className="hidden sm:inline">{t('settings.integrations')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -115,26 +123,31 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Thème et couleurs
+                {t('settings.appearance')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Sélecteur de thème */}
               <div className="space-y-2">
-                <Label>Thème</Label>
+                <Label>{t('settings.theme')}</Label>
                 <Select
                   value={localSettings.theme}
-                  onChange={(e) => updateLocalSettings({ theme: e.target.value as 'light' | 'dark' | 'auto' })}
+                  onValueChange={(value: string) => updateLocalSettings({ theme: value as 'light' | 'dark' | 'auto' })}
                 >
-                  <option value="light">Clair</option>
-                  <option value="dark">Sombre</option>
-                  <option value="auto">Automatique</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('settings.theme')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">{t('settings.themeLight')}</SelectItem>
+                    <SelectItem value="dark">{t('settings.themeDark')}</SelectItem>
+                    <SelectItem value="auto">{t('settings.themeAuto')}</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
               {/* Sélecteur de couleur principale */}
               <div className="space-y-2">
-                <Label>Couleur principale</Label>
+                <Label>{t('settings.primaryColor')}</Label>
                 <div className="flex gap-2">
                   {[
                     '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
@@ -226,7 +239,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.compactMode}
-                  onChange={(e) => updateLocalSettings({ compactMode: e.target.checked })}
+                  onCheckedChange={(checked) => updateLocalSettings({ compactMode: checked })}
                 />
               </div>
 
@@ -240,7 +253,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.showAnimations}
-                  onChange={(e) => updateLocalSettings({ showAnimations: e.target.checked })}
+                  onCheckedChange={(checked) => updateLocalSettings({ showAnimations: checked })}
                 />
               </div>
 
@@ -251,11 +264,16 @@ export default function SettingsPage() {
                 <Label>Disposition du tableau de bord</Label>
                 <Select
                   value={localSettings.dashboardLayout}
-                  onChange={(e) => updateLocalSettings({ dashboardLayout: e.target.value as 'grid' | 'list' | 'kanban' })}
+                  onValueChange={(value: string) => updateLocalSettings({ dashboardLayout: value as 'grid' | 'list' | 'kanban' })}
                 >
-                  <option value="grid">Grille</option>
-                  <option value="list">Liste</option>
-                  <option value="kanban">Kanban</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une disposition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="grid">Grille</SelectItem>
+                    <SelectItem value="list">Liste</SelectItem>
+                    <SelectItem value="kanban">Kanban</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -266,12 +284,17 @@ export default function SettingsPage() {
                 <Label>Éléments par page</Label>
                 <Select
                   value={localSettings.itemsPerPage.toString()}
-                  onChange={(e) => updateLocalSettings({ itemsPerPage: parseInt(e.target.value) })}
+                  onValueChange={(value: string) => updateLocalSettings({ itemsPerPage: parseInt(value) })}
                 >
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nombre d'éléments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </CardContent>
@@ -296,9 +319,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.notifications.enabled}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, enabled: e.target.checked }
+                      notifications: { ...localSettings.notifications, enabled: checked }
                     })
                   }
                 />
@@ -314,9 +337,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.notifications.sound}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, sound: e.target.checked }
+                      notifications: { ...localSettings.notifications, sound: checked }
                     })
                   }
                 />
@@ -329,16 +352,21 @@ export default function SettingsPage() {
                 <Label>Position des notifications</Label>
                 <Select
                   value={localSettings.notifications.position}
-                  onChange={(e) =>
+                  onValueChange={(value: string) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, position: e.target.value as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' }
+                      notifications: { ...localSettings.notifications, position: value as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' }
                     })
                   }
                 >
-                  <option value="top-right">Haut droite</option>
-                  <option value="top-left">Haut gauche</option>
-                  <option value="bottom-right">Bas droite</option>
-                  <option value="bottom-left">Bas gauche</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top-right">Haut droite</SelectItem>
+                    <SelectItem value="top-left">Haut gauche</SelectItem>
+                    <SelectItem value="bottom-right">Bas droite</SelectItem>
+                    <SelectItem value="bottom-left">Bas gauche</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -349,16 +377,21 @@ export default function SettingsPage() {
                 <Label>Durée d'affichage (secondes)</Label>
                 <Select
                   value={localSettings.notifications.duration.toString()}
-                  onChange={(e) =>
+                  onValueChange={(value: string) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, duration: parseInt(e.target.value) }
+                      notifications: { ...localSettings.notifications, duration: parseInt(value) }
                     })
                   }
                 >
-                  <option value="3000">3 secondes</option>
-                  <option value="5000">5 secondes</option>
-                  <option value="10000">10 secondes</option>
-                  <option value="0">Jusqu'à fermeture</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Durée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3000">3 secondes</SelectItem>
+                    <SelectItem value="5000">5 secondes</SelectItem>
+                    <SelectItem value="10000">10 secondes</SelectItem>
+                    <SelectItem value="0">Jusqu'à fermeture</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </CardContent>
@@ -383,9 +416,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.highContrast}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, highContrast: e.target.checked }
+                      accessibility: { ...localSettings.accessibility, highContrast: checked }
                     })
                   }
                 />
@@ -401,9 +434,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.largeText}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, largeText: e.target.checked }
+                      accessibility: { ...localSettings.accessibility, largeText: checked }
                     })
                   }
                 />
@@ -419,9 +452,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.reduceMotion}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, reduceMotion: e.target.checked }
+                      accessibility: { ...localSettings.accessibility, reduceMotion: checked }
                     })
                   }
                 />
@@ -437,9 +470,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.accessibility.focusIndicators}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      accessibility: { ...localSettings.accessibility, focusIndicators: e.target.checked }
+                      accessibility: { ...localSettings.accessibility, focusIndicators: checked }
                     })
                   }
                 />
@@ -463,15 +496,20 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               {/* Langue */}
               <div className="space-y-2">
-                <Label>Langue</Label>
+                <Label>{t('settings.language')}</Label>
                 <Select
                   value={localSettings.language}
-                  onChange={(e) => updateLocalSettings({ language: e.target.value })}
+                  onValueChange={handleLanguageChange}
                 >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
-                  <option value="de">Deutsch</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('settings.language')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fr">{t('settings.languageFr')}</SelectItem>
+                    <SelectItem value="en">{t('settings.languageEn')}</SelectItem>
+                    <SelectItem value="es">{t('settings.languageEs')}</SelectItem>
+                    <SelectItem value="de">{t('settings.languageDe')}</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -482,11 +520,16 @@ export default function SettingsPage() {
                 <Label>Format de date</Label>
                 <Select
                   value={localSettings.dateFormat}
-                  onChange={(e) => updateLocalSettings({ dateFormat: e.target.value })}
+                  onValueChange={(value: string) => updateLocalSettings({ dateFormat: value })}
                 >
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Format de date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -497,10 +540,15 @@ export default function SettingsPage() {
                 <Label>Format d'heure</Label>
                 <Select
                   value={localSettings.timeFormat}
-                  onChange={(e) => updateLocalSettings({ timeFormat: e.target.value as '12h' | '24h' })}
+                  onValueChange={(value: string) => updateLocalSettings({ timeFormat: value as '12h' | '24h' })}
                 >
-                  <option value="24h">24 heures</option>
-                  <option value="12h">12 heures (AM/PM)</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Format d'heure" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">24 heures</SelectItem>
+                    <SelectItem value="12h">12 heures (AM/PM)</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -511,16 +559,21 @@ export default function SettingsPage() {
                 <Label>Durée de rétention du cache (jours)</Label>
                 <Select
                   value={localSettings.dataRetention.cacheDuration.toString()}
-                  onChange={(e) =>
+                  onValueChange={(value: string) =>
                     updateLocalSettings({
-                      dataRetention: { ...localSettings.dataRetention, cacheDuration: parseInt(e.target.value) }
+                      dataRetention: { ...localSettings.dataRetention, cacheDuration: parseInt(value) }
                     })
                   }
                 >
-                  <option value="1">1 jour</option>
-                  <option value="3">3 jours</option>
-                  <option value="7">7 jours</option>
-                  <option value="30">30 jours</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Durée du cache" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 jour</SelectItem>
+                    <SelectItem value="3">3 jours</SelectItem>
+                    <SelectItem value="7">7 jours</SelectItem>
+                    <SelectItem value="30">30 jours</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -534,9 +587,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={localSettings.dataRetention.offlineMode}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     updateLocalSettings({
-                      dataRetention: { ...localSettings.dataRetention, offlineMode: e.target.checked }
+                      dataRetention: { ...localSettings.dataRetention, offlineMode: checked }
                     })
                   }
                 />
@@ -648,7 +701,7 @@ export default function SettingsPage() {
         <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            Modifications non sauvegardées
+            {t('settings.unsavedChanges')}
           </div>
         </div>
       )}

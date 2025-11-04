@@ -20,6 +20,14 @@ Solutions aux problèmes courants et diagnostic pour JobbingTrack.
 - [📊 Métriques / Monitoring](#-métriques--monitoring)
 - [🚀 Déploiement](#-déploiement)
 
+## 📚 Documents de Corrections
+
+### 🐛 Corrections Appliquées
+- **[Corrections Analytics Dashboard](CORRECTIONS_ANALYTICS_DASHBOARD.md)** - Corrections du tableau de bord analytics
+- **[Corrections Erreurs 404 et Timeouts](CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Résolution des erreurs 404 et timeouts
+- **[Corrections Finales Session](CORRECTIONS_FINALES_SESSION.md)** - Corrections finales de la session de développement
+- **[Corrections Graphiques Analytics](CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Corrections des graphiques dans le dashboard analytics
+
 ---
 
 ## 🖥️ Frontend / Interface
