@@ -352,7 +352,12 @@ export default function AnalyticsPage() {
   const chartData = useMemo(() => {
     if (!metricsHistory || metricsHistory.length === 0) return [];
     
-    return metricsHistory.map((item: any) => ({
+    // ✅ Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
+    const sortedHistory = [...metricsHistory].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    
+    return sortedHistory.map((item: any) => ({
       time: formatTimestamp(item.timestamp, timeRange),
       cpu: toNumber(item.cpu_percent, 0),
       memory: toNumber(item.memory_percent, 0),

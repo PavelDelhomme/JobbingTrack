@@ -102,9 +102,7 @@ up-mickdevil: up-no-check ## Alias de up-no-check (MickDevil approuve!)
 up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
 	@echo "🚀 Tous les services avec métriques complètes"
-	
-	# Vérification prérequis
-	$(call check_docker)
+	@echo "⚠️  Mode sans vérification Docker"
 	
 	# Nettoyage complet
 	@echo "🧹 Nettoyage complet de l'environnement Docker..."
