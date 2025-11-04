@@ -265,15 +265,19 @@ export default function ServiceDetailPage() {
         </div>
 
         {/* Performance History */}
-        {serviceHistory.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                <BarChart3 className="h-6 w-6 mr-2" />
-                Historique des Performances
-              </h2>
-              <span className="text-sm text-gray-500">{serviceHistory.length} points de données</span>
-            </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+              <BarChart3 className="h-6 w-6 mr-2" />
+              Historique des Performances
+            </h2>
+            <span className="text-sm text-gray-500">
+              {serviceHistory.length > 0 ? `${serviceHistory.length} points de données` : 'Aucune donnée disponible'}
+            </span>
+          </div>
+          
+          {serviceHistory.length > 0 ? (
+            <div>
             
             {/* Graphique CPU */}
             <div className="mb-6">
@@ -402,16 +406,27 @@ export default function ServiceDetailPage() {
               </ResponsiveContainer>
             </div>
           </div>
-        )}
+          ) : (
+            <div className="text-center py-12">
+              <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">
+                Aucun historique de performance disponible pour ce service.
+              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                Les données d'historique s'accumuleront au fil du temps.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Logs en Temps Réel */}
-        {serviceLogs && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                <Terminal className="h-6 w-6 mr-2" />
-                Logs du Service (Temps Réel)
-              </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
+              <Terminal className="h-6 w-6 mr-2" />
+              Logs du Service (Temps Réel)
+            </h2>
+            {serviceLogs && serviceLogs.lines && serviceLogs.lines.length > 0 && (
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setAutoScroll(!autoScroll)}
@@ -439,7 +454,8 @@ export default function ServiceDetailPage() {
                   </span>
                 )}
               </div>
-            </div>
+            )}
+          </div>
             
             {/* Error Lines Summary */}
             {serviceLogs.errorLines && serviceLogs.errorLines.length > 0 && (
@@ -458,49 +474,62 @@ export default function ServiceDetailPage() {
               </div>
             )}
             
-            {/* All Logs - Affichage Terminal Style */}
-            <div className="relative">
-              <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
-                {serviceLogs.lines && serviceLogs.lines.slice(-100).map((line: string, index: number) => (
-                  <div 
-                    key={index} 
-                    className={`py-0.5 leading-relaxed ${
-                      line.toLowerCase().includes('error') || line.toLowerCase().includes('exception') || line.toLowerCase().includes('fatal')
-                        ? 'text-red-400 font-semibold'
-                        : line.toLowerCase().includes('warn')
-                        ? 'text-yellow-400'
-                        : line.toLowerCase().includes('info')
-                        ? 'text-blue-300'
-                        : line.toLowerCase().includes('debug')
-                        ? 'text-gray-500'
-                        : 'text-green-400'
-                    }`}
-                  >
-                    {line}
-                  </div>
-                ))}
-                {/* Référence pour auto-scroll */}
-                <div ref={logsEndRef} />
-              </div>
-              {!autoScroll && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                  <button
-                    onClick={() => {
-                      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                      setAutoScroll(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-lg transition-colors"
-                  >
-                    ↓ Aller en bas et activer auto-scroll
-                  </button>
+          {/* All Logs - Affichage Terminal Style */}
+          {serviceLogs && serviceLogs.lines && serviceLogs.lines.length > 0 ? (
+            <>
+              <div className="relative">
+                <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
+                  {serviceLogs.lines.slice(-100).map((line: string, index: number) => (
+                    <div 
+                      key={index} 
+                      className={`py-0.5 leading-relaxed ${
+                        line.toLowerCase().includes('error') || line.toLowerCase().includes('exception') || line.toLowerCase().includes('fatal')
+                          ? 'text-red-400 font-semibold'
+                          : line.toLowerCase().includes('warn')
+                          ? 'text-yellow-400'
+                          : line.toLowerCase().includes('info')
+                          ? 'text-blue-300'
+                          : line.toLowerCase().includes('debug')
+                          ? 'text-gray-500'
+                          : 'text-green-400'
+                      }`}
+                    >
+                      {line}
+                    </div>
+                  ))}
+                  {/* Référence pour auto-scroll */}
+                  <div ref={logsEndRef} />
                 </div>
-              )}
+                {!autoScroll && (
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                    <button
+                      onClick={() => {
+                        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        setAutoScroll(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-lg transition-colors"
+                    >
+                      ↓ Aller en bas et activer auto-scroll
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                🔄 Rafraîchissement automatique toutes les 5 secondes
+              </p>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <Terminal className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">
+                Aucun log disponible pour ce service.
+              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                Les logs apparaîtront ici une fois que le service aura généré des sorties.
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              🔄 Rafraîchissement automatique toutes les 5 secondes
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </AdminLayout>
   );
