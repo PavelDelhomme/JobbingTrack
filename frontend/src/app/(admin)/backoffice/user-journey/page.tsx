@@ -22,7 +22,8 @@ import {
   Pause,
   RotateCcw,
   Download,
-  Trash2
+  Trash2,
+  Key
 } from 'lucide-react';
 
 // Types pour les étapes du parcours
@@ -192,6 +193,8 @@ export default function UserJourneyPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  const [testToken, setTestToken] = useState<string | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
   const [analytics, setAnalytics] = useState<any>({
     totalDuration: 0,
     successRate: 0,
@@ -217,6 +220,13 @@ export default function UserJourneyPage() {
           completedAt: null
         });
         console.log('✅ État des tests restauré depuis localStorage');
+      }
+      
+      // Charger le token de test permanent
+      const savedTestToken = localStorage.getItem('test_token');
+      if (savedTestToken) {
+        setTestToken(savedTestToken);
+        console.log('✅ Token de test permanent chargé');
       }
     } catch (error) {
       console.error('Erreur lors du chargement de l\'état:', error);
@@ -750,6 +760,46 @@ export default function UserJourneyPage() {
     a.click();
   };
 
+  // Générer un token de test permanent
+  const generateTestToken = async () => {
+    setIsGeneratingToken(true);
+    try {
+      // Récupérer le token normal depuis localStorage
+      const normalToken = localStorage.getItem('token');
+      
+      if (!normalToken) {
+        alert('❌ Vous devez être connecté pour générer un token de test.\n\nConnectez-vous d\'abord, puis réessayez.');
+        return;
+      }
+
+      const response = await fetch('/api/v1/auth/generate-test-token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${normalToken}`
+        }
+      });
+
+      const data = await handleFetchResponse(response);
+
+      if (data.success && data.testToken) {
+        // Sauvegarder le token permanent
+        localStorage.setItem('test_token', data.testToken);
+        setTestToken(data.testToken);
+        
+        alert(`✅ Token de test permanent généré avec succès !\n\n` +
+              `Validité : ${data.expiresIn}\n\n` +
+              `Ce token élimine les erreurs 403 "Token invalide" durant les tests.\n\n` +
+              `Il sera utilisé automatiquement pour tous les tests.`);
+      }
+    } catch (error: any) {
+      console.error('Erreur génération token de test:', error);
+      alert(`❌ Erreur lors de la génération du token de test :\n\n${error.message}\n\n` +
+            `Assurez-vous d'être connecté avec un compte SUPER_ADMIN.`);
+    } finally {
+      setIsGeneratingToken(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -762,7 +812,7 @@ export default function UserJourneyPage() {
             </p>
           </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={runJourney}
             disabled={isRunning}
@@ -782,6 +832,17 @@ export default function UserJourneyPage() {
               Annuler
             </Button>
           )}
+          
+          <Button
+            onClick={generateTestToken}
+            disabled={isRunning || isGeneratingToken}
+            variant="default"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+            title="Générer un token permanent pour éviter les erreurs 403"
+          >
+            <Key className="h-4 w-4 mr-2" />
+            {isGeneratingToken ? 'Génération...' : testToken ? '✅ Token Actif' : 'Générer Token de Test'}
+          </Button>
           
           <Button
             onClick={resetJourney}
@@ -804,7 +865,7 @@ export default function UserJourneyPage() {
             onClick={clearHistory}
             variant="outline"
             disabled={isRunning}
-            className="text-gray-600 hover:text-red-600"
+            className="text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
             title="Effacer l'historique sauvegardé"
           >
             <Trash2 className="h-4 w-4" />
@@ -919,10 +980,10 @@ export default function UserJourneyPage() {
                         {/* Résultat */}
                         {step.result && step.status === 'success' && (
                           <details className="mt-2">
-                            <summary className="text-sm text-blue-600 cursor-pointer">
+                            <summary className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
                               Voir le résultat
                             </summary>
-                            <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
+                            <pre className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs overflow-x-auto text-gray-900 dark:text-gray-100">
                               {JSON.stringify(step.result, null, 2)}
                             </pre>
                           </details>

@@ -5,28 +5,28 @@ const {
   updateUserPreferences,
   resetUserPreferences
 } = require('../controllers/preferences.controller');
-const { authenticateToken } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middlewares/auth.middleware');
 
 /**
  * @route   GET /api/v1/preferences
  * @desc    Récupérer les préférences de l'utilisateur connecté
  * @access  Private
  */
-router.get('/', authenticateToken, getUserPreferences);
+router.get('/', authenticate, getUserPreferences);
 
 /**
  * @route   PUT /api/v1/preferences
  * @desc    Mettre à jour les préférences de l'utilisateur
  * @access  Private
  */
-router.put('/', authenticateToken, updateUserPreferences);
+router.put('/', authenticate, updateUserPreferences);
 
 /**
  * @route   POST /api/v1/preferences/reset
  * @desc    Réinitialiser les préférences par défaut
  * @access  Private
  */
-router.post('/reset', authenticateToken, resetUserPreferences);
+router.post('/reset', authenticate, resetUserPreferences);
 
 module.exports = router;
 

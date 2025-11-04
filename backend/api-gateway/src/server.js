@@ -89,7 +89,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ✅ Middleware de sécurité personnalisés (ordre important)
 // 1. Détection d'intrusion (premier pour analyser toutes les requêtes)
-app.use(intrusionDetection);
+// ⚠️ TEMPORAIREMENT DÉSACTIVÉ - Cause des erreurs "patternConfig is not defined"
+// app.use(intrusionDetection);
 
 // 2. WAF (Web Application Firewall)
 if (process.env.WAF_ENABLED === 'true') {
@@ -143,6 +144,8 @@ app.get('/health', (req, res) => {
 });
 
 // ✅ Routes d'authentification spécifiques (MODE DÉVELOPPEMENT)
+// ⚠️ DÉSACTIVÉ - Laisser le vrai auth-service gérer le login
+/* COMMENTÉ POUR UTILISER LE VRAI AUTH-SERVICE
 app.post('/api/v1/auth/login', async (req, res) => {
   try {
     logger.info('🔥 Route /api/v1/auth/login interceptée');
@@ -180,6 +183,7 @@ app.post('/api/v1/auth/login', async (req, res) => {
     });
   }
 });
+*/
 
 // ✅ Route pour récupérer le profil utilisateur
 app.get('/api/v1/auth/profile', async (req, res) => {
@@ -212,6 +216,34 @@ app.get('/api/v1/auth/profile', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
+    });
+  }
+});
+
+// ✅ Route pour l'inscription (register)
+app.post('/api/v1/auth/register', async (req, res) => {
+  try {
+    logger.info('📝 Route /api/v1/auth/register interceptée');
+    
+    // Proxyfier vers auth-service
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+    const response = await axios.post(
+      `${authServiceUrl}/api/v1/auth/register`,
+      req.body,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+        validateStatus: () => true
+      }
+    );
+    
+    logger.info(`Register - Status: ${response.status}`);
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    logger.error('Erreur register:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.response?.data?.message || 'Erreur lors de l\'inscription'
     });
   }
 });

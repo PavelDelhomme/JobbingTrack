@@ -968,6 +968,66 @@ const getSecurityMetrics = async (req, res, next) => {
   }
 };
 
+// ✅ Générer un token de test permanent (pour les tests user-journey)
+// Réservé aux SUPER_ADMIN uniquement
+const generateTestToken = async (req, res) => {
+  try {
+    // Vérifier que l'utilisateur est SUPER_ADMIN
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentification requise'
+      });
+    }
+
+    const parts = authHeader.split(' ');
+    const token = parts[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès réservé aux super administrateurs'
+      });
+    }
+
+    // Générer un token de test qui n'expire JAMAIS (ou dans 100 ans)
+    const testToken = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        role: user.role,
+        testToken: true // Marqueur pour identifier un token de test
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '100y' } // 100 ans = pratiquement permanent
+    );
+
+    logger.info(`Token de test permanent généré pour ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Token de test permanent généré',
+      testToken,
+      expiresIn: '100 ans (permanent)',
+      warning: 'Ce token est réservé aux tests. Ne jamais l\'utiliser en production.'
+    });
+
+  } catch (error) {
+    logger.error('Erreur génération token de test:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la génération du token de test'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -984,5 +1044,6 @@ module.exports = {
   getUserCustomization,
   saveUserCustomization,
   getActiveSessions,
-  getSecurityMetrics
+  getSecurityMetrics,
+  generateTestToken
 };

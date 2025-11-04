@@ -4,6 +4,8 @@
 
 ## 📖 Documentation
 
+### 📚 **[📖 LIRE DANS CET ORDRE](LIRE_DANS_CET_ORDRE.md)** - **GUIDE COMPLET : Quels fichiers lire et dans quel ordre ?**
+
 ### ⭐ **[✅ CORRECTIONS TERMINÉES](CORRECTIONS_TERMINEES.md)** - **TOUS LES TESTS SONT CORRIGÉS !**
 
 ### 🚀 **[DÉMARRAGE RAPIDE](START_TESTS.sh)** - **Script automatique : `./START_TESTS.sh`**
