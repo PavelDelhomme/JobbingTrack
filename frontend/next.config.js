@@ -50,12 +50,12 @@ const nextConfig = {
         return [
             {
                 source: '/api/v1/:path*',
-                // Utiliser localhost pour le développement
-                destination: 'http://localhost:3000/api/v1/:path*',
+                // ✅ Utiliser le nom Docker pour la communication inter-conteneurs
+                destination: 'http://api-gateway:3000/api/v1/:path*',
             },
             {
                 source: '/api/health',
-                destination: 'http://localhost:3000/health',
+                destination: 'http://api-gateway:3000/health',
             },
         ];
     },

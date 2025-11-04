@@ -44,6 +44,9 @@ router.post('/reset-password/:token', [
 // Routes protégées
 router.get('/profile', authenticate, authController.getProfile);
 
+// ✅ SUPER_ADMIN - Générer un token de test permanent (user-journey)
+router.post('/generate-test-token', authenticate, authController.generateTestToken);
+
 // ✅ ADMIN - Routes de gestion des utilisateurs
 router.get('/users', authenticate, authController.getAllUsers);
 router.put('/users/:id/role', authenticate, authController.updateUserRole);
