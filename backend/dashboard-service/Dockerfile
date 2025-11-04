@@ -1,7 +1,7 @@
-FROM node:20-alpine
+FROM node:20.18.0-alpine
 
-# Installer les dépendances système nécessaires pour Prisma
-RUN apk add --no-cache openssl
+# Installer les dépendances système nécessaires pour Prisma et health checks
+RUN apk add --no-cache openssl wget
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Exposer le port
-EXPOSE 3001
+EXPOSE 3000
 
 # Commande de démarrage
-CMD ["npm", "start"]
+CMD ["node", "src/server.js"]

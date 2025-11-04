@@ -1,9 +1,9 @@
-FROM node:20-alpine
+FROM node:20.18.0-alpine
 
 WORKDIR /app
 
-# Installer Docker CLI pour gérer les conteneurs
-RUN apk add --no-cache docker-cli
+# Installer Docker CLI et outils de diagnostic
+RUN apk add --no-cache docker-cli curl netcat-openbsd wget
 
 # Copier les fichiers de dépendances
 COPY package*.json ./

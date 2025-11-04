@@ -1,79 +1,76 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const logger = require('./utils/logger');
 
 const dashboardRoutes = require('./routes/dashboard.routes');
+const statisticsRoutes = require('./routes/statistics.routes');
+const preferencesRoutes = require('./routes/preferences.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 
-const app = express();
 const PORT = process.env.PORT || 3007;
 
-// Configuration des middlewares
+const app = express();
+
+console.log(`🚀 Démarrage du dashboard-service sur le port ${PORT}...`);
+
+// Middlewares globaux
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-  credentials: true
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting spécifique à l'auth - TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
-// const authLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 50, // Plus restrictif pour l'auth
-//   message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
-// });
-// app.use('/api/v1/dashboard', authLimiter);
+// Logs des requêtes
+app.use((req, res, next) => {
+  console.log(`📡 REQUEST: ${req.method} ${req.url} de ${req.ip}`);
+  next();
+});
 
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.json({
     status: 'OK',
     service: 'dashboard-service',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
+    version: '1.0.0',
+    port: PORT
   });
 });
 
-// Test route - directement dans le serveur principal
-app.get('/api/v1/dashboard/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Test route fonctionne'
-  });
-});
-
-// Routes du routeur
+// Routes
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/statistics', statisticsRoutes);
+app.use('/api/v1/preferences', preferencesRoutes);
 
-// ✅ TEMPORAIREMENT DÉSACTIVÉ POUR LE DÉVELOPPEMENT
-// Middlewares d'erreur
-// app.use(notFound);
-// app.use(errorHandler);
+// Gestion des erreurs 404
+app.use(notFound);
 
+// Gestion des erreurs
+app.use(errorHandler);
+
+// Démarrage du serveur
 const server = app.listen(PORT, () => {
-  logger.info(`📊 Dashboard Service démarré sur le port ${PORT}`);
-  logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ dashboard-service démarré avec succès sur le port ${PORT}`);
+  console.log(`🌐 Service accessible sur http://localhost:${PORT}`);
+  console.log(`📊 Routes disponibles:`);
+  console.log(`   - GET  /health`);
+  console.log(`   - GET  /api/v1/dashboard/stats`);
+  console.log(`   - GET  /api/v1/statistics`);
+  console.log(`   - GET  /api/v1/preferences`);
+  console.log(`   - PUT  /api/v1/preferences`);
 });
 
+// Gestion gracieuse de l'arrêt
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal reçu: fermeture du Dashboard Service');
+  console.log('🛑 Signal SIGTERM reçu, arrêt gracieux...');
   server.close(() => {
-    logger.info('Dashboard Service fermé');
+    console.log('✅ Serveur arrêté');
     process.exit(0);
   });
-});
-
-process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Rejection:', err);
-  process.exit(1);
 });
 
 module.exports = app;

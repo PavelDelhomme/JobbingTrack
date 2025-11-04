@@ -1,0 +1,190 @@
+{
+  "timestamp": "2025-10-24T21:29:52.082Z",
+  "dataProcessing": {
+    "initialMemory": {
+      "rss": 61403136,
+      "heapUsed": 4435280,
+      "heapTotal": 6615040,
+      "external": 1537721,
+      "arrayBuffers": 10515,
+      "timestamp": "2025-10-24T21:29:49.098Z"
+    },
+    "finalMemory": {
+      "rss": 182603776,
+      "heapUsed": 4538968,
+      "heapTotal": 148697088,
+      "external": 1696223,
+      "arrayBuffers": 16623,
+      "timestamp": "2025-10-24T21:29:49.843Z"
+    },
+    "totalMemoryIncrease": {
+      "rss": 121200640,
+      "heapUsed": 103688,
+      "heapTotal": 142082048
+    },
+    "tests": [
+      {
+        "dataSize": 1000,
+        "processingTime": 12.250294999999998,
+        "memoryIncrease": {
+          "rss": 6029312,
+          "heapUsed": 548544,
+          "heapTotal": 1310720
+        },
+        "itemsPerSecond": 81631,
+        "memoryPerItem": {
+          "rss": 6029.312,
+          "heapUsed": 548.544
+        }
+      },
+      {
+        "dataSize": 5000,
+        "processingTime": 38.404292,
+        "memoryIncrease": {
+          "rss": 12320768,
+          "heapUsed": 1911200,
+          "heapTotal": 2883584
+        },
+        "itemsPerSecond": 130194,
+        "memoryPerItem": {
+          "rss": 2464.1536,
+          "heapUsed": 382.24
+        }
+      },
+      {
+        "dataSize": 10000,
+        "processingTime": 78.14622300000002,
+        "memoryIncrease": {
+          "rss": 22360064,
+          "heapUsed": 10045448,
+          "heapTotal": 41943040
+        },
+        "itemsPerSecond": 127965,
+        "memoryPerItem": {
+          "rss": 2236.0064,
+          "heapUsed": 1004.5448
+        }
+      },
+      {
+        "dataSize": 25000,
+        "processingTime": 154.05965199999997,
+        "memoryIncrease": {
+          "rss": 48189440,
+          "heapUsed": 27138280,
+          "heapTotal": 88342528
+        },
+        "itemsPerSecond": 162275,
+        "memoryPerItem": {
+          "rss": 1927.5776,
+          "heapUsed": 1085.5312
+        }
+      }
+    ]
+  },
+  "memoryLeaks": {
+    "initialMemory": {
+      "rss": 182603776,
+      "heapUsed": 4556880,
+      "heapTotal": 148697088,
+      "external": 1696223,
+      "arrayBuffers": 16623,
+      "timestamp": "2025-10-24T21:29:49.846Z"
+    },
+    "afterCleanup": {
+      "rss": 182603776,
+      "heapUsed": 22789568,
+      "heapTotal": 148697088,
+      "external": 1696223,
+      "arrayBuffers": 16623,
+      "timestamp": "2025-10-24T21:29:49.852Z"
+    },
+    "memoryRecovered": {
+      "rss": 0,
+      "heapUsed": -160464
+    },
+    "leakTests": [
+      {
+        "test": "objects",
+        "memoryIncrease": {
+          "rss": 0,
+          "heapUsed": 14819448
+        }
+      },
+      {
+        "test": "closures",
+        "memoryIncrease": {
+          "rss": 0,
+          "heapUsed": 2960736
+        }
+      },
+      {
+        "test": "events",
+        "memoryIncrease": {
+          "rss": 0,
+          "heapUsed": 612968
+        }
+      }
+    ]
+  },
+  "garbageCollection": {
+    "initialMemory": {
+      "rss": 182603776,
+      "heapUsed": 22801328,
+      "heapTotal": 148697088,
+      "external": 1696223,
+      "arrayBuffers": 16623,
+      "timestamp": "2025-10-24T21:29:49.852Z"
+    },
+    "gcTests": [
+      {
+        "iteration": 1,
+        "memoryBefore": 116236256,
+        "memoryAfter": 116236880,
+        "memoryFreed": -624,
+        "freedPercentage": "-0.0%"
+      },
+      {
+        "iteration": 2,
+        "memoryBefore": 109796360,
+        "memoryAfter": 109796984,
+        "memoryFreed": -624,
+        "freedPercentage": "-0.0%"
+      },
+      {
+        "iteration": 3,
+        "memoryBefore": 109634200,
+        "memoryAfter": 109634824,
+        "memoryFreed": -624,
+        "freedPercentage": "-0.0%"
+      },
+      {
+        "iteration": 4,
+        "memoryBefore": 108516040,
+        "memoryAfter": 108516664,
+        "memoryFreed": -624,
+        "freedPercentage": "-0.0%"
+      },
+      {
+        "iteration": 5,
+        "memoryBefore": 108587472,
+        "memoryAfter": 108588096,
+        "memoryFreed": -624,
+        "freedPercentage": "-0.0%"
+      }
+    ],
+    "averageMemoryFreed": -624
+  },
+  "summary": {
+    "totalMemoryIncrease": {
+      "rss": 121200640,
+      "heapUsed": 103688,
+      "heapTotal": 142082048
+    },
+    "memoryRecovered": {
+      "rss": 0,
+      "heapUsed": -160464
+    },
+    "recoveryRate": "-154.8%",
+    "evaluation": "poor"
+  }
+}

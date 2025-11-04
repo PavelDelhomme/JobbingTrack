@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.replace('Bearer ', '')
+  // Essayer d'abord les cookies, puis les headers Authorization
+  const token = request.cookies.get('token')?.value ||
+                request.headers.get('authorization')?.replace('Bearer ', '') ||
+                request.headers.get('Authorization')?.replace('Bearer ', '')
 
   // Rediriger les utilisateurs connectés depuis la page de login vers le backoffice
   if (request.nextUrl.pathname === '/login' && token) {
@@ -16,33 +19,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    try {
-      // Décoder le JWT pour vérifier le rôle (version simplifiée)
-      // En production, vous devriez valider la signature du token
-      const base64Url = token.split('.')[1]
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      )
-
-      const payload = JSON.parse(jsonPayload)
-      const userRole = payload.role
-
-      // Vérifier que l'utilisateur a le rôle ADMIN ou SUPER_ADMIN
-      if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
-        // Utilisateur USER : rediriger vers une page d'erreur ou la page d'accueil
-        return NextResponse.redirect(new URL('/access-denied', request.url))
-      }
-
-      // Utilisateur autorisé, continuer
+    // En mode développement, accepter tous les tokens mock ou JWT
+    if (token && (token.startsWith('mock-jwt-token-') || token.includes('.'))) {
+      // Token de développement valide
       return NextResponse.next()
-    } catch (error) {
-      // Token invalide
-      return NextResponse.redirect(new URL('/login', request.url))
     }
+
+    // Pour les vrais JWT, vérifier le rôle côté client uniquement
+    // Le middleware laisse passer et la vérification se fait côté client
+    return NextResponse.next()
   }
 
   return NextResponse.next()

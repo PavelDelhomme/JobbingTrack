@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  # Frontend Next.js en production
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: jobbingtrack-frontend-prod
+    ports:
+      - "8080:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://localhost:3001}
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+networks:
+  jobbingtrack-network:
+    external: true

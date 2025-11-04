@@ -2,79 +2,610 @@
 // Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
+  provider = "prisma-client-js"
 }
 
 datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Modèle Utilisateur
-
-  // Champs pour reset password
+// Modèle Utilisateur (simplifié pour interview-service)
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  firstName      String
+  lastName       String
+  phone          String?
+  profilePicture String?
 
   // Champs administratifs
+  role     UserRole @default(USER)
+  isActive Boolean  @default(true)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Champs de synchronisation
+  // Relations pour interview-service
+  interviews   Interview[]
+  Application  Application[]
+  Contact      Contact[]
+  FollowUp     FollowUp[]
+  Call         Call[]
+  Event        Event[]
+  Notification Notification[]
+  Document     Document[]
+}
 
+// ✅ Modèle Entretien - MODÈLE PRINCIPAL POUR CE SERVICE
+model Interview {
+  id             String          @id @default(cuid())
+  userId         String
+  applicationId  String
+  companyId      String
+  type           InterviewType
+  scheduledAt    DateTime // Date et heure programmée
+  duration       Int? // en minutes
+  location       String?
+  meetingUrl     String?
+  interviewer    String?
+  notes          String?
+  status         InterviewStatus @default(PENDING)
+  feedback       String?
+  completedAt    DateTime? // Date et heure de fin
+  // Champs d'archivage
+  isArchived     Boolean         @default(false)
+  archivedAt     DateTime?
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-// Modèle Entreprise
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company           Company            @relation(fields: [companyId], references: [id])
+  // Relations avec les nouveaux modèles
+  events            Event[]
+  // Relations many-to-many avec contacts
+  interviewContacts InterviewContact[]
+  // Relations vers Contact (one-to-many via les activités)
+  contacts          Contact[]
+  // Relation polymorphe avec Event
+  event             Event?             @relation("InterviewEvent")
 
+  @@index([userId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([applicationId])
+}
 
-// Modèle Plateforme de Candidature
+// Modèle Candidature (simplifié pour interview-service)
+model Application {
+  id              String            @id @default(cuid())
+  userId          String
+  companyId       String
+  platformId      String? // Plateforme de candidature utilisée
+  position        String
+  description     String?
+  location        String?
+  type            JobType           @default(FULL_TIME)
+  salary          String?
+  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime          @default(now()) // Date et heure d'envoi
+  jobUrl          String?
+  notes           String?
+  // Champs d'archivage
+  isArchived      Boolean           @default(false)
+  archivedAt      DateTime?
+  archivedBy      String? // ID de l'utilisateur qui a archivé
+  archivedReason  String? // Raison de l'archivage
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company                    @relation(fields: [companyId], references: [id])
+  platform            Platform?                  @relation(fields: [platformId], references: [id])
+  interviews          Interview[]
+  followUps           FollowUp[]
+  documents           ApplicationDocument[]
+  activities          Activity[]
+  calls               Call[]
+  // Relations avec les nouveaux modèles
+  events              Event[]
+  statusHistory       ApplicationStatusHistory[]
+  // Relations many-to-many avec contacts
+  contactApplications ContactApplication[]
+  // Relation polymorphe avec Event
+  event               Event?                     @relation("ApplicationEvent")
+}
 
-// Modèle Plateforme de Candidature
+// Modèle Entreprise (simplifié pour interview-service)
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  website     String?
+  industry    String?
+  size        String?
+  location    String?
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  applications     Application[]
+  contacts         Contact[]
+  // Relations avec les nouveaux modèles
+  followUps        FollowUp[]
+  calls            Call[]
+  interviews       Interview[]
+  // Relations many-to-many avec contacts
+  contactCompanies ContactCompany[]
+}
 
-// Modèle Candidature
+// Modèle Contact (simplifié pour interview-service)
+model Contact {
+  id              String    @id @default(cuid())
+  userId          String
+  companyId       String?
+  firstName       String
+  lastName        String
+  position        String?
+  email           String?
+  phone           String?
+  linkedinUrl     String?
+  notes           String?
+  lastContactDate DateTime?
+  // Champs d'archivage
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String? // ID de l'utilisateur qui a archivé
+  archivedReason  String? // Raison de l'archivage
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company             Company?             @relation(fields: [companyId], references: [id])
+  followUps           FollowUp[]
+  activities          Activity[]
+  calls               Call[]
+  // Relations avec les nouveaux modèles
+  interviews          Interview[]
+  events              Event[]
+  notifications       Notification[]
+  // Relations many-to-many
+  contactCompanies    ContactCompany[]
+  contactApplications ContactApplication[]
+  followUpContacts    FollowUpContact[]
+  interviewContacts   InterviewContact[]
+  contactEvents       ContactEvent[]
+}
 
-// Modèle Entretien
+// Modèle Plateforme (simplifié pour interview-service)
+model Platform {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  website     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  applications Application[]
+}
 
-// ✅ NOUVEAU - Modèle Appel Téléphonique
+// Modèle Relance (simplifié pour interview-service)
+model FollowUp {
+  id             String         @id @default(cuid())
+  userId         String
+  applicationId  String
+  companyId      String
+  contactId      String?
+  type           FollowUpType
+  scheduledDate  DateTime // Date et heure programmée
+  completed      Boolean        @default(false)
+  completedDate  DateTime? // Date et heure de fin
+  sentDate       DateTime? // Date et heure d'envoi effectif
+  subject        String
+  message        String?
+  response       String?
+  responseDate   DateTime? // Date et heure de réponse
+  status         FollowUpStatus @default(PENDING_FOLLOWUP)
+  // Champs d'archivage
+  isArchived     Boolean        @default(false)
+  archivedAt     DateTime?
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application      Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company          Company           @relation(fields: [companyId], references: [id])
+  contact          Contact?          @relation(fields: [contactId], references: [id])
+  // Relations avec les nouveaux modèles
+  events           Event[]
+  calls            Call[]
+  // Relations many-to-many avec contacts
+  followUpContacts FollowUpContact[]
+  // Relation polymorphe avec Event
+  event            Event?            @relation("FollowUpEvent")
+}
 
-// Modèle Contact
+// ✅ Modèle Appel Téléphonique (simplifié pour interview-service)
+model Call {
+  id             String     @id @default(cuid())
+  userId         String
+  applicationId  String // ⚠️ OBLIGATOIRE - Lié à une candidature
+  companyId      String? // Optionnel - Entreprise appelée
+  contactId      String? // Optionnel - Contact appelé
+  followUpId     String? // Optionnel - Relance liée
+  type           CallType   @default(OUTGOING)
+  scheduledDate  DateTime?
+  callDate       DateTime?
+  duration       Int? // en secondes
+  status         CallStatus @default(SCHEDULED)
+  notes          String?
+  outcome        String? // Résultat de l'appel
+  followUpNeeded Boolean    @default(false)
+  // Champs d'archivage
+  isArchived     Boolean    @default(false)
+  archivedAt     DateTime?
+  archivedBy     String? // ID de l'utilisateur qui a archivé
+  archivedReason String? // Raison de l'archivage
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company     Company?    @relation(fields: [companyId], references: [id])
+  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  followUp    FollowUp?   @relation(fields: [followUpId], references: [id])
+  // Relations avec les nouveaux modèles
+  events      Event[]
+  // Relation polymorphe avec Event
+  event       Event?      @relation("CallEvent")
+}
 
-// Modèle Relance
+// Modèle Événement (calendrier - simplifié pour interview-service)
+model Event {
+  id                    String    @id @default(cuid())
+  userId                String
+  title                 String
+  description           String?
+  startDate             DateTime
+  endDate               DateTime?
+  isAllDay              Boolean   @default(false)
+  type                  EventType @default(AUTRE)
+  isReminderActive      Boolean   @default(false)
+  reminderMinutesBefore Int? // Minutes avant l'événement pour le rappel
+  color                 String? // Couleur hexadécimale pour l'affichage
+  // Relations polymorphes (un seul lien actif à la fois)
+  applicationId         String? // Lien vers une candidature
+  interviewId           String? // Lien vers un entretien
+  followUpId            String? // Lien vers une relance
+  callId                String? // Lien vers un appel
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application   Application?   @relation("ApplicationEvent", fields: [applicationId], references: [id], onDelete: Cascade)
+  interview     Interview?     @relation("InterviewEvent", fields: [interviewId], references: [id], onDelete: Cascade)
+  followUp      FollowUp?      @relation("FollowUpEvent", fields: [followUpId], references: [id], onDelete: Cascade)
+  call          Call?          @relation("CallEvent", fields: [callId], references: [id], onDelete: Cascade)
+  // Relations one-to-many vers les modèles principaux
+  applications  Application[]
+  interviews    Interview[]
+  followUps     FollowUp[]
+  calls         Call[]
+  contacts      Contact[]
+  notifications Notification[]
+  ContactEvent  ContactEvent[]
 
-// ✅ NOUVEAU - Table de liaison Application-Contact
-// Permet de lier plusieurs contacts à une candidature
+  // Contraintes pour s'assurer qu'un seul lien polymorphe est actif
+  @@unique([applicationId])
+  @@unique([interviewId])
+  @@unique([followUpId])
+  @@unique([callId])
+  @@index([userId])
+  @@index([startDate])
+  @@index([type])
+}
 
+// Modèle Historique des états de candidature (simplifié pour interview-service)
+model ApplicationStatusHistory {
+  id             String             @id @default(cuid())
+  applicationId  String
+  previousStatus ApplicationStatus?
+  newStatus      ApplicationStatus
+  comment        String?
+  changedAt      DateTime           @default(now())
+  changedBy      String? // ID de l'utilisateur qui a fait le changement
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-// Modèle Document
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
+  @@index([changedAt])
+  @@index([changedBy])
+}
 
-// Table de liaison Application-Document
+// Modèle Notification (simplifié pour interview-service)
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  title      String
+  message    String
+  type       NotificationType @default(IN_APP)
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  entityType EntityType?
+  entityId   String?
+  data       Json? // Métadonnées supplémentaires
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Contact   Contact? @relation(fields: [contactId], references: [id])
+  contactId String?
+  Event     Event?   @relation(fields: [eventId], references: [id])
+  eventId   String?
 
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
 
-// Modèle Rappel
+// Modèle Document (simplifié pour interview-service)
+model Document {
+  id        String       @id @default(cuid())
+  userId    String
+  name      String
+  type      DocumentType
+  url       String
+  size      Int // en bytes
+  mimeType  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications ApplicationDocument[]
+}
 
-// Modèle Template de Message
+// Table de liaison Application-Document (simplifiée pour interview-service)
+model ApplicationDocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  documentId    String
+  version       Int      @default(1)
+  createdAt     DateTime @default(now())
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  document    Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
-// Modèle Activité (pour l'historique)
+  @@unique([applicationId, documentId, version])
+}
 
+// Modèle Activité (pour l'historique - simplifié pour interview-service)
+model Activity {
+  id            String       @id @default(cuid())
+  applicationId String?
+  contactId     String?
+  type          ActivityType
+  description   String
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+// === TABLES DE JONCTION MANY-TO-MANY ===
+
+// Table de jonction Contact-Entreprise
+model ContactCompany {
+  id        String   @id @default(cuid())
+  contactId String
+  companyId String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, companyId])
+  @@index([contactId])
+  @@index([companyId])
+}
+
+// Table de jonction Contact-Candidature
+model ContactApplication {
+  id            String   @id @default(cuid())
+  contactId     String
+  applicationId String
+  createdAt     DateTime @default(now())
+
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, applicationId])
+  @@index([contactId])
+  @@index([applicationId])
+}
+
+// Table de jonction Relance-Contact
+model FollowUpContact {
+  id         String   @id @default(cuid())
+  followUpId String
+  contactId  String
+  createdAt  DateTime @default(now())
+
+  followUp FollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([followUpId, contactId])
+  @@index([followUpId])
+  @@index([contactId])
+}
+
+// Table de jonction Entretien-Contact
+model InterviewContact {
+  id          String   @id @default(cuid())
+  interviewId String
+  contactId   String
+  createdAt   DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewId, contactId])
+  @@index([interviewId])
+  @@index([contactId])
+}
+
+// Table de jonction Contact-Événement
+model ContactEvent {
+  id        String   @id @default(cuid())
+  contactId String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, eventId])
+  @@index([contactId])
+  @@index([eventId])
+}
 
 // ENUMS
 
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+  TEMPORARY
+  REMOTE
+  HYBRID
+}
 
+enum ApplicationStatus {
+  CANDIDATE_PENDING // "Candidaté et en attente"
+  NO_RESPONSE // "Aucune réponse"
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP // "Aucune réponse après 1 relance"
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // "Aucune réponse après 2 relance"
+  FIRST_INTERVIEW_PENDING // "1er entretien en attente"
+  OTHER_INTERVIEW_PENDING // "Autre entretien en attente"
+  ACCEPTED_AFTER_INTERVIEW // "Retenue après entretien"
+  REJECTED_WITHOUT_INTERVIEW // "Non retenue sans entretien"
+  REJECTED_AFTER_INTERVIEW // "Non retenue après entretien"
+}
 
+enum InterviewType {
+  PHONE_SCREENING
+  VIDEO
+  ON_SITE
+  TECHNICAL
+  HR
+  MANAGER
+  TEAM
+  FINAL
+}
 
+enum InterviewStatus {
+  UPCOMING_ARRIVAL // "Entretien arrivé"
+  COMPLETED // "Entretien passé"
+  FEEDBACK_PENDING // "Retour prévu d'ici (plage de retour)"
+  PENDING // "Entretien en attente"
+}
 
+enum FollowUpType {
+  EMAIL
+  PHONE
+  LINKEDIN
+  MESSAGE
+  MEETING
+}
 
+enum FollowUpStatus {
+  PENDING_FOLLOWUP // "Relance et en attente"
+  POSITIVE_RESPONSE // "Retour positif reçu"
+  NEGATIVE_RESPONSE // "Retour négatif reçu"
+  NO_RESPONSE // "Aucun retour"
+  SCHEDULED_FOLLOWUP // "Relance prévisionnel"
+}
 
+// ✅ ENUMS pour les appels
+enum CallType {
+  OUTGOING // Appel sortant
+  INCOMING // Appel entrant
+  MISSED // Appel manqué
+}
 
+enum CallStatus {
+  SCHEDULED // Planifié
+  COMPLETED // Terminé
+  CANCELLED // Annulé
+  NO_ANSWER // Pas de réponse
+  VOICEMAIL // Message vocal laissé
+  RESCHEDULED // Replanifié
+}
 
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+  PORTFOLIO
+  CERTIFICATE
+  REFERENCE
+  OTHER
+}
 
+enum ActivityType {
+  APPLICATION_CREATED
+  APPLICATION_UPDATED
+  STATUS_CHANGED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  DOCUMENT_UPLOADED
+  FOLLOWUP_SENT
+  CONTACT_ADDED
+  NOTE_ADDED
+}
 
+// Enums pour les nouveaux modèles
+enum EventType {
+  CANDIDATURE
+  ENTRETIEN
+  RELANCE
+  APPEL
+  REUNION
+  DEADLINE
+  AUTRE
+}
 
+enum NotificationType {
+  EMAIL
+  PUSH
+  SMS
+  IN_APP
+}
 
-// ✅ NOUVEAUX ENUMS pour les appels
+enum EntityType {
+  CANDIDATURE
+  ENTRETIEN
+  RELANCE
+  APPEL
+  CONTACT
+  ENTREPRISE
+  DOCUMENT
+  EVENEMENT
+}
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  TESTER
+}

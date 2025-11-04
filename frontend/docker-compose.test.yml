@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Base de données de test PostgreSQL
+  test-db:
+    image: postgres:15-alpine
+    container_name: jobbingtrack-test-db
+    environment:
+      POSTGRES_DB: jobbingtrack_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"  # Port différent pour éviter les conflits
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+      - ./tests/e2e/test-init.sql:/docker-entrypoint-initdb.d/test-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d jobbingtrack_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # API Gateway pour les tests
+  test-api-gateway:
+    build:
+      context: ../backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-test-api-gateway
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      AUTH_SERVICE_URL: http://test-auth-service:3001
+      APPLICATION_SERVICE_URL: http://test-application-service:3002
+      COMPANY_SERVICE_URL: http://test-company-service:3003
+      CONTACT_SERVICE_URL: http://test-contact-service:3004
+      INTERVIEW_SERVICE_URL: http://test-interview-service:3005
+      NOTIFICATION_SERVICE_URL: http://test-notification-service:3006
+      DASHBOARD_SERVICE_URL: http://test-dashboard-service:3007
+      CALL_SERVICE_URL: http://test-call-service:3008
+      PROFILE_SERVICE_URL: http://test-profile-service:3011
+      EVENT_SERVICE_URL: http://test-event-service:3012
+      FOLLOWUP_SERVICE_URL: http://test-followup-service:3013
+    ports:
+      - "3001:3000"
+    depends_on:
+      test-db:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  # Services de test (mockés pour l'instant)
+  test-auth-service:
+    image: node:18-alpine
+    container_name: jobbingtrack-test-auth-service
+    working_dir: /app
+    volumes:
+      - ../backend/auth-service:/app
+    environment:
+      NODE_ENV: test
+      PORT: 3001
+      DATABASE_URL: postgresql://test_user:test_password@test-db:5432/jobbingtrack_test
+    depends_on:
+      test-db:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  # Frontend pour les tests e2e
+  test-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-test-frontend
+    environment:
+      NODE_ENV: test
+      NEXT_PUBLIC_API_URL: http://test-api-gateway:3000
+    ports:
+      - "3002:3000"
+    depends_on:
+      - test-api-gateway
+    networks:
+      - test-network
+
+volumes:
+  test_db_data:
+
+networks:
+  test-network:
+    driver: bridge

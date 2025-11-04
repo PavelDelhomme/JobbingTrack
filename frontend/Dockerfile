@@ -1,16 +1,23 @@
 # frontend/Dockerfile - VERSION FINALE SANS AUTO-INIT
-FROM node:20-alpine AS base
+FROM node:20.18.0-alpine AS base
 RUN apk add --no-cache libc6-compat curl dumb-init
 WORKDIR /app
 
 # Stage dependencies
 FROM base AS deps
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  else npm install; \
-  fi
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package.json package-lock.json* ./
+
+#RUN \
+#  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+#  else npm install; \
+#  fi
+RUN npm ci --legacy-peer-deps
+
+# ✅ VÉRIFICATION: S'assurer que socket.io-client est bien installé
+RUN npm list socket.io-client || echo "⚠️ socket.io-client non trouvé"
 
 # Stage development (pour docker-compose)
 FROM base AS development
@@ -24,8 +31,11 @@ RUN adduser --system --uid 1001 nextjs
 RUN mkdir -p /app/.next /app/src /app/public /app/node_modules
 RUN chown -R nextjs:nodejs /app
 
-# Copier node_modules en tant que root
+# Copier node_modules en tant que root AVEC socket.io-client
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=deps --chown=nextjs:nodejs /app/package-lock.json* ./package-lock.json
+
 
 # Copier tous les fichiers avec bonnes permissions
 COPY --chown=nextjs:nodejs . .
@@ -40,6 +50,7 @@ ENV NODE_ENV=development
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_METRICS_URL=http://localhost:8014
 
 # Changer vers utilisateur nextjs
 USER nextjs

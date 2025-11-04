@@ -1,199 +1,197 @@
-const { PrismaClient } = require('@prisma/client')
-const bcrypt = require('bcryptjs')
+/**
+ * Seed des données prédéfinies pour JobbingTrack
+ * Crée les listes personnalisables par défaut (plateformes, types, etc.)
+ */
 
-const prisma = new PrismaClient()
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Début du peuplement de la base de données...')
+  console.log('🌱 Seeding des données prédéfinies JobbingTrack...\n');
 
-  // Nettoyer les données existantes
-  await prisma.activity.deleteMany()
-  await prisma.followUp.deleteMany()
-  await prisma.interview.deleteMany()
-  await prisma.applicationDocument.deleteMany()
-  await prisma.application.deleteMany()
-  await prisma.contact.deleteMany()
-  await prisma.reminder.deleteMany()
-  await prisma.document.deleteMany()
-  await prisma.messageTemplate.deleteMany()
-  await prisma.company.deleteMany()
-  await prisma.user.deleteMany()
+  // ============================================
+  // 1. PLATEFORMES DE CANDIDATURE
+  // ============================================
+  console.log('📱 Plateformes de candidature...');
+  const platforms = [
+    { name: 'LinkedIn', icon: '💼', url: 'https://linkedin.com' },
+    { name: 'Indeed', icon: '🔍', url: 'https://indeed.fr' },
+    { name: 'Welcome to the Jungle', icon: '🌴', url: 'https://welcometothejungle.com' },
+    { name: 'Pôle Emploi', icon: '🏢', url: 'https://pole-emploi.fr' },
+    { name: 'Apec', icon: '👔', url: 'https://apec.fr' },
+    { name: 'HelloWork', icon: '👋', url: 'https://hellowork.com' },
+    { name: 'Glassdoor', icon: '🚪', url: 'https://glassdoor.fr' },
+    { name: 'Monster', icon: '👾', url: 'https://monster.fr' },
+    { name: 'LesJeudis', icon: '📅', url: 'https://lesjeudis.com' },
+    { name: 'Cadremploi', icon: '💼', url: 'https://cadremploi.fr' },
+    { name: 'Site Entreprise', icon: '🌐', url: null },
+    { name: 'Cooptation', icon: '🤝', url: null },
+    { name: 'Autre', icon: '📌', url: null }
+  ];
 
-  // Créer des plateformes de candidature
-  const platforms = await Promise.all([
-    prisma.platform.create({
-      data: {
-        name: 'LinkedIn',
-        website: 'https://linkedin.com',
-        description: 'Réseau professionnel pour la recherche d\'emploi'
-      }
-    }),
-    prisma.platform.create({
-      data: {
-        name: 'Indeed',
-        website: 'https://indeed.com',
-        description: 'Moteur de recherche d\'emploi'
-      }
-    }),
-    prisma.platform.create({
-      data: {
-        name: 'Welcome to the Jungle',
-        website: 'https://wttj.co',
-        description: 'Plateforme française de recherche d\'emploi'
-      }
-    }),
-    prisma.platform.create({
-      data: {
-        name: 'Site entreprise',
-        website: null,
-        description: 'Candidature directe sur le site de l\'entreprise'
-      }
-    })
-  ])
+  for (const platform of platforms) {
+    await prisma.platform.upsert({
+      where: { userId_name: { userId: null, name: platform.name } },
+      update: {},
+      create: { ...platform, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${platforms.length} plateformes créées\n`);
 
-  console.log('✅ Plateformes créées:', platforms.length)
+  // ============================================
+  // 2. TYPES DE RELANCE
+  // ============================================
+  console.log('🔄 Types de relance...');
+  const followUpTypes = [
+    { name: 'Première relance', icon: '1️⃣' },
+    { name: 'Deuxième relance', icon: '2️⃣' },
+    { name: 'Relance après entretien', icon: '💼' },
+    { name: 'Relance urgente', icon: '⚡' },
+    { name: 'Relance de courtoisie', icon: '🙏' },
+    { name: 'Autre', icon: '📝' }
+  ];
 
-  // Créer un utilisateur de test
-  const hashedPassword = await bcrypt.hash('password123', 10)
+  for (const type of followUpTypes) {
+    await prisma.followUpType.upsert({
+      where: { userId_name: { userId: null, name: type.name } },
+      update: {},
+      create: { ...type, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${followUpTypes.length} types de relance créés\n`);
 
-  const testUser = await prisma.user.create({
-    data: {
-      email: 'admin@jobbingtrack.test',
-      password: hashedPassword,
-      firstName: 'Admin',
-      lastName: 'JobbingTrack',
-      phone: '+33123456789',
-    }
-  })
+  // ============================================
+  // 3. MOYENS DE RELANCE
+  // ============================================
+  console.log('📧 Moyens de relance...');
+  const followUpMethods = [
+    { name: 'Email', icon: '📧' },
+    { name: 'Téléphone', icon: '📞' },
+    { name: 'LinkedIn', icon: '💼' },
+    { name: 'SMS', icon: '💬' },
+    { name: 'Courrier', icon: '✉️' },
+    { name: 'En personne', icon: '🤝' },
+    { name: 'Autre', icon: '📌' }
+  ];
 
-  console.log('✅ Utilisateur de test créé:', testUser.email)
+  for (const method of followUpMethods) {
+    await prisma.followUpMethod.upsert({
+      where: { userId_name: { userId: null, name: method.name } },
+      update: {},
+      create: { ...method, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${followUpMethods.length} moyens de relance créés\n`);
 
-  // Créer des entreprises de test
-  const companies = await Promise.all([
-    prisma.company.create({
-      data: {
-        name: 'Google',
-        website: 'https://google.com',
-        industry: 'Technology',
-        size: '10000+',
-        location: 'Mountain View, CA'
-      }
-    }),
-    prisma.company.create({
-      data: {
-        name: 'Microsoft',
-        website: 'https://microsoft.com',
-        industry: 'Technology',
-        size: '10000+',
-        location: 'Redmond, WA'
-      }
-    }),
-    prisma.company.create({
-      data: {
-        name: 'Startup Inc',
-        website: 'https://startup.inc',
-        industry: 'Technology',
-        size: '10-50',
-        location: 'Paris, France'
-      }
-    })
-  ])
+  // ============================================
+  // 4. TYPES D'ENTRETIEN
+  // ============================================
+  console.log('💼 Types d\'entretien...');
+  const interviewTypes = [
+    { name: 'Entretien RH', icon: '👤' },
+    { name: 'Entretien Technique', icon: '💻' },
+    { name: 'Entretien Manager', icon: '👔' },
+    { name: 'Entretien Équipe', icon: '👥' },
+    { name: 'Entretien Dirigeant', icon: '🎯' },
+    { name: 'Test Technique', icon: '🧪' },
+    { name: 'Case Study', icon: '📊' },
+    { name: 'Assessment Center', icon: '🏢' },
+    { name: 'Autre', icon: '📝' }
+  ];
 
-  console.log('✅ Entreprises créées:', companies.length)
+  for (const type of interviewTypes) {
+    await prisma.interviewType.upsert({
+      where: { userId_name: { userId: null, name: type.name } },
+      update: {},
+      create: { ...type, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${interviewTypes.length} types d\'entretien créés\n`);
 
-  // Créer des candidatures de test avec les nouveaux états
-  const applications = await Promise.all([
-    prisma.application.create({
-      data: {
-        userId: testUser.id,
-        companyId: companies[0].id,
-        platformId: platforms[0].id, // LinkedIn
-        position: 'Software Engineer',
-        description: 'Développement d\'applications web avec React et Node.js',
-        location: 'Remote',
-        type: 'FULL_TIME',
-        status: 'NO_RESPONSE', // "Aucune réponse"
-        applicationDate: new Date('2024-01-15'),
-        jobUrl: 'https://careers.google.com/jobs/software-engineer',
-        notes: 'Candidature envoyée via LinkedIn. Poste très intéressant! Aucune réponse reçue après 2 semaines.',
-        activities: {
-          create: [
-            {
-              type: 'APPLICATION_CREATED',
-              description: 'Candidature créée pour Software Engineer chez Google'
-            },
-            {
-              type: 'STATUS_CHANGED',
-              description: 'Statut changé vers NO_RESPONSE après délai'
-            }
-          ]
-        }
-      }
-    }),
-    prisma.application.create({
-      data: {
-        userId: testUser.id,
-        companyId: companies[1].id,
-        platformId: platforms[3].id, // Site entreprise
-        position: 'Frontend Developer',
-        description: 'Développement d\'interfaces utilisateur modernes',
-        location: 'Paris, France',
-        type: 'FULL_TIME',
-        status: 'FIRST_INTERVIEW_PENDING', // "1er entretien en attente"
-        applicationDate: new Date('2024-01-10'),
-        jobUrl: 'https://careers.microsoft.com/frontend-dev',
-        notes: 'Entretien technique prévu la semaine prochaine',
-        activities: {
-          create: [
-            {
-              type: 'APPLICATION_CREATED',
-              description: 'Candidature créée pour Frontend Developer chez Microsoft'
-            },
-            {
-              type: 'STATUS_CHANGED',
-              description: 'Statut changé vers FIRST_INTERVIEW_PENDING'
-            }
-          ]
-        }
-      }
-    }),
-    prisma.application.create({
-      data: {
-        userId: testUser.id,
-        companyId: companies[2].id,
-        platformId: platforms[2].id, // Welcome to the Jungle
-        position: 'Full Stack Developer',
-        description: 'Développement full stack avec Node.js et Vue.js',
-        location: 'Paris, France',
-        type: 'FULL_TIME',
-        status: 'CANDIDATE_PENDING', // "Candidaté et en attente"
-        applicationDate: new Date('2024-01-20'),
-        jobUrl: 'https://startup-inc.wttj.co/job/fullstack-dev',
-        notes: 'Startup en croissance, poste très motivant!',
-        activities: {
-          create: {
-            type: 'APPLICATION_CREATED',
-            description: 'Candidature créée pour Full Stack Developer chez Startup Inc'
-          }
-        }
-      }
-    })
-  ])
+  // ============================================
+  // 5. STYLES D'ENTRETIEN
+  // ============================================
+  console.log('🏢 Styles d\'entretien...');
+  const interviewStyles = [
+    { name: 'Présentiel', icon: '🏢' },
+    { name: 'Visioconférence', icon: '💻' },
+    { name: 'Téléphone', icon: '📞' },
+    { name: 'Hybride', icon: '🔄' }
+  ];
 
-  console.log('✅ Candidatures créées:', applications.length)
+  for (const style of interviewStyles) {
+    await prisma.interviewStyle.upsert({
+      where: { userId_name: { userId: null, name: style.name } },
+      update: {},
+      create: { ...style, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${interviewStyles.length} styles d\'entretien créés\n`);
 
-  console.log('✅ Données de test créées avec succès!')
-  console.log('')
-  console.log('🔐 Compte de test:')
-  console.log('   Email: admin@jobbingtrack.test')
-  console.log('   Mot de passe: password123')
+  // ============================================
+  // 6. TYPES D'ÉVÉNEMENT
+  // ============================================
+  console.log('📅 Types d\'événement...');
+  const eventTypes = [
+    { name: 'Entretien', color: '#3B82F6', icon: '💼' },
+    { name: 'Relance', color: '#10B981', icon: '🔄' },
+    { name: 'Appel', color: '#8B5CF6', icon: '📞' },
+    { name: 'Deadline', color: '#EF4444', icon: '⏰' },
+    { name: 'Salon emploi', color: '#F59E0B', icon: '🎪' },
+    { name: 'Networking', color: '#EC4899', icon: '🤝' },
+    { name: 'Formation', color: '#06B6D4', icon: '📚' },
+    { name: 'Autre', color: '#6B7280', icon: '📌' }
+  ];
+
+  for (const type of eventTypes) {
+    await prisma.eventType.upsert({
+      where: { userId_name: { userId: null, name: type.name } },
+      update: {},
+      create: { ...type, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${eventTypes.length} types d\'événement créés\n`);
+
+  // ============================================
+  // 7. TYPES D'APPEL
+  // ============================================
+  console.log('📞 Types d\'appel...');
+  const callTypes = [
+    { name: 'Appel sortant', icon: '📤' },
+    { name: 'Appel entrant', icon: '📥' },
+    { name: 'Appel manqué', icon: '❌' },
+    { name: 'Rappel programmé', icon: '⏰' },
+    { name: 'Autre', icon: '📞' }
+  ];
+
+  for (const type of callTypes) {
+    await prisma.callType.upsert({
+      where: { userId_name: { userId: null, name: type.name } },
+      update: {},
+      create: { ...type, isPredefined: true }
+    });
+  }
+  console.log(`  ✅ ${callTypes.length} types d\'appel créés\n`);
+
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('✅ Seed terminé avec succès !');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  console.log('📊 Récapitulatif:');
+  console.log(`  - ${platforms.length} plateformes de candidature`);
+  console.log(`  - ${followUpTypes.length} types de relance`);
+  console.log(`  - ${followUpMethods.length} moyens de relance`);
+  console.log(`  - ${interviewTypes.length} types d'entretien`);
+  console.log(`  - ${interviewStyles.length} styles d'entretien`);
+  console.log(`  - ${eventTypes.length} types d'événement`);
+  console.log(`  - ${callTypes.length} types d'appel\n`);
+  console.log('💡 Les utilisateurs peuvent maintenant ajouter leurs propres valeurs !');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erreur lors du seed:', e)
-    process.exit(1)
+    console.error('❌ Erreur lors du seed:', e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

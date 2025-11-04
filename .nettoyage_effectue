@@ -1,0 +1,13 @@
+✅ NETTOYAGE EFFECTUÉ LE 4 NOVEMBRE 2025
+
+15 fichiers .md fusionnés → 1 fichier GUIDE_COMPLET.md
+QUICK_START_GUIDE.md → migré dans docs/getting-started/
+
+Fichiers restants dans la racine :
+- COMMENCER_ICI.md (2.1K) - Guide ultra-court
+- GUIDE_COMPLET.md (22K) - Guide complet fusionné
+- README.md (11K) - Présentation projet
+- RESUME_NETTOYAGE.md (4.2K) - Ce nettoyage
+
+Action : Ouvrez COMMENCER_ICI.md ou GUIDE_COMPLET.md
+

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "test-app-1",
+    "position": "Développeur Frontend",
+    "companyId": "test-company-1",
+    "status": "APPLIED",
+    "appliedDate": "2024-01-15",
+    "notes": "Candidature spontanée",
+    "isActive": true
+  },
+  {
+    "id": "test-app-2",
+    "position": "Data Scientist",
+    "companyId": "test-company-2",
+    "status": "INTERVIEW",
+    "appliedDate": "2024-01-20",
+    "notes": "Entretien programmé pour le 25 janvier",
+    "isActive": true
+  },
+  {
+    "id": "test-app-3",
+    "position": "Ingénieur DevOps",
+    "companyId": "test-company-3",
+    "status": "REJECTED",
+    "appliedDate": "2024-01-10",
+    "notes": "Refus après entretien technique",
+    "isActive": true
+  }
+]

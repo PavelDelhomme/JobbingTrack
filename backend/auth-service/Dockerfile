@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20.18.0-alpine
 
 WORKDIR /app
 
@@ -18,6 +18,7 @@ RUN npm install --omit=dev
 COPY prisma ./prisma/
 
 # Générer le client Prisma
+ENV DATABASE_URL="postgresql://user:password@localhost:5432/dummy?schema=public"
 RUN npx prisma generate
 
 # Copier le code source

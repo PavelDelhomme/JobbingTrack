@@ -33,8 +33,32 @@ services:
       timeout: 5s
       retries: 5
 
+  # ⚠️ Ces services ont été déplacés dans docker-compose.yml principal avec profil 'full'
+
+  # Service de sécurité et surveillance
+  security-service:
+    image: jobbingtrack-security-service
+    build:
+      context: ./security-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-security-service
+    ports:
+      - "3017:3017"
+    environment:
+      - NODE_ENV=development
+      - PORT=3017
+      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=security
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+
   # API Gateway
   api-gateway:
+    image: jobbingtrack-api-gateway
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
@@ -44,41 +68,34 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - APPLICATION_SERVICE_URL=http://application-service:3002
-      - COMPANY_SERVICE_URL=http://company-service:3003
-      - CONTACT_SERVICE_URL=http://contact-service:3004
-      - INTERVIEW_SERVICE_URL=http://interview-service:3005
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
-      - DASHBOARD_SERVICE_URL=http://dashboard-service:3007
-      - CALL_SERVICE_URL=http://call-service:3008
-      - PROFILE_SERVICE_URL=http://profile-service:3009
-      - EVENT_SERVICE_URL=http://event-service:3011
-      - FOLLOWUP_SERVICE_URL=http://followup-service:3012
+      #- DOCKER_STATS_SERVICE_URL=http://docker-stats-service:3015
+      # - AUTH_SERVICE_URL=http://localhost:3001  # Commenté car auth-service a un profil
+      # ✅ En développement local, utiliser localhost pour vitesse
+      # - APPLICATION_SERVICE_URL=http://localhost:3002  # Commenté car application-service a un profil
+      # - COMPANY_SERVICE_URL=http://localhost:3003  # Commenté car company-service a un profil
+      # - CONTACT_SERVICE_URL=http://localhost:3004  # Commenté car contact-service a un profil
+      # - INTERVIEW_SERVICE_URL=http://localhost:3005  # Commenté car interview-service a un profil
+      # - NOTIFICATION_SERVICE_URL=http://localhost:3006  # Commenté car notification-service a un profil
+      # - DASHBOARD_SERVICE_URL=http://localhost:3007  # Commenté car dashboard-service a un profil
+      # - CALL_SERVICE_URL=http://localhost:3008  # Commenté car call-service a un profil
+      # - PROFILE_SERVICE_URL=http://localhost:3009  # Commenté car profile-service a un profil
+      # - EVENT_SERVICE_URL=http://localhost:3011  # Commenté car event-service a un profil
+      # - FOLLOWUP_SERVICE_URL=http://localhost:3012  # Commenté car followup-service a un profil
+      - DEPLOYMENT_SERVICE_URL=http://localhost:3016
+      - SYSTEM_METRICS_SERVICE_URL=http://localhost:3018
       - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081,http://localhost:8080
       - JWT_SECRET=your-secret-key-change-in-production-2025
     volumes:
-      # ✅ Monter le socket Docker pour pouvoir contrôler les conteneurs
-      - /var/run/docker.sock:/var/run/docker.sock
       # ✅ Monter le docker-compose.yml pour pouvoir redémarrer les services
       - ./docker-compose.yml:/app/docker-compose.yml:ro
-    depends_on:
-      - auth-service
-      - application-service
-      - company-service
-      - contact-service
-      - interview-service
-      - notification-service
-      - dashboard-service
-      - call-service
-      - profile-service
-      - event-service
-      - followup-service
+    #depends_on:
+    #  - postgres
     networks:
       - jobbingtrack-network
 
   # Service d'authentification
   auth-service:
+    image: jobbingtrack-auth-service
     build:
       context: ./auth-service
       dockerfile: Dockerfile
@@ -105,6 +122,7 @@ services:
 
   # Service des candidatures
   application-service:
+    image: jobbingtrack-application-service
     build:
       context: ./application-service
       dockerfile: Dockerfile
@@ -127,6 +145,7 @@ services:
 
   # Service des entreprises
   company-service:
+    image: jobbingtrack-company-service
     build:
       context: ./company-service
       dockerfile: Dockerfile
@@ -149,6 +168,7 @@ services:
 
   # Service des contacts
   contact-service:
+    image: jobbingtrack-contact-service
     build:
       context: ./contact-service
       dockerfile: Dockerfile
@@ -171,6 +191,7 @@ services:
 
   # Service des entretiens
   interview-service:
+    image: jobbingtrack-interview-service
     build:
       context: ./interview-service
       dockerfile: Dockerfile
@@ -193,6 +214,7 @@ services:
 
   # Service des notifications
   notification-service:
+    image: jobbingtrack-notification-service
     build:
       context: ./notification-service
       dockerfile: Dockerfile
@@ -218,30 +240,11 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Service du dashboard
-  dashboard-service:
-    build:
-      context: ./dashboard-service
-      dockerfile: Dockerfile
-    container_name: jobbingtrack-dashboard-service
-    ports:
-      - "3007:3007"
-    environment:
-      - NODE_ENV=development
-      - PORT=3007
-      - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-      - JWT_SECRET=your-secret-key-change-in-production-2025
-      - AUTH_SERVICE_URL=http://auth-service:3001
-    depends_on:
-      postgres:
-        condition: service_healthy
-      auth-service:
-        condition: service_started
-    networks:
-      - jobbingtrack-network
+  # Service du dashboard - supprimé car il existe dans docker-compose.yml principal
 
   # Service des appels téléphoniques
   call-service:
+    image: jobbingtrack-call-service
     build:
       context: ./call-service
       dockerfile: Dockerfile
@@ -264,6 +267,7 @@ services:
 
   # Service dédié aux relances
   followup-service:
+    image: jobbingtrack-followup-service
     build:
       context: ./followup-service
       dockerfile: Dockerfile
@@ -285,30 +289,11 @@ services:
     networks:
       - jobbingtrack-network
   
-  # Gestion du calendrier et disponibilités
-  # calendar-service:
-  #   build:
-  #     context: ./calendar-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-calendar-service
-  #   ports:
-  #     - "3010:3010"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3010
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
-  #   networks:
-  #     - jobbingtrack-network
+  # Gestion du calendrier et disponibilités - SERVICE NON IMPLÉMENTÉ
 
   # Service des événements globaux
   event-service:
+    image: jobbingtrack-event-service
     build:
       context: ./event-service
       dockerfile: Dockerfile
@@ -334,6 +319,7 @@ services:
 
   # Service de gestion des profils et CVs
   profile-service:
+    image: jobbingtrack-profile-service
     build:
       context: ./profile-service
       dockerfile: Dockerfile
@@ -355,6 +341,7 @@ services:
       - jobbingtrack-network
 
   workflow-service:
+    image: jobbingtrack-workflow-service
     build:
       context: ./workflow-service
       dockerfile: Dockerfile
@@ -375,76 +362,11 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Service de gestion des workflows
-  # ⚠️ DÉSACTIVÉ - Service non implémenté
-  # scheduler-service:
-  #   build:
-  #     context: ./scheduler-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-scheduler-service
-  #   ports:
-  #     - "3014:3014"
-  #   networks:
-  #     - jobbingtrack-network
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3014
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
+  # Service de gestion des workflows - SERVICE NON IMPLÉMENTÉ
 
-  # Service de tracking de candidatures
-  # tracking-service:
-  #   build:
-  #     context: ./tracking-service
-  #     dockerfile: Dockerfile
-  #   container_name: jobbingtrack-tracking-service
-  #   ports:
-  #     - "3008:3008"
-  #   environment:
-  #     - NODE_ENV=development
-  #     - PORT=3008
-  #     - DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack?schema=public
-  #     - JWT_SECRET=your-secret-key-change-in-production-2025
-  #     - AUTH_SERVICE_URL=http://auth-service:3001
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     auth-service:
-  #       condition: service_started
-  #   networks:
-  #     - jobbingtrack-network
+  # Service de tracking de candidatures - SERVICE NON IMPLÉMENTÉ
 
-  # Service de tests
-  test-runner:
-    image: curlimages/curl:latest
-    container_name: jobbingtrack-test-runner
-    depends_on:
-      - api-gateway
-      - auth-service
-      - application-service
-      - company-service
-      - contact-service
-      - interview-service
-      - notification-service
-      - dashboard-service
-      - call-service
-      - profile-service
-      - event-service
-      - followup-service
-      - workflow-service
-      # - scheduler-service  # ⚠️ DÉSACTIVÉ
-    networks:
-      - jobbingtrack-network
-    volumes:
-      - ./test-microservices.sh:/test-microservices.sh
-    command: ["sh", "/test-microservices.sh"]
-    profiles: ["testing"]
+  # Service de tests - SERVICE NON IMPLÉMENTÉ
 
 
 volumes:

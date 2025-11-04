@@ -1,0 +1,11 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Prisma
+node_modules/
+.prisma/
+
+# Generated files
+/migrations/*_migration.sql
