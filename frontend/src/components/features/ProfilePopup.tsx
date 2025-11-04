@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Save, X, LogOut, User, Shield, Bell, Palette } from 'lucide-react'
+import { Eye, EyeOff, Save, X, LogOut, User, Shield, Bell, Palette, Clock, RefreshCw } from 'lucide-react'
+import preferencesService, { type UserPreferences } from '@/lib/services/preferencesService'
 
 interface ProfilePopupProps {
   isOpen: boolean
@@ -15,6 +16,9 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -37,6 +41,21 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       })
     }
   }, [user])
+
+  // Charger les préférences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const prefs = await preferencesService.getUserPreferences()
+        setPreferences(prefs)
+      } catch (error) {
+        console.error('Erreur chargement préférences:', error)
+      }
+    }
+    if (isOpen) {
+      loadPreferences()
+    }
+  }, [isOpen])
 
   // Fermer la popup avec la touche Échap
   useEffect(() => {
@@ -62,12 +81,42 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
 
   const handleSave = async () => {
     try {
-      // Ici on pourrait faire un appel API pour sauvegarder les modifications
+      setSaving(true)
+      
+      // Sauvegarder les préférences si elles ont changé
+      if (preferences) {
+        await preferencesService.updateUserPreferences(preferences)
+      }
+      
+      // Ici on pourrait faire un appel API pour sauvegarder les modifications du profil
       console.log('Sauvegarde des données:', formData)
+      
+      setMessage({ type: 'success', text: 'Paramètres sauvegardés avec succès' })
+      setTimeout(() => setMessage(null), 3000)
       setIsEditing(false)
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
+      setMessage({ type: 'error', text: 'Erreur lors de la sauvegarde' })
+      setTimeout(() => setMessage(null), 3000)
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const updateRefreshInterval = (key: keyof typeof preferences.refreshInterval, value: number) => {
+    if (!preferences) return
+    setPreferences({
+      ...preferences,
+      refreshInterval: {
+        ...preferences.refreshInterval,
+        [key]: value
+      }
+    })
+  }
+
+  const formatInterval = (ms: number): string => {
+    if (ms < 1000) return `${ms}ms`
+    return `${ms / 1000}s`
   }
 
   const handleLogout = () => {
@@ -91,7 +140,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       />
 
       {/* Popup */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
@@ -112,6 +161,18 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Message de notification */}
+        {message && (
+          <div className={`mx-6 mt-4 p-3 rounded-lg flex items-center gap-2 ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' 
+              : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+          }`}>
+            {message.type === 'success' ? '✓' : '✗'}
+            <span className="text-sm font-medium">{message.text}</span>
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-6 space-y-6">
@@ -220,25 +281,128 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
             </div>
           </div>
 
-          {/* Préférences */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              Préférences
-            </h3>
+          {/* Paramètres de rafraîchissement */}
+          {preferences && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Intervalles de Rafraîchissement
+              </h3>
+              
+              <div className="space-y-3">
+                {/* Logs */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Logs de Sécurité
+                    </label>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      {formatInterval(preferences.refreshInterval.logs)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5000"
+                    max="120000"
+                    step="5000"
+                    value={preferences.refreshInterval.logs}
+                    onChange={(e) => updateRefreshInterval('logs', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                  />
+                </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Notifications par email</span>
-              <div className="relative inline-flex items-center">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  defaultChecked
-                />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                {/* Analytics */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Analytics & Performance
+                    </label>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      {formatInterval(preferences.refreshInterval.analytics)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5000"
+                    max="120000"
+                    step="5000"
+                    value={preferences.refreshInterval.analytics}
+                    onChange={(e) => updateRefreshInterval('analytics', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                  />
+                </div>
+
+                {/* Métriques */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Métriques Système
+                    </label>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      {formatInterval(preferences.refreshInterval.metrics)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5000"
+                    max="120000"
+                    step="5000"
+                    value={preferences.refreshInterval.metrics}
+                    onChange={(e) => updateRefreshInterval('metrics', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                  />
+                </div>
+
+                {/* Dashboard */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Dashboard
+                    </label>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      {formatInterval(preferences.refreshInterval.dashboard)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10000"
+                    max="300000"
+                    step="10000"
+                    value={preferences.refreshInterval.dashboard}
+                    onChange={(e) => updateRefreshInterval('dashboard', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                  />
+                </div>
+
+                {/* Services */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      État des Services
+                    </label>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      {formatInterval(preferences.refreshInterval.services)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10000"
+                    max="180000"
+                    step="10000"
+                    value={preferences.refreshInterval.services}
+                    onChange={(e) => updateRefreshInterval('services', parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
+                  <strong>💡 Conseil:</strong> Des intervalles plus courts offrent des données plus fraîches mais augmentent la charge réseau.
+                </p>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -264,10 +428,20 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+                  disabled={saving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  Sauvegarder
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Sauvegarder
+                    </>
+                  )}
                 </button>
               </>
             ) : (

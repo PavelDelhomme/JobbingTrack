@@ -63,6 +63,70 @@ class SecurityController {
     }
   }
 
+  // Créer un log de sécurité
+  async createSecurityLog(req, res) {
+    try {
+      const {
+        level,
+        category,
+        eventType,
+        message,
+        sourceIP,
+        userAgent,
+        userId,
+        endpoint,
+        method,
+        statusCode,
+        responseTime,
+        country,
+        city,
+        riskScore,
+        isBlocked,
+        metadata
+      } = req.body;
+
+      // Validation des champs requis
+      if (!level || !category || !eventType || !message) {
+        return res.status(400).json({
+          success: false,
+          message: 'level, category, eventType et message sont requis'
+        });
+      }
+
+      // Créer le log dans la base de données
+      const log = await securityService.createSecurityLog({
+        level,
+        category,
+        eventType,
+        message,
+        sourceIP,
+        userAgent,
+        userId,
+        endpoint,
+        method,
+        statusCode,
+        responseTime,
+        country,
+        city,
+        riskScore,
+        isBlocked,
+        metadata
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Log de sécurité créé avec succès',
+        data: log
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la création du log de sécurité:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la création du log de sécurité'
+      });
+    }
+  }
+
   // Créer une alerte de sécurité
   async createSecurityAlert(req, res) {
     try {

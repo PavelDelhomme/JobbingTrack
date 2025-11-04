@@ -7,7 +7,7 @@ import AdminLayout from '@/components/features/AdminLayout'
 import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
-import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick } from 'lucide-react'
+import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -246,37 +246,51 @@ export default function BackofficePage() {
           }
           
           // ✅ Enrichir les services avec leurs métriques en temps réel
-          const enrichedServices = services.map(service => {
-            // Chercher les métriques du conteneur correspondant au service
-            const serviceKey = service.id.replace('-service', '')
-            let containerMetrics = null
-            
-            // Chercher dans containers si disponible
-            if (allMetrics.containers) {
-              const containerName = `jobbingtrack-${serviceKey}`
-              containerMetrics = Object.entries(allMetrics.containers).find(([name]) => 
-                name.toLowerCase().includes(serviceKey)
-              )?.[1]
-            }
-            
-            // Chercher dans services si disponible
-            let serviceMetrics = null
-            if (allMetrics.services && allMetrics.services[service.id]) {
-              serviceMetrics = allMetrics.services[service.id]
-            }
-            
-            return {
-              ...service,
-              metrics: containerMetrics || serviceMetrics?.metrics,
-              health: serviceMetrics?.health,
-              status: serviceMetrics?.health?.status === 'healthy' ? 'running' : 
-                      serviceMetrics?.health?.status === 'unhealthy' ? 'stopped' : 'testing',
-              responseTime: serviceMetrics?.health?.responseTime || 'N/A',
-              uptime: serviceMetrics?.uptime || 'N/A',
-            }
+          // FUSIONNER avec les valeurs précédentes pour éviter d'afficher "Test en cours" pendant le chargement
+          setServicesWithMetrics((prevServices: any[]) => {
+            return services.map(service => {
+              // Trouver le service précédent pour garder ses valeurs si disponibles
+              const prevService = prevServices.find(s => s.id === service.id)
+              
+              // Chercher les métriques du conteneur correspondant au service
+              const serviceKey = service.id.replace('-service', '')
+              let containerMetrics = null
+              
+              // Chercher dans containers si disponible
+              if (allMetrics.containers) {
+                const containerName = `jobbingtrack-${serviceKey}`
+                containerMetrics = Object.entries(allMetrics.containers).find(([name]) => 
+                  name.toLowerCase().includes(serviceKey)
+                )?.[1]
+              }
+              
+              // Chercher dans services si disponible
+              let serviceMetrics = null
+              if (allMetrics.services && allMetrics.services[service.id]) {
+                serviceMetrics = allMetrics.services[service.id]
+              }
+              
+              // Déterminer le status : garder l'ancien si le nouveau n'est pas disponible
+              let newStatus = prevService?.status || 'testing'
+              if (serviceMetrics?.health?.status === 'healthy') {
+                newStatus = 'running'
+              } else if (serviceMetrics?.health?.status === 'unhealthy') {
+                newStatus = 'stopped'
+              } else if (serviceMetrics?.health?.status) {
+                newStatus = serviceMetrics.health.status
+              }
+              
+              return {
+                ...service,
+                // Garder les anciennes valeurs si les nouvelles ne sont pas disponibles
+                metrics: containerMetrics || serviceMetrics?.metrics || prevService?.metrics,
+                health: serviceMetrics?.health || prevService?.health,
+                status: newStatus,
+                responseTime: serviceMetrics?.health?.responseTime || prevService?.responseTime || 'N/A',
+                uptime: serviceMetrics?.uptime || prevService?.uptime || 'N/A',
+              }
+            })
           })
-          
-          setServicesWithMetrics(enrichedServices)
           
           // ✅ Calculer le temps de réponse moyen depuis les métriques
           const responseTimes = allMetrics.servicesList
@@ -375,33 +389,43 @@ export default function BackofficePage() {
       try {
         const servicesData = await centralMetricsService.getAllServices()
         if (servicesData && servicesData.length > 0) {
-          const updatedServices = services.map(service => {
-            // Chercher le service correspondant dans les données Docker
-            const dockerService = servicesData.find((s: any) => 
-              s.name?.includes(service.id) || s.name === `jobbingtrack-${service.id}`
-            )
-            
-            return {
-              ...service,
-              status: dockerService?.is_running ? 'running' : 'stopped',
-              metrics: dockerService?.metrics ? {
-                cpu: dockerService.metrics.cpu_percent,
-                memory: {
-                  percent: dockerService.metrics.memory_percent,
-                  usage: dockerService.metrics.memory_usage_mb
-                },
-                pids: dockerService.metrics.pids
-              } : null,
-              uptime: dockerService?.is_running ? 'En ligne' : 'Hors ligne'
-            }
+          // ✅ FUSIONNER avec les valeurs précédentes au lieu d'écraser
+          setServicesWithMetrics((prevServices: any[]) => {
+            return services.map(service => {
+              // Trouver le service précédent pour garder ses valeurs
+              const prevService = prevServices.find(s => s.id === service.id)
+              
+              // Chercher le service correspondant dans les données Docker
+              const dockerService = servicesData.find((s: any) => 
+                s.name?.includes(service.id) || s.name === `jobbingtrack-${service.id}`
+              )
+              
+              // Si on a des nouvelles données Docker, les utiliser, sinon garder les anciennes
+              if (dockerService) {
+                return {
+                  ...service,
+                  status: dockerService.is_running ? 'running' : 'stopped',
+                  metrics: dockerService.metrics ? {
+                    cpu: dockerService.metrics.cpu_percent,
+                    memory: {
+                      percent: dockerService.metrics.memory_percent,
+                      usage: dockerService.metrics.memory_usage_mb
+                    },
+                    pids: dockerService.metrics.pids
+                  } : prevService?.metrics,
+                  uptime: dockerService.is_running ? 'En ligne' : 'Hors ligne'
+                }
+              }
+              
+              // Pas de nouvelles données Docker, garder les anciennes valeurs
+              return prevService || service
+            })
           })
-          setServicesWithMetrics(updatedServices)
-        } else {
-          setServicesWithMetrics(services)
         }
+        // ✅ Ne rien faire si pas de données - garder les valeurs existantes
       } catch (error) {
         console.error('Erreur chargement services:', error)
-        setServicesWithMetrics(services)
+        // ✅ Ne rien faire en cas d'erreur - garder les valeurs existantes
       }
     }
 
@@ -478,10 +502,24 @@ export default function BackofficePage() {
                 Analytics
               </button>
               <button
+                onClick={() => router.push('/backoffice/statistique')}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Database className="h-4 w-4" />
+                Statistiques
+              </button>
+              <button
+                onClick={() => router.push('/search')}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+              >
+                <Activity className="h-4 w-4" />
+                Recherche
+              </button>
+              <button
                 onClick={() => setShowServicesPopup(true)}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
               >
-                <Activity className="h-4 w-4" />
+                <Server className="h-4 w-4" />
                 Services
               </button>
             </div>
@@ -504,7 +542,7 @@ export default function BackofficePage() {
             subtitle="24h dernières"
             icon={<Shield className="h-6 w-6" />}
             color="red"
-            href="/backoffice/logs"
+            href="/backoffice/security/logs"
           />
           <MetricCard
             title="Santé Système"
@@ -512,6 +550,8 @@ export default function BackofficePage() {
             subtitle="Disponibilité"
             icon={<Zap className="h-6 w-6" />}
             color="blue"
+            trend={2.5}  // Exemple: +2.5% de disponibilité (bon = vert ⬆️)
+            trendType="negative-is-bad"  // Plus de disponibilité = bon
           />
           <MetricCard
             title="Temps Réponse"
@@ -519,6 +559,8 @@ export default function BackofficePage() {
             subtitle="Moyen"
             icon={<Clock className="h-6 w-6" />}
             color="purple"
+            trend={-8.3}  // Exemple: -8.3% de temps de réponse (bon = vert ⬇️)
+            trendType="positive-is-bad"  // Moins de temps de réponse = bon
           />
           <MetricCard
             title="CPU (Conteneurs)"
@@ -543,6 +585,8 @@ export default function BackofficePage() {
                 : systemMetrics?.cpu?.containers_only) > 60 
               ? "yellow" 
               : "green"}
+            trend={-3.2}  // Exemple: -3.2% de CPU (bon = vert ⬇️ car moins de CPU utilisé)
+            trendType="positive-is-bad"  // Moins de CPU = bon, Plus = mauvais
           />
           <MetricCard
             title="Mémoire (Conteneurs)"
@@ -567,6 +611,8 @@ export default function BackofficePage() {
                 : systemMetrics?.memory?.usage) > 70 
               ? "yellow" 
               : "green"}
+            trend={1.8}  // Exemple: +1.8% de mémoire (mauvais = rouge ⬆️ car plus de mémoire utilisée)
+            trendType="positive-is-bad"  // Moins de mémoire = bon, Plus = mauvais
           />
         </div>
 
@@ -1066,13 +1112,17 @@ function ErrorTrendChart({ stats }: { stats: any }) {
 }
 
 // Composant pour les cartes de métriques
-function MetricCard({ title, value, subtitle, icon, color, href }: {
+function MetricCard({ title, value, subtitle, icon, color, href, trend, trendType = 'negative-is-bad' }: {
   title: string
   value: number | string
   subtitle: string
   icon: React.ReactNode
   color: 'blue' | 'green' | 'purple' | 'orange' | 'yellow' | 'pink' | 'red'
   href?: string
+  trend?: number  // Pourcentage de changement (positif = augmentation, négatif = diminution)
+  trendType?: 'negative-is-bad' | 'positive-is-bad'  
+  // 'negative-is-bad' pour Disponibilité (plus = mieux)
+  // 'positive-is-bad' pour CPU, Mémoire, Temps de réponse (moins = mieux)
 }) {
   const colors = {
     blue: 'bg-blue-500 hover:bg-blue-600',
@@ -1086,6 +1136,24 @@ function MetricCard({ title, value, subtitle, icon, color, href }: {
 
   const CardComponent = href ? 'a' : 'div'
 
+  // Déterminer la couleur de la tendance
+  const getTrendColor = () => {
+    if (trend === undefined || trend === null || trend === 0) return 'text-white/70'
+    
+    if (trendType === 'positive-is-bad') {
+      // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
+      return trend > 0 ? 'text-red-200' : 'text-green-200'
+    } else {
+      // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
+      return trend > 0 ? 'text-green-200' : 'text-red-200'
+    }
+  }
+
+  const getTrendIcon = () => {
+    if (trend === undefined || trend === null || trend === 0) return null
+    return trend > 0 ? '↑' : '↓'
+  }
+
   return (
     <CardComponent
       href={href}
@@ -1096,11 +1164,16 @@ function MetricCard({ title, value, subtitle, icon, color, href }: {
           <div className="text-white/80">
             {icon}
           </div>
-          {href && (
+          {trend !== undefined && trend !== null && trend !== 0 ? (
+            <div className={`text-sm font-semibold ${getTrendColor()} flex items-center gap-0.5`}>
+              <span>{getTrendIcon()}</span>
+              <span>{Math.abs(trend).toFixed(1)}%</span>
+            </div>
+          ) : href ? (
             <div className="text-white/60 text-sm">
               →
             </div>
-          )}
+          ) : null}
         </div>
         <div className="space-y-1">
           <p className="text-2xl md:text-3xl font-bold">{value}</p>

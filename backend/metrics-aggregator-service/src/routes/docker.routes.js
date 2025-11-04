@@ -18,8 +18,13 @@ const SERVICE_HEALTH_CONFIG = {
   'jobbingtrack-notification-service': { port: 8010, path: '/api/v1/notifications/health' },
   'jobbingtrack-workflow-service': { port: 8011, path: '/api/v1/workflow/health' },
   'jobbingtrack-dashboard-service': { port: 8012, path: '/api/v1/dashboard/health' },
+  'jobbingtrack-deployment-service': { port: 8016, path: '/health' },
+  'jobbingtrack-security-service': { port: 8017, path: '/health' },
+  'jobbingtrack-metrics-aggregator': { port: 8014, path: '/api/v1/health' },
   'jobbingtrack-frontend': { port: 8080, path: '/' },
   'jobbingtrack-api-gateway': { port: 3000, path: '/api/v1/health' }
+  // Note: PostgreSQL et Redis n'ont pas d'endpoint HTTP /health
+  // Leurs statuts sont récupérés via Docker health checks natifs
 };
 
 const FIVE_MINUTES_IN_MINUTES = 5;
@@ -533,16 +538,87 @@ router.get('/services/all', async (req, res) => {
       statsMap[stat.name] = stat;
     });
     
-    // Mapper tous les conteneurs avec leurs stats
+    // Récupérer le health status pour tous les conteneurs
+    const healthStatusMap = {};
+    for (const container of allContainers) {
+      try {
+        const containerName = container.Names;
+        const { stdout: inspectOut } = await execAsync(`docker inspect --format='{{json .State}}' ${containerName}`);
+        const state = JSON.parse(inspectOut);
+        
+        // Déterminer le health status
+        let healthStatus = 'none'; // Pas de healthcheck configuré
+        if (state.Health) {
+          healthStatus = state.Health.Status; // healthy, unhealthy, starting
+        }
+        
+        healthStatusMap[containerName] = {
+          health: healthStatus,
+          running: state.Running,
+          status: state.Status
+        };
+      } catch (err) {
+        console.error(`[DOCKER ROUTES] Erreur inspection ${container.Names}:`, err.message);
+        healthStatusMap[container.Names] = {
+          health: 'unknown',
+          running: container.State === 'running',
+          status: container.State
+        };
+      }
+    }
+    
+    // ✅ Effectuer les HTTP health checks en PARALLÈLE pour tous les services
+    const healthChecks = await Promise.allSettled(
+      allContainers.map(async (container) => {
+        const name = container.Names;
+        const isRunning = container.State === 'running';
+        const stats = statsMap[name];
+        
+        // Faire le health check HTTP uniquement si le service est en cours d'exécution
+        if (isRunning) {
+          try {
+            const healthInfo = await probeServiceHealth(name, stats);
+            return { name, healthInfo };
+          } catch (error) {
+            return { name, healthInfo: { status: 'unknown', responseTime: null, error: error.message } };
+          }
+        }
+        return { name, healthInfo: { status: 'offline', responseTime: null, error: 'Service arrêté' } };
+      })
+    );
+    
+    // Créer un map des résultats de health checks
+    const httpHealthMap = {};
+    healthChecks.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        httpHealthMap[result.value.name] = result.value.healthInfo;
+      }
+    });
+    
+    // Mapper tous les conteneurs avec leurs stats, health status Docker ET HTTP
     const services = allContainers.map(container => {
       const name = container.Names;
       const isRunning = container.State === 'running';
       const stats = statsMap[name];
+      const dockerHealthInfo = healthStatusMap[name] || { health: 'unknown', running: isRunning, status: container.State };
+      const httpHealthInfo = httpHealthMap[name] || { status: 'unknown', responseTime: null, error: null };
+      
+      // Déterminer le statut global
+      let finalHealthStatus = httpHealthInfo.status;
+      if (dockerHealthInfo.health === 'unhealthy') {
+        finalHealthStatus = 'unhealthy';
+      } else if (dockerHealthInfo.health === 'healthy') {
+        finalHealthStatus = httpHealthInfo.status;
+      } else if (dockerHealthInfo.health === 'starting') {
+        finalHealthStatus = 'starting';
+      }
       
       return {
         name: name,
         status: container.State,
+        health_status: dockerHealthInfo.health, // Statut Docker natif
         is_running: isRunning,
+        is_healthy: finalHealthStatus === 'healthy' || finalHealthStatus === 'none',
         created: container.CreatedAt,
         ports: container.Ports,
         image: container.Image,
@@ -551,7 +627,15 @@ router.get('/services/all', async (req, res) => {
           memory_percent: stats.memory_percent,
           memory_usage_mb: parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(2)),
           pids: stats.pids
-        } : null
+        } : null,
+        // ✅ Ajout des informations de health HTTP
+        health: {
+          status: finalHealthStatus,
+          health_status_docker: dockerHealthInfo.health,
+          health_status_http: httpHealthInfo.status,
+          responseTime: typeof httpHealthInfo.responseTime === 'number' ? parseFloat(httpHealthInfo.responseTime.toFixed(2)) : null,
+          error: httpHealthInfo.error || null
+        }
       };
     });
     
@@ -579,43 +663,53 @@ router.get('/services/all', async (req, res) => {
 });
 
 /**
- * Endpoint pour récupérer les métriques d'un service spécifique
+ * Endpoint pour récupérer les logs Docker d'un service
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
  */
-router.get('/service/:name', async (req, res) => {
+router.get('/service/:name/logs', async (req, res) => {
   try {
     const serviceName = req.params.name;
-    console.log('[DOCKER ROUTES] 📊 Métriques pour:', serviceName);
+    const lines = parseInt(req.query.lines) || 100;
     
-    const stats = await dockerService.getContainerStats(serviceName);
+    console.log('[DOCKER ROUTES] 📜 Récupération logs pour:', serviceName, '- Lignes:', lines);
     
-    // Passer les stats du conteneur pour une détermination plus intelligente du statut
-    const healthInfo = await probeServiceHealth(serviceName, stats);
-    const errorMetrics = await collectErrorMetrics(serviceName);
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Récupérer les logs du conteneur Docker
+    const { stdout } = await execAsync(`docker logs ${serviceName} --tail ${lines} 2>&1`);
+    
+    // Traiter les logs
+    const logLines = stdout.split('\n').filter(line => line.trim().length > 0);
+    
+    // Identifier les lignes d'erreur
+    const errorLines = logLines.filter(line => 
+      line.toLowerCase().includes('error') || 
+      line.toLowerCase().includes('exception') ||
+      line.toLowerCase().includes('fatal')
+    );
+    
+    // Identifier les warnings
+    const warningLines = logLines.filter(line => 
+      line.toLowerCase().includes('warn') || 
+      line.toLowerCase().includes('warning')
+    );
     
     res.json({
       success: true,
-      timestamp: new Date().toISOString(),
-      service: {
-        name: serviceName,
-        cpu_percent: stats.cpu_percent,
-        memory_percent: stats.memory_percent,
-        memory_usage_mb: parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(2)),
-        memory_limit_mb: parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(2)),
-        network_rx_mb: parseFloat((stats.network_rx / (1024 * 1024)).toFixed(2)),
-        network_tx_mb: parseFloat((stats.network_tx / (1024 * 1024)).toFixed(2)),
-        pids: stats.pids,
-        health: healthInfo.status,
-        response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
-        health_error: healthInfo.error || null,
-        errors: {
-          count_last_5m: parseFloat(errorMetrics.count5m.toFixed(2)),
-          rate_per_min: parseFloat(errorMetrics.ratePerMinute.toFixed(2))
-        }
-      }
+      service: serviceName,
+      total: logLines.length,
+      errors: errorLines.length,
+      warnings: warningLines.length,
+      lines: logLines,
+      errorLines: errorLines.slice(0, 10), // Limiter les erreurs affichées
+      warningLines: warningLines.slice(0, 10), // Limiter les warnings affichés
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    console.error('[DOCKER ROUTES] ❌ Erreur récupération logs:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message,
@@ -626,6 +720,7 @@ router.get('/service/:name', async (req, res) => {
 
 /**
  * Endpoint pour récupérer l'historique d'un service spécifique
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
  */
 router.get('/service/:name/history', async (req, res) => {
   try {
@@ -649,6 +744,84 @@ router.get('/service/:name/history', async (req, res) => {
       data: history,
       timestamp: new Date().toISOString()
     });
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Endpoint pour récupérer les métriques d'un service spécifique
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée APRÈS les routes spécifiques (/logs, /history)
+ */
+router.get('/service/:name', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    console.log('[DOCKER ROUTES] 📊 Métriques pour:', serviceName);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    const stats = await dockerService.getContainerStats(serviceName);
+    
+    // Récupérer le health status Docker réel
+    let dockerHealthStatus = 'none';
+    try {
+      const { stdout: inspectOut } = await execAsync(`docker inspect --format='{{json .State}}' ${serviceName}`);
+      const state = JSON.parse(inspectOut);
+      
+      if (state.Health) {
+        dockerHealthStatus = state.Health.Status; // healthy, unhealthy, starting
+      }
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] Erreur inspection ${serviceName}:`, err.message);
+      dockerHealthStatus = 'unknown';
+    }
+    
+    // Passer les stats du conteneur pour une détermination plus intelligente du statut HTTP
+    const healthInfo = await probeServiceHealth(serviceName, stats);
+    const errorMetrics = await collectErrorMetrics(serviceName);
+    
+    // Déterminer le status global: priorité au health status Docker
+    let finalHealthStatus = healthInfo.status;
+    if (dockerHealthStatus === 'unhealthy') {
+      finalHealthStatus = 'unhealthy';
+    } else if (dockerHealthStatus === 'healthy') {
+      // Si Docker dit healthy, utiliser le résultat du probe HTTP
+      finalHealthStatus = healthInfo.status;
+    } else if (dockerHealthStatus === 'starting') {
+      finalHealthStatus = 'starting';
+    }
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      service: {
+        name: serviceName,
+        cpu_percent: stats.cpu_percent,
+        memory_percent: stats.memory_percent,
+        memory_usage_mb: parseFloat((stats.memory_usage / (1024 * 1024)).toFixed(2)),
+        memory_limit_mb: parseFloat((stats.memory_limit / (1024 * 1024)).toFixed(2)),
+        network_rx_mb: parseFloat((stats.network_rx / (1024 * 1024)).toFixed(2)),
+        network_tx_mb: parseFloat((stats.network_tx / (1024 * 1024)).toFixed(2)),
+        pids: stats.pids,
+        health: finalHealthStatus,
+        health_status_docker: dockerHealthStatus,
+        health_status_http: healthInfo.status,
+        response_time_ms: typeof healthInfo.responseTime === 'number' ? parseFloat(healthInfo.responseTime.toFixed(2)) : null,
+        health_error: healthInfo.error || null,
+        errors: {
+          count_last_5m: parseFloat(errorMetrics.count5m.toFixed(2)),
+          rate_per_min: parseFloat(errorMetrics.ratePerMinute.toFixed(2))
+        }
+      }
+    });
+    
   } catch (error) {
     console.error('[DOCKER ROUTES] ❌ Erreur:', error);
     res.status(500).json({ 
