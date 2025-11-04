@@ -1,13 +1,22 @@
 #!/bin/bash
-# Nettoyage base de données avec ton email
+# Script de nettoyage pour les tests
 
-echo "🧹 Nettoyage base de données test..."
+echo "🧹 Nettoyage des tests..."
 
-# Supprimer l'utilisateur dumb@delhomme.ovh et ses données
-docker compose -f backend/docker-compose.yml exec postgres psql -U jobbingtrack -d jobbingtrack -c "
-DELETE FROM applications WHERE user_id IN (SELECT id FROM users WHERE email = 'dumb@delhomme.ovh');
-DELETE FROM companies WHERE id NOT IN (SELECT DISTINCT company_id FROM applications WHERE company_id IS NOT NULL);
-DELETE FROM users WHERE email = 'dumb@delhomme.ovh';
-" 2>/dev/null || true
+# Arrêter les services de test
+docker-compose -f tests/docker-compose.test.yml down -v
 
-echo "✅ Nettoyage terminé pour dumb@delhomme.ovh"
+# Nettoyer les volumes
+docker volume rm jobbingtrack_postgres_test_data 2>/dev/null || true
+
+# Nettoyer les rapports
+rm -rf tests/reports/*
+rm -rf tests/coverage/*
+rm -rf tests/e2e/results/*
+rm -rf tests/temp/*
+
+# Nettoyer les caches
+rm -rf tests/node_modules/.cache
+rm -rf tests/.nyc_output
+
+echo "✅ Nettoyage terminé"

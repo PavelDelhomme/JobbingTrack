@@ -150,4 +150,8 @@ create-files.sh
 # Package manager lock files (keep package-lock.json pour la cohérence des versions)
 # package-lock.json
 yarn.lock
-pnpm-lock.yaml
+pnpm-lock.yaml# Données locales de monitoring
+data/monitoring/logs/*
+data/monitoring/metrics/*
+data/monitoring/history/*
+!data/monitoring/.gitkeep

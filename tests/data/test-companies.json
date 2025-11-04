@@ -1,0 +1,29 @@
+[
+  {
+    "id": "test-company-1",
+    "name": "TechCorp",
+    "industry": "Technologie",
+    "size": "50-200",
+    "website": "https://techcorp.example.com",
+    "location": "Paris, France",
+    "isActive": true
+  },
+  {
+    "id": "test-company-2",
+    "name": "DataSoft",
+    "industry": "Logiciels",
+    "size": "200-500",
+    "website": "https://datasoft.example.com",
+    "location": "Lyon, France",
+    "isActive": true
+  },
+  {
+    "id": "test-company-3",
+    "name": "GreenEnergy",
+    "industry": "Énergie",
+    "size": "500+",
+    "website": "https://greenenergy.example.com",
+    "location": "Marseille, France",
+    "isActive": true
+  }
+]

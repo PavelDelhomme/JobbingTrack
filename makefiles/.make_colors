@@ -1,0 +1,33 @@
+# Configuration des couleurs pour Makefile - JobbingTrack
+# Inclure ce fichier dans votre ~/.zshrc avec: source /chemin/vers/JobbingTrack/.make_colors
+
+# Couleurs pour les messages du Makefile
+export MAKE_GREEN='\033[0;32m'
+export MAKE_RED='\033[0;31m'
+export MAKE_YELLOW='\033[1;33m'
+export MAKE_BLUE='\033[0;34m'
+export MAKE_PURPLE='\033[0;35m'
+export MAKE_CYAN='\033[0;36m'
+export MAKE_NC='\033[0m'
+
+# Fonction pour afficher les couleurs disponibles
+make_colors_help() {
+    echo -e "${MAKE_GREEN}✅ Vert (succès)${MAKE_NC}"
+    echo -e "${MAKE_RED}❌ Rouge (erreur)${MAKE_NC}"
+    echo -e "${MAKE_YELLOW}⚠️ Jaune (attention)${MAKE_NC}"
+    echo -e "${MAKE_BLUE}🔵 Bleu (information)${MAKE_NC}"
+    echo -e "${MAKE_PURPLE}🟣 Violet (spécial)${MAKE_NC}"
+    echo -e "${MAKE_CYAN}🔵 Cyan (étapes)${MAKE_NC}"
+    echo ""
+    echo "Usage dans Makefile:"
+    echo '  @echo "$(MAKE_GREEN)✅ Opération réussie$(MAKE_NC)"'
+    echo '  @echo "$(MAKE_RED)❌ Erreur$(MAKE_NC)"'
+}
+
+# Ajouter la fonction à la liste des fonctions disponibles
+autoload -U make_colors_help
+
+# Instructions d'installation
+echo "💡 Pour utiliser les couleurs du Makefile dans votre zshrc:"
+echo "   Ajoutez cette ligne à votre ~/.zshrc:"
+echo "   source $(pwd)/../makefiles/.make_colors"

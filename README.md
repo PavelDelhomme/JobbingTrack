@@ -1,698 +1,277 @@
-# 🎯 JobbingTrack - Plateforme Intelligente de Suivi de Candidatures
+# JobbingTrack 🚀
 
-> **Version 1.0.1** | **Architecture Microservices** | **Next.js** | **React Native** | **PostgreSQL** | **Docker**
+> Système de suivi de candidatures avec dashboard administrateur
 
-[![Version](https://img.shields.io/badge/Version-v1.0.1-green.svg)](VERSION)
-[![Status](https://img.shields.io/badge/Status-STABLE-brightgreen.svg)]()
-[![Backend](https://img.shields.io/badge/Backend-Node.js-blue.svg)]()
-[![Frontend](https://img.shields.io/badge/Frontend-Next.js-black.svg)]()
-[![Mobile](https://img.shields.io/badge/Mobile-React_Native-blue.svg)]()
-[![Database](https://img.shields.io/badge/Database-PostgreSQL-blue.svg)]()
+## 📖 Documentation
+
+### 📚 **[📖 LIRE DANS CET ORDRE](LIRE_DANS_CET_ORDRE.md)** - **GUIDE COMPLET : Quels fichiers lire et dans quel ordre ?**
+
+### ⭐ **[✅ CORRECTIONS TERMINÉES](CORRECTIONS_TERMINEES.md)** - **TOUS LES TESTS SONT CORRIGÉS !**
+
+### 🚀 **[DÉMARRAGE RAPIDE](START_TESTS.sh)** - **Script automatique : `./START_TESTS.sh`**
+
+### 🆕 **[NOUVELLES FONCTIONNALITÉS PARCOURS](NOUVELLES_FONCTIONNALITES_PARCOURS.md)** - **ANNULATION & SAUVEGARDE AUTOMATIQUE !**
+
+### 📚 [Index Documentation Complète](docs/INDEX_DOCUMENTATION.md) | [📖 README Docs](docs/README.md) | [🧭 Navigation](docs/navigation.md)
+
+### 🚀 Démarrage Rapide
+- **[⚡ Guide de Démarrage](docs/getting-started/README.md)** - Commencez ici !
+- **[🚀 Démarrage Ultra-Rapide](docs/getting-started/DEMARRAGE_RAPIDE.md)** - 3 commandes
+- **[🔄 Guide de Redémarrage](docs/getting-started/REDEMARRAGE.md)** - Redémarrer le projet
+
+### 🧪 Tests & Parcours
+- **[🚶 Guide Tests & Parcours](docs/development/GUIDE_TESTS_PARCOURS.md)** - Utiliser tous les outils de test
+- **[🎯 Récapitulatif Final](docs/RECAPITULATIF_FINAL.md)** - Vue d'ensemble complète
+- **Interface Tests** : `http://localhost:8080/backoffice/user-journey`
+
+Accès rapide à toute la documentation du projet : architecture, API, déploiement, développement, tests, guides et bien plus.
+
+---
 
 ## 📋 Table des Matières
 
-- [🎯 Vision & Contexte](#-vision--contexte)
-- [🏗️ Architecture Technique](#%EF%B8%8F-architecture-technique)
-- [📊 État Actuel du Projet](#-état-actuel-du-projet)
-- [🚀 Version v1.0.1 - STABLE](#-version-v101---stable)
-- [🚀 Guide de Démarrage](#-guide-de-démarrage)
-- [🧪 Tests & Qualité](#-tests--qualité)
-- [📱 Applications](#-applications)
-- [🗺️ Roadmap Complète](#%EF%B8%8F-roadmap-complète)
-- [📚 Documentation Technique](#-documentation-technique)
+- [📖 Documentation](#-documentation)
+- [🎯 Fonctionnalités](#-fonctionnalités)
+- [🚀 Démarrage Rapide](#-démarrage-rapide)
+- [🛠️ Commandes Make](#️-commandes-make)
+- [📖 Documentation Détaillée](#-documentation-détaillée)
 
 ---
 
-## 🚀 Version v1.0.1 - STABLE
+## 🎯 Fonctionnalités
 
-**Release Date:** January 12, 2025
-
-### 🎉 **MAJOR RELEASE - PRODUCTION READY**
-
-Cette version représente un **jalon majeur** avec un système complet de suivi de candidatures prêt pour la production.
-
-#### ✅ **Fonctionnalités Principales :**
-
-##### 🏗️ **Backend Microservices (100%)**
-- **8 Services opérationnels** avec Docker Compose
-- **API Gateway** avec authentification JWT
-- **Base de données PostgreSQL** avec Prisma ORM
-- **Monitoring complet** (Prometheus, Grafana, Jaeger)
-
-##### 🎨 **Dashboard Administrateur (100%)**
-- **Interface Next.js moderne** avec TypeScript
-- **Gestion complète des utilisateurs** et rôles
-- **Émulateur mobile intégré** avec interactions réalistes
-- **Centre de notifications temps réel**
-- **Gestion des archives** et corbeille intelligente
-
-##### 📱 **Application Mobile (100%)**
-- **React Native 0.72** avec hooks personnalisés
-- **Synchronisation offline** complète avec queue intelligente
-- **Notifications push** programmées (iOS/Android)
-- **Interface tactile réaliste** avec effets visuels
-- **Authentification sécurisée** avec gestion automatique
-
-##### 🔄 **Synchronisation & Automatisation (100%)**
-- **Queue offline** avec résolution de conflits
-- **Synchronisation automatique** à la reconnexion réseau
-- **Notifications programmées** pour rappels
-- **États automatiques** selon règles métier
-
-#### 🚀 **Points Forts de v1.0.1 :**
-
-- **🏢 Architecture d'entreprise** - Microservices scalables et maintenables
-- **📱 Expérience mobile premium** - App store ready avec fonctionnalités avancées
-- **🔒 Sécurité renforcée** - JWT, permissions, audit complet
-- **📊 Analytics intégrés** - KPIs et statistiques temps réel
-- **🔄 Synchronisation intelligente** - Travail offline seamless
-- **🔔 Notifications avancées** - Push notifications avec rappels programmés
-
-#### 📈 **Métriques de Qualité :**
-- **Tests automatisés** - Coverage > 80%
-- **Sécurité** - Vulnérabilités auditées
-- **Performance** - Temps de réponse < 200ms
-- **Disponibilité** - Architecture haute disponibilité
-
-#### 🎯 **Utilisation Recommandée :**
-- **Production** - Système prêt pour déploiement
-- **Entreprises** - Gestion professionnelle des candidatures
-- **Développeurs** - Plateforme de démonstration complète
+- ✅ Dashboard administrateur Next.js
+- ✅ Microservices backend Node.js
+- ✅ Monitoring temps réel
+- ✅ Gestion services via interface web
+- 📱 Application mobile Flutter
+- 📊 Système de monitoring et analytics mobile (en développement)
 
 ---
 
-## 🎯 Vision & Contexte
+## 🚀 Démarrage Rapide
 
-### Le Problème
-Dans le monde actuel, la majorité des candidats utilisent des spreadsheets pour suivre leurs candidatures. Cette méthode est **triviale et inefficace** face à la complexité du processus :
-- 📝 Suivi de centaines de candidatures
-- 📞 Gestion des entretiens multiples (1er, 2ème, 3ème tour)
-- 🔄 Relances organisées
-- 📊 Analyse des performances
-- ⏰ Rappels automatiques
+### Prérequis
 
-### Notre Solution
-**JobbingTrack** est une plateforme complète de gestion intelligente du parcours de candidature, construite sur une **architecture microservices moderne** pour :
-- ✅ **Centraliser** toutes les informations de candidature
-- ✅ **Automatiser** les relances et rappels
-- ✅ **Optimiser** le taux de réponse
-- ✅ **Analyser** les performances avec des KPIs avancés
-- ✅ **Synchroniser** web, mobile et offline
+- Docker & Docker Compose
+- Node.js 20.x
+- Make
 
----
+### Installation
 
-## 🏗️ Architecture Technique
+#### 1. Clonner
 
-### 🎛️ Architecture Microservices (8 Services)
-
-```mermaid
-graph TB
-    Client[Client Web/Mobile] --> Gateway[API Gateway :3000]
-    
-    Gateway --> Auth[Auth Service :3001]
-    Gateway --> App[Application Service :3002]
-    Gateway --> Company[Company Service :3003]
-    Gateway --> Contact[Contact Service :3004]
-    Gateway --> Interview[Interview Service :3005]
-    Gateway --> Notif[Notification Service :3006]
-    Gateway --> Dashboard[Dashboard Service :3007]
-    
-    Auth --> DB[(PostgreSQL)]
-    App --> DB
-    Company --> DB
-    Contact --> DB
-    Interview --> DB
-    Notif --> Redis[(Redis)]
-    Dashboard --> DB
-    
-    Notif --> SMTP[Email SMTP]
-```
-
-### 📦 Services Détaillés
-
-| Service | Port | Responsabilité | Base de Données |
-|---------|------|----------------|-----------------|
-| **API Gateway** | 3000 | Point d'entrée unique, routage, documentation | - |
-| **Auth Service** | 3001 | Authentification JWT, gestion utilisateurs | PostgreSQL |
-| **Application Service** | 3002 | CRUD candidatures, timeline, statistiques | PostgreSQL |
-| **Company Service** | 3003 | Gestion entreprises, secteurs, informations | PostgreSQL |
-| **Contact Service** | 3004 | Carnet contacts professionnels par entreprise | PostgreSQL |
-| **Interview Service** | 3005 | Planning entretiens, feedback, notifications | PostgreSQL |
-| **Notification Service** | 3006 | Emails automatiques, rappels, relances | Redis + SMTP |
-| **Dashboard Service** | 3007 | KPIs, analytics, statistiques avancées | PostgreSQL |
-
-### 🛠️ Stack Technique
-
-#### Backend (Microservices)
-- **Node.js 20** + **Express.js** - Runtime et framework web
-- **PostgreSQL 15** - Base de données relationnelle
-- **Redis 7** - Cache et gestion des sessions
-- **Prisma ORM** - Object-Relational Mapping
-- **JWT** - Authentification sécurisée
-- **Docker Compose** - Orchestration des services
-
-#### Frontend (À venir)
-- **Next.js 14** - Framework React avec App Router
-- **TypeScript** - Typage statique
-- **Tailwind CSS** - Framework CSS utilitaire
-- **shadcn/ui** - Composants UI modernes
-- **Zustand** - Gestion d'état légère
-
-#### Mobile (À venir)
-- **React Native** + **Expo** - Développement mobile cross-platform
-- **SQLite** - Base locale pour offline-first
-- **React Navigation** - Navigation mobile native
-
-#### DevOps & Infrastructure
-- **Docker** - Containerisation
-- **Portainer** - Orchestration visuelle
-- **Nginx Proxy Manager** - Reverse proxy
-- **GitHub Actions** - CI/CD
-- **Prometheus + Grafana** - Monitoring
-
----
-
-## 📊 État Actuel du Projet
-
-### ✅ **Implémenté (Architecture Microservices Complète)**
-
-#### 🎛️ **Infrastructure (100%)**
-- ✅ 8 microservices opérationnels avec Docker Compose
-- ✅ API Gateway avec routage intelligent
-- ✅ PostgreSQL + Redis configurés
-- ✅ Réseau Docker privé sécurisé
-- ✅ Monitoring Prometheus + Grafana + Jaeger
-
-#### 🔐 **Authentification (100%)**
-- ✅ Inscription avec validation et email de bienvenue
-- ✅ Connexion JWT sécurisée (7 jours)
-- ✅ Reset password avec tokens temporaires
-- ✅ Gestion profils utilisateurs
-- ✅ Middleware d'authentification inter-services
-
-#### 📝 **Gestion Candidatures (100%)**
-- ✅ CRUD complet (Create, Read, Update, Delete)
-- ✅ Statuts avancés (DRAFT, SENT, IN_REVIEW, INTERVIEW_SCHEDULED, etc.)
-- ✅ Liaison avec entreprises et contacts
-- ✅ Historique et timeline des activités
-- ✅ Statistiques et analytics
-
-#### 🏢 **Gestion Entreprises (100%)**
-- ✅ Base de données complète des sociétés
-- ✅ Informations secteur, taille, localisation
-- ✅ Liaison avec candidatures et contacts
-- ✅ Recherche et filtres avancés
-
-#### 👥 **Carnet Contacts (100%)**
-- ✅ Contacts professionnels par entreprise
-- ✅ Informations complètes (nom, poste, email, téléphone)
-- ✅ Historique des interactions
-- ✅ Liaison multi-entités
-
-#### 📅 **Gestion Entretiens (100%)**
-- ✅ Planning et programmation
-- ✅ Types d'entretiens multiples (RH, technique, final)
-- ✅ Notifications automatiques
-- ✅ Feedback et notes
-
-#### 🔔 **Système Notifications (100%)**
-- ✅ Emails HTML professionnels
-- ✅ Templates personnalisables
-- ✅ Relances automatiques (7 jours sans réponse)
-- ✅ Rappels d'entretiens
-- ✅ Configuration SMTP flexible
-
-#### 📊 **Dashboard & Analytics (100%)**
-- ✅ KPIs en temps réel
-- ✅ Taux de réponse et conversion
-- ✅ Statistiques par période
-- ✅ Graphiques et métriques avancées
-
-### 🧪 **Tests & Qualité (70%)**
-- ✅ Scripts de tests automatisés pour tous les services
-- ✅ Tests de santé (health checks)
-- ✅ Tests d'intégration auth + CRUD
-- ✅ Tests endpoints protégés avec JWT
-- ⚠️ Tests unitaires Jest (à implémenter)
-- ⚠️ Tests E2E Playwright (à implémenter)
-
-### ⚠️ **En Cours d'Implémentation**
-- 📄 **Upload documents** (CV, lettres de motivation)
-- 🔄 **API FollowUps** avancées
-- ⏰ **API Reminders** personnalisés
-- 📧 **Templates emails** personnalisables
-
-### ❌ **À Développer**
-- 🌐 **Dashboard Web Admin** (Frontend Next.js)
-- 📱 **Application Mobile** (React Native)
-- 🧪 **Tests E2E** (Playwright)
-- 🚀 **Pipeline CI/CD** (GitHub Actions)
-
----
-
-## 🚀 Guide de Démarrage
-
-### 📋 Prérequis
-- **Docker** & **Docker Compose** (v20+)
-- **Node.js** 20+ (pour développement local)
-- **Git** (pour cloner le repository)
-- **Make** (optionnel, pour commandes simplifiées)
-
-### ⚡ Installation Éclair
-
-```bash
-# 1. Cloner le repository
 git clone https://github.com/PavelDelhomme/JobbingTrack.git
 cd JobbingTrack
 
-# 2. Démarrage complet
-make dev
+#### 2. Démarrer
 
-# OU avec Docker Compose directement
-cd backend
-docker-compose up -d
-```
+make up
 
-### 🔧 Configuration
+#### 3. Accéder
 
-#### Variables d'Environnement
-```bash
-# backend/.env
-NODE_ENV=development
-DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public
-JWT_SECRET=your-secret-key-change-in-production-2025
-JWT_REFRESH_SECRET=your-refresh-secret-change-too-2025
-PORT=3000
-
-# Configuration Email
-SMTP_HOST=smtp.ovh.net
-SMTP_PORT=587
-SMTP_USER=candidatures@delhomme.ovh
-SMTP_PASS="votre-mot-de-passe"
-SMTP_FROM="JobbingTrack <candidatures@delhomme.ovh>"
-
-# URLs pour les liens
-FRONTEND_URL=http://localhost:5173
-API_URL=http://localhost:3000
-ADMIN_URL=http://localhost:5173/admin
-```
-
-### 📊 Services Disponibles
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| **API Gateway** | http://localhost:3000 | Point d'entrée principal |
-| **Documentation** | http://localhost:3000/api-docs | Swagger UI interactive |
-| **Health Check** | http://localhost:3000/health | Status de tous les services |
-| **Base de Données** | localhost:5432 | PostgreSQL (jobbingtrack/jobbingtrack123) |
-| **Admin DB** | http://localhost:8080 | Adminer (admin/admin) |
-
----
-
-## 🧪 Tests & Qualité
-
-### 🏥 Tests de Santé
-```bash
-# Tester tous les services
-make test-services
-
-# Tests individuels
-curl http://localhost:3000/health  # API Gateway
-curl http://localhost:3001/health  # Auth Service
-curl http://localhost:3002/health  # Application Service
-```
-
-### 🔐 Tests d'Authentification
-```bash
-# Tests automatisés complets
-./test-microservices.sh
-
-# Test inscription manuelle
-curl -X POST http://localhost:3000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }'
-
-# Test connexion
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "pavel@jobbingtrack.com",
-    "password": "password123"  
-  }'
-```
-
-### 📊 Compte de Test Automatique
-Après `make seed` ou `make demo` :
-- **Email** : `pavel@jobbingtrack.com`
-- **Mot de passe** : `password123`
-
----
-
-## 📱 Applications
-
-### 🌐 Dashboard Web (En Développement)
-Interface d'administration complète développée avec **Next.js 14** :
-
-#### Fonctionnalités Prévues
-- 🔐 **Authentification** : Login, register, reset password
-- 📊 **Dashboard** : KPIs temps réel, graphiques interactifs
-- 📝 **Candidatures** : Vue kanban, filtres avancés, CRUD complet
-- 🏢 **Entreprises** : Base de données, recherche, édition
-- 👥 **Contacts** : Carnet d'adresses, import/export
-- 📅 **Entretiens** : Calendrier intégré, planning, rappels
-- ⚙️ **Paramètres** : Profil, notifications, templates personnalisés
-
-#### Stack Technique Frontend
-- **Next.js 14** avec App Router
-- **TypeScript** pour la robustesse
-- **Tailwind CSS** + **shadcn/ui** pour le design
-- **Zustand** pour la gestion d'état
-- **React Query** pour les appels API
-- **Chart.js** pour les graphiques
-
-### 📱 Application Mobile (Phase 3)
-App native cross-platform développée avec **React Native + Expo** :
-
-#### Fonctionnalités Mobiles
-- 📱 **Navigation native** : Stack, Tab, Drawer
-- 🔐 **Auth biométrique** : Face ID, Touch ID
-- 📝 **Interface tactile** : Formulaires optimisés mobile
-- 📊 **Dashboard mobile** : Widgets adaptatifs
-- 🔔 **Notifications push** : Firebase (Android) + APNs (iOS)
-- 📷 **Fonctions natives** : Camera, galerie photos
-- 🗄️ **Mode offline** : SQLite + synchronisation automatique
-
----
-
-## 🗺️ Roadmap Complète
-
-### 📅 **Phase 1 : Finalisation Backend** (1-2 semaines)
-**Branche** : `feat/backend-complete`
-
-#### 🧪 Tests Automatisés Avancés
-- **Jest + Supertest** : 100+ tests automatisés
-- **Tests unitaires** : Controllers, services, middlewares
-- **Tests d'intégration** : Workflows complets
-- **Coverage** : >90% de couverture de code
-
-#### 📄 Routes & Fonctionnalités Manquantes
-- **Documents API** : Upload CV, lettres de motivation
-- **FollowUps API** : Système de relances avancé
-- **Reminders API** : Rappels personnalisés
-- **Templates API** : Templates emails personnalisables
-- **Search API** : Recherche full-text avancée
-
-#### 🔧 Améliorations Techniques
-- **Rate limiting** avancé par utilisateur
-- **Logs structurés** avec Winston
-- **Métriques Prometheus** détaillées
-- **Health checks** approfondis
-
-### 📅 **Phase 2 : Dashboard Web Admin** (2-3 semaines)
-**Branche** : `feat/frontend-dashboard`
-
-#### 🎨 Interface Utilisateur
-```bash
-# Installation Frontend
-npx create-next-app@latest frontend --typescript --tailwind
-cd frontend
-npm install axios @tanstack/react-query zustand lucide-react
-```
-
-#### 📊 Pages & Composants
-- **Layout** : Navigation, sidebar, header responsive
-- **Dashboard** : KPIs, graphiques temps réel, widgets
-- **Candidatures** : Liste, kanban, formulaires, filtres
-- **Entreprises** : CRUD, recherche, base de données
-- **Contacts** : Carnet d'adresses, liaison candidatures
-- **Entretiens** : Calendrier, planning, feedback
-- **Paramètres** : Profil, préférences, notifications
-
-#### 🎯 Fonctionnalités Avancées
-- **Design System** : shadcn/ui + thème sombre/clair
-- **Responsive** : Mobile-first, PWA ready
-- **Performance** : SSG, ISR, optimisations images
-- **Temps réel** : WebSockets pour notifications live
-- **Offline** : Service Worker pour cache
-
-### 📅 **Phase 3 : Tests E2E & CI/CD** (1 semaine)
-**Branche** : `feat/testing-complete`
-
-#### 🎭 Tests End-to-End
-```bash
-# Configuration Playwright
-npm install --save-dev @playwright/test
-npx playwright install
-```
-
-#### 🔄 Pipeline CI/CD
-```yaml
-# .github/workflows/ci.yml
-name: CI/CD JobbingTrack
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm run test:integration
-      - run: npm run test:e2e
-      - run: npm run build
-```
-
-#### 📊 Monitoring & Qualité
-- **SonarQube** : Analyse qualité code
-- **Dependabot** : Mises à jour sécurité
-- **CodeQL** : Analyse sécurité automatisée
-- **Performance budgets** : Lighthouse CI
-
-### 📅 **Phase 4 : Application Mobile** (3-4 semaines)
-**Branche** : `feat/mobile-app`
-
-#### 📱 Setup React Native
-```bash
-# Initialisation mobile
-npx create-expo-app mobile --template
-cd mobile
-npx expo install react-navigation/native
-```
-
-#### 🔧 Architecture Mobile
-```
-mobile/
-├── src/
-│   ├── screens/           # Écrans principaux
-│   ├── components/        # Composants réutilisables  
-│   ├── navigation/        # Navigation principale
-│   ├── services/          # API client
-│   ├── store/             # State management
-│   └── utils/             # Utilitaires
-├── assets/                # Images, fonts
-└── app.json              # Configuration Expo
-```
-
-#### 🚀 Fonctionnalités Mobile
-- **Navigation** : Stack + Tab + Drawer optimisés
-- **Auth** : Biométrie, refresh tokens, onboarding
-- **CRUD** : Interfaces tactiles optimisées
-- **Offline** : SQLite + synchronisation background
-- **Notifications** : Push notifications natives
-- **Performance** : Lazy loading, image optimization
-
-### 📅 **Phase 5 : Production & Déploiement** (1 semaine)
-**Branche** : `feat/production-ready`
-
-#### 🐳 Infrastructure Production
-- **Docker Swarm** ou **Kubernetes** : Orchestration
-- **SSL/TLS** : Certificats Let's Encrypt automatiques
-- **Nginx** : Reverse proxy + rate limiting
-- **PostgreSQL** : Cluster + backups automatiques
-- **Redis** : Cluster pour haute disponibilité
-
-#### 📊 Monitoring Production
-- **Prometheus + Grafana** : Métriques système
-- **Jaeger** : Tracing distribué
-- **ELK Stack** : Logs centralisés
-- **Alerting** : PagerDuty/Slack notifications
-
-#### 🔒 Sécurité & Compliance
-- **OWASP** : Audit sécurité complet
-- **RGPD** : Conformité protection données
-- **Backups** : Stratégie 3-2-1
-- **Disaster Recovery** : Plan de reprise
-
----
-
-## 📚 Documentation Technique
-
-### 📁 Structure du Projet
-```
-JobbingTrack/
-├── backend/                    # Architecture microservices
-│   ├── api-gateway/           # Port 3000 - Point d'entrée
-│   ├── auth-service/          # Port 3001 - Authentification
-│   ├── application-service/   # Port 3002 - Candidatures
-│   ├── company-service/       # Port 3003 - Entreprises
-│   ├── contact-service/       # Port 3004 - Contacts
-│   ├── interview-service/     # Port 3005 - Entretiens
-│   ├── notification-service/  # Port 3006 - Notifications
-│   ├── dashboard-service/     # Port 3007 - Analytics
-│   ├── monitoring/            # Prometheus, Grafana, Jaeger
-│   ├── prisma/               # Schémas DB et migrations
-│   ├── docker-compose.yml    # Orchestration services
-│   ├── Makefile              # Commandes automatisées
-│   ├── test-services.sh      # Tests infrastructure
-│   └── README.md             # Documentation backend
-├── frontend/                  # Dashboard web Next.js (Phase 2)
-├── mobile/                    # App React Native (Phase 4)
-├── docs/                      # Documentation projet
-├── test-microservices.sh     # Tests fonctionnels
-├── .github/workflows/         # CI/CD GitHub Actions
-└── README.md                  # Ce fichier
-```
-
-### 🗄️ Modèles de Données (Prisma)
-
-#### Modèles Principaux
-- **User** : Utilisateurs avec rôles (USER, ADMIN, SUPER_ADMIN)
-- **Application** : Candidatures avec statuts et timeline
-- **Company** : Entreprises avec informations secteur
-- **Contact** : Contacts professionnels multi-entités
-- **Interview** : Entretiens avec types et feedback
-- **FollowUp** : Relances automatiques et manuelles
-- **Reminder** : Rappels personnalisés
-- **Activity** : Historique complet des actions
-- **Document** : Gestion fichiers (CV, lettres)
-- **MessageTemplate** : Templates emails personnalisables
-
-#### Relations Complexes  
-- **User** ↔ **Applications** (1-N)
-- **Application** ↔ **Company** (N-1)
-- **Application** ↔ **Interviews** (1-N)
-- **Company** ↔ **Contacts** (1-N)
-- **Application** ↔ **FollowUps** (1-N)
-- **Application** ↔ **Documents** (N-N)
-
-### 🔧 Commandes Makefile
-
-#### Gestion des Services
-```bash
-make up              # Démarrer tous les services
-make down            # Arrêter tous les services
-make restart         # Redémarrer tous les services
-make status          # Voir le statut des services
-make logs            # Logs de tous les services
-make logs-api        # Logs API Gateway uniquement
-```
-
-#### Base de Données
-```bash
-make migrate         # Exécuter les migrations Prisma
-make migrate-reset   # Reset complet DB (ATTENTION!)
-make seed            # Peupler avec données de test
-make studio          # Ouvrir Prisma Studio (GUI DB)
-make backup          # Sauvegarde automatique
-```
-
-#### Tests & Qualité
-```bash
-make test            # Lancer tous les tests
-make test-services   # Tests de santé services
-make test-auth       # Tests authentification
-make lint            # Vérifier code (ESLint)
-make format          # Formater code (Prettier)
-```
-
-#### Développement
-```bash
-make dev             # Mode développement complet
-make build           # Build toutes les images
-make clean           # Nettoyer containers et volumes
-make health          # Test santé API
-```
-
-### 🔗 Liens Utiles
-
-#### Documentation
-- **README Principal** : Ce fichier
-- **SPEC Complète** : [JobbingTrack-SPEC.md](JobbingTrack-SPEC.md)
-- **Roadmap Détaillée** : [ROADMAP-COMPLETE-JOBBINGTRACK.md](ROADMAP-COMPLETE-JOBBINGTRACK.md)
-- **API Documentation** : http://localhost:3000/api-docs (Swagger)
-
-#### Outils Développement
-- **Prisma Studio** : http://localhost:5555
-- **Adminer DB** : http://localhost:8080
+- **Frontend** : http://localhost:8000
+- **API Gateway** : http://localhost:3000
+- **cAdvisor** : http://localhost:8081
+- **Metrics Aggregator** : http://localhost:8082
+- **Grafana** : http://localhost:8083 (admin/admin)
 - **Prometheus** : http://localhost:9090
-- **Grafana** : http://localhost:3001
+- **Alertmanager** : http://localhost:8085
 
-#### Repository
-- **GitHub** : https://github.com/PavelDelhomme/JobbingTrack
-- **Issues** : https://github.com/PavelDelhomme/JobbingTrack/issues
-- **Releases** : https://github.com/PavelDelhomme/JobbingTrack/releases
+### Commandes Essentielles
 
----
-
-## 🤝 Contribution
-
-### 🔄 Workflow Git
 ```bash
-# 1. Fork le projet
-# 2. Créer une branche feature
-git checkout -b feat/nouvelle-fonctionnalite
-
-# 3. Développer et tester
-make test-all
-
-# 4. Commit et push
-git commit -m "feat: ajouter nouvelle fonctionnalité"
-git push origin feat/nouvelle-fonctionnalite
-
-# 5. Créer une Pull Request
+make              # Afficher l'aide complète
+make up           # Services essentiels
+make up-full      # Tous les services
+make up-for-tests # Services pour tests de parcours ⭐ NOUVEAU
+make health       # Vérifier santé
 ```
 
-### 📋 Standards de Code
-- **ESLint** + **Prettier** pour la cohérence
-- **Conventional Commits** pour les messages
-- **Tests obligatoires** pour nouvelles fonctionnalités
-- **Documentation** à jour
+### 🧪 Pour Tester les Parcours Utilisateur
+
+**⚠️ Important** : Les tests de parcours nécessitent les services backend !
+
+```bash
+# 1. Démarrer les services de test
+make up-for-tests
+
+# 2. Attendre 10-15 secondes
+
+# 3. Ouvrir le navigateur
+# http://localhost:8080/backoffice/user-journey
+```
+
+📖 **Guide complet** : [DEMARRAGE_TESTS_PARCOURS.md](DEMARRAGE_TESTS_PARCOURS.md)
+
+### ⭐ Nouveau : Aide Contextuelle Intégrée
+
+```bash
+# Aide par module
+make help-services     # Services (up, down, restart)
+make help-frontend     # Frontend Next.js
+make help-backend      # Backend/monitoring
+make help-database     # Base de données
+make help-compilation  # Build/rebuild
+make help-diagnostic   # Diagnostic
+make help-tests        # Tests
+make help-utils        # Utilitaires
+```
+
+📖 **[Guide complet Makefile](docs/development/makefile/README.md)**
 
 ---
 
-## 📄 Licence
+## 📖 Documentation Détaillée
 
-Ce projet est sous licence **MIT**. Voir [LICENSE](LICENSE) pour plus de détails.
+### 📚 [Documentation Complète](docs/README.md) | 🧭 [Navigation Complète](docs/navigation.md)
+
+#### 🚀 Démarrage et Installation
+| Guide | Description |
+|-------|-------------|
+| [Installation Rapide](docs/deployment/getting-started/README.md) | Guide d'installation et configuration initiale |
+| [Configuration Développement](docs/development/setup/README.md) | Environnement de développement Node.js, Docker, Prisma |
+| [Workflow Développement](docs/development/workflow/README.md) | Processus et bonnes pratiques de développement |
+| ⭐ [Guide Makefile](docs/development/makefile/README.md) | **NOUVEAU** : Système complet avec aide intégrée |
+
+#### 🏗️ Architecture et Services
+| Guide | Description |
+|-------|-------------|
+| [Architecture Microservices](docs/core/architecture/README.md) | Architecture technique complète 18+ microservices |
+| [Services Détaillés](docs/core/services/README.md) | Documentation de chaque microservice |
+| [Base de Données](docs/database/README.md) | Structure PostgreSQL, schémas et relations |
+| [Analyses BDD](docs/database/analysis/) | Audits et analyses comparatives |
+
+#### 📡 API et Intégration
+| Guide | Description |
+|-------|-------------|
+| [API Reference](docs/api/api-reference/README.md) | Documentation complète des APIs REST |
+| [Endpoints](docs/api/endpoints/README.md) | Liste exhaustive de tous les endpoints |
+
+#### 💻 Développement et Tests
+| Guide | Description |
+|-------|-------------|
+| [Tests et Qualité](docs/development/testing/README.md) | Stratégies de tests (unit, integration, E2E) |
+| [Guide Tests](tests/README.md) | Suite de tests complète et exécution |
+| [Frontend Next.js](docs/frontend/guide/README.md) | Développement interface TypeScript + Tailwind |
+| [Mobile Flutter](docs/mobile/guide/README.md) | Application mobile cross-platform |
+
+#### 🚀 Déploiement et Production
+| Guide | Description |
+|-------|-------------|
+| [Déploiement Production](docs/deployment/production/README.md) | Configuration et déploiement production |
+| [Sécurité](docs/deployment/security/README.md) | Configuration sécurité et bonnes pratiques |
+| [Guide Sécurité](docs/security/guide/README.md) | Authentification, autorisations, protection |
+
+#### 🔧 Administration et Maintenance
+| Guide | Description |
+|-------|-------------|
+| [Guide Administration](docs/administration/README.md) | Administration système et dashboard |
+| [Dépannage](docs/troubleshooting/guide/README.md) | Solutions aux problèmes courants |
+| [Performance](docs/performance/guide/README.md) | Optimisations et monitoring performance |
+
+#### 📊 Analyses et Audits
+| Document | Description |
+|----------|-------------|
+| [Audit Complet Projet](docs/database/analysis/comprehensive-project-audit/README.md) | Audit complet du projet v4.1 |
+| [Analyse Structure Données](docs/database/analysis/data-structure-analysis/README.md) | Analyse comparative structure BDD |
+| [Architecture Métriques](docs/architecture/metrics/README.md) | Système de métriques final |
+| [Changelog](docs/changelog/all-changes.md) | Historique complet des modifications |
+
+### Scripts
+
+| Dossier | Description |
+|---------|-------------|
+| [Setup](scripts/setup/README.md) | Installation |
+| [Docker](scripts/docker/README.md) | Gestion Docker |
+| [Database](scripts/db/README.md) | Scripts BDD |
+| [Health](scripts/health/README.md) | Santé services |
+| [Tests](tests/README.md) | Suite de tests complète |
 
 ---
 
-## 👤 Auteur
+## 🛠️ Commandes Make
 
-**Pavel Delhomme**
-- 🌐 GitHub: [@PavelDelhomme](https://github.com/PavelDelhomme)
-- 📧 Email: candidatures@delhomme.ovh
-- 🔗 LinkedIn: [Pavel Delhomme](https://linkedin.com/in/pavel-delhomme)
+### Démarrage
+make up # Services essentiels
+make up-full # Tous les services
+make down # Arrêter
+
+
+### Gestion Services
+
+make start-auth
+make stop-service SERVICE=backend
+make logs-service SERVICE=frontend
+
+
+### Tests
+
+make test-setup # Configuration tests
+make test # Tests complets
+make test-unit # Tests unitaires
+make test-e2e # Tests E2E (Playwright)
+make test-docker-images # Tests images Docker
+make test-system-verify # Vérification système
+
+📖 **[Guide des tests](tests/README.md)**
+
+### Diagnostics
+
+make health # Santé services
+make ps # Liste conteneurs
+make status # Statut détaillé
+
+
+📖 **[Documentation complète Makefile](docs/development/makefile/README.md)** | 📄 **[Documentation PDF Complète](docs/pdfs/documentation-complete.pdf)**
+
+## 🚧 En Développement
+
+### 🚶 Parcours Utilisateur - Tests Automatisés
+**Statut** : ✅ **DISPONIBLE**  
+**Priorité** : Haute  
+**URL** : `/backoffice/user-journey`
+
+Nouvelle page de test permettant d'exécuter et analyser automatiquement tous les scénarios de parcours utilisateur complets (inscription → candidatures → relances → entretiens → statistiques).
+
+**Fonctionnalités** :
+- ▶️ **4 scénarios prédéfinis** : Complet, Rapide, Chercheur Actif, Nouvel Utilisateur
+- 📊 **Analytics en temps réel** : Durée, taux de réussite, étapes échouées
+- 💾 **Export JSON** : Sauvegarde des résultats de test
+- 🎯 **8 étapes testées** : Register, Login, Applications, Contacts, Interviews, Followups, Calls, Statistics
+- 🆕 **🛑 Annulation en cours** : Stoppez un test pendant son exécution
+- 🆕 **💾 Sauvegarde automatique** : Résultats conservés après rechargement (localStorage)
+- 🆕 **🗑️ Gestion historique** : Effacez complètement l'historique sauvegardé
+
+**📖 Guides** : 
+- [`GUIDE_TESTS_PARCOURS.md`](docs/development/GUIDE_TESTS_PARCOURS.md) ⭐ - Guide complet
+- [`NOUVELLES_FONCTIONNALITES_PARCOURS.md`](NOUVELLES_FONCTIONNALITES_PARCOURS.md) 🆕 - Annulation & Sauvegarde
 
 ---
 
-## ⭐ Support
+### 📊 Système de Monitoring et Analytics Mobile
+**Statut** : 📋 Documenté (À Implémenter)  
+**Priorité** : Haute  
 
-Si ce projet vous aide, n'hésitez pas à lui donner une ⭐ !
+Système complet de collecte et d'analyse des métriques de l'application mobile Flutter pour détecter les erreurs, analyser les performances et comprendre le comportement des utilisateurs.
 
-Pour tout problème ou suggestion, ouvrez une [issue](https://github.com/PavelDelhomme/JobbingTrack/issues).
+**Documentation Complète** :
+- 📄 [`docs/mobile/analytics/SUMMARY.md`](docs/mobile/analytics/SUMMARY.md) - Vue d'ensemble
+- 🔧 [`docs/mobile/analytics/INTEGRATION.md`](docs/mobile/analytics/INTEGRATION.md) - Guide d'implémentation
+- 🔐 [`docs/mobile/analytics/PRIVACY.md`](docs/mobile/analytics/PRIVACY.md) - Conformité RGPD
+- 📊 [`docs/mobile/analytics/DASHBOARD.md`](docs/mobile/analytics/DASHBOARD.md) - Templates dashboard
 
+**Composants à Créer** :
+- 🔧 Backend : Service `mobile-analytics-service` (10+ endpoints API)
+- 📱 Flutter : SDK Analytics complet (9 fichiers)
+- 📊 Dashboard : Interface de visualisation des métriques
+- 🐛 Monitoring : Crashes, performances, événements utilisateurs
+- 📈 Analytics : Statistiques d'utilisation par module mobile
+
+**Plan d'Implémentation** : 9-14 jours (voir [`TODO_NEXT_STEPS.md`](TODO_NEXT_STEPS.md))
+
+### 🤖 Machine Learning & Matching
+**TODO: Ajouter du vecteur et de l'embedding pour le traitement des données et analyse, afin de déterminer les profil utilisateur et le matching avec la candidature a laquelle il ont postuler afin de savoir si le profil est compatible avec la candidature**
 ---
 
-**🎯 JobbingTrack - Votre assistant personnel pour la recherche d'emploi avec une architecture microservices moderne !**
-
-*Dernière mise à jour : 02 Octobre 2025*
+**[⬆ Retour en haut](#jobbingtrack-)**

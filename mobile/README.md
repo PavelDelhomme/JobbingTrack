@@ -1,164 +1,95 @@
-# JobbingTrack Mobile
+# 📱 JobbingTrack Mobile - Flutter
 
-Application mobile React Native pour la gestion des candidatures, appels, contacts et calendrier.
+[← Retour au README principal](../README.md) | [📚 Documentation](../docs/README.md) | [🧭 Navigation](../docs/navigation.md)
 
-## Fonctionnalités
+📖 **[Guide Mobile Flutter](../docs/mobile/guide/README.md)** - Documentation complète
 
-### 📞 Gestion des Appels
-- **Liste des appels** avec filtrage par date et statut
-- **Calendrier intégré** pour visualiser les appels programmés
-- **Gestion des statuts** : Planifié, Terminé, Annulé, Pas de réponse, Message vocal, Replanifié
-- **Détails des appels** : durée, notes, contacts associés
-- **Filtrage et recherche** avancés
+Application mobile Flutter pour JobbingTrack.
 
-### 👥 Contacts & Entreprises
-- **Gestion des contacts** avec informations détaillées
-- **Gestion des entreprises** avec secteur d'activité et localisation
-- **Liaison contacts-entreprises** avec rôles (recruteur, manager, RH)
-- **Actions rapides** : email, téléphone, LinkedIn
-- **Recherche par nom, poste, entreprise**
+---
 
-### 🔄 Gestion des Relances
-- **Suivi des relances** avec différents types (email, téléphone, LinkedIn)
-- **Statuts de relance** : En attente, Retour positif, Retour négatif, Aucun retour, Programmée
-- **Échéances et rappels** automatiques
-- **Historique des réponses** reçues
-- **Statistiques** des relances en attente, en retard, etc.
+## 📊 Système de Monitoring et Analytics (En Développement)
 
-### ⚙️ Paramètres Utilisateur
-- **Profil utilisateur** personnalisable
-- **Préférences de notifications** (email, push, rappels)
-- **Configuration des délais** par défaut (durée entretiens, archivage automatique)
-- **Gestion du thème** (clair, sombre, automatique)
-- **Paramètres de langue** et préférences
+### 🎯 Objectif
+Un système complet de collecte et d'analyse des métriques pour :
+- 🐛 Détecter les erreurs et crashes en production
+- 📈 Analyser les performances de l'application
+- 👥 Comprendre le comportement des utilisateurs
+- 🔍 Identifier les points de friction dans l'UX
+- ⚡ Mesurer et optimiser les temps de chargement
 
-### 📅 Calendrier
-- **Vue calendrier mensuelle** avec événements marqués
-- **Vue hebdomadaire** détaillée
-- **Vue journalière** avec événements du jour
-- **Types d'événements** : candidatures, entretiens, relances, échéances, rendez-vous
-- **Synchronisation** avec les données de l'application
+### 📦 Modules Instrumentés
 
-## Structure des Écrans
+| Module | Métriques Collectées |
+|--------|---------------------|
+| 🔐 **Authentification** | Login/logout, échecs, temps de chargement |
+| 📋 **Candidatures** | Création, édition, suppression, filtres, performances |
+| 👤 **Contacts** | CRUD, synchronisation, performances |
+| 🏢 **Entreprises** | Recherche, sélection, temps de réponse |
+| 📅 **Entretiens** | Planification, rappels, performances calendrier |
+| 📞 **Relances** | Création, complétion, tracking |
+| 🏠 **Dashboard** | Navigation, interactions, temps de chargement |
+| 🔄 **Réseau** | Latence API, timeouts, erreurs réseau |
+| 💾 **Cache** | Lecture/écriture, taille utilisée |
 
-```
-src/screens/
-├── CallsScreen.tsx          # Gestion des appels avec calendrier
-├── ContactsScreen.tsx       # Contacts et entreprises
-├── FollowUpsScreen.tsx      # Gestion des relances
-├── SettingsScreen.tsx       # Paramètres utilisateur
-└── CalendarScreen.tsx       # Calendrier des événements
-```
+### 🎨 Fonctionnalités du SDK
 
-## États et Modèles de Données
+```dart
+// Tracking événements
+analytics.logEvent('application_created', properties: {...});
 
-### États des Candidatures
-- `CANDIDATE_PENDING` : "Candidaté et en attente"
-- `NO_RESPONSE` : "Aucune réponse"
-- `NO_RESPONSE_AFTER_FIRST_FOLLOWUP` : "Aucune réponse après 1 relance"
-- `NO_RESPONSE_AFTER_SECOND_FOLLOWUP` : "Aucune réponse après 2 relance"
-- `FIRST_INTERVIEW_PENDING` : "1er entretien en attente"
-- `OTHER_INTERVIEW_PENDING` : "Autre entretien en attente"
-- `ACCEPTED_AFTER_INTERVIEW` : "Retenue après entretien"
-- `REJECTED_WITHOUT_INTERVIEW` : "Non retenue sans entretien"
-- `REJECTED_AFTER_INTERVIEW` : "Non retenue après entretien"
+// Monitoring performances
+analytics.logPerformance('load_applications', durationMs);
 
-### États des Entretiens
-- `UPCOMING_ARRIVAL` : "Entretien arrivé"
-- `COMPLETED` : "Entretien passé"
-- `FEEDBACK_PENDING` : "Retour prévu d'ici (plage de retour)"
-- `PENDING` : "Entretien en attente"
+// Tracking navigation
+analytics.logScreenView('ApplicationsScreen');
 
-### États des Relances
-- `PENDING_FOLLOWUP` : "Relance et en attente"
-- `POSITIVE_RESPONSE` : "Retour positif reçu"
-- `NEGATIVE_RESPONSE` : "Retour négatif reçu"
-- `NO_RESPONSE` : "Aucun retour"
-- `SCHEDULED_FOLLOWUP` : "Relance prévisionnel"
+// Reporting crashes
+analytics.reportCrash(error, stackTrace);
 
-## Installation et Configuration
-
-1. **Installation des dépendances** :
-```bash
-npm install
-# ou
-yarn install
+// Sessions utilisateur
+analytics.startSession();
+analytics.endSession();
 ```
 
-2. **Installation des dépendances React Native** :
-```bash
-npm install react-native-calendars date-fns
-# ou
-yarn add react-native-calendars date-fns
-```
+### 📊 Dashboard Analytics Backend
+- Vue d'ensemble : utilisateurs actifs, sessions, crashes
+- Monitoring des crashes : détection et résolution
+- Performances : temps de chargement par écran
+- Événements : actions populaires, parcours utilisateurs
+- Graphiques : tendances temporelles
+- Export : rapports et données brutes
 
-3. **Configuration des services API** :
-   - Mettre à jour les URLs des services dans les fichiers de configuration
-   - Configurer l'authentification mobile
-   - Ajouter les certificats SSL si nécessaire
+### 🔐 Confidentialité & RGPD
+- ✅ Anonymisation des données sensibles
+- ✅ Consentement utilisateur
+- ✅ Option opt-out disponible
+- ✅ Chiffrement des données en transit
+- ✅ Respect des durées de conservation
 
-4. **Configuration du calendrier** :
-   - Installer `react-native-calendars` avec `npm install react-native-calendars`
-   - Personnaliser les thèmes et locales selon les besoins
+### 📋 Plan d'Implémentation
+Voir les détails complets dans [`../TODO_NEXT_STEPS.md`](../TODO_NEXT_STEPS.md) - Section "Système de Monitoring et Analytics Mobile"
 
-## Utilisation
+**Phases** :
+1. Backend : Service mobile-analytics (1-2 jours)
+2. SDK Flutter : Services analytics (2-3 jours)
+3. Instrumentation : Tous les modules (3-4 jours)
+4. Dashboard : Interface visualisation (2-3 jours)
+5. Tests & Optimisation (1-2 jours)
 
-### Écran des Appels
-- **Vue calendrier** : Sélectionner une date pour voir les appels du jour
-- **Liste des appels** : Filtrer par statut, rechercher par contact/entreprise
-- **Actions** : Marquer comme terminé, reprogrammer, ajouter des notes
+**Durée estimée** : 9-14 jours
 
-### Écran Contacts/Entreprises
-- **Onglets** : Basculer entre contacts et entreprises
-- **Recherche** : Trouver rapidement un contact ou une entreprise
-- **Actions** : Appeler, envoyer un email, voir les candidatures liées
+---
 
-### Écran des Relances
-- **Statistiques** : Voir le nombre de relances en attente, en retard, etc.
-- **Gestion** : Marquer comme terminée, voir les réponses reçues
-- **Filtres** : Par statut, type de relance, date
+## Getting Started
 
-### Écran Paramètres
-- **Profil** : Modifier les informations personnelles
-- **Notifications** : Configurer les rappels et alertes
-- **Préférences** : Personnaliser l'expérience utilisateur
+This project is a starting point for a Flutter application.
 
-### Écran Calendrier
-- **Vues multiples** : Mois, semaine, jour
-- **Navigation** : Se déplacer facilement dans le temps
-- **Événements** : Visualiser tous les types d'événements
+A few resources to get you started if this is your first Flutter project:
 
-## Développement
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-### Ajout de nouvelles fonctionnalités
-1. Créer un nouveau fichier d'écran dans `src/screens/`
-2. Implémenter les appels API nécessaires dans `src/services/`
-3. Ajouter la navigation dans le système de routage
-4. Tester sur les émulateurs iOS/Android
-
-### Personnalisation des thèmes
-Les couleurs et styles peuvent être personnalisés dans les objets `StyleSheet` de chaque écran.
-
-### Gestion des données locales
-Pour l'instant, les données sont mockées. Implémenter la persistance locale avec AsyncStorage ou Redux Persist selon les besoins.
-
-## Technologies utilisées
-
-- **React Native** : Framework mobile
-- **TypeScript** : Typage statique
-- **React Native Calendars** : Composant calendrier
-- **Date-fns** : Manipulation des dates
-- **React Navigation** : Système de navigation (à implémenter)
-
-## Prochaines étapes
-
-1. **Intégration API** : Connecter aux services backend existants
-2. **Authentification** : Implémenter le système de connexion mobile
-3. **Notifications push** : Ajouter les notifications en temps réel
-4. **Synchronisation offline** : Gérer les données hors ligne
-5. **Tests unitaires** : Ajouter des tests pour les composants
-6. **Optimisation performance** : Lazy loading, pagination, etc.
-
-## Support
-
-Pour toute question ou problème, consulter la documentation backend ou contacter l'équipe de développement.
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

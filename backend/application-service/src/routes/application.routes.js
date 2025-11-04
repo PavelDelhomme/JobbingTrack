@@ -50,4 +50,21 @@ router.get('/archived', archiveController.getArchivedApplications);
 router.get('/archive-stats', archiveController.getArchiveStats);
 router.delete('/:id/permanent', param('id').isUUID(), archiveController.deleteArchivedApplication);
 
+// NOUVELLES ROUTES - Historique des statuts
+router.put('/:id/status', [
+  param('id').isUUID().withMessage('ID invalide'),
+  body('status').isIn([
+    'CANDIDATE_PENDING', 'NO_RESPONSE', 'NO_RESPONSE_AFTER_FIRST_FOLLOWUP',
+    'NO_RESPONSE_AFTER_SECOND_FOLLOWUP', 'FIRST_INTERVIEW_PENDING',
+    'OTHER_INTERVIEW_PENDING', 'ACCEPTED_AFTER_INTERVIEW',
+    'REJECTED_WITHOUT_INTERVIEW', 'REJECTED_AFTER_INTERVIEW'
+  ]).withMessage('Statut invalide'),
+  body('comment').optional().isString()
+], controller.updateApplicationStatus);
+
+router.get('/:id/status-history', param('id').isUUID(), controller.getApplicationStatusHistory);
+
+// NOUVELLES ROUTES - Contacts liés aux candidatures
+router.get('/:id/contacts', param('id').isUUID(), controller.getApplicationContacts);
+
 module.exports = router;

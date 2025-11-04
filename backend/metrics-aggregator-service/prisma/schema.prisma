@@ -1,0 +1,351 @@
+// Prisma Schema pour metrics-aggregator-service
+// Stockage de l'historique des métriques pour le backoffice admin
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ✅ Snapshot de métriques système (snapshots périodiques)
+model SystemMetricsSnapshot {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+
+  // CPU
+  cpuUsagePercent   Float
+  cpuCores          Int
+  cpuLoadAverage1m  Float?
+  cpuLoadAverage5m  Float?
+  cpuLoadAverage15m Float?
+
+  // RAM
+  memoryUsagePercent Float
+  memoryUsedBytes    BigInt
+  memoryTotalBytes   BigInt
+  memoryFreeBytes    BigInt
+
+  // Disk
+  diskUsagePercent Float?
+  diskUsedBytes    BigInt?
+  diskTotalBytes   BigInt?
+  diskFreeBytes    BigInt?
+
+  // Network (optionnel)
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+
+  // Métriques calculées
+  availabilityPercent Float?     // Disponibilité globale des services (%)
+  loadScore           Float?     // Score de charge système (0-1)
+  errorCount          Int?       // Nombre total d'erreurs
+  errorRate           Float?     // Taux d'erreur (%)
+  responseTimeAvg     Float?     // Temps de réponse moyen (ms)
+
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([createdAt])
+}
+
+// ✅ Métriques par conteneur (snapshots périodiques)
+model ContainerMetricsSnapshot {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  containerName String
+  containerId   String?
+
+  // État
+  status String // running, stopped, etc.
+
+  // CPU
+  cpuUsagePercent Float?
+  cpuUsageNano    BigInt?
+
+  // RAM
+  memoryUsagePercent Float?
+  memoryUsageBytes   BigInt?
+  memoryLimitBytes   BigInt?
+
+  // Network
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+
+  // Disk I/O
+  blockReadBytes  BigInt?
+  blockWriteBytes BigInt?
+
+  // Metadata
+  image  String?
+  labels Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([containerName])
+  @@index([createdAt])
+}
+
+// ✅ Événements système (alertes, incidents, démarrages/arrêts)
+model SystemEvent {
+  id          String          @id @default(cuid())
+  timestamp   DateTime        @default(now())
+  type        SystemEventType
+  severity    EventSeverity   @default(INFO)
+  source      String // Nom du service/conteneur/système
+  title       String
+  description String?
+  metadata    Json? // Données supplémentaires (stack trace, valeurs, etc.)
+
+  // Alerte
+  isAlert    Boolean   @default(false)
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([type])
+  @@index([severity])
+  @@index([source])
+  @@index([isAlert])
+  @@index([createdAt])
+}
+
+// ✅ Logs agrégés (pour analyse et recherche)
+model AggregatedLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  level       LogLevel @default(INFO)
+  message     String
+  metadata    Json?
+  stackTrace  String?
+  userId      String?
+  requestId   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([level])
+  @@index([userId])
+  @@index([requestId])
+  @@index([createdAt])
+}
+
+// ✅ Logs conteneurs Docker (directement depuis les conteneurs)
+model ContainerLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  containerName String
+  containerId   String?
+  stream        String   @default("stdout") // stdout, stderr
+  log           String   @db.Text
+  
+  // Parsing automatique si possible
+  parsedLevel   LogLevel?
+  parsedMessage String?  @db.Text
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([containerName])
+  @@index([containerId])
+  @@index([stream])
+  @@index([parsedLevel])
+  @@index([createdAt])
+}
+
+// ✅ Historique réseau par service
+model ServiceNetworkHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  
+  // Trafic
+  requestCount       Int      @default(0)
+  successCount       Int      @default(0)
+  errorCount         Int      @default(0)
+  avgResponseTimeMs  Float?
+  minResponseTimeMs  Float?
+  maxResponseTimeMs  Float?
+  p95ResponseTimeMs  Float?
+  p99ResponseTimeMs  Float?
+  
+  // Bande passante
+  bytesReceived   BigInt   @default(0)
+  bytesSent       BigInt   @default(0)
+  
+  // Endpoints les plus utilisés
+  topEndpoints    Json?    // [{path: string, count: number}]
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([createdAt])
+}
+
+// ✅ Historique de disponibilité des services
+model ServiceAvailabilityHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  
+  isAvailable      Boolean
+  responseTimeMs   Int?
+  statusCode       Int?
+  errorMessage     String?
+  
+  // Uptime calculé
+  uptimePercent    Float?
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([isAvailable])
+  @@index([createdAt])
+}
+
+// ✅ Métriques de sécurité
+model SecurityMetric {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  
+  // Tentatives de connexion
+  failedLoginAttempts     Int      @default(0)
+  successfulLogins        Int      @default(0)
+  blockedIPs              Json?    // [string]
+  suspiciousActivities    Int      @default(0)
+  
+  // Requêtes suspectes
+  potentialSqlInjections  Int      @default(0)
+  potentialXssAttempts    Int      @default(0)
+  rateLimitExceeded       Int      @default(0)
+  invalidTokenAttempts    Int      @default(0)
+  
+  // Score de sécurité (0-100)
+  securityScore           Float?
+  
+  // Alertes
+  activeSecurityAlerts    Int      @default(0)
+  
+  createdAt DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([createdAt])
+}
+
+// ✅ Statistiques quotidiennes (pré-calculées pour le dashboard)
+model DailyStats {
+  id   String   @id @default(cuid())
+  date DateTime @unique @db.Date
+
+  // Système
+  avgCpuUsagePercent    Float
+  maxCpuUsagePercent    Float
+  avgMemoryUsagePercent Float
+  maxMemoryUsagePercent Float
+  avgDiskUsagePercent   Float?
+
+  // Conteneurs
+  totalContainers   Int
+  runningContainers Int
+  stoppedContainers Int
+
+  // Événements
+  totalEvents      Int
+  totalAlerts      Int
+  unresolvedAlerts Int
+
+  // Logs
+  totalLogs   Int
+  errorLogs   Int
+  warningLogs Int
+
+  // Network
+  totalNetworkRxBytes BigInt?
+  totalNetworkTxBytes BigInt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+// ✅ Configuration des alertes (seuils)
+model AlertThreshold {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+
+  // Seuils
+  metricType        String // cpu_usage, memory_usage, disk_usage, etc.
+  warningThreshold  Float? // Seuil avertissement (ex: 80%)
+  criticalThreshold Float? // Seuil critique (ex: 95%)
+
+  // Ciblage
+  targetType String  @default("system") // system, container, service
+  targetName String? // Si container ou service spécifique
+
+  // État
+  isEnabled Boolean @default(true)
+
+  // Notifications
+  notifyEmail Boolean @default(false)
+  notifySlack Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([metricType])
+  @@index([isEnabled])
+}
+
+// ENUMS
+
+enum SystemEventType {
+  CONTAINER_START
+  CONTAINER_STOP
+  CONTAINER_RESTART
+  CONTAINER_ERROR
+  SERVICE_START
+  SERVICE_STOP
+  SERVICE_ERROR
+  SYSTEM_BOOT
+  SYSTEM_SHUTDOWN
+  HIGH_CPU_USAGE
+  HIGH_MEMORY_USAGE
+  HIGH_DISK_USAGE
+  NETWORK_ERROR
+  DATABASE_ERROR
+  BACKUP_COMPLETED
+  BACKUP_FAILED
+  DEPLOYMENT_START
+  DEPLOYMENT_SUCCESS
+  DEPLOYMENT_FAILED
+  ALERT_TRIGGERED
+  ALERT_RESOLVED
+  OTHER
+}
+
+enum EventSeverity {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}

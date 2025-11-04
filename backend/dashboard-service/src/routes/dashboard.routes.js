@@ -11,5 +11,6 @@ router.get('/stats/public', controller.getStats);
 router.use(authenticate);
 
 router.get('/stats', controller.getStats);
+router.get('/statistics', controller.getStats); // Alias pour compatibilité API Gateway
 
 module.exports = router;

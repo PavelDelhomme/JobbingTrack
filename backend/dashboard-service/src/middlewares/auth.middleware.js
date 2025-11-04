@@ -21,6 +21,18 @@ const authenticate = async (req, res, next) => {
 
     const token = parts[1];
 
+    // ✅ Mode développement: Accepter les tokens mock
+    if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token')) {
+      logger.info('🔐 Mode développement: Token mock accepté');
+      req.user = {
+        id: 'dev_user_1',
+        email: 'dev@jobbingtrack.com',
+        role: 'USER'
+      };
+      req.token = token;
+      return next();
+    }
+
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       

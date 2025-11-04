@@ -1,0 +1,26 @@
+[
+  {
+    "id": "test-user-1",
+    "email": "test@example.com",
+    "firstName": "Test",
+    "lastName": "User",
+    "role": "USER",
+    "isActive": true
+  },
+  {
+    "id": "test-admin-1",
+    "email": "admin@example.com",
+    "firstName": "Admin",
+    "lastName": "Test",
+    "role": "ADMIN",
+    "isActive": true
+  },
+  {
+    "id": "test-super-admin-1",
+    "email": "superadmin@example.com",
+    "firstName": "Super",
+    "lastName": "Admin",
+    "role": "SUPER_ADMIN",
+    "isActive": true
+  }
+]

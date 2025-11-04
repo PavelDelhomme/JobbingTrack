@@ -1,0 +1,23 @@
+{
+  "techCorp": {
+    "name": "Tech Corp",
+    "description": "Entreprise technologique innovante",
+    "website": "https://techcorp.com",
+    "industry": "Technology",
+    "size": "50-200"
+  },
+  "startup": {
+    "name": "Startup Inc",
+    "description": "Jeune entreprise en croissance",
+    "website": "https://startup.com",
+    "industry": "Technology",
+    "size": "1-10"
+  },
+  "consulting": {
+    "name": "Consulting Plus",
+    "description": "Cabinet de conseil en management",
+    "website": "https://consulting.com",
+    "industry": "Consulting",
+    "size": "10-50"
+  }
+}

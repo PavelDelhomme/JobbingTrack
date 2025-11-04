@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'jobbingtrack'
+    environment: 'production'
+
+scrape_configs:
+  # ============================================
+  # MÉTRIQUES SYSTÈME HÔTE (Node Exporter)
+  # ============================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # ============================================
+  # MÉTRIQUES CONTENEURS - TOUS (cAdvisor)
+  # Collecte toutes les métriques pour stats globales
+  # ============================================
+  - job_name: 'cadvisor-all'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # ============================================
+  # MÉTRIQUES CONTENEURS JOBBINGTRACK UNIQUEMENT
+  # Avec filtrage automatique via labels Docker Compose
+  # ============================================
+  - job_name: 'cadvisor-jobbingtrack'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      # Garde uniquement les conteneurs avec label com.docker.compose.project=jobbingtrack
+      - source_labels: [container_label_com_docker_compose_project]
+        regex: '(jobbingtrack|JobbingTrack).*'
+        action: keep
+      # Ajoute le nom du service comme label supplémentaire
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: 'service_name'
+      # Ajoute le nom du conteneur comme label
+      - source_labels: [name]
+        target_label: 'container_name'
+
+  # ============================================
+  # MÉTRIQUES PROMETHEUS (self-monitoring)
+  # ============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

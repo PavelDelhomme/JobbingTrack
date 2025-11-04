@@ -1,0 +1,26 @@
+
+# Tests
+tests/reports/
+tests/coverage/
+tests/temp/
+tests/*.log
+tests/test-results/
+tests/playwright-report/
+tests/e2e/results/
+tests/node_modules/
+
+# Environment de test
+tests/.env.test.local
+tests/*.env
+
+# Cache
+tests/.cache/
+tests/.nyc_output/
+
+# IDE
+tests/.vscode/
+tests/.idea/
+
+# OS
+tests/.DS_Store
+tests/Thumbs.db

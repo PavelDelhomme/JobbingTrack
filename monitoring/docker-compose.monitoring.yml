@@ -1,0 +1,140 @@
+services:
+  # ============================================
+  # COLLECTE MÉTRIQUES CONTENEURS
+  # ============================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: jobbingtrack-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8082:8080"  # Port 8082 cAdvisor
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # ============================================
+  # COLLECTE LOGS CONTENEURS
+  # ============================================
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: jobbingtrack-promtail
+    volumes:
+      - ./configs/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - loki
+
+  # ============================================
+  # STOCKAGE MÉTRIQUES (90 jours rétention)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: jobbingtrack-prometheus
+    user: root
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - jobbingtrack_prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "127.0.0.1:9090:9090"  # Localhost only (pas exposé publiquement)
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - cadvisor
+
+  # ============================================
+  # STOCKAGE LOGS (30 jours rétention)
+  # ============================================
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: jobbingtrack-loki
+    user: root
+    volumes:
+      - ./configs/loki.yml:/etc/loki/config.yml:ro
+      - jobbingtrack_loki_data:/loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "127.0.0.1:3100:3100"  # Localhost only
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+  # ============================================
+  # VISUALISATION (Grafana - optionnel)
+  # ============================================
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: jobbingtrack-grafana
+    user: root
+    volumes:
+      - ./configs/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - jobbingtrack_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3013
+    ports:
+      - "127.0.0.1:3013:3000"  # ✅ Changé de 3001 à 3013 pour éviter conflit avec auth-service
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+
+  # ============================================
+  # METRIQUES SYSTEME HOTE (CPU, RAM, Disque)
+  # ============================================
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: jobbingtrack-node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "127.0.0.1:9100:9100"
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+
+volumes:
+  jobbingtrack_prometheus_data:
+    name: jobbingtrack_prometheus_data
+    driver: local
+  jobbingtrack_loki_data:
+    name: jobbingtrack_loki_data
+    driver: local
+  jobbingtrack_grafana_data:
+    name: jobbingtrack_grafana_data
+    driver: local
+
+networks:
+  jobbingtrack-network:
+    name: jobbingtrack_jobbingtrack-network
+    external: true  # Utilise le réseau créé par docker-compose.yml
