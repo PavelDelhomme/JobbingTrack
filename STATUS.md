@@ -81,8 +81,8 @@ bash scripts/verify-user-journey.sh
 
 **Tests qui Échouent** (11/16) :
 ```
-❌ Companies - List (500) - Prisma Client mal initialisé
-❌ Companies - Create
+⚠️ Companies - List (À retester) - Prisma Client fixé ✅
+⚠️ Companies - Create (À retester)
 ❌ Applications - List
 ❌ Applications - Create
 ❌ Applications - Update (manquant)
@@ -1033,11 +1033,20 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-04 23h45** - PHASE 1.1 TERMINÉE : company-service fixé ✅
+- ✅ Ajout schéma Prisma complet (User, Company, Application, Contact, etc.)
+- ✅ Configuration variables d'environnement company-service (JWT_SECRET, PORT, AUTH_SERVICE_URL)
+- ✅ Rebuild company-service et auth-service avec nouveau schéma
+- ✅ Synchronisation base de données (prisma db push)
+- ✅ Ajout champ loginCount au modèle User
+- ✅ Test company-service : GET /companies fonctionne ✅
+- ✅ Test auth-service : Login fonctionne ✅
+- 🔄 **PROCHAINE ÉTAPE** : Tester User Journey complet (bash scripts/verify-user-journey.sh)
+
 **2025-11-04 23h00** - Préparation PHASE 1 : Stabilisation User Journey
 - ✅ Synchronisation tech/monitoring-system avec dev (fast-forward)
 - ✅ Création branche feat/user-journey-stabilization
 - ✅ Push branche sur GitHub
-- 🔄 **PROCHAINE ÉTAPE** : Fixer company-service Prisma Client (1.1)
 
 **2025-11-04 22h00** - Création STATUS.md complet
 - ✅ Consolidation tous fichiers .md
