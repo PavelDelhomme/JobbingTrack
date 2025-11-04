@@ -18,6 +18,7 @@ const createCompany = async (req, res, next) => {
 
     const company = await prisma.company.create({
       data: {
+        userId: req.user.id,
         name,
         website,
         industry,
@@ -45,12 +46,15 @@ const getCompanies = async (req, res, next) => {
     const { page = 1, limit = 10, search } = req.query;
     const offset = (page - 1) * limit;
     
-    const where = search ? {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { industry: { contains: search, mode: 'insensitive' } }
-      ]
-    } : {};
+    const where = {
+      userId: req.user.id,
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { industry: { contains: search, mode: 'insensitive' } }
+        ]
+      } : {})
+    };
 
     const [companies, total] = await Promise.all([
       prisma.company.findMany({
