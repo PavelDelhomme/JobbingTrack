@@ -40,6 +40,7 @@ model User {
   role              UserRole  @default(USER)
   isActive          Boolean   @default(true)
   lastLoginAt       DateTime?
+  loginCount        Int       @default(0)
   
   // Préférences
   theme             String?   @default("light")
