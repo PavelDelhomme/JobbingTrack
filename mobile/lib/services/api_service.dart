@@ -28,6 +28,38 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'firstName': firstName,
+          'lastName': lastName,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Erreur de connexion réseau: $e');
+    }
+  }
+
   static Future<List<Application>> getApplications() async {
     try {
       final response = await http.get(

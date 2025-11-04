@@ -1,48 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getAllUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
-  getUserStats
-} = require('../controllers/users.controller');
-const { authenticateToken } = require('../middleware/auth.middleware');
+const { authenticate, requireAdmin } = require('../middlewares/auth.middleware');
+const authController = require('../controllers/auth.controller');
+const userController = require('../controllers/user.controller');
 
-/**
- * @route   GET /api/v1/users
- * @desc    Récupérer tous les utilisateurs
- * @access  Private (Admin only)
- */
-router.get('/', authenticateToken, getAllUsers);
+// ✅ Toutes les routes sont protégées et nécessitent une authentification
+router.use(authenticate);
 
-/**
- * @route   GET /api/v1/users/stats
- * @desc    Récupérer les statistiques des utilisateurs
- * @access  Private (Admin only)
- */
-router.get('/stats', authenticateToken, getUserStats);
+// Routes CRUD utilisateurs (alias vers auth controller pour compatibilité)
+router.get('/', authController.getAllUsers);
+router.get('/:id', userController.getUserById);
+router.put('/:id', userController.updateUser);
+router.delete('/:id', authController.deleteUser);
 
-/**
- * @route   GET /api/v1/users/:id
- * @desc    Récupérer un utilisateur par ID
- * @access  Private
- */
-router.get('/:id', authenticateToken, getUserById);
+// Routes d'administration
+router.put('/:id/role', authController.updateUserRole);
+router.put('/:id/status', authController.toggleUserStatus);
+router.post('/:id/impersonate', userController.impersonateUser);
 
-/**
- * @route   PATCH /api/v1/users/:id
- * @desc    Mettre à jour un utilisateur
- * @access  Private
- */
-router.patch('/:id', authenticateToken, updateUser);
-
-/**
- * @route   DELETE /api/v1/users/:id
- * @desc    Supprimer un utilisateur (soft delete)
- * @access  Private (Admin only)
- */
-router.delete('/:id', authenticateToken, deleteUser);
+// Routes de vérification email
+router.post('/:id/send-verification', userController.sendVerificationEmail);
+router.post('/:id/resend-verification', userController.resendVerificationEmail);
 
 module.exports = router;
-

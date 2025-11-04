@@ -24,6 +24,15 @@ model User {
   resetToken       String?
   resetTokenExpiry DateTime?
 
+  // Champs de vérification email
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?
+  emailVerifiedAt        DateTime?
+
+  // Champs de connexion
+  lastLoginAt DateTime?
+  loginCount  Int      @default(0)
+
   // Champs administratifs
   role     UserRole @default(USER) // Rôle principal de l'utilisateur
   isActive Boolean  @default(true)

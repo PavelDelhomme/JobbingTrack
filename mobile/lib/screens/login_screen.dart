@@ -256,6 +256,35 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 24),
+
+                // Lien vers l'inscription
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Pas encore de compte ? ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pushNamed('/register');
+                      },
+                      child: Text(
+                        'S\'inscrire',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[600],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 40),
               ],
             ),

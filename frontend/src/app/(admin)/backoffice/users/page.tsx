@@ -41,7 +41,8 @@ export default function UsersManagementPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/v1/users`, {
+      // ✅ Correction: utiliser /api/v1/auth/users au lieu de /api/v1/users
+      const response = await axios.get(`${API_URL}/api/v1/auth/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -67,8 +68,8 @@ export default function UsersManagementPage() {
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
     try {
-      await axios.patch(
-        `${API_URL}/api/v1/users/${userId}`,
+      await axios.put(
+        `${API_URL}/api/v1/auth/users/${userId}/status`,
         { isActive: !isActive },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -82,7 +83,7 @@ export default function UsersManagementPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
     
     try {
-      await axios.delete(`${API_URL}/api/v1/users/${userId}`, {
+      await axios.delete(`${API_URL}/api/v1/auth/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       loadUsers();

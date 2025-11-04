@@ -33,6 +33,37 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> register({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.register(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+      );
+
+      if (response['success'] == true) {
+        // On ne connecte pas automatiquement, l'utilisateur doit vérifier son email
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        throw Exception(response['message'] ?? 'Erreur d\'inscription');
+      }
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> logout() async {
     _user = null;
     _token = null;

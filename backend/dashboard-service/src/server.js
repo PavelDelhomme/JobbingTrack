@@ -4,6 +4,7 @@ const helmet = require('helmet');
 
 const dashboardRoutes = require('./routes/dashboard.routes');
 const statisticsRoutes = require('./routes/statistics.routes');
+const preferencesRoutes = require('./routes/preferences.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);
+app.use('/api/v1/preferences', preferencesRoutes);
 
 // Gestion des erreurs 404
 app.use(notFound);
@@ -58,6 +60,8 @@ const server = app.listen(PORT, () => {
   console.log(`   - GET  /health`);
   console.log(`   - GET  /api/v1/dashboard/stats`);
   console.log(`   - GET  /api/v1/statistics`);
+  console.log(`   - GET  /api/v1/preferences`);
+  console.log(`   - PUT  /api/v1/preferences`);
 });
 
 // Gestion gracieuse de l'arrêt

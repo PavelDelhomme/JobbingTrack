@@ -412,6 +412,26 @@ class SecurityController {
       });
     }
   }
+
+  // Créer un log de sécurité (appelé par d'autres services)
+  async createSecurityLog(req, res) {
+    try {
+      const logData = req.body;
+      
+      const createdLog = await securityService.createSecurityLog(logData);
+
+      res.status(201).json({
+        success: true,
+        data: createdLog
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la création du log de sécurité:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la création du log de sécurité'
+      });
+    }
+  }
 }
 
 module.exports = new SecurityController();

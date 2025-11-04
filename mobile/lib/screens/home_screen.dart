@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
+import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +27,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
-    await appProvider.loadApplications();
+    final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
+    final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
+    
+    await Future.wait([
+      appProvider.loadApplications(),
+      interviewProvider.loadInterviews(),
+      followUpProvider.loadFollowUps(),
+    ]);
   }
 
   void _onItemTapped(int index) {
@@ -58,10 +68,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final appProvider = Provider.of<ApplicationProvider>(context);
+    final interviewProvider = Provider.of<InterviewProvider>(context);
+    final followUpProvider = Provider.of<FollowUpProvider>(context);
+    
     final user = authProvider.user;
     final applications = appProvider.applications;
+    final interviews = interviewProvider.interviews;
+    final followUps = followUpProvider.pendingFollowUps;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text('Bonjour ${user?.firstName ?? ''} 👋'),
         centerTitle: true,
@@ -97,30 +113,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 24),
 
-                // Statistiques
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        '${applications.length}',
-                        'Candidatures',
-                        Colors.blue,
-                        Icons.assignment,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildStatCard(
-                        '${applications.where((app) => app.status == 'INTERVIEW_SCHEDULED').length}',
-                        'Entretiens',
-                        Colors.green,
-                        Icons.event_available,
-                      ),
-                    ),
-                  ],
-                ),
+                // Statistiques principales
+                _buildMainStats(applications, interviews, followUps),
 
                 const SizedBox(height: 24),
+
+                // Statistiques par statut
+                _buildStatusBreakdown(applications),
+
+                const SizedBox(height: 24),
+
+                // Actions urgentes
+                if (followUps.isNotEmpty)
+                  _buildUrgentActions(followUps),
+
+                if (followUps.isNotEmpty)
+                  const SizedBox(height: 24),
 
                 // Actions rapides
                 Text(
@@ -269,6 +277,248 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey[400],
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
+  Widget _buildMainStats(List applications, List interviews, List followUps) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Vue d\'ensemble',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                '${applications.length}',
+                'Candidatures',
+                Colors.blue,
+                Icons.assignment,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                '${interviews.length}',
+                'Entretiens',
+                Colors.green,
+                Icons.event_available,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                '${followUps.length}',
+                'Relances',
+                Colors.orange,
+                Icons.schedule_send,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                '${applications.where((app) => app.status == 'ACCEPTED').length}',
+                'Acceptées',
+                Colors.green,
+                Icons.check_circle,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusBreakdown(List applications) {
+    final statusCounts = <String, int>{};
+    for (var app in applications) {
+      statusCounts[app.status] = (statusCounts[app.status] ?? 0) + 1;
+    }
+
+    final statusList = [
+      {'status': 'SENT', 'label': 'Envoyées', 'color': Colors.blue, 'icon': Icons.send},
+      {'status': 'INTERVIEW_SCHEDULED', 'label': 'Entretien prévu', 'color': Colors.purple, 'icon': Icons.event},
+      {'status': 'IN_PROGRESS', 'label': 'En cours', 'color': Colors.orange, 'icon': Icons.hourglass_empty},
+      {'status': 'REJECTED', 'label': 'Refusées', 'color': Colors.red, 'icon': Icons.cancel},
+      {'status': 'ACCEPTED', 'label': 'Acceptées', 'color': Colors.green, 'icon': Icons.check_circle},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Candidatures par statut',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...statusList.map((item) {
+            final count = statusCounts[item['status']] ?? 0;
+            final percentage = applications.isEmpty 
+                ? 0.0 
+                : (count / applications.length * 100);
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: (item['color'] as Color).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      size: 16,
+                      color: item['color'] as Color,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              item['label'] as String,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            Text(
+                              '$count (${percentage.toStringAsFixed(0)}%)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: applications.isEmpty ? 0 : count / applications.length,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              item['color'] as Color,
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUrgentActions(List followUps) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange[400]!, Colors.deepOrange[400]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Actions urgentes',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${followUps.length} relance${followUps.length > 1 ? 's' : ''} à effectuer',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed('/followups');
+            },
+            icon: const Icon(
+              Icons.arrow_forward,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
