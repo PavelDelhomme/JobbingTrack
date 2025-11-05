@@ -1,11 +1,117 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 18h00  
+**Dernière MAJ** : 2025-11-05 20h20  
 **Version** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
-**Configuration SMTP** : ✅ MailHog opérationnel (tests) + OVH maily.ovh prêt (production)  
+**Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
+
+---
+
+## 🚀 TODO POUR DEMAIN (06/11/2025) - À FAIRE EN PRIORITÉ
+
+### ⚡ PRIORITÉ 1 : Migrations Base de Données (5 min) ⭐ URGENT !
+
+```bash
+# La BDD est VIDE, appliquer migrations Prisma
+cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
+
+docker exec jobbingtrack-auth-service npx prisma migrate deploy
+docker exec jobbingtrack-auth-service npx prisma generate
+docker-compose --profile auth restart auth-service
+
+# Vérifier tables créées
+docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
+```
+
+### ⚡ PRIORITÉ 2 : Tests Emails OVH (15 min)
+
+```bash
+# 1. Inscription (email envoyé via OVH)
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com","password":"Test123!","firstName":"Paul","lastName":"Delh"}'
+
+# 2. VÉRIFIER GMAIL paul.delh@gmail.com
+#    → Email bienvenue reçu ?
+#    → Email vérification reçu ?
+
+# 3. Reset password
+curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com"}'
+
+# 4. VÉRIFIER GMAIL → Email reset reçu ?
+```
+
+### ⚡ PRIORITÉ 3 : Tests Déliverabilité & Sécurité (20 min)
+
+```bash
+# Test 1 : Vérifier DNS maily.ovh
+dig maily.ovh MX +short
+dig maily.ovh TXT +short | grep spf
+
+# Test 2 : Tester SMTP OVH
+openssl s_client -connect ssl0.ovh.net:465 -crlf
+# Taper : EHLO maily.ovh
+# Vérifier réponse serveur
+
+# Test 3 : Score déliverabilité avec mail-tester.com
+# → Envoyer email test à l'adresse fournie par mail-tester.com
+# → Vérifier score (objectif : > 8/10)
+
+# Test 4 : Vérifier firewall
+sudo ufw status | grep -E "465|587"
+# ou
+sudo iptables -L | grep -E "465|587"
+```
+
+### ⚡ PRIORITÉ 4 : Page Email Monitor (10 min)
+
+```
+URL : http://localhost:8080/backoffice/email-monitor
+
+Actions :
+1. Accéder à la page
+2. Vérifier statistiques
+3. Tester filtres
+4. Voir contenu emails
+5. Tester export
+
+Améliorations à faire :
+⏱️ Créer table EmailLog en BDD (Prisma)
+⏱️ Créer API /api/v1/emails/logs
+⏱️ Logger automatiquement tous les envois
+⏱️ Afficher logs réels (pas démo)
+⏱️ Ajouter graphiques (emails/jour, taux succès)
+```
+
+### ⚡ PRIORITÉ 5 : Interface Complète Emails (30 min)
+
+```
+Créer interface type Brevo :
+
+frontend/src/app/(admin)/backoffice/emails/
+├── page.tsx (dashboard principal)
+├── templates/page.tsx (gérer templates)
+├── logs/page.tsx (historique envois)
+├── settings/page.tsx (config SMTP)
+└── deliverability/page.tsx (tests DNS, SMTP, spam score)
+
+Fonctionnalités :
+✅ Dashboard : Stats globales (envoyés, échoués, taux ouverture)
+✅ Templates : Gérer templates HTML (bienvenue, reset, etc.)
+✅ Logs : Historique complet avec filtres avancés
+✅ Settings : Config SMTP (basculer MailHog/OVH)
+✅ Deliverability : 
+   - Test mail-tester.com intégré
+   - Vérification DNS (MX, SPF, DKIM)
+   - Test connexion SMTP
+   - Score anti-spam
+```
+
+**Temps total** : ~1h20 ⏱️
 
 ---
 
