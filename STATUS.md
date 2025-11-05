@@ -70,21 +70,21 @@ bash scripts/verify-user-journey.sh
 
 #### 🔴 CRITIQUE - User Journey (69% incomplet)
 
-**Tests qui Passent** (6/16) :
+**Tests qui Passent** (7/16) :
 ```
 ✅ Health Check (200)
-✅ Register (201) - CORRIGÉ ✅
+✅ Register (201)
 ✅ Login (200) - Vrai JWT
 ✅ Token Permanent (200) - 100 ans
 ✅ Profile (200)
-✅ Companies - List (200) - CORRIGÉ ✅
-✅ Companies - Create (201) - CORRIGÉ ✅
+✅ Companies - List (200)
+✅ Companies - Create (201)
+✅ Applications - List (200) - CORRIGÉ ✅
 ```
 
-**Tests qui Échouent** (10/16) :
+**Tests qui Échouent** (9/16) :
 ```
-❌ Applications - List
-❌ Applications - Create
+❌ Applications - Create (400)
 ❌ Applications - Update (manquant)
 ❌ Contacts - List
 ❌ Contacts - Create
@@ -1032,6 +1032,14 @@ Toutes les tables demandées sont implémentées :
 ---
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
+
+**2025-11-05 00h40** - ✅ SUCCÈS : Application List corrigé ! 7/16 tests (44%)
+- ✅ Rebuild application-service --no-cache avec isArchived
+- ✅ Synchronisation base de données (prisma db push)
+- ✅ Test Applications - List PASSE maintenant ✅
+- ✅ Déplacement START_TESTS.sh → scripts/start-tests.sh
+- 📊 **PROGRESSION** : 6/16 → 7/16 tests (44%)
+- ❌ **PROCHAIN** : Create Application échoue (400) - validation données
 
 **2025-11-05 00h30** - ✅ RÉORGANISATION : Scripts et commandes Make tests
 - ✅ Scripts déplacés vers dossiers appropriés (monitoring/, testing/)
