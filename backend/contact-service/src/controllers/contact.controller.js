@@ -55,17 +55,6 @@ const getContacts = async (req, res, next) => {
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
-        include: {
-          companies: {
-            include: {
-              companies: {
-          include: {
-            company: true
-          }
-        }
-            }
-          }
-        },
         orderBy: { createdAt: 'desc' },
         skip: parseInt(offset),
         take: parseInt(limit)
@@ -98,13 +87,6 @@ const getContact = async (req, res, next) => {
       where: {
         id,
         userId: req.user.id
-      },
-      include: {
-        companies: {
-          include: {
-            company: true
-          }
-        }
       }
     });
 
@@ -351,11 +333,7 @@ const getContactsByCompany = async (req, res, next) => {
         }
       },
       include: {
-        companies: {
-          include: {
-            company: true
-          }
-        }
+        companies: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -401,11 +379,7 @@ const getContactsByApplication = async (req, res, next) => {
         }
       },
       include: {
-        companies: {
-          include: {
-            company: true
-          }
-        }
+        companies: true
       },
       orderBy: { createdAt: 'desc' }
     });
