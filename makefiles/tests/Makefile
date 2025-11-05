@@ -1,318 +1,183 @@
-# ============================================================================
-# Makefile Tests - JobbingTrack
-# ============================================================================
-# Tous les tests : unitaires, intégration, E2E, performance, sécurité
-# ============================================================================
+# ================================================================
+# 🧪 TESTS - JobbingTrack
+# ================================================================
+# Commandes pour lancer tous les types de tests
+# ================================================================
 
-.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage test-docker-images test-docker-clean test-system-verify test-hydration test-implementation test-secure-env test-setup test-clean test-verify lint format format-check init-with-tests generate-test-data refresh-test-data enhance-tests start-test-runner full-setup help-tests
+.PHONY: tests-help tests-user-journey tests-complete tests-cleanup \
+        tests-start tests-metrics tests-e2e tests-all
 
-# ============================================================================
-# AIDE
-# ============================================================================
+# ================================================================
+# 📚 HELP - Aide sur les commandes de tests
+# ================================================================
 
-help-tests: ## Afficher l'aide tests
-	@echo "================================================================"
-	@echo "🧪 TESTS - Commandes disponibles"
-	@echo "================================================================"
+tests-help:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           🧪 COMMANDES DE TESTS DISPONIBLES           ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "🧪 TESTS PRINCIPAUX:"
-	@echo "  make test                  - Tous les tests (unitaires + intégration + E2E)"
-	@echo "  make test-unit             - Tests unitaires uniquement"
-	@echo "  make test-integration      - Tests d'intégration"
-	@echo "  make test-e2e              - Tests end-to-end Playwright"
+	@echo "🎯 TESTS PRINCIPAUX :"
+	@echo "  make tests-user-journey    Tester le parcours utilisateur complet"
+	@echo "  make tests-start           Démarrer l'interface de test User Journey"
+	@echo "  make tests-complete        Lancer TOUS les tests (complet)"
+	@echo "  make tests-e2e             Tests end-to-end Playwright"
 	@echo ""
-	@echo "🎯 TESTS PAR COMPOSANT:"
-	@echo "  make test-backend          - Tests backend (services)"
-	@echo "  make test-frontend         - Tests frontend (React/Next.js)"
-	@echo "  make test-database         - Tests base de données"
-	@echo "  make test-api              - Tests API REST"
-	@echo "  make test-mobile           - Tests applications mobiles"
+	@echo "📊 TESTS SPÉCIFIQUES :"
+	@echo "  make tests-metrics         Vérifier toutes les métriques"
+	@echo "  make tests-api             Tests API REST"
+	@echo "  make tests-database        Tests base de données"
+	@echo "  make tests-integration     Tests d'intégration"
 	@echo ""
-	@echo "🛡️ TESTS AVANCÉS:"
-	@echo "  make test-security         - Tests de sécurité"
-	@echo "  make test-performance      - Tests de performance"
-	@echo "  make test-coverage         - Couverture de code"
+	@echo "🔧 UTILITAIRES :"
+	@echo "  make tests-cleanup         Nettoyer les fichiers de tests"
+	@echo "  make tests-reset           Reset complet + redémarrage tests"
 	@echo ""
-	@echo "📊 QUALITÉ:"
-	@echo "  make lint                  - Linting (ESLint + Prettier)"
-	@echo "  make format                - Formater le code"
-	@echo "  make format-check          - Vérifier formatage"
-	@echo ""
-	@echo "⌚ TESTS RAPIDES:"
-	@echo "  make test-quick            - Tests rapides (unités uniquement)"
-	@echo "  make test-backend-only     - Backend uniquement"
-	@echo "  make test-frontend-only    - Frontend uniquement"
-	@echo ""
-	@echo "💡 EXEMPLES:"
-	@echo "  make test-unit && make test-integration  # Tests complets"
-	@echo "  make test-coverage                       # Avec coverage"
-	@echo ""
-	@echo "📖 Documentation: docs/development/testing/README.md"
+	@echo "📖 Plus d'infos : docs/tests/"
 	@echo ""
 
-# ============================================================================
-# TESTS PRINCIPAUX
-# ============================================================================
+# ================================================================
+# 🎯 USER JOURNEY - Test du parcours utilisateur complet
+# ================================================================
 
-# Lancer tous les tests
-test: ## Lancer tous les tests
-	@echo "🧪 Exécution de tous les tests..."
-	./scripts/testing/run-tests.sh --all
+tests-user-journey:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🧪 TEST USER JOURNEY - Parcours Utilisateur       ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie le parcours complet :"
+	@echo "   ✓ Authentification (Register/Login)"
+	@echo "   ✓ Gestion Companies"
+	@echo "   ✓ Gestion Applications"
+	@echo "   ✓ Gestion Contacts"
+	@echo "   ✓ Gestion Interviews"
+	@echo "   ✓ Gestion Calls & Followups"
+	@echo ""
+	@bash scripts/verify-user-journey.sh
 
-# Tests unitaires
-test-unit: ## Tests unitaires
-	@echo "🧪 Tests unitaires..."
-	cd tests && npm run test:unit
+# ================================================================
+# 🌐 START TESTS - Interface Web de test User Journey
+# ================================================================
 
-# Tests d'intégration
-test-integration: ## Tests d'intégration
-	@echo "🧪 Tests d'intégration..."
-	./scripts/testing/run-tests.sh --integration
+tests-start:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🌐 DÉMARRAGE INTERFACE DE TEST                 ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🚀 Lancement de l'interface web de test..."
+	@echo ""
+	@bash START_TESTS.sh
 
-# Tests de base de données
-test-database: ## Tests de base de données
-	@echo "🗄️  Tests de base de données..."
-	node tests/database/test-database.js
+# ================================================================
+# 📊 TESTS COMPLETS - Tous les tests
+# ================================================================
 
-# Tests API
-test-api: ## Tests API backend
-	@echo "🌐 Tests API..."
-	node tests/api/test-api.js
+tests-complete:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           📊 TESTS COMPLETS - Tous les Tests          ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/testing/run-complete-tests.sh
 
-# Tests backend
-test-backend: ## Tests des services backend
-	@echo "⚙️  Tests backend..."
-	node tests/backend/test-services.js
+# ================================================================
+# 📈 METRICS - Vérification des métriques
+# ================================================================
 
-# ============================================================================
-# TESTS E2E
-# ============================================================================
+tests-metrics:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        📈 VÉRIFICATION DES MÉTRIQUES                   ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/testing/verify-all-metrics.sh
 
-# Tests E2E
-test-e2e: ## Tests E2E (Playwright)
-	@echo "🎭 Tests E2E..."
-	cd tests && npx playwright test
+# ================================================================
+# 🎭 E2E - Tests End-to-End avec Playwright
+# ================================================================
 
-# Tests E2E avec interface
-test-e2e-ui: ## Tests E2E avec interface graphique
-	@echo "🎭 Tests E2E avec UI..."
-	cd tests && npx playwright test --ui
+tests-e2e:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║          🎭 TESTS E2E - Playwright                     ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🔍 Lancement des tests Playwright..."
+	@cd tests && npm run test:e2e
 
-# ============================================================================
-# TESTS PAR PLATEFORME
-# ============================================================================
+# ================================================================
+# 🧹 CLEANUP - Nettoyage des fichiers de tests
+# ================================================================
 
-# Tests mobile
-test-mobile: ## Tests mobile
-	@echo "📱 Tests mobile..."
-	node tests/mobile/test-mobile.js
+tests-cleanup:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           🧹 NETTOYAGE FICHIERS DE TESTS              ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/testing/cleanup.sh
 
-# Tests frontend
-test-frontend: ## Tests frontend
-	@echo "🖥️  Tests frontend..."
-	cd frontend && npm run test
+# ================================================================
+# 🔄 RESET - Reset complet + redémarrage pour tests
+# ================================================================
 
-# ============================================================================
-# TESTS SPÉCIALISÉS
-# ============================================================================
+tests-reset:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🔄 RESET COMPLET + REDÉMARRAGE TESTS           ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🛑 Arrêt de tous les services..."
+	@make down
+	@echo ""
+	@echo "🚀 Démarrage des services pour tests..."
+	@make up-for-tests
+	@echo ""
+	@echo "⏳ Attente initialisation (15 secondes)..."
+	@sleep 15
+	@echo ""
+	@echo "🔧 Synchronisation base de données..."
+	@docker exec jobbingtrack-auth-service npx prisma db push --accept-data-loss
+	@echo ""
+	@echo "👤 Création utilisateur admin..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
+		"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"createdAt\", \"updatedAt\") \
+		VALUES (gen_random_uuid(), 'admin@jobbingtrack.test', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
+		'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, NOW(), NOW()) \
+		ON CONFLICT (email) DO NOTHING;"
+	@echo ""
+	@echo "✅ Système prêt pour les tests !"
+	@echo ""
+	@echo "🧪 Lancer maintenant :"
+	@echo "   make tests-user-journey"
+	@echo ""
 
-# Tests de performance
-test-performance: ## Tests de performance adaptatifs
-	@echo "⚡ Tests de performance adaptatifs..."
-	@echo "  ℹ️  Détection automatique des services disponibles"
-	@echo "  ℹ️  Démarrage intelligent des services nécessaires"
-	@echo "  ℹ️  Arrêt automatique des services temporaires"
-	node tests/performance/test-performance.js
+# ================================================================
+# 🔬 TESTS SPÉCIFIQUES
+# ================================================================
 
-# Tests de sécurité
-test-security: ## Tests de sécurité
-	@echo "🔒 Tests de sécurité..."
-	node tests/security/test-security.js
+tests-api:
+	@echo "📡 Tests API REST..."
+	@cd tests && npm run test:api
 
-# Tests de sécurité environnement
-test-secure-env: ## Tests de sécurité des variables d'environnement
-	@echo "🔒 Tests de sécurité des variables d'environnement..."
-	node tests/security/test-secure-env-vars.js
+tests-database:
+	@echo "🗄️  Tests Base de données..."
+	@cd tests && npm run test:database
 
-# ============================================================================
-# TESTS COMPLETS ET RAPPORTS
-# ============================================================================
+tests-integration:
+	@echo "🔗 Tests d'intégration..."
+	@cd tests && npm run test:integration
 
-# Tests complets
-test-all: ## Tests complets (tous types)
-	@echo "🧪 Tests complets - Suite complète..."
-	node tests/run-tests.js
+# ================================================================
+# 📊 ALL - Lancer absolument tous les tests
+# ================================================================
 
-# Tests avec rapport
-test-report: ## Tests avec génération de rapport
-	@echo "📊 Tests avec rapport..."
-	node tests/run-tests.js --report
-
-# Tests rapides
-test-quick: ## Tests rapides (sans E2E)
-	@echo "⚡ Tests rapides..."
-	node tests/run-tests.js --no-e2e
-
-# Tests backend uniquement
-test-backend-only: ## Tests backend uniquement
-	@echo "⚙️  Tests backend uniquement..."
-	node tests/run-tests.js --no-frontend --no-mobile --no-e2e
-
-# Tests frontend uniquement
-test-frontend-only: ## Tests frontend uniquement
-	@echo "🖥️  Tests frontend uniquement..."
-	node tests/run-tests.js --no-backend --no-api --no-database --no-mobile --no-e2e
-
-# Tests avec coverage
-test-coverage: ## Tests avec coverage
-	@echo "📊 Tests avec coverage..."
-	cd tests && npx jest --config jest.config.js --coverage
-
-# ============================================================================
-# TESTS DOCKER ET SYSTÈME
-# ============================================================================
-
-# Tests Docker images
-test-docker-images: ## Tests des noms d'images Docker
-	@echo "🐳 Tests des images Docker..."
-	node tests/docker/test-docker-images.js
-
-# Tests Docker clean
-test-docker-clean: ## Tests de la commande make down
-	@echo "🐳 Tests de make down..."
-	node tests/docker/test-make-down-clean.js
-
-# Tests système
-test-system-verify: ## Vérification complète du système de test
-	@echo "🔍 Vérification système..."
-	node tests/system/verify-test-system.js
-
-# ============================================================================
-# TESTS D'INTÉGRATION ÉTENDUS
-# ============================================================================
-
-# Tests hydration
-test-hydration: ## Tests des corrections d'hydratation
-	@echo "💧 Tests d'hydratation..."
-	node tests/integration/test-hydration-fixes.js
-
-# Tests implementation
-test-implementation: ## Tests de l'implémentation complète
-	@echo "✅ Tests d'implémentation..."
-	node tests/integration/test-implementation.js
-
-# ============================================================================
-# GESTION DE L'ENVIRONNEMENT DE TEST
-# ============================================================================
-
-# Setup des tests
-test-setup: ## Configuration complète de l'environnement de test
-	@echo "⚙️  Configuration de l'environnement de test..."
-	node tests/setup.js
-
-# Nettoyage des tests
-test-clean: ## Nettoyage complet de l'environnement de test
-	@echo "🧹 Nettoyage des tests..."
-	./tests/cleanup.sh 2>/dev/null || echo "Script cleanup.sh non trouvé, nettoyage manuel..."
-	rm -rf tests/reports/*
-	rm -rf tests/coverage/*
-	rm -rf tests/e2e/results/*
-	rm -rf tests/temp/*
-	rm -rf tests/node_modules/.cache
-	rm -rf tests/.nyc_output
-	docker-compose -f tests/docker-compose.test.yml down -v 2>/dev/null || true
-	docker volume rm jobbingtrack_postgres_test_data 2>/dev/null || true
-	@echo "✅ Nettoyage terminé"
-
-# Vérification configuration
-test-verify: ## Vérification de la configuration des tests
-	@echo "🔍 Vérification de la configuration..."
-	node tests/verify.js
-
-# ============================================================================
-# QUALITÉ DU CODE
-# ============================================================================
-
-# Linting
-lint: ## Linting de tout le projet (ESLint)
-	@echo "🔍 Linting du projet..."
-	@echo "  Backend services..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Linting $$service..."; \
-			cd "$$service" && npm run lint 2>/dev/null || echo "  ⚠️  Linting échoué pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@echo "  Frontend..."
-	@cd frontend && npm run lint 2>/dev/null || echo "  ⚠️  Linting frontend échoué"
-	@echo "  Tests..."
-	@cd tests && npm run lint 2>/dev/null || echo "  ⚠️  Linting tests échoué"
-	@echo "✅ Linting terminé"
-
-# Formatage
-format: ## Formatage automatique du code (Prettier)
-	@echo "✨ Formatage du code..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Formatage $$service..."; \
-			cd "$$service" && npm run format 2>/dev/null || echo "  ⚠️  Formatage échoué pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@cd frontend && npm run format 2>/dev/null || echo "  ⚠️  Formatage frontend échoué"
-	@cd tests && npm run format 2>/dev/null || echo "  ⚠️  Formatage tests échoué"
-	@echo "✅ Formatage terminé"
-
-# Vérification formatage
-format-check: ## Vérification du formatage (Prettier --check)
-	@echo "🔍 Vérification du formatage..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Vérification formatage $$service..."; \
-			cd "$$service" && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage incorrect pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@cd frontend && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage frontend incorrect"
-	@cd tests && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage tests incorrect"
-	@echo "✅ Vérification formatage terminée"
-
-# ============================================================================
-# DONNÉES DE TEST
-# ============================================================================
-
-# Initialisation avec tests
-init-with-tests: ## Initialisation complète avec génération de données de test
-	@echo "🚀 Initialisation complète avec données de test..."
-	./scripts/testing/init-with-test-data.sh
-
-# Génération données de test
-generate-test-data: ## Générer des données de test par défaut
-	@echo "🌱 Génération de données de test..."
-	node scripts/testing/generate-simple-test-data.js e2e
-
-# Rafraîchir données de test
-refresh-test-data: ## Nettoyer et régénérer les données de test
-	@echo "🔄 Nettoyage et régénération des données de test..."
-	node scripts/testing/generate-simple-test-data.js e2e --clean
-	@echo "✅ Données de test régénérées"
-
-# Améliorer tests
-enhance-tests: ## Améliorer les tests existants
-	@echo "✨ Amélioration des tests existants..."
-	node scripts/testing/enhance-existing-tests.js
-
-# ============================================================================
-# SERVICES DE TEST
-# ============================================================================
-
-# Test runner service
-start-test-runner: ## Démarrer le service de test runner
-	@echo "🚀 Démarrage du service de test runner..."
-	cd backend && node test-runner-service.js
-
-# Setup complet
-full-setup: ## Setup complet automatique avec tests
-	@echo "🚀 Setup complet automatique JobbingTrack + Tests..."
-	./scripts/testing/full-setup.sh
+tests-all: tests-cleanup
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           📊 LANCEMENT DE TOUS LES TESTS              ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@make tests-user-journey
+	@echo ""
+	@make tests-metrics
+	@echo ""
+	@make tests-api
+	@echo ""
+	@make tests-integration
+	@echo ""
+	@echo "✅ Tous les tests terminés !"
+	@echo ""
