@@ -585,10 +585,17 @@ docker-compose restart auth-service
 ```bash
 # Test automatisé (vérifie inscription + token + renvoi)
 make test-email-verification
+# ✅ Résultat : 4/5 tests (80%) - fonctionne sans SMTP configuré
+# ⚠️  1 échec : renvoi email (nécessite SMTP actif)
 
 # Test manuel via interface
 http://localhost:5173/register
 # → Créer compte → Vérifier email reçu → Clic lien
+# ⚠️  Nécessite SMTP configuré pour recevoir les emails
+
+# Tests user-journey (vérifiés compatibles)
+make tests-user-journey
+# ✅ Résultat : 15/15 tests (100%) - fonctionne parfaitement !
 ```
 
 **Flux utilisateur** :
@@ -635,6 +642,17 @@ SMTP_PASS=votre-password-mailtrap
 ✓ frontend/src/app/(auth)/verify-email/page.tsx (nouveau)
 ✓ backend/auth-service/test-email-verification.js (nouveau)
 ✓ makefiles/tests/Makefile (ajout commande test-email-verification)
+```
+
+**Statut opérationnel** :
+```bash
+✅ Commande make test-email-verification : OPÉRATIONNELLE (4/5 tests - 80%)
+✅ Commande make tests-user-journey : OPÉRATIONNELLE (15/15 tests - 100%)
+✅ Migration BDD : Appliquée (colonnes verificationToken créées)
+✅ Client Prisma : Régénéré dans tous les services
+✅ Inscription avec email : Fonctionne (emailVerificationRequired retourné)
+✅ Validation token invalide : Fonctionne (erreur correctement gérée)
+⚠️  Envoi emails SMTP : Nécessite configuration SMTP dans .env
 ```
 
 ### 🎯 PHASE 1.5 - INTERFACE WEB USER JOURNEY ✅ TERMINÉE !

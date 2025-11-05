@@ -14,7 +14,7 @@
 
 const crypto = require('crypto');
 
-const BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.API_URL || process.env.API_GATEWAY_URL || 'http://api-gateway:3000';
 const API_ENDPOINT = `${BASE_URL}/api/v1/auth`;
 
 // Couleurs pour la console

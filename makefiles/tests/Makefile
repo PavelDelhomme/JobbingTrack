@@ -202,14 +202,11 @@ test-email-verification:
 	@echo ""
 	@echo "🚀 Lancement du test..."
 	@echo ""
-	@cd backend/auth-service && node test-email-verification.js
+	@docker exec jobbingtrack-auth-service node test-email-verification.js
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║                ✅ TEST TERMINÉ                         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "📚 Documentation complète :"
-	@echo "   • LISEZMOI_VERIFICATION_EMAIL.txt (résumé)"
-	@echo "   • DEMARRAGE_RAPIDE_EMAIL_VERIFICATION.md (guide 7min)"
-	@echo "   • INSTRUCTIONS_VERIFICATION_EMAIL.md (guide complet)"
+	@echo "📚 Documentation : STATUS.md section 1.12"
 	@echo ""
