@@ -134,11 +134,18 @@ source ~/.bashrc  # ou ~/.zshrc
 **Problèmes prioritaires** :
 1. ✅ User Journey API complet (15/15 tests passent - 100%) - TERMINÉ !
 2. ✅ **Interface Web User Journey** - TERMINÉ ! (fix proxy Next.js)
-3. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
-4. ⚠️ Vérification email non implémentée (RECOMMANDÉ - Phase 3.1)
-5. ⚠️ Erreurs 404 sur /api/v1/preferences (endpoint manquant)
-6. ⚠️ Pages admin backoffice à tester (applications, users, etc.)
-7. ❌ Tests Playwright non opérationnels
+3. ❌ **UX - Loading States** (Chargement... → Spinner animé) - URGENT
+4. ❌ **Metrics Aggregator inaccessible** (ERR_CONNECTION_REFUSED port 8014) - BLOQUANT
+5. ❌ **Testeur d'API cassé** (à retravailler)
+6. ❌ **Émulateur Mobile cassé** (à retravailler)
+7. ❌ **Mode Admin vs Utilisateur** dans User Journey (manquant)
+8. ❌ **Historique parcours** User Journey (onglet manquant)
+9. ❌ **Tests Playwright** - Interface de gestion (ajouter tests depuis UI)
+10. ❌ **Tests Performances** - Extension (charge, endurance, stress)
+11. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
+12. ⚠️ Vérification email non implémentée (RECOMMANDÉ - Phase 3.1)
+13. ⚠️ Erreurs 404 sur /api/v1/preferences (endpoint manquant)
+14. ⚠️ Pages admin backoffice à tester (applications, users, etc.)
 
 **Ne créer AUCUN nouveau fichier .md** - Tout modifier dans `STATUS.md` uniquement.
 
@@ -1533,35 +1540,93 @@ Prêt Production Global : 75%
 
 ### 🔴 URGENT (Maintenant - PRIORITÉ HAUTE)
 
-4. **Activer WAF** (1 jour) - PHASE 2
-5. **Tester pages admin** (avec JWT_SECRET ajouté) (1 jour)
-6. **Rate Limiting global** (1 jour) - PHASE 2
-7. **Réparer Intrusion Detection** (1 jour) - PHASE 2
+4. **🎨 UX - Loading States Professionnel** (2-3h) ⚠️ NOUVEAU
+   - ❌ Actuellement : Simple "Chargement..." partout dans backoffice
+   - ✅ Objectif : Spinner animé + message contextuel (déjà implémenté dans `/page.tsx`)
+   - 📍 Pages concernées :
+     - `/backoffice` (Vue d'ensemble)
+     - `/backoffice/statistics` (Statistiques)
+     - Toutes les pages du backoffice qui chargent des données
+   - 🎯 Composant existant :
+     ```jsx
+     <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+     <p>Chargement des statistiques...</p>
+     ```
+
+5. **🔧 Metrics Aggregator inaccessible** (1h) ⚠️ BLOQUANT
+   - ❌ Erreur : `GET http://localhost:8014/api/v1/docker/jobbingtrack/aggregated net::ERR_CONNECTION_REFUSED`
+   - ❌ Impact : Page Statistiques ne charge pas (métriques système à 0%)
+   - 🔍 Cause : `metrics-aggregator` non démarré avec `make up-for-tests`
+   - ✅ Solution : Ajouter `metrics-aggregator` au profil de tests
+   - 💡 Alternative : Afficher un message "Métriques non disponibles" au lieu de crasher
+
+6. **🧪 Testeur d'API cassé** (2h) ⚠️ NOUVEAU
+   - ❌ Ne fonctionne plus correctement
+   - 🔧 À retravailler complètement
+
+7. **📱 Émulateur Mobile cassé** (3h) ⚠️ NOUVEAU
+   - ❌ Ne fonctionne plus
+   - 🔧 À retravailler complètement
+
+8. **🎭 Mode Utilisateur vs Admin dans User Journey** (1-2h) ⚠️ NOUVEAU
+   - ❌ Actuellement : Parcours uniquement en mode administrateur
+   - ✅ Objectif : Choix entre "Mode Admin" et "Mode Utilisateur de test"
+   - 📍 Page : `/backoffice/user-journey`
+
+9. **📊 Historique des parcours User Journey** (2-3h) ⚠️ NOUVEAU
+   - ❌ Actuellement : Bouton "Effacer l'historique" mais pas d'onglet d'affichage
+   - ✅ Objectif : Onglet "Historique" à côté de "Scénarios"
+   - 📋 Afficher : Tous les parcours exécutés, détails, statut, date
+
+10. **Activer WAF** (1 jour) - PHASE 2
+11. **Tester pages admin** (avec JWT_SECRET ajouté) (1 jour)
+12. **Rate Limiting global** (1 jour) - PHASE 2
+13. **Réparer Intrusion Detection** (1 jour) - PHASE 2
 
 ### 🟡 IMPORTANT (Semaine Prochaine - Phase 3)
 
-7. **Vérification Email** (1 jour) - RECOMMANDÉ 🔐
+14. **Vérification Email** (1 jour) - RECOMMANDÉ 🔐
    - Envoyer email de vérification lors du register
    - Page de confirmation frontend
    - Protection endpoints sensibles
    - Infrastructure déjà prête (emailVerified, resetToken)
 
-8. **Tester pages admin** (avec JWT_SECRET maintenant configuré) (1 jour)
-9. **Contact auto-lié** (applicationId/companyId lors création) (1 jour)
-10. **Créer pages Archives + Trash** (2 jours)
-11. **Fixer préférences utilisateur** (1 jour)
-12. **Harmoniser métriques (N/A)** (1 jour)
+15. **Tester pages admin** (avec JWT_SECRET maintenant configuré) (1 jour)
+16. **Contact auto-lié** (applicationId/companyId lors création) (1 jour)
+17. **Créer pages Archives + Trash** (2 jours)
+18. **Fixer préférences utilisateur** (endpoint `/api/v1/preferences` manquant - 404) (1 jour)
+19. **Harmoniser métriques (N/A)** (1 jour)
 
 ### 🟢 AMÉLIORATIONS (Plus Tard)
 
-13. **Outils développement** (1 semaine)
-14. **Tests Playwright complets** (2 jours)
-15. **Export PDF/Excel monitoring** (2 jours)
-16. **Alerting avancé** (3 jours)
+20. **🧪 Tests Playwright - Interface de gestion** (3-4h) ⚠️ NOUVEAU
+   - ❌ Actuellement : Peu de tests Playwright
+   - ✅ Objectif : Pouvoir ajouter des tests Playwright depuis l'interface backoffice
+   - 📋 Fonctionnalités :
+     - Ajouter/éditer/supprimer des tests
+     - Lancer les tests depuis l'interface
+     - Voir les résultats en temps réel
+     - Exporter les rapports
+   - 📍 Page : `/backoffice/tests/playwright` (à créer)
+
+21. **⚡ Tests de Performances - Extension** (2-3h) ⚠️ NOUVEAU
+   - ❌ Actuellement : Tests de performances limités
+   - ✅ Objectif : Ajouter plus de scénarios de tests de performances
+   - 📋 Tests à ajouter :
+     - Charge simultanée (100/500/1000 utilisateurs)
+     - Endurance (24h)
+     - Pics de charge (stress test)
+     - Temps de réponse par endpoint
+     - Métriques CPU/RAM sous charge
+   - 📍 Page : `/backoffice/tests/performances` (à améliorer)
+
+22. **Outils développement** (1 semaine)
+23. **Export PDF/Excel monitoring** (2 jours)
+24. **Alerting avancé** (3 jours)
 
 ### 🔵 FUTUR (4-5 Mois)
 
-17. **Application Mobile complète**
+25. **Application Mobile complète**
 
 ---
 
