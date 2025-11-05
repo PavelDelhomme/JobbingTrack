@@ -150,8 +150,9 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_HOST=${SMTP_HOST:-mailhog}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
@@ -496,6 +497,19 @@ services:
       - jobbingtrack-network
     profiles:
       - full
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════
+  # MailHog - Serveur SMTP Open Source pour Tests
+  # ═══════════════════════════════════════════════════════════
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: jobbingtrack-mailhog
+    ports:
+      - "2525:1025"  # SMTP (pour envoyer)
+      - "8025:8025"  # Interface Web (pour lire)
+    networks:
+      - jobbingtrack-network
     restart: unless-stopped
 
 volumes:

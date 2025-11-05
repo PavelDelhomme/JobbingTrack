@@ -3,18 +3,26 @@ const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
+    // Configuration de base
+    const config = {
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
       secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      },
       tls: {
         rejectUnauthorized: false
       }
-    });
+    };
+
+    // Ajouter l'authentification seulement si SMTP_USER est défini
+    // (MailHog n'a pas besoin d'auth)
+    if (process.env.SMTP_USER && process.env.SMTP_USER.trim() !== '') {
+      config.auth = {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      };
+    }
+
+    this.transporter = nodemailer.createTransport(config);
   }
 
   async sendWelcomeEmail(user) {
