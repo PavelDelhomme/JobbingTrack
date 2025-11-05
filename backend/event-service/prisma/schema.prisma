@@ -151,7 +151,7 @@ model Application {
   
   // Notes et suivi
   notes                 String?
-  archived              Boolean             @default(false)
+  isArchived            Boolean             @default(false)
   archivedAt            DateTime?
   
   // Timestamps

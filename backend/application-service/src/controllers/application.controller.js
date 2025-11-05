@@ -157,7 +157,7 @@ const getApplications = async (req, res, next) => {
     
   const where = {
     userId: req.user.id,
-    ...(includeArchived !== 'true' && { isArchived: false }), // Exclure les candidatures archivées sauf si demandé
+    ...(includeArchived !== 'true' && { archived: false }), // Exclure les candidatures archivées sauf si demandé
     ...(status && { status }),
     ...(search && {
       position: { contains: search, mode: 'insensitive' }
