@@ -87,31 +87,144 @@ Améliorations à faire :
 ⏱️ Ajouter graphiques (emails/jour, taux succès)
 ```
 
-### ⚡ PRIORITÉ 5 : Interface Complète Emails (30 min)
+### ⚡ PRIORITÉ 5 : Interface Complète Emails Type Brevo (45 min)
 
+**Objectif** : Créer une interface complète de gestion des emails dans le backoffice admin
+
+**5.1 Ajouter le Lien dans la Navigation** (5 min)
+```typescript
+// frontend/src/components/features/AdminLayout.tsx
+// Ajouter dans la sidebar navigation :
+
+{
+  name: 'Emails',
+  href: '/backoffice/emails',
+  icon: Mail,  // import { Mail } from 'lucide-react'
+  badge: emailStats?.pending > 0 ? emailStats.pending : undefined
+}
 ```
-Créer interface type Brevo :
 
+**5.2 Créer les Pages** (30 min)
+```
 frontend/src/app/(admin)/backoffice/emails/
 ├── page.tsx (dashboard principal)
-├── templates/page.tsx (gérer templates)
-├── logs/page.tsx (historique envois)
-├── settings/page.tsx (config SMTP)
-└── deliverability/page.tsx (tests DNS, SMTP, spam score)
-
-Fonctionnalités :
-✅ Dashboard : Stats globales (envoyés, échoués, taux ouverture)
-✅ Templates : Gérer templates HTML (bienvenue, reset, etc.)
-✅ Logs : Historique complet avec filtres avancés
-✅ Settings : Config SMTP (basculer MailHog/OVH)
-✅ Deliverability : 
-   - Test mail-tester.com intégré
-   - Vérification DNS (MX, SPF, DKIM)
-   - Test connexion SMTP
-   - Score anti-spam
+│   → Stats globales (envoyés/échoués/taux succès)
+│   → Graphiques (emails/jour, évolution)
+│   → Derniers emails envoyés (aperçu)
+│
+├── logs/page.tsx (historique complet)
+│   → Liste tous les emails envoyés
+│   → Filtres avancés (date, type, statut, destinataire)
+│   → Recherche full-text
+│   → Export CSV/JSON
+│   → Pagination
+│
+├── templates/page.tsx (gestion templates)
+│   → Liste templates (bienvenue, reset, vérification)
+│   → Prévisualisation HTML
+│   → Édition templates (éditeur WYSIWYG ou code)
+│   → Variables dynamiques {{firstName}}, {{resetLink}}, etc.
+│
+├── settings/page.tsx (configuration SMTP)
+│   → Basculer MailHog ↔ OVH
+│   → Modifier credentials SMTP
+│   → Tester connexion SMTP
+│   → Historique des changements config
+│
+└── deliverability/page.tsx (tests qualité)
+    → Test mail-tester.com intégré
+    → Vérification DNS automatique (MX, SPF, DKIM)
+    → Test connexion SMTP (openssl)
+    → Score anti-spam
+    → Recommandations améliorations
 ```
 
-**Temps total** : ~1h20 ⏱️
+**5.3 Créer Table EmailLog en BDD** (5 min)
+```prisma
+// backend/auth-service/prisma/schema.prisma
+
+model EmailLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  to            String
+  from          String
+  subject       String
+  type          EmailType
+  status        EmailStatus @default(PENDING)
+  sentAt        DateTime?
+  error         String?
+  emailContent  String?  // Contenu HTML
+  metadata      Json?    // Infos supplémentaires
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([to])
+  @@index([type])
+  @@index([status])
+  @@index([sentAt])
+}
+
+enum EmailType {
+  WELCOME
+  VERIFICATION
+  RESET_PASSWORD
+  CONFIRMATION
+  NOTIFICATION
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+```
+
+**5.4 Créer API Backend** (5 min)
+```javascript
+// backend/auth-service/src/routes/email.routes.js
+
+router.get('/emails/logs', authenticateJWT, getEmailLogs);
+router.get('/emails/stats', authenticateJWT, getEmailStats);
+router.post('/emails/test', authenticateJWT, isSuperAdmin, sendTestEmail);
+router.get('/emails/verify-dns', authenticateJWT, verifyDNS);
+router.post('/emails/test-smtp', authenticateJWT, testSMTPConnection);
+```
+
+**Temps total** : ~45 minutes ⏱️
+
+---
+
+### ⚡ PRIORITÉ 6 : Ajouter Lien Navigation Sidebar (5 min)
+
+```typescript
+// frontend/src/components/features/AdminLayout.tsx
+
+// Chercher la section navigation items et ajouter :
+
+const navigationItems = [
+  // ... items existants ...
+  {
+    name: 'Emails',
+    href: '/backoffice/emails',
+    icon: Mail,
+    description: 'Gestion et monitoring des emails',
+    submenu: [
+      { name: 'Dashboard', href: '/backoffice/emails' },
+      { name: 'Historique', href: '/backoffice/emails/logs' },
+      { name: 'Templates', href: '/backoffice/emails/templates' },
+      { name: 'Configuration', href: '/backoffice/emails/settings' },
+      { name: 'Déliverabilité', href: '/backoffice/emails/deliverability' }
+    ]
+  }
+];
+```
+
+**Temps total TODO demain** : ~1h30 ⏱️
 
 ---
 
