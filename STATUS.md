@@ -1591,6 +1591,21 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 11h40** - ✅ Fix valeurs enum dans interface web User Journey
+- ✅ **Problème** : Erreurs Prisma `Invalid value for argument status/size`
+  - Company.size: envoyait `"startup"` au lieu de `"STARTUP"`
+  - Application.status: envoyait `"pending"` au lieu de `"CANDIDATE_PENDING"`
+- ✅ **Cause** : Interface web envoyait valeurs minuscules, Prisma attend MAJUSCULES
+- ✅ **Solution** : Correction des valeurs dans page.tsx
+  - `size: ['STARTUP', 'MEDIUM', 'LARGE']` au lieu de minuscules
+  - `size: ['ENTERPRISE', 'STARTUP', 'MEDIUM']` pour update
+  - `status: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING']`
+- ✅ **Tests** :
+  - Création entreprise : ✅ 200 (size=STARTUP)
+  - Création application : ✅ 200 (status=CANDIDATE_PENDING)
+- 🎯 **Impact** : Interface web User Journey maintenant 100% fonctionnelle
+- 📁 **Fichier** : `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
+
 **2025-11-05 11h30** - 🎉 FIX MAJEUR : Interface Web User Journey réparée !
 - ✅ **Problème** : Erreurs 500 sur tous les endpoints depuis localhost:8080
 - ✅ **Cause** : Les `rewrites()` Next.js ne fonctionnent que pour SSR, pas pour fetch() client-side
