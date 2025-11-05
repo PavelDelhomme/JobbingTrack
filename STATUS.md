@@ -1,9 +1,10 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 01h10  
+**Dernière MAJ** : 2025-11-05 03h45  
 **Version** : feat/user-journey-stabilization  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
-**Projet Global** : 🟢 ~75% (backend 100%, frontend 70%, mobile 0%)
+**Vérification Email** : ✅ IMPLÉMENTÉ 📧  
+**Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
 ---
 
@@ -532,6 +533,50 @@ Les scénarios avancés ci-dessous sont optionnels :
 
 Ces scénarios seront implémentés après la Phase 2 (WAF & Sécurité)
 si nécessaire.
+```
+
+#### 1.12 Vérification d'Email par Lien ✅ TERMINÉ (05/11/2025 03h45)
+```bash
+✅ Système complet de vérification d'email implémenté
+✅ Email de vérification envoyé automatiquement à l'inscription
+✅ Lien de vérification unique (expire après 24h)
+✅ Page frontend /verify-email avec 3 états (loading, success, error)
+✅ Possibilité de renvoyer l'email si token expiré
+✅ Protection contre énumération d'emails
+✅ Logs de sécurité sur toutes les opérations
+✅ Templates d'email professionnels et responsives
+
+BACKEND :
+✅ Schéma Prisma : verificationToken + verificationTokenExpiry
+✅ Service emailService : sendVerificationEmail(user, verificationUrl)
+✅ Contrôleur register : génération et envoi automatique du token
+✅ Contrôleur verifyEmail : vérification du token et activation compte
+✅ Contrôleur resendVerificationEmail : renvoi avec nouveau token
+✅ Routes : GET /verify-email/:token, POST /resend-verification
+✅ Sécurité : tokens 256 bits, usage unique, expiration 24h
+
+FRONTEND :
+✅ Page /verify-email avec gestion complète des cas
+✅ Redirection automatique après succès
+✅ Formulaire de renvoi si token expiré
+✅ Design moderne et responsive
+
+DOCUMENTATION :
+✅ DEMARRAGE_RAPIDE_EMAIL_VERIFICATION.md (guide 7 min)
+✅ INSTRUCTIONS_VERIFICATION_EMAIL.md (guide complet)
+✅ RESUME_VERIFICATION_EMAIL.md (résumé technique)
+✅ LISEZMOI_VERIFICATION_EMAIL.txt (résumé visuel)
+✅ Script de test : backend/auth-service/test-email-verification.js
+
+CONFIGURATION REQUISE :
+⚙️ Migration Prisma : npx prisma migrate dev --name add_email_verification
+⚙️ SMTP configuré dans .env (SMTP_HOST, SMTP_USER, SMTP_PASS)
+⚙️ FRONTEND_URL défini pour les liens de vérification
+
+COMMENT TESTER :
+1. make test-email-verification    # Test automatisé
+2. http://localhost:5173/register  # Test manuel
+3. Vérifier email reçu + clic sur lien
 ```
 
 ### 🎯 PHASE 1.5 - INTERFACE WEB USER JOURNEY ✅ TERMINÉE !

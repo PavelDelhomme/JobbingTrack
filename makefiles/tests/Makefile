@@ -4,7 +4,7 @@
 # Commandes simplifiées pour tester l'application
 # ================================================================
 
-.PHONY: tests-help tests-reset tests-user-journey tests-interface-web
+.PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -34,10 +34,11 @@ tests-help:
 	@echo ""
 	@echo "🎯 COMMANDES DISPONIBLES :"
 	@echo ""
-	@echo "  make tests-help              Affiche ce guide"
-	@echo "  make tests-reset             Reset complet (BDD + services)"
-	@echo "  make tests-user-journey      Test API automatique"
-	@echo "  make tests-interface-web     Interface web de test"
+	@echo "  make tests-help               Affiche ce guide"
+	@echo "  make tests-reset              Reset complet (BDD + services)"
+	@echo "  make tests-user-journey       Test API automatique"
+	@echo "  make tests-interface-web      Interface web de test"
+	@echo "  make test-email-verification  Test vérification email"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -178,3 +179,37 @@ tests-interface-web:
 	@echo "🚀 Lancement de l'interface web de test..."
 	@echo ""
 	@bash scripts/start-tests.sh
+
+# ================================================================
+# 📧 EMAIL VERIFICATION - Test système vérification email
+# ================================================================
+
+test-email-verification:
+	$(call check_help_read,test-email-verification)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     📧 TEST VÉRIFICATION EMAIL - JobbingTrack         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie automatiquement :"
+	@echo "   ✓ Inscription avec envoi email de vérification"
+	@echo "   ✓ Validation du token (invalide rejeté)"
+	@echo "   ✓ Renvoi d'email de vérification"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Migration Prisma exécutée"
+	@echo "   • SMTP configuré dans backend/auth-service/.env"
+	@echo "   • Services démarrés (make up)"
+	@echo ""
+	@echo "🚀 Lancement du test..."
+	@echo ""
+	@cd backend/auth-service && node test-email-verification.js
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📚 Documentation complète :"
+	@echo "   • LISEZMOI_VERIFICATION_EMAIL.txt (résumé)"
+	@echo "   • DEMARRAGE_RAPIDE_EMAIL_VERIFICATION.md (guide 7min)"
+	@echo "   • INSTRUCTIONS_VERIFICATION_EMAIL.md (guide complet)"
+	@echo ""
