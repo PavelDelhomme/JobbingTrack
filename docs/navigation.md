@@ -32,6 +32,12 @@
 - **[🖥️ Frontend Next.js](development/setup/README.md#frontend)** | **[📱 Mobile Flutter](../mobile/README.md)**
 - **[🎨 Guide Frontend](frontend/README.md)** - Next.js, composants, services
 
+### 📧 **Configuration Emails**
+- **[📧 Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
+- **[📖 Vue d'Ensemble](emails/MAIL.md)** - MailHog (tests) + OVH maily.ovh (production)
+- **[🏢 Configuration OVH](emails/GUIDE_COMPLET_OVH_MAILY.md)** - Guide complet OVH maily.ovh (20 min)
+- **[⚠️ Important](emails/IMPORTANT_LIRE_AVANT_CONFIG_OVH.md)** - Ne pas suivre solution Perplexity
+
 ### 🔧 **Administration**
 - **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/README.md)**
 - **[👥 Gestion Utilisateurs](administration/GUIDE_GESTION_UTILISATEURS.md)** - Création, rôles, permissions
@@ -74,6 +80,11 @@ docs/
 │   └── GUIDE_PAGE_DETAIL_SERVICE.md         # Page détail service
 ├── 📱 mobile/                   # Guide mobile
 │   └── README.md                 # Développement mobile
+├── 📧 emails/                   # Configuration emails
+│   ├── README.md                 # Index emails
+│   ├── MAIL.md                   # Vue d'ensemble (MailHog + OVH)
+│   ├── GUIDE_COMPLET_OVH_MAILY.md        # Configuration OVH détaillée
+│   └── IMPORTANT_LIRE_AVANT_CONFIG_OVH.md # Avertissement Perplexity
 ├── 🔧 administration/           # Guide administration
 │   ├── README.md                 # Dashboard administrateur
 │   └── GUIDE_GESTION_UTILISATEURS.md        # Gestion utilisateurs

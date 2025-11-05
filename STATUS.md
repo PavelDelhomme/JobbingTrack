@@ -1954,16 +1954,42 @@ curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
 
 **Fichiers de documentation** :
 ```
-✅ GUIDE_COMPLET_OVH_MAILY.md → Guide détaillé (933 lignes)
-✅ IMPORTANT_LIRE_AVANT_CONFIG_OVH.md → Clarification Perplexity
-✅ MAIL.md → Vue d'ensemble (MailHog + OVH)
+✅ docs/emails/GUIDE_COMPLET_OVH_MAILY.md → Guide détaillé (933 lignes)
+✅ docs/emails/IMPORTANT_LIRE_AVANT_CONFIG_OVH.md → Clarification Perplexity
+✅ docs/emails/MAIL.md → Vue d'ensemble (MailHog + OVH)
+✅ docs/emails/README.md → Index de la documentation emails
+```
+
+**Configuration OVH Effectuée** :
+```
+✅ Email noreply@maily.ovh créé chez OVH
+✅ Mot de passe défini
+✅ Offre MX Plan active
+⏱️  .env à modifier avec credentials OVH
+⏱️  Tests à effectuer (reset password, vérification email)
+```
+
+**Scénario de Test Ajouté** :
+```
+✅ frontend/src/app/(admin)/backoffice/user-journey/page.tsx
+   Nouveau scénario : "Vérification Email et Reset Password"
+   Étapes :
+   1. register → Créer compte
+   2. verify_email → Vérifier email (simulation)
+   3. login → Connexion
+   4. request_password_reset → Demander reset
+   5. reset_password → Réinitialiser password (simulation)
+   6. login → Reconnexion
+   7. view_statistics → Vérifier stats
 ```
 
 **État** :
 ```
 ✅ Code emails : 100% opérationnel
 ✅ MailHog : Configuré (tests locaux)
-⏱️  OVH maily.ovh : Prêt à configurer (guide complet disponible)
+✅ OVH maily.ovh : Email créé, guide complet disponible
+✅ Scénario test emails : Ajouté dans user-journey
+⏱️  Configuration .env OVH : À finaliser
 ❌ Solution Perplexity : INUTILE (code déjà présent)
 ```
 
