@@ -1755,14 +1755,14 @@ SMTP_FROM="JobbingTrack <noreply@jobbingtrack.com>"
 
 **Comparaison des solutions** :
 ```
-┌──────────────┬────────────┬──────────────┬─────────┬──────────────────┐
-│ Solution     │ Difficulté │ Emails/jour  │ Coût    │ Meilleur pour    │
-├──────────────┼────────────┼──────────────┼─────────┼──────────────────┤
-│ MailHog      │ ⭐ Facile   │ ♾️ Illimité  │ 🆓 Grat │ ✅ Développement │
-│ Brevo        │ ⭐⭐ Moyen  │ 300          │ 🆓 Grat │ ✅ Production    │
-│ Gmail        │ ⭐⭐⭐ Comp │ 500          │ 🆓 Grat │ ⚠️  OK mais comp │
-│ OVH          │ ⭐⭐ Moyen  │ 200/heure    │ 💰 Pay  │ ✅ Si domaine    │
-└──────────────┴────────────┴──────────────┴─────────┴──────────────────┘
+┌──────────────┬────────────┬──────────────┬─────────┬────────────────────┐
+│ Solution     │ Difficulté │ Emails/jour  │ Coût    │ Meilleur pour      │
+├──────────────┼────────────┼──────────────┼─────────┼────────────────────┤
+│ MailHog      │ ⭐ Facile   │ ♾️ Illimité  │ 🆓 Grat │ ✅ Développement  │
+│ Brevo        │ ⭐⭐ Moyen  │ 300          │ 🆓 Grat │ ✅ Production     │
+│ Gmail        │ ⭐⭐⭐ Comp │ 500          │ 🆓 Grat │ ⚠️  OK mais comp  │
+│ OVH          │ ⭐⭐ Moyen  │ 200/heure    │ 💰 Pay  │ ✅ Si domaine     │
+└──────────────┴────────────┴──────────────┴─────────┴────────────────────┘
 ```
 
 ---
