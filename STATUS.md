@@ -84,6 +84,27 @@
 ⚠️ Améliorations possibles mais OPTIONNELLES (Phase 3)
 ```
 
+**💡 RÉPONSES AUX QUESTIONS** :
+```
+❓ Workflow candidature bien fait ?
+   ✅ OUI ! Création auto entreprise, statut auto, événement auto
+
+❓ Table intermédiaire pour mobile ?
+   ❌ NON ! SyncQueue suffit largement
+
+❓ Gestion candidatures optimale ?
+   ✅ OUI ! 12 états, historique, relations complètes
+
+❓ Contact lié auto à candidature/entreprise ?
+   ⚠️ Partiellement. Méthodes link disponibles, auto en Phase 3
+
+❓ Événements auto pour tout ?
+   ⚠️ Candidatures : OUI. Autres : Phase 3 optionnelle
+
+❓ Choses à avancer dans STATUS.md ?
+   ✅ NON ! Tout est bien fait. Passer à Phase 2 (WAF)
+```
+
 **Commandes rapides pour tester** :
 ```bash
 cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
