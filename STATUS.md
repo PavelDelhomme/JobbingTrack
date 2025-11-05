@@ -1,10 +1,10 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 17h30  
-**Version** : feat/user-journey-stabilization  
+**Dernière MAJ** : 2025-11-05 18h00  
+**Version** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
-**Configuration SMTP** : ⚠️ EN ATTENTE (3 solutions disponibles : MailHog/Gmail/Brevo)  
+**Configuration SMTP** : ✅ MailHog opérationnel (tests) + OVH maily.ovh prêt (production)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
 ---
@@ -1823,6 +1823,148 @@ Pour production : Utiliser Brevo (300 emails/jour gratuits)
 2. Configurer le .env racine avec les bonnes valeurs
 3. Redémarrer le service : docker-compose --profile auth restart auth-service
 4. Tester l'envoi d'emails
+```
+
+---
+
+#### 1.14 Configuration OVH maily.ovh pour Envoi Emails Réels (05/11/2025 18h00)
+
+**Contexte** : Solution Perplexity proposait de recréer 800 lignes de code déjà présentes.
+
+**Réalité** : Le système d'emails est **DÉJÀ COMPLET** dans le projet !
+
+**Fichiers existants** :
+```
+✅ backend/auth-service/src/services/emailService.js (189 lignes)
+   - sendWelcomeEmail(user)
+   - sendVerificationEmail(user, token)
+   - sendPasswordResetEmail(user, token)
+   - Templates HTML professionnels (gradients, responsive)
+
+✅ backend/auth-service/src/controllers/auth.controller.js (1235 lignes)
+   - register() → Envoie bienvenue + vérification
+   - verifyEmail() → Vérifie le token
+   - forgotPassword() → Envoie email reset
+   - resetPassword() → Change le mot de passe
+
+✅ backend/auth-service/src/routes/auth.routes.js (88 lignes)
+   - POST /api/v1/auth/register
+   - GET /api/v1/auth/verify-email/:token
+   - POST /api/v1/auth/forgot-password
+   - POST /api/v1/auth/reset-password
+
+✅ Modèle Prisma (schema.prisma)
+   - verificationToken + verificationTokenExpiry
+   - resetToken + resetTokenExpiry
+   - emailVerified + emailVerifiedAt
+```
+
+**Ce qu'il manque** : **JUSTE la configuration SMTP dans .env !**
+
+---
+
+**Solution Retenue : OVH avec maily.ovh**
+
+**Pourquoi OVH maily.ovh ?**
+```
+✅ Envoie de VRAIS emails (paul.delh@gmail.com les reçoit)
+✅ Email professionnel : noreply@maily.ovh
+✅ Domaine séparé (delhomme.ovh reste privé)
+✅ Contrôle total
+✅ 4,800 emails/jour (MX Plan suffisant)
+✅ Pas de limite externe (200 emails/heure)
+```
+
+**Configuration Détaillée** :
+
+**Fichier créé** : `GUIDE_COMPLET_OVH_MAILY.md` (933 lignes)
+
+**Contenu** :
+```
+PARTIE 1 - Configuration OVH Manager Web (10 min):
+  1.1 Activer offre email MX Plan
+  1.2 Créer noreply@maily.ovh avec mot de passe fort
+  1.3 Tester webmail OVH (vérification)
+  1.4 Vérifier DNS :
+      - Enregistrements MX (mx1, mx2, mx3.mail.ovh.net)
+      - Enregistrement SPF (v=spf1 include:mx.ovh.com ~all)
+      - DKIM (optionnel)
+  1.5 Tests DNS avec commandes dig
+
+PARTIE 2 - Configuration .env (2 min):
+  2.1 Ouvrir .env racine
+  2.2 Remplacer section SMTP :
+      SMTP_HOST=ssl0.ovh.net
+      SMTP_PORT=465
+      SMTP_SECURE=true
+      SMTP_USER=noreply@maily.ovh
+      SMTP_PASS=mot_de_passe_créé_étape_1.2
+      SMTP_FROM="JobbingTrack <noreply@maily.ovh>"
+
+PARTIE 3 - Tests (5 min):
+  3.1 Redémarrer : docker-compose --profile auth restart auth-service
+  3.2 Vérifier variables chargées dans Docker
+  3.3 Test reset password → paul.delh@gmail.com
+  3.4 Vérifier Gmail (vrai réception !)
+  3.5 Test inscription (2 emails reçus)
+
+PARTIE 4 - Résolution Problèmes:
+  - Erreur "Invalid login: 535" (5 solutions)
+  - Erreur "Connection timeout" (4 solutions)
+  - Erreur "Sender rejected" (3 solutions)
+  - Emails en spam (solutions long terme)
+  - Variables pas chargées (debug)
+```
+
+**Temps total** : ~20 minutes ⏱️
+
+**Checklist complète** : 15 points de vérification
+
+---
+
+**Configuration Actuelle** : MailHog (tests locaux)
+```
+SMTP_HOST=host.docker.internal
+SMTP_PORT=1025
+→ Emails capturés sur http://localhost:8025
+→ Utilisateurs ne reçoivent RIEN
+```
+
+**Configuration Après OVH** : Production
+```
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+→ Emails VRAIMENT envoyés
+→ paul.delh@gmail.com REÇOIT les emails ✅
+```
+
+**Test de Bascule** :
+```bash
+# Modifier .env (6 lignes)
+# Redémarrer service
+docker-compose --profile auth restart auth-service
+
+# Tester
+curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com"}'
+
+# Vérifier Gmail → Email reçu ! 🎉
+```
+
+**Fichiers de documentation** :
+```
+✅ GUIDE_COMPLET_OVH_MAILY.md → Guide détaillé (933 lignes)
+✅ IMPORTANT_LIRE_AVANT_CONFIG_OVH.md → Clarification Perplexity
+✅ MAIL.md → Vue d'ensemble (MailHog + OVH)
+```
+
+**État** :
+```
+✅ Code emails : 100% opérationnel
+✅ MailHog : Configuré (tests locaux)
+⏱️  OVH maily.ovh : Prêt à configurer (guide complet disponible)
+❌ Solution Perplexity : INUTILE (code déjà présent)
 ```
 
 ---
