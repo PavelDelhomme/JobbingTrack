@@ -55,6 +55,7 @@ help-services: ## Afficher l'aide services
 
 # Démarrer services essentiels
 up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, auth, dashboard, metrics)
+	$(call check_help_read,up)
 	@echo "🚀 Démarrage des services essentiels JobbingTrack..."
 	@echo "📦 Services: postgres, redis, api-gateway, frontend, auth-service, dashboard-service, metrics-aggregator"
 	$(call check_docker)

@@ -94,6 +94,7 @@ tests-help:
 # ================================================================
 
 tests-reset:
+	$(call check_help_read,tests-reset)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║        🔄 RESET COMPLET - Préparation Tests           ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
@@ -140,6 +141,7 @@ tests-reset:
 # ================================================================
 
 tests-user-journey:
+	$(call check_help_read,tests-user-journey)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║     🧪 TEST USER JOURNEY - Parcours Utilisateur       ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
@@ -159,6 +161,7 @@ tests-user-journey:
 # ================================================================
 
 tests-interface-web:
+	$(call check_help_read,tests-interface-web)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║        🌐 INTERFACE WEB DE TEST - Démarrage           ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
