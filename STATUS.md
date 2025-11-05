@@ -1497,6 +1497,14 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 01h40** - ✅ Correction rate limiting + warning Makefile
+- ✅ Rate limiting DÉSACTIVÉ en mode développement (NODE_ENV=development)
+- ✅ Tests passent sans erreur 429 (Trop de requêtes)
+- ✅ Rate limiting actif seulement en production (sécurité préservée)
+- ✅ Correction warning Makefile : logs-metrics en double supprimé
+- ✅ Plus de warning "overriding recipe for target 'logs-metrics'"
+- 🎯 Tests User Journey : 15/15 passent sans problème ✅
+
 **2025-11-05 01h35** - ✅ Système de warning pour inciter à lire help
 - ✅ Nouvelle fonction `check_help_read()` dans common.mk
 - ✅ Warning affiché si variable JOBBINGTRACK_HELP_READ non définie
