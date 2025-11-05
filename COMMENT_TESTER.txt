@@ -1,0 +1,47 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║         🧪 GUIDE RAPIDE - TESTS JOBBINGTRACK                  ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+🎯 COMMANDES DISPONIBLES :
+
+  make test-email-verification    → 4/5 tests (80%) ✅
+  make tests-user-journey         → 15/15 tests (100%) ✅  
+  make tests-help                 → Aide complète
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAT ACTUEL :
+
+  ✓ Vérification email implémentée et testée
+  ✓ Tous les tests user-journey fonctionnent
+  ✓ Migration BDD appliquée avec succès
+  ✓ Prisma Client à jour dans tous les services
+  ✓ 7 commits Git créés
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📧 POUR ENVOYER DES EMAILS (optionnel) :
+
+  1. Éditer backend/auth-service/.env :
+     
+     SMTP_HOST=smtp.gmail.com
+     SMTP_USER=redacted@example.invalid
+     SMTP_PASS=mot-de-passe-app
+     FRONTEND_URL=http://localhost:5173
+
+  2. docker-compose restart auth-service
+
+  3. Tester : http://localhost:5173/register
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION COMPLÈTE :
+
+  • STATUS.md section 1.12
+  • TESTS_VERIFICATION.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tout est documenté dans STATUS.md ! 🎉
