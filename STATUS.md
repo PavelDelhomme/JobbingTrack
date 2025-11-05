@@ -1485,6 +1485,15 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 01h30** - ✅ Système d'aide complet pour tests
+- ✅ `make help` : Section TESTS mise à jour avec 4 commandes
+- ✅ `make help-tests-reset` : Aide détaillée reset (5 étapes)
+- ✅ `make help-tests-user-journey` : Aide détaillée + liste des 15 tests
+- ✅ `make help-tests-interface-web` : Aide détaillée interface web
+- ✅ `make help-tests-help` : Aide sur le guide complet
+- ✅ `help-%` : Section Tests ajoutée avec toutes les aides
+- 🎯 Documentation complète du workflow de tests intégrée au Makefile
+
 **2025-11-05 01h10** - 🎉🎉🎉 SUCCÈS TOTAL : 15/15 tests passent (100%) !!!
 - ✅ **PHASE 1 TERMINÉE** : User Journey 100% opérationnel !
 - ✅ Dashboard-service : JWT_SECRET ajouté dans docker-compose.yml
