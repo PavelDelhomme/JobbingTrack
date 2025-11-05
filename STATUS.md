@@ -1033,6 +1033,13 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 00h30** - ✅ RÉORGANISATION : Scripts et commandes Make tests
+- ✅ Scripts déplacés vers dossiers appropriés (monitoring/, testing/)
+- ✅ Création makefiles/tests/Makefile avec toutes les commandes de tests
+- ✅ Ajout scripts/README.md avec documentation complète
+- ✅ Nouvelles commandes : make tests-help, tests-user-journey, tests-reset, etc.
+- 🎯 **SIMPLIFICATION** : Plus besoin de chercher les scripts, tout dans make !
+
 **2025-11-05 00h20** - ⚠️ PROBLÈME TECHNIQUE : Docker build cache
 - ❌ Application List échoue toujours (Status 500)
 - 🔍 CAUSE : Le container application-service utilise `archived` au lieu de `isArchived`
