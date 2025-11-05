@@ -1989,8 +1989,45 @@ curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
 ✅ MailHog : Configuré (tests locaux)
 ✅ OVH maily.ovh : Email créé, guide complet disponible
 ✅ Scénario test emails : Ajouté dans user-journey
-⏱️  Configuration .env OVH : À finaliser
+✅ Configuration .env OVH : APPLIQUÉE (redacted@example.invalid)
+⏱️  Page Email Monitor : EN COURS DE CRÉATION
 ❌ Solution Perplexity : INUTILE (code déjà présent)
+```
+
+**Prochaines Étapes** :
+```
+TODO IMMÉDIAT (Pour Demain) :
+
+1. ✅ Migrations Prisma (base de données vide détectée)
+   cd backend/auth-service
+   npx prisma migrate deploy
+   npx prisma generate
+   docker-compose --profile auth restart auth-service
+
+2. ⏱️ Page Email Monitor (frontend)
+   → Créer interface admin pour voir emails envoyés
+   → Statistiques (envoyés/échoués/en attente)
+   → Filtres par type et statut
+   → Visualisation contenu email
+   → Export JSON des logs
+   Location : frontend/src/app/(admin)/backoffice/email-monitor/page.tsx
+   
+3. ⏱️ Tests Complets
+   → Tester inscription avec redacted@example.invalid
+   → Vérifier réception email dans Gmail
+   → Tester reset password
+   → Vérifier interface Email Monitor
+   → Tester scénario user-journey "Vérification Email et Reset Password"
+
+4. ⏱️ Résoudre Utilisateur Existant
+   → Option A : Supprimer l'utilisateur existant redacted@example.invalid
+   → Option B : Utiliser un autre email pour les tests
+   → Ajouter bouton "Nettoyer BDD" dans interface admin
+
+5. ⏱️ Documentation Finale
+   → Mettre à jour STATUS.md après tests réussis
+   → Créer guide de test complet
+   → Valider que tout fonctionne
 ```
 
 ---
