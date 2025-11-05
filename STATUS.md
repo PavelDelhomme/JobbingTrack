@@ -563,25 +563,927 @@ TEST :
 └── Script : backend/auth-service/test-email-verification.js
 ```
 
-**Installation (3 étapes)** :
-```bash
-# 1. Migration base de données
-cd backend/auth-service
-npx prisma migrate dev --name add_email_verification
+**Installation & Configuration SMTP** :
 
-# 2. Configuration SMTP dans backend/auth-service/.env
-SMTP_HOST=smtp.gmail.com              # ou smtp.mailtrap.io pour tests
-SMTP_PORT=587
-SMTP_USER=votre-email@gmail.com
-SMTP_PASS=mot-de-passe-application    # Mot de passe app Gmail
+#### Option 1 : Développement Local avec MailHog (Recommandé pour tests)
+
+**MailHog** : Serveur SMTP local qui intercepte TOUS les emails (aucun email envoyé réellement)
+
+```bash
+# 1. Installer MailHog (serveur SMTP local)
+# Sur macOS
+brew install mailhog
+
+# Sur Linux (Manjaro/Arch)
+yay -S mailhog
+# OU télécharger depuis https://github.com/mailhog/MailHog/releases
+
+# Sur Linux (autres distributions)
+wget https://github.com/mailhog/MailHog/releases/download/v1.0.1/MailHog_linux_amd64
+chmod +x MailHog_linux_amd64
+sudo mv MailHog_linux_amd64 /usr/local/bin/mailhog
+
+# 2. Lancer MailHog
+mailhog
+# Interface web : http://localhost:8025 (voir les emails)
+# SMTP : localhost:1025
+
+# 3. Configuration backend/auth-service/.env
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=                    # Vide pour MailHog
+SMTP_PASS=                    # Vide pour MailHog
 SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
 FRONTEND_URL=http://localhost:5173
 
-# 3. Redémarrer le service
+# 4. Migration BDD + Redémarrer
+docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
+  "ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS \"verificationToken\" TEXT, \
+   ADD COLUMN IF NOT EXISTS \"verificationTokenExpiry\" TIMESTAMP(3);"
+docker exec jobbingtrack-auth-service npx prisma generate
 docker-compose restart auth-service
+
+# 5. Tester
+make test-email-verification
+# → Voir emails sur http://localhost:8025
 ```
 
-**Tests disponibles** :
+**Avantages MailHog** :
+```
+✓ Installation simple (1 commande)
+✓ Interface web pour voir tous les emails
+✓ Aucun email envoyé réellement (sécurité)
+✓ Parfait pour développement local
+✓ Pas besoin de domaine/DNS
+✓ Gratuit et open-source
+```
+
+---
+
+#### Option 2 : OVH Email (Production avec votre domaine)
+
+**Prérequis** :
+- Compte OVH avec domaine (ex: jobbingtrack.com)
+- Adresse email créée (ex: noreply@jobbingtrack.com)
+
+**Configuration OVH SMTP** :
+```bash
+# backend/auth-service/.env
+
+# Serveurs SMTP OVH (SSL/TLS)
+SMTP_HOST=ssl0.ovh.net        # ou ssl1.ovh.net
+SMTP_PORT=465                 # Port SSL
+SMTP_SECURE=true              # SSL activé
+SMTP_USER=noreply@jobbingtrack.com
+SMTP_PASS=votre-mot-de-passe-email-ovh
+SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
+FRONTEND_URL=https://votre-domaine.com
+
+# Alternative : SMTP OVH STARTTLS
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=587                 # Port STARTTLS
+SMTP_SECURE=false
+# Reste identique
+```
+
+**Créer adresse email OVH** :
+```
+1. Connexion : https://www.ovh.com/manager/web/
+2. Emails → Votre domaine
+3. Créer adresse email : noreply@jobbingtrack.com
+4. Définir mot de passe fort
+5. Utiliser ces credentials dans .env
+```
+
+**Configuration DNS OVH (si nouveau domaine)** :
+```
+Vérifier que ces enregistrements existent :
+
+Type    Nom                    Valeur
+MX      @                      mx1.mail.ovh.net (priorité 1)
+MX      @                      mx2.mail.ovh.net (priorité 5)
+TXT     @                      "v=spf1 include:mx.ovh.com ~all"
+DKIM    default._domainkey     (généré automatiquement par OVH)
+
+→ Ces enregistrements permettent d'envoyer des emails sans être marqué spam
+```
+
+---
+
+#### Option 3 : Serveur SMTP Local sur VPS (Production auto-hébergé)
+
+**Installation Postfix sur votre VPS** :
+
+```bash
+# 1. Connexion SSH à votre VPS
+ssh root@votre-vps-ip
+
+# 2. Installation Postfix (Ubuntu/Debian)
+apt update
+apt install postfix mailutils -y
+
+# Pendant l'installation :
+# - Configuration type : "Internet Site"
+# - System mail name : votre-domaine.com
+
+# 3. Configuration Postfix
+nano /etc/postfix/main.cf
+
+# Ajouter/Modifier ces lignes :
+myhostname = mail.votre-domaine.com
+mydomain = votre-domaine.com
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+relayhost =
+mynetworks = 127.0.0.0/8, [::1]/128, 172.18.0.0/16
+mailbox_size_limit = 0
+recipient_delimiter = +
+
+# Authentification SASL (pour sécurité)
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $myhostname
+broken_sasl_auth_clients = yes
+
+# TLS/SSL
+smtpd_use_tls = yes
+smtpd_tls_cert_file = /etc/letsencrypt/live/votre-domaine.com/fullchain.pem
+smtpd_tls_key_file = /etc/letsencrypt/live/votre-domaine.com/privkey.pem
+smtpd_tls_security_level = may
+
+# 4. Installation Dovecot (authentification)
+apt install dovecot-core dovecot-imapd -y
+
+# 5. Configuration DNS (chez votre registrar/OVH)
+# Ajouter ces enregistrements DNS :
+
+Type    Nom                    Valeur                     TTL
+A       mail                   IP-DE-VOTRE-VPS            3600
+MX      @                      mail.votre-domaine.com     3600  (priorité 10)
+TXT     @                      "v=spf1 a mx ip4:IP-VPS ~all"  3600
+TXT     _dmarc                 "v=DMARC1; p=none; rua=mailto:admin@votre-domaine.com"  3600
+
+# 6. Certificat SSL avec Let's Encrypt
+apt install certbot -y
+certbot certonly --standalone -d mail.votre-domaine.com
+# → Certificats dans /etc/letsencrypt/live/votre-domaine.com/
+
+# 7. Redémarrer Postfix
+systemctl restart postfix
+systemctl enable postfix
+systemctl status postfix
+
+# 8. Créer utilisateur email
+adduser noreply
+# Définir mot de passe
+
+# 9. Tester l'envoi local
+echo "Test email" | mail -s "Test Postfix" votre-email@gmail.com
+
+# 10. Configuration dans backend/auth-service/.env
+SMTP_HOST=mail.votre-domaine.com
+SMTP_PORT=587                 # STARTTLS
+SMTP_SECURE=false
+SMTP_USER=noreply@votre-domaine.com
+SMTP_PASS=mot-de-passe-utilisateur-noreply
+SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
+FRONTEND_URL=https://votre-domaine.com
+```
+
+**Sécurité Postfix** :
+```bash
+# Éviter être utilisé comme relay spam
+nano /etc/postfix/main.cf
+
+# Restrictions importantes
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination,
+    reject_non_fqdn_recipient,
+    reject_unknown_recipient_domain
+
+smtpd_sender_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_non_fqdn_sender,
+    reject_unknown_sender_domain
+
+# Redémarrer
+systemctl restart postfix
+```
+
+**Monitoring Postfix** :
+```bash
+# Voir les logs
+tail -f /var/log/mail.log
+
+# Vérifier queue emails
+mailq
+
+# Vider queue si nécessaire
+postsuper -d ALL
+```
+
+---
+
+#### Option 4 : Docker avec Postfix (Développement/Staging)
+
+**Ajouter service SMTP au docker-compose.yml** :
+
+```yaml
+# docker-compose.yml
+
+services:
+  # ... autres services ...
+
+  # Service SMTP Local (alternative à MailHog)
+  mailserver:
+    image: mailhog/mailhog:latest
+    container_name: jobbingtrack-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Interface web
+    networks:
+      - jobbingtrack-network
+    restart: unless-stopped
+    profiles:
+      - mail
+      - full
+
+  # OU avec Postfix réel (pour production-like)
+  postfix:
+    image: boky/postfix:latest
+    container_name: jobbingtrack-postfix
+    environment:
+      - ALLOWED_SENDER_DOMAINS=jobbingtrack.com
+      - ALLOW_EMPTY_SENDER_DOMAINS=true
+    ports:
+      - "1587:587"
+    networks:
+      - jobbingtrack-network
+    profiles:
+      - mail-prod
+      - full
+```
+
+**Configuration avec Docker MailHog** :
+```bash
+# 1. Démarrer MailHog
+docker-compose --profile mail up -d mailserver
+
+# 2. Configuration .env
+SMTP_HOST=mailserver          # Nom du service Docker
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
+FRONTEND_URL=http://localhost:5173
+
+# 3. Redémarrer auth-service
+docker-compose restart auth-service
+
+# 4. Interface web emails
+http://localhost:8025
+```
+
+---
+
+#### Tableau Comparatif Solutions SMTP
+
+| Solution | Complexité | Coût | Envoi Réel | Usage |
+|----------|-----------|------|------------|-------|
+| **MailHog** | ⭐ Facile | Gratuit | ❌ Non (intercepte) | Développement |
+| **OVH Email** | ⭐⭐ Moyen | ~1€/mois | ✅ Oui | Production |
+| **Postfix VPS** | ⭐⭐⭐⭐ Difficile | Gratuit | ✅ Oui | Production avancée |
+| **Docker Postfix** | ⭐⭐⭐ Moyen | Gratuit | ✅ Oui | Staging |
+
+---
+
+#### Configuration Recommandée par Environnement
+
+**Développement Local** :
+```env
+# backend/auth-service/.env.development
+SMTP_HOST=localhost           # MailHog lancé avec : mailhog
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@localhost>
+FRONTEND_URL=http://localhost:5173
+
+# Interface MailHog : http://localhost:8025
+```
+
+**Staging (Docker)** :
+```env
+# backend/auth-service/.env.staging
+SMTP_HOST=mailserver          # Service Docker MailHog
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@staging.jobbingtrack.com>
+FRONTEND_URL=https://staging.votre-domaine.com
+```
+
+**Production OVH** :
+```env
+# backend/auth-service/.env.production
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@jobbingtrack.com
+SMTP_PASS=votre-mot-de-passe-ovh
+SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
+FRONTEND_URL=https://jobbingtrack.com
+```
+
+**Production VPS Postfix** :
+```env
+# backend/auth-service/.env.production
+SMTP_HOST=mail.votre-domaine.com     # Votre VPS
+SMTP_PORT=587
+SMTP_SECURE=false                    # STARTTLS
+SMTP_USER=noreply@votre-domaine.com
+SMTP_PASS=mot-de-passe-utilisateur
+SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
+FRONTEND_URL=https://votre-domaine.com
+```
+
+---
+
+#### Guide Complet : Installation Postfix sur VPS
+
+**ÉTAPE 1 : Préparer le VPS**
+
+```bash
+# Connexion SSH
+ssh root@votre-vps-ip
+
+# Mettre à jour le système
+apt update && apt upgrade -y
+
+# Définir hostname
+hostnamectl set-hostname mail.votre-domaine.com
+
+# Éditer /etc/hosts
+nano /etc/hosts
+# Ajouter : IP-VPS mail.votre-domaine.com mail
+```
+
+**ÉTAPE 2 : Installer Postfix + Dovecot**
+
+```bash
+# Installation
+apt install postfix dovecot-core dovecot-imapd mailutils -y
+
+# Pendant installation Postfix :
+# → Choisir : "Internet Site"
+# → System mail name : votre-domaine.com
+```
+
+**ÉTAPE 3 : Configuration Postfix**
+
+```bash
+# Backup config originale
+cp /etc/postfix/main.cf /etc/postfix/main.cf.backup
+
+# Éditer configuration
+nano /etc/postfix/main.cf
+```
+
+Ajouter cette configuration complète :
+```conf
+# /etc/postfix/main.cf
+
+# Paramètres de base
+myhostname = mail.votre-domaine.com
+mydomain = votre-domaine.com
+myorigin = $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+relayhost = 
+mynetworks = 127.0.0.0/8, [::1]/128, 172.18.0.0/16, 192.168.0.0/16
+mailbox_size_limit = 0
+recipient_delimiter = +
+home_mailbox = Maildir/
+
+# Authentification SASL
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_authenticated_header = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $myhostname
+broken_sasl_auth_clients = yes
+
+# Restrictions anti-spam
+smtpd_helo_required = yes
+smtpd_helo_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_non_fqdn_helo_hostname,
+    reject_invalid_helo_hostname
+
+smtpd_sender_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_non_fqdn_sender,
+    reject_unknown_sender_domain
+
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination,
+    reject_non_fqdn_recipient,
+    reject_unknown_recipient_domain,
+    reject_unauth_pipelining,
+    reject_invalid_hostname
+
+# TLS/SSL (après Let's Encrypt)
+smtpd_use_tls = yes
+smtpd_tls_cert_file = /etc/letsencrypt/live/mail.votre-domaine.com/fullchain.pem
+smtpd_tls_key_file = /etc/letsencrypt/live/mail.votre-domaine.com/privkey.pem
+smtpd_tls_security_level = may
+smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_ciphers = high
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+
+# Client TLS
+smtp_tls_security_level = may
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+```
+
+**ÉTAPE 4 : Configuration Dovecot (authentification)**
+
+```bash
+# Éditer configuration Dovecot
+nano /etc/dovecot/conf.d/10-auth.conf
+
+# Désactiver login plain-text (sauf avec TLS)
+disable_plaintext_auth = yes
+
+# Mécanismes d'authentification
+auth_mechanisms = plain login
+
+# Éditer master config
+nano /etc/dovecot/conf.d/10-master.conf
+
+# Section service auth, ajouter :
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0660
+    user = postfix
+    group = postfix
+  }
+}
+
+# Éditer mail config
+nano /etc/dovecot/conf.d/10-mail.conf
+mail_location = maildir:~/Maildir
+
+# Redémarrer Dovecot
+systemctl restart dovecot
+systemctl enable dovecot
+```
+
+**ÉTAPE 5 : Certificat SSL Let's Encrypt**
+
+```bash
+# Installer Certbot
+apt install certbot -y
+
+# Générer certificat (port 80 doit être libre)
+certbot certonly --standalone -d mail.votre-domaine.com
+
+# Certificats créés dans :
+# /etc/letsencrypt/live/mail.votre-domaine.com/
+#   ├─ fullchain.pem
+#   ├─ privkey.pem
+#   └─ cert.pem
+
+# Auto-renewal (cron)
+certbot renew --dry-run
+# Si OK, certbot renouvelle automatiquement tous les 60 jours
+```
+
+**ÉTAPE 6 : Configuration DNS (Crucial !)**
+
+```bash
+# Chez votre registrar DNS (OVH, Cloudflare, etc.)
+# Ajouter ces enregistrements :
+
+Type    Nom                    Valeur                              Priorité   TTL
+────────────────────────────────────────────────────────────────────────────────
+A       mail                   IP-DE-VOTRE-VPS                     -          3600
+MX      @                      mail.votre-domaine.com              10         3600
+TXT     @                      "v=spf1 a mx ip4:IP-VPS -all"       -          3600
+TXT     _dmarc                 "v=DMARC1; p=quarantine; rua=mailto:postmaster@votre-domaine.com" - 3600
+
+# Attendre propagation DNS (15 min à 48h)
+# Vérifier avec :
+dig mail.votre-domaine.com
+dig MX votre-domaine.com
+dig TXT votre-domaine.com
+```
+
+**ÉTAPE 7 : Créer Utilisateur Email**
+
+```bash
+# Créer utilisateur système
+adduser noreply
+# Définir mot de passe fort : XYZ123abc!@#
+
+# Créer structure Maildir
+su - noreply
+mkdir -p ~/Maildir/{cur,new,tmp}
+exit
+
+# Tester envoi local
+echo "Test email" | mail -s "Test Postfix" noreply@votre-domaine.com
+
+# Vérifier réception
+su - noreply
+mail
+# Doit afficher le message
+```
+
+**ÉTAPE 8 : Firewall & Sécurité**
+
+```bash
+# Ouvrir ports SMTP
+ufw allow 25/tcp      # SMTP
+ufw allow 587/tcp     # Submission (STARTTLS)
+ufw allow 465/tcp     # SMTPS (SSL)
+ufw allow 143/tcp     # IMAP (optionnel)
+ufw allow 993/tcp     # IMAPS (optionnel)
+ufw reload
+
+# Vérifier
+ufw status
+
+# Fail2Ban (protection brute force)
+apt install fail2ban -y
+
+nano /etc/fail2ban/jail.local
+# Ajouter :
+[postfix]
+enabled = true
+port = smtp,submission,submissions
+filter = postfix
+logpath = /var/log/mail.log
+maxretry = 5
+bantime = 3600
+
+systemctl restart fail2ban
+```
+
+**ÉTAPE 9 : Tester depuis Application**
+
+```bash
+# Sur votre machine locale
+# Éditer backend/auth-service/.env
+SMTP_HOST=mail.votre-domaine.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=noreply@votre-domaine.com
+SMTP_PASS=XYZ123abc!@#
+SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
+FRONTEND_URL=http://localhost:5173
+
+# Redémarrer
+docker-compose restart auth-service
+
+# Tester
+make test-email-verification
+# → Email doit arriver dans votre boîte réelle !
+```
+
+**ÉTAPE 10 : Configuration DKIM (Anti-Spam)**
+
+```bash
+# Installer OpenDKIM
+apt install opendkim opendkim-tools -y
+
+# Créer répertoire clés
+mkdir -p /etc/opendkim/keys/votre-domaine.com
+cd /etc/opendkim/keys/votre-domaine.com
+
+# Générer clés DKIM
+opendkim-genkey -s default -d votre-domaine.com
+
+# Permissions
+chown -R opendkim:opendkim /etc/opendkim
+chmod 600 /etc/opendkim/keys/votre-domaine.com/default.private
+
+# Configuration OpenDKIM
+nano /etc/opendkim.conf
+# Ajouter :
+Domain                  votre-domaine.com
+KeyFile                 /etc/opendkim/keys/votre-domaine.com/default.private
+Selector                default
+Socket                  inet:8891@localhost
+
+# Intégrer avec Postfix
+nano /etc/postfix/main.cf
+# Ajouter :
+smtpd_milters = inet:localhost:8891
+non_smtpd_milters = inet:localhost:8891
+milter_default_action = accept
+
+# Redémarrer
+systemctl restart opendkim
+systemctl restart postfix
+
+# Publier clé DKIM dans DNS
+cat /etc/opendkim/keys/votre-domaine.com/default.txt
+# Copier et créer enregistrement TXT dans DNS :
+# Nom : default._domainkey
+# Valeur : (tout le texte v=DKIM1...)
+```
+
+---
+
+#### Vérification Configuration SMTP
+
+**Tester la connexion SMTP** :
+```bash
+# Depuis votre machine locale
+telnet mail.votre-domaine.com 587
+
+# Si connexion OK, taper :
+EHLO localhost
+QUIT
+
+# Devrait afficher : 250-mail.votre-domaine.com
+```
+
+**Tester avec OpenSSL** :
+```bash
+# Test STARTTLS (port 587)
+openssl s_client -connect mail.votre-domaine.com:587 -starttls smtp
+
+# Test SSL direct (port 465)
+openssl s_client -connect mail.votre-domaine.com:465
+```
+
+**Tester l'envoi depuis Node.js** :
+```javascript
+// test-smtp.js (dans backend/auth-service)
+
+const nodemailer = require('nodemailer');
+
+async function testSMTP() {
+  const transporter = nodemailer.createTransport({
+    host: 'mail.votre-domaine.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: 'noreply@votre-domaine.com',
+      pass: 'votre-mot-de-passe'
+    },
+    tls: {
+      rejectUnauthorized: false // Pour développement uniquement
+    }
+  });
+
+  try {
+    const info = await transporter.sendMail({
+      from: 'JobbingTrack <noreply@votre-domaine.com>',
+      to: 'votre-email-test@gmail.com',
+      subject: 'Test SMTP JobbingTrack',
+      html: '<h1>Test réussi !</h1><p>Le serveur SMTP fonctionne.</p>'
+    });
+
+    console.log('✅ Email envoyé :', info.messageId);
+  } catch (error) {
+    console.error('❌ Erreur SMTP :', error);
+  }
+}
+
+testSMTP();
+```
+
+```bash
+# Exécuter le test
+docker exec jobbingtrack-auth-service node test-smtp.js
+```
+
+---
+
+#### Dépannage SMTP
+
+**Email non reçu** :
+```bash
+# 1. Vérifier logs Postfix
+tail -f /var/log/mail.log
+
+# 2. Vérifier queue
+mailq
+
+# 3. Vérifier DNS
+dig MX votre-domaine.com
+dig TXT votre-domaine.com      # SPF
+dig TXT default._domainkey.votre-domaine.com  # DKIM
+
+# 4. Tester deliverability
+# Utiliser : https://www.mail-tester.com/
+# Envoyer email à l'adresse fournie
+# Score doit être > 8/10
+```
+
+**Emails marqués spam** :
+```bash
+Vérifier :
+□ SPF record correct (dig TXT votre-domaine.com)
+□ DKIM configuré (dig TXT default._domainkey.votre-domaine.com)
+□ DMARC configuré (dig TXT _dmarc.votre-domaine.com)
+□ Reverse DNS (PTR) : IP-VPS → mail.votre-domaine.com
+□ Port 25 ouvert (certains FAI bloquent)
+□ IP VPS pas blacklistée (vérifier : mxtoolbox.com/blacklists.aspx)
+```
+
+**Connexion refusée** :
+```bash
+# Vérifier Postfix lancé
+systemctl status postfix
+
+# Vérifier ports écoutés
+netstat -tulpn | grep -E '25|587|465'
+
+# Vérifier firewall
+ufw status
+
+# Logs détaillés
+postconf -n | grep -E 'smtpd_tls|smtp_tls'
+```
+
+---
+
+#### Configuration Production sur VPS (Checklist)
+
+**Avant déploiement** :
+```bash
+□ Domaine configuré et DNS propagés
+□ Certificat SSL Let's Encrypt installé
+□ Postfix installé et configuré
+□ Dovecot installé pour authentification
+□ Utilisateur noreply créé
+□ Firewall configuré (ports 25, 587, 465)
+□ Fail2Ban activé (protection brute force)
+□ SPF record publié dans DNS
+□ DKIM configuré et publié dans DNS
+□ DMARC configuré
+□ Reverse DNS (PTR) configuré
+□ Tests envoi OK (test-smtp.js)
+□ Score mail-tester.com > 8/10
+```
+
+**Déploiement application** :
+```bash
+# 1. Sur le VPS, cloner repo
+cd /var/www
+git clone votre-repo jobbingtrack
+cd jobbingtrack
+
+# 2. Configuration .env production
+cp backend/auth-service/.env.example backend/auth-service/.env
+nano backend/auth-service/.env
+
+SMTP_HOST=mail.votre-domaine.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=noreply@votre-domaine.com
+SMTP_PASS=mot-de-passe-fort
+SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
+FRONTEND_URL=https://votre-domaine.com
+NODE_ENV=production
+
+# 3. Lancer avec Docker
+docker-compose -f docker-compose.prod.yml up -d
+
+# 4. Tester
+curl -X POST https://votre-domaine.com/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@gmail.com","password":"Test123!","firstName":"Test","lastName":"User"}'
+
+# → Email de vérification doit arriver !
+```
+
+---
+
+#### Monitoring SMTP Production
+
+**Logs temps réel** :
+```bash
+# Suivre tous les emails
+tail -f /var/log/mail.log | grep -E 'from=|to=|status='
+
+# Statistiques journalières
+pflogsumm /var/log/mail.log
+
+# Alertes email échec
+# Configurer Postfix pour vous notifier si problèmes
+```
+
+**Métriques Postfix** :
+```bash
+# Installer postfix-exporter pour Prometheus (optionnel)
+docker run -d \
+  --name postfix-exporter \
+  -p 9154:9154 \
+  -v /var/log/mail.log:/var/log/mail.log:ro \
+  kumina/postfix-exporter
+
+# Métriques disponibles sur http://localhost:9154/metrics
+```
+
+---
+
+#### Solution Recommandée pour Vous (avec OVH)
+
+**Étant donné que vous avez déjà un compte OVH**, voici la solution la plus simple :
+
+**POUR DÉVELOPPEMENT LOCAL (maintenant)** :
+```bash
+# 1. Installer MailHog (1 commande)
+yay -S mailhog     # Sur Manjaro
+
+# 2. Lancer MailHog dans un terminal
+mailhog
+# → Interface : http://localhost:8025
+# → SMTP : localhost:1025
+
+# 3. Configuration backend/auth-service/.env
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@localhost>
+FRONTEND_URL=http://localhost:5173
+
+# 4. Redémarrer service
+docker-compose restart auth-service
+
+# 5. Tester
+make test-email-verification
+# → Voir emails sur http://localhost:8025 ✅
+```
+
+**POUR PRODUCTION (quand prêt à déployer)** :
+```bash
+# 1. Chez OVH : Créer adresse email
+# https://www.ovh.com/manager/web/ → Emails → Créer : noreply@votre-domaine.com
+
+# 2. Configuration backend/auth-service/.env (production)
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@votre-domaine.com
+SMTP_PASS=mot-de-passe-ovh-email
+SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
+FRONTEND_URL=https://votre-domaine.com
+
+# 3. Sur votre VPS
+git pull
+docker-compose -f docker-compose.prod.yml restart auth-service
+
+# 4. Tester
+# S'inscrire sur https://votre-domaine.com/register
+# → Email arrive dans boîte réelle ✅
+```
+
+**Pourquoi cette solution** :
+```
+✓ MailHog local : Développement rapide et sûr
+✓ OVH production : Simple, fiable, pas cher (~1€/mois)
+✓ Pas besoin installer Postfix (complexe)
+✓ DNS automatique avec OVH
+✓ DKIM automatique avec OVH
+✓ Support OVH si problèmes
+```
+
+**Si vous voulez Postfix sur VPS plus tard** :
+```
+→ Suivre "Option 3 : Serveur SMTP Local sur VPS" ci-dessus
+→ Utile si : beaucoup d'emails (>1000/jour) ou contrôle total
+→ Complexe mais gratuit et puissant
+```
+
+---
+
+#### Tests disponibles
+
 ```bash
 # Test automatisé (vérifie inscription + token + renvoi)
 make test-email-verification
