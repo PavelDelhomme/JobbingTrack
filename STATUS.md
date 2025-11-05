@@ -1656,6 +1656,31 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 12h00** - ✅ UX Loading States + Metrics Aggregator ajouté
+- ✅ **Nouveau composant** : `LoadingState` réutilisable (4 variantes)
+  - `LoadingState` : Loading complet avec message
+  - `LoadingSpinner` : Juste le spinner
+  - `LoadingOverlay` : Overlay pour modals/cartes
+  - `LoadingCard` : Skeleton cards pendant chargement
+- ✅ **Features** :
+  - Tailles : sm, md, lg, xl
+  - Messages contextuels
+  - Support dark mode
+  - Icon Loader2 de Lucide React (plus professionnel)
+- ✅ **Appliqué dans** : `/backoffice` (page principale)
+- ✅ **Metrics Aggregator** :
+  - Ajouté à `make up-for-tests` (étape 5/5)
+  - Démarrage automatique sur port 8014
+  - Accessible pour statistiques temps réel
+- ⚠️ **Problème connu** : Table `ContainerLog` manquante (logs non persistés)
+- 🎯 **Prochaines étapes** :
+  - Appliquer LoadingState dans toutes les pages backoffice
+  - Créer table ContainerLog dans schema Prisma
+- 📁 **Fichiers** :
+  - `frontend/src/components/ui/LoadingState.tsx` (nouveau)
+  - `frontend/src/app/(admin)/backoffice/page.tsx`
+  - `makefiles/services/Makefile`
+
 **2025-11-05 11h40** - ✅ Fix valeurs enum dans interface web User Journey
 - ✅ **Problème** : Erreurs Prisma `Invalid value for argument status/size`
   - Company.size: envoyait `"startup"` au lieu de `"STARTUP"`
