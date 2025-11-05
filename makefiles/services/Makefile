@@ -120,6 +120,10 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d application-service company-service contact-service interview-service event-service followup-service call-service)
 	@sleep 2
 	@echo ""
+	@echo "🌐 4/4 - Frontend (interface web de test)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
+	@sleep 3
+	@echo ""
 	@echo "================================================================"
 	@echo "✅ SERVICES DE TEST DÉMARRÉS !"
 	@echo "================================================================"
@@ -136,6 +140,7 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "   ✅ Events           - Événements calendrier"
 	@echo "   ✅ Followups        - Relances"
 	@echo "   ✅ Calls            - Appels téléphoniques"
+	@echo "   ✅ Frontend         - http://localhost:8080"
 	@echo ""
 	@echo "🧪 Page de Test :"
 	@echo "   http://localhost:8080/backoffice/user-journey"
