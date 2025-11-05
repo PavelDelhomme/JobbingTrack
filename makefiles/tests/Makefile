@@ -108,7 +108,7 @@ tests-reset:
 	@sleep 15
 	@echo ""
 	@echo "🔧 4/5 - Création des tables et synchronisation BDD..."
-	@docker exec jobbingtrack-auth-service npx prisma db push --accept-data-loss
+	@docker exec jobbingtrack-application-service npx prisma db push --accept-data-loss
 	@echo ""
 	@echo "👤 5/5 - Création utilisateur admin..."
 	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
