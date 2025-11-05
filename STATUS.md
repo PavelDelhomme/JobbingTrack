@@ -119,6 +119,18 @@ make tests-reset
 make tests-help
 ```
 
+**🔕 Désactiver les warnings help** :
+```bash
+# Pour une session (temporaire)
+export JOBBINGTRACK_HELP_READ=1
+make tests-user-journey  # Pas de warning
+
+# Pour toujours (permanent)
+echo 'export JOBBINGTRACK_HELP_READ=1' >> ~/.bashrc  # Bash
+echo 'export JOBBINGTRACK_HELP_READ=1' >> ~/.zshrc   # Zsh
+source ~/.bashrc  # ou ~/.zshrc
+```
+
 **Problèmes prioritaires** :
 1. ✅ User Journey complet (15/15 tests passent - 100%) - TERMINÉ !
 2. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
@@ -1484,6 +1496,15 @@ Toutes les tables demandées sont implémentées :
 ---
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
+
+**2025-11-05 01h35** - ✅ Système de warning pour inciter à lire help
+- ✅ Nouvelle fonction `check_help_read()` dans common.mk
+- ✅ Warning affiché si variable JOBBINGTRACK_HELP_READ non définie
+- ✅ Ajouté sur : up, tests-reset, tests-user-journey, tests-interface-web
+- ✅ Conseils affichés : make help, make tests-help, make help-<commande>
+- ✅ Désactivable : export JOBBINGTRACK_HELP_READ=1
+- ✅ Délai 3 secondes avant exécution
+- 🎯 Incite utilisateurs à découvrir les commandes disponibles
 
 **2025-11-05 01h30** - ✅ Système d'aide complet pour tests
 - ✅ `make help` : Section TESTS mise à jour avec 4 commandes
