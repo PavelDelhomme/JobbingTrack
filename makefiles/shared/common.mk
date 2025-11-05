@@ -115,6 +115,35 @@ MAKE_CYAN := $(CYAN)
 MAKE_NC := $(NC)
 
 # ============================================================================
+# SYSTÈME DE WARNING HELP
+# ============================================================================
+
+# Fonction pour vérifier si l'utilisateur a lu le help
+define check_help_read
+	@if [ -z "$$JOBBINGTRACK_HELP_READ" ]; then \
+		echo ""; \
+		echo "╔════════════════════════════════════════════════════════╗"; \
+		echo "║  ⚠️  PREMIÈRE UTILISATION ? LISEZ L'AIDE D'ABORD !     ║"; \
+		echo "╚════════════════════════════════════════════════════════╝"; \
+		echo ""; \
+		echo "💡 Pour découvrir toutes les commandes disponibles :"; \
+		echo "   make help                    → Vue d'ensemble"; \
+		echo "   make tests-help              → Guide complet des tests"; \
+		echo "   make help-$(1)               → Aide détaillée pour cette commande"; \
+		echo ""; \
+		echo "🔕 Pour désactiver ce message (une session) :"; \
+		echo "   export JOBBINGTRACK_HELP_READ=1"; \
+		echo ""; \
+		echo "🔕 Pour désactiver définitivement, ajoutez dans ~/.bashrc ou ~/.zshrc :"; \
+		echo "   export JOBBINGTRACK_HELP_READ=1"; \
+		echo ""; \
+		echo "⏱️  Démarrage dans 3 secondes..."; \
+		echo ""; \
+		sleep 3; \
+	fi
+endef
+
+# ============================================================================
 # Fonctions d'aide pour les Makefiles
 # ============================================================================
 

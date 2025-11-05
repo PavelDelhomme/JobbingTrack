@@ -65,6 +65,10 @@ const register = async (req, res, next) => {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Générer un token de vérification d'email (valide 24h)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+
     // Créer l'utilisateur
     const user = await prisma.user.create({
       data: {
@@ -73,7 +77,10 @@ const register = async (req, res, next) => {
         firstName,
         lastName,
         phone,
-        role: userRole
+        role: userRole,
+        verificationToken,
+        verificationTokenExpiry,
+        emailVerified: false
       }
     });
 
@@ -99,11 +106,21 @@ const register = async (req, res, next) => {
       metadata: {
         userEmail: user.email,
         userRole: user.role,
-        registrationComplete: true
+        registrationComplete: true,
+        emailVerified: false
       }
     });
 
-    // Envoyer email de bienvenue (async)
+    // Construire l'URL de vérification
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+    // Envoyer email de vérification (async - prioritaire)
+    emailService.sendVerificationEmail(user, verificationUrl).catch(error => {
+      logger.error('Erreur envoi email vérification:', error);
+    });
+
+    // Envoyer aussi email de bienvenue (async)
     emailService.sendWelcomeEmail(user).catch(error => {
       logger.error('Erreur envoi email bienvenue:', error);
     });
@@ -113,12 +130,13 @@ const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Compte créé avec succès',
+      message: 'Compte créé avec succès. Un email de vérification a été envoyé à votre adresse.',
       user: userWithoutPassword,
-      token
+      token,
+      emailVerificationRequired: true
     });
 
-    logger.info(`Nouvel utilisateur inscrit: ${user.email}`);
+    logger.info(`Nouvel utilisateur inscrit: ${user.email} - Email de vérification envoyé`);
   } catch (error) {
     logger.error('Erreur inscription:', error);
     next(error);
@@ -1028,6 +1046,171 @@ const generateTestToken = async (req, res) => {
   }
 };
 
+// Vérifier l'email avec le token
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token de vérification requis'
+      });
+    }
+
+    // Trouver l'utilisateur avec ce token de vérification
+    const user = await prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+        verificationTokenExpiry: {
+          gt: new Date() // Token pas encore expiré
+        },
+        emailVerified: false // Pas encore vérifié
+      }
+    });
+
+    if (!user) {
+      await sendSecurityLog('warning', 'authentication', 'email_verification_failed', 'Tentative de vérification avec token invalide ou expiré', {
+        sourceIP: req.ip,
+        endpoint: req.path,
+        method: req.method,
+        userAgent: req.get('User-Agent'),
+        riskScore: 25,
+        metadata: {
+          tokenProvided: !!token
+        }
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: 'Token de vérification invalide ou expiré. Veuillez demander un nouveau lien de vérification.'
+      });
+    }
+
+    // Marquer l'email comme vérifié
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        verificationToken: null, // Supprimer le token une fois utilisé
+        verificationTokenExpiry: null
+      }
+    });
+
+    // Log de succès
+    await sendSecurityLog('info', 'authentication', 'email_verification_success', 'Email vérifié avec succès', {
+      sourceIP: req.ip,
+      endpoint: req.path,
+      method: req.method,
+      userAgent: req.get('User-Agent'),
+      userId: user.id,
+      riskScore: 0,
+      metadata: {
+        userEmail: user.email,
+        verifiedAt: new Date()
+      }
+    });
+
+    logger.info(`Email vérifié avec succès pour l'utilisateur: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Votre adresse email a été vérifiée avec succès ! Vous pouvez maintenant utiliser toutes les fonctionnalités de JobbingTrack.',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        emailVerified: updatedUser.emailVerified
+      }
+    });
+
+  } catch (error) {
+    logger.error('Erreur vérification email:', error);
+    next(error);
+  }
+};
+
+// Renvoyer l'email de vérification
+const resendVerificationEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Adresse email requise'
+      });
+    }
+
+    // Trouver l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (!user) {
+      // Ne pas révéler si l'utilisateur existe ou non pour la sécurité
+      return res.json({
+        success: true,
+        message: 'Si cette adresse email existe dans notre système, un nouvel email de vérification a été envoyé.'
+      });
+    }
+
+    // Si l'email est déjà vérifié
+    if (user.emailVerified) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cette adresse email est déjà vérifiée.'
+      });
+    }
+
+    // Générer un nouveau token de vérification
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+
+    // Mettre à jour l'utilisateur avec le nouveau token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken,
+        verificationTokenExpiry
+      }
+    });
+
+    // Construire l'URL de vérification
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+    // Envoyer l'email de vérification
+    await emailService.sendVerificationEmail(user, verificationUrl);
+
+    // Log de l'action
+    await sendSecurityLog('info', 'authentication', 'verification_email_resent', 'Email de vérification renvoyé', {
+      sourceIP: req.ip,
+      endpoint: req.path,
+      method: req.method,
+      userAgent: req.get('User-Agent'),
+      userId: user.id,
+      riskScore: 5,
+      metadata: {
+        userEmail: user.email
+      }
+    });
+
+    logger.info(`Email de vérification renvoyé pour: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Un nouvel email de vérification a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception.'
+    });
+
+  } catch (error) {
+    logger.error('Erreur renvoi email vérification:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1045,5 +1228,7 @@ module.exports = {
   saveUserCustomization,
   getActiveSessions,
   getSecurityMetrics,
-  generateTestToken
+  generateTestToken,
+  verifyEmail,
+  resendVerificationEmail
 };

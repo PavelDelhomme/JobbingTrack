@@ -165,7 +165,7 @@ echo -e "\n${YELLOW}═══ 4. Applications ═══${NC}"
 
 test_endpoint "List Applications" "$API_URL/api/v1/applications" "GET" "" "200" "$TOKEN"
 
-APPLICATION_DATA="{\"position\":\"Développeur\",\"company\":\"Test Company\",\"status\":\"PENDING\",\"appliedAt\":\"2025-01-01\"}"
+APPLICATION_DATA="{\"position\":\"Développeur Full Stack\",\"companyName\":\"Tech Corp\",\"status\":\"CANDIDATE_PENDING\",\"location\":\"Paris\",\"contractType\":\"CDI\"}"
 test_endpoint "Create Application" "$API_URL/api/v1/applications" "POST" "$APPLICATION_DATA" "201" "$TOKEN"
 
 # ==============================================================================

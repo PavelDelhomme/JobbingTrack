@@ -1,3 +1,10 @@
+// ============================================
+// SCHÉMA PRISMA PARTAGÉ - JobbingTrack
+// ============================================
+// Ce schéma unique est utilisé par TOUS les services
+// Il n'y a qu'UNE SEULE base de données PostgreSQL
+// Pas de duplication, toutes les relations sont réelles
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,10 +14,773 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle de base pour éviter les erreurs
-model HealthCheck {
-  id        String   @id @default(cuid())
-  service   String
-  status    String
-  timestamp DateTime @default(now())
+// ============================================
+// 👤 UTILISATEURS & AUTHENTIFICATION
+// ============================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  firstName         String
+  lastName          String
+  phone             String?
+  profilePicture    String?
+  
+  // Authentification
+  authToken         String?
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+  
+  // Rôle et statut
+  role              UserRole  @default(USER)
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  loginCount        Int       @default(0)
+  
+  // Préférences
+  theme             String?   @default("light")
+  language          String?   @default("fr")
+  timezone          String?   @default("Europe/Paris")
+  notificationsEnabled Boolean @default(true)
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // Soft delete
+  
+  // Relations
+  applications      Application[]
+  companies         Company[]
+  contacts          Contact[]
+  followUps         FollowUp[]
+  calls             Call[]
+  interviews        Interview[]
+  events            Event[]
+  notifications     Notification[]
+  documents         Document[]
+  syncQueue         SyncQueue[]
+  
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  TESTER
+}
+
+// ============================================
+// 🏢 ENTREPRISES
+// ============================================
+
+model Company {
+  id                String    @id @default(cuid())
+  userId            String
+  name              String
+  website           String?
+  industry          String?   // Secteur d'activité
+  size              CompanySize?
+  location          String?
+  address           String?
+  city              String?
+  postalCode        String?
+  country           String?   @default("France")
+  logoUrl           String?
+  description       String?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications      Application[]
+  contacts          ContactCompany[]  // Many-to-many
+  followUps         FollowUp[]
+  calls             Call[]
+  interviews        Interview[]
+  
+  @@index([userId])
+  @@index([name])
+}
+
+enum CompanySize {
+  STARTUP           // < 10
+  SMALL             // 10-50
+  MEDIUM            // 50-250
+  LARGE             // 250-1000
+  ENTERPRISE        // > 1000
+}
+
+// ============================================
+// 📄 CANDIDATURES
+// ============================================
+
+model Application {
+  id                    String              @id @default(cuid())
+  userId                String
+  companyId             String
+  platformId            String?             // Plateforme de candidature (personnalisable)
+  
+  // Informations de l'offre
+  position              String              // Intitulé du poste
+  description           String?             // Description du poste
+  jobUrl                String?             // URL de l'offre
+  location              String?             // Lieu du poste
+  contractType          ContractType        @default(CDI)
+  workMode              WorkMode?           // Présentiel/Distanciel/Hybride
+  
+  // Candidature
+  applicationDate       DateTime            @default(now())
+  applicationType       ApplicationType     @default(OFFRE) // Spontanée ou à une offre
+  status                ApplicationStatus   @default(CANDIDATE_PENDING)
+  
+  // Rémunération
+  salaryMin             Int?                // en euros/an
+  salaryMax             Int?                // en euros/an
+  salaryNegotiable      Boolean             @default(false)
+  
+  // Notes et suivi
+  notes                 String?
+  isArchived            Boolean             @default(false)
+  archivedAt            DateTime?
+  
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  
+  // Relations
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company               Company             @relation(fields: [companyId], references: [id])
+  platform              Platform?           @relation(fields: [platformId], references: [id])
+  
+  contacts              ContactApplication[] // Many-to-many
+  followUps             FollowUp[]
+  calls                 Call[]
+  interviews            Interview[]
+  events                Event[]
+  documents             Document[]
+  statusHistory         ApplicationStatusHistory[]
+  
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+  @@index([applicationDate])
+}
+
+enum ContractType {
+  CDI                   // Contrat à Durée Indéterminée
+  CDD                   // Contrat à Durée Déterminée
+  ALTERNANCE            // Alternance
+  STAGE                 // Stage
+  FREELANCE             // Freelance
+  INTERIM               // Intérim
+  SAISONNIER            // Saisonnier
+}
+
+enum WorkMode {
+  ON_SITE               // Présentiel
+  REMOTE                // Distanciel
+  HYBRID                // Hybride
+}
+
+enum ApplicationType {
+  OFFRE                 // Candidature à une offre
+  SPONTANEE             // Candidature spontanée
+}
+
+enum ApplicationStatus {
+  CANDIDATE_PENDING                     // Candidaté et en attente
+  NO_RESPONSE                           // Aucune réponse
+  NO_RESPONSE_AFTER_FIRST_FOLLOWUP      // Aucune réponse après 1 relance
+  NO_RESPONSE_AFTER_SECOND_FOLLOWUP     // Aucune réponse après 2 relances
+  FIRST_INTERVIEW_PENDING               // 1er entretien en attente
+  OTHER_INTERVIEW_PENDING               // Autre entretien en attente
+  TECHNICAL_TEST_PENDING                // Test technique en cours
+  OFFER_RECEIVED                        // Offre reçue
+  ACCEPTED_AFTER_INTERVIEW              // Retenue après entretien
+  REJECTED_WITHOUT_INTERVIEW            // Non retenue sans entretien
+  REJECTED_AFTER_INTERVIEW              // Non retenue après entretien
+  WITHDRAWN                             // Candidature retirée
+}
+
+// ============================================
+// 👥 CONTACTS
+// ============================================
+
+model Contact {
+  id                String              @id @default(cuid())
+  userId            String
+  firstName         String
+  lastName          String
+  position          String?             // Fonction
+  email             String?
+  phone             String?
+  linkedinUrl       String?
+  notes             String?
+  
+  // Champs d'archivage
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  archivedReason    String?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  companies         ContactCompany[]        // Many-to-many avec Company
+  applications      ContactApplication[]    // Many-to-many avec Application
+  followUps         FollowUpContact[]       // Many-to-many avec FollowUp
+  interviews        InterviewContact[]      // Many-to-many avec Interview
+  calls             Call[]                  // One-to-many
+  
+  @@index([userId])
+  @@index([email])
+  @@index([lastName, firstName])
+}
+
+// ============================================
+// 🔄 RELANCES (FollowUps)
+// ============================================
+
+model FollowUp {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String
+  companyId         String
+  followUpTypeId    String?             // Type de relance (personnalisable)
+  followUpMethodId  String?             // Moyen de relance (personnalisable)
+  
+  // Informations de la relance
+  followUpDate      DateTime
+  status            FollowUpStatus      @default(PENDING)
+  response          String?             // Réponse reçue
+  notes             String?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company           Company             @relation(fields: [companyId], references: [id])
+  followUpType      FollowUpType?       @relation(fields: [followUpTypeId], references: [id])
+  followUpMethod    FollowUpMethod?     @relation(fields: [followUpMethodId], references: [id])
+  
+  contacts          FollowUpContact[]   // Many-to-many
+  calls             Call[]
+  events            Event[]
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([followUpDate])
+}
+
+enum FollowUpStatus {
+  PENDING                   // Relance en attente
+  POSITIVE_RESPONSE         // Retour positif reçu
+  NEGATIVE_RESPONSE         // Retour négatif reçu
+  NO_RESPONSE               // Aucun retour
+  PLANNED                   // Relance prévisionnelle
+}
+
+// ============================================
+// 📞 APPELS
+// ============================================
+
+model Call {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String?
+  companyId         String?
+  followUpId        String?
+  contactId         String?
+  callTypeId        String?             // Type d'appel (personnalisable)
+  
+  // Informations de l'appel
+  callDate          DateTime
+  duration          Int?                // Durée en minutes
+  subject           String              // Objet de l'appel
+  notes             String?
+  status            CallStatus          @default(COMPLETED)
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  company           Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  followUp          FollowUp?           @relation(fields: [followUpId], references: [id], onDelete: SetNull)
+  contact           Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  callType          CallType?           @relation(fields: [callTypeId], references: [id])
+  
+  events            Event[]
+  
+  @@index([userId])
+  @@index([callDate])
+  @@index([status])
+}
+
+enum CallStatus {
+  SCHEDULED                 // Programmé
+  COMPLETED                 // Effectué
+  MISSED                    // Manqué
+  CANCELLED                 // Annulé
+}
+
+// ============================================
+// 💼 ENTRETIENS
+// ============================================
+
+model Interview {
+  id                    String              @id @default(cuid())
+  userId                String
+  applicationId         String
+  companyId             String
+  interviewTypeId       String?             // Type d'entretien (personnalisable)
+  interviewStyleId      String?             // Style d'entretien (personnalisable)
+  
+  // Informations de l'entretien
+  interviewDate         DateTime
+  estimatedDuration     Int?                // Durée estimée en minutes
+  location              String?             // Lieu physique
+  videoLink             String?             // Lien visio
+  status                InterviewStatus     @default(SCHEDULED)
+  
+  // Retour attendu
+  feedbackExpectedFrom  DateTime?           // Début plage de retour
+  feedbackExpectedTo    DateTime?           // Fin plage de retour
+  feedbackReceived      Boolean             @default(false)
+  
+  // Résultat
+  outcome               InterviewOutcome?
+  notes                 String?
+  
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  
+  // Relations
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application           Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company               Company             @relation(fields: [companyId], references: [id])
+  interviewType         InterviewType?      @relation(fields: [interviewTypeId], references: [id])
+  interviewStyle        InterviewStyle?     @relation(fields: [interviewStyleId], references: [id])
+  
+  contacts              InterviewContact[]  // Many-to-many
+  events                Event[]
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([status])
+  @@index([interviewDate])
+}
+
+enum InterviewStatus {
+  SCHEDULED                 // Entretien programmé
+  COMPLETED                 // Entretien passé
+  FEEDBACK_PENDING          // En attente de retour
+  CANCELLED                 // Annulé
+  RESCHEDULED               // Reporté
+}
+
+enum InterviewOutcome {
+  POSITIVE                  // Retour positif
+  NEGATIVE                  // Retour négatif
+  NEUTRAL                   // Neutre
+  PENDING                   // En attente
+}
+
+// ============================================
+// 📅 ÉVÉNEMENTS / CALENDRIER
+// ============================================
+
+model Event {
+  id                String              @id @default(cuid())
+  userId            String
+  eventTypeId       String?             // Type d'événement (personnalisable)
+  
+  // Informations de l'événement
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime?
+  allDay            Boolean             @default(false)
+  
+  // Lien polymorphe (un seul lien actif)
+  applicationId     String?
+  interviewId       String?
+  followUpId        String?
+  callId            String?
+  
+  // Rappels
+  reminderEnabled   Boolean             @default(false)
+  reminderMinutes   Int?                // Minutes avant l'événement
+  
+  // Personnalisation
+  color             String?             @default("#3B82F6")
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType         EventType?          @relation(fields: [eventTypeId], references: [id])
+  
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interview         Interview?          @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  followUp          FollowUp?           @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  call              Call?               @relation(fields: [callId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([startDate])
+  @@index([applicationId])
+  @@index([interviewId])
+}
+
+// ============================================
+// 📝 HISTORIQUE DES STATUS
+// ============================================
+
+model ApplicationStatusHistory {
+  id                String              @id @default(cuid())
+  applicationId     String
+  previousStatus    ApplicationStatus
+  newStatus         ApplicationStatus
+  comment           String?
+  changedAt         DateTime            @default(now())
+  
+  // Relation
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@index([applicationId])
+  @@index([changedAt])
+}
+
+// ============================================
+// 📎 DOCUMENTS
+// ============================================
+
+model Document {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String?
+  
+  // Informations du document
+  name              String
+  documentType      DocumentType
+  fileUrl           String
+  fileSize          Int                 // en bytes
+  mimeType          String
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([documentType])
+}
+
+enum DocumentType {
+  CV
+  COVER_LETTER              // Lettre de motivation
+  PORTFOLIO
+  CERTIFICATE               // Certificat
+  DIPLOMA                   // Diplôme
+  RECOMMENDATION            // Lettre de recommandation
+  OTHER
+}
+
+// ============================================
+// 🔔 NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id                String              @id @default(cuid())
+  userId            String
+  
+  // Contenu
+  title             String
+  message           String
+  type              NotificationType
+  
+  // État
+  read              Boolean             @default(false)
+  readAt            DateTime?
+  
+  // Lien vers entité
+  entityType        String?             // Application, Interview, etc.
+  entityId          String?
+  data              Json?               // Données supplémentaires
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  
+  // Relation
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  REMINDER                  // Rappel
+  APPLICATION_UPDATE        // Mise à jour candidature
+  INTERVIEW_SCHEDULED       // Entretien programmé
+  FOLLOWUP_DUE              // Relance à faire
+  DEADLINE                  // Deadline
+  SYSTEM                    // Système
+}
+
+// ============================================
+// 🔄 QUEUE DE SYNCHRONISATION (Offline)
+// ============================================
+
+model SyncQueue {
+  id                String              @id @default(cuid())
+  userId            String
+  
+  // Action
+  action            SyncAction
+  entity            String              // Application, Interview, etc.
+  entityId          String?
+  payload           Json
+  
+  // État
+  synced            Boolean             @default(false)
+  attempts          Int                 @default(0)
+  lastAttempt       DateTime?
+  error             String?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  syncedAt          DateTime?
+  
+  // Relation
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([synced])
+  @@index([createdAt])
+}
+
+enum SyncAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// ============================================
+// 🔗 TABLES DE JONCTION (Many-to-Many)
+// ============================================
+
+model ContactCompany {
+  id                String              @id @default(cuid())
+  contactId         String
+  companyId         String
+  createdAt         DateTime            @default(now())
+  
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@unique([contactId, companyId])
+  @@index([contactId])
+  @@index([companyId])
+}
+
+model ContactApplication {
+  id                String              @id @default(cuid())
+  contactId         String
+  applicationId     String
+  createdAt         DateTime            @default(now())
+  
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@unique([contactId, applicationId])
+  @@index([contactId])
+  @@index([applicationId])
+}
+
+model FollowUpContact {
+  id                String              @id @default(cuid())
+  followUpId        String
+  contactId         String
+  createdAt         DateTime            @default(now())
+  
+  followUp          FollowUp            @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([followUpId, contactId])
+  @@index([followUpId])
+  @@index([contactId])
+}
+
+model InterviewContact {
+  id                String              @id @default(cuid())
+  interviewId       String
+  contactId         String
+  createdAt         DateTime            @default(now())
+  
+  interview         Interview           @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([interviewId, contactId])
+  @@index([interviewId])
+  @@index([contactId])
+}
+
+// ============================================
+// 🎨 LISTES PERSONNALISABLES PAR L'UTILISATEUR
+// ============================================
+
+// Plateformes de candidature (LinkedIn, Indeed, etc.)
+model Platform {
+  id                String              @id @default(cuid())
+  userId            String?             // null = plateforme par défaut système
+  name              String
+  icon              String?
+  url               String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  applications      Application[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types de relance (Email, Téléphone, LinkedIn, etc.)
+model FollowUpType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  followUps         FollowUp[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Moyens de relance (Email, Téléphone, Message, etc.)
+model FollowUpMethod {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  followUps         FollowUp[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types d'entretien (RH, Technique, Manager, etc.)
+model InterviewType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  interviews        Interview[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Styles d'entretien (Présentiel, Distanciel, Hybride)
+model InterviewStyle {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  interviews        Interview[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types d'événement (Entretien, Relance, Deadline, etc.)
+model EventType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  color             String?
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  events            Event[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types d'appel (Sortant, Entrant, Manqué, etc.)
+model CallType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  calls             Call[]
+  
+  @@unique([userId, name])
+  @@index([userId])
 }

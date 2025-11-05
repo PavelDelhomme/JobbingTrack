@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/features/AdminLayout'
 import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
@@ -488,12 +489,10 @@ export default function BackofficePage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-blue-600">Chargement...</p>
-          </div>
-        </div>
+        <LoadingState 
+          message="Chargement du tableau de bord..." 
+          size="lg"
+        />
       </AdminLayout>
     )
   }

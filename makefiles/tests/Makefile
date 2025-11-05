@@ -1,318 +1,212 @@
-# ============================================================================
-# Makefile Tests - JobbingTrack
-# ============================================================================
-# Tous les tests : unitaires, intégration, E2E, performance, sécurité
-# ============================================================================
+# ================================================================
+# 🧪 TESTS - JobbingTrack
+# ================================================================
+# Commandes simplifiées pour tester l'application
+# ================================================================
 
-.PHONY: test test-unit test-integration test-database test-api test-backend test-e2e test-e2e-ui test-mobile test-frontend test-performance test-security test-all test-report test-quick test-backend-only test-frontend-only test-coverage test-docker-images test-docker-clean test-system-verify test-hydration test-implementation test-secure-env test-setup test-clean test-verify lint format format-check init-with-tests generate-test-data refresh-test-data enhance-tests start-test-runner full-setup help-tests
+.PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification
 
-# ============================================================================
-# AIDE
-# ============================================================================
+# ================================================================
+# 📚 HELP - Guide d'utilisation des tests
+# ================================================================
 
-help-tests: ## Afficher l'aide tests
-	@echo "================================================================"
-	@echo "🧪 TESTS - Commandes disponibles"
-	@echo "================================================================"
+tests-help:
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           🧪 GUIDE DE TEST - JobbingTrack             ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "🧪 TESTS PRINCIPAUX:"
-	@echo "  make test                  - Tous les tests (unitaires + intégration + E2E)"
-	@echo "  make test-unit             - Tests unitaires uniquement"
-	@echo "  make test-integration      - Tests d'intégration"
-	@echo "  make test-e2e              - Tests end-to-end Playwright"
+	@echo "📖 PROCESSUS COMPLET DE TEST :"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "🎯 TESTS PAR COMPOSANT:"
-	@echo "  make test-backend          - Tests backend (services)"
-	@echo "  make test-frontend         - Tests frontend (React/Next.js)"
-	@echo "  make test-database         - Tests base de données"
-	@echo "  make test-api              - Tests API REST"
-	@echo "  make test-mobile           - Tests applications mobiles"
+	@echo "1️⃣  PREMIÈRE FOIS (ou après make down) :"
+	@echo "   make tests-reset"
+	@echo "   └─→ Reset complet : arrête tout, redémarre, recrée la BDD, crée l'admin"
 	@echo ""
-	@echo "🛡️ TESTS AVANCÉS:"
-	@echo "  make test-security         - Tests de sécurité"
-	@echo "  make test-performance      - Tests de performance"
-	@echo "  make test-coverage         - Couverture de code"
+	@echo "2️⃣  TESTER VIA API (automatique) :"
+	@echo "   make tests-user-journey"
+	@echo "   └─→ Teste tout le parcours utilisateur via API (rapide)"
 	@echo ""
-	@echo "📊 QUALITÉ:"
-	@echo "  make lint                  - Linting (ESLint + Prettier)"
-	@echo "  make format                - Formater le code"
-	@echo "  make format-check          - Vérifier formatage"
+	@echo "3️⃣  TESTER VIA NAVIGATEUR (manuel) :"
+	@echo "   make tests-interface-web"
+	@echo "   └─→ Ouvre l'interface web : http://localhost:8080/backoffice/user-journey"
 	@echo ""
-	@echo "⌚ TESTS RAPIDES:"
-	@echo "  make test-quick            - Tests rapides (unités uniquement)"
-	@echo "  make test-backend-only     - Backend uniquement"
-	@echo "  make test-frontend-only    - Frontend uniquement"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "💡 EXEMPLES:"
-	@echo "  make test-unit && make test-integration  # Tests complets"
-	@echo "  make test-coverage                       # Avec coverage"
+	@echo "🎯 COMMANDES DISPONIBLES :"
 	@echo ""
-	@echo "📖 Documentation: docs/development/testing/README.md"
+	@echo "  make tests-help               Affiche ce guide"
+	@echo "  make tests-reset              Reset complet (BDD + services)"
+	@echo "  make tests-user-journey       Test API automatique"
+	@echo "  make tests-interface-web      Interface web de test"
+	@echo "  make test-email-verification  Test vérification email"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "💡 EXEMPLES D'USAGE :"
+	@echo ""
+	@echo "  # Workflow complet (recommandé)"
+	@echo "  make tests-reset              # 1. Reset tout"
+	@echo "  make tests-user-journey       # 2. Teste via API"
+	@echo ""
+	@echo "  # Tester avec l'interface web"
+	@echo "  make tests-reset              # 1. Reset tout"
+	@echo "  make tests-interface-web      # 2. Ouvre l'interface"
+	@echo "  # Puis aller sur http://localhost:8080/backoffice/user-journey"
+	@echo ""
+	@echo "  # Juste retester (sans reset)"
+	@echo "  make tests-user-journey       # Les services doivent être démarrés"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "⚙️  CE QUE FAIT tests-reset :"
+	@echo ""
+	@echo "  ✓ Arrête tous les services (make down)"
+	@echo "  ✓ Redémarre les services de test (make up-for-tests)"
+	@echo "  ✓ Attend 15 secondes que tout démarre"
+	@echo "  ✓ Crée toutes les tables (prisma db push)"
+	@echo "  ✓ Crée l'utilisateur admin (admin@jobbingtrack.test / password123)"
+	@echo "  ✓ Prêt pour les tests !"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "🔍 DIFFÉRENCE tests-user-journey vs tests-interface-web :"
+	@echo ""
+	@echo "  tests-user-journey:"
+	@echo "  └─→ Automatique, rapide, via API"
+	@echo "  └─→ Affiche les résultats dans le terminal"
+	@echo "  └─→ Parfait pour vérifier que tout fonctionne"
+	@echo ""
+	@echo "  tests-interface-web:"
+	@echo "  └─→ Manuel, visuel, via navigateur"
+	@echo "  └─→ Interface graphique pour tester"
+	@echo "  └─→ Parfait pour débugger ou voir en détail"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "❓ BESOIN D'AIDE ?"
+	@echo ""
+	@echo "  📖 Documentation : docs/tests/"
+	@echo "  📋 État du projet : STATUS.md"
+	@echo "  🐛 Problèmes : Voir les logs avec 'make logs'"
 	@echo ""
 
-# ============================================================================
-# TESTS PRINCIPAUX
-# ============================================================================
+# ================================================================
+# 🔄 RESET - Reset complet pour les tests
+# ================================================================
 
-# Lancer tous les tests
-test: ## Lancer tous les tests
-	@echo "🧪 Exécution de tous les tests..."
-	./scripts/testing/run-tests.sh --all
+tests-reset:
+	$(call check_help_read,tests-reset)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🔄 RESET COMPLET - Préparation Tests           ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🛑 1/5 - Arrêt de tous les services..."
+	@make down
+	@echo ""
+	@echo "🚀 2/5 - Démarrage des services pour tests..."
+	@make up-for-tests
+	@echo ""
+	@echo "⏳ 3/5 - Attente initialisation (15 secondes)..."
+	@sleep 15
+	@echo ""
+	@echo "🔧 4/5 - Création des tables et synchronisation BDD..."
+	@docker exec jobbingtrack-application-service npx prisma db push --accept-data-loss
+	@echo ""
+	@echo "⏳ Attente finalisation création tables (3 secondes)..."
+	@sleep 3
+	@echo ""
+	@echo "🔍 Vérification existence table User..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1 FROM \"User\" LIMIT 0;" > /dev/null 2>&1 || \
+		(echo "❌ ERREUR: Table User non trouvée. Reconstruction nécessaire..." && \
+		 echo "Essayez: make rebuild && make tests-reset" && exit 1)
+	@echo "✅ Table User existe"
+	@echo ""
+	@echo "👤 5/5 - Création utilisateur admin..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
+		"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"createdAt\", \"updatedAt\") \
+		VALUES (gen_random_uuid(), 'admin@jobbingtrack.test', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
+		'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, NOW(), NOW()) \
+		ON CONFLICT (email) DO NOTHING;"
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║              ✅ SYSTÈME PRÊT POUR LES TESTS !          ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🎯 PROCHAINES ÉTAPES :"
+	@echo ""
+	@echo "  Option 1 - Test automatique (recommandé) :"
+	@echo "    make tests-user-journey"
+	@echo ""
+	@echo "  Option 2 - Interface web :"
+	@echo "    make tests-interface-web"
+	@echo "    Puis ouvrir : http://localhost:8080/backoffice/user-journey"
+	@echo ""
+	@echo "🔑 Identifiants :"
+	@echo "   Email:    admin@jobbingtrack.test"
+	@echo "   Password: password123"
+	@echo ""
 
-# Tests unitaires
-test-unit: ## Tests unitaires
-	@echo "🧪 Tests unitaires..."
-	cd tests && npm run test:unit
+# ================================================================
+# 🎯 USER JOURNEY - Test automatique via API
+# ================================================================
 
-# Tests d'intégration
-test-integration: ## Tests d'intégration
-	@echo "🧪 Tests d'intégration..."
-	./scripts/testing/run-tests.sh --integration
+tests-user-journey:
+	$(call check_help_read,tests-user-journey)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🧪 TEST USER JOURNEY - Parcours Utilisateur       ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie automatiquement :"
+	@echo "   ✓ Authentification (Register/Login)"
+	@echo "   ✓ Gestion Companies"
+	@echo "   ✓ Gestion Applications"
+	@echo "   ✓ Gestion Contacts"
+	@echo "   ✓ Gestion Interviews"
+	@echo "   ✓ Gestion Calls & Followups"
+	@echo ""
+	@bash scripts/verify-user-journey.sh
 
-# Tests de base de données
-test-database: ## Tests de base de données
-	@echo "🗄️  Tests de base de données..."
-	node tests/database/test-database.js
+# ================================================================
+# 🌐 INTERFACE WEB - Test manuel via navigateur
+# ================================================================
 
-# Tests API
-test-api: ## Tests API backend
-	@echo "🌐 Tests API..."
-	node tests/api/test-api.js
+tests-interface-web:
+	$(call check_help_read,tests-interface-web)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🌐 INTERFACE WEB DE TEST - Démarrage           ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🚀 Lancement de l'interface web de test..."
+	@echo ""
+	@bash scripts/start-tests.sh
 
-# Tests backend
-test-backend: ## Tests des services backend
-	@echo "⚙️  Tests backend..."
-	node tests/backend/test-services.js
+# ================================================================
+# 📧 EMAIL VERIFICATION - Test système vérification email
+# ================================================================
 
-# ============================================================================
-# TESTS E2E
-# ============================================================================
-
-# Tests E2E
-test-e2e: ## Tests E2E (Playwright)
-	@echo "🎭 Tests E2E..."
-	cd tests && npx playwright test
-
-# Tests E2E avec interface
-test-e2e-ui: ## Tests E2E avec interface graphique
-	@echo "🎭 Tests E2E avec UI..."
-	cd tests && npx playwright test --ui
-
-# ============================================================================
-# TESTS PAR PLATEFORME
-# ============================================================================
-
-# Tests mobile
-test-mobile: ## Tests mobile
-	@echo "📱 Tests mobile..."
-	node tests/mobile/test-mobile.js
-
-# Tests frontend
-test-frontend: ## Tests frontend
-	@echo "🖥️  Tests frontend..."
-	cd frontend && npm run test
-
-# ============================================================================
-# TESTS SPÉCIALISÉS
-# ============================================================================
-
-# Tests de performance
-test-performance: ## Tests de performance adaptatifs
-	@echo "⚡ Tests de performance adaptatifs..."
-	@echo "  ℹ️  Détection automatique des services disponibles"
-	@echo "  ℹ️  Démarrage intelligent des services nécessaires"
-	@echo "  ℹ️  Arrêt automatique des services temporaires"
-	node tests/performance/test-performance.js
-
-# Tests de sécurité
-test-security: ## Tests de sécurité
-	@echo "🔒 Tests de sécurité..."
-	node tests/security/test-security.js
-
-# Tests de sécurité environnement
-test-secure-env: ## Tests de sécurité des variables d'environnement
-	@echo "🔒 Tests de sécurité des variables d'environnement..."
-	node tests/security/test-secure-env-vars.js
-
-# ============================================================================
-# TESTS COMPLETS ET RAPPORTS
-# ============================================================================
-
-# Tests complets
-test-all: ## Tests complets (tous types)
-	@echo "🧪 Tests complets - Suite complète..."
-	node tests/run-tests.js
-
-# Tests avec rapport
-test-report: ## Tests avec génération de rapport
-	@echo "📊 Tests avec rapport..."
-	node tests/run-tests.js --report
-
-# Tests rapides
-test-quick: ## Tests rapides (sans E2E)
-	@echo "⚡ Tests rapides..."
-	node tests/run-tests.js --no-e2e
-
-# Tests backend uniquement
-test-backend-only: ## Tests backend uniquement
-	@echo "⚙️  Tests backend uniquement..."
-	node tests/run-tests.js --no-frontend --no-mobile --no-e2e
-
-# Tests frontend uniquement
-test-frontend-only: ## Tests frontend uniquement
-	@echo "🖥️  Tests frontend uniquement..."
-	node tests/run-tests.js --no-backend --no-api --no-database --no-mobile --no-e2e
-
-# Tests avec coverage
-test-coverage: ## Tests avec coverage
-	@echo "📊 Tests avec coverage..."
-	cd tests && npx jest --config jest.config.js --coverage
-
-# ============================================================================
-# TESTS DOCKER ET SYSTÈME
-# ============================================================================
-
-# Tests Docker images
-test-docker-images: ## Tests des noms d'images Docker
-	@echo "🐳 Tests des images Docker..."
-	node tests/docker/test-docker-images.js
-
-# Tests Docker clean
-test-docker-clean: ## Tests de la commande make down
-	@echo "🐳 Tests de make down..."
-	node tests/docker/test-make-down-clean.js
-
-# Tests système
-test-system-verify: ## Vérification complète du système de test
-	@echo "🔍 Vérification système..."
-	node tests/system/verify-test-system.js
-
-# ============================================================================
-# TESTS D'INTÉGRATION ÉTENDUS
-# ============================================================================
-
-# Tests hydration
-test-hydration: ## Tests des corrections d'hydratation
-	@echo "💧 Tests d'hydratation..."
-	node tests/integration/test-hydration-fixes.js
-
-# Tests implementation
-test-implementation: ## Tests de l'implémentation complète
-	@echo "✅ Tests d'implémentation..."
-	node tests/integration/test-implementation.js
-
-# ============================================================================
-# GESTION DE L'ENVIRONNEMENT DE TEST
-# ============================================================================
-
-# Setup des tests
-test-setup: ## Configuration complète de l'environnement de test
-	@echo "⚙️  Configuration de l'environnement de test..."
-	node tests/setup.js
-
-# Nettoyage des tests
-test-clean: ## Nettoyage complet de l'environnement de test
-	@echo "🧹 Nettoyage des tests..."
-	./tests/cleanup.sh 2>/dev/null || echo "Script cleanup.sh non trouvé, nettoyage manuel..."
-	rm -rf tests/reports/*
-	rm -rf tests/coverage/*
-	rm -rf tests/e2e/results/*
-	rm -rf tests/temp/*
-	rm -rf tests/node_modules/.cache
-	rm -rf tests/.nyc_output
-	docker-compose -f tests/docker-compose.test.yml down -v 2>/dev/null || true
-	docker volume rm jobbingtrack_postgres_test_data 2>/dev/null || true
-	@echo "✅ Nettoyage terminé"
-
-# Vérification configuration
-test-verify: ## Vérification de la configuration des tests
-	@echo "🔍 Vérification de la configuration..."
-	node tests/verify.js
-
-# ============================================================================
-# QUALITÉ DU CODE
-# ============================================================================
-
-# Linting
-lint: ## Linting de tout le projet (ESLint)
-	@echo "🔍 Linting du projet..."
-	@echo "  Backend services..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Linting $$service..."; \
-			cd "$$service" && npm run lint 2>/dev/null || echo "  ⚠️  Linting échoué pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@echo "  Frontend..."
-	@cd frontend && npm run lint 2>/dev/null || echo "  ⚠️  Linting frontend échoué"
-	@echo "  Tests..."
-	@cd tests && npm run lint 2>/dev/null || echo "  ⚠️  Linting tests échoué"
-	@echo "✅ Linting terminé"
-
-# Formatage
-format: ## Formatage automatique du code (Prettier)
-	@echo "✨ Formatage du code..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Formatage $$service..."; \
-			cd "$$service" && npm run format 2>/dev/null || echo "  ⚠️  Formatage échoué pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@cd frontend && npm run format 2>/dev/null || echo "  ⚠️  Formatage frontend échoué"
-	@cd tests && npm run format 2>/dev/null || echo "  ⚠️  Formatage tests échoué"
-	@echo "✅ Formatage terminé"
-
-# Vérification formatage
-format-check: ## Vérification du formatage (Prettier --check)
-	@echo "🔍 Vérification du formatage..."
-	@for service in backend/*/; do \
-		if [ -f "$$service/package.json" ]; then \
-			echo "Vérification formatage $$service..."; \
-			cd "$$service" && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage incorrect pour $$service"; \
-			cd - > /dev/null; \
-		fi; \
-	done
-	@cd frontend && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage frontend incorrect"
-	@cd tests && npm run format:check 2>/dev/null || echo "  ⚠️  Formatage tests incorrect"
-	@echo "✅ Vérification formatage terminée"
-
-# ============================================================================
-# DONNÉES DE TEST
-# ============================================================================
-
-# Initialisation avec tests
-init-with-tests: ## Initialisation complète avec génération de données de test
-	@echo "🚀 Initialisation complète avec données de test..."
-	./scripts/testing/init-with-test-data.sh
-
-# Génération données de test
-generate-test-data: ## Générer des données de test par défaut
-	@echo "🌱 Génération de données de test..."
-	node scripts/testing/generate-simple-test-data.js e2e
-
-# Rafraîchir données de test
-refresh-test-data: ## Nettoyer et régénérer les données de test
-	@echo "🔄 Nettoyage et régénération des données de test..."
-	node scripts/testing/generate-simple-test-data.js e2e --clean
-	@echo "✅ Données de test régénérées"
-
-# Améliorer tests
-enhance-tests: ## Améliorer les tests existants
-	@echo "✨ Amélioration des tests existants..."
-	node scripts/testing/enhance-existing-tests.js
-
-# ============================================================================
-# SERVICES DE TEST
-# ============================================================================
-
-# Test runner service
-start-test-runner: ## Démarrer le service de test runner
-	@echo "🚀 Démarrage du service de test runner..."
-	cd backend && node test-runner-service.js
-
-# Setup complet
-full-setup: ## Setup complet automatique avec tests
-	@echo "🚀 Setup complet automatique JobbingTrack + Tests..."
-	./scripts/testing/full-setup.sh
+test-email-verification:
+	$(call check_help_read,test-email-verification)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     📧 TEST VÉRIFICATION EMAIL - JobbingTrack         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie automatiquement :"
+	@echo "   ✓ Inscription avec envoi email de vérification"
+	@echo "   ✓ Validation du token (invalide rejeté)"
+	@echo "   ✓ Renvoi d'email de vérification"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Migration Prisma exécutée"
+	@echo "   • SMTP configuré dans backend/auth-service/.env"
+	@echo "   • Services démarrés (make up)"
+	@echo ""
+	@echo "🚀 Lancement du test..."
+	@echo ""
+	@docker exec jobbingtrack-auth-service node test-email-verification.js
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📚 Documentation : STATUS.md section 1.12"
+	@echo ""
