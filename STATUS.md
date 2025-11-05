@@ -1772,103 +1772,59 @@ Vous avez DÉJÀ :
 
 ---
 
-**3. ⚠️ PROBLÈME SMTP DÉCOUVERT : Mot de passe Gmail invalide**
+**3. ✅ Solutions SMTP Retenues**
 
-**Erreur détectée lors des tests** :
-```
-Error: Invalid login: 535-5.7.8 Username and Password not accepted
-https://support.google.com/mail/?p=BadCredentials
-```
+**2 Solutions pour JobbingTrack** :
 
-**Cause** : Le mot de passe fourni **N'EST PAS** un **App Password Gmail valide**.
-
-Pour Gmail, vous **NE POUVEZ PAS** utiliser votre mot de passe principal.
-Vous devez générer un **App Password** (16 caractères).
-
-**3 Solutions disponibles** :
-
-**Option 1 : MailHog (RECOMMANDÉ pour développement)**
+**Solution 1 : MailHog (Tests Locaux)** - Open Source
 ```bash
 Avantages :
-✅ Aucune configuration Gmail nécessaire
-✅ Emails capturés localement (pas de vrai envoi)
+✅ Open Source (MIT License)
+✅ Emails capturés localement (tests sans envoi réel)
 ✅ Interface web : http://localhost:8025
-✅ Parfait pour les tests
-✅ Gratuit et simple
+✅ Parfait pour développer et tester le code
+✅ Gratuit et illimité
 
-Configuration .env racine :
-SMTP_HOST=mailhog
+Configuration .env :
+SMTP_HOST=host.docker.internal  # ou mailhog si Docker
 SMTP_PORT=1025
 SMTP_SECURE=false
 SMTP_USER=
 SMTP_PASS=
 SMTP_FROM="JobbingTrack <redacted@example.invalid>"
 
-Ajouter au docker-compose.yml :
-mailhog:
-  image: mailhog/mailhog
-  container_name: jobbingtrack-mailhog
-  ports:
-    - "1025:1025"  # SMTP
-    - "8025:8025"  # Web UI
-  networks:
-    - jobbingtrack-network
-
-Démarrage :
-docker-compose up -d mailhog
-docker-compose --profile auth restart auth-service
+Statut : ✅ CONFIGURÉ ET OPÉRATIONNEL
 ```
 
-**Option 2 : Gmail App Password (si vous voulez de vrais envois)**
-```bash
-Étapes :
-1. Aller sur : https://myaccount.google.com/apppasswords
-2. Activer l'authentification à 2 facteurs (OBLIGATOIRE)
-3. Créer un App Password pour "JobbingTrack"
-4. COPIER le mot de passe de 16 caractères généré
-
-Configuration .env racine :
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=redacted@example.invalid
-SMTP_PASS=votre_app_password_16_caracteres
-SMTP_FROM="JobbingTrack <redacted@example.invalid>"
-
-⚠️  ATTENTION : Ne commitez JAMAIS le .env avec ce mot de passe !
-```
-
-**Option 3 : Brevo (RECOMMANDÉ pour production)**
+**Solution 2 : OVH maily.ovh (Production)** - Solution Retenue
 ```bash
 Avantages :
-✅ 300 emails/jour GRATUITS
-✅ Pas d'App Password Gmail
-✅ Simple à configurer
-✅ Fiable pour la production
+✅ Emails VRAIMENT envoyés (utilisateurs les reçoivent)
+✅ Email professionnel : redacted@example.invalid
+✅ Séparation domaine pro/perso (example.invalid reste privé)
+✅ 4,800 emails/jour (MX Plan)
+✅ Contrôle total
 
-Étapes :
-1. Créer un compte : https://www.brevo.com/
-2. Récupérer la clé SMTP dans les paramètres
-
-Configuration .env racine :
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_SECURE=false
+Configuration .env :
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+SMTP_SECURE=true
 SMTP_USER=redacted@example.invalid
-SMTP_PASS=votre_cle_smtp_brevo
-SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"
+SMTP_PASS=VD7k6jWFMqW@MqNar2jT
+SMTP_FROM="JobbingTrack <redacted@example.invalid>"
+
+Statut : ✅ CONFIGURÉ (email créé, .env appliqué)
+Tests : ⏱️ À FAIRE DEMAIN (migrations Prisma requises)
 ```
 
-**Comparaison des solutions** :
+**Comparaison** :
 ```
-┌──────────────┬────────────┬──────────────┬─────────┬────────────────────┐
-│ Solution     │ Difficulté │ Emails/jour  │ Coût    │ Meilleur pour      │
-├──────────────┼────────────┼──────────────┼─────────┼────────────────────┤
-│ MailHog      │ ⭐ Facile   │ ♾️ Illimité  │ 🆓 Grat │ ✅ Développement  │
-│ Brevo        │ ⭐⭐ Moyen  │ 300          │ 🆓 Grat │ ✅ Production     │
-│ Gmail        │ ⭐⭐⭐ Comp │ 500          │ 🆓 Grat │ ⚠️  OK mais comp  │
-│ OVH          │ ⭐⭐ Moyen  │ 200/heure    │ 💰 Pay  │ ✅ Si domaine     │
-└──────────────┴────────────┴──────────────┴─────────┴────────────────────┘
+┌──────────────┬─────────────┬──────────────┬─────────────────────┐
+│ Solution     │ Vrais Emails│ Emails/jour  │ Pour                │
+├──────────────┼─────────────┼──────────────┼─────────────────────┤
+│ MailHog      │ ❌ NON      │ ♾️ Illimité  │ ✅ Tests locaux     │
+│ OVH maily.ovh│ ✅ OUI      │ 4,800        │ ✅ Production       │
+└──────────────┴─────────────┴──────────────┴─────────────────────┘
 ```
 
 ---
@@ -1917,18 +1873,19 @@ Sécurité Git :
 ✅ Documentation : COMPLÈTE dans STATUS.md
 ```
 
-**Recommandation** :
+**Solutions Retenues** :
 ```
-Pour développement : Utiliser MailHog (simple et efficace)
-Pour production : Utiliser Brevo (300 emails/jour gratuits)
+✅ Développement/Tests : MailHog (déjà configuré)
+✅ Production : OVH maily.ovh (email créé, .env appliqué)
 ```
 
-**Prochaines actions** :
+**Actions Effectuées** :
 ```
-1. Choisir une solution SMTP (MailHog recommandé)
-2. Configurer le .env racine avec les bonnes valeurs
-3. Redémarrer le service : docker-compose --profile auth restart auth-service
-4. Tester l'envoi d'emails
+✅ Configuration .env OVH appliquée
+✅ Email redacted@example.invalid créé chez OVH
+✅ MailHog configuré pour tests
+✅ docker-compose.yml mis à jour
+✅ emailService.js modifié (auth optionnelle)
 ```
 
 ---
