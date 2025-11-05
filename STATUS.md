@@ -132,12 +132,16 @@ source ~/.bashrc  # ou ~/.zshrc
 ```
 
 **Problèmes prioritaires** :
-1. ✅ User Journey complet (15/15 tests passent - 100%) - TERMINÉ !
-2. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
-3. ⚠️ Vérification email non implémentée (RECOMMANDÉ - Phase 3.1)
-4. ⚠️ Erreurs 403 sur pages admin (à vérifier avec JWT_SECRET ajouté)
-5. ⚠️ Pages admin à tester (applications, users, etc.)
-6. ❌ Tests Playwright non opérationnels
+1. ✅ User Journey API complet (15/15 tests passent - 100%) - TERMINÉ !
+2. ❌ **Interface Web User Journey cassée** (500 sur tous les endpoints) - URGENT
+   - Tests API : ✅ Fonctionnent (15/15)
+   - Interface Web : ❌ Erreurs 500 (register, login, applications, etc.)
+   - Cause probable : Proxy Next.js ou configuration frontend
+3. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
+4. ⚠️ Vérification email non implémentée (RECOMMANDÉ - Phase 3.1)
+5. ⚠️ Erreurs 404 sur /api/v1/preferences (endpoint manquant)
+6. ⚠️ Pages admin backoffice à tester (applications, users, etc.)
+7. ❌ Tests Playwright non opérationnels
 
 **Ne créer AUCUN nouveau fichier .md** - Tout modifier dans `STATUS.md` uniquement.
 
@@ -525,6 +529,71 @@ Les scénarios avancés ci-dessous sont optionnels :
 Ces scénarios seront implémentés après la Phase 2 (WAF & Sécurité)
 si nécessaire.
 ```
+
+### 🎯 PHASE 1.5 - INTERFACE WEB USER JOURNEY (URGENT - 2-3H)
+
+**État** : ❌ Interface web cassée (erreurs 500)
+
+**Problème** :
+```
+❌ Tests API : ✅ Fonctionnent (15/15 tests passent)
+❌ Interface Web : ❌ Toutes les requêtes retournent 500
+
+Erreurs constatées :
+- POST /api/v1/auth/register → 500
+- POST /api/v1/auth/login → 500
+- POST /api/v1/applications → 500
+- GET /api/v1/applications → 500
+- POST /api/v1/contacts → 500
+- GET /api/v1/contacts → 500
+- POST /api/v1/interviews → 500
+- POST /api/v1/events → 500
+- POST /api/v1/followups → 500
+- POST /api/v1/calls → 500
+- GET /api/v1/dashboard/statistics → 500
+- GET /api/v1/preferences → 404
+- PUT /api/v1/preferences → 404
+```
+
+**Causes possibles** :
+```javascript
+1. Proxy Next.js mal configuré :
+   - next.config.js : Vérifier rewrites
+   - Page User Journey fait appels à localhost:8080/api/v1/*
+   - Doit être proxyfié vers localhost:3000/api/v1/*
+
+2. Headers manquants depuis frontend :
+   - Authorization Bearer token
+   - Content-Type application/json
+
+3. CORS mal configuré dans services :
+   - Autoriser origin http://localhost:8080
+```
+
+**À vérifier** :
+```bash
+# 1. Next.js config
+frontend/next.config.js
+→ Vérifier rewrites API vers localhost:3000
+
+# 2. Page User Journey
+frontend/src/app/(admin)/backoffice/user-journey/page.tsx
+→ Vérifier fetch API (headers, body, etc.)
+
+# 3. Logs backend
+docker logs jobbingtrack-api-gateway
+→ Voir si requêtes arrivent au backend
+
+# 4. CORS
+backend/*/src/server.js
+→ Vérifier origin: ['http://localhost:8080']
+```
+
+**Priorité** : 🔴 URGENT (interface web inutilisable)  
+**Durée estimée** : 2-3 heures  
+**Impact** : Interface web User Journey ne fonctionne pas
+
+---
 
 ### 🎯 PHASE 2 - SÉCURITÉ & WAF (PRIORITÉ HAUTE)
 
@@ -1435,14 +1504,30 @@ Prêt Production Global : 75%
 ### ✅ TERMINÉ
 
 1. ✅ **Fixer company-service Prisma** - TERMINÉ
-2. ✅ **Compléter User Journey à 100%** - TERMINÉ (15/15 tests)
+2. ✅ **Compléter User Journey API à 100%** - TERMINÉ (15/15 tests)
+
+### 🔴🔴🔴 URGENT BLOQUANT (IMMÉDIAT - Interface Web Cassée)
+
+3. **🚨 RÉPARER INTERFACE WEB USER JOURNEY** (2-3h) - PHASE 1.5 🚨
+   - ❌ **Erreurs 500 sur TOUS les endpoints** depuis localhost:8080
+   - ✅ Tests API fonctionnent (15/15 passent)
+   - ❌ Interface web inutilisable (register, login, applications, contacts, etc.)
+   - **Causes probables** :
+     - Proxy Next.js mal configuré (next.config.js)
+     - Headers manquants (Authorization, Content-Type)
+     - CORS mal configuré (origin localhost:8080)
+   - **Fichiers à vérifier** :
+     - `frontend/next.config.js` (rewrites API)
+     - `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (fetch)
+     - `backend/*/src/server.js` (CORS origins)
+     - Logs : `docker logs jobbingtrack-api-gateway`
 
 ### 🔴 URGENT (Maintenant - PRIORITÉ HAUTE)
 
-3. **Activer WAF** (1 jour) - PHASE 2
-4. **Tester pages admin** (avec JWT_SECRET ajouté) (1 jour)
-5. **Rate Limiting global** (1 jour) - PHASE 2
-6. **Réparer Intrusion Detection** (1 jour) - PHASE 2
+4. **Activer WAF** (1 jour) - PHASE 2
+5. **Tester pages admin** (avec JWT_SECRET ajouté) (1 jour)
+6. **Rate Limiting global** (1 jour) - PHASE 2
+7. **Réparer Intrusion Detection** (1 jour) - PHASE 2
 
 ### 🟡 IMPORTANT (Semaine Prochaine - Phase 3)
 
