@@ -1537,10 +1537,13 @@ Prêt Production Global : 75%
 1. ✅ **Fixer company-service Prisma** - TERMINÉ
 2. ✅ **Compléter User Journey API à 100%** - TERMINÉ (15/15 tests)
 3. ✅ **Réparer Interface Web User Journey** - TERMINÉ (proxy Next.js)
+4. ✅ **Table ContainerLog pour logs temps réel** - TERMINÉ
+5. ✅ **Metrics Aggregator activé** - TERMINÉ (port 8014)
+6. ✅ **Toggle Mode Admin/User dans User Journey** - TERMINÉ
 
 ### 🔴 URGENT (Maintenant - PRIORITÉ HAUTE)
 
-4. **🎨 UX - Loading States Professionnel** (2-3h) ⚠️ NOUVEAU
+7. **🎨 UX - Loading States Professionnel** (2-3h) ⚠️ EN COURS
    - ❌ Actuellement : Simple "Chargement..." partout dans backoffice
    - ✅ Objectif : Spinner animé + message contextuel (déjà implémenté dans `/page.tsx`)
    - 📍 Pages concernées :
@@ -1553,12 +1556,12 @@ Prêt Production Global : 75%
      <p>Chargement des statistiques...</p>
      ```
 
-5. **🔧 Metrics Aggregator inaccessible** (1h) ⚠️ BLOQUANT
-   - ❌ Erreur : `GET http://localhost:8014/api/v1/docker/jobbingtrack/aggregated net::ERR_CONNECTION_REFUSED`
-   - ❌ Impact : Page Statistiques ne charge pas (métriques système à 0%)
-   - 🔍 Cause : `metrics-aggregator` non démarré avec `make up-for-tests`
-   - ✅ Solution : Ajouter `metrics-aggregator` au profil de tests
-   - 💡 Alternative : Afficher un message "Métriques non disponibles" au lieu de crasher
+5. ✅ **🔧 Metrics Aggregator inaccessible** - TERMINÉ !
+   - ✅ Table `ContainerLog` créée dans schema.prisma
+   - ✅ Metrics-aggregator ajouté à `make up-for-tests` (étape 5/5)
+   - ✅ Rebuild et redémarré sans erreurs
+   - ✅ Accessible sur http://localhost:8014
+   - ✅ Logs conteneurs persistés en base de données
 
 6. **🧪 Testeur d'API cassé** (2h) ⚠️ NOUVEAU
    - ❌ Ne fonctionne plus correctement
@@ -1568,10 +1571,12 @@ Prêt Production Global : 75%
    - ❌ Ne fonctionne plus
    - 🔧 À retravailler complètement
 
-8. **🎭 Mode Utilisateur vs Admin dans User Journey** (1-2h) ⚠️ NOUVEAU
-   - ❌ Actuellement : Parcours uniquement en mode administrateur
-   - ✅ Objectif : Choix entre "Mode Admin" et "Mode Utilisateur de test"
-   - 📍 Page : `/backoffice/user-journey`
+8. ✅ **🎭 Mode Utilisateur vs Admin dans User Journey** - TERMINÉ !
+   - ✅ Toggle avec 2 modes : Admin (🛡️) et Utilisateur (👤)
+   - ✅ Mode Admin : `admin@jobbingtrack.com` (SUPER_ADMIN)
+   - ✅ Mode User : Création auto `testuser-XXX@test.com` (USER)
+   - ✅ Credentials dynamiques selon mode
+   - ✅ Badge affichant mode actif
 
 9. **📊 Historique des parcours User Journey** (2-3h) ⚠️ NOUVEAU
    - ❌ Actuellement : Bouton "Effacer l'historique" mais pas d'onglet d'affichage
@@ -1655,6 +1660,26 @@ Toutes les tables demandées sont implémentées :
 ---
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
+
+**2025-11-05 12h15** - ✅ Table ContainerLog + Toggle Mode Admin/User
+- ✅ **Table ContainerLog** créée dans schema.prisma
+  - Logs conteneurs Docker temps réel
+  - Index sur `containerName`, `level`, `timestamp`
+  - Metadata JSON pour stack traces et contexte
+  - Metrics-aggregator rebuild sans erreurs
+- ✅ **Toggle Mode Admin vs Utilisateur** dans User Journey
+  - 🛡️ Mode Admin : `admin@jobbingtrack.com` (SUPER_ADMIN)
+  - 👤 Mode Utilisateur : Création auto `testuser-XXX@test.com` (USER)
+  - Credentials dynamiques selon mode choisi
+  - Badge affichant mode actif
+  - Désactivé pendant exécution
+- 🎯 **Impact** :
+  - Logs persistés en base de données
+  - Tests possibles en mode utilisateur normal
+- 📁 **Fichiers** :
+  - `backend/*/prisma/schema.prisma` (+ ContainerLog)
+  - `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
+  - `makefiles/services/Makefile`
 
 **2025-11-05 12h00** - ✅ UX Loading States + Metrics Aggregator ajouté
 - ✅ **Nouveau composant** : `LoadingState` réutilisable (4 variantes)
