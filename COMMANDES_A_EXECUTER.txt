@@ -1,0 +1,82 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║           🚀 COMMANDES À EXÉCUTER - MAILHOG                    ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+📧 PAS BESOIN DE DOMAINE POUR LE DÉVELOPPEMENT !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 1 : Installer MailHog
+
+yay -S mailhog
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 2 : Lancer MailHog (Terminal 1)
+
+mailhog
+
+→ Laisse ce terminal ouvert !
+→ Interface web : http://localhost:8025
+→ SMTP server : localhost:1025
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 3 : Configurer .env (Terminal 2)
+
+nano backend/auth-service/.env
+
+Copier-coller exactement ça :
+
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=JobbingTrack <noreply@localhost>
+FRONTEND_URL=http://localhost:5173
+
+Sauvegarder : Ctrl+O puis Entrée, puis Ctrl+X
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 4 : Redémarrer auth-service
+
+docker-compose restart auth-service
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 5 : Tester
+
+export JOBBINGTRACK_HELP_READ=1
+make test-email-verification
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ÉTAPE 6 : Voir les emails
+
+Ouvrir navigateur : http://localhost:8025
+
+→ Tous les emails sont là !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 C'EST TOUT !
+
+   ❌ Pas besoin de delhomme.ovh
+   ❌ Pas besoin d'acheter domaine
+   ❌ Pas besoin de modifier DNS
+   
+   ✅ MailHog suffit !
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour production (PLUS TARD) :
+→ Voir STATUS.md section 1.12
+→ Choix : delhomme.ovh OU acheter jobbingtrack.fr
+
+Mais ça c'est pour plus tard ! 🎊
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
