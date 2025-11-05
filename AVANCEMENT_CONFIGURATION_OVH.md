@@ -6,29 +6,101 @@
 
 ## 📊 État Actuel
 
-### ✅ Ce qui est FAIT
+### ✅ Ce qui est FAIT (05/11/2025 20h15)
 
 ```
 ✅ Email noreply@maily.ovh créé chez OVH
-✅ Mot de passe défini
+✅ Mot de passe défini (VD7k6jWFMqW@MqNar2jT)
 ✅ Offre MX Plan active
 ✅ Code emails 100% opérationnel (emailService, auth.controller, routes)
 ✅ MailHog configuré (tests locaux)
 ✅ Scénario test emails ajouté dans user-journey
 ✅ Documentation complète créée (docs/emails/)
 ✅ Navigation mise à jour
+✅ Configuration .env OVH APPLIQUÉE
+   → SMTP_HOST=ssl0.ovh.net
+   → SMTP_PORT=465
+   → SMTP_USER=noreply@maily.ovh
+   → SMTP_PASS=VD7k6jWFMqW@MqNar2jT
+✅ Page Email Monitor créée (frontend/src/app/(admin)/backoffice/email-monitor/page.tsx)
 ```
 
-### ⏱️ Ce qu'il RESTE À FAIRE
+### ⚠️ PROBLÈMES DÉTECTÉS
 
 ```
-⏱️ Modifier .env avec credentials OVH (2 minutes)
-⏱️ Redémarrer service auth (1 minute)
-⏱️ Tester avec paul.delh@gmail.com (2 minutes)
-⏱️ Vérifier réception dans Gmail (instantané)
+❌ Base de données VIDE
+   → Aucune table créée (migrations Prisma pas appliquées)
+   → Commande vérification : docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
+   → Résultat : "Did not find any relations"
+
+❌ Impossible de tester pour l'instant
+   → Pas de table User
+   → Pas de table Application, Company, etc.
 ```
 
-**Temps restant** : ~5 minutes ⏱️
+### 🎯 TODO POUR DEMAIN (06/11/2025)
+
+**PRIORITÉ 1 - Migrations Prisma** (5 min)
+```bash
+cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack/backend/auth-service
+
+# Appliquer les migrations
+docker exec jobbingtrack-auth-service npx prisma migrate deploy
+
+# Générer le client
+docker exec jobbingtrack-auth-service npx prisma generate
+
+# Redémarrer
+docker-compose --profile auth restart auth-service
+
+# Vérifier
+docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
+```
+
+**PRIORITÉ 2 - Tests Emails** (15 min)
+```bash
+# 1. Inscription
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com","password":"Test123!","firstName":"Paul","lastName":"Delh"}'
+
+# 2. VÉRIFIER GMAIL → 2 emails (bienvenue + vérification)
+
+# 3. Reset password
+curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com"}'
+
+# 4. VÉRIFIER GMAIL → Email reset
+```
+
+**PRIORITÉ 3 - Interface Email Monitor** (10 min)
+```
+URL : http://localhost:8080/backoffice/email-monitor
+
+Tests :
+1. Voir statistiques (envoyés/échoués)
+2. Filtrer par type
+3. Voir contenu des emails
+4. Exporter les logs
+
+Améliorations à faire :
+⏱️ Créer API backend /api/v1/emails/logs
+⏱️ Créer table EmailLog en BDD
+⏱️ Logger tous les envois d'emails
+⏱️ Afficher logs réels (pas démo)
+```
+
+**PRIORITÉ 4 - Scénario User Journey** (5 min)
+```
+http://localhost:8080/backoffice/user-journey
+
+→ Scénario : "Vérification Email et Reset Password"
+→ Tester les 7 étapes
+→ Vérifier emails reçus
+```
+
+**Temps total** : 35-45 minutes ⏱️
 
 ---
 
