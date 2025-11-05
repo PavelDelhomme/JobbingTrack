@@ -24,16 +24,19 @@
 
 📧 POUR ENVOYER DES EMAILS (optionnel) :
 
-  1. Éditer backend/auth-service/.env :
-     
-     SMTP_HOST=smtp.gmail.com
-     SMTP_USER=redacted@example.invalid
-     SMTP_PASS=mot-de-passe-app
-     FRONTEND_URL=http://localhost:5173
-
-  2. docker-compose restart auth-service
-
-  3. Tester : http://localhost:5173/register
+  ⚠️  ERREUR SMTP DÉTECTÉE : Mot de passe Gmail invalide !
+  
+  📖 Lire : PROBLEME_SMTP_GMAIL.md pour la solution complète
+  
+  Résumé rapide :
+  1. Générer un App Password Gmail : https://myaccount.google.com/apppasswords
+  2. Éditer .env RACINE (pas backend/auth-service/.env) :
+     SMTP_PASS=votre_app_password_de_16_caracteres
+  3. docker-compose --profile auth restart auth-service
+  
+  Alternative (sans Gmail) :
+  - MailHog (tests locaux) → Voir PROBLEME_SMTP_GMAIL.md
+  - Brevo (300 emails/jour gratuits) → Voir PROBLEME_SMTP_GMAIL.md
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
