@@ -611,12 +611,24 @@ make test-email-verification
 
 **Avantages MailHog** :
 ```
-✓ Installation simple (1 commande)
-✓ Interface web pour voir tous les emails
-✓ Aucun email envoyé réellement (sécurité)
+✓ Installation simple (1 commande : yay -S mailhog)
+✓ Interface web pour voir tous les emails (http://localhost:8025)
+✓ Aucun email envoyé réellement (sécurité totale)
 ✓ Parfait pour développement local
-✓ Pas besoin de domaine/DNS
+✓ Pas besoin de domaine/DNS/OVH
 ✓ Gratuit et open-source
+✓ Zéro configuration réseau
+```
+
+**⚠️ IMPORTANT pour vous** :
+```
+❌ Vous n'avez PAS besoin d'acheter nouveau domaine pour dev local
+❌ Vous n'avez PAS besoin de toucher à delhomme.ovh pour dev local
+❌ Vous n'avez PAS besoin de configurer DNS pour dev local
+
+✅ MailHog suffit COMPLÈTEMENT pour tout le développement
+✅ OVH/domaine n'est nécessaire que pour PRODUCTION (plus tard)
+✅ Vous déciderez plus tard : utiliser delhomme.ovh OU acheter jobbingtrack.fr
 ```
 
 ---
@@ -1409,9 +1421,17 @@ docker run -d \
 
 ---
 
-#### Solution Recommandée pour Vous (avec OVH)
+#### ⚡ Solution Recommandée : MailHog pour Développement
 
-**Étant donné que vous avez déjà un compte OVH**, voici la solution la plus simple :
+**IMPORTANT** : Pour le développement local, vous n'avez besoin de RIEN configurer chez OVH !
+
+**Pas besoin de** :
+```
+❌ Acheter nouveau domaine
+❌ Modifier DNS de delhomme.ovh
+❌ Créer adresse email OVH
+❌ Configurer quoi que ce soit en ligne
+```
 
 **POUR DÉVELOPPEMENT LOCAL (maintenant)** :
 ```bash
@@ -1440,44 +1460,69 @@ make test-email-verification
 # → Voir emails sur http://localhost:8025 ✅
 ```
 
-**POUR PRODUCTION (quand prêt à déployer)** :
-```bash
-# 1. Chez OVH : Créer adresse email
-# https://www.ovh.com/manager/web/ → Emails → Créer : noreply@votre-domaine.com
+**POUR PRODUCTION (plus tard, quand vous déployez)** :
 
-# 2. Configuration backend/auth-service/.env (production)
+Vous aurez **2 CHOIX** :
+
+**Choix A : Utiliser votre domaine actuel (delhomme.ovh)**
+```bash
+# 1. Sur OVH Manager : Créer adresse email
+# https://www.ovh.com/manager/web/ → Emails → delhomme.ovh
+# Créer : noreply@delhomme.ovh (ou jobbing@delhomme.ovh)
+
+# 2. Configuration .env production
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USER=noreply@votre-domaine.com
-SMTP_PASS=mot-de-passe-ovh-email
-SMTP_FROM=JobbingTrack <noreply@votre-domaine.com>
-FRONTEND_URL=https://votre-domaine.com
+SMTP_USER=noreply@delhomme.ovh
+SMTP_PASS=mot-de-passe-ovh
+SMTP_FROM=JobbingTrack <noreply@delhomme.ovh>
+FRONTEND_URL=https://app.delhomme.ovh
 
-# 3. Sur votre VPS
-git pull
-docker-compose -f docker-compose.prod.yml restart auth-service
-
-# 4. Tester
-# S'inscrire sur https://votre-domaine.com/register
-# → Email arrive dans boîte réelle ✅
+# ✅ Avantages :
+# - Utilise domaine existant (pas d'achat)
+# - Configuration OVH en 5 minutes
+# - DNS déjà configuré
+# - ~1€/mois pour boîte email
 ```
 
-**Pourquoi cette solution** :
-```
-✓ MailHog local : Développement rapide et sûr
-✓ OVH production : Simple, fiable, pas cher (~1€/mois)
-✓ Pas besoin installer Postfix (complexe)
-✓ DNS automatique avec OVH
-✓ DKIM automatique avec OVH
-✓ Support OVH si problèmes
+**Choix B : Acheter nouveau domaine dédié**
+```bash
+# 1. Acheter chez OVH : jobbingtrack.fr (~10€/an)
+
+# 2. Créer email : noreply@jobbingtrack.fr
+
+# 3. Configuration .env production
+SMTP_HOST=ssl0.ovh.net
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@jobbingtrack.fr
+SMTP_PASS=mot-de-passe-ovh
+SMTP_FROM=JobbingTrack <noreply@jobbingtrack.fr>
+FRONTEND_URL=https://jobbingtrack.fr
+
+# ✅ Avantages :
+# - Domaine professionnel dédié
+# - Pas de confusion avec delhomme.ovh
+# - ~11€/an total
 ```
 
-**Si vous voulez Postfix sur VPS plus tard** :
+**❓ Lequel choisir** :
 ```
-→ Suivre "Option 3 : Serveur SMTP Local sur VPS" ci-dessus
-→ Utile si : beaucoup d'emails (>1000/jour) ou contrôle total
+→ delhomme.ovh : Si c'est un projet perso/portfolio
+→ Nouveau domaine : Si projet pro/startup
+
+Pour le moment : PAS BESOIN DE CHOISIR !
+→ Utilisez MailHog en local
+→ Vous déciderez au moment de déployer
+```
+
+**Si vous voulez Postfix sur VPS** :
+```
+→ Suivre "Option 3" ci-dessus (guide 10 étapes)
+→ Utile si : >1000 emails/jour ou contrôle total
 → Complexe mais gratuit et puissant
+→ Fonctionne avec n'importe quel domaine
 ```
 
 ---
