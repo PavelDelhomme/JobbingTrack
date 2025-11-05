@@ -121,6 +121,68 @@ class EmailService {
       throw error;
     }
   }
+
+  async sendVerificationEmail(user, verificationUrl) {
+    try {
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: user.email,
+        subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+              <p style="color: #6b7280; margin: 5px 0;">Vérification de votre adresse email</p>
+            </div>
+
+            <h2 style="color: #1f2937;">Bonjour ${user.firstName} ! 👋</h2>
+
+            <p>Bienvenue sur JobbingTrack ! Pour activer votre compte et commencer à utiliser toutes nos fonctionnalités, veuillez vérifier votre adresse email.</p>
+
+            <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+              <p style="color: #1e40af; margin: 0; font-size: 14px;">
+                <strong>Pourquoi vérifier mon email ?</strong><br>
+                La vérification de votre email assure la sécurité de votre compte et vous permet de recevoir des notifications importantes concernant vos candidatures.
+              </p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}"
+                 style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                ✓ Vérifier mon adresse email
+              </a>
+            </div>
+
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="color: #374151; margin: 0; font-size: 13px;">
+                <strong>Le bouton ne fonctionne pas ?</strong><br>
+                Copiez et collez ce lien dans votre navigateur :<br>
+                <code style="background: #fff; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all;">${verificationUrl}</code>
+              </p>
+            </div>
+
+            <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+              <p style="color: #92400e; margin: 0; font-size: 14px;">
+                <strong>Ce lien expire dans 24 heures.</strong> Si vous n'avez pas créé de compte sur JobbingTrack, ignorez simplement cet email.
+              </p>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
+              Besoin d'aide ? Contactez-nous à support@jobbingtrack.test<br>
+              <br>
+              Cordialement,<br>L'équipe JobbingTrack
+            </p>
+          </div>
+        `
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`Email de vérification envoyé à ${user.email}`);
+    } catch (error) {
+      logger.error('Erreur envoi email vérification:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EmailService();
