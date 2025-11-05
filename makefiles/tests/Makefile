@@ -65,7 +65,7 @@ tests-start:
 	@echo ""
 	@echo "🚀 Lancement de l'interface web de test..."
 	@echo ""
-	@bash START_TESTS.sh
+	@bash scripts/start-tests.sh
 
 # ================================================================
 # 📊 TESTS COMPLETS - Tous les tests
