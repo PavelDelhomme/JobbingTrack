@@ -4,15 +4,11 @@
 
 ## 📖 Documentation
 
-### 📚 **[📖 LIRE DANS CET ORDRE](LIRE_DANS_CET_ORDRE.md)** - **GUIDE COMPLET : Quels fichiers lire et dans quel ordre ?**
+### 📚 Documentation Principale
 
-### ⭐ **[✅ CORRECTIONS TERMINÉES](CORRECTIONS_TERMINEES.md)** - **TOUS LES TESTS SONT CORRIGÉS !**
-
-### 🚀 **[DÉMARRAGE RAPIDE](START_TESTS.sh)** - **Script automatique : `./START_TESTS.sh`**
-
-### 🆕 **[NOUVELLES FONCTIONNALITÉS PARCOURS](NOUVELLES_FONCTIONNALITES_PARCOURS.md)** - **ANNULATION & SAUVEGARDE AUTOMATIQUE !**
-
-### 📚 [Index Documentation Complète](docs/INDEX_DOCUMENTATION.md) | [📖 README Docs](docs/README.md) | [🧭 Navigation](docs/navigation.md)
+- **[STATUS.md](STATUS.md)** - État complet du projet et avancement
+- **[MAIL.md](MAIL.md)** - Configuration envoi d'emails (SMTP)
+- **[Index Documentation](docs/INDEX_DOCUMENTATION.md)** | **[README Docs](docs/README.md)** | **[Navigation](docs/navigation.md)**
 
 ### 🚀 Démarrage Rapide
 - **[⚡ Guide de Démarrage](docs/getting-started/README.md)** - Commencez ici !
