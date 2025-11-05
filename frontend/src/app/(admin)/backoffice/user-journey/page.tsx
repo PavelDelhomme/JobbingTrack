@@ -348,7 +348,7 @@ export default function UserJourneyPage() {
               body: JSON.stringify({
                 name: `Entreprise Test ${i + 1}`,
                 industry: ['tech', 'finance', 'healthcare'][i % 3],
-                size: ['startup', 'medium', 'large'][i % 3],
+                size: ['STARTUP', 'MEDIUM', 'LARGE'][i % 3],
                 website: `https://company${i + 1}.example.com`
               })
             });
@@ -376,7 +376,7 @@ export default function UserJourneyPage() {
               },
               body: JSON.stringify({
                 industry: ['retail', 'manufacturing', 'services'][i % 3],
-                size: ['enterprise', 'startup', 'medium'][i % 3],
+                size: ['ENTERPRISE', 'STARTUP', 'MEDIUM'][i % 3],
                 description: `Entreprise mise à jour - Test ${i + 1}`
               })
             });
@@ -398,7 +398,7 @@ export default function UserJourneyPage() {
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
                 position: `Poste ${i + 1}`,
-                status: ['pending', 'applied', 'interview'][i % 3],
+                status: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING'][i % 3],
                 appliedAt: new Date().toISOString()
               })
             });
