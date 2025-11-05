@@ -120,9 +120,13 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d application-service company-service contact-service interview-service event-service followup-service call-service)
 	@sleep 2
 	@echo ""
-	@echo "🌐 4/4 - Frontend (interface web de test)..."
+	@echo "🌐 4/5 - Frontend (interface web de test)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	@sleep 3
+	@echo ""
+	@echo "📊 5/5 - Metrics Aggregator (monitoring temps réel)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d jobbingtrack-metrics-aggregator)
+	@sleep 2
 	@echo ""
 	@echo "================================================================"
 	@echo "✅ SERVICES DE TEST DÉMARRÉS !"
@@ -141,9 +145,11 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "   ✅ Followups        - Relances"
 	@echo "   ✅ Calls            - Appels téléphoniques"
 	@echo "   ✅ Frontend         - http://localhost:8080"
+	@echo "   ✅ Metrics Aggreg.  - http://localhost:8014 (monitoring)"
 	@echo ""
-	@echo "🧪 Page de Test :"
-	@echo "   http://localhost:8080/backoffice/user-journey"
+	@echo "🧪 Pages de Test :"
+	@echo "   📋 User Journey  : http://localhost:8080/backoffice/user-journey"
+	@echo "   📊 Statistiques  : http://localhost:8080/backoffice"
 	@echo ""
 	@echo "🔑 Identifiants :"
 	@echo "   Email:    admin@jobbingtrack.com"
