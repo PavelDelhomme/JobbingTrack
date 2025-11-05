@@ -33,6 +33,8 @@ model User {
   tokenExpiresAt    DateTime?
   resetToken        String?
   resetTokenExpiry  DateTime?
+  verificationToken String?   @unique
+  verificationTokenExpiry DateTime?
   emailVerified     Boolean   @default(false)
   emailVerifiedAt   DateTime?
   
