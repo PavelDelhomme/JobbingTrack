@@ -1582,6 +1582,14 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 11h00** - ✅ Fix erreur "relation User does not exist" dans make tests-reset
+- ✅ Ajout délai 3 secondes après `prisma db push` (timing PostgreSQL)
+- ✅ Ajout vérification existence table User avant INSERT
+- ✅ Message d'erreur explicite si table manquante
+- ✅ Suggestion `make rebuild && make tests-reset` en cas d'échec
+- 🎯 **Résout** : Erreur aléatoire lors de la création admin
+- 🎯 **Impact** : `make tests-reset` plus stable et fiable
+
 **2025-11-05 01h40** - ✅ Correction rate limiting + warning Makefile
 - ✅ Rate limiting DÉSACTIVÉ en mode développement (NODE_ENV=development)
 - ✅ Tests passent sans erreur 429 (Trop de requêtes)

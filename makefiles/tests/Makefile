@@ -111,6 +111,15 @@ tests-reset:
 	@echo "🔧 4/5 - Création des tables et synchronisation BDD..."
 	@docker exec jobbingtrack-application-service npx prisma db push --accept-data-loss
 	@echo ""
+	@echo "⏳ Attente finalisation création tables (3 secondes)..."
+	@sleep 3
+	@echo ""
+	@echo "🔍 Vérification existence table User..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1 FROM \"User\" LIMIT 0;" > /dev/null 2>&1 || \
+		(echo "❌ ERREUR: Table User non trouvée. Reconstruction nécessaire..." && \
+		 echo "Essayez: make rebuild && make tests-reset" && exit 1)
+	@echo "✅ Table User existe"
+	@echo ""
 	@echo "👤 5/5 - Création utilisateur admin..."
 	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
 		"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"createdAt\", \"updatedAt\") \
