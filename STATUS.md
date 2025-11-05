@@ -121,10 +121,11 @@ make tests-help
 
 **Problèmes prioritaires** :
 1. ✅ User Journey complet (15/15 tests passent - 100%) - TERMINÉ !
-2. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE)
-3. ⚠️ Erreurs 403 sur pages admin (tokens/auth - à vérifier)
-4. ⚠️ Pages admin à tester (applications, users, etc.)
-5. ❌ Tests Playwright non opérationnels
+2. ❌ WAF non implémenté (à faire - PRIORITÉ HAUTE - Phase 2)
+3. ⚠️ Vérification email non implémentée (RECOMMANDÉ - Phase 3.1)
+4. ⚠️ Erreurs 403 sur pages admin (à vérifier avec JWT_SECRET ajouté)
+5. ⚠️ Pages admin à tester (applications, users, etc.)
+6. ❌ Tests Playwright non opérationnels
 
 **Ne créer AUCUN nouveau fichier .md** - Tout modifier dans `STATUS.md` uniquement.
 
@@ -678,13 +679,82 @@ res.setHeader('Content-Security-Policy', "frame-ancestors 'self' http://localhos
 // Afficher résultats
 ```
 
-### 🎯 PHASE 3 - AMÉLIORATIONS WORKFLOW (OPTIONNEL - 2-3 JOURS)
+### 🎯 PHASE 3 - AMÉLIORATIONS WORKFLOW & SÉCURITÉ (RECOMMANDÉ - 3-4 JOURS)
 
-**Objectif** : Automatiser davantage les liens entre entités
+**Objectif** : Automatiser davantage les liens entre entités + Vérification email
 
-**Durée estimée** : 2-3 jours
+**Durée estimée** : 3-4 jours
 
-#### 3.1 Contact Auto-Lié (1 jour)
+#### 3.1 Vérification Email (1 jour) - RECOMMANDÉ 🔐
+```javascript
+// ✅ Infrastructure DÉJÀ PRÊTE dans le schéma :
+model User {
+  emailVerified     Boolean   @default(false)  // ✅ Existe déjà
+  emailVerifiedAt   DateTime?                  // ✅ Existe déjà
+  resetToken        String?                    // ✅ Pour reset password
+  resetTokenExpiry  DateTime?                  // ✅ Pour reset password
+}
+
+// ✅ Service email DÉJÀ CRÉÉ : backend/auth-service/src/services/emailService.js
+// ⚠️ À AJOUTER : Méthode sendVerificationEmail
+
+// WORKFLOW À IMPLÉMENTER :
+
+1. Lors du Register :
+   POST /api/v1/auth/register
+   {
+     "email": "user@example.com",
+     "password": "...",
+     "firstName": "John",
+     "lastName": "Doe"
+   }
+   
+   → Créer utilisateur avec emailVerified=false
+   → Générer token de vérification unique (UUID)
+   → Envoyer email avec lien :
+     http://localhost:8080/verify-email?token=UUID
+   → Retourner succès (connexion possible mais limité)
+
+2. Utilisateur clique sur lien :
+   GET /api/v1/auth/verify-email?token=UUID
+   
+   → Vérifier token existe et non expiré
+   → Mettre emailVerified=true
+   → Mettre emailVerifiedAt=NOW()
+   → Supprimer token
+   → Rediriger vers login avec message succès
+
+3. Protection endpoints sensibles :
+   - Exporter données : Nécessite emailVerified=true
+   - Modifier email : Nécessite emailVerified=true
+   - Supprimer compte : Nécessite emailVerified=true
+
+FICHIERS À MODIFIER :
+- backend/auth-service/src/services/emailService.js
+  → Ajouter sendVerificationEmail(user, token)
+  
+- backend/auth-service/src/controllers/auth.controller.js
+  → Modifier register pour envoyer email
+  → Ajouter verifyEmail(req, res)
+  
+- backend/auth-service/src/routes/auth.routes.js
+  → Ajouter route GET /verify-email
+  
+- frontend/src/app/verify-email/page.tsx (à créer)
+  → Page de confirmation
+  
+- .env
+  → SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+
+PRIORITÉ : 🟡 MOYENNE (sécurité mais non bloquant)
+DURÉE : 1 jour
+AVANTAGES :
+  ✓ Évite faux emails
+  ✓ Sécurité renforcée
+  ✓ Confiance utilisateur
+```
+
+#### 3.2 Contact Auto-Lié (1 jour)
 ```javascript
 // Améliorer createContact pour accepter applicationId/companyId
 // et créer automatiquement les liens via tables de jonction
@@ -700,7 +770,7 @@ APRÈS (suggéré - automatique) :
 Gain : 3 requêtes → 1 requête
 ```
 
-#### 3.2 Événements Enrichis (1 jour)
+#### 3.3 Événements Enrichis (1 jour)
 ```javascript
 // Améliorer création d'événements lors d'actions
 - Candidature créée → ✅ FAIT
@@ -711,7 +781,7 @@ Gain : 3 requêtes → 1 requête
 Gain : Timeline complète automatique
 ```
 
-#### 3.3 Notifications Automatiques (1 jour)
+#### 3.4 Notifications Automatiques (1 jour)
 ```javascript
 // Utiliser table Notification pour alertes auto
 - 24h avant entretien → Notification rappel
@@ -721,7 +791,7 @@ Gain : Timeline complète automatique
 Gain : Utilisateur ne manque rien
 ```
 
-#### 3.4 Statistiques Temps Réel (optionnel)
+#### 3.5 Statistiques Temps Réel (optionnel)
 ```javascript
 // Cache des statistiques utilisateur pour performance
 - Table UserStatistics (cache)
@@ -1362,23 +1432,30 @@ Prêt Production Global : 75%
 5. **Rate Limiting global** (1 jour) - PHASE 2
 6. **Réparer Intrusion Detection** (1 jour) - PHASE 2
 
-### 🟡 IMPORTANT (Semaine Prochaine)
+### 🟡 IMPORTANT (Semaine Prochaine - Phase 3)
 
-7. **Restaurer pages gestion données** (si nécessaire après test)
-8. **Créer pages Archives + Trash** (2 jours)
-9. **Fixer préférences utilisateur** (1 jour)
-10. **Harmoniser métriques (N/A)** (1 jour)
+7. **Vérification Email** (1 jour) - RECOMMANDÉ 🔐
+   - Envoyer email de vérification lors du register
+   - Page de confirmation frontend
+   - Protection endpoints sensibles
+   - Infrastructure déjà prête (emailVerified, resetToken)
+
+8. **Tester pages admin** (avec JWT_SECRET maintenant configuré) (1 jour)
+9. **Contact auto-lié** (applicationId/companyId lors création) (1 jour)
+10. **Créer pages Archives + Trash** (2 jours)
+11. **Fixer préférences utilisateur** (1 jour)
+12. **Harmoniser métriques (N/A)** (1 jour)
 
 ### 🟢 AMÉLIORATIONS (Plus Tard)
 
-9. **Outils développement** (1 semaine)
-10. **Tests Playwright complets** (2 jours)
-11. **Export PDF/Excel monitoring** (2 jours)
-12. **Alerting avancé** (3 jours)
+13. **Outils développement** (1 semaine)
+14. **Tests Playwright complets** (2 jours)
+15. **Export PDF/Excel monitoring** (2 jours)
+16. **Alerting avancé** (3 jours)
 
 ### 🔵 FUTUR (4-5 Mois)
 
-13. **Application Mobile complète**
+17. **Application Mobile complète**
 
 ---
 
