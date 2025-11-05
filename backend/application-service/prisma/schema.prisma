@@ -784,3 +784,22 @@ model CallType {
   @@unique([userId, name])
   @@index([userId])
 }
+
+// ============================================
+// 📊 LOGS & MONITORING
+// ============================================
+
+// Logs des conteneurs Docker (pour metrics-aggregator)
+model ContainerLog {
+  id                String              @id @default(cuid())
+  containerId       String              // ID Docker du conteneur
+  containerName     String              // Nom du conteneur (ex: jobbingtrack-api-gateway)
+  level             String              @default("info") // debug, info, warn, error
+  message           String              @db.Text
+  timestamp         DateTime            @default(now())
+  metadata          Json?               // Données additionnelles (stack trace, contexte, etc.)
+  
+  @@index([containerName, timestamp])
+  @@index([level, timestamp])
+  @@index([timestamp])
+}

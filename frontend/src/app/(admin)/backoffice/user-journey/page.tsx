@@ -23,7 +23,8 @@ import {
   RotateCcw,
   Download,
   Trash2,
-  Key
+  Key,
+  Shield
 } from 'lucide-react';
 
 // Types pour les étapes du parcours
@@ -189,6 +190,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
 
 export default function UserJourneyPage() {
   const [selectedScenario, setSelectedScenario] = useState<keyof typeof SCENARIOS>('complete');
+  const [userMode, setUserMode] = useState<'admin' | 'user'>('admin'); // Mode Admin ou Utilisateur de test
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
@@ -320,13 +322,29 @@ export default function UserJourneyPage() {
           break;
 
         case 'login':
+          // Utiliser différents credentials selon le mode
+          const loginCredentials = userMode === 'admin' 
+            ? { email: 'admin@jobbingtrack.com', password: 'password123' }
+            : { email: `testuser-${Date.now()}@test.com`, password: 'Test123!' };
+          
+          // Si mode user, créer d'abord l'utilisateur
+          if (userMode === 'user') {
+            const registerUserRes = await fetch('/api/v1/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...loginCredentials,
+                firstName: 'Utilisateur',
+                lastName: 'Test'
+              })
+            });
+            await handleFetchResponse(registerUserRes);
+          }
+          
           const loginRes = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: 'admin@jobbingtrack.com',
-              password: 'password123'
-            })
+            body: JSON.stringify(loginCredentials)
           });
           result = await handleFetchResponse(loginRes);
           
@@ -882,6 +900,72 @@ export default function UserJourneyPage() {
 
         {/* Onglet Parcours */}
         <TabsContent value="journey" className="space-y-6">
+          {/* Mode Utilisateur : Admin ou Utilisateur de test */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Mode de Test</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Choisissez le type d'utilisateur pour ce parcours de test
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => !isRunning && setUserMode('admin')}
+                      disabled={isRunning}
+                      className={`
+                        p-4 rounded-lg border-2 text-left transition-all
+                        ${userMode === 'admin' 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                        }
+                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="h-5 w-5 text-blue-600" />
+                        <h3 className="font-semibold">Mode Administrateur</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Tests avec compte admin@jobbingtrack.com (rôle SUPER_ADMIN)
+                      </p>
+                    </button>
+                    
+                    <button
+                      onClick={() => !isRunning && setUserMode('user')}
+                      disabled={isRunning}
+                      className={`
+                        p-4 rounded-lg border-2 text-left transition-all
+                        ${userMode === 'user' 
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
+                        }
+                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-5 w-5 text-green-600" />
+                        <h3 className="font-semibold">Mode Utilisateur de Test</h3>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Tests avec utilisateur de test (rôle USER, création automatique)
+                      </p>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Badge du mode actif */}
+                <div className="text-right">
+                  <Badge variant={userMode === 'admin' ? 'default' : 'secondary'} className="text-sm">
+                    {userMode === 'admin' ? '🛡️ Admin' : '👤 Utilisateur'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Sélection du scénario */}
           <Card>
             <CardHeader>
