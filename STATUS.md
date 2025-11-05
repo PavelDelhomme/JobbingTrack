@@ -2022,5 +2022,996 @@ Toutes les tables demandées sont implémentées :
 
 ---
 
-**Dernière mise à jour** : 2025-11-04 22h00  
-**Prochaine action** : Fixer company-service Prisma Client
+---
+
+## 📱 PHASE 3 (FINALE) - APPLICATION MOBILE COMPLÈTE
+
+### 🎯 Objectif : Application Mobile Production-Ready avec Sync Offline
+
+**État** : ⏭️ **À FAIRE** (après Phase 2 WAF terminée)
+
+**Durée estimée** : 2-3 semaines
+
+**Priorité** : HAUTE (finalisation projet)
+
+---
+
+### 📋 3.1 - Infrastructure Mobile de Base
+
+**Objectifs** :
+```bash
+✅ Application Flutter déjà créée (structure existante dans /mobile)
+✅ Providers déjà implémentés (Auth, Application, Company, Contact, Interview, FollowUp)
+✅ Écrans de base existants (Login, Register, Home, Applications, etc.)
+
+À COMPLÉTER :
+□ Configuration environnement mobile (API URLs, secrets)
+□ Build configuration Android/iOS
+□ Tests sur émulateur Android
+□ Tests sur émulateur iOS
+□ Tests sur devices physiques (Android + iPhone)
+```
+
+**Livrables** :
+- Application compilable sur Android et iOS
+- Émulateurs configurés et testés
+- Documentation build mobile
+
+---
+
+### 📋 3.2 - Système de Synchronisation Backend ↔ Mobile
+
+**Architecture de Synchronisation Optimisée** :
+
+```bash
+┌─────────────────────────────────────────────────────────────┐
+│                ARCHITECTURE SYNC MOBILE                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  MOBILE (Flutter)                    BACKEND (Node.js)      │
+│  ================                    ==================     │
+│                                                             │
+│  ┌─────────────────┐                ┌──────────────────┐   │
+│  │ SQLite Local DB │◄───────────────┤  PostgreSQL DB   │   │
+│  │  (Offline First)│    Sync         │   (Source Truth) │   │
+│  └────────┬────────┘                 └────────┬─────────┘   │
+│           │                                   │             │
+│           │ ┌──────────────────┐             │             │
+│           ├─┤  SyncQueue       │◄────────────┤             │
+│           │ │  (Table Prisma)  │  Enregistre │             │
+│           │ └──────────────────┘  changements│             │
+│           │                                   │             │
+│  ┌────────▼────────┐                ┌────────▼─────────┐   │
+│  │ Sync Manager    │◄──── HTTP ────►│ Sync Endpoint    │   │
+│  │ - Pull changes  │                │ /api/v1/sync     │   │
+│  │ - Push changes  │                │                  │   │
+│  │ - Conflict res. │                │                  │   │
+│  └─────────────────┘                └──────────────────┘   │
+│                                                             │
+│  STRATÉGIES :                                               │
+│  1. Pull First : Récupérer changements serveur              │
+│  2. Conflict Detection : Timestamp + version                │
+│  3. Last-Write-Wins : Résolution automatique                │
+│  4. Queue Locale : Rejouer actions offline                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implémentation Détaillée** :
+
+#### A. Table SyncQueue (déjà créée ✅)
+```prisma
+model SyncQueue {
+  id          String    @id @default(cuid())
+  userId      String
+  entityType  String    // "Application", "Contact", etc.
+  entityId    String    
+  action      String    // "CREATE", "UPDATE", "DELETE"
+  payload     Json      // Données complètes
+  version     Int       @default(1)
+  syncedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+}
+```
+
+#### B. Service de Synchronisation Backend
+```javascript
+// backend/sync-service/src/controllers/sync.controller.js
+
+// Endpoint principal de synchronisation
+POST /api/v1/sync/pull
+  ├─ lastSyncTimestamp (depuis mobile)
+  ├─ deviceId
+  └─ Retourne : { changes: [], timestamp: now() }
+
+POST /api/v1/sync/push
+  ├─ changes[] (modifications offline mobile)
+  ├─ Détection conflits (timestamp comparaison)
+  └─ Retourne : { conflicts: [], synced: [], errors: [] }
+
+GET /api/v1/sync/status
+  └─ Statut sync : pending items, last sync, etc.
+```
+
+#### C. Sync Manager Mobile (Flutter)
+```dart
+// mobile/lib/services/sync_manager.dart
+
+class SyncManager {
+  // Synchronisation automatique
+  Future<void> autoSync() async {
+    if (await hasInternetConnection()) {
+      await pullChanges();  // Backend → Mobile
+      await pushChanges();  // Mobile → Backend
+      await resolveConflicts();
+    }
+  }
+
+  // Pull : Backend → Mobile
+  Future<void> pullChanges() async {
+    final lastSync = await getLastSyncTimestamp();
+    final response = await api.post('/sync/pull', {
+      'lastSyncTimestamp': lastSync,
+      'deviceId': await getDeviceId()
+    });
+    
+    for (var change in response.changes) {
+      await applyChangeToLocalDb(change);
+    }
+    
+    await setLastSyncTimestamp(DateTime.now());
+  }
+
+  // Push : Mobile → Backend
+  Future<void> pushChanges() async {
+    final pendingChanges = await getLocalPendingChanges();
+    
+    if (pendingChanges.isEmpty) return;
+    
+    final response = await api.post('/sync/push', {
+      'changes': pendingChanges
+    });
+    
+    // Gérer réponse
+    await markAsSynced(response.synced);
+    await handleConflicts(response.conflicts);
+  }
+
+  // Résolution conflits : Last-Write-Wins
+  Future<void> resolveConflicts() async {
+    // Stratégie simple : version serveur gagne
+    // User peut voir historique et récupérer données si besoin
+  }
+}
+```
+
+**Optimisations** :
+```bash
+✓ Delta Sync : Seulement les changements depuis lastSyncTimestamp
+✓ Batch Processing : Sync par lots (50 items max)
+✓ Compression : Gzip sur payload JSON
+✓ Retry Logic : 3 tentatives avec exponential backoff
+✓ Background Sync : Sync automatique toutes les 15 minutes
+✓ Conflict Log : Historique des conflits pour debug
+```
+
+---
+
+### 📋 3.3 - Système d'Intercepteur de Token JWT
+
+**Objectif** : L'utilisateur ne perd JAMAIS sa connexion
+
+**Implémentation** :
+
+#### A. Intercepteur HTTP Mobile (Dio)
+```dart
+// mobile/lib/services/dio_interceptor.dart
+
+class AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    // Injecter token dans toutes les requêtes
+    final token = await SecureStorage.getToken();
+    
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    
+    handler.next(options);
+  }
+
+  @override
+  void onError(DioError err, ErrorInterceptorHandler handler) async {
+    // Si 401 Unauthorized → Refresh token automatique
+    if (err.response?.statusCode == 401) {
+      try {
+        // Tenter refresh token
+        final newToken = await refreshToken();
+        
+        if (newToken != null) {
+          // Sauvegarder nouveau token
+          await SecureStorage.setToken(newToken);
+          
+          // Retry la requête originale
+          final options = err.requestOptions;
+          options.headers['Authorization'] = 'Bearer $newToken';
+          
+          final response = await Dio().fetch(options);
+          return handler.resolve(response);
+        }
+      } catch (e) {
+        // Refresh token échoué → Logout
+        await forceLogout();
+      }
+    }
+    
+    handler.next(err);
+  }
+
+  // Refresh token automatique
+  Future<String?> refreshToken() async {
+    final refreshToken = await SecureStorage.getRefreshToken();
+    
+    if (refreshToken == null) return null;
+    
+    try {
+      final response = await Dio().post(
+        '$API_URL/auth/refresh',
+        data: {'refreshToken': refreshToken}
+      );
+      
+      return response.data['token'];
+    } catch (e) {
+      return null;
+    }
+  }
+}
+```
+
+#### B. Backend : Refresh Token Endpoint
+```javascript
+// backend/auth-service/src/controllers/auth.controller.js
+
+const refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  // Valider refresh token (stocké en BDD)
+  const tokenRecord = await prisma.refreshToken.findFirst({
+    where: { 
+      token: refreshToken, 
+      expiresAt: { gt: new Date() },
+      revoked: false
+    },
+    include: { user: true }
+  });
+  
+  if (!tokenRecord) {
+    return res.status(401).json({ error: 'Refresh token invalide' });
+  }
+  
+  // Générer nouveau access token
+  const newAccessToken = jwt.sign(
+    { userId: tokenRecord.user.id, email: tokenRecord.user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  
+  // Optionnel : rotation refresh token
+  const newRefreshToken = await rotateRefreshToken(tokenRecord);
+  
+  res.json({
+    success: true,
+    token: newAccessToken,
+    refreshToken: newRefreshToken
+  });
+};
+```
+
+**Fonctionnalités** :
+```bash
+✓ Auto-refresh avant expiration (proactif)
+✓ Retry automatique si 401
+✓ Stockage sécurisé (flutter_secure_storage)
+✓ Rotation refresh tokens (sécurité)
+✓ Logout automatique si refresh échoue
+✓ Background refresh (15 min avant expiration)
+```
+
+---
+
+### 📋 3.4 - Fonctionnalités Mobile Complètes
+
+**Inscription Utilisateur Mobile** :
+```dart
+// mobile/lib/screens/register_screen.dart
+
+Features :
+✓ Formulaire inscription complet (email, password, firstName, lastName)
+✓ Validation en temps réel (email format, password strength)
+✓ Envoi email de vérification automatique
+✓ Page de confirmation avec lien "Vérifier email"
+✓ Support biométrie (Face ID, TouchID, Fingerprint)
+✓ Stockage sécurisé des credentials
+✓ Auto-login après inscription réussie
+```
+
+**Connexion Utilisateur Mobile** :
+```dart
+// mobile/lib/screens/login_screen.dart
+
+Features :
+✓ Connexion email/password
+✓ Remember me (stockage sécurisé)
+✓ Biométrie (Face ID, TouchID, Fingerprint)
+✓ Forgot password avec lien reset
+✓ Auto-refresh token en arrière-plan
+✓ Mode offline (dernières données en cache)
+✓ Splash screen pendant chargement initial
+```
+
+**Dashboard Mobile** :
+```dart
+// mobile/lib/screens/home_screen.dart
+
+Features :
+✓ Statistiques temps réel (candidatures, entretiens, relances)
+✓ Timeline des actions récentes
+✓ Notifications push locales
+✓ Quick actions (nouvelle candidature, nouvel entretien)
+✓ Widgets personnalisables
+✓ Pull-to-refresh
+✓ Indicateur sync (en cours, dernière sync)
+```
+
+**Gestion Candidatures Mobile** :
+```dart
+Features :
+✓ Liste avec filtres (statut, date, entreprise)
+✓ Recherche full-text
+✓ Tri personnalisable
+✓ Swipe actions (archiver, supprimer, éditer)
+✓ Création rapide (formulaire simplifié)
+✓ Détails complets avec timeline
+✓ Upload pièces jointes (CV, lettre motivation)
+✓ Mode offline complet (création, édition locale)
+```
+
+**Calendrier & Rappels** :
+```dart
+Features :
+✓ Calendrier natif avec événements
+✓ Synchronisation calendrier device (optionnel)
+✓ Notifications push avant entretiens
+✓ Notifications locales pour relances
+✓ Widget calendrier sur home screen
+✓ Intégration maps pour localisation entretiens
+```
+
+---
+
+### 📋 3.5 - Tests Unitaires & E2E Mobile
+
+**Tests Unitaires Flutter** :
+```dart
+// mobile/test/unit/
+
+Tests à implémenter :
+✓ Auth Provider (login, logout, refresh token)
+✓ Sync Manager (pull, push, conflict resolution)
+✓ API Service (tous endpoints)
+✓ Models (Application, Contact, Company, etc.)
+✓ Validators (email, password, phone)
+✓ Utils (date formatting, status mapping)
+
+Frameworks :
+- flutter_test (tests unitaires)
+- mockito (mocking)
+- test_coverage (couverture)
+
+Objectif : 80%+ code coverage
+```
+
+**Tests d'Intégration** :
+```dart
+// mobile/test/integration/
+
+Scénarios :
+✓ Inscription → Login → Création candidature → Sync
+✓ Mode offline → Actions multiples → Retour online → Sync
+✓ Refresh token automatique → Continue sans interruption
+✓ Création entretien → Notification → Rappel
+✓ Conflit sync → Résolution automatique
+✓ Logout → Données locales effacées (sécurité)
+
+Framework : integration_test
+```
+
+**Tests E2E sur Émulateurs** :
+```bash
+# Tests sur émulateur Android
+flutter test integration_test/ -d emulator-5554
+
+# Tests sur émulateur iOS
+flutter test integration_test/ -d iPhone-15-Simulator
+
+# Tests sur device physique
+flutter test integration_test/ -d <device-id>
+```
+
+**Commande Make Unifiée** :
+```makefile
+# makefiles/mobile/Makefile
+
+test-mobile-unit:
+	@cd mobile && flutter test test/unit/
+	@cd mobile && flutter test --coverage
+	@cd mobile && genhtml coverage/lcov.info -o coverage/html
+
+test-mobile-integration:
+	@cd mobile && flutter test integration_test/
+
+test-mobile-android:
+	@cd mobile && flutter test integration_test/ -d emulator-5554
+
+test-mobile-ios:
+	@cd mobile && flutter test integration_test/ -d iPhone-15-Simulator
+
+test-mobile-all:
+	@make test-mobile-unit
+	@make test-mobile-integration
+	@make test-mobile-android
+	@make test-mobile-ios
+```
+
+---
+
+### 📋 3.6 - Fonctionnalités Avancées Mobile
+
+#### A. Intercepteur Token Avancé
+```dart
+// mobile/lib/services/advanced_token_interceptor.dart
+
+Features :
+✓ Auto-refresh 15 min avant expiration (proactif)
+✓ Queue de requêtes pendant refresh (pas de perte)
+✓ Retry automatique après refresh
+✓ Stockage sécurisé (flutter_secure_storage)
+✓ Biométrie pour déverrouillage rapide
+✓ Session timeout configurable
+✓ Logout automatique après X échecs
+✓ Analytics : tracking taux refresh, échecs, etc.
+```
+
+#### B. Gestion Connexion Robuste
+```dart
+// mobile/lib/services/connection_manager.dart
+
+Features :
+✓ Détection perte/retour connexion (connectivity_plus)
+✓ Queue d'actions offline (stockage local SQLite)
+✓ Sync automatique au retour online
+✓ Indicateur visuel (online/offline/syncing)
+✓ Notification "Retour online - Synchronisation..."
+✓ Mode dégradé : lecture seule si problème sync
+✓ Statistiques sync : dernière sync, items en attente
+```
+
+#### C. Push Notifications
+```dart
+// mobile/lib/services/notification_service.dart
+
+Types de notifications :
+✓ Rappel entretien (1h avant, 24h avant)
+✓ Relance à faire (date dépassée)
+✓ Réponse entreprise (détectée via email parsing)
+✓ Statistiques hebdomadaires
+✓ Objectifs atteints (X candidatures cette semaine)
+
+Channels :
+✓ High priority : Entretiens imminents
+✓ Medium : Relances du jour
+✓ Low : Statistiques, conseils
+
+Features :
+✓ Planification locale (flutter_local_notifications)
+✓ Badge count sur icône app
+✓ Actions rapides (ouvrir candidature, marquer fait)
+✓ Groupement par catégorie
+```
+
+#### D. Performance & Optimisation
+```dart
+// Optimisations implémentées
+
+✓ Lazy loading : Chargement progressif listes
+✓ Infinite scroll : Pagination automatique
+✓ Image caching : cached_network_image
+✓ State management : Provider optimisé
+✓ Database indexing : SQLite indexes
+✓ Memory management : Dispose controllers
+✓ Background fetch : Sync en arrière-plan
+✓ Compression : Gzip API responses
+```
+
+---
+
+### 📋 3.7 - Architecture Données Mobile
+
+**Base de Données Locale (SQLite)** :
+```sql
+-- Schema SQLite miroir du backend
+
+Tables :
+✓ local_applications
+✓ local_companies
+✓ local_contacts
+✓ local_interviews
+✓ local_calls
+✓ local_followups
+✓ local_events
+
+Tables de Synchronisation :
+✓ sync_queue (actions à uploader)
+✓ sync_log (historique syncs)
+✓ sync_conflicts (conflits à résoudre)
+
+Indexes :
+✓ user_id sur toutes les tables
+✓ created_at, updated_at pour delta sync
+✓ sync_status (pending, synced, conflict)
+```
+
+**Stratégie Sync Optimisée** :
+```bash
+1. PULL (Backend → Mobile) :
+   - Récupérer changements depuis lastSyncTimestamp
+   - Appliquer à SQLite local
+   - Marquer comme synced
+   
+2. PUSH (Mobile → Backend) :
+   - Récupérer actions en attente (sync_queue)
+   - Envoyer par batch (50 items)
+   - Gérer conflits (timestamp comparison)
+   - Supprimer items synced de la queue
+
+3. CONFLICT RESOLUTION :
+   - Last-Write-Wins par défaut
+   - User peut choisir version à garder
+   - Historique des conflits conservé
+
+4. OPTIMISATIONS :
+   - Sync partielle (seulement entités modifiées)
+   - Compression données (Gzip)
+   - Cache stratégique (garde 7 jours)
+   - Purge automatique anciennes données
+```
+
+---
+
+### 📋 3.8 - Tests Complets Mobile
+
+**Tests Unitaires (Objectif : 85%+ coverage)** :
+```bash
+mobile/test/unit/
+├── providers/
+│   ├── auth_provider_test.dart
+│   ├── application_provider_test.dart
+│   ├── sync_provider_test.dart
+│   └── ... (tous providers)
+├── services/
+│   ├── api_service_test.dart
+│   ├── sync_manager_test.dart
+│   ├── token_interceptor_test.dart
+│   └── notification_service_test.dart
+├── models/
+│   └── ... (tous models)
+└── utils/
+    └── ... (tous utils)
+
+Commande : make test-mobile-unit
+Résultat attendu : 150+ tests passent
+```
+
+**Tests d'Intégration** :
+```bash
+mobile/test/integration/
+├── auth_flow_test.dart
+├── application_crud_test.dart
+├── offline_sync_test.dart
+├── token_refresh_test.dart
+├── notification_test.dart
+└── complete_journey_test.dart
+
+Commande : make test-mobile-integration
+Résultat attendu : 30+ scénarios passent
+```
+
+**Tests sur Émulateurs** :
+```bash
+# Android
+make test-mobile-android
+  ├─ Lance émulateur Android
+  ├─ Exécute suite complète
+  ├─ Génère rapport HTML
+  └─ Screenshots des échecs
+
+# iOS
+make test-mobile-ios
+  ├─ Lance simulateur iOS
+  ├─ Exécute suite complète
+  ├─ Génère rapport HTML
+  └─ Screenshots des échecs
+```
+
+**Tests sur Devices Physiques** :
+```bash
+# Détection automatique devices
+make test-mobile-devices
+  ├─ Liste devices connectés
+  ├─ Exécute tests sur chaque device
+  ├─ Génère rapport par device
+  └─ Compare résultats (Android vs iOS)
+
+# Test device spécifique
+make test-mobile-device DEVICE=<device-id>
+```
+
+---
+
+### 📋 3.9 - Parcours Utilisateur Mobile Complet
+
+**Scénarios à Tester sur Émulateur/Smartphone** :
+
+#### Scénario 1 : Premier Lancement
+```
+1. Installation app
+2. Splash screen
+3. Onboarding (slides explicatifs)
+4. Inscription
+   └─→ Validation email
+   └─→ Email reçu sur mobile
+   └─→ Clic lien (deep link)
+5. Login automatique
+6. Permission notifications
+7. Synchronisation initiale
+8. Dashboard affiché
+```
+
+#### Scénario 2 : Usage Quotidien
+```
+1. Ouverture app (biométrie)
+2. Auto-refresh token
+3. Pull sync (nouvelles données)
+4. Consultation candidatures
+5. Création nouvelle candidature
+6. Ajout entretien
+7. Création rappel
+8. Push sync
+9. Fermeture app
+```
+
+#### Scénario 3 : Mode Offline
+```
+1. Désactiver WiFi/Data
+2. Ouvrir app
+3. Créer 5 candidatures
+4. Modifier 3 candidatures
+5. Supprimer 1 candidature
+6. Créer 2 contacts
+7. Planifier 1 entretien
+8. Réactiver connexion
+9. Sync automatique
+10. Vérifier : toutes actions appliquées ✓
+```
+
+#### Scénario 4 : Gestion Conflits
+```
+1. Modifier candidature sur mobile (offline)
+2. Modifier même candidature sur web
+3. Retour online mobile
+4. Sync détecte conflit
+5. Résolution automatique (Last-Write-Wins)
+6. Notification utilisateur
+7. Historique conflit sauvegardé
+```
+
+#### Scénario 5 : Notifications & Rappels
+```
+1. Planifier entretien dans 1h
+2. App en arrière-plan
+3. Notification 15 min avant
+4. Clic notification → Ouvre détails entretien
+5. Marquer entretien complété
+6. Sync automatique
+```
+
+---
+
+### 📋 3.10 - Commandes Make Mobile
+
+**Nouvelles commandes à ajouter** :
+
+```makefile
+# makefiles/mobile/Makefile
+
+# ════════════════════════════════════════════════
+# DÉVELOPPEMENT MOBILE
+# ════════════════════════════════════════════════
+
+mobile-install:
+	@cd mobile && flutter pub get
+
+mobile-run-android:
+	@cd mobile && flutter run -d emulator-5554
+
+mobile-run-ios:
+	@cd mobile && flutter run -d iPhone-15-Simulator
+
+mobile-build-android:
+	@cd mobile && flutter build apk --release
+
+mobile-build-ios:
+	@cd mobile && flutter build ios --release
+
+# ════════════════════════════════════════════════
+# TESTS MOBILE
+# ════════════════════════════════════════════════
+
+test-mobile-unit:
+	@cd mobile && flutter test test/unit/ --coverage
+
+test-mobile-integration:
+	@cd mobile && flutter test integration_test/
+
+test-mobile-android:
+	@cd mobile && flutter test integration_test/ -d emulator-5554
+
+test-mobile-ios:
+	@cd mobile && flutter test integration_test/ -d iPhone-15-Simulator
+
+test-mobile-all:
+	@make test-mobile-unit
+	@make test-mobile-integration
+	@make test-mobile-android
+	@make test-mobile-ios
+	@echo "✅ Tous les tests mobile terminés !"
+
+# ════════════════════════════════════════════════
+# SYNC & DÉPLOIEMENT
+# ════════════════════════════════════════════════
+
+mobile-sync-test:
+	@cd mobile && flutter run test/sync_simulator.dart
+
+mobile-emulator-start-android:
+	@emulator -avd Pixel_8_API_34 &
+
+mobile-emulator-start-ios:
+	@open -a Simulator
+
+mobile-deploy-testflight:
+	@cd mobile && flutter build ios --release
+	@cd mobile && fastlane ios beta
+
+mobile-deploy-playstore:
+	@cd mobile && flutter build appbundle --release
+	@cd mobile && fastlane android beta
+```
+
+---
+
+### 📋 3.11 - Checklist Avant Production Mobile
+
+**Infrastructure** :
+```bash
+□ Émulateurs configurés (Android + iOS)
+□ Devices de test disponibles
+□ CI/CD mobile (GitHub Actions / Bitrise)
+□ Code signing (Android + iOS)
+□ App Store Connect / Play Console configurés
+□ Analytics mobile (Firebase / Sentry)
+□ Crash reporting (Crashlytics)
+```
+
+**Fonctionnalités** :
+```bash
+□ Inscription + vérification email
+□ Login + biométrie
+□ CRUD complet (Applications, Contacts, Companies, etc.)
+□ Sync offline fonctionnelle
+□ Auto-refresh token
+□ Notifications push
+□ Calendrier avec rappels
+□ Upload fichiers (CV, photos)
+□ Partage (share_plus)
+□ Deep links (vérification email, etc.)
+```
+
+**Tests** :
+```bash
+□ Tests unitaires : 85%+ coverage
+□ Tests intégration : 30+ scénarios
+□ Tests émulateur Android : PASS
+□ Tests émulateur iOS : PASS
+□ Tests device Android : PASS
+□ Tests device iPhone : PASS
+□ Tests mode offline : PASS
+□ Tests sync conflicts : PASS
+□ Tests notifications : PASS
+□ Tests performance : < 2s temps réponse
+```
+
+**Sécurité** :
+```bash
+□ flutter_secure_storage pour tokens
+□ Certificate pinning (API)
+□ Obfuscation code (release builds)
+□ ProGuard (Android)
+□ BitCode (iOS)
+□ Permissions minimales
+□ Validation inputs côté mobile
+□ Chiffrement BDD locale (optionnel)
+```
+
+---
+
+### 📋 3.12 - Documentation Mobile
+
+**Fichiers à créer** :
+```bash
+docs/mobile/
+├── INSTALLATION.md           # Setup environnement mobile
+├── ARCHITECTURE_SYNC.md      # Architecture synchronisation
+├── TOKEN_MANAGEMENT.md       # Gestion tokens JWT
+├── OFFLINE_MODE.md          # Mode offline et sync
+├── TESTING_GUIDE.md         # Guide complet tests
+├── DEPLOYMENT.md            # Déploiement App/Play Store
+├── TROUBLESHOOTING.md       # Résolution problèmes
+└── PERFORMANCE.md           # Optimisations performance
+```
+
+---
+
+### 📋 3.13 - Délivrables Phase 3
+
+**Objectifs de sortie** :
+```bash
+✅ Application mobile compilable Android + iOS
+✅ Tests : 85%+ unitaires, 100% intégration
+✅ Sync offline fonctionnelle et testée
+✅ Auto-refresh token sans interruption utilisateur
+✅ Notifications push opérationnelles
+✅ Tests validés sur émulateurs ET devices physiques
+✅ Documentation complète
+✅ Prêt pour déploiement App Store / Play Store
+
+Commandes Make :
+✅ make mobile-run-android
+✅ make mobile-run-ios
+✅ make test-mobile-all
+✅ make mobile-build-android
+✅ make mobile-build-ios
+```
+
+**Critères de Réussite** :
+```bash
+□ 100% des tests passent (unit + integration)
+□ 100% des parcours testés sur émulateur
+□ 100% des parcours testés sur devices physiques
+□ 0 crash en 1 semaine de test intensif
+□ < 2s temps réponse moyen
+□ < 50MB taille app
+□ Sync < 5s pour 100 items
+□ 95%+ satisfaction beta testeurs
+```
+
+---
+
+### 🎯 ORDRE D'IMPLÉMENTATION MOBILE
+
+```bash
+ÉTAPE 1 : Configuration Environnement (2 jours)
+  ├─ Setup émulateurs Android/iOS
+  ├─ Configuration build
+  └─ Tests compilation
+
+ÉTAPE 2 : Sync Manager (1 semaine)
+  ├─ Architecture sync définie
+  ├─ Backend : endpoints /sync/*
+  ├─ Mobile : SyncManager complet
+  ├─ Tests offline/online
+  └─ Gestion conflits
+
+ÉTAPE 3 : Intercepteur Token (2 jours)
+  ├─ Auto-refresh proactif
+  ├─ Queue requêtes pendant refresh
+  ├─ Retry automatique
+  └─ Tests expiration token
+
+ÉTAPE 4 : Fonctionnalités Complètes (1 semaine)
+  ├─ Inscription + vérification email
+  ├─ Login + biométrie
+  ├─ CRUD toutes entités
+  ├─ Calendrier + notifications
+  └─ Upload fichiers
+
+ÉTAPE 5 : Tests Complets (1 semaine)
+  ├─ Tests unitaires (85%+ coverage)
+  ├─ Tests intégration (30+ scénarios)
+  ├─ Tests émulateurs (Android + iOS)
+  ├─ Tests devices physiques
+  └─ Tests performance
+
+ÉTAPE 6 : Polish & Déploiement (3 jours)
+  ├─ UI/UX refinement
+  ├─ Documentation complète
+  ├─ Beta testing
+  └─ Soumission stores
+```
+
+---
+
+### 📊 RÉCAPITULATIF FINAL MOBILE
+
+**État Actuel** :
+```bash
+✅ Structure Flutter existante (32 fichiers Dart)
+✅ Providers de base créés (Auth, Application, Company, etc.)
+✅ Écrans principaux créés (Login, Register, Home, etc.)
+✅ Dépendances installées (http, provider, dio, etc.)
+✅ Table SyncQueue dans backend (prête pour sync)
+
+⏭️ À FAIRE :
+□ Sync Manager complet
+□ Intercepteur token avancé
+□ Tests unitaires + E2E
+□ Tests émulateurs + devices
+□ Push notifications
+□ Mode offline robuste
+□ Build & déploiement stores
+```
+
+**Commandes Make Finales** :
+```bash
+# Tests mobile
+make test-mobile-all          # Tous tests (unit + integration + émulateurs)
+make test-mobile-unit         # Tests unitaires
+make test-mobile-android      # Tests émulateur Android
+make test-mobile-ios          # Tests émulateur iOS
+make test-mobile-devices      # Tests devices physiques
+
+# Développement
+make mobile-run-android       # Lancer sur Android
+make mobile-run-ios           # Lancer sur iOS
+make mobile-build-android     # Build APK
+make mobile-build-ios         # Build IPA
+```
+
+**Documentation** :
+```bash
+✅ Tout dans STATUS.md section 3.x (cette section)
+✅ Architecture sync détaillée
+✅ Intercepteur token expliqué
+✅ Stratégies optimisation
+✅ Tests complets définis
+✅ Ordre implémentation clair
+```
+
+---
+
+**⚠️ IMPORTANT** : Cette phase mobile est la **DERNIÈRE ÉTAPE** du projet.  
+À faire **APRÈS** :
+1. ✅ Phase 1 : User Journey (TERMINÉE)
+2. ⏭️ Phase 2 : WAF & Sécurité
+3. ⏭️ Phase 3 : Mobile (cette section)
+
+**Durée totale estimée Phase 3** : 2-3 semaines  
+**Difficulté** : ÉLEVÉE  
+**Priorité** : HAUTE (finalisation projet)  
+**État** : 📝 Spécifications complètes - Prêt à implémenter
+
+---
+
+**Dernière mise à jour** : 2025-11-05 13h30  
+**Prochaine action** : Phase 2 WAF, puis Phase 3 Mobile
