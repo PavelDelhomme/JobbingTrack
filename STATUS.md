@@ -1033,6 +1033,15 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 00h50** - ✅ SIMPLIFICATION MASSIVE : 4 commandes au lieu de 10+
+- ✅ Makefile tests simplifié : 4 commandes essentielles seulement
+- ✅ `make tests-help` : Guide complet ultra-détaillé avec processus
+- ✅ `make tests-reset` : Reset complet automatique (BDD + services)
+- ✅ `make tests-user-journey` : Test automatique via API
+- ✅ `make tests-interface-web` : Interface web (renommé depuis tests-start)
+- 📖 scripts/README.md mis à jour avec la nouvelle organisation
+- 🎯 **SIMPLICITÉ** : Plus de confusion, workflow clair !
+
 **2025-11-05 00h40** - ✅ SUCCÈS : Application List corrigé ! 7/16 tests (44%)
 - ✅ Rebuild application-service --no-cache avec isArchived
 - ✅ Synchronisation base de données (prisma db push)
