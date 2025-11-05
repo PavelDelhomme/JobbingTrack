@@ -1,6 +1,16 @@
-# JobbingTrack 🚀
+# 🎯 JobbingTrack - Plateforme de Suivi de Candidatures
 
-> Système de suivi de candidatures avec dashboard administrateur
+> **Version 1.0.1** | **Architecture Microservices** | **Next.js 14** | **Flutter** | **PostgreSQL** | **Docker**
+
+[![Version](https://img.shields.io/badge/Version-v1.0.1-green.svg)](https://github.com/PavelDelhomme/JobbingTrack)
+[![Status](https://img.shields.io/badge/Status-BETA-blue.svg)]()
+[![Backend](https://img.shields.io/badge/Backend-Node.js_20-green.svg)]()
+[![Frontend](https://img.shields.io/badge/Frontend-Next.js_14-black.svg)]()
+[![Mobile](https://img.shields.io/badge/Mobile-Flutter_3-blue.svg)]()
+[![Database](https://img.shields.io/badge/Database-PostgreSQL_15-blue.svg)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)]()
+
+---
 
 ## 📖 Documentation
 

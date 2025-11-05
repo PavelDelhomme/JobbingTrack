@@ -1,6 +1,6 @@
 {
   "name": "security-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Service de sécurité pour la collecte et analyse des données de sécurité",
   "main": "src/server.js",
   "scripts": {

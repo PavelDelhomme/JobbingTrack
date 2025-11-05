@@ -1,6 +1,6 @@
 {
   "name": "@jobbingtrack/database",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Schéma Prisma partagé pour JobbingTrack - Base de données unique avec relations réelles",
   "main": "index.js",
   "scripts": {
