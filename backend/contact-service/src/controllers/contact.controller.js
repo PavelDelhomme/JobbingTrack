@@ -56,7 +56,15 @@ const getContacts = async (req, res, next) => {
       prisma.contact.findMany({
         where,
         include: {
-          company: true
+          companies: {
+            include: {
+              companies: {
+          include: {
+            company: true
+          }
+        }
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
         skip: parseInt(offset),
@@ -92,7 +100,11 @@ const getContact = async (req, res, next) => {
         userId: req.user.id
       },
       include: {
-        company: true
+        companies: {
+          include: {
+            company: true
+          }
+        }
       }
     });
 
@@ -339,7 +351,11 @@ const getContactsByCompany = async (req, res, next) => {
         }
       },
       include: {
-        company: true
+        companies: {
+          include: {
+            company: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -385,7 +401,11 @@ const getContactsByApplication = async (req, res, next) => {
         }
       },
       include: {
-        company: true
+        companies: {
+          include: {
+            company: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
