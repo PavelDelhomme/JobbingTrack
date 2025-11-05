@@ -1,9 +1,10 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 13h30  
+**Dernière MAJ** : 2025-11-05 17h30  
 **Version** : feat/user-journey-stabilization  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
+**Configuration SMTP** : ⚠️ EN ATTENTE (3 solutions disponibles : MailHog/Gmail/Brevo)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
 ---
@@ -1601,6 +1602,230 @@ SMTP_PASS=votre-password-mailtrap
 ✅ Validation token invalide : Fonctionne (erreur correctement gérée)
 ⚠️  Envoi emails SMTP : Nécessite configuration SMTP dans .env
 ```
+
+---
+
+#### 1.13 Corrections Frontend & Configuration SMTP ✅ TERMINÉ (05/11/2025 17h30)
+
+**Problèmes résolus** :
+
+**1. ❌ Erreur React : Clés dupliquées `view_statistics`**
+
+```
+Erreur console React :
+Warning: Encountered two children with the same key, `view_statistics`
+Keys should be unique so that components maintain their identity across updates.
+```
+
+**Cause** : Dans `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`, plusieurs scénarios contenaient l'étape `view_statistics`. Quand plusieurs sections de détails étaient ouvertes, React trouvait des clés identiques.
+
+**Solution** : ✅ **CORRIGÉ**
+```typescript
+// AVANT (ligne 1838, 1867, 1896, 1925)
+{scenario.steps.map(stepId => (
+  <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+))}
+
+// APRÈS
+{scenario.steps.map((stepId, idx) => (
+  <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
+))}
+```
+
+**Fichier modifié** : `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
+
+---
+
+**2. 📧 Configuration SMTP : Clarifications & Solutions**
+
+**Questions reçues** :
+```
+❓ Dois-je modifier le .env pour envoyer des emails ?
+❓ La solution Perplexity (OVH) est-elle nécessaire ?
+```
+
+**Réponses** :
+
+**OUI**, configuration `.env` nécessaire MAIS :
+- ✅ Modifier le `.env` **À LA RACINE** du projet (pas `backend/auth-service/.env`)
+- ✅ Docker Compose charge les variables depuis le `.env` racine et les passe au container
+
+**NON**, la solution Perplexity est **INUTILE** :
+```
+Vous avez DÉJÀ :
+✅ nodemailer configuré (backend/auth-service/src/services/emailService.js)
+✅ Routes de reset password (/api/v1/auth/forgot-password)
+✅ Routes de vérification email (/api/v1/auth/verify-email)
+✅ Templates d'emails (bienvenue, reset, vérification)
+✅ Système de tokens
+
+❌ La solution Perplexity propose de RECRÉER tout ce qui existe déjà !
+```
+
+**Ce qu'il manquait** : Juste la configuration SMTP dans le `.env` racine !
+
+---
+
+**3. ⚠️ PROBLÈME SMTP DÉCOUVERT : Mot de passe Gmail invalide**
+
+**Erreur détectée lors des tests** :
+```
+Error: Invalid login: 535-5.7.8 Username and Password not accepted
+https://support.google.com/mail/?p=BadCredentials
+```
+
+**Cause** : Le mot de passe fourni **N'EST PAS** un **App Password Gmail valide**.
+
+Pour Gmail, vous **NE POUVEZ PAS** utiliser votre mot de passe principal.
+Vous devez générer un **App Password** (16 caractères).
+
+**3 Solutions disponibles** :
+
+**Option 1 : MailHog (RECOMMANDÉ pour développement)**
+```bash
+Avantages :
+✅ Aucune configuration Gmail nécessaire
+✅ Emails capturés localement (pas de vrai envoi)
+✅ Interface web : http://localhost:8025
+✅ Parfait pour les tests
+✅ Gratuit et simple
+
+Configuration .env racine :
+SMTP_HOST=mailhog
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM="JobbingTrack <noreply@jobbingtrack.local>"
+
+Ajouter au docker-compose.yml :
+mailhog:
+  image: mailhog/mailhog
+  container_name: jobbingtrack-mailhog
+  ports:
+    - "1025:1025"  # SMTP
+    - "8025:8025"  # Web UI
+  networks:
+    - jobbingtrack-network
+
+Démarrage :
+docker-compose up -d mailhog
+docker-compose --profile auth restart auth-service
+```
+
+**Option 2 : Gmail App Password (si vous voulez de vrais envois)**
+```bash
+Étapes :
+1. Aller sur : https://myaccount.google.com/apppasswords
+2. Activer l'authentification à 2 facteurs (OBLIGATOIRE)
+3. Créer un App Password pour "JobbingTrack"
+4. COPIER le mot de passe de 16 caractères généré
+
+Configuration .env racine :
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=votre.email@gmail.com
+SMTP_PASS=votre_app_password_16_caracteres
+SMTP_FROM="JobbingTrack <votre.email@gmail.com>"
+
+⚠️  ATTENTION : Ne commitez JAMAIS le .env avec ce mot de passe !
+```
+
+**Option 3 : Brevo (RECOMMANDÉ pour production)**
+```bash
+Avantages :
+✅ 300 emails/jour GRATUITS
+✅ Pas d'App Password Gmail
+✅ Simple à configurer
+✅ Fiable pour la production
+
+Étapes :
+1. Créer un compte : https://www.brevo.com/
+2. Récupérer la clé SMTP dans les paramètres
+
+Configuration .env racine :
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=votre@email.com
+SMTP_PASS=votre_cle_smtp_brevo
+SMTP_FROM="JobbingTrack <noreply@jobbingtrack.com>"
+```
+
+**Comparaison des solutions** :
+```
+┌──────────────┬────────────┬──────────────┬─────────┬──────────────────┐
+│ Solution     │ Difficulté │ Emails/jour  │ Coût    │ Meilleur pour    │
+├──────────────┼────────────┼──────────────┼─────────┼──────────────────┤
+│ MailHog      │ ⭐ Facile   │ ♾️ Illimité  │ 🆓 Grat │ ✅ Développement │
+│ Brevo        │ ⭐⭐ Moyen  │ 300          │ 🆓 Grat │ ✅ Production    │
+│ Gmail        │ ⭐⭐⭐ Comp │ 500          │ 🆓 Grat │ ⚠️  OK mais comp │
+│ OVH          │ ⭐⭐ Moyen  │ 200/heure    │ 💰 Pay  │ ✅ Si domaine    │
+└──────────────┴────────────┴──────────────┴─────────┴──────────────────┘
+```
+
+---
+
+**Fichiers créés/modifiés** :
+```bash
+Créés :
+✅ backend/auth-service/.env (configuration SMTP locale)
+✅ backend/auth-service/.env.example (template)
+✅ backend/auth-service/.gitignore (protection .env)
+
+Modifiés :
+✅ frontend/src/app/(admin)/backoffice/user-journey/page.tsx (clés React)
+✅ .env (racine) → Variables SMTP ajoutées
+✅ COMMENT_TESTER.txt → Mise à jour avec infos SMTP
+
+Sécurité Git :
+✅ backend/auth-service/.env → Retiré du tracking Git (git rm --cached)
+✅ .env (racine) → Déjà ignoré par .gitignore
+✅ Credentials protégés contre commit accidentel
+```
+
+**Tests effectués** :
+```bash
+✅ Variables SMTP chargées dans container Docker :
+   docker exec jobbingtrack-auth-service sh -c 'echo $SMTP_HOST'
+   → smtp.gmail.com ✅
+
+✅ Connexion SMTP testée (erreur mot de passe détectée) :
+   curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
+     -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com"}'
+   → Error: Invalid login (mot de passe invalide attendu) ✅
+
+✅ Service auth-service redémarré avec profile auth :
+   docker-compose --profile auth up -d auth-service
+   → Container démarré correctement ✅
+```
+
+**Statut final** :
+```
+✅ Erreur React clés dupliquées : CORRIGÉ
+✅ Configuration SMTP : DOCUMENTÉE (3 solutions)
+⚠️  Envoi emails réel : NÉCESSITE choix d'une solution (MailHog/Gmail/Brevo)
+✅ Sécurité Git : ASSURÉE (fichiers .env ignorés)
+✅ Documentation : COMPLÈTE dans STATUS.md
+```
+
+**Recommandation** :
+```
+Pour développement : Utiliser MailHog (simple et efficace)
+Pour production : Utiliser Brevo (300 emails/jour gratuits)
+```
+
+**Prochaines actions** :
+```
+1. Choisir une solution SMTP (MailHog recommandé)
+2. Configurer le .env racine avec les bonnes valeurs
+3. Redémarrer le service : docker-compose --profile auth restart auth-service
+4. Tester l'envoi d'emails
+```
+
+---
 
 ### 🎯 PHASE 1.5 - INTERFACE WEB USER JOURNEY ✅ TERMINÉE !
 

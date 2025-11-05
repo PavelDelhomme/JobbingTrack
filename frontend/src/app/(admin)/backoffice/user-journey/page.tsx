@@ -1835,8 +1835,8 @@ export default function UserJourneyPage() {
                             Voir les {scenario.steps.length} étapes
                           </summary>
                           <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
-                            {scenario.steps.map(stepId => (
-                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
                             ))}
                           </ol>
                         </details>
@@ -1864,8 +1864,8 @@ export default function UserJourneyPage() {
                             Voir les {scenario.steps.length} étapes
                           </summary>
                           <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
-                            {scenario.steps.map(stepId => (
-                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
                             ))}
                           </ol>
                         </details>
@@ -1893,8 +1893,8 @@ export default function UserJourneyPage() {
                             Voir les {scenario.steps.length} étapes
                           </summary>
                           <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
-                            {scenario.steps.map(stepId => (
-                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
                             ))}
                           </ol>
                         </details>
@@ -1922,8 +1922,8 @@ export default function UserJourneyPage() {
                             Voir les {scenario.steps.length} étapes
                           </summary>
                           <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
-                            {scenario.steps.map(stepId => (
-                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
                             ))}
                           </ol>
                         </details>
