@@ -142,31 +142,54 @@ Nettoie les anciens fichiers du projet.
 ### rebuild-all.sh
 Rebuild tous les services Docker.
 
-## 🎮 Commandes Make Disponibles
+## 🎮 Commandes Make Simplifiées
 
-Toutes ces commandes sont accessibles via le Makefile :
+**4 commandes essentielles pour tester** :
 
 ```bash
-# Aide sur les tests
-make tests-help
-
-# Tests principaux
-make tests-user-journey      # Test parcours utilisateur
-make tests-start             # Interface web de test
-make tests-complete          # Suite complète de tests
-make tests-e2e               # Tests Playwright
-
-# Tests spécifiques
-make tests-metrics           # Vérifier métriques
-make tests-api               # Tests API
-make tests-database          # Tests DB
-make tests-integration       # Tests d'intégration
-
-# Utilitaires
-make tests-cleanup           # Nettoyer fichiers tests
-make tests-reset             # Reset complet + redémarrage
-make tests-all               # Lancer TOUS les tests
+make tests-help              # Guide complet d'utilisation
+make tests-reset             # Reset complet (BDD + services)
+make tests-user-journey      # Test automatique via API
+make tests-interface-web     # Interface web de test
 ```
+
+### 📖 Processus Complet
+
+**1. Première fois ou après `make down`** :
+```bash
+make tests-reset
+# ↓ Fait TOUT automatiquement :
+# - Arrête les services
+# - Redémarre pour tests
+# - Crée les tables
+# - Crée l'admin
+```
+
+**2. Tester via API (rapide)** :
+```bash
+make tests-user-journey
+# ↓ Teste automatiquement tout le parcours
+```
+
+**3. Tester via navigateur (visuel)** :
+```bash
+make tests-interface-web
+# ↓ Ouvre http://localhost:8080/backoffice/user-journey
+```
+
+### 🔍 Différence user-journey vs interface-web
+
+**tests-user-journey** :
+- ✓ Automatique, rapide
+- ✓ Via API
+- ✓ Résultats dans le terminal
+- ✓ Parfait pour vérifier que tout fonctionne
+
+**tests-interface-web** :
+- ✓ Manuel, visuel
+- ✓ Via navigateur
+- ✓ Interface graphique
+- ✓ Parfait pour débugger
 
 ## 📝 Conventions
 
