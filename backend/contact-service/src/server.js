@@ -11,43 +11,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    service: 'contact-service',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
-});
-
-// API routes avec données mockées
-app.get('/api/v1/contacts', (req, res) => {
-  // Données mockées pour l'interface d'administration
-  const mockData = {
-    contact: { contacts: [], total: 0 },
-    interview: { interviews: [], total: 0 },
-    notification: { notifications: [], total: 0 },
-    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
-    call: { calls: [], total: 0 },
-    profile: { profiles: [], total: 0 },
-    event: { events: [], total: 0 },
-    followup: { followups: [], total: 0 }
-  };
-
-  res.json({
-    success: true,
-    ...mockData.contact,
-    message: 'Données de démonstration'
-  });
-});
-
-app.post('/api/v1/contacts', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Fonctionnalité en cours d\'implémentation'
-  });
-});
+// Routes
+const contactRoutes = require('./routes/contact.routes');
+app.use('/api/v1/contacts', contactRoutes);
 
 // Démarrage
 app.listen(PORT, () => {
