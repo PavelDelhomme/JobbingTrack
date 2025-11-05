@@ -1033,6 +1033,14 @@ Toutes les tables demandées sont implémentées :
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
 
+**2025-11-05 00h20** - ⚠️ PROBLÈME TECHNIQUE : Docker build cache
+- ❌ Application List échoue toujours (Status 500)
+- 🔍 CAUSE : Le container application-service utilise `archived` au lieu de `isArchived`
+- 📝 FICHIER LOCAL : Correct (isArchived)
+- 📝 CONTAINER : Incorrect (archived) - problème de build cache Docker
+- 🔧 SOLUTION : Sauvegarder le fichier dans l'éditeur puis rebuilder avec `--no-cache`
+- ✅ Tests qui passent : 6/16 (Health, Register, Login, Profile, Companies List/Create)
+
 **2025-11-05 00h05** - ✅ SUCCÈS : User Journey 6/16 tests passent (38%) 
 - ✅ Synchronisation schéma Prisma sur TOUS les services (application, contact, interview, call, followup, event)
 - ✅ Rebuild de toutes les images des services métier
