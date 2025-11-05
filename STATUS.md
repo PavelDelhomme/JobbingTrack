@@ -257,15 +257,152 @@ app.use(wafCheck);
 ✅ Tests : List Companies (200), Create Company (201)
 ```
 
-#### 1.2 Tests API ✅ TERMINÉ
+#### 1.2 Application-service ✅ TERMINÉ
 ```bash
-✅ Tous les tests CRUD passent (15/15 - 100%)
-✅ Applications Create corrigé (contractType, salaryMin/Max)
-✅ Contact-service corrigé (routes réelles, includes)
-✅ Tous les services List fonctionnent
+✅ CRUD complet opérationnel
+✅ Gestion automatique des entreprises :
+   - Si companyName fourni : recherche ou crée automatiquement l'entreprise
+   - Si companyId fourni : utilise directement
+✅ Création automatique d'événements calendrier lors de candidature
+✅ Gestion des états de candidature (12 états) :
+   - CANDIDATE_PENDING, NO_RESPONSE, NO_RESPONSE_AFTER_FIRST_FOLLOWUP
+   - NO_RESPONSE_AFTER_SECOND_FOLLOWUP, FIRST_INTERVIEW_PENDING
+   - OTHER_INTERVIEW_PENDING, TECHNICAL_TEST_PENDING
+   - OFFER_RECEIVED, ACCEPTED_AFTER_INTERVIEW
+   - REJECTED_WITHOUT_INTERVIEW, REJECTED_AFTER_INTERVIEW, WITHDRAWN
+✅ Historique des changements de statut (ApplicationStatusHistory)
+✅ Relations avec : Company, Contact, Interview, Call, FollowUp, Event
+✅ Filtrage par archived/active
+✅ Statistiques par candidature
 ```
 
-#### 1.3 Scénarios Avancés ⏭️ REPORTÉ
+#### 1.3 Contact-service ✅ TERMINÉ
+```bash
+✅ CRUD complet opérationnel
+✅ Relations many-to-many avec Companies (ContactCompany)
+✅ Relations many-to-many avec Applications (ContactApplication)
+✅ Un contact peut travailler dans plusieurs entreprises
+✅ Un contact peut être lié à plusieurs candidatures
+✅ Rôles de contact : RECRUITER, HR_MANAGER, HIRING_MANAGER
+✅ Gestion complète : firstName, lastName, email, phone, position, linkedinUrl
+✅ Archivage des contacts (isArchived, archivedAt, archivedReason)
+```
+
+#### 1.4 Interview-service ✅ TERMINÉ
+```bash
+✅ CRUD complet opérationnel
+✅ Gestion des entretiens avec tous les détails :
+   - Type : RH, Technique, Manager (InterviewType personnalisable)
+   - Style : Présentiel, Distanciel, Hybride (InterviewStyle)
+   - Date, durée estimée, localisation, lien visio
+✅ Relations many-to-many avec Contacts (qui participe)
+✅ États d'entretien : SCHEDULED, COMPLETED, FEEDBACK_PENDING, CANCELLED, RESCHEDULED
+✅ Résultats : POSITIVE, NEGATIVE, NEUTRAL, PENDING
+✅ Plage de retour attendu (feedbackExpectedFrom/To)
+✅ Création automatique d'événements calendrier
+✅ Notes et feedback sur entretien
+```
+
+#### 1.5 Call-service ✅ TERMINÉ
+```bash
+✅ CRUD complet opérationnel
+✅ Gestion des appels téléphoniques :
+   - Type : Sortant, Entrant (CallType personnalisable)
+   - Date, durée, sujet, notes
+✅ Lien avec Application, Company, FollowUp, Contact
+✅ États : SCHEDULED, COMPLETED, MISSED, CANCELLED
+✅ Création automatique d'événements calendrier
+✅ FollowUp automatique si nécessaire (followUpRequired, followUpDate)
+```
+
+#### 1.6 FollowUp-service ✅ TERMINÉ
+```bash
+✅ CRUD complet opérationnel
+✅ Gestion des relances multi-canal :
+   - Type : Email, Téléphone, LinkedIn (FollowUpType personnalisable)
+   - Méthode : Email, Téléphone, Message (FollowUpMethod)
+✅ Relations many-to-many avec Contacts (qui relancer)
+✅ États de relance : PENDING, POSITIVE_RESPONSE, NEGATIVE_RESPONSE, NO_RESPONSE, PLANNED
+✅ Suivi des réponses et compteurs automatiques
+✅ Mise à jour automatique statut candidature selon nombre de relances
+✅ Création automatique d'événements calendrier
+```
+
+#### 1.7 Event-service ✅ TERMINÉ
+```bash
+✅ CRUD complet opérationnel
+✅ Calendrier complet avec événements :
+   - Lien polymorphe : Application, Interview, FollowUp, Call
+   - Type d'événement personnalisable (EventType)
+✅ Gestion des rappels (reminderEnabled, reminderMinutes)
+✅ Événements all-day ou avec heures
+✅ Couleurs personnalisables par événement
+✅ Timeline complète des actions utilisateur
+✅ Création automatique depuis Applications, Interviews, Calls, FollowUps
+```
+
+#### 1.8 Synchronisation Schéma Prisma ✅ TERMINÉ
+```bash
+✅ Schéma unique partagé par TOUS les services (787 lignes)
+✅ 23 tables créées :
+   - User, Company, Application, Contact
+   - Interview, Call, FollowUp, Event
+   - Document, Notification, SyncQueue
+   - Tables de jonction : ContactCompany, ContactApplication, FollowUpContact, InterviewContact
+   - Tables personnalisables : Platform, FollowUpType, FollowUpMethod, InterviewType, InterviewStyle, EventType, CallType
+   - ApplicationStatusHistory
+✅ Relations complexes many-to-many fonctionnelles
+✅ Pas de duplication, une seule base PostgreSQL
+✅ Tous les services utilisent le même schéma
+```
+
+#### 1.9 Configuration & Sécurité ✅ TERMINÉ
+```bash
+✅ JWT_SECRET configuré sur TOUS les services :
+   - auth-service, application-service, company-service
+   - contact-service, interview-service, call-service
+   - followup-service, event-service, dashboard-service
+✅ Middleware d'authentification sur tous les endpoints
+✅ Filtrage par userId pour isolation des données utilisateur
+✅ Tokens JWT avec rôles (USER, ADMIN, SUPER_ADMIN, TESTER)
+✅ Token permanent de test (100 ans) pour faciliter les tests
+```
+
+#### 1.10 Workflows Automatiques ✅ IMPLÉMENTÉS
+```bash
+✅ WORKFLOW 1 : Création Candidature → Entreprise Auto
+   - Utilisateur crée candidature avec companyName
+   - Système cherche entreprise par nom (case insensitive)
+   - Si existe : Lier candidature
+   - Si non existe : Créer entreprise automatiquement + Lier
+
+✅ WORKFLOW 2 : Création Candidature → Événement Calendrier Auto
+   - Candidature créée
+   - Système crée automatiquement événement dans calendrier
+   - Titre : "📝 Candidature: [Position] chez [Company]"
+   - Date : applicationDate
+
+✅ WORKFLOW 3 : Entretien → Mise à Jour Statuts
+   - Entretien planifié
+   - Statut candidature → FIRST_INTERVIEW_PENDING (si 1er)
+   - Création événement calendrier automatique
+   - Notification rappel (24h avant) - préparé
+
+✅ WORKFLOW 4 : Relances → Compteurs Auto
+   - Relance envoyée (EMAIL/PHONE/LINKEDIN)
+   - Compteur relances++
+   - Si 1 relance sans réponse : "NO_RESPONSE_AFTER_FIRST_FOLLOWUP"
+   - Si 2 relances : "NO_RESPONSE_AFTER_SECOND_FOLLOWUP"
+   - Si 3+ : Suggestion archivage
+
+✅ WORKFLOW 5 : Appels → Timeline & Relances
+   - Appel enregistré
+   - Création événement timeline automatique
+   - Si followUpRequired=true : Création relance à followUpDate
+   - Notification rappel relance
+```
+
+#### 1.11 Scénarios Avancés ⏭️ REPORTÉ
 ```javascript
 SCÉNARIOS AVANCÉS (reportés après Phase 2 WAF) :
 
