@@ -8,9 +8,10 @@
  * 
  * Usage:
  *   node test-email-verification.js
+ * 
+ * Utilise fetch natif de Node.js 18+ (pas de dépendance externe)
  */
 
-const axios = require('axios');
 const crypto = require('crypto');
 
 const BASE_URL = process.env.API_URL || 'http://localhost:3000';
@@ -36,23 +37,31 @@ async function testRegister() {
   const randomEmail = `test-${Date.now()}@example.com`;
   
   try {
-    const response = await axios.post(`${API_ENDPOINT}/register`, {
-      email: randomEmail,
-      password: 'Test123!',
-      firstName: 'Test',
-      lastName: 'User'
+    const response = await fetch(`${API_ENDPOINT}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: randomEmail,
+        password: 'Test123!',
+        firstName: 'Test',
+        lastName: 'User'
+      })
     });
 
-    if (response.data.success && response.data.emailVerificationRequired) {
+    const data = await response.json();
+
+    if (data.success && data.emailVerificationRequired) {
       log('✅ Inscription réussie', 'green');
       log(`   Email: ${randomEmail}`, 'blue');
-      log(`   Token JWT: ${response.data.token.substring(0, 20)}...`, 'blue');
+      log(`   Token JWT: ${data.token.substring(0, 20)}...`, 'blue');
       log('   ⚠️  Email de vérification requis', 'yellow');
       
       return {
         success: true,
         email: randomEmail,
-        userId: response.data.user.id
+        userId: data.user.id
       };
     } else {
       log('❌ Inscription échouée - emailVerificationRequired manquant', 'red');
@@ -60,9 +69,6 @@ async function testRegister() {
     }
   } catch (error) {
     log(`❌ Erreur lors de l'inscription: ${error.message}`, 'red');
-    if (error.response) {
-      log(`   Détails: ${JSON.stringify(error.response.data)}`, 'red');
-    }
     return { success: false };
   }
 }
@@ -71,12 +77,13 @@ async function testVerifyEmail(token) {
   log('\n✅ Test 2 : Vérification de l\'email avec le token', 'cyan');
   
   try {
-    const response = await axios.get(`${API_ENDPOINT}/verify-email/${token}`);
+    const response = await fetch(`${API_ENDPOINT}/verify-email/${token}`);
+    const data = await response.json();
 
-    if (response.data.success && response.data.user.emailVerified) {
+    if (data.success && data.user.emailVerified) {
       log('✅ Email vérifié avec succès', 'green');
-      log(`   Utilisateur: ${response.data.user.firstName} ${response.data.user.lastName}`, 'blue');
-      log(`   Email vérifié: ${response.data.user.emailVerified}`, 'blue');
+      log(`   Utilisateur: ${data.user.firstName} ${data.user.lastName}`, 'blue');
+      log(`   Email vérifié: ${data.user.emailVerified}`, 'blue');
       return { success: true };
     } else {
       log('❌ Vérification échouée', 'red');
@@ -84,9 +91,6 @@ async function testVerifyEmail(token) {
     }
   } catch (error) {
     log(`❌ Erreur lors de la vérification: ${error.message}`, 'red');
-    if (error.response) {
-      log(`   Détails: ${JSON.stringify(error.response.data)}`, 'red');
-    }
     return { success: false };
   }
 }
@@ -97,18 +101,20 @@ async function testVerifyEmailInvalidToken() {
   const invalidToken = 'token-invalide-123456789';
   
   try {
-    await axios.get(`${API_ENDPOINT}/verify-email/${invalidToken}`);
-    log('❌ Le test a échoué - le token invalide a été accepté', 'red');
-    return { success: false };
-  } catch (error) {
-    if (error.response && error.response.status === 400) {
+    const response = await fetch(`${API_ENDPOINT}/verify-email/${invalidToken}`);
+    const data = await response.json();
+    
+    if (response.status === 400) {
       log('✅ Token invalide correctement rejeté', 'green');
-      log(`   Message: ${error.response.data.error}`, 'blue');
+      log(`   Message: ${data.error}`, 'blue');
       return { success: true };
     } else {
-      log(`❌ Erreur inattendue: ${error.message}`, 'red');
+      log('❌ Le test a échoué - le token invalide a été accepté', 'red');
       return { success: false };
     }
+  } catch (error) {
+    log(`❌ Erreur inattendue: ${error.message}`, 'red');
+    return { success: false };
   }
 }
 
@@ -116,13 +122,19 @@ async function testResendVerification(email) {
   log('\n📧 Test 4 : Renvoi de l\'email de vérification', 'cyan');
   
   try {
-    const response = await axios.post(`${API_ENDPOINT}/resend-verification`, {
-      email
+    const response = await fetch(`${API_ENDPOINT}/resend-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
     });
 
-    if (response.data.success) {
+    const data = await response.json();
+
+    if (data.success) {
       log('✅ Email de vérification renvoyé avec succès', 'green');
-      log(`   Message: ${response.data.message}`, 'blue');
+      log(`   Message: ${data.message}`, 'blue');
       return { success: true };
     } else {
       log('❌ Échec du renvoi', 'red');
@@ -130,9 +142,6 @@ async function testResendVerification(email) {
     }
   } catch (error) {
     log(`❌ Erreur lors du renvoi: ${error.message}`, 'red');
-    if (error.response) {
-      log(`   Détails: ${JSON.stringify(error.response.data)}`, 'red');
-    }
     return { success: false };
   }
 }
@@ -141,20 +150,27 @@ async function testResendVerificationAlreadyVerified(email) {
   log('\n⚠️  Test 5 : Renvoi pour un email déjà vérifié', 'cyan');
   
   try {
-    await axios.post(`${API_ENDPOINT}/resend-verification`, {
-      email
+    const response = await fetch(`${API_ENDPOINT}/resend-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
     });
-    log('❌ Le test a échoué - devrait refuser pour email déjà vérifié', 'red');
-    return { success: false };
-  } catch (error) {
-    if (error.response && error.response.status === 400) {
+    
+    const data = await response.json();
+    
+    if (response.status === 400) {
       log('✅ Renvoi correctement refusé pour email déjà vérifié', 'green');
-      log(`   Message: ${error.response.data.error}`, 'blue');
+      log(`   Message: ${data.error}`, 'blue');
       return { success: true };
     } else {
-      log(`❌ Erreur inattendue: ${error.message}`, 'red');
+      log('❌ Le test a échoué - devrait refuser pour email déjà vérifié', 'red');
       return { success: false };
     }
+  } catch (error) {
+    log(`❌ Erreur inattendue: ${error.message}`, 'red');
+    return { success: false };
   }
 }
 
