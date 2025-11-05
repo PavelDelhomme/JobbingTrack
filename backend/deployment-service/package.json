@@ -1,6 +1,6 @@
 {
   "name": "deployment-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Service de gestion et suivi des déploiements CI/CD",
   "main": "src/server.js",
   "scripts": {

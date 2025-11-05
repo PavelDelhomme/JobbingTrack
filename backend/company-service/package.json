@@ -1,6 +1,6 @@
 {
   "name": "jobbingtrack-company-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Gestion des entreprises pour JobbingTrack",
   "main": "src/server.js",
   "scripts": {

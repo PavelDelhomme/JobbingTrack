@@ -1,6 +1,6 @@
 {
   "name": "jobbingtrack-metrics-aggregator-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API sécurisée pour exposer les métriques Prometheus et logs Loki",
   "main": "src/server.js",
   "scripts": {

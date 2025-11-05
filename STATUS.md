@@ -1,7 +1,8 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 20h20  
-**Version** : feat/send-reset-and-validate-email  
+**Dernière MAJ** : 2025-11-05 20h30  
+**Version Projet** : v1.0.1 (BETA)  
+**Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (redacted@example.invalid)  
