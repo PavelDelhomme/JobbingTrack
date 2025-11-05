@@ -110,6 +110,10 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    // ✅ Désactiver complètement en mode développement
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
     // Ignorer le rate limiting pour les tests
     return req.get('X-Test-Mode') === 'true' || req.get('User-Agent')?.includes('Playwright');
   },

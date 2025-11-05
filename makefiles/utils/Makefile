@@ -72,9 +72,8 @@ cadvisor: ## Ouvrir cAdvisor dans le navigateur
 	fi
 
 # Logs métriques
-logs-metrics: ## Logs du système de métriques
-	@echo "📋 Logs du système de métriques..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f jobbingtrack-metrics-aggregator)
+# logs-metrics est défini dans makefiles/services/Makefile (ligne 544)
+# Suppression de la définition en double pour éviter le warning
 
 # ============================================================================
 # SCRIPTS MONITORING
