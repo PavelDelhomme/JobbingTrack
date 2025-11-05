@@ -536,47 +536,105 @@ si nécessaire.
 ```
 
 #### 1.12 Vérification d'Email par Lien ✅ TERMINÉ (05/11/2025 03h45)
-```bash
-✅ Système complet de vérification d'email implémenté
-✅ Email de vérification envoyé automatiquement à l'inscription
-✅ Lien de vérification unique (expire après 24h)
-✅ Page frontend /verify-email avec 3 états (loading, success, error)
-✅ Possibilité de renvoyer l'email si token expiré
-✅ Protection contre énumération d'emails
-✅ Logs de sécurité sur toutes les opérations
-✅ Templates d'email professionnels et responsives
 
-BACKEND :
-✅ Schéma Prisma : verificationToken + verificationTokenExpiry
-✅ Service emailService : sendVerificationEmail(user, verificationUrl)
-✅ Contrôleur register : génération et envoi automatique du token
-✅ Contrôleur verifyEmail : vérification du token et activation compte
-✅ Contrôleur resendVerificationEmail : renvoi avec nouveau token
-✅ Routes : GET /verify-email/:token, POST /resend-verification
-✅ Sécurité : tokens 256 bits, usage unique, expiration 24h
+**Fonctionnalité** : Email de vérification automatique lors de l'inscription avec lien unique (expire 24h)
+
+**Implémentation** :
+```bash
+BACKEND (auth-service) :
+├── Schéma Prisma : verificationToken + verificationTokenExpiry ajoutés
+├── Service emailService.js : sendVerificationEmail(user, verificationUrl)
+├── Contrôleur auth.controller.js :
+│   ├── register() : génère token + envoie email automatiquement
+│   ├── verifyEmail() : vérifie token + active compte
+│   └── resendVerificationEmail() : nouveau token si expiré
+├── Routes auth.routes.js :
+│   ├── GET  /api/v1/auth/verify-email/:token
+│   └── POST /api/v1/auth/resend-verification
+└── Sécurité : tokens 256 bits, usage unique, logs complets
 
 FRONTEND :
-✅ Page /verify-email avec gestion complète des cas
-✅ Redirection automatique après succès
-✅ Formulaire de renvoi si token expiré
-✅ Design moderne et responsive
+├── Page /verify-email : états loading/success/error
+├── Redirection auto après succès
+├── Formulaire renvoi email si expiré
+└── Design responsive
 
-DOCUMENTATION :
-✅ DEMARRAGE_RAPIDE_EMAIL_VERIFICATION.md (guide 7 min)
-✅ INSTRUCTIONS_VERIFICATION_EMAIL.md (guide complet)
-✅ RESUME_VERIFICATION_EMAIL.md (résumé technique)
-✅ LISEZMOI_VERIFICATION_EMAIL.txt (résumé visuel)
-✅ Script de test : backend/auth-service/test-email-verification.js
+TEST :
+└── Script : backend/auth-service/test-email-verification.js
+```
 
-CONFIGURATION REQUISE :
-⚙️ Migration Prisma : npx prisma migrate dev --name add_email_verification
-⚙️ SMTP configuré dans .env (SMTP_HOST, SMTP_USER, SMTP_PASS)
-⚙️ FRONTEND_URL défini pour les liens de vérification
+**Installation (3 étapes)** :
+```bash
+# 1. Migration base de données
+cd backend/auth-service
+npx prisma migrate dev --name add_email_verification
 
-COMMENT TESTER :
-1. make test-email-verification    # Test automatisé
-2. http://localhost:5173/register  # Test manuel
-3. Vérifier email reçu + clic sur lien
+# 2. Configuration SMTP dans backend/auth-service/.env
+SMTP_HOST=smtp.gmail.com              # ou smtp.mailtrap.io pour tests
+SMTP_PORT=587
+SMTP_USER=votre-email@gmail.com
+SMTP_PASS=mot-de-passe-application    # Mot de passe app Gmail
+SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
+FRONTEND_URL=http://localhost:5173
+
+# 3. Redémarrer le service
+docker-compose restart auth-service
+```
+
+**Tests disponibles** :
+```bash
+# Test automatisé (vérifie inscription + token + renvoi)
+make test-email-verification
+
+# Test manuel via interface
+http://localhost:5173/register
+# → Créer compte → Vérifier email reçu → Clic lien
+```
+
+**Flux utilisateur** :
+```
+1. Inscription (POST /register)
+   └─→ Génère token (expire 24h)
+   └─→ Envoie 2 emails : bienvenue + vérification
+
+2. Utilisateur clique sur lien email
+   └─→ GET /verify-email?token=abc123
+   └─→ Backend vérifie token + active compte
+   └─→ Token supprimé (usage unique)
+
+3. Si token expiré
+   └─→ Page affiche formulaire
+   └─→ POST /resend-verification {email}
+   └─→ Nouveau token généré + email renvoyé
+```
+
+**Gmail : Créer mot de passe application** :
+```
+1. Compte Google → Sécurité
+2. Validation en 2 étapes (activer si besoin)
+3. Mots de passe d'application
+4. Créer → Autre (nom personnalisé) → Copier le mot de passe
+5. Utiliser ce mot de passe dans SMTP_PASS
+```
+
+**Alternative pour tests (Mailtrap - gratuit)** :
+```env
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=votre-username-mailtrap
+SMTP_PASS=votre-password-mailtrap
+# → Tous les emails interceptés, visible sur mailtrap.io
+```
+
+**Fichiers modifiés** :
+```
+✓ backend/auth-service/prisma/schema.prisma
+✓ backend/auth-service/src/services/emailService.js
+✓ backend/auth-service/src/controllers/auth.controller.js
+✓ backend/auth-service/src/routes/auth.routes.js
+✓ frontend/src/app/(auth)/verify-email/page.tsx (nouveau)
+✓ backend/auth-service/test-email-verification.js (nouveau)
+✓ makefiles/tests/Makefile (ajout commande test-email-verification)
 ```
 
 ### 🎯 PHASE 1.5 - INTERFACE WEB USER JOURNEY ✅ TERMINÉE !
