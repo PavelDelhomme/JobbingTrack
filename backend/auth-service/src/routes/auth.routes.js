@@ -31,6 +31,12 @@ router.post('/login', [
 router.post('/refresh', authController.refreshToken);
 router.post('/logout', authController.logout);
 
+// Routes publiques - Vérification d'email
+router.get('/verify-email/:token', authController.verifyEmail);
+router.post('/resend-verification', [
+  body('email').isEmail().normalizeEmail()
+], authController.resendVerificationEmail);
+
 // Routes publiques - Réinitialisation de mot de passe
 router.post('/forgot-password', [
   body('email').isEmail().normalizeEmail()
