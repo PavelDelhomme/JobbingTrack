@@ -97,6 +97,164 @@ const SCENARIOS = {
       'test_mobile_calendar',
       'view_statistics'
     ]
+  },
+  // Nouveaux scénarios granulaires
+  add_call_to_application: {
+    name: 'Ajouter Appel à Candidature',
+    description: 'Test spécifique : créer une candidature puis enregistrer un appel associé',
+    steps: [
+      'login',
+      'create_applications',
+      'make_calls',
+      'view_statistics'
+    ]
+  },
+  add_contact_to_application: {
+    name: 'Ajouter Contact à Candidature',
+    description: 'Test spécifique : créer une candidature puis associer un contact',
+    steps: [
+      'login',
+      'create_applications',
+      'create_contacts',
+      'link_contact_to_application',
+      'view_statistics'
+    ]
+  },
+  contact_management: {
+    name: 'Gestion des Contacts',
+    description: 'Test complet de la gestion des contacts',
+    steps: [
+      'login',
+      'create_contacts',
+      'update_contacts',
+      'view_contact_details',
+      'delete_contact'
+    ]
+  },
+  interview_workflow: {
+    name: 'Workflow Entretiens',
+    description: 'Parcours complet de planification et suivi d\'entretiens',
+    steps: [
+      'login',
+      'create_applications',
+      'create_contacts',
+      'schedule_interviews',
+      'update_interview_status',
+      'add_interview_notes',
+      'view_statistics'
+    ]
+  },
+  followup_management: {
+    name: 'Gestion des Relances',
+    description: 'Test des fonctionnalités de relance automatique',
+    steps: [
+      'login',
+      'create_applications',
+      'create_followups',
+      'update_followup_status',
+      'mark_followup_completed',
+      'view_statistics'
+    ]
+  },
+  event_scheduling: {
+    name: 'Planification d\'Événements',
+    description: 'Test de création et gestion d\'événements au calendrier',
+    steps: [
+      'login',
+      'create_events',
+      'update_event',
+      'delete_event',
+      'view_calendar',
+      'test_mobile_calendar'
+    ]
+  },
+  company_workflow: {
+    name: 'Workflow Entreprises',
+    description: 'Parcours complet de gestion des entreprises',
+    steps: [
+      'login',
+      'create_companies',
+      'update_companies',
+      'add_company_notes',
+      'create_applications',
+      'view_statistics'
+    ]
+  },
+  application_lifecycle: {
+    name: 'Cycle de Vie Candidature',
+    description: 'Suivi complet d\'une candidature de A à Z',
+    steps: [
+      'login',
+      'create_applications',
+      'update_applications',
+      'schedule_interviews',
+      'make_calls',
+      'create_followups',
+      'add_application_notes',
+      'update_application_status',
+      'view_statistics'
+    ]
+  },
+  daily_activity: {
+    name: 'Activité Quotidienne',
+    description: 'Simulation d\'une journée type de recherche d\'emploi',
+    steps: [
+      'login',
+      'view_statistics',
+      'create_applications',
+      'make_calls',
+      'create_followups',
+      'check_interviews',
+      'update_applications',
+      'view_statistics'
+    ]
+  },
+  rapid_application: {
+    name: 'Candidature Rapide',
+    description: 'Processus de candidature express',
+    steps: [
+      'login',
+      'create_applications',
+      'add_application_notes',
+      'view_statistics'
+    ]
+  },
+  networking_session: {
+    name: 'Session Networking',
+    description: 'Ajout et gestion de contacts suite à un événement networking',
+    steps: [
+      'login',
+      'create_contacts',
+      'create_contacts',
+      'create_contacts',
+      'link_contact_to_application',
+      'create_followups',
+      'view_statistics'
+    ]
+  },
+  interview_preparation: {
+    name: 'Préparation Entretien',
+    description: 'Préparer un entretien avec notes et recherches',
+    steps: [
+      'login',
+      'schedule_interviews',
+      'add_interview_notes',
+      'create_events',
+      'view_contact_details',
+      'view_statistics'
+    ]
+  },
+  weekly_review: {
+    name: 'Revue Hebdomadaire',
+    description: 'Faire le point sur la semaine écoulée',
+    steps: [
+      'login',
+      'view_statistics',
+      'update_applications',
+      'mark_followup_completed',
+      'create_followups',
+      'view_statistics'
+    ]
   }
 };
 
@@ -184,6 +342,91 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
     id: 'test_mobile_calendar',
     name: 'Calendrier Mobile',
     description: 'Tester le calendrier dans l\'app mobile',
+    icon: Calendar
+  },
+  // Nouvelles étapes granulaires
+  link_contact_to_application: {
+    id: 'link_contact_to_application',
+    name: 'Lier Contact à Candidature',
+    description: 'Associer un contact à une candidature existante',
+    icon: Users
+  },
+  view_contact_details: {
+    id: 'view_contact_details',
+    name: 'Voir Détails Contact',
+    description: 'Consulter les informations d\'un contact',
+    icon: Users
+  },
+  delete_contact: {
+    id: 'delete_contact',
+    name: 'Supprimer Contact',
+    description: 'Supprimer un contact de test',
+    icon: Trash2
+  },
+  update_interview_status: {
+    id: 'update_interview_status',
+    name: 'Mettre à Jour Statut Entretien',
+    description: 'Modifier le statut d\'un entretien',
+    icon: Calendar
+  },
+  add_interview_notes: {
+    id: 'add_interview_notes',
+    name: 'Ajouter Notes Entretien',
+    description: 'Ajouter des notes à un entretien',
+    icon: FileText
+  },
+  update_followup_status: {
+    id: 'update_followup_status',
+    name: 'Mettre à Jour Relance',
+    description: 'Modifier le statut d\'une relance',
+    icon: Clock
+  },
+  mark_followup_completed: {
+    id: 'mark_followup_completed',
+    name: 'Marquer Relance Complétée',
+    description: 'Marquer une relance comme effectuée',
+    icon: CheckCircle
+  },
+  update_event: {
+    id: 'update_event',
+    name: 'Modifier Événement',
+    description: 'Mettre à jour un événement au calendrier',
+    icon: Calendar
+  },
+  delete_event: {
+    id: 'delete_event',
+    name: 'Supprimer Événement',
+    description: 'Supprimer un événement du calendrier',
+    icon: Trash2
+  },
+  view_calendar: {
+    id: 'view_calendar',
+    name: 'Voir Calendrier',
+    description: 'Consulter le calendrier des événements',
+    icon: Calendar
+  },
+  add_company_notes: {
+    id: 'add_company_notes',
+    name: 'Ajouter Notes Entreprise',
+    description: 'Ajouter des notes à une entreprise',
+    icon: FileText
+  },
+  add_application_notes: {
+    id: 'add_application_notes',
+    name: 'Ajouter Notes Candidature',
+    description: 'Ajouter des notes à une candidature',
+    icon: FileText
+  },
+  update_application_status: {
+    id: 'update_application_status',
+    name: 'Mettre à Jour Statut Candidature',
+    description: 'Changer le statut d\'une candidature',
+    icon: TrendingUp
+  },
+  check_interviews: {
+    id: 'check_interviews',
+    name: 'Vérifier Entretiens',
+    description: 'Consulter les entretiens à venir',
     icon: Calendar
   }
 };
@@ -617,6 +860,314 @@ export default function UserJourneyPage() {
           result = await handleFetchResponse(statsRes);
           break;
 
+        // Nouvelles étapes granulaires
+        case 'link_contact_to_application':
+          // Récupérer une candidature et un contact existants
+          const appsForLinkRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForLink = await handleFetchResponse(appsForLinkRes);
+          const appsArray = Array.isArray(appsForLink) ? appsForLink : (appsForLink.data || []);
+          
+          const contactsForLinkRes = await fetch('/api/v1/contacts', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const contactsForLink = await handleFetchResponse(contactsForLinkRes);
+          const contactsArray = Array.isArray(contactsForLink) ? contactsForLink : (contactsForLink.data || []);
+          
+          if (appsArray.length > 0 && contactsArray.length > 0) {
+            const linkRes = await fetch(`/api/v1/applications/${appsArray[0].id}/contacts`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                contactId: contactsArray[0].id
+              })
+            });
+            result = await handleFetchResponse(linkRes);
+          } else {
+            result = { message: 'Association simulée (pas de données existantes)' };
+          }
+          break;
+
+        case 'view_contact_details':
+          const contactsListRes = await fetch('/api/v1/contacts', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const contactsList = await handleFetchResponse(contactsListRes);
+          const contactsListArray = Array.isArray(contactsList) ? contactsList : (contactsList.data || []);
+          
+          if (contactsListArray.length > 0) {
+            const detailsRes = await fetch(`/api/v1/contacts/${contactsListArray[0].id}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            result = await handleFetchResponse(detailsRes);
+          } else {
+            result = { message: 'Aucun contact à consulter' };
+          }
+          break;
+
+        case 'delete_contact':
+          const contactsToDeleteRes = await fetch('/api/v1/contacts', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const contactsToDelete = await handleFetchResponse(contactsToDeleteRes);
+          const contactsToDeleteArray = Array.isArray(contactsToDelete) ? contactsToDelete : (contactsToDelete.data || []);
+          
+          if (contactsToDeleteArray.length > 0) {
+            const deleteRes = await fetch(`/api/v1/contacts/${contactsToDeleteArray[contactsToDeleteArray.length - 1].id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            result = await handleFetchResponse(deleteRes);
+          } else {
+            result = { message: 'Aucun contact à supprimer' };
+          }
+          break;
+
+        case 'update_interview_status':
+          const interviewsToUpdateRes = await fetch('/api/v1/interviews', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const interviewsToUpdate = await handleFetchResponse(interviewsToUpdateRes);
+          const interviewsArray = Array.isArray(interviewsToUpdate) ? interviewsToUpdate : (interviewsToUpdate.data || []);
+          
+          if (interviewsArray.length > 0) {
+            const updateRes = await fetch(`/api/v1/interviews/${interviewsArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                status: 'completed'
+              })
+            });
+            result = await handleFetchResponse(updateRes);
+          } else {
+            result = { message: 'Aucun entretien à mettre à jour' };
+          }
+          break;
+
+        case 'add_interview_notes':
+          const interviewsForNotesRes = await fetch('/api/v1/interviews', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const interviewsForNotes = await handleFetchResponse(interviewsForNotesRes);
+          const interviewsForNotesArray = Array.isArray(interviewsForNotes) ? interviewsForNotes : (interviewsForNotes.data || []);
+          
+          if (interviewsForNotesArray.length > 0) {
+            const notesRes = await fetch(`/api/v1/interviews/${interviewsForNotesArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                notes: 'Notes ajoutées automatiquement lors du test - Entretien très positif'
+              })
+            });
+            result = await handleFetchResponse(notesRes);
+          } else {
+            result = { message: 'Aucun entretien pour ajouter des notes' };
+          }
+          break;
+
+        case 'update_followup_status':
+          const followupsToUpdateRes = await fetch('/api/v1/followups', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const followupsToUpdate = await handleFetchResponse(followupsToUpdateRes);
+          const followupsArray = Array.isArray(followupsToUpdate) ? followupsToUpdate : (followupsToUpdate.data || []);
+          
+          if (followupsArray.length > 0) {
+            const updateRes = await fetch(`/api/v1/followups/${followupsArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                status: 'in_progress'
+              })
+            });
+            result = await handleFetchResponse(updateRes);
+          } else {
+            result = { message: 'Aucune relance à mettre à jour' };
+          }
+          break;
+
+        case 'mark_followup_completed':
+          const followupsToCompleteRes = await fetch('/api/v1/followups', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const followupsToComplete = await handleFetchResponse(followupsToCompleteRes);
+          const followupsToCompleteArray = Array.isArray(followupsToComplete) ? followupsToComplete : (followupsToComplete.data || []);
+          
+          if (followupsToCompleteArray.length > 0) {
+            const completeRes = await fetch(`/api/v1/followups/${followupsToCompleteArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                status: 'completed',
+                completedAt: new Date().toISOString()
+              })
+            });
+            result = await handleFetchResponse(completeRes);
+          } else {
+            result = { message: 'Aucune relance à compléter' };
+          }
+          break;
+
+        case 'update_event':
+          const eventsToUpdateRes = await fetch('/api/v1/events', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const eventsToUpdate = await handleFetchResponse(eventsToUpdateRes);
+          const eventsToUpdateArray = Array.isArray(eventsToUpdate) ? eventsToUpdate : (eventsToUpdate.data || []);
+          
+          if (eventsToUpdateArray.length > 0) {
+            const updateRes = await fetch(`/api/v1/events/${eventsToUpdateArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                title: 'Événement mis à jour - Test',
+                description: 'Description modifiée automatiquement'
+              })
+            });
+            result = await handleFetchResponse(updateRes);
+          } else {
+            result = { message: 'Aucun événement à modifier' };
+          }
+          break;
+
+        case 'delete_event':
+          const eventsToDeleteRes = await fetch('/api/v1/events', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const eventsToDelete = await handleFetchResponse(eventsToDeleteRes);
+          const eventsToDeleteArray = Array.isArray(eventsToDelete) ? eventsToDelete : (eventsToDelete.data || []);
+          
+          if (eventsToDeleteArray.length > 0) {
+            const deleteRes = await fetch(`/api/v1/events/${eventsToDeleteArray[eventsToDeleteArray.length - 1].id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            result = await handleFetchResponse(deleteRes);
+          } else {
+            result = { message: 'Aucun événement à supprimer' };
+          }
+          break;
+
+        case 'view_calendar':
+          const calendarViewRes = await fetch('/api/v1/events', {
+            headers: { 
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          const calendarView = await handleFetchResponse(calendarViewRes);
+          result = {
+            message: 'Calendrier consulté',
+            eventsCount: Array.isArray(calendarView) ? calendarView.length : (calendarView.data?.length || 0),
+            events: calendarView
+          };
+          break;
+
+        case 'add_company_notes':
+          const companiesForNotesRes = await fetch('/api/v1/companies', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const companiesForNotes = await handleFetchResponse(companiesForNotesRes);
+          const companiesForNotesArray = Array.isArray(companiesForNotes) ? companiesForNotes : (companiesForNotes.data || []);
+          
+          if (companiesForNotesArray.length > 0) {
+            const notesRes = await fetch(`/api/v1/companies/${companiesForNotesArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                description: 'Notes ajoutées automatiquement - Entreprise très intéressante',
+                notes: 'Culture d\'entreprise excellente'
+              })
+            });
+            result = await handleFetchResponse(notesRes);
+          } else {
+            result = { message: 'Aucune entreprise pour ajouter des notes' };
+          }
+          break;
+
+        case 'add_application_notes':
+          const appsForNotesRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForNotes = await handleFetchResponse(appsForNotesRes);
+          const appsForNotesArray = Array.isArray(appsForNotes) ? appsForNotes : (appsForNotes.data || []);
+          
+          if (appsForNotesArray.length > 0) {
+            const notesRes = await fetch(`/api/v1/applications/${appsForNotesArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                notes: 'Notes ajoutées automatiquement - Candidature prometteuse'
+              })
+            });
+            result = await handleFetchResponse(notesRes);
+          } else {
+            result = { message: 'Aucune candidature pour ajouter des notes' };
+          }
+          break;
+
+        case 'update_application_status':
+          const appsForStatusRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForStatus = await handleFetchResponse(appsForStatusRes);
+          const appsForStatusArray = Array.isArray(appsForStatus) ? appsForStatus : (appsForStatus.data || []);
+          
+          if (appsForStatusArray.length > 0) {
+            const statusRes = await fetch(`/api/v1/applications/${appsForStatusArray[0].id}`, {
+              method: 'PUT',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                status: 'FIRST_INTERVIEW_PENDING'
+              })
+            });
+            result = await handleFetchResponse(statusRes);
+          } else {
+            result = { message: 'Aucune candidature pour changer le statut' };
+          }
+          break;
+
+        case 'check_interviews':
+          const upcomingInterviewsRes = await fetch('/api/v1/interviews', {
+            headers: { 
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          const upcomingInterviews = await handleFetchResponse(upcomingInterviewsRes);
+          result = {
+            message: 'Entretiens vérifiés',
+            count: Array.isArray(upcomingInterviews) ? upcomingInterviews.length : (upcomingInterviews.data?.length || 0),
+            interviews: upcomingInterviews
+          };
+          break;
+
         default:
           result = { message: 'Étape non implémentée' };
       }
@@ -970,9 +1521,12 @@ export default function UserJourneyPage() {
           <Card>
             <CardHeader>
               <CardTitle>Sélectionner un Scénario</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                {Object.keys(SCENARIOS).length} scénarios disponibles - Sélectionnez celui qui correspond à votre besoin
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(SCENARIOS).map(([key, scenario]) => (
                   <button
                     key={key}
@@ -981,16 +1535,16 @@ export default function UserJourneyPage() {
                     className={`
                       p-4 rounded-lg border-2 text-left transition-all
                       ${selectedScenario === key 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-300'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                       }
-                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
                     `}
                   >
-                    <h3 className="font-semibold mb-1">{scenario.name}</h3>
-                    <p className="text-sm text-gray-600">{scenario.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {scenario.steps.length} étapes
+                    <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{scenario.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{scenario.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                      📋 {scenario.steps.length} étape{scenario.steps.length > 1 ? 's' : ''}
                     </p>
                   </button>
                 ))}
@@ -1235,24 +1789,148 @@ export default function UserJourneyPage() {
         <TabsContent value="scenarios" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Scénarios Disponibles</CardTitle>
+              <CardTitle>Scénarios Disponibles ({Object.keys(SCENARIOS).length})</CardTitle>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Parcours de test organisés par catégorie pour couvrir tous les cas d&apos;usage
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(SCENARIOS).map(([key, scenario]) => (
-                  <div key={key} className="border rounded-lg p-4">
-                    <h3 className="font-semibold text-lg mb-2">{scenario.name}</h3>
-                    <p className="text-gray-600 mb-3">{scenario.description}</p>
-                    <div className="space-y-1">
-                      <strong className="text-sm">Étapes :</strong>
-                      <ol className="list-decimal list-inside text-sm space-y-1">
-                        {scenario.steps.map(stepId => (
-                          <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  </div>
-                ))}
+            <CardContent className="space-y-6">
+              {/* Scénarios Complets et Généraux */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Parcours Complets
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['complete', 'quick', 'beginner', 'job_seeker', 'mobile_test'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <div className="space-y-1">
+                          <strong className="text-xs text-gray-500">📋 {scenario.steps.length} étapes</strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scénarios Spécifiques par Fonctionnalité */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-green-600 dark:text-green-400 flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Gestion Contacts & Relations
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['add_contact_to_application', 'contact_management', 'networking_session'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-green-300 dark:hover:border-green-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map(stepId => (
+                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scénarios Candidatures */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Gestion Candidatures
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['application_lifecycle', 'rapid_application', 'company_workflow', 'add_call_to_application'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map(stepId => (
+                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scénarios Entretiens & Relances */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-orange-600 dark:text-orange-400 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Entretiens, Relances & Événements
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['interview_workflow', 'interview_preparation', 'followup_management', 'event_scheduling'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-orange-300 dark:hover:border-orange-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map(stepId => (
+                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Scénarios d'Activité Quotidienne */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-teal-600 dark:text-teal-400 flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Activités Régulières
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['daily_activity', 'weekly_review'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-teal-300 dark:hover:border-teal-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map(stepId => (
+                              <li key={stepId}>{STEP_DEFINITIONS[stepId].name}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
