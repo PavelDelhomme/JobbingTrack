@@ -511,15 +511,47 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # ============================================================================
 
 # Statut détaillé
-status: ## Statut détaillé de chaque service
+status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
 	@echo ""
 	@echo "🔴 Services essentiels:"
-	@docker ps --filter "name=jobbingtrack-*" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | grep -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service essentiel en cours"
+	@echo ""
+	@services="postgres redis api-gateway frontend auth-service dashboard-service"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=$$container" --format "{{.Status}}" 2>/dev/null); \
+			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null | head -c 40); \
+			printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports"; \
+		else \
+			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
 	@echo ""
 	@echo "🟡 Services optionnels:"
-	@docker ps --filter "name=jobbingtrack-*" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null | grep -v -E "postgres|redis|api-gateway|frontend|auth-service|dashboard-service" || echo "  Aucun service optionnel en cours"
+	@echo ""
+	@services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=$$container" --format "{{.Status}}" 2>/dev/null); \
+			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null | head -c 40); \
+			printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports"; \
+		else \
+			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
+	@echo ""
+	@up_count=$$(docker ps --filter "name=jobbingtrack-*" --format '{{.Names}}' 2>/dev/null | wc -l); \
+	all_count=15; \
+	if [ $$up_count -eq 0 ]; then \
+		echo "📊 Résumé : \033[1;31m$$up_count/$$all_count services actifs\033[0m"; \
+	elif [ $$up_count -lt 6 ]; then \
+		echo "📊 Résumé : \033[1;33m$$up_count/$$all_count services actifs\033[0m"; \
+	else \
+		echo "📊 Résumé : \033[1;32m$$up_count/$$all_count services actifs\033[0m"; \
+	fi
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs
