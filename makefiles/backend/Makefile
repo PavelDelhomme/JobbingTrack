@@ -54,8 +54,8 @@ help-backend: ## Afficher l'aide backend
 monitoring-up: ## Démarrer stack monitoring
 	@echo "📊 Démarrage stack monitoring..."
 	@echo "🧹 Nettoyage des conteneurs conflictuels..."
-	@docker stop cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@docker rm cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker stop prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker rm prometheus grafana loki promtail node-exporter 2>/dev/null || true
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml up -d
 	@echo "✅ Monitoring démarré"
 	@echo ""
@@ -99,8 +99,8 @@ monitoring-full: ## Démarrer JobbingTrack + Monitoring (propre)
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🧹 Nettoyage des conteneurs conflictuels..."
-	@docker stop cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@docker rm cadvisor-monitoring prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker stop prometheus grafana loki promtail node-exporter 2>/dev/null || true
+	@docker rm prometheus grafana loki promtail node-exporter 2>/dev/null || true
 	@echo "🛑 Arrêt de la stack monitoring..."
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml down 2>/dev/null || true
 	@echo ""
