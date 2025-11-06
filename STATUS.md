@@ -1,30 +1,35 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-05 20h30  
+**Dernière MAJ** : 2025-11-06 21h15  
 **Version Projet** : v1.0.1 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  
+**Base de Données** : ✅ 25 TABLES CRÉÉES (Prisma sync OK)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
 ---
 
-## 🚀 TODO POUR DEMAIN (06/11/2025) - À FAIRE EN PRIORITÉ
+## 🚀 TODO POUR AUJOURD'HUI (06/11/2025) - À FAIRE EN PRIORITÉ
 
-### ⚡ PRIORITÉ 1 : Migrations Base de Données (5 min) ⭐ URGENT !
+### ✅ PRIORITÉ 1 : Migrations Base de Données (5 min) ⭐ **COMPLÉTÉE !**
 
+**Statut** : ✅ **TERMINÉ** - 25 tables créées avec succès !
+
+**Actions effectuées** :
 ```bash
-# La BDD est VIDE, appliquer migrations Prisma
-cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
-
-docker exec jobbingtrack-auth-service npx prisma migrate deploy
-docker exec jobbingtrack-auth-service npx prisma generate
-docker-compose --profile auth restart auth-service
-
-# Vérifier tables créées
-docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt"
+✅ npx prisma db push          # Synchronisation schéma → BDD
+✅ docker-compose restart auth-service
+✅ Vérification des tables
 ```
+
+**Résultat** :
+- ✅ 25 tables créées (User, Application, Company, Contact, Interview, FollowUp, Call, Event, etc.)
+- ✅ Base de données opérationnelle
+- ✅ Auth-service redémarré et fonctionnel
+
+---
 
 ### ⚡ PRIORITÉ 2 : Tests Emails OVH (15 min)
 
@@ -3370,6 +3375,35 @@ Toutes les tables demandées sont implémentées :
 ---
 
 ## 🔄 HISTORIQUE DES MODIFICATIONS
+
+**2025-11-06 21h15** - ✅ Migrations Prisma + Suppression cadvisor + make status amélioré
+- ✅ **Base de données initialisée** 
+  - 25 tables créées avec succès (Prisma db push)
+  - User, Application, Company, Contact, Interview, FollowUp, Call, Event, etc.
+  - Auth-service redémarré et opérationnel
+  - BDD prête pour tests emails OVH
+- ✅ **Suppression cadvisor obsolète**
+  - Nettoyage de toutes les références cadvisor dans les Makefiles
+  - `makefiles/services/Makefile` : Suppression de cadvisor du `make up`
+  - `makefiles/utils/Makefile` : Suppression commande `make cadvisor`
+  - `makefiles/backend/Makefile` : Suppression de `cadvisor-monitoring`
+  - `makefiles/README.md` : Documentation mise à jour
+- ✅ **make status amélioré**
+  - Affichage couleurs : ✅ UP (vert), ❌ DOWN (rouge), ⚪ DOWN (gris pour optionnels)
+  - Séparation services essentiels / optionnels
+  - Résumé du nombre de services actifs avec couleurs
+  - Ports affichés pour chaque service UP
+- 🎯 **Impact** :
+  - Base de données complètement opérationnelle
+  - `make up` fonctionne sans erreur
+  - Monitoring plus lisible et professionnel
+- 📁 **Fichiers** :
+  - `backend/auth-service/prisma/schema.prisma` (25 tables synchronisées)
+  - `makefiles/services/Makefile` (cadvisor supprimé, status amélioré)
+  - `makefiles/utils/Makefile` (cadvisor supprimé)
+  - `makefiles/backend/Makefile` (cadvisor supprimé)
+  - `makefiles/README.md` (doc mise à jour)
+  - `STATUS.md` (ce fichier - PRIORITÉ 1 complétée)
 
 **2025-11-05 12h15** - ✅ Table ContainerLog + Toggle Mode Admin/User
 - ✅ **Table ContainerLog** créée dans schema.prisma
