@@ -4,7 +4,7 @@
 # Utilitaires divers (monitoring quick access, scripts, etc.)
 # ============================================================================
 
-.PHONY: metrics cadvisor logs-metrics mon mon-save mon-watch mon-quick mon-history mon-last mon-clean help-utils
+.PHONY: metrics logs-metrics mon mon-save mon-watch mon-quick mon-history mon-last mon-clean help-utils
 
 # ============================================================================
 # AIDE
@@ -17,7 +17,6 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo ""
 	@echo "📊 ACCÈS RAPIDE MONITORING:"
 	@echo "  make metrics               - Ouvrir Prometheus (http://localhost:9090)"
-	@echo "  make cadvisor              - Ouvrir cAdvisor (http://localhost:8081)"
 	@echo "  make logs-metrics          - Logs du système de métriques"
 	@echo ""
 	@echo "📈 SCRIPTS MONITORING:"
@@ -34,7 +33,6 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo "  API Gateway:       http://localhost:3000"
 	@echo "  Metrics Service:   http://localhost:8014"
 	@echo "  Prometheus:        http://localhost:9090"
-	@echo "  cAdvisor:          http://localhost:8082"
 	@echo "  Grafana:           http://localhost:3013"
 	@echo "  Loki:              http://localhost:3100"
 	@echo ""
@@ -61,15 +59,7 @@ metrics: ## Ouvrir Prometheus dans le navigateur
 		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
 	fi
 
-# Ouvrir cAdvisor
-cadvisor: ## Ouvrir cAdvisor dans le navigateur
-	@echo "📊 Ouverture de cAdvisor..."
-	@echo "🌐 URL: http://localhost:8081"
-	@if command -v xdg-open >/dev/null 2>&1; then \
-		xdg-open http://localhost:8081 2>/dev/null & \
-	else \
-		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
-	fi
+# cAdvisor supprimé (obsolète)
 
 # Logs métriques
 # logs-metrics est défini dans makefiles/services/Makefile (ligne 544)

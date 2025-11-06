@@ -96,7 +96,7 @@ make help-frontend     # Aide frontend complète
 | **Tests** | `makefiles/tests/Makefile` | test-*, lint, format |
 | **Backend** | `makefiles/backend/Makefile` | monitoring-*, backend specifics |
 | **Frontend** | `makefiles/frontend/Makefile` | frontend specifics |
-| **Utils** | `makefiles/utils/Makefile` | metrics, cadvisor |
+| **Utils** | `makefiles/utils/Makefile` | metrics |
 | **Général** | `makefiles/Makefile` | help, info |
 
 ### Exemple : Ajouter une commande de service
@@ -205,7 +205,6 @@ make test-monitoring    # Tests monitoring
 ### 🔧 Utils (makefiles/utils/Makefile)
 ```bash
 make metrics            # Ouvrir Prometheus
-make cadvisor           # Ouvrir cAdvisor
 make logs-metrics       # Logs métriques
 ```
 

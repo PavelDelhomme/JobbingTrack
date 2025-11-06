@@ -61,7 +61,7 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	$(call check_docker)
 	$(call check_and_free_ports)
 	$(call ensure_docker_network)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
@@ -71,7 +71,6 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   Auth Service:       http://localhost:8001"
 	@echo "   Dashboard Service:  http://localhost:8012"
 	@echo "   Metrics:            http://localhost:8014"
-	@echo "   cAdvisor:           http://localhost:8081"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
 	@echo "   Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.com}"
@@ -84,7 +83,7 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	@echo "🚀 Démarrage services essentiels (mode NO-CHECK)..."
 	@echo "⚠️  ATTENTION: Vérifications Docker ignorées"
 	$(call check_and_free_ports)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator cadvisor)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Services démarrés (mode NO-CHECK)!"
 	@echo ""
@@ -305,7 +304,7 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@docker-compose -f docker-compose.yml --profile full up -d
 	
 	# Services monitoring supplémentaires
-	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, cAdvisor, etc.
+	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, etc.
 	# docker-compose.metrics.yml est obsolète, utilisez monitoring/docker-compose.monitoring.yml
 	# @if [ -f "docker-compose.metrics.yml" ]; then \
 	# 	echo "📊 Démarrage des services de monitoring supplémentaires..."; \
@@ -358,7 +357,7 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 		echo ""; \
 	fi
 	
-	@echo "📊 Pour démarrer le monitoring complet (Prometheus, cAdvisor, Grafana):"
+	@echo "📊 Pour démarrer le monitoring complet (Prometheus, Grafana):"
 	@echo "    make monitoring-full"
 	@echo ""
 	@echo "🔍 Pour voir les logs : make logs"
