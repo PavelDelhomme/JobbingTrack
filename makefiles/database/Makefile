@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all
 
 # ============================================================================
 # AIDE
@@ -17,6 +17,9 @@ help-database: ## Afficher l'aide base de données
 	@echo ""
 	@echo "🔄 MIGRATIONS & DONNÉES:"
 	@echo "  make db-migrate            - Appliquer migrations Prisma"
+	@echo "  make db-push-all           - Synchroniser schémas Prisma (db push)"
+	@echo "  make migrate-all           - Alias rapide pour db-migrate"
+	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
 	@echo "  make db-fix-role           - Réparer rôle et DB PostgreSQL"
 	@echo ""
@@ -92,6 +95,55 @@ db-migrate: ## Appliquer les migrations Prisma sur tous les services
 	echo "✅ Migrations terminées !"; \
 	echo "   📦 Services migrés: $$MIGRATED"; \
 	echo "   ⏭️  Services ignorés: $$SKIPPED"
+
+migrate-all: ## Alias - Appliquer les migrations Prisma sur tous les services
+	@$(MAKE) db-migrate
+
+migrate-restart: ## Appliquer les migrations puis redémarrer les services actifs
+	@echo "⚙️  Étape 1/2 - Migrations Prisma"
+	@$(MAKE) db-migrate
+	@echo ""
+	@echo "🔁 Étape 2/2 - Redémarrage des services actifs"
+	@$(MAKE) restart
+	@echo ""
+	@echo "✅ Migrations appliquées et services redémarrés !"
+
+db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push)
+	@echo "🛠️  Synchronisation des schémas Prisma (db push)..."
+	@echo ""
+	@echo "🔍 Vérification de la disponibilité de PostgreSQL..."
+	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
+	@echo "✅ PostgreSQL est disponible"
+	@echo ""
+	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator"; \
+	PUSHED=0; \
+	SKIPPED=0; \
+	for service in $$SERVICES; do \
+		CONTAINER="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
+			echo "  🔍 Vérification de $$service..."; \
+			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
+				echo "  📦 Prisma db push sur $$service..."; \
+				if docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss; then \
+					echo "  ✅ $$service - Schéma synchronisé"; \
+					PUSHED=$$((PUSHED + 1)); \
+				else \
+					echo "  ❌ $$service - Échec de prisma db push"; \
+					SKIPPED=$$((SKIPPED + 1)); \
+				fi; \
+			else \
+				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
+		else \
+			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
+			SKIPPED=$$((SKIPPED + 1)); \
+		fi; \
+		echo ""; \
+	done; \
+	echo "✅ Synchronisation terminée !"; \
+	echo "   📦 Services synchronisés: $$PUSHED"; \
+	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"
 
 # Seed de données de test
 db-seed: ## Insérer des données de test

@@ -1662,7 +1662,7 @@ export default function UserJourneyPage() {
                   
                   return (
                     <div
-                      key={step.id}
+                      key={`${step.id}-${index}`}
                       className={`
                         flex items-start gap-4 p-4 rounded-lg border-2 transition-all
                         ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200'}
@@ -1821,8 +1821,8 @@ export default function UserJourneyPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {steps.filter(s => s.duration).map(step => (
-                  <div key={step.id} className="flex items-center gap-3">
+                {steps.filter(s => s.duration).map((step, idx, arr) => (
+                  <div key={`${step.id}-${idx}`} className="flex items-center gap-3">
                     <div className="w-32 text-sm">{step.name}</div>
                     <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
                       <div

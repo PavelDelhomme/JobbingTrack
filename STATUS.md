@@ -9,6 +9,14 @@
 **Base de Données** : ✅ 25 TABLES CRÉÉES (Prisma sync OK)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
+**Commandes clés (base de données)** :
+```
+make db-push-all     → Synchronise les schémas Prisma (prisma db push)
+make migrate-all     → Applique les migrations Prisma (migrate deploy)
+make migrate-restart → (équivalent db-migrate + restart) [si MAKE=make]
+make restart         → Redémarre les services actifs
+```
+
 ---
 
 ## 🚀 TODO POUR AUJOURD'HUI (06/11/2025) - À FAIRE EN PRIORITÉ

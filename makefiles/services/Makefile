@@ -514,7 +514,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
 	@echo ""
-	@echo "🔴 Services essentiels:"
+	@echo "🟢 Services essentiels:"
 	@echo ""
 	@services="postgres redis api-gateway frontend auth-service dashboard-service"; \
 	for service in $$services; do \
@@ -528,7 +528,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		fi; \
 	done
 	@echo ""
-	@echo "🟡 Services optionnels:"
+	@echo "🔵"
 	@echo ""
 	@services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
 	for service in $$services; do \
