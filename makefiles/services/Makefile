@@ -528,7 +528,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		fi; \
 	done
 	@echo ""
-	@echo "🔵"
+	@echo "🔵 Services optionnels:"
 	@echo ""
 	@services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
 	for service in $$services; do \
