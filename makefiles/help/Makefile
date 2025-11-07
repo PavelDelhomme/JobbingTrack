@@ -5,7 +5,7 @@
 # ============================================================================
 
 .PHONY: help help-up help-down help-status help-logs help-monitoring-up help-test help-build help-clean \
-        help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help
+        help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate
 
 # ============================================================================
 # AIDE GÉNÉRALE
@@ -28,6 +28,10 @@ help: ## Afficher l'aide complète
 	@echo "  make diagnostic        - Diagnostic complet"
 	@echo ""
 	@echo "🗄️  BASE DE DONNÉES:"
+	@echo "  make db-migrate        - Migrations Prisma (tous services)"
+	@echo "  make db-push-all       - Synchroniser schémas (prisma db push)"
+	@echo "  make migrate-all       - Alias pour db-migrate"
+	@echo "  make migrate-restart   - Migrations + restart services"
 	@echo "  make db-seed           - Insérer données test"
 	@echo "  make db-backup         - Sauvegarder DB"
 	@echo "  make db-reset          - Reset DB"
@@ -50,6 +54,36 @@ help: ## Afficher l'aide complète
 	@echo "💡 AIDE DÉTAILLÉE:"
 	@echo "  make help-<commande>   - Aide pour une commande"
 	@echo "  Exemple: make help-up"
+	@echo ""
+
+help-migrate: ## Aide détaillée pour les migrations Prisma
+	@echo "================================================================"
+	@echo "🗄️  AIDE: Migrations Prisma"
+	@echo "================================================================"
+	@echo ""
+	@echo "📝 DESCRIPTION:"
+	@echo "  Exécute les migrations Prisma sur chaque micro-service backend"
+	@echo ""
+	@echo "🔧 COMMANDES DISPONIBLES:"
+	@echo "  make db-migrate        - Commande principale (tous les services)"
+	@echo "  make db-push-all       - Forcer la création des tables (prisma db push)"
+	@echo "  make migrate-all       - Alias pratique (équivalent à db-migrate)"
+	@echo "  make migrate-restart   - Migrations puis redémarrage des services actifs"
+	@echo ""
+	@echo "⚠️  PRÉREQUIS:"
+	@echo "  - Services Docker doivent être démarrés (make up ou make up-full)"
+	@echo "  - PostgreSQL doit être prêt (la commande vérifie automatiquement)"
+	@echo ""
+	@echo "🔄 WORKFLOW CONSEILLÉ:"
+	@echo "  1. make db-push-all    (si tables manquantes / nouvelle base)"
+	@echo "  2. make migrate-all"
+	@echo "  3. make restart        (ou make migrate-restart directement)"
+	@echo ""
+	@echo "🧪 APRÈS MIGRATION:"
+	@echo "  - make tests-user-journey   → Vérifier API"
+	@echo "  - make tests-interface-web  → Vérifier parcours manuel"
+	@echo ""
+	@echo "📖 Documentation détaillée: STATUS.md section 1.12"
 	@echo ""
 
 # ============================================================================
@@ -372,6 +406,7 @@ help-%: ## Aide dynamique pour toute commande (make help-<commande>)
 	@echo "    make help-status"
 	@echo "    make help-logs"
 	@echo "    make help-monitoring-up"
+	@echo "    make help-migrate"
 	@echo "    make help-build"
 	@echo "    make help-clean"
 	@echo ""
