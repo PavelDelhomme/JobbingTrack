@@ -1,30 +1,34 @@
 const { PrismaClient } = require('@prisma/client');
+const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
-// Récupérer toutes les relances
+const sanitizeStatus = (status) => {
+  if (!status) return 'PENDING';
+  const value = status.toUpperCase();
+  const allowed = ['PENDING', 'POSITIVE_RESPONSE', 'NEGATIVE_RESPONSE', 'NO_RESPONSE', 'PLANNED'];
+  return allowed.includes(value) ? value : 'PENDING';
+};
+
+const mapFollowup = (followup) => ({
+  ...followup,
+  followUpDate: followup.followUpDate?.toISOString(),
+  createdAt: followup.createdAt?.toISOString(),
+  updatedAt: followup.updatedAt?.toISOString()
+});
+
 const getFollowups = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, completed, type, applicationId } = req.query;
     const userId = req.user.id;
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const { page = 1, limit = 10, status } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    // Vérifier que l'utilisateur a accès aux candidatures
-    const userApplications = await prisma.application.findMany({
-      where: { userId },
-      select: { id: true }
-    });
-    const applicationIds = userApplications.map(app => app.id);
-
     const where = {
-      applicationId: { in: applicationIds },
-      ...(completed !== undefined && { completed: completed === 'true' }),
-      ...(type && { type }),
-      ...(applicationId && { applicationId })
+      userId,
+      ...(status && { status: sanitizeStatus(status) })
     };
 
     const [followups, total] = await Promise.all([
@@ -36,9 +40,10 @@ const getFollowups = async (req, res, next) => {
               company: true
             }
           },
+          company: true,
           contact: true
         },
-        orderBy: { scheduledDate: 'desc' },
+        orderBy: { followUpDate: 'desc' },
         skip,
         take: limitNum
       }),
@@ -47,7 +52,7 @@ const getFollowups = async (req, res, next) => {
 
     res.json({
       success: true,
-      followups,
+      followups: followups.map(mapFollowup),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -61,87 +66,80 @@ const getFollowups = async (req, res, next) => {
   }
 };
 
-// Récupérer une relance
 const getFollowup = async (req, res, next) => {
   try {
-    const { id } = req.params;
     const userId = req.user.id;
+    const { id } = req.params;
 
     const followup = await prisma.followUp.findFirst({
-      where: { id },
+      where: { id, userId },
       include: {
         application: {
           include: {
-            company: true,
-            user: true
+            company: true
           }
         },
+        company: true,
         contact: true
       }
     });
 
     if (!followup) {
-      return res.status(404).json({
-        success: false,
-        error: 'Relance non trouvée'
-      });
+      return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
-    // Vérifier que l'utilisateur a accès
-    if (followup.application.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Accès refusé'
-      });
-    }
-
-    res.json({
-      success: true,
-      followup
-    });
+    res.json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {
     logger.error('Erreur récupération relance:', error);
     next(error);
   }
 };
 
-// Créer une relance
 const createFollowup = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     const userId = req.user.id;
     const {
       applicationId,
       contactId,
-      type,
+      followUpDate,
       scheduledDate,
-      subject,
-      message
+      scheduledFor,
+      notes,
+      status
     } = req.body;
 
-    // Vérifier que l'application appartient à l'utilisateur
     const application = await prisma.application.findFirst({
-      where: {
-        id: applicationId,
-        userId
-      }
+      where: { id: applicationId, userId },
+      include: { company: true }
     });
 
     if (!application) {
-      return res.status(404).json({
-        success: false,
-        error: 'Candidature non trouvée'
-      });
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
     }
+
+    if (contactId) {
+      const contact = await prisma.contact.findFirst({ where: { id: contactId, userId } });
+      if (!contact) {
+        return res.status(404).json({ success: false, error: 'Contact non trouvé' });
+      }
+    }
+
+    const dateValue = followUpDate || scheduledDate || scheduledFor;
 
     const followup = await prisma.followUp.create({
       data: {
+        userId,
         applicationId,
-        contactId,
-        type,
-        scheduledDate: new Date(scheduledDate),
-        subject,
-        message,
-        status: 'PENDING_FOLLOWUP' // ✅ NOUVEAU - Statut par défaut
+        companyId: application.companyId,
+        contactId: contactId || null,
+        followUpDate: new Date(dateValue),
+        notes: notes || null,
+        status: sanitizeStatus(status)
       },
       include: {
         application: {
@@ -149,49 +147,69 @@ const createFollowup = async (req, res, next) => {
             company: true
           }
         },
+        company: true,
         contact: true
       }
     });
 
-    res.status(201).json({
-      success: true,
-      followup
-    });
+    logger.info(`Relance ${followup.id} créée pour l'utilisateur ${userId}`);
 
-    logger.info(`Relance créée: ${followup.id} pour ${userId}`);
+    res.status(201).json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {
     logger.error('Erreur création relance:', error);
     next(error);
   }
 };
 
-// Mettre à jour une relance
 const updateFollowup = async (req, res, next) => {
   try {
-    const { id } = req.params;
     const userId = req.user.id;
-    const data = req.body;
+    const { id } = req.params;
 
-    // Vérifier l'accès
-    const followup = await prisma.followUp.findFirst({
-      where: { id },
-      include: {
-        application: true
-      }
+    const existingFollowup = await prisma.followUp.findFirst({
+      where: { id, userId },
+      include: { application: { include: { company: true } } }
     });
 
-    if (!followup || followup.application.userId !== userId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Relance non trouvée'
-      });
+    if (!existingFollowup) {
+      return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
-    const updatedFollowup = await prisma.followUp.update({
+    let companyId = existingFollowup.companyId;
+    let applicationId = existingFollowup.applicationId;
+
+    if (req.body.applicationId && req.body.applicationId !== existingFollowup.applicationId) {
+      const newApplication = await prisma.application.findFirst({
+        where: { id: req.body.applicationId, userId },
+        include: { company: true }
+      });
+
+      if (!newApplication) {
+        return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+      }
+
+      applicationId = newApplication.id;
+      companyId = newApplication.companyId;
+    }
+
+    if (req.body.contactId && req.body.contactId !== existingFollowup.contactId) {
+      const contact = await prisma.contact.findFirst({ where: { id: req.body.contactId, userId } });
+      if (!contact) {
+        return res.status(404).json({ success: false, error: 'Contact non trouvé' });
+      }
+    }
+
+    const dateValue = req.body.followUpDate || req.body.scheduledDate || req.body.scheduledFor;
+
+    const followup = await prisma.followUp.update({
       where: { id },
       data: {
-        ...data,
-        scheduledDate: data.scheduledDate ? new Date(data.scheduledDate) : undefined
+        applicationId,
+        companyId,
+        contactId: req.body.contactId ?? existingFollowup.contactId,
+        followUpDate: dateValue ? new Date(dateValue) : existingFollowup.followUpDate,
+        notes: req.body.notes ?? existingFollowup.notes,
+        status: req.body.status ? sanitizeStatus(req.body.status) : existingFollowup.status
       },
       include: {
         application: {
@@ -199,81 +217,59 @@ const updateFollowup = async (req, res, next) => {
             company: true
           }
         },
+        company: true,
         contact: true
       }
     });
 
-    res.json({
-      success: true,
-      followup: updatedFollowup
-    });
+    logger.info(`Relance ${id} mise à jour par ${userId}`);
+
+    res.json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {
-    logger.error('Erreur modification relance:', error);
+    logger.error('Erreur mise à jour relance:', error);
     next(error);
   }
 };
 
-// Supprimer une relance
 const deleteFollowup = async (req, res, next) => {
   try {
-    const { id } = req.params;
     const userId = req.user.id;
+    const { id } = req.params;
 
-    const followup = await prisma.followUp.findFirst({
-      where: { id },
-      include: {
-        application: true
-      }
-    });
+    const existingFollowup = await prisma.followUp.findFirst({ where: { id, userId } });
 
-    if (!followup || followup.application.userId !== userId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Relance non trouvée'
-      });
+    if (!existingFollowup) {
+      return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
-    await prisma.followUp.delete({
-      where: { id }
-    });
+    await prisma.followUp.delete({ where: { id } });
 
-    res.json({
-      success: true,
-      message: 'Relance supprimée avec succès'
-    });
+    logger.info(`Relance ${id} supprimée pour l'utilisateur ${userId}`);
+
+    res.json({ success: true, message: 'Relance supprimée' });
   } catch (error) {
     logger.error('Erreur suppression relance:', error);
     next(error);
   }
 };
 
-// Marquer comme terminée
 const completeFollowup = async (req, res, next) => {
   try {
-    const { id } = req.params;
     const userId = req.user.id;
-    const { response } = req.body;
+    const { id } = req.params;
+    const { response, status } = req.body;
 
-    const followup = await prisma.followUp.findFirst({
-      where: { id },
-      include: {
-        application: true
-      }
-    });
+    const existingFollowup = await prisma.followUp.findFirst({ where: { id, userId } });
 
-    if (!followup || followup.application.userId !== userId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Relance non trouvée'
-      });
+    if (!existingFollowup) {
+      return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
-    const updatedFollowup = await prisma.followUp.update({
+    const followup = await prisma.followUp.update({
       where: { id },
       data: {
-        completed: true,
-        completedDate: new Date(),
-        response
+        response: response || null,
+        status: sanitizeStatus(status || 'POSITIVE_RESPONSE')
       },
       include: {
         application: {
@@ -281,72 +277,41 @@ const completeFollowup = async (req, res, next) => {
             company: true
           }
         },
+        company: true,
         contact: true
       }
     });
 
-    res.json({
-      success: true,
-      followup: updatedFollowup
-    });
+    res.json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {
     logger.error('Erreur complétion relance:', error);
     next(error);
   }
 };
 
-// Statistiques
 const getStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const userApplications = await prisma.application.findMany({
-      where: { userId },
-      select: { id: true }
-    });
-    const applicationIds = userApplications.map(app => app.id);
-
-    const [
-      totalFollowups,
-      completedFollowups,
-      pendingFollowups,
-      overdueFollowups,
-      followupsByType,
-      successRate
-    ] = await Promise.all([
-      prisma.followUp.count({
-        where: { applicationId: { in: applicationIds } }
-      }),
-      prisma.followUp.count({
-        where: {
-          applicationId: { in: applicationIds },
-          completed: true
-        }
-      }),
-      prisma.followUp.count({
-        where: {
-          applicationId: { in: applicationIds },
-          completed: false,
-          scheduledDate: { gte: new Date() }
-        }
-      }),
-      prisma.followUp.count({
-        where: {
-          applicationId: { in: applicationIds },
-          completed: false,
-          scheduledDate: { lt: new Date() }
-        }
-      }),
+    const [total, byStatus, upcoming, overdue] = await Promise.all([
+      prisma.followUp.count({ where: { userId } }),
       prisma.followUp.groupBy({
-        by: ['type'],
-        where: { applicationId: { in: applicationIds } },
+        where: { userId },
+        by: ['status'],
         _count: true
       }),
       prisma.followUp.count({
         where: {
-          applicationId: { in: applicationIds },
-          completed: true,
-          response: { not: null }
+          userId,
+          status: { in: ['PENDING', 'PLANNED'] },
+          followUpDate: { gte: new Date() }
+        }
+      }),
+      prisma.followUp.count({
+        where: {
+          userId,
+          status: { in: ['PENDING', 'PLANNED'] },
+          followUpDate: { lt: new Date() }
         }
       })
     ]);
@@ -354,69 +319,57 @@ const getStats = async (req, res, next) => {
     res.json({
       success: true,
       stats: {
-        total: totalFollowups,
-        completed: completedFollowups,
-        pending: pendingFollowups,
-        overdue: overdueFollowups,
-        completionRate: totalFollowups > 0 ? ((completedFollowups / totalFollowups) * 100).toFixed(1) : 0,
-        successRate: completedFollowups > 0 ? ((successRate / completedFollowups) * 100).toFixed(1) : 0,
-        byType: followupsByType.reduce((acc, item) => {
-          acc[item.type] = item._count;
+        total,
+        upcoming,
+        overdue,
+        byStatus: byStatus.reduce((acc, item) => {
+          acc[item.status] = item._count;
           return acc;
         }, {})
       }
     });
   } catch (error) {
-    logger.error('Erreur récupération statistiques:', error);
+    logger.error('Erreur récupération statistiques relances:', error);
     next(error);
   }
 };
 
-// Suggestions de relances
 const getSuggestions = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Récupérer les candidatures sans relance depuis plus de 7 jours
-    const applications = await prisma.application.findMany({
+    const suggestions = await prisma.application.findMany({
       where: {
         userId,
         status: {
-          in: ['SENT', 'IN_REVIEW', 'INTERVIEW_SCHEDULED']
+          in: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING']
         },
         followUps: {
           none: {
-            createdAt: {
+            followUpDate: {
               gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
             }
           }
         }
       },
       include: {
-        company: true,
-        followUps: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
+        company: true
       },
-      take: 10
+      take: 5
     });
-
-    const suggestions = applications.map(app => ({
-      application: app,
-      suggestedDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Demain
-      suggestedType: 'EMAIL',
-      reason: app.followUps.length === 0 
-        ? 'Aucune relance effectuée'
-        : 'Plus de 7 jours depuis la dernière relance'
-    }));
 
     res.json({
       success: true,
-      suggestions
+      suggestions: suggestions.map((app) => ({
+        applicationId: app.id,
+        company: app.company?.name,
+        position: app.position,
+        status: app.status,
+        suggestedAction: 'Planifier une relance cette semaine'
+      }))
     });
   } catch (error) {
-    logger.error('Erreur récupération suggestions:', error);
+    logger.error('Erreur récupération suggestions relances:', error);
     next(error);
   }
 };
@@ -424,7 +377,7 @@ const getSuggestions = async (req, res, next) => {
 const getHealth = async (req, res) => {
   res.json({
     success: true,
-    message: 'Gestion des relances opérationnel',
+    message: 'Gestion des relances opérationnelle',
     service: 'followup-service',
     timestamp: new Date().toISOString()
   });

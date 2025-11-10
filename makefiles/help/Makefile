@@ -5,7 +5,29 @@
 # ============================================================================
 
 .PHONY: help help-up help-down help-status help-logs help-monitoring-up help-test help-build help-clean \
-        help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate
+        help-tests help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate
+help-tests: ## Aide globale pour les commandes de tests
+	@echo "================================================================"
+	@echo "🧪 AIDE: Suite de tests JobbingTrack"
+	@echo "================================================================"
+	@echo ""
+	@echo "🔧 COMMANDES PRINCIPALES:"
+	@echo "  make tests-help           - Guide complet (workflow + explications)"
+	@echo "  make tests-reset          - Reset complet (arrêt, up, db-push-all, admin)"
+	@echo "  make tests-user-journey   - Test automatique via API"
+	@echo "  make tests-interface-web  - Interface web http://localhost:8080/backoffice/user-journey"
+	@echo "  make test-email-verification - Test ciblé vérification email"
+	@echo ""
+	@echo "🔄 WORKFLOW RECOMMANDÉ:"
+	@echo "  1. make tests-reset"
+	@echo "  2. make tests-user-journey"
+	@echo "  3. (Optionnel) make tests-interface-web"
+	@echo ""
+	@echo "📚 Ressources: STATUS.md (section 1.12), docs/tests/"
+	@echo ""
+	@echo "💡 Astuce: alias disponibles -> make tests-clean / make test-clean"
+	@echo ""
+
 
 # ============================================================================
 # AIDE GÉNÉRALE

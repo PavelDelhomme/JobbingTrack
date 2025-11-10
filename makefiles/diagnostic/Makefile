@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services help-diagnostic
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics help-diagnostic
 
 # ============================================================================
 # AIDE
@@ -23,6 +23,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
 	@echo "  make diagnostic            - Diagnostic complet système"
 	@echo "  make diagnostic-docker     - Diagnostic Docker uniquement"
+	@echo "  make diagnostic-metrics    - Comparer Docker Desktop vs métriques agrégées"
 	@echo "  make diagnostic-cors       - Diagnostic CORS"
 	@echo "  make diagnostic-network    - Diagnostic réseau"
 	@echo "  make diag-services         - Diagnostic services backend"
@@ -233,3 +234,8 @@ diag-services: ## Diagnostic détaillé des services Docker en cours
 	@echo "  make diagnostic-fix          # Correction automatique"
 	@echo "  make logs                    # Logs en temps réel"
 	@echo "  make status                  # Statut des services"
+
+# Diagnostic métriques vs hôte
+diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
+	@echo "📈 Diagnostic des métriques Docker & hôte..."
+	@./scripts/monitoring/diagnostic-metrics.sh

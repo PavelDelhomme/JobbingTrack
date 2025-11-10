@@ -6,9 +6,14 @@ const controller = require('../controllers/interview.controller');
 
 // Validations
 const createValidation = [
-  body('applicationId').notEmpty().withMessage('ID candidature requis'),
-  body('type').notEmpty().withMessage('Type requis'),
-  body('scheduledAt').notEmpty().withMessage('Date requise')
+  body('applicationId').isString().withMessage('ID candidature invalide'),
+  body('interviewDate')
+    .custom((value, { req }) => value || req.body.scheduledAt)
+    .withMessage('Date d\'entretien requise'),
+  body('status')
+    .optional()
+    .isIn(['SCHEDULED', 'COMPLETED', 'FEEDBACK_PENDING', 'CANCELLED', 'RESCHEDULED'])
+    .withMessage('Statut d\'entretien invalide')
 ];
 
 const updateValidation = [

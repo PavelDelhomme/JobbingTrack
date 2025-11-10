@@ -553,7 +553,6 @@ export default function UserJourneyPage() {
   const handleFetchResponse = async (response: Response) => {
     const contentType = response.headers.get('content-type');
     
-    // Si ce n'est pas du JSON, c'est probablement une erreur HTML
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
       throw new Error(`Erreur serveur (${response.status}): ${text.substring(0, 100)}`);
@@ -566,6 +565,28 @@ export default function UserJourneyPage() {
     }
     
     return data;
+  };
+
+  const extractList = <T>(payload: any, primaryKey?: string): T[] => {
+    if (Array.isArray(payload)) {
+      return payload as T[];
+    }
+    if (!payload || typeof payload !== 'object') {
+      return [];
+    }
+    if (primaryKey && Array.isArray(payload[primaryKey])) {
+      return payload[primaryKey] as T[];
+    }
+    if (Array.isArray(payload.data)) {
+      return payload.data as T[];
+    }
+    if (Array.isArray(payload.items)) {
+      return payload.items as T[];
+    }
+    if (payload.pagination && Array.isArray(payload.pagination.items)) {
+      return payload.pagination.items as T[];
+    }
+    return [];
   };
 
   // Exécuter une étape
@@ -651,16 +672,14 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_companies':
-          // Récupérer les entreprises existantes
           const companiesListRes = await fetch('/api/v1/companies', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const existingCompanies = await handleFetchResponse(companiesListRes);
-          
-          // Mettre à jour les 2 premières
+          const companiesToUpdate = extractList(existingCompanies, 'companies');
           const updatedCompanies = [];
-          for (let i = 0; i < Math.min(2, existingCompanies.length); i++) {
-            const res = await fetch(`/api/v1/companies/${existingCompanies[i].id}`, {
+          for (let i = 0; i < Math.min(2, companiesToUpdate.length); i++) {
+            const res = await fetch(`/api/v1/companies/${companiesToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
@@ -701,15 +720,12 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_applications':
-          // Récupérer les candidatures existantes
           const appsRes = await fetch('/api/v1/applications', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const existingApps = await handleFetchResponse(appsRes);
-          
-          // Mettre à jour les 3 premières
+          const appsToUpdate = extractList(existingApps, 'applications');
           const updatedApps = [];
-          const appsToUpdate = Array.isArray(existingApps) ? existingApps : (existingApps.data || []);
           for (let i = 0; i < Math.min(3, appsToUpdate.length); i++) {
             const res = await fetch(`/api/v1/applications/${appsToUpdate[i].id}`, {
               method: 'PUT',
@@ -718,7 +734,7 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                status: ['interview', 'offer', 'accepted'][i % 3],
+                status: ['FIRST_INTERVIEW_PENDING', 'OFFER_RECEIVED', 'ACCEPTED_AFTER_INTERVIEW'][i % 3],
                 notes: `Mise à jour automatique - Test ${i + 1}`
               })
             });
@@ -751,15 +767,12 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_contacts':
-          // Récupérer les contacts existants
           const contactsRes = await fetch('/api/v1/contacts', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const existingContacts = await handleFetchResponse(contactsRes);
-          
-          // Mettre à jour les 2 premiers
+          const contactsToUpdate = extractList(existingContacts, 'contacts');
           const updatedContacts = [];
-          const contactsToUpdate = Array.isArray(existingContacts) ? existingContacts : (existingContacts.data || []);
           for (let i = 0; i < Math.min(2, contactsToUpdate.length); i++) {
             const res = await fetch(`/api/v1/contacts/${contactsToUpdate[i].id}`, {
               method: 'PUT',
@@ -780,8 +793,17 @@ export default function UserJourneyPage() {
           break;
 
         case 'schedule_interviews':
+          const appsForInterviewsRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForInterviewsPayload = await handleFetchResponse(appsForInterviewsRes);
+          const appsForInterviews = extractList(appsForInterviewsPayload, 'applications');
+          if (appsForInterviews.length === 0) {
+            result = { message: 'Aucune candidature disponible pour planifier un entretien' };
+            break;
+          }
           const interviews = [];
-          for (let i = 0; i < 2; i++) {
+          for (let i = 0; i < Math.min(2, appsForInterviews.length); i++) {
             const res = await fetch('/api/v1/interviews', {
               method: 'POST',
               headers: { 
@@ -789,9 +811,11 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                title: `Entretien Test ${i + 1}`,
-                date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-                type: ['phone', 'video', 'onsite'][i % 3]
+                applicationId: appsForInterviews[i].id,
+                interviewDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
+                estimatedDuration: 45,
+                location: i % 2 === 0 ? 'Visio' : 'Bureaux JobbingTrack',
+                notes: `Entretien automatique - Série ${i + 1}`
               })
             });
             const interview = await handleFetchResponse(res);
@@ -801,8 +825,20 @@ export default function UserJourneyPage() {
           break;
 
         case 'create_events':
+          const appsForEventsRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForEventsPayload = await handleFetchResponse(appsForEventsRes);
+          const appsForEvents = extractList(appsForEventsPayload, 'applications');
+          if (appsForEvents.length === 0) {
+            result = { message: 'Aucune candidature disponible pour créer un événement' };
+            break;
+          }
+
           const events = [];
-          for (let i = 0; i < 3; i++) {
+          for (let i = 0; i < Math.min(3, appsForEvents.length); i++) {
+            const targetApp = appsForEvents[i];
+            const startDate = new Date(Date.now() + (i + 2) * 24 * 60 * 60 * 1000);
             const res = await fetch('/api/v1/events', {
               method: 'POST',
               headers: { 
@@ -810,10 +846,11 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
+                applicationId: targetApp.id,
                 title: `Événement Test ${i + 1}`,
                 description: `Description de l'événement ${i + 1}`,
-                date: new Date(Date.now() + (i + 2) * 24 * 60 * 60 * 1000).toISOString(),
-                type: ['meeting', 'deadline', 'reminder'][i % 3],
+                startDate: startDate.toISOString(),
+                endDate: new Date(startDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
                 allDay: i % 2 === 0
               })
             });
@@ -824,8 +861,26 @@ export default function UserJourneyPage() {
           break;
 
         case 'create_followups':
+          const appsForFollowupsRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForFollowupsPayload = await handleFetchResponse(appsForFollowupsRes);
+          const appsForFollowups = extractList(appsForFollowupsPayload, 'applications');
+          if (appsForFollowups.length === 0) {
+            result = { message: 'Aucune candidature disponible pour créer des relances' };
+            break;
+          }
+
+          const contactsForFollowupsRes = await fetch('/api/v1/contacts', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const contactsForFollowupsPayload = await handleFetchResponse(contactsForFollowupsRes);
+          const contactsForFollowups = extractList(contactsForFollowupsPayload, 'contacts');
+
           const followups = [];
-          for (let i = 0; i < 3; i++) {
+          for (let i = 0; i < Math.min(3, appsForFollowups.length); i++) {
+            const targetApp = appsForFollowups[i];
+            const linkedContact = contactsForFollowups[i % Math.max(1, contactsForFollowups.length)];
             const res = await fetch('/api/v1/followups', {
               method: 'POST',
               headers: { 
@@ -833,9 +888,11 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                type: ['email', 'phone', 'linkedin'][i],
-                scheduledFor: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000).toISOString(),
-                notes: `Relance automatique ${i + 1}`
+                applicationId: targetApp.id,
+                contactId: linkedContact ? linkedContact.id : undefined,
+                followUpDate: new Date(Date.now() + (i + 1) * 3 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: `Relance automatique ${i + 1}`,
+                status: 'PLANNED'
               })
             });
             const followup = await handleFetchResponse(res);
@@ -845,8 +902,26 @@ export default function UserJourneyPage() {
           break;
 
         case 'make_calls':
+          const appsForCallsRes = await fetch('/api/v1/applications', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const appsForCallsPayload = await handleFetchResponse(appsForCallsRes);
+          const appsForCalls = extractList(appsForCallsPayload, 'applications');
+          if (appsForCalls.length === 0) {
+            result = { message: 'Aucune candidature disponible pour enregistrer un appel' };
+            break;
+          }
+
+          const contactsForCallsRes = await fetch('/api/v1/contacts', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          const contactsForCallsPayload = await handleFetchResponse(contactsForCallsRes);
+          const contactsForCalls = extractList(contactsForCallsPayload, 'contacts');
+
           const calls = [];
-          for (let i = 0; i < 2; i++) {
+          for (let i = 0; i < Math.min(2, appsForCalls.length); i++) {
+            const targetApp = appsForCalls[i];
+            const linkedContact = contactsForCalls[i % Math.max(1, contactsForCalls.length)];
             const res = await fetch('/api/v1/calls', {
               method: 'POST',
               headers: { 
@@ -854,9 +929,13 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                duration: Math.floor(Math.random() * 600) + 60,
-                notes: `Appel test ${i + 1}`,
-                outcome: ['positive', 'neutral', 'negative'][i % 3]
+                applicationId: targetApp.id,
+                contactId: linkedContact ? linkedContact.id : undefined,
+                subject: `Relance téléphonique ${i + 1}`,
+                notes: `Appel automatique ${i + 1}`,
+                callDate: new Date(Date.now() + i * 60 * 60 * 1000).toISOString(),
+                duration: Math.floor(Math.random() * 600) + 120,
+                status: i % 2 === 0 ? 'COMPLETED' : 'SCHEDULED'
               })
             });
             const call = await handleFetchResponse(res);
@@ -866,15 +945,13 @@ export default function UserJourneyPage() {
           break;
 
         case 'test_mobile_calendar':
-          // Simuler un test du calendrier mobile
-          // Dans la vraie implémentation, cela interrogerait l'émulateur mobile
           const calendarRes = await fetch('/api/v1/events', {
             headers: { 
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           });
           const calendarEvents = await handleFetchResponse(calendarRes);
-          const eventsArray = Array.isArray(calendarEvents) ? calendarEvents : (calendarEvents.data || []);
+          const eventsArray = extractList(calendarEvents, 'events');
           result = {
             message: 'Calendrier mobile testé',
             eventsCount: eventsArray.length,
@@ -893,18 +970,17 @@ export default function UserJourneyPage() {
 
         // Nouvelles étapes granulaires
         case 'link_contact_to_application':
-          // Récupérer une candidature et un contact existants
           const appsForLinkRes = await fetch('/api/v1/applications', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const appsForLink = await handleFetchResponse(appsForLinkRes);
-          const appsArray = Array.isArray(appsForLink) ? appsForLink : (appsForLink.data || []);
+          const appsArray = extractList(appsForLink, 'applications');
           
           const contactsForLinkRes = await fetch('/api/v1/contacts', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const contactsForLink = await handleFetchResponse(contactsForLinkRes);
-          const contactsArray = Array.isArray(contactsForLink) ? contactsForLink : (contactsForLink.data || []);
+          const contactsArray = extractList(contactsForLink, 'contacts');
           
           if (appsArray.length > 0 && contactsArray.length > 0) {
             const linkRes = await fetch(`/api/v1/applications/${appsArray[0].id}/contacts`, {
@@ -928,7 +1004,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const contactsList = await handleFetchResponse(contactsListRes);
-          const contactsListArray = Array.isArray(contactsList) ? contactsList : (contactsList.data || []);
+          const contactsListArray = extractList(contactsList, 'contacts');
           
           if (contactsListArray.length > 0) {
             const detailsRes = await fetch(`/api/v1/contacts/${contactsListArray[0].id}`, {
@@ -945,7 +1021,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const contactsToDelete = await handleFetchResponse(contactsToDeleteRes);
-          const contactsToDeleteArray = Array.isArray(contactsToDelete) ? contactsToDelete : (contactsToDelete.data || []);
+          const contactsToDeleteArray = extractList(contactsToDelete, 'contacts');
           
           if (contactsToDeleteArray.length > 0) {
             const deleteRes = await fetch(`/api/v1/contacts/${contactsToDeleteArray[contactsToDeleteArray.length - 1].id}`, {
@@ -963,7 +1039,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const interviewsToUpdate = await handleFetchResponse(interviewsToUpdateRes);
-          const interviewsArray = Array.isArray(interviewsToUpdate) ? interviewsToUpdate : (interviewsToUpdate.data || []);
+          const interviewsArray = extractList(interviewsToUpdate, 'interviews');
           
           if (interviewsArray.length > 0) {
             const updateRes = await fetch(`/api/v1/interviews/${interviewsArray[0].id}`, {
@@ -973,7 +1049,7 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                status: 'completed'
+                status: 'COMPLETED'
               })
             });
             result = await handleFetchResponse(updateRes);
@@ -987,7 +1063,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const interviewsForNotes = await handleFetchResponse(interviewsForNotesRes);
-          const interviewsForNotesArray = Array.isArray(interviewsForNotes) ? interviewsForNotes : (interviewsForNotes.data || []);
+          const interviewsForNotesArray = extractList(interviewsForNotes, 'interviews');
           
           if (interviewsForNotesArray.length > 0) {
             const notesRes = await fetch(`/api/v1/interviews/${interviewsForNotesArray[0].id}`, {
@@ -1011,7 +1087,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const followupsToUpdate = await handleFetchResponse(followupsToUpdateRes);
-          const followupsArray = Array.isArray(followupsToUpdate) ? followupsToUpdate : (followupsToUpdate.data || []);
+          const followupsArray = extractList(followupsToUpdate, 'followups');
           
           if (followupsArray.length > 0) {
             const updateRes = await fetch(`/api/v1/followups/${followupsArray[0].id}`, {
@@ -1021,7 +1097,8 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                status: 'in_progress'
+                status: 'NO_RESPONSE',
+                notes: 'Relance toujours en attente'
               })
             });
             result = await handleFetchResponse(updateRes);
@@ -1035,18 +1112,18 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const followupsToComplete = await handleFetchResponse(followupsToCompleteRes);
-          const followupsToCompleteArray = Array.isArray(followupsToComplete) ? followupsToComplete : (followupsToComplete.data || []);
+          const followupsToCompleteArray = extractList(followupsToComplete, 'followups');
           
           if (followupsToCompleteArray.length > 0) {
-            const completeRes = await fetch(`/api/v1/followups/${followupsToCompleteArray[0].id}`, {
+            const completeRes = await fetch(`/api/v1/followups/${followupsToCompleteArray[0].id}/complete`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                status: 'completed',
-                completedAt: new Date().toISOString()
+                status: 'POSITIVE_RESPONSE',
+                response: 'Retour positif enregistré automatiquement'
               })
             });
             result = await handleFetchResponse(completeRes);
@@ -1060,7 +1137,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const eventsToUpdate = await handleFetchResponse(eventsToUpdateRes);
-          const eventsToUpdateArray = Array.isArray(eventsToUpdate) ? eventsToUpdate : (eventsToUpdate.data || []);
+          const eventsToUpdateArray = extractList(eventsToUpdate, 'events');
           
           if (eventsToUpdateArray.length > 0) {
             const updateRes = await fetch(`/api/v1/events/${eventsToUpdateArray[0].id}`, {
@@ -1085,7 +1162,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const eventsToDelete = await handleFetchResponse(eventsToDeleteRes);
-          const eventsToDeleteArray = Array.isArray(eventsToDelete) ? eventsToDelete : (eventsToDelete.data || []);
+          const eventsToDeleteArray = extractList(eventsToDelete, 'events');
           
           if (eventsToDeleteArray.length > 0) {
             const deleteRes = await fetch(`/api/v1/events/${eventsToDeleteArray[eventsToDeleteArray.length - 1].id}`, {
@@ -1105,10 +1182,11 @@ export default function UserJourneyPage() {
             }
           });
           const calendarView = await handleFetchResponse(calendarViewRes);
+          const calendarEvents = extractList(calendarView, 'events');
           result = {
             message: 'Calendrier consulté',
-            eventsCount: Array.isArray(calendarView) ? calendarView.length : (calendarView.data?.length || 0),
-            events: calendarView
+            eventsCount: calendarEvents.length,
+            events: calendarEvents
           };
           break;
 
@@ -1117,7 +1195,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const companiesForNotes = await handleFetchResponse(companiesForNotesRes);
-          const companiesForNotesArray = Array.isArray(companiesForNotes) ? companiesForNotes : (companiesForNotes.data || []);
+          const companiesForNotesArray = extractList(companiesForNotes, 'companies');
           
           if (companiesForNotesArray.length > 0) {
             const notesRes = await fetch(`/api/v1/companies/${companiesForNotesArray[0].id}`, {
@@ -1142,7 +1220,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const appsForNotes = await handleFetchResponse(appsForNotesRes);
-          const appsForNotesArray = Array.isArray(appsForNotes) ? appsForNotes : (appsForNotes.data || []);
+          const appsForNotesArray = extractList(appsForNotes, 'applications');
           
           if (appsForNotesArray.length > 0) {
             const notesRes = await fetch(`/api/v1/applications/${appsForNotesArray[0].id}`, {
@@ -1152,7 +1230,8 @@ export default function UserJourneyPage() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                notes: 'Notes ajoutées automatiquement - Candidature prometteuse'
+                notes: 'Notes automatiques - candidature prometteuse',
+                isArchived: false
               })
             });
             result = await handleFetchResponse(notesRes);
@@ -1166,7 +1245,7 @@ export default function UserJourneyPage() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const appsForStatus = await handleFetchResponse(appsForStatusRes);
-          const appsForStatusArray = Array.isArray(appsForStatus) ? appsForStatus : (appsForStatus.data || []);
+          const appsForStatusArray = extractList(appsForStatus, 'applications');
           
           if (appsForStatusArray.length > 0) {
             const statusRes = await fetch(`/api/v1/applications/${appsForStatusArray[0].id}`, {
@@ -1187,15 +1266,14 @@ export default function UserJourneyPage() {
 
         case 'check_interviews':
           const upcomingInterviewsRes = await fetch('/api/v1/interviews', {
-            headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
           const upcomingInterviews = await handleFetchResponse(upcomingInterviewsRes);
+          const interviewList = extractList(upcomingInterviews, 'interviews');
           result = {
-            message: 'Entretiens vérifiés',
-            count: Array.isArray(upcomingInterviews) ? upcomingInterviews.length : (upcomingInterviews.data?.length || 0),
-            interviews: upcomingInterviews
+            message: 'Interviews récupérés',
+            count: interviewList.length,
+            interviews: interviewList
           };
           break;
 

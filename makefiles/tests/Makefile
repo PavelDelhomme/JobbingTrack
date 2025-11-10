@@ -4,7 +4,8 @@
 # Commandes simplifiées pour tester l'application
 # ================================================================
 
-.PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification
+.PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
+        tests-clean test-clean
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -36,6 +37,7 @@ tests-help:
 	@echo ""
 	@echo "  make tests-help               Affiche ce guide"
 	@echo "  make tests-reset              Reset complet (BDD + services)"
+	@echo "  make tests-clean / test-clean Alias reset complet"
 	@echo "  make tests-user-journey       Test API automatique"
 	@echo "  make tests-interface-web      Interface web de test"
 	@echo "  make test-email-verification  Test vérification email"
@@ -110,7 +112,7 @@ tests-reset:
 	@sleep 15
 	@echo ""
 	@echo "🔧 4/5 - Création des tables et synchronisation BDD..."
-	@docker exec jobbingtrack-application-service npx prisma db push --accept-data-loss
+	@make db-push-all
 	@echo ""
 	@echo "⏳ Attente finalisation création tables (3 secondes)..."
 	@sleep 3
@@ -145,6 +147,10 @@ tests-reset:
 	@echo "   Email:    admin@jobbingtrack.com"
 	@echo "   Password: password123"
 	@echo ""
+
+tests-clean: tests-reset ## Alias pratique (équivalent tests-reset)
+
+test-clean: tests-reset ## Alias hérité (équivalent tests-reset)
 
 # ================================================================
 # 🎯 USER JOURNEY - Test automatique via API

@@ -67,7 +67,7 @@ db-migrate: ## Appliquer les migrations Prisma sur tous les services
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
 	@echo "📂 Recherche des services avec Prisma..."
-	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator"; \
+	@SERVICES="auth-service"; \
 	MIGRATED=0; \
 	SKIPPED=0; \
 	for service in $$SERVICES; do \
@@ -115,7 +115,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
-	@SERVICES="auth-service application-service company-service contact-service interview-service call-service event-service followup-service profile-service notification-service dashboard-service workflow-service metrics-aggregator"; \
+	@SERVICES="auth-service"; \
 	PUSHED=0; \
 	SKIPPED=0; \
 	for service in $$SERVICES; do \
@@ -138,6 +138,15 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 		else \
 			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
 			SKIPPED=$$((SKIPPED + 1)); \
+		fi; \
+		echo ""; \
+	done; \
+	GENERATORS="call-service followup-service event-service interview-service"; \
+	for service in $$GENERATORS; do \
+		CONTAINER="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
+			echo "  🔄 Génération Prisma pour $$service..."; \
+			docker exec -w /app $$CONTAINER npx prisma generate >/dev/null 2>&1 && echo "  ✅ $$service - Client Prisma à jour" || echo "  ⚠️  $$service - Génération Prisma impossible"; \
 		fi; \
 		echo ""; \
 	done; \

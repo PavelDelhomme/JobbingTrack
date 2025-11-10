@@ -1,63 +1,59 @@
 const { PrismaClient } = require('@prisma/client');
+const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
-// Récupérer la timeline unifiée pour une entité
+const mapEvent = (event) => ({
+  ...event,
+  startDate: event.startDate?.toISOString(),
+  endDate: event.endDate?.toISOString(),
+  createdAt: event.createdAt?.toISOString(),
+  updatedAt: event.updatedAt?.toISOString()
+});
+
+const ensureApplicationOwnership = async (userId, applicationId) => {
+  if (!applicationId) return null;
+  const application = await prisma.application.findFirst({
+    where: { id: applicationId, userId },
+    include: { company: true }
+  });
+  if (!application) {
+    throw new Error('APPLICATION_NOT_FOUND');
+  }
+  return application;
+};
+
+const ensureContactOwnership = async (userId, contactId) => {
+  if (!contactId) return null;
+  const contact = await prisma.contact.findFirst({ where: { id: contactId, userId } });
+  if (!contact) {
+    throw new Error('CONTACT_NOT_FOUND');
+  }
+  return contact;
+};
+
 const getTimeline = async (req, res, next) => {
   try {
-    const { entityType, entityId } = req.params;
-    const { startDate, endDate, types } = req.query;
     const userId = req.user.id;
+    const { entityType, entityId } = req.params;
 
-    // Construire les filtres
     const where = {
+      userId,
       ...(entityType === 'application' && { applicationId: entityId }),
       ...(entityType === 'contact' && { contactId: entityId }),
-      ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-      ...(endDate && { createdAt: { lte: new Date(endDate) } }),
-      ...(types && { type: { in: types.split(',') } })
+      ...(entityType === 'followup' && { followUpId: entityId }),
+      ...(entityType === 'interview' && { interviewId: entityId })
     };
 
-    // Vérifier l'accès de l'utilisateur
-    if (entityType === 'application') {
-      const application = await prisma.application.findFirst({
-        where: { id: entityId, userId }
-      });
-      if (!application) {
-        return res.status(403).json({
-          success: false,
-          error: 'Accès refusé'
-        });
-      }
-    } else if (entityType === 'contact') {
-      const contact = await prisma.contact.findFirst({
-        where: { id: entityId, userId }
-      });
-      if (!contact) {
-        return res.status(403).json({
-          success: false,
-          error: 'Accès refusé'
-        });
-      }
-    }
-
-    const events = await prisma.activity.findMany({
+    const events = await prisma.event.findMany({
       where,
-      include: {
-        application: {
-          include: {
-            company: true
-          }
-        },
-        contact: true
-      },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { startDate: 'desc' }
     });
 
     res.json({
       success: true,
-      timeline: events,
+      timeline: events.map(mapEvent),
       total: events.length
     });
   } catch (error) {
@@ -66,66 +62,27 @@ const getTimeline = async (req, res, next) => {
   }
 };
 
-// Récupérer tous les événements de l'utilisateur
 const getAllEvents = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 50, type, startDate, endDate } = req.query;
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const { page = 1, limit = 50 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    // Récupérer les IDs des entités de l'utilisateur
-    const [applications, contacts] = await Promise.all([
-      prisma.application.findMany({
-        where: { userId },
-        select: { id: true }
-      }),
-      prisma.contact.findMany({
-        where: { userId },
-        select: { id: true }
-      })
-    ]);
-
-    const applicationIds = applications.map(a => a.id);
-    const contactIds = contacts.map(c => c.id);
-
-    const where = {
-      OR: [
-        { applicationId: { in: applicationIds } },
-        { contactId: { in: contactIds } }
-      ],
-      ...(type && { type }),
-      ...(startDate && endDate && {
-        createdAt: {
-          gte: new Date(startDate),
-          lte: new Date(endDate)
-        }
-      })
-    };
-
     const [events, total] = await Promise.all([
-      prisma.activity.findMany({
-        where,
-        include: {
-          application: {
-            include: {
-              company: true
-            }
-          },
-          contact: true
-        },
-        orderBy: { createdAt: 'desc' },
+      prisma.event.findMany({
+        where: { userId },
+        orderBy: { startDate: 'desc' },
         skip,
         take: limitNum
       }),
-      prisma.activity.count({ where })
+      prisma.event.count({ where: { userId } })
     ]);
 
     res.json({
       success: true,
-      events,
+      events: events.map(mapEvent),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -139,190 +96,212 @@ const getAllEvents = async (req, res, next) => {
   }
 };
 
-// Créer un événement personnalisé
 const createEvent = async (req, res, next) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     const userId = req.user.id;
     const {
+      title,
+      description,
+      startDate,
+      endDate,
+      allDay = false,
       applicationId,
       contactId,
-      type,
-      description,
-      metadata
+      followUpId,
+      interviewId
     } = req.body;
 
-    // Vérifier l'accès
-    if (applicationId) {
-      const application = await prisma.application.findFirst({
-        where: { id: applicationId, userId }
+    try {
+      const application = await ensureApplicationOwnership(userId, applicationId);
+      await ensureContactOwnership(userId, contactId);
+
+      const event = await prisma.event.create({
+        data: {
+          userId,
+          title,
+          description: description || null,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: endDate ? new Date(endDate) : null,
+          allDay: Boolean(allDay),
+          applicationId: applicationId || null,
+          interviewId: interviewId || null,
+          followUpId: followUpId || null,
+          contactId: contactId || null,
+          companyId: application?.companyId || null
+        }
       });
-      if (!application) {
-        return res.status(403).json({
-          success: false,
-          error: 'Application non trouvée'
-        });
+
+      logger.info(`Événement ${event.id} créé pour l'utilisateur ${userId}`);
+
+      res.status(201).json({ success: true, event: mapEvent(event) });
+    } catch (ownershipError) {
+      if (ownershipError.message === 'APPLICATION_NOT_FOUND') {
+        return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
       }
+      if (ownershipError.message === 'CONTACT_NOT_FOUND') {
+        return res.status(404).json({ success: false, error: 'Contact non trouvé' });
+      }
+      throw ownershipError;
     }
-
-    if (contactId) {
-      const contact = await prisma.contact.findFirst({
-        where: { id: contactId, userId }
-      });
-      if (!contact) {
-        return res.status(403).json({
-          success: false,
-          error: 'Contact non trouvé'
-        });
-      }
-    }
-
-    const event = await prisma.activity.create({
-      data: {
-        applicationId,
-        contactId,
-        type,
-        description,
-        metadata
-      },
-      include: {
-        application: {
-          include: {
-            company: true
-          }
-        },
-        contact: true
-      }
-    });
-
-    res.status(201).json({
-      success: true,
-      event
-    });
-
-    logger.info(`Événement créé: ${event.id} pour ${userId}`);
   } catch (error) {
     logger.error('Erreur création événement:', error);
     next(error);
   }
 };
 
-// Exporter la timeline
+const updateEvent = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const existingEvent = await prisma.event.findFirst({ where: { id, userId } });
+
+    if (!existingEvent) {
+      return res.status(404).json({ success: false, error: 'Événement non trouvé' });
+    }
+
+    try {
+      const application = await ensureApplicationOwnership(userId, req.body.applicationId);
+      await ensureContactOwnership(userId, req.body.contactId);
+
+      const event = await prisma.event.update({
+        where: { id },
+        data: {
+          title: req.body.title ?? existingEvent.title,
+          description: req.body.description ?? existingEvent.description,
+          startDate: req.body.startDate ? new Date(req.body.startDate) : existingEvent.startDate,
+          endDate: req.body.endDate ? new Date(req.body.endDate) : existingEvent.endDate,
+          allDay: req.body.allDay !== undefined ? Boolean(req.body.allDay) : existingEvent.allDay,
+          applicationId: req.body.applicationId ?? existingEvent.applicationId,
+          interviewId: req.body.interviewId ?? existingEvent.interviewId,
+          followUpId: req.body.followUpId ?? existingEvent.followUpId,
+          contactId: req.body.contactId ?? existingEvent.contactId,
+          companyId: application?.companyId ?? existingEvent.companyId
+        }
+      });
+
+      logger.info(`Événement ${id} mis à jour par ${userId}`);
+
+      res.json({ success: true, event: mapEvent(event) });
+    } catch (ownershipError) {
+      if (ownershipError.message === 'APPLICATION_NOT_FOUND') {
+        return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+      }
+      if (ownershipError.message === 'CONTACT_NOT_FOUND') {
+        return res.status(404).json({ success: false, error: 'Contact non trouvé' });
+      }
+      throw ownershipError;
+    }
+  } catch (error) {
+    logger.error('Erreur mise à jour événement:', error);
+    next(error);
+  }
+};
+
+const deleteEvent = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const existingEvent = await prisma.event.findFirst({ where: { id, userId } });
+
+    if (!existingEvent) {
+      return res.status(404).json({ success: false, error: 'Événement non trouvé' });
+    }
+
+    await prisma.event.delete({ where: { id } });
+
+    logger.info(`Événement ${id} supprimé pour l'utilisateur ${userId}`);
+
+    res.json({ success: true, message: 'Événement supprimé' });
+  } catch (error) {
+    logger.error('Erreur suppression événement:', error);
+    next(error);
+  }
+};
+
 const exportTimeline = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { entityType, entityId, format = 'json' } = req.query;
 
     const where = {
+      userId,
       ...(entityType === 'application' && { applicationId: entityId }),
-      ...(entityType === 'contact' && { contactId: entityId })
+      ...(entityType === 'contact' && { contactId: entityId }),
+      ...(entityType === 'followup' && { followUpId: entityId }),
+      ...(entityType === 'interview' && { interviewId: entityId })
     };
 
-    const events = await prisma.activity.findMany({
+    const events = await prisma.event.findMany({
       where,
-      include: {
-        application: {
-          include: {
-            company: true
-          }
-        },
-        contact: true
-      },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { startDate: 'desc' }
     });
 
     if (format === 'csv') {
-      // Générer CSV
       const csv = [
-        ['Date', 'Type', 'Description', 'Entity'].join(','),
-        ...events.map(e => [
-          e.createdAt.toISOString(),
-          e.type,
-          e.description.replace(/,/g, ';'),
-          e.application ? e.application.company.name : (e.contact ? `${e.contact.firstName} ${e.contact.lastName}` : 'N/A')
+        ['Titre', 'Début', 'Fin', 'Toute la journée', 'Description'].join(','),
+        ...events.map((event) => [
+          event.title.replace(/,/g, ';'),
+          event.startDate.toISOString(),
+          event.endDate ? event.endDate.toISOString() : '',
+          event.allDay ? 'oui' : 'non',
+          (event.description || '').replace(/,/g, ';')
         ].join(','))
       ].join('\n');
 
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=timeline_${entityId}.csv`);
+      res.setHeader('Content-Disposition', `attachment; filename=timeline_${entityId || 'global'}.csv`);
       return res.send(csv);
     }
 
-    // Par défaut, retourner JSON
-    res.json({
-      success: true,
-      events,
-      exportedAt: new Date().toISOString()
-    });
+    res.json({ success: true, events: events.map(mapEvent), exportedAt: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur export timeline:', error);
     next(error);
   }
 };
 
-// Statistiques des événements
 const getEventStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const [applications, contacts] = await Promise.all([
-      prisma.application.findMany({
-        where: { userId },
-        select: { id: true }
-      }),
-      prisma.contact.findMany({
-        where: { userId },
-        select: { id: true }
-      })
-    ]);
+    const now = new Date();
+    const upcoming = await prisma.event.count({
+      where: {
+        userId,
+        startDate: { gte: now }
+      }
+    });
 
-    const applicationIds = applications.map(a => a.id);
-    const contactIds = contacts.map(c => c.id);
+    const pastWeekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [totalEvents, eventsByType, recentEvents] = await Promise.all([
-      prisma.activity.count({
-        where: {
-          OR: [
-            { applicationId: { in: applicationIds } },
-            { contactId: { in: contactIds } }
-          ]
+    const createdThisWeek = await prisma.event.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: pastWeekStart
         }
-      }),
-      prisma.activity.groupBy({
-        by: ['type'],
-        where: {
-          OR: [
-            { applicationId: { in: applicationIds } },
-            { contactId: { in: contactIds } }
-          ]
-        },
-        _count: true
-      }),
-      prisma.activity.count({
-        where: {
-          OR: [
-            { applicationId: { in: applicationIds } },
-            { contactId: { in: contactIds } }
-          ],
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-          }
-        }
-      })
-    ]);
+      }
+    });
+
+    const total = await prisma.event.count({ where: { userId } });
 
     res.json({
       success: true,
       stats: {
-        total: totalEvents,
-        last7Days: recentEvents,
-        byType: eventsByType.reduce((acc, item) => {
-          acc[item.type] = item._count;
-          return acc;
-        }, {})
+        total,
+        upcoming,
+        createdThisWeek
       }
     });
   } catch (error) {
-    logger.error('Erreur récupération statistiques:', error);
+    logger.error('Erreur récupération statistiques événements:', error);
     next(error);
   }
 };
@@ -330,7 +309,7 @@ const getEventStats = async (req, res, next) => {
 const getHealth = async (req, res) => {
   res.json({
     success: true,
-    message: 'Gestion des événements opérationnel',
+    message: 'Gestion des événements opérationnelle',
     service: 'event-service',
     timestamp: new Date().toISOString()
   });
@@ -340,6 +319,8 @@ module.exports = {
   getTimeline,
   getAllEvents,
   createEvent,
+  updateEvent,
+  deleteEvent,
   exportTimeline,
   getEventStats,
   getHealth

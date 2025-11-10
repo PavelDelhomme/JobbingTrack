@@ -1,6 +1,6 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
-**Dernière MAJ** : 2025-11-06 21h15  
+**Dernière MAJ** : 2025-11-10 10h59  
 **Version Projet** : v1.0.1 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
@@ -11,11 +11,22 @@
 
 **Commandes clés (base de données)** :
 ```
-make db-push-all     → Synchronise les schémas Prisma (prisma db push)
+make db-push-all     → Synchronise via auth-service + regen Prisma (services métiers)
 make migrate-all     → Applique les migrations Prisma (migrate deploy)
 make migrate-restart → (équivalent db-migrate + restart) [si MAKE=make]
 make restart         → Redémarre les services actifs
 ```
+
+---
+
+## ✅ MISE À JOUR 10/11/2025 – Diagnostic métriques Docker vs hôte
+
+- `make diagnostic-metrics` ajouté dans `makefiles/diagnostic/Makefile` : lance `scripts/monitoring/diagnostic-metrics.sh`.
+- Le script exécute `docker ps`, `docker stats`, `docker system df`, `top`, `free`, `curl .../aggregated` puis calcule une estimation CPU réelle vs Docker Desktop.
+- Exécution du 10/11 à 10h59 : 13 conteneurs actifs sur 14, CPU agrégé `0.82` ⇒ ~`0.05%` réel sur 16 cœurs, mémoire conteneurs ≈ `1.6 GB` (21.6% du quota).
+- `jobbingtrack-dashboard-service` est `Exited (255)` depuis 2 jours → planifier un redémarrage (`docker compose up dashboard-service`) avant les prochains tests UI.
+- Suivi : surveiller les pics CPU du `metrics-aggregator` (~24%) et vérifier la cohérence des métriques après redémarrage du dashboard.
+- Correction du résumé `make status / make up-full` : le compteur affiche désormais la réalité (`26/26` services) avec couleurs fonctionnelles.
 
 ---
 
@@ -344,13 +355,13 @@ const navigationItems = [
 ```bash
 cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
 
+# Reset complet (alias: make tests-clean / make test-clean)
+make tests-reset
+
 # Test User Journey (15/15 tests passent ✅)
 make tests-user-journey
 
-# Reset complet avant test
-make tests-reset
-
-# Aide complète
+# Aide complète (voir aussi: make help-tests)
 make tests-help
 ```
 
@@ -4611,3 +4622,65 @@ make mobile-build-ios         # Build IPA
 
 **Dernière mise à jour** : 2025-11-05 13h30  
 **Prochaine action** : Phase 2 WAF, puis Phase 3 Mobile
+
+---
+
+#### 1.15 Microservices « Cycle de Vie Candidature » ✅ TERMINÉ (07/11/2025 10h15)
+
+**Objectif** : remplacer les routes mockées par des API Prisma réelles pour les modules Appels, Relances, Entretiens et Événements.
+
+**Points clés** :
+- ✅ `call-service`, `followup-service`, `event-service` et `interview-service` branchés sur PostgreSQL (Prisma + JWT).
+- ✅ `make db-push-all` regénère désormais automatiquement les clients Prisma des services métiers.
+- ✅ Parcours admin « Cycle de Vie Candidature » alimente de vraies données (entretiens, relances, appels, événements).
+- ✅ Frontend `(admin)/backoffice/user-journey/page.tsx` mis à jour : payloads conformes Prisma, statuts valides (`COMPLETED`, `NO_RESPONSE`, `PLANNED`, etc.), helper `extractList` pour la normalisation des réponses.
+- ✅ `make tests-reset && make tests-user-journey` : 15/15 tests réussis le 07/11/2025 après refonte.
+
+**Payloads principaux** :
+```bash
+POST /api/v1/interviews
+{
+  applicationId,
+  interviewDate,
+  estimatedDuration?,
+  location?,
+  notes?
+}
+
+POST /api/v1/followups
+{
+  applicationId,
+  followUpDate,
+  contactId?,
+  notes?,
+  status? ('PENDING' | 'PLANNED' | 'POSITIVE_RESPONSE' | 'NO_RESPONSE')
+}
+
+POST /api/v1/calls
+{
+  applicationId,
+  subject,
+  callDate,
+  duration?,
+  contactId?,
+  notes?,
+  status? ('SCHEDULED' | 'COMPLETED' | 'MISSED' | 'CANCELLED')
+}
+
+POST /api/v1/events
+{
+  applicationId,
+  title,
+  startDate,
+  endDate?,
+  allDay?
+}
+```
+
+**Tests** :
+```bash
+make tests-reset
+make tests-user-journey   # 15/15 ✅ (07/11/2025)
+```
+
+---
