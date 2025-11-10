@@ -27,6 +27,7 @@ make restart         → Redémarre les services actifs
 - `jobbingtrack-dashboard-service` est `Exited (255)` depuis 2 jours → planifier un redémarrage (`docker compose up dashboard-service`) avant les prochains tests UI.
 - Suivi : surveiller les pics CPU du `metrics-aggregator` (~24%) et vérifier la cohérence des métriques après redémarrage du dashboard.
 - Correction du résumé `make status / make up-full` : le compteur affiche désormais la réalité (`26/26` services) avec couleurs fonctionnelles.
+- `make diagnostic-metrics` collecte désormais 36 échantillons (5 s d’intervalle) par défaut, calcule moyenne/min/max/tendance CPU/Mémoire/Load, exporte les données brutes (`tmp/diagnostic-metrics/diagnostic-metrics_*.json`) et publie un rapport Markdown détaillé par conteneur (`diagnostic-metrics-report.md`). Variables `SAMPLE`, `SAMPLES`, `SAMPLE_INTERVAL` et `SAMPLE_INTERNAL` restent disponibles pour ajuster la durée.
 
 ---
 
