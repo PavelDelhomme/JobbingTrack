@@ -6,9 +6,13 @@ const controller = require('../controllers/followup.controller');
 
 // Validations
 const createValidation = [
-  body('applicationId').notEmpty().withMessage('ID candidature requis'),
-  body('type').notEmpty().withMessage('Type requis'),
-  body('scheduledDate').notEmpty().withMessage('Date requise')
+  body('applicationId').isString().withMessage('ID candidature invalide'),
+  body('followUpDate')
+    .custom((value, { req }) => value || req.body.scheduledDate || req.body.scheduledFor)
+    .withMessage('Date de relance requise'),
+  body('status')
+    .optional()
+    .isString()
 ];
 
 const updateValidation = [

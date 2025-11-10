@@ -650,9 +650,9 @@ export default function BackofficePage() {
               <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded">📊 Prometheus</span>
             </h2>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${!loadingSystemMetrics && systemMetrics ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-              <span className={`text-sm ${!loadingSystemMetrics && systemMetrics ? 'text-green-600' : 'text-yellow-600'}`}>
-                {!loadingSystemMetrics && systemMetrics ? 'Connecté' : loadingSystemMetrics ? 'Chargement...' : 'Déconnecté'}
+              <div className={`w-3 h-3 rounded-full ${systemMetrics ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className={`text-sm ${systemMetrics ? 'text-green-600' : 'text-red-600'}`}>
+                {systemMetrics ? 'Connecté' : 'Déconnecté'}
               </span>
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function BackofficePage() {
                 {(systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0) || 
                  (containerMetrics && Object.keys(containerMetrics).length > 0)
                   ? '✅ Actifs' 
-                  : loadingSystemMetrics ? '⏳ Chargement...' : '...'}
+                  : systemMetrics ? 'Aucun conteneur détecté' : '...'}
               </div>
             </div>
 

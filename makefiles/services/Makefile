@@ -542,14 +542,15 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		fi; \
 	done
 	@echo ""
-	@up_count=$$(docker ps --filter "name=jobbingtrack-*" --format '{{.Names}}' 2>/dev/null | wc -l); \
-	all_count=15; \
-	if [ $$up_count -eq 0 ]; then \
-		echo "📊 Résumé : \033[1;31m$$up_count/$$all_count services actifs\033[0m"; \
-	elif [ $$up_count -lt 6 ]; then \
-		echo "📊 Résumé : \033[1;33m$$up_count/$$all_count services actifs\033[0m"; \
+	@up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
+	all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
+	if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
+	if [ "$$up_count" -eq 0 ]; then \
+		printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+	elif [ "$$up_count" -lt "$$all_count" ]; then \
+		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	else \
-		echo "📊 Résumé : \033[1;32m$$up_count/$$all_count services actifs\033[0m"; \
+		printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	fi
 
 # Liste conteneurs actifs

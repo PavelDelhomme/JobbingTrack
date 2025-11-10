@@ -6,9 +6,14 @@ const controller = require('../controllers/call.controller');
 
 // Validations
 const createValidation = [
-  body('applicationId').notEmpty().withMessage('ID candidature requis'),
-  body('type').notEmpty().withMessage('Type requis'),
-  body('scheduledDate').notEmpty().withMessage('Date requise')
+  body('applicationId').isString().withMessage('ID candidature invalide'),
+  body('subject').isString().withMessage('Sujet requis'),
+  body('callDate')
+    .custom((value, { req }) => value || req.body.scheduledDate)
+    .withMessage('Date d\'appel requise'),
+  body('status')
+    .optional()
+    .isString()
 ];
 
 const updateValidation = [
