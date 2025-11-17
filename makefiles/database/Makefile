@@ -227,18 +227,18 @@ db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 	@echo "👤 Création de l'utilisateur super administrateur..."
 	@chmod +x backend/scripts/database/create-admin-user.sh
-	@./backend/scripts/database/create-admin-user.sh || EXIT_CODE=$$?; \
+	@./backend/scripts/database/create-admin-user.sh; \
+	EXIT_CODE=$$?; \
 	if [ $$EXIT_CODE -eq 0 ]; then \
 		echo ""; \
 		echo "✅ Utilisateur créé/vérifié !"; \
 		echo "📧 Email: admin@jobbingtrack.test"; \
 		echo "🔑 Password: password123"; \
-	elif [ $$EXIT_CODE -eq 1 ]; then \
-		echo ""; \
-		echo "⚠️  Erreur lors de la création, mais l'utilisateur peut déjà exister"; \
-		echo "💡 Vérifiez avec: docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT email FROM \\\"User\\\" WHERE email = 'admin@jobbingtrack.test';\""; \
-		exit 0; \
 	else \
+		echo ""; \
+		echo "⚠️  Code de sortie: $$EXIT_CODE"; \
+		echo "💡 L'utilisateur peut déjà exister ou il y a eu une erreur"; \
+		echo "💡 Vérifiez avec: docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT email FROM \\\"User\\\" WHERE email = 'admin@jobbingtrack.test';\""; \
 		exit $$EXIT_CODE; \
 	fi
 
