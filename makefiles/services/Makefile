@@ -109,10 +109,10 @@ fix-frontend: ## Rebuild et redémarrer le frontend (fix erreurs JavaScript)
 	@docker volume rm jobbingtrack_frontend-next 2>/dev/null || true
 	@echo ""
 	@echo "3️⃣ Rebuild du frontend..."
-	@cd frontend && docker-compose -f docker-compose.frontend.yml build --no-cache frontend
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) build --no-cache frontend)
 	@echo ""
 	@echo "4️⃣ Redémarrage du frontend..."
-	@cd .. && $(MAKE) restart-service SERVICE=frontend || $(MAKE) up
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	@echo ""
 	@echo "⏳ Attente du démarrage (15s)..."
 	@sleep 15
