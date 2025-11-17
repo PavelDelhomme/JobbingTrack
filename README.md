@@ -137,6 +137,7 @@ make help-utils        # Utilitaires
 #### 🚀 Démarrage et Installation
 | Guide | Description |
 |-------|-------------|
+| ⭐ [Guide de Setup Complet](docs/getting-started/GUIDE_SETUP_COMPLET.md) | **NOUVEAU** : Setup complet depuis zéro avec commande `make setup` |
 | ⭐ [Guide d'Installation](docs/getting-started/GUIDE_INSTALLATION.md) | **NOUVEAU** : Installation complète Docker, configuration, dépannage |
 | 📁 [Guide d'Amélioration Structure](docs/getting-started/GUIDE_STRUCTURE.md) | **NOUVEAU** : Simplifier et clarifier la structure du projet |
 | [Installation Rapide](docs/deployment/getting-started/README.md) | Guide d'installation et configuration initiale |
