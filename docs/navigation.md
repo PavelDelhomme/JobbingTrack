@@ -8,6 +8,8 @@
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !
+- **[📦 Guide d'Installation](getting-started/GUIDE_INSTALLATION.md)** - ⭐ **NOUVEAU** : Installation complète Docker, configuration, dépannage
+- **[📁 Guide d'Amélioration Structure](getting-started/GUIDE_STRUCTURE.md)** - ⭐ **NOUVEAU** : Simplifier et clarifier la structure du projet
 - **[🔄 Guide de Redémarrage](getting-started/REDEMARRAGE.md)** - Comment redémarrer le projet
 - **[🛠️ Commandes Makefile](development/makefile-commands/README.md)** - Guide complet des commandes
 - **[🔧 Scripts](scripts/README.md)** - Tous les scripts disponibles
