@@ -115,7 +115,12 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
-	@SERVICES="auth-service"; \
+	@echo "📦 Services avec schémas Prisma complets à synchroniser:"
+	@echo "   - auth-service (tables principales: User, Application, Company, etc.)"
+	@echo "   - metrics-aggregator-service (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
+	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
+	@echo ""
+	@SERVICES="auth-service metrics-aggregator-service security-service"; \
 	PUSHED=0; \
 	SKIPPED=0; \
 	for service in $$SERVICES; do \

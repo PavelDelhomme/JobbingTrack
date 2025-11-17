@@ -660,7 +660,17 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 		echo "📋 Exemple: make logs-service SERVICE=api-gateway"; \
 		exit 1; \
 	fi
-	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(SERVICE))
+	@# Gérer le cas spécial de metrics-aggregator qui a un nom différent
+	@if [ "$(SERVICE)" = "metrics-aggregator" ]; then \
+		echo "📋 Logs de jobbingtrack-metrics-aggregator..."; \
+		docker logs -f jobbingtrack-metrics-aggregator 2>/dev/null || { \
+			echo "❌ Conteneur jobbingtrack-metrics-aggregator non trouvé"; \
+			echo "💡 Vérifiez avec: docker ps | grep metrics"; \
+			exit 1; \
+		}; \
+	else \
+		$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(SERVICE)); \
+	fi
 
 # ============================================================================
 # STATUS ET LOGS
