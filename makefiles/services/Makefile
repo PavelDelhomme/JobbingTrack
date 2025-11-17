@@ -7,6 +7,22 @@
 .PHONY: up down up-full up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
 
 # ============================================================================
+# INSTALLATION
+# ============================================================================
+
+# Installer Docker et Docker Compose automatiquement
+install-docker: ## Installer Docker et Docker Compose automatiquement
+	@echo "🐳 Installation Docker et Docker Compose pour JobbingTrack"
+	@echo "================================================================"
+	@if [ ! -f "$(ROOT_DIR)/scripts/setup/install-docker.sh" ]; then \
+		echo "❌ Script d'installation non trouvé: scripts/setup/install-docker.sh"; \
+		exit 1; \
+	fi
+	@echo "🚀 Lancement du script d'installation..."
+	@echo ""
+	@bash "$(ROOT_DIR)/scripts/setup/install-docker.sh"
+
+# ============================================================================
 # AIDE
 # ============================================================================
 
@@ -15,10 +31,14 @@ help-services: ## Afficher l'aide services
 	@echo "🚀 SERVICES - Commandes disponibles"
 	@echo "================================================================"
 	@echo ""
+	@echo "🔧 INSTALLATION:"
+	@echo "  make install-docker        - Installer Docker et Docker Compose automatiquement"
+	@echo ""
 	@echo "🚀 DÉMARRAGE:"
 	@echo "  make up                    - Services essentiels (postgres, redis, gateway, frontend, auth)"
 	@echo "  make up-no-check           - Sans vérification Docker"
-	@echo "  make up-full               - TOUS les services"
+	@echo "  make up-full               - TOUS les services (avec vérification Docker)"
+	@echo "  make up-full-mickdevil    - TOUS les services (SANS vérification Docker)"
 	@echo "  make up-profile PROFILE=x  - Par profil (auth, applications, companies, etc.)"
 	@echo ""
 	@echo "🛑 ARRÊT:"

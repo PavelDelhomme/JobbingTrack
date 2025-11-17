@@ -298,18 +298,34 @@ define check_docker
 	@if ! command -v docker &>/dev/null 2>&1; then \
 		echo "❌ Docker n'est pas installé ou pas dans le PATH"; \
 		echo ""; \
-		echo "💡 Installation Docker:"; \
-		echo "   # Ubuntu/Debian:"; \
-		echo "   curl -fsSL https://get.docker.com | sudo sh"; \
-		echo ""; \
-		echo "   # CentOS/RHEL:"; \
-		echo "   sudo dnf install docker docker-compose"; \
-		echo ""; \
-		echo "   # Ou Docker Desktop: https://docs.docker.com/desktop/"; \
-		echo ""; \
-		echo "🔄 Après installation:"; \
-		echo "   sudo systemctl start docker"; \
-		echo "   sudo usermod -aG docker \$USER"; \
+		if [ -f "$(ROOT_DIR)/scripts/setup/install-docker.sh" ]; then \
+			echo "💡 Installation automatique disponible !"; \
+			echo ""; \
+			echo "🚀 Voulez-vous installer Docker automatiquement ? (O/n)"; \
+			echo "   Le script va installer Docker et Docker Compose"; \
+			echo ""; \
+			echo "   Pour installer maintenant, exécutez:"; \
+			echo "   ./scripts/setup/install-docker.sh"; \
+			echo ""; \
+			echo "   Ou relancez 'make up-full' après installation"; \
+		else \
+			echo "💡 Installation Docker:"; \
+			echo "   # Ubuntu/Debian:"; \
+			echo "   curl -fsSL https://get.docker.com | sudo sh"; \
+			echo ""; \
+			echo "   # CentOS/RHEL:"; \
+			echo "   sudo dnf install docker docker-compose"; \
+			echo ""; \
+			echo "   # Manjaro/Arch:"; \
+			echo "   sudo pacman -S docker docker-compose"; \
+			echo ""; \
+			echo "   # Ou Docker Desktop: https://docs.docker.com/desktop/"; \
+			echo ""; \
+			echo "🔄 Après installation:"; \
+			echo "   sudo systemctl start docker"; \
+			echo "   sudo usermod -aG docker \$$USER"; \
+			echo "   newgrp docker"; \
+		fi; \
 		exit 1; \
 	fi
 	@echo "✅ Docker trouvé: $$(docker --version)"
