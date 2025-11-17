@@ -120,15 +120,9 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo "   - metrics-aggregator (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
 	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
 	@echo ""
-	@# Services avec leurs noms de conteneurs exacts
-	@# auth-service -> jobbingtrack-auth-service
-	@# metrics-aggregator -> jobbingtrack-metrics-aggregator (sans -service)
-	@# security-service -> jobbingtrack-security-service
 	@PUSHED=0; \
 	SKIPPED=0; \
-	\
-	@# auth-service
-	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-auth-service$$"; then \
+	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-auth-service$$"; then \
 		echo "  🔍 Vérification de auth-service..."; \
 		if docker exec jobbingtrack-auth-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
 			echo "  📦 Prisma db push sur auth-service..."; \
@@ -148,9 +142,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 		SKIPPED=$$((SKIPPED + 1)); \
 	fi; \
 	echo ""; \
-	\
-	@# metrics-aggregator (nom spécial sans -service)
-	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-metrics-aggregator$$"; then \
+	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-metrics-aggregator$$"; then \
 		echo "  🔍 Vérification de metrics-aggregator..."; \
 		if docker exec jobbingtrack-metrics-aggregator test -f /app/prisma/schema.prisma 2>/dev/null; then \
 			echo "  📦 Prisma db push sur metrics-aggregator..."; \
@@ -170,9 +162,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 		SKIPPED=$$((SKIPPED + 1)); \
 	fi; \
 	echo ""; \
-	\
-	@# security-service
-	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-security-service$$"; then \
+	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-security-service$$"; then \
 		echo "  🔍 Vérification de security-service..."; \
 		if docker exec jobbingtrack-security-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
 			echo "  📦 Prisma db push sur security-service..."; \
