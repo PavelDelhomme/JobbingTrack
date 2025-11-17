@@ -1182,11 +1182,11 @@ export default function UserJourneyPage() {
             }
           });
           const calendarView = await handleFetchResponse(calendarViewRes);
-          const calendarEvents = extractList(calendarView, 'events');
+          const calendarViewEvents = extractList(calendarView, 'events');
           result = {
             message: 'Calendrier consulté',
-            eventsCount: calendarEvents.length,
-            events: calendarEvents
+            eventsCount: calendarViewEvents.length,
+            events: calendarViewEvents
           };
           break;
 
