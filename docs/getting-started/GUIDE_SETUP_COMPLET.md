@@ -82,7 +82,27 @@ git checkout main
 git checkout dev
 ```
 
-### Étape 3 : Configuration Initiale (Optionnel)
+### Étape 3 : Setup Complet Automatique (Recommandé)
+
+**La méthode la plus simple** :
+
+```bash
+# Setup complet en une commande
+make setup
+```
+
+Cette commande va automatiquement :
+1. ✅ Vérifier/installer Docker
+2. ✅ Proposer d'installer les emojis
+3. ✅ Démarrer tous les services
+4. ✅ Appliquer les migrations Prisma (`make db-push-all`)
+5. ✅ Créer l'utilisateur administrateur
+
+**Identifiants créés** :
+- 📧 Email : `admin@jobbingtrack.com`
+- 🔑 Password : `password123`
+
+### Étape 4 : Configuration Initiale (Optionnel - Si setup automatique non utilisé)
 
 ```bash
 # Créer un fichier .env si nécessaire
@@ -97,6 +117,25 @@ nano .env
 ---
 
 ## ⚙️ Configuration
+
+### Installation des Emojis (Optionnel mais Recommandé)
+
+Pour voir correctement tous les emojis dans l'interface et les commandes :
+
+```bash
+# Installation automatique
+make install-emojis
+
+# Ou manuellement sur Manjaro/Arch
+sudo pacman -S noto-fonts-emoji
+fc-cache -fv
+```
+
+**⚠️ Important** : Après installation, **redémarrer votre session graphique** (déconnexion/reconnexion) ou redémarrer l'ordinateur pour que les emojis s'affichent.
+
+📖 **Guide complet** : [GUIDE_EMOJIS.md](GUIDE_EMOJIS.md)
+
+---
 
 ### Configuration Docker
 
