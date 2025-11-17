@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -38,6 +38,17 @@ setup: ## Setup complet du projet (installation initiale)
 		read -p "Appuyez sur Entrée après avoir redémarré la session Docker..."; \
 	fi
 	
+	# Proposer installation emojis (optionnel)
+	@echo ""
+	@echo "😀 Voulez-vous installer les polices d'emojis ? (recommandé pour voir tous les emojis)"
+	@echo "   Tapez 'o' pour installer maintenant, ou Entrée pour ignorer"
+	@read -t 5 -p "   Votre choix: " emoji_choice || emoji_choice=""; \
+	if [ "$$emoji_choice" = "o" ] || [ "$$emoji_choice" = "O" ]; then \
+		echo ""; \
+		$(MAKE) install-emojis || echo "⚠️  Installation emojis ignorée"; \
+	fi
+	@echo ""
+	
 	# Vérifier permissions Docker
 	@if ! docker ps &>/dev/null 2>&1; then \
 		echo "⚠️  Problème de permissions Docker"; \
@@ -63,7 +74,11 @@ setup: ## Setup complet du projet (installation initiale)
 	# Migrations
 	@echo ""
 	@echo "📊 Application des migrations Prisma..."
+	@echo "⏳ Cela peut prendre quelques secondes..."
 	$(MAKE) db-push-all || echo "⚠️  Migrations déjà appliquées ou erreur"
+	@echo ""
+	@echo "⏳ Attente supplémentaire pour que les tables soient créées (5s)..."
+	@sleep 5
 	
 	# Créer admin
 	@echo ""
@@ -94,6 +109,18 @@ install-docker: ## Installer Docker et Docker Compose automatiquement
 	@echo "🚀 Lancement du script d'installation..."
 	@echo ""
 	@bash "$(ROOT_DIR)/scripts/setup/install-docker.sh"
+
+# Installer les emojis sur le système
+install-emojis: ## Installer les polices d'emojis sur le système
+	@echo "😀 Installation des Emojis pour JobbingTrack"
+	@echo "================================================================"
+	@if [ ! -f "$(ROOT_DIR)/scripts/setup/install-emojis.sh" ]; then \
+		echo "❌ Script d'installation non trouvé: scripts/setup/install-emojis.sh"; \
+		exit 1; \
+	fi
+	@echo "🚀 Lancement du script d'installation..."
+	@echo ""
+	@bash "$(ROOT_DIR)/scripts/setup/install-emojis.sh"
 
 # Fixer le frontend (rebuild + restart)
 fix-frontend: ## Rebuild et redémarrer le frontend (fix erreurs JavaScript)
@@ -135,6 +162,7 @@ help-services: ## Afficher l'aide services
 	@echo "🔧 INSTALLATION & SETUP:"
 	@echo "  make setup                  - Setup complet du projet (première installation)"
 	@echo "  make install-docker        - Installer Docker et Docker Compose automatiquement"
+	@echo "  make install-emojis        - Installer les polices d'emojis sur le système"
 	@echo "  make fix-frontend          - Rebuild et redémarrer le frontend (fix erreurs JS)"
 	@echo ""
 	@echo "🚀 DÉMARRAGE:"
