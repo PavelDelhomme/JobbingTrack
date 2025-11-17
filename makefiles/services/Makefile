@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: install-docker up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+.PHONY: install-docker _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -256,12 +256,8 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   RECAPITULATIF_FINAL.md     # Vue d'ensemble complète"
 	@echo ""
 
-# Démarrer TOUS les services (SANS vérification Docker - pour MickDevil)
-up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mode MickDevil)
-	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
-	@echo "🚀 Tous les services avec métriques complètes"
-	@echo "😎 Mode MickDevil - Vérification Docker désactivée"
-	
+# Fonction interne pour démarrer tous les services (sans message MickDevil)
+_up-full-internal:
 	# Nettoyage complet
 	@echo "🧹 Nettoyage complet de l'environnement Docker..."
 	@echo "  1/4 Arrêt et suppression des conteneurs..."
@@ -310,14 +306,6 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 	# Démarrer TOUS les autres services avec le profil 'full'
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
-	
-	# Services monitoring supplémentaires
-	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, etc.
-	# docker-compose.metrics.yml est obsolète, utilisez monitoring/docker-compose.monitoring.yml
-	# @if [ -f "docker-compose.metrics.yml" ]; then \
-	# 	echo "📊 Démarrage des services de monitoring supplémentaires..."; \
-	# 	docker-compose -f docker-compose.metrics.yml up -d; \
-	# fi
 	
 	# Attendre que les services soient prêts
 	@echo "⏳ Attente que les services soient prêts (5s)..."
@@ -389,8 +377,17 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	# Vérification Docker
 	$(call check_docker)
 	
-	# Appeler up-full-mickdevil pour le reste (sans re-vérification)
-	@$(MAKE) up-full-mickdevil
+	# Appeler la fonction interne
+	@$(MAKE) _up-full-internal
+
+# Démarrer TOUS les services (SANS vérification Docker - pour MickDevil)
+up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mode MickDevil)
+	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
+	@echo "🚀 Tous les services avec métriques complètes"
+	@echo "😎 Mode MickDevil - Vérification Docker désactivée"
+	
+	# Appeler la fonction interne
+	@$(MAKE) _up-full-internal
 
 # ============================================================================
 # ARRÊT DES SERVICES
