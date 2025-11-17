@@ -57,34 +57,68 @@ Accès rapide à toute la documentation du projet : architecture, API, déploiem
 
 ## 🚀 Démarrage Rapide
 
-### Prérequis
+### ⚡ Installation Ultra-Rapide (Recommandé)
+
+**Pour une première installation complète** :
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/OWNER/JobbingTrack.git
+cd JobbingTrack
+
+# 2. Setup complet automatique (installe Docker si nécessaire, démarre tout, crée admin)
+make setup
+```
+
+**C'est tout !** Le script `make setup` va :
+- ✅ Vérifier/installer Docker automatiquement
+- ✅ Proposer d'installer les emojis (recommandé)
+- ✅ Démarrer tous les services
+- ✅ Appliquer les migrations Prisma
+- ✅ Créer l'utilisateur administrateur
+
+**Identifiants par défaut** :
+- 📧 Email : `admin@jobbingtrack.test`
+- 🔑 Password : `password123`
+
+### 📋 Installation Manuelle (Alternative)
+
+#### Prérequis
 
 - Docker & Docker Compose
-- Node.js 20.x
 - Make
 
-### Installation
+#### Étapes
 
-#### 1. Clonner
 ```bash
+# 1. Cloner
 git clone https://github.com/OWNER/JobbingTrack.git
-```
-```bash
 cd JobbingTrack
-```
-#### 2. Démarrer
-```bash
-make up
-```
-#### 3. Accéder
 
-- **Frontend** : http://localhost:8000
+# 2. Installer Docker (si nécessaire)
+make install-docker
+
+# 3. Installer emojis (optionnel mais recommandé)
+make install-emojis
+
+# 4. Démarrer tous les services
+make up-full
+
+# 5. Appliquer migrations Prisma
+make db-push-all
+
+# 6. Créer utilisateur admin
+make create-admin-user
+```
+
+### 🌐 Accès aux Services
+
+- **Frontend** : http://localhost:8080
 - **API Gateway** : http://localhost:3000
-- **cAdvisor** : http://localhost:8081
-- **Metrics Aggregator** : http://localhost:8082
-- **Grafana** : http://localhost:8083 (admin/admin)
 - **Prometheus** : http://localhost:9090
-- **Alertmanager** : http://localhost:8085
+- **Grafana** : http://localhost:3013 (admin/admin123)
+- **cAdvisor** : http://localhost:8082
+- **Metrics Aggregator** : http://localhost:8014
 
 ### Commandes Essentielles
 
@@ -139,7 +173,9 @@ make help-utils        # Utilitaires
 |-------|-------------|
 | ⭐ [Guide de Setup Complet](docs/getting-started/GUIDE_SETUP_COMPLET.md) | **NOUVEAU** : Setup complet depuis zéro avec commande `make setup` |
 | ⭐ [Guide d'Installation](docs/getting-started/GUIDE_INSTALLATION.md) | **NOUVEAU** : Installation complète Docker, configuration, dépannage |
+| 😀 [Guide Installation Emojis](docs/getting-started/GUIDE_EMOJIS.md) | **NOUVEAU** : Installer et configurer les polices d'emojis |
 | 📁 [Guide d'Amélioration Structure](docs/getting-started/GUIDE_STRUCTURE.md) | **NOUVEAU** : Simplifier et clarifier la structure du projet |
+| 🔧 [Fix Table User Manquante](docs/getting-started/FIX_TABLE_USER.md) | Résoudre l'erreur "Table User n'existe pas" |
 | [Installation Rapide](docs/deployment/getting-started/README.md) | Guide d'installation et configuration initiale |
 | [Configuration Développement](docs/development/setup/README.md) | Environnement de développement Node.js, Docker, Prisma |
 | [Workflow Développement](docs/development/workflow/README.md) | Processus et bonnes pratiques de développement |
