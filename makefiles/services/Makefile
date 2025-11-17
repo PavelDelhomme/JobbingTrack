@@ -4,11 +4,84 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: install-docker _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+.PHONY: setup install-docker fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
 
 # ============================================================================
 # INSTALLATION
 # ============================================================================
+
+# Setup complet du projet (première installation)
+setup: ## Setup complet du projet (installation initiale)
+	@echo "🚀 Setup Complet - JobbingTrack"
+	@echo "================================================================"
+	@echo ""
+	@echo "📋 Étapes du setup :"
+	@echo "  1. Vérification Docker"
+	@echo "  2. Installation Docker (si nécessaire)"
+	@echo "  3. Configuration permissions"
+	@echo "  4. Démarrage services"
+	@echo "  5. Migrations base de données"
+	@echo "  6. Création utilisateur admin"
+	@echo ""
+	@echo "⏳ Démarrage du setup..."
+	@echo ""
+	
+	# Vérifier Docker
+	@if ! command -v docker &>/dev/null 2>&1; then \
+		echo "⚠️  Docker n'est pas installé"; \
+		echo ""; \
+		echo "💡 Installation Docker..."; \
+		$(MAKE) install-docker; \
+		echo ""; \
+		echo "⚠️  IMPORTANT: Redémarrer la session ou exécuter: newgrp docker"; \
+		echo ""; \
+		read -p "Appuyez sur Entrée après avoir redémarré la session Docker..."; \
+	fi
+	
+	# Vérifier permissions Docker
+	@if ! docker ps &>/dev/null 2>&1; then \
+		echo "⚠️  Problème de permissions Docker"; \
+		echo ""; \
+		echo "💡 Solution:"; \
+		echo "   sudo usermod -aG docker $$USER"; \
+		echo "   newgrp docker"; \
+		echo ""; \
+		exit 1; \
+	fi
+	
+	@echo "✅ Docker OK"
+	@echo ""
+	
+	# Démarrer les services
+	@echo "🚀 Démarrage des services..."
+	$(MAKE) up-full
+	
+	@echo ""
+	@echo "⏳ Attente de l'initialisation (30s)..."
+	@sleep 30
+	
+	# Migrations
+	@echo ""
+	@echo "📊 Application des migrations Prisma..."
+	$(MAKE) db-push-all || echo "⚠️  Migrations déjà appliquées ou erreur"
+	
+	# Créer admin
+	@echo ""
+	@echo "👤 Création de l'utilisateur administrateur..."
+	$(MAKE) create-admin-user || echo "⚠️  Utilisateur admin existe déjà"
+	
+	@echo ""
+	@echo "✅ Setup terminé !"
+	@echo ""
+	@echo "🌐 Accès aux services :"
+	@echo "  - Frontend:    http://localhost:8080"
+	@echo "  - API Gateway: http://localhost:3000"
+	@echo ""
+	@echo "🔑 Identifiants Admin :"
+	@echo "  Email:    admin@jobbingtrack.test"
+	@echo "  Password: password123"
+	@echo ""
+	@echo "📖 Documentation: docs/getting-started/GUIDE_SETUP_COMPLET.md"
 
 # Installer Docker et Docker Compose automatiquement
 install-docker: ## Installer Docker et Docker Compose automatiquement
@@ -22,6 +95,34 @@ install-docker: ## Installer Docker et Docker Compose automatiquement
 	@echo ""
 	@bash "$(ROOT_DIR)/scripts/setup/install-docker.sh"
 
+# Fixer le frontend (rebuild + restart)
+fix-frontend: ## Rebuild et redémarrer le frontend (fix erreurs JavaScript)
+	@echo "🔧 Fix Frontend - Rebuild et redémarrage"
+	@echo "================================================================"
+	@echo ""
+	@echo "1️⃣ Arrêt du frontend..."
+	@docker stop jobbingtrack-frontend 2>/dev/null || true
+	@docker rm jobbingtrack-frontend 2>/dev/null || true
+	@echo ""
+	@echo "2️⃣ Nettoyage du cache Next.js..."
+	@rm -rf frontend/.next 2>/dev/null || true
+	@docker volume rm jobbingtrack_frontend-next 2>/dev/null || true
+	@echo ""
+	@echo "3️⃣ Rebuild du frontend..."
+	@cd frontend && docker-compose -f docker-compose.frontend.yml build --no-cache frontend
+	@echo ""
+	@echo "4️⃣ Redémarrage du frontend..."
+	@cd .. && $(MAKE) restart-service SERVICE=frontend || $(MAKE) up
+	@echo ""
+	@echo "⏳ Attente du démarrage (15s)..."
+	@sleep 15
+	@echo ""
+	@echo "✅ Frontend fixé !"
+	@echo ""
+	@echo "🌐 Accès: http://localhost:8080"
+	@echo ""
+	@echo "📋 Vérifier les logs: make logs-service SERVICE=frontend"
+
 # ============================================================================
 # AIDE
 # ============================================================================
@@ -31,8 +132,10 @@ help-services: ## Afficher l'aide services
 	@echo "🚀 SERVICES - Commandes disponibles"
 	@echo "================================================================"
 	@echo ""
-	@echo "🔧 INSTALLATION:"
+	@echo "🔧 INSTALLATION & SETUP:"
+	@echo "  make setup                  - Setup complet du projet (première installation)"
 	@echo "  make install-docker        - Installer Docker et Docker Compose automatiquement"
+	@echo "  make fix-frontend          - Rebuild et redémarrer le frontend (fix erreurs JS)"
 	@echo ""
 	@echo "🚀 DÉMARRAGE:"
 	@echo "  make up                    - Services essentiels (postgres, redis, gateway, frontend, auth)"

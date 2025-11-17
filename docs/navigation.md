@@ -8,6 +8,7 @@
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !
+- **[🚀 Guide de Setup Complet](getting-started/GUIDE_SETUP_COMPLET.md)** - ⭐ **NOUVEAU** : Setup complet depuis zéro avec `make setup`
 - **[📦 Guide d'Installation](getting-started/GUIDE_INSTALLATION.md)** - ⭐ **NOUVEAU** : Installation complète Docker, configuration, dépannage
 - **[📁 Guide d'Amélioration Structure](getting-started/GUIDE_STRUCTURE.md)** - ⭐ **NOUVEAU** : Simplifier et clarifier la structure du projet
 - **[🔄 Guide de Redémarrage](getting-started/REDEMARRAGE.md)** - Comment redémarrer le projet
