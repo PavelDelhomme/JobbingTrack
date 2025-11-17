@@ -66,14 +66,16 @@ Accès rapide à toute la documentation du projet : architecture, API, déploiem
 ### Installation
 
 #### 1. Clonner
-
+```bash
 git clone https://github.com/PavelDelhomme/JobbingTrack.git
+```
+```bash
 cd JobbingTrack
-
+```
 #### 2. Démarrer
-
+```bash
 make up
-
+```
 #### 3. Accéder
 
 - **Frontend** : http://localhost:8000
@@ -110,7 +112,7 @@ make up-for-tests
 
 📖 **Guide complet** : [DEMARRAGE_TESTS_PARCOURS.md](DEMARRAGE_TESTS_PARCOURS.md)
 
-### ⭐ Nouveau : Aide Contextuelle Intégrée
+### Aide Contextuelle Intégrée
 
 ```bash
 # Aide par module
@@ -135,6 +137,8 @@ make help-utils        # Utilitaires
 #### 🚀 Démarrage et Installation
 | Guide | Description |
 |-------|-------------|
+| ⭐ [Guide d'Installation](docs/getting-started/GUIDE_INSTALLATION.md) | **NOUVEAU** : Installation complète Docker, configuration, dépannage |
+| 📁 [Guide d'Amélioration Structure](docs/getting-started/GUIDE_STRUCTURE.md) | **NOUVEAU** : Simplifier et clarifier la structure du projet |
 | [Installation Rapide](docs/deployment/getting-started/README.md) | Guide d'installation et configuration initiale |
 | [Configuration Développement](docs/development/setup/README.md) | Environnement de développement Node.js, Docker, Prisma |
 | [Workflow Développement](docs/development/workflow/README.md) | Processus et bonnes pratiques de développement |
@@ -199,35 +203,36 @@ make help-utils        # Utilitaires
 ## 🛠️ Commandes Make
 
 ### Démarrage
+```bash
 make up # Services essentiels
 make up-full # Tous les services
 make down # Arrêter
-
+```
 
 ### Gestion Services
-
+```bash
 make start-auth
 make stop-service SERVICE=backend
 make logs-service SERVICE=frontend
-
+```
 
 ### Tests
-
+```bash
 make test-setup # Configuration tests
 make test # Tests complets
 make test-unit # Tests unitaires
 make test-e2e # Tests E2E (Playwright)
 make test-docker-images # Tests images Docker
 make test-system-verify # Vérification système
-
+```
 📖 **[Guide des tests](tests/README.md)**
 
 ### Diagnostics
-
+```bash
 make health # Santé services
 make ps # Liste conteneurs
 make status # Statut détaillé
-
+```
 
 📖 **[Documentation complète Makefile](docs/development/makefile/README.md)** | 📄 **[Documentation PDF Complète](docs/pdfs/documentation-complete.pdf)**
 

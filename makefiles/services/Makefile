@@ -236,72 +236,60 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   RECAPITULATIF_FINAL.md     # Vue d'ensemble complète"
 	@echo ""
 
-# Démarrer TOUS les services
-up-full: ## Démarrer TOUS les services avec tous les profils
+# Démarrer TOUS les services (SANS vérification Docker - pour MickDevil)
+up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mode MickDevil)
 	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
 	@echo "🚀 Tous les services avec métriques complètes"
-	@echo "⚠️  Mode sans vérification Docker"
+	@echo "😎 Mode MickDevil - Vérification Docker désactivée"
 	
 	# Nettoyage complet
 	@echo "🧹 Nettoyage complet de l'environnement Docker..."
 	@echo "  1/4 Arrêt et suppression des conteneurs..."
-	@docker-compose -f docker-compose.yml down --remove-orphans --volumes --timeout 30 2>/dev/null || true
+	$(call docker_compose, -f docker-compose.yml down --remove-orphans --volumes --timeout 30) 2>/dev/null || true
 	
 	@echo "  2/4 Suppression des conteneurs orphelins..."
-	@docker ps -aq --filter "name=jobbingtrack-" | xargs -r docker rm -f 2>/dev/null || true
+	@if command -v docker &>/dev/null 2>&1; then \
+		docker ps -aq --filter "name=jobbingtrack-" 2>/dev/null | xargs -r docker rm -f 2>/dev/null || true; \
+	fi
 	
 	@echo "  3/4 Nettoyage des réseaux..."
-	@docker network rm backend_jobbingtrack-network jobbingtrack_jobbingtrack-network 2>/dev/null || true
+	@if command -v docker &>/dev/null 2>&1; then \
+		docker network rm backend_jobbingtrack-network jobbingtrack_jobbingtrack-network 2>/dev/null || true; \
+	fi
 	
 	@echo "  4/4 Nettoyage des volumes orphelins..."
-	@docker volume ls -q --filter "name=jobbingtrack" | xargs -r docker volume rm -f 2>/dev/null || true
+	@if command -v docker &>/dev/null 2>&1; then \
+		docker volume ls -q --filter "name=jobbingtrack" 2>/dev/null | xargs -r docker volume rm -f 2>/dev/null || true; \
+	fi
 	
 	# Création réseau
-	@echo "🌐 Vérification du réseau Docker..."
-	@if ! docker network inspect backend_jobbingtrack-network >/dev/null 2>&1; then \
-		echo "  ✓ Création du réseau 'backend_jobbingtrack-network'..."; \
-		docker network create backend_jobbingtrack-network; \
-	else \
-		echo "  ✓ Réseau 'backend_jobbingtrack-network' existe déjà"; \
-	fi
+	$(call ensure_docker_network)
 	
 	# Démarrer services de base
 	@echo "🚀 Démarrage des services de base (PostgreSQL, Redis)..."
-	@docker-compose -f docker-compose.yml up -d postgres redis
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis)
 	
 	# Attendre PostgreSQL
-	@echo "⏳ Attente du démarrage de PostgreSQL..."
-	@for i in $$(seq 1 30); do \
-		if docker-compose -f docker-compose.yml exec -T postgres pg_isready -U jobbingtrack >/dev/null 2>&1; then \
-			echo "  ✓ PostgreSQL est prêt"; \
-			break; \
-		fi; \
-		echo -n "."; \
-		sleep 1; \
-		if [ $$i -eq 30 ]; then \
-			echo "❌ Timeout en attendant PostgreSQL"; \
-			exit 1; \
-		fi; \
-	done
+	$(call wait_for_postgres)
 	
 	# Démarrer services principaux
 	@echo "🚀 Démarrage des services principaux..."
-	@docker-compose -f docker-compose.yml up -d api-gateway auth-service
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service)
 	
 	# Correction DB
 	$(MAKE) db-fix-role
 	
 	# Démarrer frontend
 	@echo "🚀 Démarrage du frontend..."
-	@docker-compose -f docker-compose.yml up -d frontend
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	
 	# Démarrer monitoring
 	@echo "📊 Démarrage du service de métriques..."
-	@docker-compose -f docker-compose.yml up -d jobbingtrack-metrics-aggregator
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d jobbingtrack-metrics-aggregator)
 	
 	# Démarrer TOUS les autres services avec le profil 'full'
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
-	@docker-compose -f docker-compose.yml --profile full up -d
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
 	# Services monitoring supplémentaires
 	# ⚠️ DÉSACTIVÉ - Utilisez 'make monitoring-up' pour démarrer Prometheus, etc.
@@ -326,35 +314,45 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	
 	# Vérification Prisma migrations
 	@echo "🔍 Vérification des migrations Prisma..."
-	@if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "\dt \"User\"" 2>&1 | grep -q "Did not find any relation"; then \
-		echo "⚠️  ATTENTION: Les migrations Prisma ne sont pas appliquées !"; \
-		echo ""; \
-		echo "💡 Pour appliquer les migrations, lancez:"; \
-		echo "    make db-migrate"; \
-		echo ""; \
+	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
+	if [ -n "$$POSTGRES_CONTAINER" ]; then \
+		if docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -c "\dt \"User\"" 2>&1 | grep -q "Did not find any relation"; then \
+			echo "⚠️  ATTENTION: Les migrations Prisma ne sont pas appliquées !"; \
+			echo ""; \
+			echo "💡 Pour appliquer les migrations, lancez:"; \
+			echo "    make db-migrate"; \
+			echo ""; \
+		else \
+			echo "✅ Migrations Prisma appliquées"; \
+		fi; \
 	else \
-		echo "✅ Migrations Prisma appliquées"; \
+		echo "⚠️  Conteneur PostgreSQL non trouvé"; \
 	fi
 	
 	# Vérification utilisateur admin
 	@echo "🔍 Vérification de l'utilisateur administrateur..."
-	@if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.com';" 2>/dev/null | grep -q "^\\s*0"; then \
-		echo "⚠️  ATTENTION: L'utilisateur administrateur n'existe pas !"; \
-		echo ""; \
-		echo "💡 Pour créer l'utilisateur admin, lancez:"; \
-		echo "    make create-admin-user"; \
-		echo ""; \
-		echo "🔑 Identifiants qui seront créés:"; \
-		echo "    Email:    admin@jobbingtrack.com"; \
-		echo "    Password: password123"; \
-		echo ""; \
+	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
+	if [ -n "$$POSTGRES_CONTAINER" ]; then \
+		if docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.com';" 2>/dev/null | grep -q "^\\s*0"; then \
+			echo "⚠️  ATTENTION: L'utilisateur administrateur n'existe pas !"; \
+			echo ""; \
+			echo "💡 Pour créer l'utilisateur admin, lancez:"; \
+			echo "    make create-admin-user"; \
+			echo ""; \
+			echo "🔑 Identifiants qui seront créés:"; \
+			echo "    Email:    admin@jobbingtrack.com"; \
+			echo "    Password: password123"; \
+			echo ""; \
+		else \
+			echo "✅ Utilisateur administrateur existe"; \
+			echo ""; \
+			echo "🔑 Identifiants Admin:"; \
+			echo "    Email:    admin@jobbingtrack.com"; \
+			echo "    Password: password123"; \
+			echo ""; \
+		fi; \
 	else \
-		echo "✅ Utilisateur administrateur existe"; \
-		echo ""; \
-		echo "🔑 Identifiants Admin:"; \
-		echo "    Email:    admin@jobbingtrack.com"; \
-		echo "    Password: password123"; \
-		echo ""; \
+		echo "⚠️  Conteneur PostgreSQL non trouvé"; \
 	fi
 	
 	@echo "📊 Pour démarrer le monitoring complet (Prometheus, Grafana):"
@@ -362,6 +360,17 @@ up-full: ## Démarrer TOUS les services avec tous les profils
 	@echo ""
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
+
+# Démarrer TOUS les services (AVEC vérification Docker)
+up-full: ## Démarrer TOUS les services avec tous les profils (avec vérification Docker)
+	@echo "🔄 Démarrage complet de JobbingTrack avec nettoyage en profondeur..."
+	@echo "🚀 Tous les services avec métriques complètes"
+	
+	# Vérification Docker
+	$(call check_docker)
+	
+	# Appeler up-full-mickdevil pour le reste (sans re-vérification)
+	@$(MAKE) up-full-mickdevil
 
 # ============================================================================
 # ARRÊT DES SERVICES
