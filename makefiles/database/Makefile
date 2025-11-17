@@ -117,7 +117,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo ""
 	@echo "📦 Services avec schémas Prisma complets à synchroniser:"
 	@echo "   - auth-service (tables principales: User, Application, Company, etc.)"
-	@echo "   - metrics-aggregator-service (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
+	@echo "   - metrics-aggregator (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
 	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
 	@echo ""
 	@# Services avec leurs noms de conteneurs exacts
