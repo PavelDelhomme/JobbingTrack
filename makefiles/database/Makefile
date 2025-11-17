@@ -120,32 +120,78 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo "   - metrics-aggregator-service (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
 	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
 	@echo ""
-	@SERVICES="auth-service metrics-aggregator-service security-service"; \
-	PUSHED=0; \
+	@# Services avec leurs noms de conteneurs exacts
+	@# auth-service -> jobbingtrack-auth-service
+	@# metrics-aggregator -> jobbingtrack-metrics-aggregator (sans -service)
+	@# security-service -> jobbingtrack-security-service
+	@PUSHED=0; \
 	SKIPPED=0; \
-	for service in $$SERVICES; do \
-		CONTAINER="jobbingtrack-$$service"; \
-		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
-			echo "  🔍 Vérification de $$service..."; \
-			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
-				echo "  📦 Prisma db push sur $$service..."; \
-				if docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss; then \
-					echo "  ✅ $$service - Schéma synchronisé"; \
-					PUSHED=$$((PUSHED + 1)); \
-				else \
-					echo "  ❌ $$service - Échec de prisma db push"; \
-					SKIPPED=$$((SKIPPED + 1)); \
-				fi; \
+	\
+	@# auth-service
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-auth-service$$"; then \
+		echo "  🔍 Vérification de auth-service..."; \
+		if docker exec jobbingtrack-auth-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
+			echo "  📦 Prisma db push sur auth-service..."; \
+			if docker exec -w /app jobbingtrack-auth-service npx prisma db push --accept-data-loss; then \
+				echo "  ✅ auth-service - Schéma synchronisé"; \
+				PUSHED=$$((PUSHED + 1)); \
 			else \
-				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
+				echo "  ❌ auth-service - Échec de prisma db push"; \
 				SKIPPED=$$((SKIPPED + 1)); \
 			fi; \
 		else \
-			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
+			echo "  ⏭️  auth-service - Pas de Prisma (ignoré)"; \
 			SKIPPED=$$((SKIPPED + 1)); \
 		fi; \
-		echo ""; \
-	done; \
+	else \
+		echo "  ⚠️  auth-service - Conteneur non démarré (ignoré)"; \
+		SKIPPED=$$((SKIPPED + 1)); \
+	fi; \
+	echo ""; \
+	\
+	@# metrics-aggregator (nom spécial sans -service)
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-metrics-aggregator$$"; then \
+		echo "  🔍 Vérification de metrics-aggregator..."; \
+		if docker exec jobbingtrack-metrics-aggregator test -f /app/prisma/schema.prisma 2>/dev/null; then \
+			echo "  📦 Prisma db push sur metrics-aggregator..."; \
+			if docker exec -w /app jobbingtrack-metrics-aggregator npx prisma db push --accept-data-loss; then \
+				echo "  ✅ metrics-aggregator - Schéma synchronisé"; \
+				PUSHED=$$((PUSHED + 1)); \
+			else \
+				echo "  ❌ metrics-aggregator - Échec de prisma db push"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
+		else \
+			echo "  ⏭️  metrics-aggregator - Pas de Prisma (ignoré)"; \
+			SKIPPED=$$((SKIPPED + 1)); \
+		fi; \
+	else \
+		echo "  ⚠️  metrics-aggregator - Conteneur non démarré (ignoré)"; \
+		SKIPPED=$$((SKIPPED + 1)); \
+	fi; \
+	echo ""; \
+	\
+	@# security-service
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-security-service$$"; then \
+		echo "  🔍 Vérification de security-service..."; \
+		if docker exec jobbingtrack-security-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
+			echo "  📦 Prisma db push sur security-service..."; \
+			if docker exec -w /app jobbingtrack-security-service npx prisma db push --accept-data-loss; then \
+				echo "  ✅ security-service - Schéma synchronisé"; \
+				PUSHED=$$((PUSHED + 1)); \
+			else \
+				echo "  ❌ security-service - Échec de prisma db push"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
+		else \
+			echo "  ⏭️  security-service - Pas de Prisma (ignoré)"; \
+			SKIPPED=$$((SKIPPED + 1)); \
+		fi; \
+	else \
+		echo "  ⚠️  security-service - Conteneur non démarré (ignoré)"; \
+		SKIPPED=$$((SKIPPED + 1)); \
+	fi; \
+	echo ""; \
 	GENERATORS="call-service followup-service event-service interview-service"; \
 	for service in $$GENERATORS; do \
 		CONTAINER="jobbingtrack-$$service"; \
