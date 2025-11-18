@@ -10,6 +10,7 @@ const logger = require('./utils/logger');
 const authRoutes = require('./routes/auth.routes');
 const preferencesRoutes = require('./routes/preferences.routes');
 const usersRoutes = require('./routes/users.routes');
+const emailRoutes = require('./routes/email.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 
@@ -76,6 +77,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/preferences', preferencesRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/emails', emailRoutes);
 
 // Routes sans préfixe
 app.use('/', authRoutes);
