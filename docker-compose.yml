@@ -59,6 +59,12 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    volumes:
+      # ✅ Monter le code source pour le développement (hot reload)
+      - ./backend/api-gateway/src:/app/src
+      - ./backend/api-gateway/package.json:/app/package.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
     healthcheck:
