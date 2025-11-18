@@ -79,6 +79,8 @@ app.use('/api/v1/preferences', preferencesRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/emails', emailRoutes);
 
+logger.info('✅ Route /api/v1/emails enregistrée');
+
 // Routes sans préfixe
 app.use('/', authRoutes);
 
