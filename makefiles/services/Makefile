@@ -653,6 +653,26 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 	$(call docker_compose, $(COMPOSE_FILES_FULL) restart $(SERVICE))
 	@echo "✅ Service $(SERVICE) redémarré"
 
+# Reconstruire un service spécifique
+rebuild-service: ## Reconstruire un service spécifique (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
+		echo "📋 Exemple: make rebuild-service SERVICE=api-gateway"; \
+		exit 1; \
+	fi
+	@echo "🔨 Reconstruction du service: $(SERVICE)"
+	@echo "🛑 Arrêt du service..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) stop $(SERVICE) || true)
+	@echo "🗑️  Suppression de l'ancienne image..."
+	@docker rmi jobbingtrack-$(SERVICE) 2>/dev/null || echo "⚠️  Image non trouvée (normal)"
+	@echo "🔨 Build en cours..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) build --no-cache $(SERVICE))
+	@echo "🚀 Démarrage du service..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d $(SERVICE))
+	@echo "⏳ Attente que le service démarre (5 secondes)..."
+	@sleep 5
+	@echo "✅ Service $(SERVICE) reconstruit et redémarré"
+
 # Logs d'un service spécifique
 logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 	@if [ -z "$(SERVICE)" ]; then \
