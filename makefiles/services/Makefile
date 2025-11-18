@@ -631,6 +631,23 @@ start-applications: ## Démarrer le service d'applications
 	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile applications up -d)
 	@echo "✅ Service d'applications démarré"
 
+# Démarrer un service spécifique
+up-service: ## Démarrer un service spécifique (SERVICE=nom)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
+		echo "📋 Exemples:"; \
+		echo "   make up-service SERVICE=api-gateway    # API Gateway"; \
+		echo "   make up-service SERVICE=auth-service  # Service d'authentification"; \
+		echo "   make up-service SERVICE=frontend       # Frontend"; \
+		exit 1; \
+	fi
+	@echo "🚀 Démarrage du service: $(SERVICE)"
+	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d $(SERVICE))
+	@echo "⏳ Attente que le service démarre (3 secondes)..."
+	@sleep 3
+	@echo "✅ Service $(SERVICE) démarré"
+	@echo "💡 Vérifiez le statut avec: make status"
+
 # Arrêter un service spécifique
 stop-service: ## Arrêter un service spécifique (SERVICE=nom)
 	@if [ -z "$(SERVICE)" ]; then \
