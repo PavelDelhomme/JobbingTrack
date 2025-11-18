@@ -551,7 +551,8 @@ export default function BackofficePage() {
         </div>
 
         {/* Métriques principales en grille - Version administrative */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+        {/* Sous 1280px : 3 colonnes (2 lignes) | À partir de 1280px : 6 colonnes (1 ligne) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
           <MetricCard
             title="Sessions Actives"
             value={stats.activeUsers !== undefined ? stats.activeUsers : '...'}
