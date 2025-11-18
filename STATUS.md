@@ -9,52 +9,225 @@
 **Base de Données** : ✅ 25 TABLES CRÉÉES (Prisma sync OK)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
-**Commandes clés (base de données)** :
+> 📜 **Historique détaillé** : Consultez **[HISTORIQUE.md](HISTORIQUE.md)** pour l'historique complet des réalisations.
+
+---
+
+## 🎯 PRIORITÉS IMMÉDIATES - À FAIRE MAINTENANT
+
+### ⚠️ VALIDATION COMPLÈTE DES PARCOURS UTILISATEUR
+
+**Statut** : 🟡 **EN COURS** - 4 scénarios validés sur 13 définis
+
+**Contexte** :
+- ✅ Page `/backoffice/user-journey` fonctionnelle
+- ✅ 15/15 tests de base passent (100%)
+- ✅ 4 scénarios principaux validés (Complet, Rapide, Chercheur Actif, Nouvel Utilisateur)
+- ⏱️ **9 scénarios supplémentaires à valider**
+
+**Actions à faire** :
+
+#### 1. Valider tous les scénarios de parcours (URGENT)
+
+**Scénarios à valider** :
+- [ ] `mobile_test` - Test Mobile Complet
+- [ ] `add_call_to_application` - Ajouter Appel à Candidature
+- [ ] `add_contact_to_application` - Ajouter Contact à Candidature
+- [ ] `contact_management` - Gestion des Contacts
+- [ ] `interview_workflow` - Workflow Entretiens
+- [ ] `followup_management` - Gestion des Relances
+- [ ] `event_scheduling` - Planification d'Événements
+- [ ] `company_workflow` - Workflow Entreprises
+- [ ] `application_lifecycle` - Cycle de Vie Candidature
+
+**Comment valider** :
+1. Aller sur `/backoffice/user-journey`
+2. Sélectionner chaque scénario
+3. Lancer le test
+4. Vérifier que toutes les étapes passent
+5. Documenter les résultats
+
+**Fichier** : `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
+
+---
+
+#### 2. Implémenter l'analytics des parcours réalisés
+
+**Objectif** : Enregistrer et analyser tous les parcours utilisateur exécutés
+
+**Actions à faire** :
+- [ ] Créer table `UserJourneyLog` en BDD (Prisma)
+- [ ] Enregistrer automatiquement chaque parcours exécuté
+- [ ] Créer API `/api/v1/user-journey/analytics` pour récupérer les statistiques
+- [ ] Créer page `/backoffice/user-journey/analytics` pour visualiser :
+  - Taux de réussite par scénario
+  - Durée moyenne par étape
+  - Étapes qui échouent le plus souvent
+  - Évolution dans le temps
+  - Graphiques et métriques
+
+**Fichiers à créer/modifier** :
+- `backend/dashboard-service/prisma/schema.prisma` (ajouter model UserJourneyLog)
+- `backend/dashboard-service/src/controllers/userJourney.controller.js`
+- `backend/dashboard-service/src/routes/userJourney.routes.js`
+- `frontend/src/app/(admin)/backoffice/user-journey/analytics/page.tsx`
+
+---
+
+#### 3. Enregistrement systématique des parcours
+
+**Objectif** : Sauvegarder tous les parcours exécutés pour analyse future
+
+**Actions à faire** :
+- [ ] Modifier `user-journey/page.tsx` pour enregistrer chaque parcours en BDD
+- [ ] Envoyer les données au backend après chaque exécution
+- [ ] Stocker : scénario, étapes, résultats, durées, erreurs
+- [ ] Permettre la consultation de l'historique
+
+**Fichiers à modifier** :
+- `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (ajouter enregistrement BDD)
+
+---
+
+### 📧 COMPLÉTER LE SYSTÈME EMAIL (06/11/2025 - INCOMPLET)
+
+**Statut** : 🟡 **PARTIELLEMENT TERMINÉ** - Seule la priorité 1 est complète
+
+**⚠️ IMPORTANT** : Le TODO du 06/11/2025 indique "COMPLÉTÉ" mais seule la **PRIORITÉ 1** (migrations BDD) est vraiment terminée. Les priorités 2-6 restent à faire.
+
+#### ✅ PRIORITÉ 1 : Migrations Base de Données - **TERMINÉE**
+
+- ✅ 25 tables créées
+- ✅ Base de données opérationnelle
+
+#### ⏱️ PRIORITÉ 2 : Tests Emails OVH (15 min) - **À FAIRE**
+
+```bash
+# 1. Inscription (email envoyé via OVH)
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com","password":"Test123!","firstName":"Paul","lastName":"Delh"}'
+
+# 2. VÉRIFIER GMAIL paul.delh@gmail.com
+#    → Email bienvenue reçu ?
+#    → Email vérification reçu ?
+
+# 3. Reset password
+curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paul.delh@gmail.com"}'
+
+# 4. VÉRIFIER GMAIL → Email reset reçu ?
 ```
-make db-push-all     → Synchronise via auth-service + regen Prisma (services métiers)
-make migrate-all     → Applique les migrations Prisma (migrate deploy)
-make migrate-restart → (équivalent db-migrate + restart) [si MAKE=make]
-make restart         → Redémarre les services actifs
+
+**Actions** :
+- [ ] Tester l'inscription et vérifier les emails reçus
+- [ ] Tester le reset password et vérifier l'email
+- [ ] Documenter les résultats
+
+---
+
+#### ⏱️ PRIORITÉ 3 : Tests Déliverabilité & Sécurité (20 min) - **À FAIRE**
+
+```bash
+# Test 1 : Vérifier DNS maily.ovh
+dig maily.ovh MX +short
+dig maily.ovh TXT +short | grep spf
+
+# Test 2 : Tester SMTP OVH
+openssl s_client -connect ssl0.ovh.net:465 -crlf
+# Taper : EHLO maily.ovh
+# Vérifier réponse serveur
+
+# Test 3 : Score déliverabilité avec mail-tester.com
+# → Envoyer email test à l'adresse fournie par mail-tester.com
+# → Vérifier score (objectif : > 8/10)
+
+# Test 4 : Vérifier firewall
+sudo ufw status | grep -E "465|587"
+# ou
+sudo iptables -L | grep -E "465|587"
 ```
+
+**Actions** :
+- [ ] Exécuter tous les tests de déliverabilité
+- [ ] Vérifier le score mail-tester.com
+- [ ] Documenter les résultats
+
+---
+
+#### ⏱️ PRIORITÉ 4 : Page Email Monitor (10 min) - **À FAIRE**
+
+**URL** : `http://localhost:8080/backoffice/email-monitor`
+
+**Actions** :
+- [ ] Accéder à la page
+- [ ] Vérifier statistiques
+- [ ] Tester filtres
+- [ ] Voir contenu emails
+- [ ] Tester export
+
+**Améliorations à faire** :
+- [ ] Créer table EmailLog en BDD (Prisma)
+- [ ] Créer API `/api/v1/emails/logs`
+- [ ] Logger automatiquement tous les envois
+- [ ] Afficher logs réels (pas démo)
+- [ ] Ajouter graphiques (emails/jour, taux succès)
+
+---
+
+#### ⏱️ PRIORITÉ 5 : Interface Complète Emails Type Brevo (45 min) - **À FAIRE**
+
+**Objectif** : Créer une interface complète de gestion des emails dans le backoffice admin
+
+**Actions** :
+- [ ] Ajouter le lien dans la navigation (`AdminLayout.tsx`)
+- [ ] Créer les pages :
+  - `/backoffice/emails` (dashboard principal)
+  - `/backoffice/emails/logs` (historique complet)
+  - `/backoffice/emails/templates` (gestion templates)
+  - `/backoffice/emails/settings` (configuration SMTP)
+  - `/backoffice/emails/deliverability` (tests qualité)
+- [ ] Créer table EmailLog en BDD (Prisma)
+- [ ] Créer API Backend (`/api/v1/emails/*`)
+
+**Détails complets** : Voir section "TODO POUR AUJOURD'HUI (06/11/2025)" ci-dessous
+
+---
+
+#### ⏱️ PRIORITÉ 6 : Ajouter Lien Navigation Sidebar (5 min) - **À FAIRE**
+
+**Actions** :
+- [ ] Modifier `frontend/src/components/features/AdminLayout.tsx`
+- [ ] Ajouter le menu "Emails" avec sous-menus
 
 ---
 
 ## 🔴 PROBLÈMES URGENTS À RÉSOUDRE (PRIORITÉ 1)
 
-### 1. 🔴 CRITIQUE - Page `/backoffice/user-journey` - Erreur 500 + Variable Dupliquée
+### 1. 🔴 CRITIQUE - Page `/backoffice/user-journey` - Variable Dupliquée
 
-**Problème** : 
-- Erreur 500 sur `/backoffice/user-journey`
-- Variable `calendarEvents` définie deux fois (lignes 953 et 1185)
-
-**Solution** : ✅ **CORRIGÉ** - Variable renommée en `calendarViewEvents` à la ligne 1185
-
-**Fichier modifié** :
-- `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
+**Statut** : ✅ **CORRIGÉ** - Variable renommée en `calendarViewEvents`
 
 **À vérifier** :
 - [ ] Tester la page après correction
 - [ ] Vérifier que tous les tests user-journey passent
+
+**Fichier modifié** :
+- `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
 
 ---
 
 ### 2. 🔴 CRITIQUE - API `/api/v1/preferences` - Erreur 500
 
 **Problème** : 
-- Erreur 500 sur `/api/v1/preferences` dans plusieurs pages :
-  - `/backoffice/analytics` (Performances & Analytics)
-  - Popup "Mon Profil"
-  - Autres pages utilisant les préférences
-
-**Cause probable** :
-- Table `UserPreferences` non créée dans la base de données
-- Ou problème de connexion Prisma dans `dashboard-service`
+- Erreur 500 sur `/api/v1/preferences` dans plusieurs pages
 
 **Actions à faire** :
 - [ ] Vérifier que la table `UserPreferences` existe dans la BDD
 - [ ] Vérifier les migrations Prisma pour `dashboard-service`
 - [ ] Vérifier les logs de `dashboard-service` pour l'erreur exacte
-- [ ] Tester l'endpoint directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/preferences`
+- [ ] Tester l'endpoint directement
 
 **Fichiers à vérifier** :
 - `backend/dashboard-service/prisma/schema.prisma`
@@ -66,17 +239,13 @@ make restart         → Redémarre les services actifs
 ### 3. 🔴 CRITIQUE - API `/api/v1/security/stats` - Erreur 500
 
 **Problème** : 
-- Erreur 500 sur `/api/v1/security/stats?days=1` dans `/backoffice/security/analysis`
-
-**Cause probable** :
-- Problème dans `security-service` lors de la récupération des statistiques
-- Méthode `getMostActiveCountries` peut-être non implémentée
+- Erreur 500 sur `/api/v1/security/stats?days=1`
 
 **Actions à faire** :
 - [ ] Vérifier les logs de `security-service`
-- [ ] Vérifier que la méthode `getMostActiveCountries` existe dans `securityService.js`
+- [ ] Vérifier que la méthode `getMostActiveCountries` existe
 - [ ] Vérifier que `prisma` est bien exposé dans `SecurityService`
-- [ ] Tester l'endpoint : `curl http://localhost:3000/api/v1/security/stats?days=1`
+- [ ] Tester l'endpoint
 
 **Fichiers à vérifier** :
 - `backend/security-service/src/controllers/securityController.js`
@@ -86,11 +255,8 @@ make restart         → Redémarre les services actifs
 
 ### 4. 🔴 CRITIQUE - Page `/backoffice/security/logs` - Erreur 404
 
-**Problème** : 
-- Erreur 404 sur `/backoffice/security/logs`
-
 **Actions à faire** :
-- [ ] Vérifier que la page existe : `frontend/src/app/(admin)/backoffice/security/logs/page.tsx`
+- [ ] Vérifier que la page existe
 - [ ] Vérifier la route dans le router Next.js
 - [ ] Vérifier la navigation dans `AdminLayout.tsx`
 
@@ -100,20 +266,12 @@ make restart         → Redémarre les services actifs
 
 **Problème** : 
 - WebSocket connection to `ws://localhost:8014/` failed
-- Erreur dans plusieurs pages :
-  - `/backoffice/applications` (Candidatures)
-  - `/backoffice/services`
-  - Autres pages utilisant `useMetrics.tsx`
-
-**Cause probable** :
-- Le service `metrics-aggregator` n'expose pas de WebSocket
-- Ou le port 8014 n'est pas correctement configuré
 
 **Actions à faire** :
 - [ ] Vérifier que `metrics-aggregator` expose un WebSocket
 - [ ] Vérifier la configuration du port 8014
 - [ ] Vérifier les logs de `metrics-aggregator`
-- [ ] Tester la connexion WebSocket : `wscat -c ws://localhost:8014/`
+- [ ] Tester la connexion WebSocket
 
 **Fichiers à vérifier** :
 - `backend/metrics-aggregator-service/src/server.js`
@@ -124,9 +282,7 @@ make restart         → Redémarre les services actifs
 ### 6. 🔴 CRITIQUE - Statistiques Applicatives - `undefined`
 
 **Problème** : 
-- `Statistiques applicatives récupérées: undefined` dans :
-  - `/backoffice/statistique`
-  - `/backoffice/analytics` (Performances & Analytics)
+- `Statistiques applicatives récupérées: undefined`
 
 **Actions à faire** :
 - [ ] Vérifier l'API qui retourne les statistiques applicatives
@@ -142,31 +298,19 @@ make restart         → Redémarre les services actifs
 - `GET /api/v1/calls` → 403 Forbidden
 - `GET /api/v1/followups` → 403 Forbidden
 - `GET /api/v1/events` → 403 Forbidden
-- `GET /api/v1/users` → 403 Forbidden (Testeur d'API)
-
-**Cause probable** :
-- Problème d'authentification JWT
-- Middleware d'authentification trop restrictif
-- Token expiré ou invalide
+- `GET /api/v1/users` → 403 Forbidden
 
 **Actions à faire** :
 - [ ] Vérifier que le token JWT est bien envoyé dans les headers
 - [ ] Vérifier que le token n'est pas expiré
 - [ ] Vérifier les middlewares d'authentification dans chaque service
 - [ ] Vérifier les logs des services pour voir l'erreur exacte
-- [ ] Tester avec un token valide : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/interviews`
-
-**Fichiers à vérifier** :
-- `backend/*-service/src/middlewares/auth.middleware.js` (pour chaque service)
-- `frontend/src/lib/services/*.ts` (services frontend)
 
 ---
 
 ### 8. 🔴 CRITIQUE - Branche `feat/send-reset-and-validate-email` - Solution Email Gratuite
 
 **Objectif** : Implémenter l'envoi d'emails de reset password
-
-**Besoin** : Solution email **gratuite**, **illimitée**, **facile à configurer**
 
 **Options à évaluer** :
 - [ ] **Resend** (gratuit jusqu'à 3000 emails/mois)
@@ -189,37 +333,16 @@ make restart         → Redémarre les services actifs
 
 ### 9. 🟡 Export/Import de Données - Manquant
 
-**Problème** : 
-- Export/Import de données non implémenté pour :
-  - Candidatures (Applications)
-  - Relances (Followups)
-  - Entreprises (Companies)
-  - Contacts
-  - Événements (Events)
-  - Utilisateurs (Users)
-  - Entretiens (Interviews)
-  - Appels (Calls)
-
 **Actions à faire** :
 - [ ] Créer les endpoints d'export pour chaque entité (CSV, JSON, Excel)
 - [ ] Créer les endpoints d'import pour chaque entité
 - [ ] Créer l'interface frontend pour l'export/import
 - [ ] Ajouter la validation des données importées
 - [ ] Gérer les erreurs d'import
-- [ ] Tester avec des fichiers réels
-
-**Fichiers à créer** :
-- `backend/*-service/src/controllers/export.controller.js`
-- `backend/*-service/src/controllers/import.controller.js`
-- `frontend/src/app/(admin)/backoffice/data/export/page.tsx`
-- `frontend/src/app/(admin)/backoffice/data/import/page.tsx`
 
 ---
 
 ### 10. 🟡 Testeur d'API - Erreur 403
-
-**Problème** : 
-- Testeur d'API retourne 403 sur `/api/v1/users`
 
 **Actions à faire** :
 - [ ] Vérifier l'authentification dans le testeur d'API
@@ -230,10 +353,6 @@ make restart         → Redémarre les services actifs
 
 ### 11. 🟡 Emulateur Mobile - Erreur 404 + CSP Violation
 
-**Problème** : 
-- Erreur 404 sur la page d'émulateur mobile
-- CSP violation : `frame-ancestors 'self'` bloque l'iframe
-
 **Actions à faire** :
 - [ ] Vérifier que la page existe
 - [ ] Corriger la configuration CSP pour autoriser l'iframe
@@ -243,35 +362,23 @@ make restart         → Redémarre les services actifs
 
 ### 12. 🟡 Tests Playwright - Fonctionnalités Manquantes
 
-**Problème** : 
-- Pas de sélection de tests spécifiques à lancer
-- Pas d'éditeur de tests
-- Pas de création de tests depuis l'interface
-
 **Actions à faire** :
 - [ ] Ajouter la sélection de tests par groupe
 - [ ] Créer un éditeur de tests dans l'interface
 - [ ] Permettre la création de tests depuis l'UI
-- [ ] Ajouter la gestion des tests (créer, modifier, supprimer)
 
 ---
 
 ### 13. 🟡 Tests de Performance - Non Fonctionnels
 
-**Problème** : 
-- Page de tests de performance non fonctionnelle
-
 **Actions à faire** :
 - [ ] Vérifier pourquoi la page ne fonctionne pas
-- [ ] Implémenter les tests de performance (charge, endurance, stress)
+- [ ] Implémenter les tests de performance
 - [ ] Créer l'interface pour lancer et visualiser les tests
 
 ---
 
 ### 14. 🟡 Désactivation Simple de Pages
-
-**Problème** : 
-- Pas de moyen simple de désactiver des pages pour se concentrer sur une fonctionnalité
 
 **Actions à faire** :
 - [ ] Créer un système de feature flags
@@ -280,32 +387,11 @@ make restart         → Redémarre les services actifs
 
 ---
 
-## 📝 HISTORIQUE DES RÉALISATIONS
+## 📝 TODO POUR AUJOURD'HUI (06/11/2025) - DÉTAILS
 
-### ✅ MISE À JOUR 17/11/2025 – Corrections Critiques
+> ⚠️ **IMPORTANT** : Seule la **PRIORITÉ 1** est complète. Les priorités 2-6 restent à faire.
 
-- ✅ Correction variable `calendarEvents` dupliquée dans `user-journey/page.tsx`
-- ✅ Documentation mise à jour avec guide emojis
-- ✅ README.md amélioré avec installation rapide
-- ✅ Guide setup complet mis à jour
-
----
-
-### ✅ MISE À JOUR 10/11/2025 – Diagnostic métriques Docker vs hôte
-
-- `make diagnostic-metrics` ajouté dans `makefiles/diagnostic/Makefile` : lance `scripts/monitoring/diagnostic-metrics.sh`.
-- Le script exécute `docker ps`, `docker stats`, `docker system df`, `top`, `free`, `curl .../aggregated` puis calcule une estimation CPU réelle vs Docker Desktop.
-- Exécution du 10/11 à 10h59 : 13 conteneurs actifs sur 14, CPU agrégé `0.82` ⇒ ~`0.05%` réel sur 16 cœurs, mémoire conteneurs ≈ `1.6 GB` (21.6% du quota).
-- `jobbingtrack-dashboard-service` est `Exited (255)` depuis 2 jours → planifier un redémarrage (`docker compose up dashboard-service`) avant les prochains tests UI.
-- Suivi : surveiller les pics CPU du `metrics-aggregator` (~24%) et vérifier la cohérence des métriques après redémarrage du dashboard.
-- Correction du résumé `make status / make up-full` : le compteur affiche désormais la réalité (`26/26` services) avec couleurs fonctionnelles.
-- `make diagnostic-metrics` collecte désormais 36 échantillons (5 s d'intervalle) par défaut, calcule moyenne/min/max/tendance CPU/Mémoire/Load, exporte les données brutes (`tmp/diagnostic-metrics/diagnostic-metrics_*.json`) et publie un rapport Markdown détaillé par conteneur (`diagnostic-metrics-report.md`). Variables `SAMPLE`, `SAMPLES`, `SAMPLE_INTERVAL` et `SAMPLE_INTERNAL` restent disponibles pour ajuster la durée.
-
----
-
-### ✅ TODO POUR AUJOURD'HUI (06/11/2025) - COMPLÉTÉ
-
-#### ✅ PRIORITÉ 1 : Migrations Base de Données (5 min) ⭐ **COMPLÉTÉE !**
+### ✅ PRIORITÉ 1 : Migrations Base de Données - **TERMINÉE**
 
 **Statut** : ✅ **TERMINÉ** - 25 tables créées avec succès !
 
@@ -323,71 +409,7 @@ make restart         → Redémarre les services actifs
 
 ---
 
-#### ⚡ PRIORITÉ 2 : Tests Emails OVH (15 min)
-
-```bash
-# 1. Inscription (email envoyé via OVH)
-curl -X POST http://localhost:3000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"paul.delh@gmail.com","password":"Test123!","firstName":"Paul","lastName":"Delh"}'
-
-# 2. VÉRIFIER GMAIL paul.delh@gmail.com
-#    → Email bienvenue reçu ?
-#    → Email vérification reçu ?
-
-# 3. Reset password
-curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
-  -H "Content-Type: application/json" \
-  -d '{"email":"paul.delh@gmail.com"}'
-
-# 4. VÉRIFIER GMAIL → Email reset reçu ?
-```
-
-#### ⚡ PRIORITÉ 3 : Tests Déliverabilité & Sécurité (20 min)
-
-```bash
-# Test 1 : Vérifier DNS maily.ovh
-dig maily.ovh MX +short
-dig maily.ovh TXT +short | grep spf
-
-# Test 2 : Tester SMTP OVH
-openssl s_client -connect ssl0.ovh.net:465 -crlf
-# Taper : EHLO maily.ovh
-# Vérifier réponse serveur
-
-# Test 3 : Score déliverabilité avec mail-tester.com
-# → Envoyer email test à l'adresse fournie par mail-tester.com
-# → Vérifier score (objectif : > 8/10)
-
-# Test 4 : Vérifier firewall
-sudo ufw status | grep -E "465|587"
-# ou
-sudo iptables -L | grep -E "465|587"
-```
-
-#### ⚡ PRIORITÉ 4 : Page Email Monitor (10 min)
-
-```
-URL : http://localhost:8080/backoffice/email-monitor
-
-Actions :
-1. Accéder à la page
-2. Vérifier statistiques
-3. Tester filtres
-4. Voir contenu emails
-5. Tester export
-
-Améliorations à faire :
-⏱️ Créer table EmailLog en BDD (Prisma)
-⏱️ Créer API /api/v1/emails/logs
-⏱️ Logger automatiquement tous les envois
-⏱️ Afficher logs réels (pas démo)
-⏱️ Ajouter graphiques (emails/jour, taux succès)
-```
-
-#### ⚡ PRIORITÉ 5 : Interface Complète Emails Type Brevo (45 min)
-
-**Objectif** : Créer une interface complète de gestion des emails dans le backoffice admin
+### ⏱️ PRIORITÉ 5 : Interface Complète Emails Type Brevo (45 min) - DÉTAILS
 
 **5.1 Ajouter le Lien dans la Navigation** (5 min)
 ```typescript
@@ -493,49 +515,19 @@ router.get('/emails/verify-dns', authenticateJWT, verifyDNS);
 router.post('/emails/test-smtp', authenticateJWT, testSMTPConnection);
 ```
 
-**Temps total** : ~45 minutes ⏱️
-
----
-
-#### ⚡ PRIORITÉ 6 : Ajouter Lien Navigation Sidebar (5 min)
-
-```typescript
-// frontend/src/components/features/AdminLayout.tsx
-
-// Chercher la section navigation items et ajouter :
-
-const navigationItems = [
-  // ... items existants ...
-  {
-    name: 'Emails',
-    href: '/backoffice/emails',
-    icon: Mail,
-    description: 'Gestion et monitoring des emails',
-    submenu: [
-      { name: 'Dashboard', href: '/backoffice/emails' },
-      { name: 'Historique', href: '/backoffice/emails/logs' },
-      { name: 'Templates', href: '/backoffice/emails/templates' },
-      { name: 'Configuration', href: '/backoffice/emails/settings' },
-      { name: 'Déliverabilité', href: '/backoffice/emails/deliverability' }
-    ]
-  }
-];
-```
-
-**Temps total TODO demain** : ~1h30 ⏱️
-
 ---
 
 ## 🎯 POUR NOUVELLE CONVERSATION - LIS D'ABORD CECI
 
-**Fichier unique à consulter** : `STATUS.md` (ce fichier)
+**Fichier unique à consulter** : `STATUS.md` (ce fichier)  
+**Historique détaillé** : **[HISTORIQUE.md](HISTORIQUE.md)**
 
 ### 🏗️ ARCHITECTURE & QUALITÉ DU PROJET
 
 **Architecture Backend** : ✅ **EXCELLENTE**
 ```
 ✅ Base unique PostgreSQL (optimal pour < 100k users)
-✅ Schéma Prisma bien conçu avec 23 tables
+✅ Schéma Prisma bien conçu avec 25 tables
 ✅ Relations many-to-many correctement implémentées
 ✅ Isolation par userId (sécurité)
 ✅ Microservices bien séparés (1 responsabilité par service)
@@ -554,76 +546,6 @@ const navigationItems = [
 ✅ Statistiques complètes
 ```
 
-**Gestion des Contacts** : ✅ **BIEN FAITE**
-```
-✅ Relations many-to-many Companies (ContactCompany)
-✅ Relations many-to-many Applications (ContactApplication)
-✅ Un contact peut travailler dans plusieurs entreprises
-✅ Méthodes link-application et link-company disponibles
-⚠️ AMÉLIORATION POSSIBLE : Lien automatique lors création (Phase 3)
-```
-
-**Gestion Calendrier & Événements** : ✅ **TRÈS BIEN FAITE**
-```
-✅ Lien polymorphe (Application, Interview, FollowUp, Call)
-✅ Rappels configurables
-✅ Création auto depuis candidatures
-✅ Timeline complète des actions
-⚠️ AMÉLIORATION POSSIBLE : Création auto depuis Interviews/Calls (Phase 3)
-```
-
-**Workflows Automatiques** : ✅ **BON DÉPART**
-```
-✅ Candidature → Entreprise auto
-✅ Candidature → Événement calendrier auto
-⚠️ AMÉLIORATION POSSIBLE :
-   - Contact → Lien auto avec application/entreprise
-   - Entretien → Événement calendrier auto
-   - Call → Événement calendrier auto
-   - Relance → Événement calendrier auto
-   - Notifications automatiques
-```
-
-**Sync Mobile Offline** : ✅ **INFRASTRUCTURE PRÊTE**
-```
-✅ Table SyncQueue créée et opérationnelle
-✅ Actions CREATE/UPDATE/DELETE
-✅ Payload JSON flexible
-✅ Gestion conflits préparée
-❌ PAS BESOIN de table intermédiaire supplémentaire
-   → SyncQueue suffit largement !
-```
-
-**🎯 CONCLUSION ARCHITECTURE** :
-```
-✅ Architecture globale : EXCELLENTE (75% du projet terminé)
-✅ Backend : 100% opérationnel
-✅ Relations complexes : Bien gérées
-✅ Prêt pour le mobile (SyncQueue + API complète)
-⚠️ Améliorations possibles mais OPTIONNELLES (Phase 3)
-```
-
-**💡 RÉPONSES AUX QUESTIONS** :
-```
-❓ Workflow candidature bien fait ?
-   ✅ OUI ! Création auto entreprise, statut auto, événement auto
-
-❓ Table intermédiaire pour mobile ?
-   ❌ NON ! SyncQueue suffit largement
-
-❓ Gestion candidatures optimale ?
-   ✅ OUI ! 12 états, historique, relations complètes
-
-❓ Contact lié auto à candidature/entreprise ?
-   ⚠️ Partiellement. Méthodes link disponibles, auto en Phase 3
-
-❓ Événements auto pour tout ?
-   ⚠️ Candidatures : OUI. Autres : Phase 3 optionnelle
-
-❓ Choses à avancer dans STATUS.md ?
-   ✅ OUI ! Voir section "PROBLÈMES URGENTS" ci-dessus
-```
-
 **Commandes rapides pour tester** :
 ```bash
 cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
@@ -638,16 +560,12 @@ make tests-user-journey
 make tests-help
 ```
 
-**🔕 Désactiver les warnings help** :
+**Commandes clés (base de données)** :
 ```bash
-# Pour une session (temporaire)
-export JOBBINGTRACK_HELP_READ=1
-make tests-user-journey  # Pas de warning
-
-# Pour toujours (permanent)
-echo 'export JOBBINGTRACK_HELP_READ=1' >> ~/.bashrc  # Bash
-echo 'export JOBBINGTRACK_HELP_READ=1' >> ~/.zshrc   # Zsh
-source ~/.bashrc  # ou ~/.zshrc
+make db-push-all     → Synchronise via auth-service + regen Prisma (services métiers)
+make migrate-all     → Applique les migrations Prisma (migrate deploy)
+make migrate-restart → (équivalent db-migrate + restart) [si MAKE=make]
+make restart         → Redémarre les services actifs
 ```
 
 ---
@@ -674,7 +592,7 @@ source ~/.bashrc  # ou ~/.zshrc
 - ✅ **Metrics Aggregator** - Métriques Docker/système
 - ✅ **API Gateway** - Routage + fallbacks
 
-#### Frontend (70%)
+#### Frontend (71%) 🟡
 - ✅ **Dashboard Vue d'Ensemble** - KPIs + métriques temps réel
 - ✅ **Monitoring Système** - Services, CPU, RAM, logs temps réel
 - ✅ **Performances & Analytics** - Graphiques avancés
@@ -683,7 +601,7 @@ source ~/.bashrc  # ou ~/.zshrc
 - ✅ **User Journey** - 100% fonctionnel (15/15 tests) ✅
 - ⚠️ **Pages Gestion Données** - À tester avec JWT_SECRET ajouté
 
-#### Infrastructure (95%)
+#### Infrastructure (95%) ✅
 - ✅ Docker Compose complet
 - ✅ Makefile orchestration
 - ✅ PostgreSQL + Redis
@@ -713,19 +631,8 @@ source ~/.bashrc  # ou ~/.zshrc
 ✅ [15] Statistics (200)
 ```
 
-**Tests qui Échouent** (0/15 - 0%) :
-```
-🎉 AUCUN ! TOUS LES TESTS PASSENT !
-```
-
-**Scénarios Manquants** :
-- ❌ Scénario "Candidature Complète" (de la création à l'archivage)
-- ❌ Scénario "Relance Multi-canal" (email + phone + LinkedIn)
-- ❌ Scénario "Entretien Complet" (planif + prépa + feedback)
-- ❌ Scénario "Analytics Utilisateur" (métriques personnelles)
-- ❌ Scénario "Import/Export Données"
-- ❌ Scénario "Gestion Documents"
-- ❌ Scénario "Notifications Push"
+**Scénarios à valider** :
+- ⏱️ 9 scénarios supplémentaires à valider (voir section "VALIDATION COMPLÈTE DES PARCOURS UTILISATEUR")
 
 #### 🔴 CRITIQUE - WAF & Sécurité
 
@@ -744,14 +651,6 @@ const { wafCheck } = require('./middleware/waf');
 app.use(wafCheck);
 ```
 
-**Règles OWASP à activer** :
-- ✅ SQL Injection detection (code présent)
-- ✅ XSS protection (code présent)
-- ✅ Path Traversal (code présent)
-- ✅ Command Injection (code présent)
-- ❌ Rate Limiting (à connecter)
-- ❌ IP Blacklist (à connecter)
-
 ---
 
-**Ne créer AUCUN nouveau fichier .md** - Tout modifier dans `STATUS.md` uniquement.
+**📜 Pour l'historique détaillé des réalisations, consultez [HISTORIQUE.md](HISTORIQUE.md)**
