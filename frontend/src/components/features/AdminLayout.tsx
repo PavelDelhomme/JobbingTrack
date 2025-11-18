@@ -43,6 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     dashboard: true,
     security: true,
     data: true,
+    emails: true,
     admin: true,
     dev: true,
     cleanup: false,
@@ -144,6 +145,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Relances', href: '/backoffice/followups', icon: '📧' },
         { name: 'Événements', href: '/backoffice/events', icon: '🗓️' },
         { name: 'Notifications', href: '/backoffice/notifications', icon: '🔔' },
+      ]
+    },
+    {
+      id: 'emails',
+      label: 'Gestion des Emails',
+      icon: '📧',
+      isCollapsible: true,
+      items: [
+        { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
+        { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
+        { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
+        { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
+        { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
       ]
     },
     {
