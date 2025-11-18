@@ -1,6 +1,6 @@
 # 🔐 Confidentialité et Conformité RGPD - Analytics Mobile
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md)
 
 ---
 
@@ -717,5 +717,5 @@ class PrivacyConfig {
 
 ---
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md)
 

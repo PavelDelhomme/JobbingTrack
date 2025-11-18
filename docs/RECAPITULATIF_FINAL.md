@@ -1,6 +1,6 @@
 # 🎉 Récapitulatif Final - Système de Tests et Analytics
 
-[🏠 README](README.md) | [📋 TODO](TODO_NEXT_STEPS.md) | [📖 Guide Tests](GUIDE_TESTS_PARCOURS.md)
+[🏠 README](../README.md) | [📋 STATUS](../STATUS.md) | [📖 Guide Tests](development/GUIDE_TESTS_PARCOURS.md)
 
 ---
 
@@ -76,7 +76,7 @@ Tous les fichiers dans : `docs/mobile/analytics/`
 
 | Fichier | Modification |
 |---------|-------------|
-| [`TODO_NEXT_STEPS.md`](TODO_NEXT_STEPS.md) | Section complète "Système de Monitoring et Analytics Mobile" ajoutée (450+ lignes) |
+| [`STATUS.md`](../STATUS.md) | Section complète "Système de Monitoring et Analytics Mobile" ajoutée (450+ lignes) |
 | [`README.md`](README.md) | Section "En Développement" mise à jour avec Parcours Utilisateur |
 | [`mobile/README.md`](mobile/README.md) | Section analytics mobile ajoutée |
 | [`frontend/src/components/features/AdminLayout.tsx`](frontend/src/components/features/AdminLayout.tsx) | Menu navigation : lien "Parcours Utilisateur" ajouté |
@@ -211,7 +211,7 @@ JobbingTrack/
 │
 ├── 📖 GUIDE_TESTS_PARCOURS.md         ⭐ Guide d'utilisation des tests
 ├── 📖 RECAPITULATIF_FINAL.md          ⭐ Ce fichier - Vue d'ensemble
-├── 📋 TODO_NEXT_STEPS.md              Section analytics ajoutée
+├── 📋 STATUS.md                        Section analytics ajoutée
 ├── 📄 README.md                       Mis à jour
 │
 ├── docs/
@@ -341,7 +341,7 @@ npm run dev
 | 🛠️ **Implémenter** | `docs/mobile/analytics/INTEGRATION.md` |
 | 🔐 **Questions RGPD** | `docs/mobile/analytics/PRIVACY.md` |
 | 📊 **Créer dashboard** | `docs/mobile/analytics/DASHBOARD.md` |
-| 📋 **Planning** | `TODO_NEXT_STEPS.md` |
+| 📋 **Planning** | `STATUS.md` |
 
 ---
 
@@ -355,5 +355,5 @@ npm run dev
 
 ---
 
-[🏠 README](README.md) | [📋 TODO](TODO_NEXT_STEPS.md) | [📖 Guide Tests](GUIDE_TESTS_PARCOURS.md)
+[🏠 README](../README.md) | [📋 STATUS](../STATUS.md) | [📖 Guide Tests](development/GUIDE_TESTS_PARCOURS.md)
 

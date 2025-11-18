@@ -17,7 +17,7 @@
 ### 📚 Documentation Principale
 
 - **[STATUS.md](STATUS.md)** - État complet du projet et avancement
-- **[MAIL.md](MAIL.md)** - Configuration envoi d'emails (SMTP)
+- **[MAIL.md](docs/emails/MAIL.md)** - Configuration envoi d'emails (SMTP)
 - **[Index Documentation](docs/INDEX_DOCUMENTATION.md)** | **[README Docs](docs/README.md)** | **[Navigation](docs/navigation.md)**
 
 ### 🚀 Démarrage Rapide
@@ -316,7 +316,7 @@ Système complet de collecte et d'analyse des métriques de l'application mobile
 - 🐛 Monitoring : Crashes, performances, événements utilisateurs
 - 📈 Analytics : Statistiques d'utilisation par module mobile
 
-**Plan d'Implémentation** : 9-14 jours (voir [`TODO_NEXT_STEPS.md`](TODO_NEXT_STEPS.md))
+**Plan d'Implémentation** : 9-14 jours (voir [`STATUS.md`](STATUS.md))
 
 ### 🤖 Machine Learning & Matching
 **TODO: Ajouter du vecteur et de l'embedding pour le traitement des données et analyse, afin de déterminer les profil utilisateur et le matching avec la candidature a laquelle il ont postuler afin de savoir si le profil est compatible avec la candidature**

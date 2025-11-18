@@ -1,6 +1,6 @@
 # 📝 Récapitulatif - Système de Monitoring et Analytics Mobile
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md)
 
 ---
 
@@ -32,7 +32,7 @@ Un système complet de monitoring et analytics pour l'application mobile Flutter
 #### Fichiers Projet Mis à Jour
 | Fichier | Modification | Statut |
 |---------|-------------|--------|
-| [`TODO_NEXT_STEPS.md`](../../../TODO_NEXT_STEPS.md) | Section complète ajoutée | ✅ Mis à jour |
+| [`STATUS.md`](../../../STATUS.md) | Section complète ajoutée | ✅ Mis à jour |
 | [`README.md`](../../../README.md) | Fonctionnalité mentionnée | ✅ Mis à jour |
 | [`mobile/README.md`](../../../mobile/README.md) | Section analytics ajoutée | ✅ Mis à jour |
 
@@ -296,7 +296,7 @@ dependencies:
 - [x] Packages listés
 
 ### Fichiers Projet
-- [x] TODO_NEXT_STEPS.md mis à jour
+- [x] STATUS.md mis à jour
 - [x] README.md principal mis à jour
 - [x] mobile/README.md mis à jour
 - [x] docs/mobile/analytics/ créé (5 fichiers)
@@ -326,7 +326,7 @@ Le système de monitoring et analytics mobile pour JobbingTrack est maintenant *
 - ✅ **Plan d'implémentation** détaillé (9-14 jours)
 
 ### Prochaines étapes :
-1. ✅ Lire [`TODO_NEXT_STEPS.md`](../../../TODO_NEXT_STEPS.md) section "Monitoring Mobile"
+1. ✅ Lire [`STATUS.md`](../../../STATUS.md) section "Monitoring Mobile"
 2. 🚀 Suivre [`INTEGRATION.md`](INTEGRATION.md) pour l'implémentation
 3. 📊 Créer le dashboard selon [`DASHBOARD.md`](DASHBOARD.md)
 4. 🔐 Implémenter la conformité via [`PRIVACY.md`](PRIVACY.md)
@@ -335,5 +335,5 @@ Le système de monitoring et analytics mobile pour JobbingTrack est maintenant *
 
 ---
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md) | [🏠 Documentation Principale](../../README.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md) | [🏠 Documentation Principale](../../README.md)
 
