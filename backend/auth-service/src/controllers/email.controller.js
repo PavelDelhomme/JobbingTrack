@@ -1,7 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const emailService = require('../services/emailService');
 const logger = require('../utils/logger');
+const { exec } = require('child_process');
+const { promisify } = require('util');
 
+const execAsync = promisify(exec);
 const prisma = new PrismaClient();
 
 /**
@@ -211,6 +214,7 @@ const sendTestEmail = async (req, res) => {
         <h1>Email de Test - JobbingTrack</h1>
         <p>Ceci est un email de test envoyé depuis l'interface d'administration.</p>
         <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
+        <p><strong>Date d'envoi:</strong> ${new Date().toLocaleString('fr-FR')}</p>
       </div>
     `;
 
@@ -326,11 +330,118 @@ const resendEmail = async (req, res) => {
   }
 };
 
+/**
+ * Tester la configuration DNS (MX, SPF, DKIM)
+ */
+const testDNS = async (req, res) => {
+  try {
+    const { domain = 'maily.ovh' } = req.query;
+    const results = {
+      domain,
+      mx: { status: 'pending', records: [], error: null },
+      spf: { status: 'pending', record: null, error: null },
+      dkim: { status: 'pending', record: null, error: null }
+    };
+
+    // Test MX
+    try {
+      const { stdout: mxOutput } = await execAsync(`dig ${domain} MX +short`);
+      const mxRecords = mxOutput.trim().split('\n').filter(r => r).map(r => r.trim());
+      if (mxRecords.length > 0) {
+        results.mx.status = 'success';
+        results.mx.records = mxRecords;
+      } else {
+        results.mx.status = 'error';
+        results.mx.error = 'Aucun enregistrement MX trouvé';
+      }
+    } catch (error) {
+      results.mx.status = 'error';
+      results.mx.error = error.message;
+    }
+
+    // Test SPF
+    try {
+      const { stdout: spfOutput } = await execAsync(`dig ${domain} TXT +short`);
+      const txtRecords = spfOutput.trim().split('\n').filter(r => r);
+      const spfRecord = txtRecords.find(r => r.includes('v=spf1'));
+      if (spfRecord) {
+        results.spf.status = 'success';
+        results.spf.record = spfRecord.replace(/"/g, '');
+      } else {
+        results.spf.status = 'error';
+        results.spf.error = 'Aucun enregistrement SPF trouvé';
+      }
+    } catch (error) {
+      results.spf.status = 'error';
+      results.spf.error = error.message;
+    }
+
+    // Test DKIM (chercher _default._domainkey)
+    try {
+      const { stdout: dkimOutput } = await execAsync(`dig _default._domainkey.${domain} TXT +short`);
+      const dkimRecord = dkimOutput.trim();
+      if (dkimRecord && dkimRecord.includes('v=DKIM1')) {
+        results.dkim.status = 'success';
+        results.dkim.record = dkimRecord.replace(/"/g, '').substring(0, 100) + '...';
+      } else {
+        results.dkim.status = 'warning';
+        results.dkim.error = 'DKIM non configuré (optionnel)';
+      }
+    } catch (error) {
+      results.dkim.status = 'warning';
+      results.dkim.error = 'DKIM non configuré (optionnel)';
+    }
+
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    logger.error('Erreur test DNS:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du test DNS',
+      details: error.message
+    });
+  }
+};
+
+/**
+ * Tester la connexion SMTP
+ */
+const testSMTPConnection = async (req, res) => {
+  try {
+    const transporter = emailService.transporter;
+    
+    // Tester la connexion
+    await transporter.verify();
+
+    res.json({
+      success: true,
+      message: 'Connexion SMTP réussie',
+      data: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: process.env.SMTP_SECURE === 'true',
+        from: process.env.SMTP_FROM
+      }
+    });
+  } catch (error) {
+    logger.error('Erreur test SMTP:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du test de connexion SMTP',
+      details: error.message
+    });
+  }
+};
+
 module.exports = {
   getEmailLogs,
   getEmailLog,
   getEmailStats,
   sendTestEmail,
-  resendEmail
+  resendEmail,
+  testDNS,
+  testSMTPConnection
 };
-
