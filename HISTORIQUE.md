@@ -1,7 +1,8 @@
 # 📜 HISTORIQUE DES RÉALISATIONS - JobbingTrack
 
 > **Référence** : Ce document contient l'historique détaillé de toutes les réalisations du projet.  
-> Pour les tâches à faire, consultez **[STATUS.md](STATUS.md)**.
+> Pour les tâches à faire, consultez **[STATUS.md](STATUS.md)**.  
+> [🏠 Retour au README principal](README.md)
 
 **Dernière mise à jour** : 2025-11-17
 

@@ -1,5 +1,7 @@
 # 📊 STATUS COMPLET - JobbingTrack
 
+[🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
+
 **Dernière MAJ** : 2025-11-17  
 **Version Projet** : v1.0.1 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
@@ -9,85 +11,9 @@
 **Base de Données** : ✅ 25 TABLES CRÉÉES (Prisma sync OK)  
 **Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
 
-> 📜 **Historique détaillé** : Consultez **[HISTORIQUE.md](HISTORIQUE.md)** pour l'historique complet des réalisations.
-
 ---
 
 ## 🎯 PRIORITÉS IMMÉDIATES - À FAIRE MAINTENANT
-
-### ⚠️ VALIDATION COMPLÈTE DES PARCOURS UTILISATEUR
-
-**Statut** : 🟡 **EN COURS** - 4 scénarios validés sur 13 définis
-
-**Contexte** :
-- ✅ Page `/backoffice/user-journey` fonctionnelle
-- ✅ 15/15 tests de base passent (100%)
-- ✅ 4 scénarios principaux validés (Complet, Rapide, Chercheur Actif, Nouvel Utilisateur)
-- ⏱️ **9 scénarios supplémentaires à valider**
-
-**Actions à faire** :
-
-#### 1. Valider tous les scénarios de parcours (URGENT)
-
-**Scénarios à valider** :
-- [ ] `mobile_test` - Test Mobile Complet
-- [ ] `add_call_to_application` - Ajouter Appel à Candidature
-- [ ] `add_contact_to_application` - Ajouter Contact à Candidature
-- [ ] `contact_management` - Gestion des Contacts
-- [ ] `interview_workflow` - Workflow Entretiens
-- [ ] `followup_management` - Gestion des Relances
-- [ ] `event_scheduling` - Planification d'Événements
-- [ ] `company_workflow` - Workflow Entreprises
-- [ ] `application_lifecycle` - Cycle de Vie Candidature
-
-**Comment valider** :
-1. Aller sur `/backoffice/user-journey`
-2. Sélectionner chaque scénario
-3. Lancer le test
-4. Vérifier que toutes les étapes passent
-5. Documenter les résultats
-
-**Fichier** : `frontend/src/app/(admin)/backoffice/user-journey/page.tsx`
-
----
-
-#### 2. Implémenter l'analytics des parcours réalisés
-
-**Objectif** : Enregistrer et analyser tous les parcours utilisateur exécutés
-
-**Actions à faire** :
-- [ ] Créer table `UserJourneyLog` en BDD (Prisma)
-- [ ] Enregistrer automatiquement chaque parcours exécuté
-- [ ] Créer API `/api/v1/user-journey/analytics` pour récupérer les statistiques
-- [ ] Créer page `/backoffice/user-journey/analytics` pour visualiser :
-  - Taux de réussite par scénario
-  - Durée moyenne par étape
-  - Étapes qui échouent le plus souvent
-  - Évolution dans le temps
-  - Graphiques et métriques
-
-**Fichiers à créer/modifier** :
-- `backend/dashboard-service/prisma/schema.prisma` (ajouter model UserJourneyLog)
-- `backend/dashboard-service/src/controllers/userJourney.controller.js`
-- `backend/dashboard-service/src/routes/userJourney.routes.js`
-- `frontend/src/app/(admin)/backoffice/user-journey/analytics/page.tsx`
-
----
-
-#### 3. Enregistrement systématique des parcours
-
-**Objectif** : Sauvegarder tous les parcours exécutés pour analyse future
-
-**Actions à faire** :
-- [ ] Modifier `user-journey/page.tsx` pour enregistrer chaque parcours en BDD
-- [ ] Envoyer les données au backend après chaque exécution
-- [ ] Stocker : scénario, étapes, résultats, durées, erreurs
-- [ ] Permettre la consultation de l'historique
-
-**Fichiers à modifier** :
-- `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (ajouter enregistrement BDD)
-
----
 
 ### 📧 COMPLÉTER LE SYSTÈME EMAIL (06/11/2025 - INCOMPLET)
 
