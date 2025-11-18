@@ -1,16 +1,132 @@
 'use client'
 
+import { useState } from 'react'
 import AdminLayout from '@/components/features/AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Mail, Eye } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FileText, Mail, Eye, Edit, Save, X } from 'lucide-react'
+
+interface Template {
+  type: string
+  name: string
+  description: string
+  subject: string
+  html: string
+  variables: string[]
+}
 
 export default function EmailTemplatesPage() {
-  const templates = [
-    { type: 'WELCOME', name: 'Email de Bienvenue', description: 'Envoyé lors de l\'inscription' },
-    { type: 'VERIFICATION', name: 'Email de Vérification', description: 'Pour vérifier l\'adresse email' },
-    { type: 'RESET_PASSWORD', name: 'Réinitialisation de Mot de Passe', description: 'Lien de réinitialisation' },
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState('')
+
+  const templates: Template[] = [
+    {
+      type: 'WELCOME',
+      name: 'Email de Bienvenue',
+      description: 'Envoyé lors de l\'inscription d\'un nouvel utilisateur',
+      subject: '🎉 Bienvenue sur JobbingTrack !',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+            <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d'emploi</p>
+          </div>
+          <h2 style="color: #1f2937;">Bienvenue {{firstName}} ! 🎉</h2>
+          <p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p>
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #374151; margin-top: 0;">🚀 Vous pouvez maintenant :</h3>
+            <ul style="color: #4b5563; line-height: 1.6;">
+              <li>📝 <strong>Suivre vos candidatures</strong> - Gardez trace de toutes vos applications</li>
+              <li>📅 <strong>Gérer vos entretiens</strong> - Planifiez et préparez vos rendez-vous</li>
+              <li>🔔 <strong>Recevoir des rappels</strong> - Ne manquez plus jamais une relance</li>
+              <li>👥 <strong>Organiser vos contacts</strong> - Votre carnet d'adresses professionnel</li>
+              <li>📊 <strong>Analyser vos performances</strong> - Statistiques de vos candidatures</li>
+            </ul>
+          </div>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{frontendUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Commencer maintenant
+            </a>
+          </div>
+        </div>
+      `,
+      variables: ['firstName', 'lastName', 'frontendUrl']
+    },
+    {
+      type: 'VERIFICATION',
+      name: 'Email de Vérification',
+      description: 'Pour vérifier l\'adresse email lors de l\'inscription',
+      subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+            <p style="color: #6b7280; margin: 5px 0;">Vérification de votre adresse email</p>
+          </div>
+          <h2 style="color: #1f2937;">Bonjour {{firstName}} ! 👋</h2>
+          <p>Bienvenue sur JobbingTrack ! Pour activer votre compte, veuillez vérifier votre adresse email.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{verificationUrl}}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+              ✓ Vérifier mon adresse email
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">Ce lien expire dans 24 heures.</p>
+        </div>
+      `,
+      variables: ['firstName', 'verificationUrl']
+    },
+    {
+      type: 'RESET_PASSWORD',
+      name: 'Réinitialisation de Mot de Passe',
+      description: 'Lien de réinitialisation de mot de passe',
+      subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+            <p style="color: #6b7280; margin: 5px 0;">Réinitialisation de mot de passe</p>
+          </div>
+          <h2 style="color: #1f2937;">Bonjour {{firstName}},</h2>
+          <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte JobbingTrack.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="{{resetUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Réinitialiser mon mot de passe
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">Ce lien est valide pendant 1 heure.</p>
+        </div>
+      `,
+      variables: ['firstName', 'resetUrl']
+    }
   ]
+
+  const handlePreview = (template: Template) => {
+    setSelectedTemplate(template)
+    setEditedContent(template.html)
+    setEditing(false)
+  }
+
+  const handleEdit = (template: Template) => {
+    setSelectedTemplate(template)
+    setEditedContent(template.html)
+    setEditing(true)
+  }
+
+  const handleSave = () => {
+    // TODO: Sauvegarder le template modifié (nécessite backend)
+    alert('La sauvegarde des templates sera disponible prochainement. Les modifications doivent être faites dans le code backend.')
+    setEditing(false)
+  }
+
+  const handleCancel = () => {
+    if (selectedTemplate) {
+      setEditedContent(selectedTemplate.html)
+    }
+    setEditing(false)
+  }
 
   return (
     <AdminLayout>
@@ -21,31 +137,170 @@ export default function EmailTemplatesPage() {
             Templates d'Emails
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Gérer les templates d'emails (à venir)
+            Visualiser et éditer les templates d'emails envoyés
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {templates.map((template) => (
-            <Card key={template.type} className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
-                  {template.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{template.description}</p>
-                <Button className="mt-4 w-full" variant="outline">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Prévisualiser
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Liste des templates */}
+          <div className="lg:col-span-1 space-y-4">
+            {templates.map((template) => (
+              <Card 
+                key={template.type} 
+                className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                  selectedTemplate?.type === template.type ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => handlePreview(template)}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-5 h-5" />
+                      {template.name}
+                    </div>
+                    <Badge variant="outline">{template.type}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{template.description}</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handlePreview(template)
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Voir
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEdit(template)
+                      }}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Éditer
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Prévisualisation/Édition */}
+          <div className="lg:col-span-2">
+            {selectedTemplate ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      {selectedTemplate.name}
+                    </CardTitle>
+                    {editing && (
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleSave}>
+                          <Save className="w-4 h-4 mr-2" />
+                          Sauvegarder
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancel}>
+                          <X className="w-4 h-4 mr-2" />
+                          Annuler
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="preview" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="preview">Prévisualisation</TabsTrigger>
+                      <TabsTrigger value="html">Code HTML</TabsTrigger>
+                      <TabsTrigger value="variables">Variables</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="preview" className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Sujet :</p>
+                        <p className="font-semibold">{selectedTemplate.subject}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Aperçu :</p>
+                        <div className="border rounded-lg p-4 bg-white">
+                          <div dangerouslySetInnerHTML={{ 
+                            __html: editedContent
+                              .replace(/{{firstName}}/g, 'Jean')
+                              .replace(/{{lastName}}/g, 'Dupont')
+                              .replace(/{{frontendUrl}}/g, 'http://localhost:8080')
+                              .replace(/{{verificationUrl}}/g, 'http://localhost:8080/verify-email?token=example')
+                              .replace(/{{resetUrl}}/g, 'http://localhost:8080/reset-password?token=example')
+                          }} />
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="html" className="space-y-4">
+                      {editing ? (
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Éditer le HTML :</p>
+                          <textarea
+                            className="w-full h-96 p-4 border rounded-md font-mono text-sm"
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Code HTML :</p>
+                          <pre className="w-full h-96 p-4 border rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs">
+                            <code>{selectedTemplate.html}</code>
+                          </pre>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="variables" className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Variables disponibles :</p>
+                        <div className="space-y-2">
+                          {selectedTemplate.variables.map((variable) => (
+                            <div key={variable} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                              <code className="text-sm font-mono">{`{{${variable}}}`}</code>
+                              <span className="text-xs text-gray-500">
+                                {variable === 'firstName' && 'Prénom de l\'utilisateur'}
+                                {variable === 'lastName' && 'Nom de l\'utilisateur'}
+                                {variable === 'frontendUrl' && 'URL du frontend'}
+                                {variable === 'verificationUrl' && 'URL de vérification email'}
+                                {variable === 'resetUrl' && 'URL de réinitialisation mot de passe'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">Sélectionnez un template pour le visualiser</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>
   )
 }
-

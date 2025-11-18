@@ -24,5 +24,9 @@ router.post('/test', [
 // Renvoyer un email
 router.post('/resend/:id', emailController.resendEmail);
 
+// Tests de déliverabilité
+router.get('/test-dns', emailController.testDNS);
+router.get('/test-smtp', emailController.testSMTPConnection);
+
 module.exports = router;
 

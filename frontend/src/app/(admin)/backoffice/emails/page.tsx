@@ -396,6 +396,11 @@ export default function EmailsPage() {
                     {sendResult.message}
                   </p>
                 </div>
+                {sendResult.success && (
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-2 ml-7">
+                    💡 Vérifiez votre boîte mail (et les spams) pour confirmer la réception de l'email.
+                  </p>
+                )}
               </div>
             )}
           </CardContent>
