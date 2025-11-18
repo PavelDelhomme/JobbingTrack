@@ -2,29 +2,36 @@
 
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
-**Dernière MAJ** : 2025-11-17  
+**Dernière MAJ** : 2025-11-18  
 **Version Projet** : v1.0.1 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  
-**Base de Données** : ✅ 25 TABLES CRÉÉES (Prisma sync OK)  
-**Projet Global** : 🟢 ~76% (backend 100%, frontend 71%, mobile 0%)
+**Base de Données** : ✅ 26 TABLES CRÉÉES (Prisma sync OK - EmailLog ajoutée)  
+**Système Gestion Emails** : 🟡 CRÉÉ MAIS ROUTES NON ACCESSIBLES (API Gateway à redémarrer)  
+**Projet Global** : 🟢 ~78% (backend 100%, frontend 73%, mobile 0%)
 
 ---
 
 ## 🎯 PRIORITÉS IMMÉDIATES - À FAIRE MAINTENANT
 
-### 📧 COMPLÉTER LE SYSTÈME EMAIL (06/11/2025 - INCOMPLET)
+### 📧 COMPLÉTER LE SYSTÈME EMAIL (06/11/2025 - EN COURS)
 
-**Statut** : 🟡 **PARTIELLEMENT TERMINÉ** - Seule la priorité 1 est complète
+**Statut** : 🟡 **EN COURS** - Backend et Frontend créés, mais routes non accessibles (API Gateway à redémarrer)
 
-**⚠️ IMPORTANT** : Le TODO du 06/11/2025 indique "COMPLÉTÉ" mais seule la **PRIORITÉ 1** (migrations BDD) est vraiment terminée. Les priorités 2-6 restent à faire.
+**⚠️ PROBLÈME ACTUEL** : 
+- ✅ Backend créé (routes, contrôleurs, services)
+- ✅ Frontend créé (pages, composants)
+- ✅ Table EmailLog créée dans Prisma
+- ❌ **Routes `/api/v1/emails/*` non accessibles** - API Gateway doit être redémarré pour charger les nouvelles routes
 
 #### ✅ PRIORITÉ 1 : Migrations Base de Données - **TERMINÉE**
 
-- ✅ 25 tables créées
+- ✅ 26 tables créées (EmailLog ajoutée)
 - ✅ Base de données opérationnelle
+- ✅ Model EmailLog avec enums EmailType et EmailStatus
+- ✅ Relations User ↔ EmailLog configurées
 
 #### ⏱️ PRIORITÉ 2 : Tests Emails OVH (15 min) - **À FAIRE**
 
@@ -82,50 +89,75 @@ sudo iptables -L | grep -E "465|587"
 
 ---
 
-#### ⏱️ PRIORITÉ 4 : Page Email Monitor (10 min) - **À FAIRE**
+#### ✅ PRIORITÉ 4 : Page Email Monitor - **CRÉÉE** (mais routes non accessibles)
 
-**URL** : `http://localhost:8080/backoffice/email-monitor`
+**URL** : `http://localhost:8080/backoffice/emails`
 
-**Actions** :
-- [ ] Accéder à la page
-- [ ] Vérifier statistiques
-- [ ] Tester filtres
-- [ ] Voir contenu emails
-- [ ] Tester export
+**✅ Réalisé** :
+- ✅ Table EmailLog créée dans Prisma
+- ✅ API `/api/v1/emails/logs` créée
+- ✅ API `/api/v1/emails/stats` créée
+- ✅ API `/api/v1/emails/test` créée
+- ✅ API `/api/v1/emails/test-dns` créée
+- ✅ API `/api/v1/emails/test-smtp` créée
+- ✅ Logger automatique dans emailService
+- ✅ Pages frontend créées :
+  - `/backoffice/emails` (dashboard)
+  - `/backoffice/emails/logs` (historique)
+  - `/backoffice/emails/templates` (templates)
+  - `/backoffice/emails/settings` (configuration)
+  - `/backoffice/emails/deliverability` (tests DNS/SMTP)
+- ✅ Navigation ajoutée dans AdminLayout
 
-**Améliorations à faire** :
-- [ ] Créer table EmailLog en BDD (Prisma)
-- [ ] Créer API `/api/v1/emails/logs`
-- [ ] Logger automatiquement tous les envois
-- [ ] Afficher logs réels (pas démo)
+**❌ À FAIRE** :
+- [ ] **URGENT** : Redémarrer API Gateway pour charger les routes `/api/v1/emails`
+- [ ] Tester toutes les pages frontend
+- [ ] Vérifier que les logs s'affichent correctement
 - [ ] Ajouter graphiques (emails/jour, taux succès)
 
 ---
 
-#### ⏱️ PRIORITÉ 5 : Interface Complète Emails Type Brevo (45 min) - **À FAIRE**
+#### ✅ PRIORITÉ 5 : Interface Complète Emails Type Brevo - **CRÉÉE** (mais routes non accessibles)
 
 **Objectif** : Créer une interface complète de gestion des emails dans le backoffice admin
 
-**Actions** :
-- [ ] Ajouter le lien dans la navigation (`AdminLayout.tsx`)
-- [ ] Créer les pages :
-  - `/backoffice/emails` (dashboard principal)
-  - `/backoffice/emails/logs` (historique complet)
-  - `/backoffice/emails/templates` (gestion templates)
+**✅ Réalisé** :
+- ✅ Lien ajouté dans la navigation (`AdminLayout.tsx`)
+- ✅ Pages créées :
+  - `/backoffice/emails` (dashboard principal avec stats)
+  - `/backoffice/emails/logs` (historique complet avec filtres)
+  - `/backoffice/emails/templates` (visualisation et édition templates)
   - `/backoffice/emails/settings` (configuration SMTP)
-  - `/backoffice/emails/deliverability` (tests qualité)
-- [ ] Créer table EmailLog en BDD (Prisma)
-- [ ] Créer API Backend (`/api/v1/emails/*`)
+  - `/backoffice/emails/deliverability` (tests DNS/SMTP complets)
+- ✅ Table EmailLog créée en BDD (Prisma)
+- ✅ API Backend complète (`/api/v1/emails/*`) :
+  - `GET /api/v1/emails/logs` - Liste des logs
+  - `GET /api/v1/emails/logs/:id` - Détails d'un log
+  - `GET /api/v1/emails/stats` - Statistiques
+  - `POST /api/v1/emails/test` - Envoyer email de test
+  - `POST /api/v1/emails/resend/:id` - Renvoyer un email
+  - `GET /api/v1/emails/test-dns` - Test DNS (MX, SPF, DKIM)
+  - `GET /api/v1/emails/test-smtp` - Test connexion SMTP
+- ✅ Tests de déliverabilité complets
+- ✅ Visualisation et édition des templates
 
-**Détails complets** : Voir section "TODO POUR AUJOURD'HUI (06/11/2025)" ci-dessous
+**❌ À FAIRE** :
+- [ ] **URGENT** : Redémarrer API Gateway pour activer les routes
+- [ ] Tester toutes les fonctionnalités
+- [ ] Implémenter la sauvegarde des templates (backend)
 
 ---
 
-#### ⏱️ PRIORITÉ 6 : Ajouter Lien Navigation Sidebar (5 min) - **À FAIRE**
+#### ✅ PRIORITÉ 6 : Ajouter Lien Navigation Sidebar - **TERMINÉE**
 
 **Actions** :
-- [ ] Modifier `frontend/src/components/features/AdminLayout.tsx`
-- [ ] Ajouter le menu "Emails" avec sous-menus
+- ✅ Modifié `frontend/src/components/features/AdminLayout.tsx`
+- ✅ Menu "Gestion des Emails" ajouté avec 5 sous-menus :
+  - Dashboard
+  - Historique
+  - Templates
+  - Configuration
+  - Déliverabilité
 
 ---
 
