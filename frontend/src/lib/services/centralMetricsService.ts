@@ -52,7 +52,8 @@ class CentralMetricsService {
   // Gestion du cache pour éviter les requêtes multiples
   private getCachedMetrics(): MetricsData | null {
     // DÉSACTIVÉ pour tests - toujours retourner null pour forcer le rechargement
-    console.log('[CACHE] Cache désactivé pour tests - rechargement des données')
+    // Log désactivé pour réduire la pollution de la console
+    // console.log('[CACHE] Cache désactivé pour tests - rechargement des données')
     return null
     /* Cache normal (réactiver après tests)
     const now = Date.now()
@@ -424,29 +425,31 @@ class CentralMetricsService {
       const data = await response.json()
       const timestamp = data.timestamp || new Date().toISOString()
 
-      console.log('[AGGREGATOR] Données Docker brutes reçues:', {
-        cpu_percent: data.cpu_percent,
-        memory_percent: data.memory_percent,
-        memory_usage_mb: data.memory_usage_mb,
-        total_cpus: data.total_cpus,
-        containers_count: data.containers_count,
-        containers_array_length: Array.isArray(data.containers) ? data.containers.length : 'not array',
-        services_array_length: Array.isArray(data.services) ? data.services.length : 'not array',
-        network_rx_mb: data.network?.total_rx_mb,
-        network_tx_mb: data.network?.total_tx_mb,
-        availability: data.health?.availability_percent,
-        timestamp
-      })
+      // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+      // console.log('[AGGREGATOR] Données Docker brutes reçues:', {
+      //   cpu_percent: data.cpu_percent,
+      //   memory_percent: data.memory_percent,
+      //   memory_usage_mb: data.memory_usage_mb,
+      //   total_cpus: data.total_cpus,
+      //   containers_count: data.containers_count,
+      //   containers_array_length: Array.isArray(data.containers) ? data.containers.length : 'not array',
+      //   services_array_length: Array.isArray(data.services) ? data.services.length : 'not array',
+      //   network_rx_mb: data.network?.total_rx_mb,
+      //   network_tx_mb: data.network?.total_tx_mb,
+      //   availability: data.health?.availability_percent,
+      //   timestamp
+      // })
 
       const containersArray = Array.isArray(data.containers) ? data.containers : []
       const servicesArray = Array.isArray(data.services) ? data.services : []
       const mergedServices = containersArray.length > 0 ? containersArray : servicesArray
       
-      console.log('[AGGREGATOR] Traitement des services:', {
-        containersArray_length: containersArray.length,
-        servicesArray_length: servicesArray.length,
-        mergedServices_length: mergedServices.length
-      })
+      // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+      // console.log('[AGGREGATOR] Traitement des services:', {
+      //   containersArray_length: containersArray.length,
+      //   servicesArray_length: servicesArray.length,
+      //   mergedServices_length: mergedServices.length
+      // })
 
       const servicesList: ServiceMetrics[] = mergedServices.map((service: any) => {
         const rawName = service?.name || service?.container || service?.id || 'unknown-service'
@@ -704,16 +707,17 @@ class CentralMetricsService {
         containers: mergedServices
       }
 
-      console.log('[AGGREGATOR] ✅ Retour des métriques:', {
-        servicesList_length: servicesList.length,
-        servicesMap_keys: Object.keys(servicesMap).length,
-        containersMap_keys: Object.keys(containersMap).length,
-        cpu_percent: data.cpu_percent,
-        memory_percent: data.memory_percent,
-        responseTime_avg: responseTimeStats.average_ms,
-        errors_total: errorStats.total_last_5m,
-        health_availability: healthStats.availability_percent
-      })
+      // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+      // console.log('[AGGREGATOR] ✅ Retour des métriques:', {
+      //   servicesList_length: servicesList.length,
+      //   servicesMap_keys: Object.keys(servicesMap).length,
+      //   containersMap_keys: Object.keys(containersMap).length,
+      //   cpu_percent: data.cpu_percent,
+      //   memory_percent: data.memory_percent,
+      //   responseTime_avg: responseTimeStats.average_ms,
+      //   errors_total: errorStats.total_last_5m,
+      //   health_availability: healthStats.availability_percent
+      // })
 
       return {
         services: servicesMap,
@@ -758,7 +762,8 @@ class CentralMetricsService {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[SERVICES] ✅ Services récupérés depuis l\'agrégateur:', data.total, 'services')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[SERVICES] ✅ Services récupérés depuis l\'agrégateur:', data.total, 'services')
         return data.services || []
       }
     } catch (error: any) {
@@ -913,20 +918,22 @@ class CentralMetricsService {
     // Éviter les requêtes simultanées identiques
     return this.getWithCache('fetchMetrics', async () => {
       try {
-        console.log('[CENTRAL METRICS] 🔄 Récupération des métriques...')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[CENTRAL METRICS] 🔄 Récupération des métriques...')
 
         // Priorité 1 : Service agrégateur (source la plus fiable)
         try {
           const aggregatorMetrics = await this.getAggregatorMetrics()
           
           if (aggregatorMetrics) {
-            console.log('[CENTRAL METRICS] ✅ Métriques depuis l\'agrégateur', {
-              servicesList_length: aggregatorMetrics.servicesList?.length || 0,
-              services_keys: Object.keys(aggregatorMetrics.services || {}).length,
-              containers_keys: Object.keys(aggregatorMetrics.containers || {}).length,
-              cpu: aggregatorMetrics.system?.cpu?.usage,
-              memory: aggregatorMetrics.system?.memory?.usage
-            })
+            // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+            // console.log('[CENTRAL METRICS] ✅ Métriques depuis l\'agrégateur', {
+            //   servicesList_length: aggregatorMetrics.servicesList?.length || 0,
+            //   services_keys: Object.keys(aggregatorMetrics.services || {}).length,
+            //   containers_keys: Object.keys(aggregatorMetrics.containers || {}).length,
+            //   cpu: aggregatorMetrics.system?.cpu?.usage,
+            //   memory: aggregatorMetrics.system?.memory?.usage
+            // })
             this.setCachedMetrics(aggregatorMetrics)
             return aggregatorMetrics
           }
