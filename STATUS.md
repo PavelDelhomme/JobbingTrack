@@ -163,6 +163,52 @@ sudo iptables -L | grep -E "465|587"
 
 ## 🔴 PROBLÈMES URGENTS À RÉSOUDRE (PRIORITÉ 1)
 
+### 0. 🔴 CRITIQUE - Routes `/api/v1/emails/*` non accessibles
+
+**Statut** : 🔴 **EN COURS** - Routes créées mais API Gateway non redémarré
+
+**Problème** :
+- ✅ Code backend créé (`backend/auth-service/src/routes/email.routes.js`)
+- ✅ Code API Gateway mis à jour (`backend/api-gateway/src/server.js` ligne 500)
+- ✅ Routes enregistrées dans auth-service
+- ❌ **API Gateway utilise encore l'ancienne version** - Routes `/api/v1/emails/*` retournent 404
+
+**Solution** :
+```bash
+# Option 1 : Redémarrer uniquement l'API Gateway (recommandé)
+make restart-service SERVICE=api-gateway
+
+# Option 2 : Utiliser le script automatique
+./fix-email-routes.sh
+
+# Option 3 : Redémarrer tous les services
+make restart
+
+# Option 4 : Reconstruire et redémarrer (si volumes non montés)
+make rebuild-api-gateway
+make up-api-gateway
+```
+
+**Vérification** :
+```bash
+# 1. Vérifier que la route est chargée
+docker logs jobbingtrack-api-gateway --tail 50 | grep emails
+
+# 2. Tester la route health (sans auth)
+curl http://localhost:3000/api/v1/emails/health
+
+# 3. Devrait retourner : {"success":true,"message":"Email routes are working",...}
+```
+
+**Fichiers modifiés** :
+- `backend/api-gateway/src/server.js` (ligne 500 : `/api/v1/emails` ajouté)
+- `backend/auth-service/src/routes/email.routes.js` (routes créées)
+- `backend/auth-service/src/server.js` (routes enregistrées)
+
+**Script de résolution** : `./fix-email-routes.sh` créé pour automatiser la résolution
+
+---
+
 ### 1. 🔴 CRITIQUE - Page `/backoffice/user-journey` - Variable Dupliquée
 
 **Statut** : ✅ **CORRIGÉ** - Variable renommée en `calendarViewEvents`
