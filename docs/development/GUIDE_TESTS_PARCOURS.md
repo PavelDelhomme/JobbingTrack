@@ -1,6 +1,6 @@
 # 🧪 Guide Complet - Tests et Parcours Utilisateur
 
-[← Retour README](README.md) | [📋 TODO](TODO_NEXT_STEPS.md)
+[← Retour README](../../README.md) | [📋 STATUS](../../STATUS.md)
 
 ---
 
@@ -349,7 +349,7 @@ Vous pourrez :
 ## 📞 Besoin d'Aide ?
 
 - 📖 **Documentation** : Voir `docs/mobile/analytics/`
-- 📋 **Plan** : Voir `TODO_NEXT_STEPS.md`
+- 📋 **Plan** : Voir `STATUS.md`
 - 🏠 **Vue d'ensemble** : Voir `README.md`
 
 ---
@@ -360,5 +360,5 @@ Vous pourrez :
 
 ---
 
-[← Retour README](README.md) | [📋 TODO](TODO_NEXT_STEPS.md)
+[← Retour README](../../README.md) | [📋 STATUS](../../STATUS.md)
 

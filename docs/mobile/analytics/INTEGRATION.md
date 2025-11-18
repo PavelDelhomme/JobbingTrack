@@ -1,6 +1,6 @@
 # 🔧 Guide d'Intégration - Analytics Mobile
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md)
 
 ---
 
@@ -738,5 +738,5 @@ flutter build ios --release
 
 ---
 
-[← Retour Analytics](README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Analytics](README.md) | [📋 STATUS](../../../STATUS.md)
 

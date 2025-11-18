@@ -1,6 +1,6 @@
 # 📚 Index de la Documentation - JobbingTrack
 
-[🏠 README Principal](../README.md) | [📋 TODO](../TODO_NEXT_STEPS.md)
+[🏠 README Principal](../README.md) | [📋 STATUS](../STATUS.md)
 
 ---
 
@@ -117,7 +117,7 @@
 ```
 1. docs/RECAPITULATIF_FINAL.md           # Vue d'ensemble
 2. docs/mobile/analytics/SUMMARY.md       # Système analytics mobile
-3. TODO_NEXT_STEPS.md                     # Planning
+3. STATUS.md                               # Planning et suivi
 ```
 
 ### 👨‍💻 Développeur Backend
@@ -162,7 +162,7 @@
 ```
 📖 Guide: docs/development/GUIDE_TESTS_PARCOURS.md
 🌐 Interface: http://localhost:8080/backoffice/user-journey
-📋 TODO: TODO_NEXT_STEPS.md
+📋 STATUS: STATUS.md
 ```
 
 ### 📊 Analytics Mobile
@@ -264,7 +264,7 @@ make help-documentation  # Génération PDF
 ### Pour Implémenter Analytics Mobile
 - [ ] Lire `docs/mobile/analytics/SUMMARY.md`
 - [ ] Lire `docs/mobile/analytics/INTEGRATION.md`
-- [ ] Suivre le plan dans `TODO_NEXT_STEPS.md`
+- [ ] Suivre le plan dans `STATUS.md`
 
 ### Pour Comprendre l'Architecture
 - [ ] Lire `docs/RECAPITULATIF_FINAL.md`
@@ -276,7 +276,7 @@ make help-documentation  # Génération PDF
 ## 📞 Support
 
 - 📖 **Documentation** : Ce fichier et docs/
-- 📋 **Planning** : TODO_NEXT_STEPS.md
+- 📋 **Planning** : STATUS.md
 - 🏠 **Vue d'ensemble** : README.md
 - 🎯 **Récapitulatif** : docs/RECAPITULATIF_FINAL.md
 
@@ -288,5 +288,5 @@ make help-documentation  # Génération PDF
 
 ---
 
-[🏠 README Principal](../README.md) | [📋 TODO](../TODO_NEXT_STEPS.md) | [🎯 Récapitulatif](RECAPITULATIF_FINAL.md)
+[🏠 README Principal](../README.md) | [📋 STATUS](../STATUS.md) | [🎯 Récapitulatif](RECAPITULATIF_FINAL.md)
 

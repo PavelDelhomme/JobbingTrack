@@ -238,7 +238,7 @@ Tous les détails sont dans :
 - `QUICK_START_GUIDE.md` - Guide de démarrage (existant)
 - `BACKEND_FIXES_SUMMARY.md` - Résumé des corrections backend
 - `FINAL_IMPLEMENTATION_SUMMARY.md` - Résumé de l'implémentation
-- `TODO_NEXT_STEPS.md` - Prochaines étapes
+- `STATUS.md` - Prochaines étapes
 
 ---
 

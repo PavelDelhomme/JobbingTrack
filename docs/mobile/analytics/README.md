@@ -1,6 +1,6 @@
 # 📊 Système de Monitoring et Analytics Mobile
 
-[← Retour Documentation Mobile](../guide/README.md) | [🏠 Documentation Principale](../../README.md) | [📋 TODO](../../../TODO_NEXT_STEPS.md)
+[← Retour Documentation Mobile](../guide/README.md) | [🏠 Documentation Principale](../../README.md) | [📋 STATUS](../../../STATUS.md)
 
 ---
 
@@ -922,7 +922,7 @@ class AnalyticsNavigatorObserver extends NavigatorObserver {
 
 ## 📋 Plan d'Implémentation
 
-Voir [`TODO_NEXT_STEPS.md`](../../../TODO_NEXT_STEPS.md) pour le plan détaillé.
+Voir [`STATUS.md`](../../../STATUS.md) pour le plan détaillé.
 
 ---
 
