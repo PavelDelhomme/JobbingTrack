@@ -223,77 +223,83 @@ export default function EmailDeliverabilityPage() {
             {dnsResults && (
               <div className="space-y-4 mt-4">
                 {/* Test MX */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(dnsResults.mx.status)}
-                      <h3 className="font-semibold">Enregistrements MX</h3>
+                {dnsResults.mx && (
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(dnsResults.mx.status || 'error')}
+                        <h3 className="font-semibold">Enregistrements MX</h3>
+                      </div>
+                      {getStatusBadge(dnsResults.mx.status || 'error')}
                     </div>
-                    {getStatusBadge(dnsResults.mx.status)}
+                    {dnsResults.mx.status === 'success' ? (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Serveurs mail configurés :</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {(dnsResults.mx.records || []).map((record, idx) => (
+                            <li key={idx} className="text-sm font-mono">{record}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                        {dnsResults.mx.error || 'Erreur lors de la vérification MX'}
+                      </p>
+                    )}
                   </div>
-                  {dnsResults.mx.status === 'success' ? (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Serveurs mail configurés :</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {dnsResults.mx.records.map((record, idx) => (
-                          <li key={idx} className="text-sm font-mono">{record}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                      {dnsResults.mx.error}
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {/* Test SPF */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(dnsResults.spf.status)}
-                      <h3 className="font-semibold">Enregistrement SPF</h3>
+                {dnsResults.spf && (
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(dnsResults.spf.status || 'error')}
+                        <h3 className="font-semibold">Enregistrement SPF</h3>
+                      </div>
+                      {getStatusBadge(dnsResults.spf.status || 'error')}
                     </div>
-                    {getStatusBadge(dnsResults.spf.status)}
+                    {dnsResults.spf.status === 'success' ? (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Enregistrement SPF trouvé :</p>
+                        <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block">
+                          {dnsResults.spf.record}
+                        </code>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                        {dnsResults.spf.error || 'Erreur lors de la vérification SPF'}
+                      </p>
+                    )}
                   </div>
-                  {dnsResults.spf.status === 'success' ? (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Enregistrement SPF trouvé :</p>
-                      <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block">
-                        {dnsResults.spf.record}
-                      </code>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                      {dnsResults.spf.error}
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {/* Test DKIM */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(dnsResults.dkim.status)}
-                      <h3 className="font-semibold">Enregistrement DKIM</h3>
+                {dnsResults.dkim && (
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(dnsResults.dkim.status || 'error')}
+                        <h3 className="font-semibold">Enregistrement DKIM</h3>
+                      </div>
+                      {getStatusBadge(dnsResults.dkim.status || 'error')}
                     </div>
-                    {getStatusBadge(dnsResults.dkim.status)}
+                    {dnsResults.dkim.status === 'success' ? (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">DKIM configuré :</p>
+                        <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block break-all">
+                          {dnsResults.dkim.record}
+                        </code>
+                      </div>
+                    ) : (
+                      <div className="mt-2">
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                          {dnsResults.dkim.error || 'DKIM non configuré (optionnel mais recommandé)'}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {dnsResults.dkim.status === 'success' ? (
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">DKIM configuré :</p>
-                      <code className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded block break-all">
-                        {dnsResults.dkim.record}
-                      </code>
-                    </div>
-                  ) : (
-                    <div className="mt-2">
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                        {dnsResults.dkim.error || 'DKIM non configuré (optionnel mais recommandé)'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             )}
           </CardContent>
