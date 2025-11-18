@@ -3,8 +3,21 @@ const router = express.Router();
 const { body } = require('express-validator');
 const emailController = require('../controllers/email.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
+const logger = require('../utils/logger');
 
-// Toutes les routes nécessitent une authentification
+// Log pour debug
+logger.info('📧 Routes emails chargées');
+
+// Route de test (sans authentification pour vérifier que les routes sont accessibles)
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Email routes are working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Toutes les autres routes nécessitent une authentification
 router.use(authenticate);
 
 // Routes pour les logs d'emails
