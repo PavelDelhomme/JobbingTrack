@@ -45,6 +45,7 @@ const log = {
 };
 
 // Relations Many-to-Many à tester
+// D'après docs/database/schema/README.md et le schéma Prisma actuel
 const relationsToTest = [
   {
     name: 'Contact ↔ Company',
@@ -78,6 +79,8 @@ const relationsToTest = [
     leftField: 'interviewId',
     rightField: 'contactId',
   },
+  // Note: ContactEvent mentionné dans la doc mais non trouvé dans le schéma Prisma
+  // ApplicationTag, ContactTag, UserApplication n'existent pas et ne sont pas prévus
 ];
 
 /**
