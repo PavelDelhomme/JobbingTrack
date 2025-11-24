@@ -54,6 +54,15 @@ const getUserPreferences = async (req, res) => {
 
     let customization;
     try {
+      // Vérifier que userCustomization existe dans le client Prisma
+      if (!prisma.userCustomization) {
+        logger.warn('userCustomization non disponible dans Prisma client. Régénérez le client Prisma avec: npx prisma generate');
+        return res.json({
+          success: true,
+          preferences: defaultPreferences
+        });
+      }
+      
       customization = await prisma.userCustomization.findUnique({
         where: { userId }
       });
