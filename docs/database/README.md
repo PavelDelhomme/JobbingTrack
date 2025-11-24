@@ -30,10 +30,11 @@
 - **[Modèles Sécurité](models-securite.md)** - SecurityLog, Vulnerability, etc. (security-service)
 
 ### 🎯 Valeurs par Défaut
-- **[Valeurs par Défaut Enums](valeurs-par-defaut.md)** - Statuts système à créer lors de la migration
+- **[Valeurs par Défaut Enums](valeurs-par-defaut.md)** - Statuts système à créer lors de la migration (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
 
 ### 🔧 Migration & Implémentation
-- **[Modifications Nécessaires](modifications-necessaires.md)** - Checklist des changements à effectuer
+- **[Actions Nécessaires](../STRUCTURE_BDD_ACTIONS.md)** - **📋 FICHIER PRINCIPAL** - Checklist complète de toutes les actions à effectuer
+- **[Modifications Nécessaires](modifications-necessaires.md)** - Détails des modifications au schéma
 - **[Scripts de Migration](scripts-migration.md)** - Scripts à créer pour la migration
 
 ---
