@@ -1,240 +1,70 @@
-# 📊 Base de Données - JobbingTrack
+# 📊 Documentation Structure Base de Données - JobbingTrack
 
-[← Retour à la documentation](../README.md) | [← README principal](../../README.md) | [🧭 Navigation](../navigation.md)
-
-## 🎯 Vue d'ensemble
-
-Documentation complète et centralisée de la base de données PostgreSQL de JobbingTrack, incluant l'architecture microservices, les analyses comparatives et les guides de migration.
+> **Index principal** de la documentation complète de la structure de la base de données JobbingTrack.
 
 ---
 
-## 📂 Structure de la Documentation
+## 📚 Navigation Rapide
 
-```
-docs/database/
-├── README.md (ce fichier)
-├── architecture/
-│   ├── database.md (structure complète v4.1)
-│   └── services.md (microservices détaillés)
-├── schemas/
-│   ├── main-schema.prisma (schéma principal)
-│   ├── auth-service.prisma (authentification)
-│   ├── call-service.prisma (appels)
-│   ├── event-service.prisma (événements)
-│   ├── interview-service.prisma (entretiens)
-│   ├── followup-service.prisma (relances)
-│   └── workflow-service.prisma (automatisation)
-├── analysis/
-│   ├── data-structure-analysis.md (analyse initiale)
-│   ├── microservice-architecture-issues.md (problèmes identifiés)
-│   ├── microservice-architecture-resolved.md (solutions implémentées)
-│   └── database-structure-comparison.md (comparaison spécification/implémentation)
-└── migration/
-    ├── migration-guide.md (guide de migration)
-    └── scripts/ (scripts utilitaires)
-```
+### 📋 Vue d'Ensemble
+- **[Structure Actuelle](structure-actuelle.md)** - Vue d'ensemble de tous les modèles actuels
+- **[Structure Souhaitée](structure-souhaitee.md)** - Spécifications pour la structure future
 
----
+### 🔗 Relations & Liaisons
+- **[Liaisons Inter-Modèles](relations.md)** - Toutes les relations 1:N et M:N implémentées
 
-## 🚀 Architecture Actuelle
+### 🔄 Systèmes Avancés
+- **[Système de Synchronisation](synchronisation.md)** - Synchronisation avec hash (SHA-256)
+- **[Système de Statuts Personnalisables](statuts-personnalisables.md)** - Statuts par défaut et personnalisés par utilisateur
 
-### ✅ **Statut** : Architecture Unifiée et Optimisée
+### 📝 Détails Techniques
+- **[Modèles Principaux](models-principaux.md)** - Types de données complets pour tous les modèles applicatifs
+- **[Tables de Jonction](tables-jonction.md)** - Tables M:N avec types détaillés
+- **[Listes Personnalisables](listes-personnalisables.md)** - Platform, FollowUpType, InterviewType, etc.
+- **[Enums](enums.md)** - Tous les enums (18 enums)
 
-#### Configuration Recommandée :
-```yaml
-# docker-compose.yml
-postgres:
-  image: postgres:15-alpine
-  environment:
-    POSTGRES_DB: jobbingtrack
-    POSTGRES_USER: jobbingtrack
-    POSTGRES_PASSWORD: jobbingtrack123
-  volumes:
-    - postgres_data:/var/lib/postgresql/data
-  healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U jobbingtrack -d jobbingtrack"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-```
+### 📊 Modèles par Service
+- **[Modèles Email](models-email.md)** - EmailLog, EmailTemplate (auth-service)
+- **[Modèles Préférences](models-preferences.md)** - UserCustomization (auth-service)
+- **[Modèles Monitoring](models-monitoring.md)** - Métriques et logs (metrics-aggregator-service)
+- **[Modèles Sécurité](models-securite.md)** - SecurityLog, Vulnerability, etc. (security-service)
 
-#### Services Configurés :
-- ✅ **Auth Service** : Utilisateurs et authentification
-- ✅ **Application Service** : Candidatures et entreprises
-- ✅ **Contact Service** : Gestion des contacts
-- ✅ **Call Service** : Appels téléphoniques
-- ✅ **Event Service** : Calendrier et événements
-- ✅ **Interview Service** : Entretiens
-- ✅ **FollowUp Service** : Relances
-- ✅ **Workflow Service** : Automatisation
-- ✅ **Security Service** : Sécurité et logs
+### 🎯 Valeurs par Défaut
+- **[Valeurs par Défaut Enums](valeurs-par-defaut.md)** - Statuts système à créer lors de la migration
+
+### 🔧 Migration & Implémentation
+- **[Modifications Nécessaires](modifications-necessaires.md)** - Checklist des changements à effectuer
+- **[Scripts de Migration](scripts-migration.md)** - Scripts à créer pour la migration
 
 ---
 
-## 📋 Services et Responsabilités
+## 📊 Statistiques
 
-### Microservices Base de Données
-
-| Service | Modèle Principal | Fonctionnalité | Schéma |
-|---------|------------------|----------------|---------|
-| **Auth Service** | User | Authentification, sessions | Complet avec relations |
-| **Call Service** | Call | Appels, historique | Complet + relations |
-| **Event Service** | Event | Calendrier, rappels | Complet + polymorphique |
-| **Interview Service** | Interview | Entretiens, RH | Complet + contacts |
-| **FollowUp Service** | FollowUp | Relances, emails | Complet + suivi |
-| **Workflow Service** | Workflow | Automatisation, processus | Complet + templates |
-
-### Cohérence des Données
-- ✅ **Base unique** : PostgreSQL partagée
-- ✅ **Schémas cohérents** : Modèles alignés
-- ✅ **Relations bidirectionnelles** : Many-to-many fonctionnelles
-- ✅ **Migrations synchronisées** : Évolution coordonnée
+- **Total modèles** : 42 modèles Prisma
+- **Enums** : 18 enums
+- **Relations 1:N** : 20+
+- **Relations M:N** : 4 (via tables de jonction)
+- **Modèles applicatifs** : 12 modèles principaux
+- **Modèles système** : 30 modèles (monitoring, sécurité, email, etc.)
 
 ---
 
-## 🔧 Configuration Prisma
+## 🚀 Démarrage Rapide
 
-### Configuration Partagée
-```prisma
-// Configuration commune
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-### Variables d'Environnement
-```bash
-# .env
-DATABASE_URL="postgresql://user:pass@localhost:5432/jobbingtrack"
-PRISMA_GENERATE_DATAPROXY=true
-NODE_ENV="production"
-```
+1. **Comprendre la structure actuelle** : Commencez par [Structure Actuelle](structure-actuelle.md)
+2. **Voir les relations** : Consultez [Liaisons Inter-Modèles](relations.md)
+3. **Comprendre les systèmes** : Lisez [Système de Synchronisation](synchronisation.md) et [Système de Statuts](statuts-personnalisables.md)
+4. **Planifier les modifications** : Voir [Modifications Nécessaires](modifications-necessaires.md)
 
 ---
 
-## 📊 Modèles Principaux
+## 📝 Notes Importantes
 
-### Entités Métier
-- **User** : Utilisateurs avec rôles et permissions
-- **Application** : Candidatures avec statuts détaillés
-- **Company** : Entreprises avec secteurs et tailles
-- **Contact** : Contacts avec relations many-to-many
-- **Interview** : Entretiens avec feedback
-- **FollowUp** : Relances avec suivi des réponses
-- **Call** : Appels avec durées et statuts
-- **Event** : Événements avec relations polymorphes
-
-### Fonctionnalités Avancées
-- **Historique** : ApplicationStatusHistory
-- **Notifications** : Multi-canaux (email, push, SMS, in-app)
-- **Documents** : Gestion avec versions
-- **Synchronisation** : SyncQueue pour offline
-- **Sécurité** : Logs et alertes temps réel
-- **Workflows** : Automatisation personnalisable
+- Tous les modèles applicatifs doivent avoir des champs de synchronisation (`syncHash`, `entityHash`, `lastSyncAt`)
+- Les enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus` doivent être convertis en tables
+- Le système de statuts personnalisables permet aux utilisateurs de créer leurs propres statuts
+- La synchronisation utilise SHA-256 pour détecter les modifications
 
 ---
 
-## 🎯 Points d'Entrée Recommandés
-
-### Développement
-```bash
-# Migration des schémas
-npx prisma migrate dev --name init
-
-# Génération des clients
-npx prisma generate
-
-# Studio Prisma (interface web)
-npx prisma studio
-```
-
-### Production
-```bash
-# Migration en production
-npx prisma migrate deploy
-
-# Backup de la base
-pg_dump jobbingtrack > backup.sql
-
-# Monitoring
-npx prisma studio --browser none
-```
-
----
-
-## 📈 Performance et Optimisation
-
-### Index Stratégiques
-- **Applications** : user_id, status, company_id, created_at
-- **Contacts** : user_id, company_id, email, last_contact_date
-- **Events** : user_id, start_date, type
-- **Calls** : user_id, application_id, call_date, status
-- **Workflows** : user_id, type, status, is_active
-
-### Optimisations Appliquées
-- ✅ **Index composites** pour requêtes multi-colonnes
-- ✅ **Index partiels** pour données actives
-- ✅ **Contraintes d'unicité** optimisées
-- ✅ **Cascade deletes** configurées
-
----
-
-## 🔍 Monitoring et Maintenance
-
-### Métriques à Surveiller
-- **Temps de réponse** des requêtes complexes
-- **Utilisation des index** via `pg_stat_user_indexes`
-- **Taille des tables** et croissance
-- **Locks** et conflits de concurrence
-
-### Scripts Utilitaires
-```bash
-# Analyse des performances
-./scripts/database/performance-analysis.sh
-
-# Vérification de cohérence
-./scripts/database/consistency-check.sh
-
-# Backup automatisé
-./scripts/database/backup.sh
-```
-
----
-
-## 🚨 Alertes et Actions
-
-### Si Problèmes Détectés :
-1. **Cohérence** : Vérifier les relations many-to-many
-2. **Performance** : Analyser les plans d'exécution
-3. **Migration** : Tester en environnement de staging
-4. **Backup** : Sauvegarder avant toute modification
-
-### Support :
-- 📖 [Documentation API](../api/api-reference/README.md)
-- 🏗️ [Architecture](../core/architecture/README.md)
-- 🔒 [Sécurité](../security/README.md)
-
----
-
-## 📚 Ressources Supplémentaires
-
-### Documentation Technique
-- [Architecture Microservices](../core/services/README.md)
-- [Guide de Déploiement](../deployment/production/README.md)
-- [Variables d'Environnement](../deployment/environment-variables/README.md)
-
-### Outils et Utilitaires
-- [Prisma Studio](https://www.prisma.io/studio) - Interface web
-- [pgAdmin](https://www.pgadmin.org/) - Administration PostgreSQL
-- [Explain Analyze](https://www.postgresql.org/docs/current/using-explain.html) - Optimisation
-
----
-
-**Version** : 4.1 - Architecture Microservices Unifiée
-**Dernière mise à jour** : 27 octobre 2025
-**Responsable** : Architecture et Base de Données
+**Dernière mise à jour** : 2025-01-27
