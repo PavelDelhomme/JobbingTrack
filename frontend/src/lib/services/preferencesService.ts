@@ -9,6 +9,7 @@ export interface RefreshIntervals {
   metrics: number;
   dashboard: number;
   services: number;
+  notifications: number;
 }
 
 export interface DisplayPreferences {
@@ -16,12 +17,18 @@ export interface DisplayPreferences {
   compactMode: boolean;
   showCharts: boolean;
   showMetrics: boolean;
+  detailedMetrics?: boolean;
 }
 
 export interface NotificationPreferences {
   desktop: boolean;
   sound: boolean;
   highPriorityOnly: boolean;
+  applicationUpdates?: boolean;
+  interviewReminders?: boolean;
+  followupReminders?: boolean;
+  deadlineAlerts?: boolean;
+  systemAlerts?: boolean;
 }
 
 export interface UserPreferences {
@@ -188,18 +195,25 @@ class PreferencesService {
         analytics: 10000,   // 10 secondes
         metrics: 15000,     // 15 secondes
         dashboard: 30000,   // 30 secondes
-        services: 20000     // 20 secondes
+        services: 20000,    // 20 secondes
+        notifications: 60000 // 60 secondes
       },
       display: {
         itemsPerPage: 20,
         compactMode: false,
         showCharts: true,
-        showMetrics: true
+        showMetrics: true,
+        detailedMetrics: false
       },
       notifications: {
         desktop: true,
         sound: false,
-        highPriorityOnly: false
+        highPriorityOnly: false,
+        applicationUpdates: true,
+        interviewReminders: true,
+        followupReminders: true,
+        deadlineAlerts: true,
+        systemAlerts: true
       },
       theme: 'light',
       language: 'fr',
@@ -218,6 +232,79 @@ class PreferencesService {
       return localStorage.getItem('token') || '';
     }
     return '';
+  }
+
+  /**
+   * Exporter les préférences
+   */
+  async exportPreferences(): Promise<void> {
+    try {
+      const token = this.getToken();
+      const response = await axios.get(
+        `${API_URL}/api/v1/preferences/export`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          responseType: 'blob'
+        }
+      );
+
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `preferences-${Date.now()}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur lors de l\'export des préférences:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Importer les préférences
+   */
+  async importPreferences(file: File): Promise<UserPreferences> {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data.preferences) {
+        throw new Error('Format de fichier invalide');
+      }
+
+      const token = this.getToken();
+      const response = await axios.post(
+        `${API_URL}/api/v1/preferences/import`,
+        { preferences: data.preferences },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Mettre à jour le cache
+        this.cache = response.data.preferences;
+        this.cacheTimestamp = Date.now();
+        
+        // Stocker aussi en localStorage
+        localStorage.setItem('userPreferences', JSON.stringify(response.data.preferences));
+        
+        return response.data.preferences;
+      }
+
+      throw new Error('Échec de l\'import des préférences');
+    } catch (error) {
+      console.error('Erreur lors de l\'import des préférences:', error);
+      throw error;
+    }
   }
 
   /**

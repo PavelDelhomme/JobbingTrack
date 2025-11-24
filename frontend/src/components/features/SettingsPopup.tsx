@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '@/lib/hooks/theme'
 import { useAuth } from '@/lib/hooks/auth'
 import preferencesService, { type UserPreferences } from '@/lib/services/preferencesService'
-import { RefreshCw, Save, Check, Clock, Loader2 } from 'lucide-react'
+import { RefreshCw, Save, Check, Clock, Loader2, Download, Upload, Server, Cpu, HardDrive, MemoryStick } from 'lucide-react'
 
 interface SettingsPopupProps {
   isOpen: boolean
@@ -14,7 +14,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history' | 'display'>('appearance')
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -303,7 +303,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     { key: 'analytics' as const, label: 'Analytics', min: 5, max: 60, step: 5 },
                     { key: 'metrics' as const, label: 'Métriques', min: 5, max: 60, step: 5 },
                     { key: 'dashboard' as const, label: 'Dashboard', min: 10, max: 120, step: 10 },
-                    { key: 'services' as const, label: 'Services', min: 10, max: 120, step: 10 }
+                    { key: 'services' as const, label: 'Services', min: 10, max: 120, step: 10 },
+                    { key: 'notifications' as const, label: 'Notifications', min: 30, max: 300, step: 30 }
                   ].map(({ key, label, min, max, step }) => {
                     const value = (preferences.refreshInterval?.[key] || 30000) / 1000
                     return (
@@ -348,27 +349,57 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notifications</h4>
                 
                 <div className="space-y-4">
-                  {[
-                    { key: 'desktop' as const, label: 'Notifications Bureau', desc: 'Recevoir des notifications de bureau' },
-                    { key: 'sound' as const, label: 'Son', desc: 'Jouer un son pour les notifications' },
-                    { key: 'highPriorityOnly' as const, label: 'Priorité Élevée Uniquement', desc: 'Ne montrer que les notifications importantes' }
-                  ].map(({ key, label, desc }) => (
-                    <div key={key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{label}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-3">Paramètres généraux</p>
+                    {[
+                      { key: 'desktop' as const, label: 'Notifications Bureau', desc: 'Recevoir des notifications de bureau' },
+                      { key: 'sound' as const, label: 'Son', desc: 'Jouer un son pour les notifications' },
+                      { key: 'highPriorityOnly' as const, label: 'Priorité Élevée Uniquement', desc: 'Ne montrer que les notifications importantes' }
+                    ].map(({ key, label, desc }) => (
+                      <div key={key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg mb-2">
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{label}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={preferences.notifications?.[key] || false}
+                            onChange={(e) => updateNotifications(key, e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={preferences.notifications?.[key] || false}
-                          onChange={(e) => updateNotifications(key, e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-300 mb-3">Types de notifications</p>
+                    {[
+                      { key: 'applicationUpdates' as const, label: 'Mises à jour de candidatures', desc: 'Notifications pour les changements de statut' },
+                      { key: 'interviewReminders' as const, label: 'Rappels d\'entretiens', desc: 'Notifications avant les entretiens' },
+                      { key: 'followupReminders' as const, label: 'Rappels de relances', desc: 'Notifications pour les relances à faire' },
+                      { key: 'deadlineAlerts' as const, label: 'Alertes de deadlines', desc: 'Notifications pour les échéances importantes' },
+                      { key: 'systemAlerts' as const, label: 'Alertes système', desc: 'Notifications système et de sécurité' }
+                    ].map(({ key, label, desc }) => (
+                      <div key={key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg mb-2">
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{label}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={preferences.notifications?.[key] !== false}
+                            onChange={(e) => updateNotifications(key, e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -398,7 +429,8 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   {[
                     { key: 'compactMode' as const, label: 'Mode Compact', desc: 'Interface plus dense' },
                     { key: 'showCharts' as const, label: 'Afficher les Graphiques', desc: 'Afficher les graphiques sur le dashboard' },
-                    { key: 'showMetrics' as const, label: 'Afficher les Métriques', desc: 'Afficher les métriques détaillées' }
+                    { key: 'showMetrics' as const, label: 'Afficher les Métriques', desc: 'Afficher les métriques de base' },
+                    { key: 'detailedMetrics' as const, label: 'Métriques Détaillées', desc: 'Afficher toutes les métriques détaillées (CPU, mémoire, réseau par service)' }
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div>
@@ -515,39 +547,112 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Informations Système</h4>
                 
                 <div className="space-y-4">
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Utilisateur</div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Utilisateur</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</div>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Rôle</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? '👑 Administrateur' : '👤 Utilisateur'}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Rôle</div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                      {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? '👑 Administrateur' : '👤 Utilisateur'}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Version</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">JobbingTrack v1.0.0</div>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Environnement</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {process.env.NODE_ENV === 'production' ? '🚀 Production' : '🔧 Développement'}
+                      </div>
                     </div>
                   </div>
 
                   <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Version</div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">JobbingTrack v1.0.0</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Informations Navigateur</div>
+                    <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div>User Agent: {typeof window !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'N/A'}</div>
+                      <div>Langue: {typeof window !== 'undefined' ? navigator.language : 'N/A'}</div>
+                      <div>Résolution: {typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'N/A'}</div>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={async () => {
-                      try {
-                        await preferencesService.resetUserPreferences()
-                        const prefs = await preferencesService.getUserPreferences()
-                        setPreferences(prefs)
-                        alert('Préférences réinitialisées avec succès !')
-                      } catch (error) {
-                        console.error('Erreur:', error)
-                        alert('Erreur lors de la réinitialisation')
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    🔄 Réinitialiser tous les paramètres
-                  </button>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                    <h5 className="font-semibold text-gray-900 dark:text-gray-100">Gestion des Préférences</h5>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await preferencesService.exportPreferences()
+                            setMessage({ type: 'success', text: 'Préférences exportées avec succès !' })
+                            setTimeout(() => setMessage(null), 3000)
+                          } catch (error) {
+                            console.error('Erreur:', error)
+                            setMessage({ type: 'error', text: 'Erreur lors de l\'export' })
+                            setTimeout(() => setMessage(null), 3000)
+                          }
+                        }}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                        Exporter
+                      </button>
+
+                      <label className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors cursor-pointer">
+                        <Upload className="h-4 w-4" />
+                        Importer
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              try {
+                                const prefs = await preferencesService.importPreferences(file)
+                                setPreferences(prefs)
+                                setMessage({ type: 'success', text: 'Préférences importées avec succès !' })
+                                setTimeout(() => setMessage(null), 3000)
+                              } catch (error) {
+                                console.error('Erreur:', error)
+                                setMessage({ type: 'error', text: 'Erreur lors de l\'import' })
+                                setTimeout(() => setMessage(null), 3000)
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les paramètres ? Cette action est irréversible.')) {
+                          try {
+                            await preferencesService.resetUserPreferences()
+                            const prefs = await preferencesService.getUserPreferences()
+                            setPreferences(prefs)
+                            setMessage({ type: 'success', text: 'Préférences réinitialisées avec succès !' })
+                            setTimeout(() => setMessage(null), 3000)
+                          } catch (error) {
+                            console.error('Erreur:', error)
+                            setMessage({ type: 'error', text: 'Erreur lors de la réinitialisation' })
+                            setTimeout(() => setMessage(null), 3000)
+                          }
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      🔄 Réinitialiser tous les paramètres
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
