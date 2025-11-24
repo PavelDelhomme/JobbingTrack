@@ -60,7 +60,13 @@
 - `frontend/src/app/(admin)/backoffice/settings/statuses/page.tsx` - Interface gestion statuts
 - `backend/auth-service/src/services/sync.service.js` - Service de synchronisation avec hash
 
-**Référence** : Voir détails complets dans [STATUS_STRUCTURE_BDD.md](STATUS_STRUCTURE_BDD.md)
+**👉 Voir liste complète dans [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)**
+
+**📋 FICHIER PRINCIPAL - Actions à Effectuer** : 
+- ⭐ **[docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)** - **COMMENCEZ ICI** - Checklist complète de toutes les actions
+- 📊 **[STATUS_STRUCTURE_BDD.md](STATUS_STRUCTURE_BDD.md)** - Index de la documentation BDD
+- 📚 **[docs/database/README.md](docs/database/README.md)** - Documentation complète organisée
+- 🎯 **[docs/database/valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md)** - Statuts système à créer
 
 ---
 

@@ -2,14 +2,30 @@
 
 > **Index principal** de la documentation complète de la structure de la base de données JobbingTrack.
 
-**📄 Documentation complète** : Voir [docs/database/README.md](docs/database/README.md)
+---
+
+## 🎯 FICHIER PRINCIPAL - Actions à Effectuer
+
+### ⭐ **COMMENCEZ ICI** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+
+**📋 Ce fichier contient TOUTES les actions à faire** :
+- ✅ Checklist complète pour système de statuts personnalisables
+- ✅ Checklist pour champs de synchronisation
+- ✅ Scripts de migration à créer
+- ✅ Phases d'implémentation (6 phases)
+- ✅ Fichiers à créer/modifier
+- ✅ Tests à effectuer
+
+**👉 C'est votre guide principal pour travailler sur la structure BDD !**
 
 ---
 
-## 🚀 Navigation Rapide
+## 📚 Documentation Complète
+
+**📄 Index Documentation** : [docs/database/README.md](docs/database/README.md)
 
 ### 📋 Vue d'Ensemble
-- **[Structure Actuelle](docs/database/structure-actuelle.md)** - Vue d'ensemble de tous les modèles actuels
+- **[Structure Actuelle](docs/database/structure-actuelle.md)** - Vue d'ensemble de tous les modèles actuels (42 modèles)
 - **[Structure Souhaitée](docs/database/structure-souhaitee.md)** - Spécifications pour la structure future
 
 ### 🔗 Relations & Liaisons
@@ -32,10 +48,11 @@
 - **[Modèles Sécurité](docs/database/models-securite.md)** - SecurityLog, Vulnerability, etc. (security-service)
 
 ### 🎯 Valeurs par Défaut
-- **[Valeurs par Défaut Enums](docs/database/valeurs-par-defaut.md)** - Statuts système à créer lors de la migration
+- **[Valeurs par Défaut Enums](docs/database/valeurs-par-defaut.md)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
 
 ### 🔧 Migration & Implémentation
-- **[Modifications Nécessaires](docs/database/modifications-necessaires.md)** - Checklist des changements à effectuer
+- **[Actions Nécessaires](docs/STRUCTURE_BDD_ACTIONS.md)** - **⭐ FICHIER PRINCIPAL** - Checklist complète de toutes les actions
+- **[Modifications Nécessaires](docs/database/modifications-necessaires.md)** - Détails des modifications au schéma
 - **[Scripts de Migration](docs/database/scripts-migration.md)** - Scripts à créer pour la migration
 
 ---
@@ -51,12 +68,27 @@
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🚀 Démarrage Rapide - Par Où Commencer ?
 
-1. **Comprendre la structure actuelle** : Commencez par [Structure Actuelle](docs/database/structure-actuelle.md)
-2. **Voir les relations** : Consultez [Liaisons Inter-Modèles](docs/database/relations.md)
-3. **Comprendre les systèmes** : Lisez [Système de Synchronisation](docs/database/synchronisation.md) et [Système de Statuts](docs/database/statuts-personnalisables.md)
-4. **Planifier les modifications** : Voir [Modifications Nécessaires](docs/database/modifications-necessaires.md)
+### 1️⃣ **Pour Travailler sur la Structure BDD** (RECOMMANDÉ)
+👉 **Commencez par** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+- Ce fichier contient TOUTES les actions à faire
+- Checklist complète avec phases d'implémentation
+- Scripts à créer, fichiers à modifier
+- **C'est votre guide principal !**
+
+### 2️⃣ **Pour Comprendre la Structure Actuelle**
+1. **Vue d'ensemble** : [Structure Actuelle](docs/database/structure-actuelle.md) - 42 modèles Prisma
+2. **Relations** : [Liaisons Inter-Modèles](docs/database/relations.md) - Relations 1:N et M:N
+3. **Systèmes** : 
+   - [Système de Synchronisation](docs/database/synchronisation.md) - Hash SHA-256
+   - [Système de Statuts](docs/database/statuts-personnalisables.md) - Statuts personnalisables
+
+### 3️⃣ **Pour Voir les Valeurs par Défaut**
+👉 [Valeurs par Défaut Enums](docs/database/valeurs-par-defaut.md) - 12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus
+
+### 4️⃣ **Pour la Documentation Technique Complète**
+👉 [Index Documentation BDD](docs/database/README.md) - Tous les fichiers organisés
 
 ---
 
