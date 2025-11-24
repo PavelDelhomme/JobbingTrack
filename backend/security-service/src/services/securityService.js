@@ -243,18 +243,19 @@ class SecurityService {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
+      // PostgreSQL est case-sensitive, utiliser des guillemets doubles pour préserver la casse
       const threats = await prisma.$queryRaw`
         SELECT
-          sourceIP,
+          "sourceIP",
           country,
           COUNT(*) as attempts,
-          MAX(riskScore) as max_risk_score,
+          MAX("riskScore") as max_risk_score,
           ARRAY_AGG(DISTINCT category) as categories,
           MAX(timestamp) as last_seen
         FROM security_logs
         WHERE timestamp >= ${startDate}
         AND (category = 'intrusion' OR category = 'ddos')
-        GROUP BY sourceIP, country
+        GROUP BY "sourceIP", country
         ORDER BY attempts DESC, max_risk_score DESC
         LIMIT 10
       `;

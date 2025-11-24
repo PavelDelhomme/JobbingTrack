@@ -830,6 +830,12 @@ const resetPassword = async (req, res, next) => {
       data: { used: true }
     });
 
+    // Envoyer un email de confirmation de changement de mot de passe
+    emailService.sendPasswordChangedEmail(resetToken.user).catch(error => {
+      logger.error('Erreur envoi email confirmation changement mot de passe:', error);
+      // Ne pas faire échouer la requête si l'email échoue
+    });
+
     res.json({
       success: true,
       message: 'Mot de passe réinitialisé avec succès'

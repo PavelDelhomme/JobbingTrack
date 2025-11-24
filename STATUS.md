@@ -8,8 +8,9 @@
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (redacted@example.invalid)  
-**Base de Données** : ✅ 26 TABLES CRÉÉES (Prisma sync OK - EmailLog ajoutée)  
+**Base de Données** : ✅ 27 TABLES CRÉÉES (Prisma sync OK - EmailLog + UserCustomization ajoutées)  
 **Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Logs, Deliverability, Settings fonctionnels)  
+**Système Email Architecture** : ✅ SUPERTOKENS IMPLÉMENTÉ (Pattern Strategy, Providers SMTP/Resend, Templates)  
 **Projet Global** : 🟢 ~85% (backend 100%, frontend 82%, mobile 0%)
 
 ---
@@ -20,10 +21,17 @@
 
 #### 1. CI/CD - package-lock.json Non Synchronisé avec package.json
 
-**Statut** : 🔴 **EN COURS** - Le `package-lock.json` du backend n'est pas synchronisé avec `package.json`.
+**Statut** : ✅ **RÉSOLU** (2025-11-24) - Le `package-lock.json` du backend a été synchronisé avec `package.json`.
 
-**Problème** :
-- Erreur CI/CD lors de l'étape "Installation des dependances backend..." :
+**Solution implémentée** :
+- ✅ **Hook pre-commit créé** (`.git/hooks/pre-commit`) pour synchroniser automatiquement `package-lock.json` avant chaque commit
+- ✅ Le hook détecte les modifications de `package.json` et exécute `npm install --package-lock-only` automatiquement
+- ✅ Le hook fonctionne pour tous les répertoires (racine, backend/, backend/*/services)
+- ✅ **`npm install` exécuté dans `backend/`** pour mettre à jour le `package-lock.json`
+- ✅ **Commit effectué** avec `backend/package-lock.json` mis à jour
+
+**Problème résolu** :
+- ❌ Erreur CI/CD lors de l'étape "Installation des dependances backend..." :
   ```
   npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync.
   npm error Missing: dockerode@4.0.9 from lock file
@@ -32,49 +40,65 @@
   ... (et beaucoup d'autres dépendances manquantes)
   ```
 
-**Impact** :
-- ❌ Le pipeline CI/CD échoue à l'étape d'installation des dépendances backend
-- ❌ Les tests et validations ne peuvent pas être exécutés
-
-**Solution** :
-1. Exécuter `npm install` dans le répertoire `backend/` pour mettre à jour le `package-lock.json`
-2. Commiter et pousser le `package-lock.json` mis à jour
-3. Vérifier que le pipeline CI/CD passe maintenant
+**Actions effectuées** :
+1. ✅ Exécution de `npm install` dans le répertoire `backend/` pour mettre à jour le `package-lock.json`
+2. ✅ Commit effectué avec `backend/package-lock.json` mis à jour
+3. ⏱️ Vérification du pipeline CI/CD à faire lors du prochain push
 
 **Fichiers concernés** :
 - `backend/package.json`
-- `backend/package-lock.json`
+- `backend/package-lock.json` (✅ mis à jour et commité)
+- `.git/hooks/pre-commit` (✅ créé)
 - `.github/workflows/ci-cd.yml` (ligne 148-159)
 
 ---
 
-#### 3. Prisma Client - userCustomization Non Disponible
+#### 3. Security Service - Erreur SQL "column sourceip does not exist"
 
-**Statut** : 🟡 **EN COURS** - Le modèle `UserCustomization` existe dans le schéma Prisma mais n'est pas disponible dans le client Prisma généré.
+**Statut** : ✅ **RÉSOLU** (2025-11-24) - Erreur SQL dans `security-service` corrigée.
+
+**Problème** :
+- Erreur dans les logs : `column "sourceip" does not exist` (code PostgreSQL 42703)
+- La requête SQL utilisait `sourceIP` sans guillemets, PostgreSQL convertit en minuscules `sourceip`
+- La colonne dans la base s'appelle `sourceIP` (camelCase) grâce à Prisma
+
+**Solution** :
+- ✅ Correction de la requête SQL dans `security-service/src/services/securityService.js` (ligne 247)
+- ✅ Utilisation de guillemets doubles pour préserver la casse : `"sourceIP"` et `"riskScore"`
+- ✅ La requête fonctionne maintenant correctement
+
+**Fichiers modifiés** :
+- `backend/security-service/src/services/securityService.js` (ligne 247-260)
+
+---
+
+#### 4. Prisma Client - userCustomization Non Disponible
+
+**Statut** : ✅ **RÉSOLU** (2025-11-24) - La table `UserCustomization` a été créée manuellement dans la base de données.
 
 **Problème** :
 - Le modèle `UserCustomization` est défini dans `backend/auth-service/prisma/schema.prisma` (ligne 879)
-- Après régénération du client Prisma (`npx prisma generate`), `prisma.userCustomization` est toujours `undefined`
+- La table n'existait pas dans la base de données, même après `prisma db push`
 - Erreur dans les logs : `Cannot read properties of undefined (reading 'findUnique')` dans `preferences.controller.js`
 
 **Impact** :
-- ❌ La route `/api/v1/preferences` retourne 500 Internal Server Error
-- ❌ La popup de paramètres ne peut pas charger les préférences utilisateur
-- ⚠️ Le fallback retourne les valeurs par défaut, mais l'erreur est toujours loggée
+- ❌ La route `/api/v1/preferences` retournait 500 Internal Server Error
+- ❌ La popup de paramètres ne pouvait pas charger les préférences utilisateur
+- ⚠️ Le fallback retournait les valeurs par défaut, mais l'erreur était toujours loggée
 
-**Solution** :
-1. Vérifier que le modèle `UserCustomization` est bien dans le schéma Prisma
-2. Forcer la régénération du client Prisma : `docker-compose exec auth-service npx prisma generate --force`
-3. Redémarrer le service : `docker-compose restart auth-service`
-4. Si le problème persiste, vérifier que le schéma Prisma est valide : `npx prisma validate`
+**Solution appliquée** :
+- ✅ Création manuelle de la table `UserCustomization` dans PostgreSQL avec la structure correcte
+- ✅ Création de l'index sur `userId`
+- ✅ La table est maintenant disponible et fonctionnelle
 
 **Workaround actuel** :
 - ✅ Le code vérifie maintenant si `prisma.userCustomization` existe avant utilisation (ligne 58 de `preferences.controller.js`)
 - ✅ Si `userCustomization` n'existe pas, retourne les valeurs par défaut
+- ✅ La table existe maintenant, donc le fallback ne devrait plus être nécessaire
 
 ---
 
-#### 4. Table User Manquante dans la Base de Données
+#### 5. Table User Manquante dans la Base de Données
 
 **Statut** : 🔴 **CAUSE IDENTIFIÉE** - La table `User` est manquante dans la base de données.
 
@@ -819,6 +843,73 @@ make restart         → Redémarre les services actifs
 ---
 
 ## 📝 NOTES TECHNIQUES
+
+### Système d'Email - Architecture SuperTokens
+
+**État** : ✅ **IMPLÉMENTÉ** (2025-11-24) - Le système d'email est implémenté selon l'architecture SuperTokens avec pattern Strategy.
+
+**Structure actuelle** :
+```
+backend/auth-service/src/services/email/
+├── providers/
+│   ├── base.provider.js          ✅ Interface de base (EmailProvider)
+│   ├── smtp.provider.js          ✅ Provider SMTP (OVH, Gmail, Brevo, etc.)
+│   └── resend.provider.js        ✅ Provider Resend (alternative moderne)
+├── templates/
+│   ├── base.template.js          ✅ Classe de base pour templates
+│   ├── welcome.template.js       ✅ Email de bienvenue
+│   ├── verification.template.js ✅ Email de vérification
+│   ├── resetPassword.template.js ✅ Email de réinitialisation
+│   └── passwordChanged.template.js ✅ Email de confirmation changement mot de passe
+├── emailService.js               ✅ Service principal (Singleton)
+├── email.config.js               ✅ Configuration centralisée
+└── emailValidator.js             ✅ Validation et sanitization
+```
+
+**Fonctionnalités implémentées** :
+- ✅ `sendWelcomeEmail(user)` - Email de bienvenue après inscription
+- ✅ `sendVerificationEmail(user, verificationToken)` - Email de vérification d'email
+- ✅ `sendPasswordResetEmail(user, resetToken)` - Email de réinitialisation de mot de passe
+- ✅ `sendPasswordChangedEmail(user)` - Email de confirmation de changement de mot de passe
+
+**Intégration dans les contrôleurs** :
+- ✅ `auth.controller.js` : `register()` envoie welcome + verification
+- ✅ `auth.controller.js` : `forgotPassword()` envoie reset password
+- ✅ `auth.controller.js` : `resetPassword()` envoie password changed
+- ✅ `user.controller.js` : `updateUser()` envoie password changed si mot de passe modifié
+
+**Providers supportés** :
+- ✅ SMTP (OVH, Gmail, Brevo, SendGrid, Mailgun, etc.) - Configuration TLS complète
+- ✅ Resend (alternative moderne) - Lazy loading
+
+**Configuration** :
+- Variables d'environnement : `EMAIL_PROVIDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FRONTEND_URL`, `SMTP_TLS_REJECT_UNAUTHORIZED`, `SMTP_TLS_MIN_VERSION`, `EMAIL_TIMEOUT`, `EMAIL_RETRIES`
+- Templates en base de données (fallback sur fichiers)
+- Logging des emails dans `EmailLog` table
+- `verifyConnection()` pour tester la connexion SMTP avant envoi
+
+**Améliorations récentes** (2025-11-24) :
+- ✅ Ajout de `sendPasswordChangedEmail()` dans `emailService.js`
+- ✅ Création du template `passwordChanged.template.js`
+- ✅ Intégration dans `resetPassword()` et `updateUser()`
+- ✅ Pattern Strategy pour faciliter l'ajout de nouveaux providers
+- ✅ Gestion d'erreurs robuste avec retry et timeout configurables
+
+**Fichiers créés/modifiés** :
+- `backend/auth-service/src/services/email/providers/base.provider.js` (créé)
+- `backend/auth-service/src/services/email/providers/smtp.provider.js` (créé)
+- `backend/auth-service/src/services/email/providers/resend.provider.js` (créé)
+- `backend/auth-service/src/services/email/providers/provider.factory.js` (créé)
+- `backend/auth-service/src/services/email/templates/base.template.js` (créé)
+- `backend/auth-service/src/services/email/templates/welcome.template.js` (créé)
+- `backend/auth-service/src/services/email/templates/verification.template.js` (créé)
+- `backend/auth-service/src/services/email/templates/resetPassword.template.js` (créé)
+- `backend/auth-service/src/services/email/templates/passwordChanged.template.js` (créé)
+- `backend/auth-service/src/services/emailService.js` (refactorisé)
+- `backend/auth-service/src/config/email.config.js` (créé)
+- `backend/auth-service/src/utils/emailValidator.js` (créé)
+
+---
 
 ### Routes Email - Résolution Problème 404
 

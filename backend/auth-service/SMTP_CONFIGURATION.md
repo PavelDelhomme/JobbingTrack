@@ -27,7 +27,37 @@ SMTP_PASS="votre-app-password-16-caracteres"
 SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"
 ```
 
-### 2. MailHog (Pour les tests locaux)
+### 2. OVH (Production - maily.ovh)
+
+Configuration pour utiliser OVH avec authentification `redacted@example.invalid` mais affichage `noreply@jobbingtrack.test` :
+
+```env
+SMTP_HOST="ssl0.ovh.net"
+SMTP_PORT="465"
+SMTP_SECURE="true"
+SMTP_USER="redacted@example.invalid"
+SMTP_PASS="votre-mot-de-passe-ovh"
+SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"
+SMTP_REPLY_TO="noreply@jobbingtrack.test"
+```
+
+**Note importante** : Certains serveurs SMTP (comme OVH) peuvent rejeter les emails si le domaine `From` (`jobbingtrack.com`) diffère du domaine d'authentification (`maily.ovh`). 
+
+**Si les emails sont rejetés**, utilisez plutôt :
+```env
+SMTP_FROM="JobbingTrack <redacted@example.invalid>"
+```
+Dans ce cas, l'email partira et s'affichera depuis `redacted@example.invalid`, mais avec le nom d'affichage "JobbingTrack".
+
+**Alternative** : Configurer un alias email `noreply@jobbingtrack.test` qui redirige vers `redacted@example.invalid` dans votre panneau OVH, puis utiliser :
+```env
+SMTP_USER="noreply@jobbingtrack.test"
+SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"
+```
+
+---
+
+### 3. MailHog (Pour les tests locaux)
 
 MailHog est un serveur SMTP de test qui capture tous les emails sans les envoyer réellement.
 
