@@ -19,6 +19,81 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
+#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/stats` et `/api/v1/preferences`
+
+**Statut** : 🟡 **EN COURS** - Les routes retournent 404 malgré leur existence dans le code.
+
+**Problèmes identifiés** :
+- ❌ `GET /api/v1/emails/stats?days=30` → 404 (Not Found) - **Page Dashboard Emails**
+- ❌ `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres (popup)**
+- ❌ `GET /api/v1/auth/users/dev_user_1` → 404 (Not Found) - **Page Profil Utilisateur**
+
+**Causes possibles** :
+1. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps`
+2. **API Gateway ne route pas correctement** - Vérifier les logs de l'API Gateway
+3. **Token JWT contient un ID utilisateur invalide** (`dev_user_1`) - Le token doit contenir un ID utilisateur réel de la base de données
+4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
+
+**Actions à faire** :
+- [ ] Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
+- [ ] Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50`
+- [ ] Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50`
+- [ ] Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
+- [ ] Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats`
+- [ ] Si le token contient `dev_user_1`, créer un utilisateur réel dans la base de données et se reconnecter
+
+**Fichiers à vérifier** :
+- `backend/api-gateway/src/server.js` (lignes 497-500)
+- `backend/auth-service/src/server.js` (lignes 78-81)
+- `backend/auth-service/src/routes/email.routes.js` (ligne 28)
+- `backend/auth-service/src/routes/preferences.routes.js` (ligne 17)
+- `backend/auth-service/src/middlewares/auth.middleware.js` (extraction userId du token)
+
+---
+
+#### 0.1. Tests Relations Many-to-Many et Validation Enums
+
+**Statut** : 🟡 **À FAIRE** - Créer des outils de test pour valider l'intégrité de la base de données.
+
+**Objectifs** :
+1. **Créer une commande Makefile** pour tester toutes les relations many-to-many
+2. **Créer une interface frontend** dans le dashboard administrateur pour tester ces relations
+3. **Valider tous les enums** de la base de données
+4. **Intégrer ces tests dans la pipeline CI/CD**
+
+**Relations Many-to-Many à tester** :
+- `Application` ↔ `Contact` (via `ApplicationContact`)
+- `Application` ↔ `Tag` (via `ApplicationTag`)
+- `Company` ↔ `Contact` (via `CompanyContact`)
+- `Contact` ↔ `Tag` (via `ContactTag`)
+- `User` ↔ `Application` (via `UserApplication`)
+- Et toutes les autres relations many-to-many du schéma Prisma
+
+**Enums à valider** :
+- `ApplicationStatus` (12 valeurs)
+- `UserRole` (USER, ADMIN, SUPER_ADMIN)
+- `EventType` (INTERVIEW, CALL, FOLLOWUP, etc.)
+- `NotificationType` (EMAIL, SMS, PUSH, etc.)
+- Et tous les autres enums du schéma Prisma
+
+**Actions à faire** :
+- [ ] Créer une commande `make test-relations` dans le Makefile
+- [ ] Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
+- [ ] Créer une page frontend `/backoffice/tests/relations` pour tester les relations
+- [ ] Créer une page frontend `/backoffice/tests/enums` pour valider les enums
+- [ ] Ajouter un job dans `.github/workflows/ci-cd.yml` pour exécuter ces tests
+- [ ] Documenter les résultats des tests dans STATUS.md
+
+**Fichiers à créer/modifier** :
+- `Makefile` (ajouter `test-relations`, `test-enums`)
+- `scripts/test-relations.js` (nouveau)
+- `scripts/test-enums.js` (nouveau)
+- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau)
+- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau)
+- `.github/workflows/ci-cd.yml` (ajouter job de test)
+
+---
+
 #### 1. CI/CD - package-lock.json Non Synchronisé avec package.json
 
 **Statut** : ✅ **RÉSOLU** (2025-11-24) - Le `package-lock.json` du backend a été synchronisé avec `package.json`.
@@ -95,6 +170,86 @@
 - ✅ Le code vérifie maintenant si `prisma.userCustomization` existe avant utilisation (ligne 58 de `preferences.controller.js`)
 - ✅ Si `userCustomization` n'existe pas, retourne les valeurs par défaut
 - ✅ La table existe maintenant, donc le fallback ne devrait plus être nécessaire
+
+---
+
+#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/stats` et `/api/v1/preferences`
+
+**Statut** : 🟡 **EN COURS** - Les routes retournent 404 malgré leur existence dans le code.
+
+**Problèmes identifiés** :
+- ❌ `GET /api/v1/emails/stats?days=30` → 404 (Not Found) - **Page Dashboard Emails**
+- ❌ `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres (popup)**
+- ❌ `GET /api/v1/auth/users/dev_user_1` → 404 (Not Found) - **Page Profil Utilisateur**
+
+**Causes possibles** :
+1. **Token JWT contient un ID utilisateur invalide** (`dev_user_1`) - Le token doit contenir un ID utilisateur réel de la base de données
+2. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps` (✅ Services démarrés)
+3. **API Gateway ne route pas correctement** - Vérifier les logs de l'API Gateway
+4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js` (✅ Routes montées)
+
+**Actions à faire** :
+- [ ] Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
+- [ ] Si le token contient `dev_user_1`, créer un utilisateur réel dans la base de données et se reconnecter
+- [ ] Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50`
+- [ ] Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50`
+- [ ] Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats`
+
+**Fichiers à vérifier** :
+- `backend/api-gateway/src/server.js` (lignes 497-500) ✅ Routes configurées
+- `backend/auth-service/src/server.js` (lignes 78-81) ✅ Routes montées
+- `backend/auth-service/src/routes/email.routes.js` (ligne 28) ✅ Route `/stats` existe
+- `backend/auth-service/src/routes/preferences.routes.js` (ligne 17) ✅ Route `/` existe
+- `backend/auth-service/src/middlewares/auth.middleware.js` (extraction userId du token)
+
+**Solution probable** :
+Le token JWT actuel contient `userId: 'dev_user_1'` qui n'existe pas dans la base de données. Il faut :
+1. Se déconnecter et se reconnecter pour obtenir un nouveau token avec un ID utilisateur valide
+2. Ou créer un utilisateur avec l'ID `dev_user_1` dans la base de données
+3. Ou modifier le token JWT pour utiliser un ID utilisateur réel
+
+---
+
+#### 0.1. Tests Relations Many-to-Many et Validation Enums
+
+**Statut** : 🟡 **À FAIRE** - Créer des outils de test pour valider l'intégrité de la base de données.
+
+**Objectifs** :
+1. **Créer une commande Makefile** pour tester toutes les relations many-to-many
+2. **Créer une interface frontend** dans le dashboard administrateur pour tester ces relations
+3. **Valider tous les enums** de la base de données
+4. **Intégrer ces tests dans la pipeline CI/CD**
+
+**Relations Many-to-Many à tester** :
+- `Application` ↔ `Contact` (via `ApplicationContact`)
+- `Application` ↔ `Tag` (via `ApplicationTag`)
+- `Company` ↔ `Contact` (via `CompanyContact`)
+- `Contact` ↔ `Tag` (via `ContactTag`)
+- `User` ↔ `Application` (via `UserApplication`)
+- Et toutes les autres relations many-to-many du schéma Prisma
+
+**Enums à valider** :
+- `ApplicationStatus` (12 valeurs)
+- `UserRole` (USER, ADMIN, SUPER_ADMIN)
+- `EventType` (INTERVIEW, CALL, FOLLOWUP, etc.)
+- `NotificationType` (EMAIL, SMS, PUSH, etc.)
+- Et tous les autres enums du schéma Prisma
+
+**Actions à faire** :
+- [ ] Créer une commande `make test-relations` dans le Makefile
+- [ ] Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
+- [ ] Créer une page frontend `/backoffice/tests/relations` pour tester les relations
+- [ ] Créer une page frontend `/backoffice/tests/enums` pour valider les enums
+- [ ] Ajouter un job dans `.github/workflows/ci-cd.yml` pour exécuter ces tests
+- [ ] Documenter les résultats des tests dans STATUS.md
+
+**Fichiers à créer/modifier** :
+- `Makefile` (ajouter `test-relations`, `test-enums`)
+- `scripts/test-relations.js` (nouveau)
+- `scripts/test-enums.js` (nouveau)
+- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau)
+- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau)
+- `.github/workflows/ci-cd.yml` (ajouter job de test)
 
 ---
 
