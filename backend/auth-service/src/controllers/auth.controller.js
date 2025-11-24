@@ -1042,8 +1042,13 @@ const getActiveSessions = async (req, res, next) => {
         }
       });
     } catch (dbError) {
+      // Vérifier si l'erreur est liée à une table manquante
+      const isTableMissing = dbError.code === 'P2021' || 
+                            (dbError.message && dbError.message.includes('does not exist')) ||
+                            (dbError.message && dbError.message.includes('User') && dbError.message.includes('not exist'));
+      
       // Si la table User n'existe pas, retourner l'utilisateur connecté en développement
-      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      if (isTableMissing && process.env.NODE_ENV === 'development') {
         logger.warn('Table User non trouvée, retour de l\'utilisateur connecté uniquement. Exécutez: make db-push-all');
         // Retourner l'utilisateur connecté comme session active
         if (req.user) {
@@ -1053,6 +1058,16 @@ const getActiveSessions = async (req, res, next) => {
             firstName: req.user.firstName || 'Admin',
             lastName: req.user.lastName || 'User',
             role: req.user.role || 'ADMIN',
+            lastLoginAt: new Date()
+          }];
+        } else {
+          // Si pas d'utilisateur connecté, retourner une session mock
+          activeUsers = [{
+            id: 'dev_user_1',
+            email: 'admin@jobbingtrack.test',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'ADMIN',
             lastLoginAt: new Date()
           }];
         }
@@ -1094,28 +1109,57 @@ const getActiveSessions = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Erreur récupération sessions actives:', error);
+    logger.error(`Code erreur: ${error.code}, Message: ${error.message}`);
+    
+    // Vérifier si l'erreur est liée à une table manquante
+    const isTableMissing = error.code === 'P2021' || 
+                          (error.message && error.message.includes('does not exist')) ||
+                          (error.message && error.message.includes('User') && error.message.includes('not exist'));
+    
     // En cas d'erreur, retourner au moins l'utilisateur connecté si disponible
-    if (req.user && process.env.NODE_ENV === 'development') {
-      logger.warn('Erreur récupération sessions actives, retour de l\'utilisateur connecté uniquement');
-      return res.json({
-        success: true,
-        sessions: [{
-          id: req.user.id,
-          userId: req.user.id,
-          userEmail: req.user.email,
-          userName: `${req.user.firstName || 'Admin'} ${req.user.lastName || 'User'}`,
-          userRole: req.user.role || 'ADMIN',
-          lastActivity: new Date(),
-          createdAt: new Date()
-        }],
-        total: 1,
-        timestamp: new Date().toISOString(),
-        activeUsersLast30Min: 1
-      });
+    if (isTableMissing && process.env.NODE_ENV === 'development') {
+      logger.warn('Erreur récupération sessions actives (table manquante), retour de l\'utilisateur connecté uniquement');
+      if (req.user) {
+        return res.json({
+          success: true,
+          sessions: [{
+            id: req.user.id,
+            userId: req.user.id,
+            userEmail: req.user.email,
+            userName: `${req.user.firstName || 'Admin'} ${req.user.lastName || 'User'}`,
+            userRole: req.user.role || 'ADMIN',
+            lastActivity: new Date(),
+            createdAt: new Date()
+          }],
+          total: 1,
+          timestamp: new Date().toISOString(),
+          activeUsersLast30Min: 1
+        });
+      } else {
+        // Si pas d'utilisateur connecté, retourner une session mock
+        return res.json({
+          success: true,
+          sessions: [{
+            id: 'dev_user_1',
+            userId: 'dev_user_1',
+            userEmail: 'admin@jobbingtrack.test',
+            userName: 'Admin User',
+            userRole: 'ADMIN',
+            lastActivity: new Date(),
+            createdAt: new Date()
+          }],
+          total: 1,
+          timestamp: new Date().toISOString(),
+          activeUsersLast30Min: 1
+        });
+      }
     }
+    
+    // Si ce n'est pas une erreur de table manquante, retourner une erreur 500
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération des sessions actives'
+      error: 'Erreur lors de la récupération des sessions actives',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

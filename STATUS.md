@@ -18,7 +18,63 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 1. Table User Manquante dans la Base de Données
+#### 1. CI/CD - package-lock.json Non Synchronisé avec package.json
+
+**Statut** : 🔴 **EN COURS** - Le `package-lock.json` du backend n'est pas synchronisé avec `package.json`.
+
+**Problème** :
+- Erreur CI/CD lors de l'étape "Installation des dependances backend..." :
+  ```
+  npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync.
+  npm error Missing: dockerode@4.0.9 from lock file
+  npm error Missing: socket.io@4.8.1 from lock file
+  npm error Missing: systeminformation@5.27.11 from lock file
+  ... (et beaucoup d'autres dépendances manquantes)
+  ```
+
+**Impact** :
+- ❌ Le pipeline CI/CD échoue à l'étape d'installation des dépendances backend
+- ❌ Les tests et validations ne peuvent pas être exécutés
+
+**Solution** :
+1. Exécuter `npm install` dans le répertoire `backend/` pour mettre à jour le `package-lock.json`
+2. Commiter et pousser le `package-lock.json` mis à jour
+3. Vérifier que le pipeline CI/CD passe maintenant
+
+**Fichiers concernés** :
+- `backend/package.json`
+- `backend/package-lock.json`
+- `.github/workflows/ci-cd.yml` (ligne 148-159)
+
+---
+
+#### 3. Prisma Client - userCustomization Non Disponible
+
+**Statut** : 🟡 **EN COURS** - Le modèle `UserCustomization` existe dans le schéma Prisma mais n'est pas disponible dans le client Prisma généré.
+
+**Problème** :
+- Le modèle `UserCustomization` est défini dans `backend/auth-service/prisma/schema.prisma` (ligne 879)
+- Après régénération du client Prisma (`npx prisma generate`), `prisma.userCustomization` est toujours `undefined`
+- Erreur dans les logs : `Cannot read properties of undefined (reading 'findUnique')` dans `preferences.controller.js`
+
+**Impact** :
+- ❌ La route `/api/v1/preferences` retourne 500 Internal Server Error
+- ❌ La popup de paramètres ne peut pas charger les préférences utilisateur
+- ⚠️ Le fallback retourne les valeurs par défaut, mais l'erreur est toujours loggée
+
+**Solution** :
+1. Vérifier que le modèle `UserCustomization` est bien dans le schéma Prisma
+2. Forcer la régénération du client Prisma : `docker-compose exec auth-service npx prisma generate --force`
+3. Redémarrer le service : `docker-compose restart auth-service`
+4. Si le problème persiste, vérifier que le schéma Prisma est valide : `npx prisma validate`
+
+**Workaround actuel** :
+- ✅ Le code vérifie maintenant si `prisma.userCustomization` existe avant utilisation (ligne 58 de `preferences.controller.js`)
+- ✅ Si `userCustomization` n'existe pas, retourne les valeurs par défaut
+
+---
+
+#### 4. Table User Manquante dans la Base de Données
 
 **Statut** : 🔴 **CAUSE IDENTIFIÉE** - La table `User` est manquante dans la base de données.
 
@@ -55,18 +111,19 @@
 - Les erreurs 500 sont gérées silencieusement pour ne pas polluer la console
 - Le middleware d'authentification (`auth.middleware.js`) crée un utilisateur mock en développement si la table `User` est manquante (lignes 60-69)
 
-**Améliorations apportées** (2025-01-XX) :
+**Améliorations apportées** (2025-11-24) :
 - ✅ **`preferences.controller.js`** : Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `UserCustomization` manquante)
   - Retourne maintenant les valeurs par défaut si la table n'existe pas en mode développement
   - Gestion des erreurs lors de la création de la customization si la table est manquante
+  - **NOUVEAU** : Vérification que `prisma.userCustomization` existe avant utilisation (ligne 58)
 - ✅ **`user.controller.js`** : Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `User` manquante)
   - Retourne l'utilisateur connecté si la table `User` est manquante et que l'ID correspond à l'utilisateur connecté
   - Gestion des erreurs Prisma P2021 à tous les niveaux (findUnique, create, update)
-- ✅ **`auth.controller.js`** : Amélioration des fallbacks pour `getAllUsers` (ligne 385)
+- ✅ **`auth.controller.js`** : Amélioration des fallbacks pour `getAllUsers` (ligne 385) et `getActiveSessions` (ligne 1017)
   - Détection améliorée des erreurs de table manquante (P2021, message contenant "does not exist")
   - Retourne l'utilisateur connecté si disponible, sinon un utilisateur mock en développement
   - Double niveau de fallback : dans le try-catch interne ET dans le catch externe
-  - Fallbacks déjà présents pour `getActiveSessions` (lignes 990-1008)
+  - **NOUVEAU** : `getActiveSessions` retourne maintenant une session mock si pas d'utilisateur connecté (ligne 1059-1067)
 
 **Routes backend existantes** (dans `auth-service`) :
 - ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
