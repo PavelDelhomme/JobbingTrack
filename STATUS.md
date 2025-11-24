@@ -24,10 +24,12 @@
 
 **Problème** :
 - Routes API retournent 404 :
-  - `GET /api/v1/auth/users` → 404 (Not Found)
-  - `GET /api/v1/auth/sessions/active` → 404 (Not Found)
+  - `GET /api/v1/auth/users` → 404 (Not Found) - **Page Utilisateurs**
+  - `GET /api/v1/auth/sessions/active` → 404 (Not Found) - **Page Vue d'Ensemble**
+  - `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres**
 - La page vue d'ensemble affiche "0 utilisateur" alors qu'il y a 1 session active
 - Les statistiques utilisateurs ne se chargent pas correctement
+- La page Paramètres ne charge pas les préférences utilisateur
 
 **Cause identifiée** :
 - ❌ **La table `User` n'existe pas dans la base de données** (erreur Prisma P2021)
@@ -45,6 +47,7 @@
 **Routes backend existantes** (dans `auth-service`) :
 - ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
 - ✅ `GET /api/v1/auth/sessions/active` → `authController.getActiveSessions` (ligne 63 de `auth.routes.js`)
+- ✅ `GET /api/v1/preferences` → `preferencesController.getUserPreferences` (ligne 17 de `preferences.routes.js`)
 
 **Configuration API Gateway** :
 - Proxy configuré : `/api/v1/auth` → `http://auth-service:3001` (ligne 497 de `api-gateway/src/server.js`)
