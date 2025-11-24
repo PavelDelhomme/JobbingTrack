@@ -100,12 +100,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Fonction pour vérifier si une section contient l'élément actif
   const isSectionActive = (section: NavSection) => {
-    return section.items.some(item => pathname === item.href)
+    return section.items.some(item => {
+      if (pathname === item.href) return true
+      if (item.subItems) {
+        return item.subItems.some(subItem => pathname === subItem.href)
+      }
+      return false
+    })
   }
 
   // Fonction pour obtenir l'élément actif dans une section
   const getActiveItemInSection = (section: NavSection) => {
-    return section.items.find(item => pathname === item.href)
+    return section.items.find(item => {
+      if (pathname === item.href) return true
+      if (item.subItems) {
+        return item.subItems.some(subItem => pathname === subItem.href)
+      }
+      return false
+    })
   }
 
   const sections: NavSection[] = [
@@ -315,12 +327,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             {item.name}
                           </span>
 
-                          {/* Flèche pour les items avec sous-items */}
-                          {hasSubItems && (
-                            <span className={`ml-auto transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
-                              ▶
-                            </span>
-                          )}
 
                           {/* Badge pour l'élément actif */}
                           {(isActive || isSubItemActive) && (
@@ -348,24 +354,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             </button>
                           ) : item.href ? (
                             <div>
-                              <Link
-                                href={item.href}
-                                onClick={(e) => {
-                                  if (hasSubItems) {
-                                    e.preventDefault()
-                                    toggleSection(itemKey)
-                                  }
-                                }}
-                                className={`
-                                  flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
-                                  ${isActive || isSubItemActive
-                                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
-                                    : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
-                                  }
-                                `}
-                              >
-                                {content}
-                              </Link>
+                              <div className="flex items-center">
+                                <Link
+                                  href={item.href}
+                                  className={`
+                                    flex-1 flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
+                                    ${isActive || isSubItemActive
+                                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
+                                      : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
+                                    }
+                                  `}
+                                >
+                                  {content}
+                                </Link>
+                                {hasSubItems && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toggleSection(itemKey)
+                                    }}
+                                    className={`ml-1 px-2 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-all ${
+                                      isItemExpanded ? 'text-white bg-gray-700' : ''
+                                    }`}
+                                    aria-label="Expander les sous-items"
+                                  >
+                                    <span className={`transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
+                                      ▶
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
                               {/* Sous-items */}
                               {hasSubItems && isItemExpanded && (
                                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
