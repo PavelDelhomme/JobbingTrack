@@ -946,7 +946,7 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: an
         </div>
       )}
 
-      {loadingHistory && (
+      {loadingHistory && !initialHistoryLoaded && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Chargement de l'historique...</p>
