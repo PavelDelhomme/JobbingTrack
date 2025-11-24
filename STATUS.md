@@ -17,7 +17,86 @@
 
 ## 🎯 À FAIRE - PRIORITÉS
 
-### 🔴 PRIORITÉ ABSOLUE - Système de Statuts Personnalisables
+### 🔴🔴🔴 PRIORITÉ ABSOLUE - STRUCTURE BASE DE DONNÉES
+
+**⚠️⚠️⚠️ ATTENTION CRITIQUE** : Cette section est la **PRIORITÉ ABSOLUE** avant **TOUT** le reste. Ne pas commencer d'autres tâches tant que la structure BDD n'est pas complète et opérationnelle.
+
+**Statut** : 🔴 **EN COURS** - Structure BDD à réviser et rendre complètement opérationnelle
+
+**Objectif** : Réviser complètement la structure de la base de données, implémenter le système de statuts personnalisables, ajouter les champs de synchronisation, et s'assurer que tout est opérationnel.
+
+**📋 FICHIER PRINCIPAL - Actions à Effectuer** : 
+- ⭐ **[docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)** - **COMMENCEZ ICI** - Checklist complète de toutes les actions
+- 📊 **[STATUS_STRUCTURE_BDD.md](STATUS_STRUCTURE_BDD.md)** - Index de la documentation BDD
+- 📚 **[docs/database/README.md](docs/database/README.md)** - Documentation complète organisée
+- 🎯 **[docs/database/valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
+
+#### Phase 1 : Préparation
+- [ ] Créer scripts de migration
+- [ ] Tester migrations sur base de test
+- [ ] Documenter processus de migration
+
+#### Phase 2 : Schéma Prisma
+- [ ] Créer modèles `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`, `PlatformType`
+- [ ] Modifier modèles `Application`, `Interview`, `FollowUp`, `Platform`
+- [ ] Ajouter champs synchronisation (`syncHash`, `entityHash`, `lastSyncAt`) à tous les modèles applicatifs :
+  - [ ] `Company`
+  - [ ] `Application`
+  - [ ] `Contact`
+  - [ ] `FollowUp`
+  - [ ] `Call`
+  - [ ] `Interview`
+  - [ ] `Event`
+  - [ ] `Document`
+- [ ] Supprimer enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
+- [ ] Exécuter `npx prisma format`
+- [ ] Exécuter `npx prisma generate`
+
+#### Phase 3 : Migration Base de Données
+- [ ] Créer statuts système par défaut :
+  - [ ] 12 ApplicationStatus (voir [valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md))
+  - [ ] 5 InterviewStatus
+  - [ ] 5 FollowUpStatus
+- [ ] Migrer données enum → tables
+- [ ] Vérifier intégrité données
+
+#### Phase 4 : Backend
+- [ ] Créer `backend/auth-service/src/controllers/status.controller.js` :
+  - [ ] `getStatuses(type, userId)` - Récupérer statuts (système + utilisateur)
+  - [ ] `createStatus(type, userId, data)` - Créer statut personnalisé
+  - [ ] `updateStatus(type, statusId, userId, data)` - Modifier statut personnalisé
+  - [ ] `deleteStatus(type, statusId, userId)` - Supprimer statut personnalisé
+- [ ] Créer `backend/auth-service/src/routes/status.routes.js`
+- [ ] Créer `backend/auth-service/src/services/sync.service.js` :
+  - [ ] `calculateEntityHash(entity)` - Calcul SHA-256
+  - [ ] `compareHashes(localHash, serverHash)` - Comparaison
+  - [ ] `detectConflicts(localEntity, serverEntity)` - Détection conflits
+  - [ ] `resolveConflict(localEntity, serverEntity, strategy)` - Résolution
+  - [ ] `syncEntity(entity, userId)` - Synchronisation complète
+- [ ] Tester endpoints API
+
+#### Phase 5 : Frontend
+- [ ] Créer page `/backoffice/settings/statuses/page.tsx` :
+  - [ ] Onglets : ApplicationStatus, InterviewStatus, FollowUpStatus
+  - [ ] Liste des statuts système (non modifiables)
+  - [ ] Liste des statuts personnalisés (modifiables)
+  - [ ] Formulaire création/modification statut personnalisé
+  - [ ] Suppression statut personnalisé (avec confirmation)
+- [ ] Créer composants gestion statuts
+- [ ] Intégrer dans navigation
+- [ ] Tester interface utilisateur
+
+#### Phase 6 : Tests
+- [ ] Tests unitaires backend
+- [ ] Tests intégration API
+- [ ] Tests E2E frontend
+- [ ] Tests migration données
+
+**✅ Cette section sera marquée comme complète uniquement lorsque vous me l'aurez confirmé explicitement.**
+
+**📝 Note** : Tous les autres éléments de STATUS.md sont en attente jusqu'à la complétion de cette priorité absolue.
+
+---
 
 **Statut** : 🔴 **À FAIRE EN PRIORITÉ** - Fonctionnalité critique pour la partie applicative
 
