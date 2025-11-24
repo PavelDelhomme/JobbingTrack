@@ -19,14 +19,15 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/stats` et `/api/v1/preferences`
+#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/*` et `/api/v1/preferences`
 
-**Statut** : 🟡 **EN COURS** - Les routes retournent 404 malgré leur existence dans le code.
+**Statut** : ✅ **RÉSOLU** (2025-11-24) - Les routes email fonctionnent maintenant après création de l'utilisateur admin.
 
 **Problèmes identifiés** :
-- ❌ `GET /api/v1/emails/stats?days=30` → 404 (Not Found) - **Page Dashboard Emails**
-- ❌ `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres (popup)**
-- ❌ `GET /api/v1/auth/users/dev_user_1` → 404 (Not Found) - **Page Profil Utilisateur**
+- ✅ `GET /api/v1/emails/stats?days=30` → **FONCTIONNE** (testé avec token valide)
+- ✅ `GET /api/v1/emails/logs?page=1&limit=50` → **FONCTIONNE** (testé avec token valide)
+- ⚠️ `GET /api/v1/preferences` → Erreur (pas 404, probablement 500 lié à UserCustomization)
+- ⚠️ `GET /api/v1/auth/users/dev_user_1` → 404 (ID utilisateur invalide dans l'ancien token)
 
 **Causes possibles** :
 1. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps`
@@ -200,12 +201,16 @@
 - ✅ **Création de l'utilisateur admin** : `admin@jobbingtrack.com` avec le mot de passe `password123`
 - ✅ **Test de connexion réussi** : Le token JWT contient maintenant un ID utilisateur valide (`cmideyqu3000011fe1jj9a6vt`)
 
+**Actions effectuées** :
+- [x] ✅ Création de l'utilisateur admin dans la base de données : `admin@jobbingtrack.com` / `password123`
+- [x] ✅ Utilisateur créé avec ID valide : `cmideyqu3000011fe1jj9a6vt`, rôle `SUPER_ADMIN`
+- [x] ✅ Test de connexion réussi : Token JWT valide généré
+- [x] ✅ Test des routes email : `/api/v1/emails/stats` et `/api/v1/emails/logs` fonctionnent avec le token valide
+
 **Actions à faire** :
-- [x] ✅ Créer l'utilisateur admin dans la base de données : `make create-admin-user` ou via Node.js
-- [x] ✅ Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
-- [ ] **Se reconnecter dans le frontend** pour obtenir un nouveau token avec l'ID utilisateur valide
-- [ ] Tester les routes avec le nouveau token : Les routes devraient maintenant fonctionner
+- [ ] **Se reconnecter dans le frontend** avec `admin@jobbingtrack.com` / `password123` pour obtenir un nouveau token
 - [ ] Vérifier que toutes les pages email fonctionnent (Dashboard, Historique, Templates, Configuration, Déliverabilité)
+- [ ] Vérifier que la page Profil Utilisateur fonctionne avec le nouveau token (plus d'erreur 404 pour `dev_user_1`)
 
 **Fichiers modifiés** :
 - `backend/auth-service/src/server.js` (ligne 89) - Route `app.use('/', authRoutes)` désactivée
