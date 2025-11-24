@@ -331,6 +331,72 @@ router.post('/cleanup', async (req, res) => {
   }
 });
 
+// ================== LOGS AGRÉGÉS ==================
+
+/**
+ * POST /api/v1/persistence/logs
+ * Recevoir et sauvegarder des logs depuis les services
+ */
+router.post('/logs', async (req, res) => {
+  try {
+    const { logs } = req.body;
+    
+    if (!logs || !Array.isArray(logs)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Un tableau de logs est requis',
+      });
+    }
+
+    const saved = await persistenceService.saveMultipleAggregatedLogs(logs);
+
+    res.json({
+      success: true,
+      saved: saved.length,
+      total: logs.length,
+      message: `${saved.length} logs sauvegardés (seuls ERROR/WARN/FATAL sont stockés)`,
+    });
+  } catch (error) {
+    console.error('[API] Erreur sauvegarde logs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/v1/persistence/logs
+ * Récupérer les logs agrégés
+ */
+router.get('/logs', async (req, res) => {
+  try {
+    const { limit, offset, serviceName, level, startDate, endDate, search } = req.query;
+    
+    const logs = await persistenceService.getAggregatedLogs({
+      limit: parseInt(limit) || 100,
+      offset: parseInt(offset) || 0,
+      serviceName,
+      level,
+      startDate,
+      endDate,
+      search,
+    });
+
+    res.json({
+      success: true,
+      count: logs.length,
+      data: logs,
+    });
+  } catch (error) {
+    console.error('[API] Erreur récupération logs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // ================== STATS GLOBALES ==================
 
 /**

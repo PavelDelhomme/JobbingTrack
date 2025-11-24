@@ -514,6 +514,113 @@ class PersistenceService {
   }
 
   /**
+   * Sauvegarder un log agrégé (uniquement ERROR, WARN, FATAL)
+   */
+  async saveAggregatedLog(logData) {
+    if (!this.isDatabaseEnabled()) {
+      return null;
+    }
+    
+    try {
+      const { serviceName, level, message, metadata, stackTrace, userId, requestId } = logData;
+      
+      // Filtrer : ne stocker que les erreurs critiques et warnings importants
+      const criticalLevels = ['ERROR', 'FATAL', 'WARN'];
+      if (!criticalLevels.includes(level)) {
+        // Ne pas stocker les logs INFO/DEBUG
+        return null;
+      }
+      
+      const saved = await prisma.aggregatedLog.create({
+        data: {
+          timestamp: new Date(),
+          serviceName: serviceName || 'unknown',
+          level: level || 'INFO',
+          message: message || '',
+          metadata: metadata || null,
+          stackTrace: stackTrace || null,
+          userId: userId || null,
+          requestId: requestId || null,
+        },
+      });
+      
+      console.log(`[PERSISTENCE] ✅ Log agrégé sauvegardé: ${level} - ${serviceName}`);
+      return saved;
+    } catch (error) {
+      console.error('[PERSISTENCE] ❌ Erreur sauvegarde log agrégé:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Sauvegarder plusieurs logs agrégés en batch
+   */
+  async saveMultipleAggregatedLogs(logs) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
+    const results = [];
+    for (const logData of logs) {
+      try {
+        const saved = await this.saveAggregatedLog(logData);
+        if (saved) {
+          results.push(saved);
+        }
+      } catch (error) {
+        console.error(`[PERSISTENCE] Échec sauvegarde log:`, error.message);
+      }
+    }
+    
+    console.log(`[PERSISTENCE] ✅ ${results.length}/${logs.length} logs sauvegardés`);
+    return results;
+  }
+
+  /**
+   * Récupérer les logs agrégés
+   */
+  async getAggregatedLogs(options = {}) {
+    if (!this.isDatabaseEnabled()) {
+      return [];
+    }
+    
+    const {
+      limit = 100,
+      offset = 0,
+      serviceName = null,
+      level = null,
+      startDate = null,
+      endDate = null,
+      search = null,
+    } = options;
+
+    const where = {};
+    
+    if (serviceName) where.serviceName = serviceName;
+    if (level) where.level = level;
+    
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = new Date(startDate);
+      if (endDate) where.timestamp.lte = new Date(endDate);
+    }
+
+    if (search) {
+      where.message = {
+        contains: search,
+        mode: 'insensitive',
+      };
+    }
+
+    return await prisma.aggregatedLog.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset),
+    });
+  }
+
+  /**
    * Récupérer les statistiques de disponibilité d'un service
    */
   async getServiceAvailabilityStats(serviceName, hours = 24) {
