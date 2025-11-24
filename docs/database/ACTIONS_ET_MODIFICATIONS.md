@@ -43,6 +43,8 @@
 
 ## 📝 Vos Demandes de Modifications
 
+> **💡 Note** : Vous pouvez aussi consulter les propositions de travail sur les relations et données entrecroisées en bas de cette section (en italique).
+
 ### 🔄 Synchronisation des Listes Personnalisables
 
 **Date** : 2025-01-27  
@@ -82,6 +84,18 @@
 - `backend/auth-service/src/services/sync.service.js` - Gérer synchronisation des listes
 
 **Statut** : 🔴 **À IMPLÉMENTER**
+
+### S'assurer que le les relations suivant sont implementer
+**Date** : 2025-11-24
+**Demandé par** : [Moi]
+
+**Description** ! Je souhaite avoir les relations décrite dans le fichier relations enfaite et manquantes suivante dans le fichier relations.md enfaite.
+
+Un utilisateur c'est le points centrale de toutes mes données globalement orienté applicatif hein
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+### 
 
 ---
 
