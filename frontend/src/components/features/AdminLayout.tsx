@@ -135,11 +135,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
     {
       id: 'security',
-      label: 'Sécurité & Logs',
+      label: 'Sécurité',
       icon: '🔒',
       isCollapsible: true,
       items: [
         { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
+        { name: 'Politiques de Sécurité', href: '/backoffice/security/policies', icon: '⚙️' },
         { name: 'Analyse de Sécurité', href: '/backoffice/security/analysis', icon: '🛡️' },
       ]
     },

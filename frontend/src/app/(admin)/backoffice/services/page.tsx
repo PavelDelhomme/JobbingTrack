@@ -104,7 +104,7 @@ export default function ServicesPage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Services actifs</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Services en cours</p>
                 <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{runningServices.length}</p>
               </div>
               <Play className="h-12 w-12 text-green-500" />
@@ -132,11 +132,46 @@ export default function ServicesPage() {
           </div>
         </div>
 
-        {/* Liste des services actifs */}
+        {/* Filtres */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex flex-wrap gap-3 items-center">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtres :</span>
+            <select 
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm"
+              onChange={(e) => {
+                const filter = e.target.value
+                // TODO: Implémenter filtrage
+              }}
+            >
+              <option value="all">Tous les états</option>
+              <option value="running">Actifs</option>
+              <option value="stopped">Arrêtés</option>
+              <option value="unhealthy">Non sains</option>
+            </select>
+            <select 
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm"
+            >
+              <option value="all">Tous les CPU</option>
+              <option value="high">CPU élevé (&gt; 80%)</option>
+              <option value="medium">CPU moyen (40-80%)</option>
+              <option value="low">CPU faible (&lt; 40%)</option>
+            </select>
+            <select 
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg text-sm"
+            >
+              <option value="all">Toutes les mémoires</option>
+              <option value="high">Mémoire élevée (&gt; 80%)</option>
+              <option value="medium">Mémoire moyenne (40-80%)</option>
+              <option value="low">Mémoire faible (&lt; 40%)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Liste des services */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-green-600" />
-            Services actifs ({runningServices.length})
+            <Activity className="h-5 w-5 text-blue-600" />
+            Liste des Services ({services.length})
           </h2>
           
           <div className="overflow-x-auto">
@@ -164,7 +199,7 @@ export default function ServicesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {runningServices.map((service) => (
+                {services.map((service) => (
                   <tr 
                     key={service.name} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
