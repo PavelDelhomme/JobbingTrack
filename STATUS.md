@@ -120,21 +120,35 @@ sudo iptables -L | grep -E "465|587"
 
 ### 🟡 MOINS URGENT - Autres Problèmes
 
-#### 4. API `/api/v1/preferences` - Erreur 500
+#### 4. API `/api/v1/preferences` - Erreur 404
+
+**Statut** : 🔴 **LIÉ AU PROBLÈME #1** - Même cause : table `User` manquante
 
 **Problème** : 
-- Erreur 500 sur `/api/v1/preferences` dans plusieurs pages
+- Erreur 404 sur `GET /api/v1/preferences` dans la page Paramètres (popup)
+- La page Paramètres ne charge pas les préférences utilisateur
+- Erreur visible dans la console : `GET http://localhost:3000/api/v1/preferences 404 (Not Found)`
 
-**Actions à faire** :
-- [ ] Vérifier que la table `UserPreferences` existe dans la BDD
-- [ ] Vérifier les migrations Prisma pour `dashboard-service`
-- [ ] Vérifier les logs de `dashboard-service` pour l'erreur exacte
-- [ ] Tester l'endpoint directement
+**Cause** :
+- ❌ **La table `User` n'existe pas dans la base de données** (erreur Prisma P2021)
+- ⚠️ Le contrôleur `getUserPreferences` essaie d'accéder à la table `UserCustomization` qui dépend de `User`
+- Les logs montrent probablement : `The table public.User does not exist in the current database`
+- Le fallback dans `getUserPreferences` (ligne 73-90 de `preferences.controller.js`) devrait retourner des préférences par défaut, mais semble ne pas fonctionner car l'erreur se produit avant d'atteindre le contrôleur
 
-**Fichiers à vérifier** :
-- `backend/dashboard-service/prisma/schema.prisma`
-- `backend/dashboard-service/src/controllers/preferences.controller.js`
-- `backend/dashboard-service/src/routes/preferences.routes.js`
+**Solution** :
+1. **Exécuter `make db-push-all`** pour créer les tables dans la base de données (même solution que problème #1)
+2. Vérifier que la table `UserCustomization` existe aussi dans la BDD
+
+**Route backend existante** :
+- ✅ `GET /api/v1/preferences` → `preferencesController.getUserPreferences` (ligne 17 de `preferences.routes.js`)
+- ✅ Route montée dans `auth-service/src/server.js` ligne 79 : `app.use('/api/v1/preferences', preferencesRoutes)`
+
+**Configuration API Gateway** :
+- Proxy configuré : `/api/v1/preferences` → `http://auth-service:3001` (ligne 498 de `api-gateway/src/server.js`)
+
+**Workaround actuel** :
+- Le service `preferencesService.ts` gère l'erreur 404 et retourne des préférences par défaut
+- Les erreurs 404 sont gérées silencieusement pour ne pas polluer la console
 
 ---
 
