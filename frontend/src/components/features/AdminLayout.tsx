@@ -21,6 +21,7 @@ interface NavItem {
   href?: string
   icon: string
   onClick?: () => void
+  subItems?: NavItem[]
 }
 
 interface NavSection {
@@ -137,7 +138,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
-        { name: 'Gestion des Données', href: '/backoffice/data', icon: '💾' },
+        { 
+          name: 'Gestion des Données', 
+          href: '/backoffice/data', 
+          icon: '💾',
+          subItems: [
+            { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
+            { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
+          ]
+        },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
         { name: 'Mon Profil', icon: '👤', onClick: () => setIsProfileOpen(true) },
       ]
@@ -167,16 +176,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
         { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
         { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
-      ]
-    },
-    {
-      id: 'cleanup',
-      label: 'Archives & Corbeille',
-      icon: '📦',
-      isCollapsible: true,
-      items: [
-        { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
-        { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
       ]
     },
   ]
@@ -288,12 +287,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <div className="space-y-1">
                     {section.items.map((item) => {
                       const isActive = pathname === item.href
+                      const hasSubItems = item.subItems && item.subItems.length > 0
+                      const isSubItemActive = hasSubItems && item.subItems?.some(subItem => pathname === subItem.href)
+                      const itemKey = `item-${item.name}-${section.id}`
+                      const isItemExpanded = expandedSections[itemKey] ?? false
                       const activeItem = getActiveItemInSection(section)
 
                       const content = (
                         <>
                           {/* Indicateur visuel pour l'élément actif */}
-                          {isActive && (
+                          {(isActive || isSubItemActive) && (
                             <>
                               <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-blue-500 dark:bg-blue-400 rounded-r-full animate-pulse"></div>
                               <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-600 dark:bg-blue-300 rounded-full animate-ping opacity-75"></div>
@@ -301,19 +304,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           )}
 
                           {/* Indicateur pour l'élément actif dans la section */}
-                          {activeItem && item.name === activeItem.name && !isActive && (
+                          {activeItem && item.name === activeItem.name && !isActive && !isSubItemActive && (
                             <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-blue-500 dark:bg-blue-400 rounded-r-full opacity-50"></div>
                           )}
 
                           <span className={`mr-3 text-base transition-all ${isActive ? 'animate-bounce' : 'group-hover:scale-110'}`}>
                             {item.icon}
                           </span>
-                          <span className={`truncate transition-all ${isActive ? 'font-bold' : ''}`}>
+                          <span className={`truncate transition-all ${isActive || isSubItemActive ? 'font-bold' : ''}`}>
                             {item.name}
                           </span>
 
+                          {/* Flèche pour les items avec sous-items */}
+                          {hasSubItems && (
+                            <span className={`ml-auto transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
+                              ▶
+                            </span>
+                          )}
+
                           {/* Badge pour l'élément actif */}
-                          {isActive && (
+                          {(isActive || isSubItemActive) && (
                             <div className="ml-auto">
                               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                             </div>
@@ -322,35 +332,70 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       )
 
                       return (
-                        item.onClick ? (
-                          <button
-                            key={item.name}
-                            onClick={item.onClick}
-                            className={`
-                              flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group w-full text-left
-                              ${isActive
-                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white shadow-xl shadow-blue-600/60 dark:shadow-blue-500/60 border-l-4 border-blue-300 dark:border-blue-200 transform scale-[1.02] nav-item-active'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:translate-x-1 nav-item-hover'
-                              }
-                            `}
-                          >
-                            {content}
-                          </button>
-                        ) : item.href ? (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            className={`
-                              flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
-                              ${isActive
-                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
-                                : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
-                              }
-                            `}
-                          >
-                            {content}
-                          </Link>
-                        ) : null
+                        <div key={item.name} className="space-y-1">
+                          {item.onClick ? (
+                            <button
+                              onClick={item.onClick}
+                              className={`
+                                flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group w-full text-left
+                                ${isActive || isSubItemActive
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-600 text-white shadow-xl shadow-blue-600/60 dark:shadow-blue-500/60 border-l-4 border-blue-300 dark:border-blue-200 transform scale-[1.02] nav-item-active'
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:translate-x-1 nav-item-hover'
+                                }
+                              `}
+                            >
+                              {content}
+                            </button>
+                          ) : item.href ? (
+                            <div>
+                              <Link
+                                href={item.href}
+                                onClick={(e) => {
+                                  if (hasSubItems) {
+                                    e.preventDefault()
+                                    toggleSection(itemKey)
+                                  }
+                                }}
+                                className={`
+                                  flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group
+                                  ${isActive || isSubItemActive
+                                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-600/60 border-l-4 border-blue-300 transform scale-[1.02] nav-item-active'
+                                    : 'text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 hover:text-white hover:translate-x-1 nav-item-hover'
+                                  }
+                                `}
+                              >
+                                {content}
+                              </Link>
+                              {/* Sous-items */}
+                              {hasSubItems && isItemExpanded && (
+                                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+                                  {item.subItems.map((subItem) => {
+                                    const isSubActive = pathname === subItem.href
+                                    return subItem.href ? (
+                                      <Link
+                                        key={subItem.name}
+                                        href={subItem.href}
+                                        className={`
+                                          flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all relative group
+                                          ${isSubActive
+                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50 border-l-2 border-blue-300 transform scale-[1.01]'
+                                            : 'text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white hover:translate-x-1'
+                                          }
+                                        `}
+                                      >
+                                        <span className="mr-2 text-sm">{subItem.icon}</span>
+                                        <span>{subItem.name}</span>
+                                        {isSubActive && (
+                                          <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                        )}
+                                      </Link>
+                                    ) : null
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
                       )
                     })}
                   </div>
