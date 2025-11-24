@@ -85,17 +85,87 @@
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
-### S'assurer que le les relations suivant sont implementer
-**Date** : 2025-11-24
-**Demandé par** : [Moi]
+---
 
-**Description** ! Je souhaite avoir les relations décrite dans le fichier relations enfaite et manquantes suivante dans le fichier relations.md enfaite.
+### S'assurer que les relations suivantes sont implémentées
 
-Un utilisateur c'est le points centrale de toutes mes données globalement orienté applicatif hein
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Je souhaite avoir les relations décrites dans le fichier `relations.md` et m'assurer que toutes les relations manquantes sont implémentées. Un utilisateur est le point central de toutes mes données globalement orienté applicatif.
+
+**Contexte** : Vérifier et compléter toutes les relations many-to-many et one-to-many décrites dans la documentation.
+
+**💡 Avis Technique** : *À compléter après analyse*
+
+**📝 Actions à Effectuer** : *À compléter après analyse*
+
+**📄 Fichiers à Modifier** : *À compléter après analyse*
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
-### 
+---
+
+### 💡 Propositions de Travail - Relations et Données Entrecroisées
+
+*Voici des propositions de travail sur les relations many-to-many et les données entrecroisées que vous pourriez vouloir implémenter :*
+
+#### *Relations Many-to-Many Existantes à Vérifier/Améliorer*
+
+*1. Contact ↔ Company (via ContactCompany)*
+- *Vérifier que la relation fonctionne correctement*
+- *Ajouter synchronisation si nécessaire*
+- *Tester création/suppression de relations*
+
+*2. Contact ↔ Application (via ContactApplication)*
+- *Vérifier que la relation fonctionne correctement*
+- *Ajouter synchronisation si nécessaire*
+- *Tester création/suppression de relations*
+
+*3. FollowUp ↔ Contact (via FollowUpContact)*
+- *Vérifier que la relation fonctionne correctement*
+- *Ajouter synchronisation si nécessaire*
+- *Tester création/suppression de relations*
+
+*4. Interview ↔ Contact (via InterviewContact)*
+- *Vérifier que la relation fonctionne correctement*
+- *Ajouter synchronisation si nécessaire*
+- *Tester création/suppression de relations*
+
+#### *Relations Many-to-Many Potentielles à Ajouter*
+
+*1. Application ↔ Tag (nouvelle table ApplicationTag)*
+- *Permettre de taguer les candidatures*
+- *Créer modèle `Tag` avec `userId` pour tags personnalisés*
+- *Créer table de jonction `ApplicationTag`*
+
+*2. Company ↔ Tag (nouvelle table CompanyTag)*
+- *Permettre de taguer les entreprises*
+- *Réutiliser le modèle `Tag` existant*
+- *Créer table de jonction `CompanyTag`*
+
+*3. Application ↔ Document (nouvelle table ApplicationDocument)*
+- *Lier plusieurs documents à une candidature*
+- *Créer table de jonction `ApplicationDocument`*
+- *Gérer upload/suppression de documents*
+
+#### *Améliorations des Relations Existantes*
+
+*1. Synchronisation des Tables de Jonction*
+- *Ajouter `syncHash`, `entityHash`, `lastSyncAt` aux tables de jonction ?*
+- *Ou gérer la synchronisation via les modèles parents ?*
+
+*2. Gestion des Relations en Cascade*
+- *Vérifier les règles `onDelete: Cascade`*
+- *S'assurer que la suppression d'un Contact supprime bien les relations*
+- *Tester les cas limites*
+
+*3. Interface Utilisateur pour Gérer les Relations*
+- *Créer interface pour ajouter/retirer des contacts d'une candidature*
+- *Créer interface pour gérer les tags*
+- *Visualiser les relations dans les pages de détail*
+
+---
 
 ---
 
