@@ -895,13 +895,22 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 - Proxy configuré : `/api/v1/auth` → `http://auth-service:3001` (ligne 497 de `api-gateway/src/server.js`)
 
 **Solutions à vérifier** :
-1. Vérifier que `auth-service` est démarré : `make status` ou `docker ps | grep auth-service`
-2. Vérifier la connectivité entre API Gateway et Auth Service
-3. Vérifier les logs de l'API Gateway pour voir si les requêtes sont bien routées
-4. Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
+1. ✅ Vérifier que `auth-service` est démarré : `make status` ou `docker ps | grep auth-service` → **Service démarré**
+2. ✅ Vérifier la connectivité entre API Gateway et Auth Service → **Connectivité OK**
+3. ✅ Vérifier les logs de l'API Gateway pour voir si les requêtes sont bien routées → **Requêtes routées**
+4. ✅ Vérifier que les routes sont bien montées dans `auth-service/src/server.js` → **Routes montées**
+
+**Cause identifiée** :
+- ❌ **La table `User` n'existe pas dans la base de données** (erreur Prisma P2021)
+- ⚠️ Le fallback dans `getAllUsers` et `getActiveSessions` devrait retourner l'utilisateur connecté, mais semble ne pas fonctionner correctement
+- Les logs montrent : `The table public.User does not exist in the current database`
+
+**Solution** :
+1. **Exécuter `make db-push-all`** pour créer les tables dans la base de données
+2. Ou vérifier pourquoi le fallback ne fonctionne pas dans les contrôleurs (lignes 412-432 et 992-1004 de `auth.controller.js`)
 
 **Workaround actuel** :
 - La page vue d'ensemble utilise un fallback : si les routes retournent 404, elle affiche au moins 1 session active (l'utilisateur connecté)
 - Les erreurs 404 sont gérées silencieusement pour ne pas polluer la console
 
-**Statut** : 🔴 **EN COURS D'INVESTIGATION** - Les routes existent dans le backend mais retournent 404. À vérifier la configuration du routage dans l'API Gateway.
+**Statut** : 🔴 **CAUSE IDENTIFIÉE** - La table `User` est manquante dans la base de données. Exécuter `make db-push-all` pour résoudre le problème.
