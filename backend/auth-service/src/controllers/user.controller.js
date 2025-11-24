@@ -151,6 +151,7 @@ const updateUser = async (req, res) => {
     }
 
     // Si le mot de passe change, le hasher
+    const passwordChanged = !!password;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }
@@ -184,6 +185,17 @@ const updateUser = async (req, res) => {
         );
       } catch (emailError) {
         logger.error('Erreur envoi email de vérification:', emailError);
+        // Ne pas échouer la mise à jour si l'email échoue
+      }
+    }
+
+    // Si le mot de passe a changé, envoyer un email de confirmation
+    if (passwordChanged) {
+      try {
+        const emailService = require('../services/emailService');
+        await emailService.sendPasswordChangedEmail(updatedUser);
+      } catch (emailError) {
+        logger.error('Erreur envoi email confirmation changement mot de passe:', emailError);
         // Ne pas échouer la mise à jour si l'email échoue
       }
     }

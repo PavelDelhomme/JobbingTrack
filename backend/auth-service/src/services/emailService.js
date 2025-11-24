@@ -15,6 +15,7 @@ const ResendEmailProvider = require('./email/providers/resend.provider');
 const welcomeTemplate = require('./email/templates/welcome.template');
 const resetPasswordTemplate = require('./email/templates/resetPassword.template');
 const verificationTemplate = require('./email/templates/verification.template');
+const passwordChangedTemplate = require('./email/templates/passwordChanged.template');
 
 const prisma = new PrismaClient();
 
@@ -47,13 +48,20 @@ class EmailService {
       case 'SMTP':
       default:
         logger.info('📧 [EmailService] Initializing SMTP provider');
+        // Configuration SMTP :
+        // - user/password : authentification SMTP (ex: noreply@maily.ovh)
+        // - from : adresse d'affichage pour le destinataire (ex: noreply@jobbingtrack.com)
+        // Note: Certains serveurs SMTP (OVH) peuvent rejeter si le domaine From diffère
+        // Dans ce cas, utiliser le format "JobbingTrack <noreply@maily.ovh>" pour from
         this.provider = new SMTPEmailProvider({
           host: process.env.SMTP_HOST || 'mailhog',
           port: process.env.SMTP_PORT || '1025',
           secure: process.env.SMTP_SECURE || 'false',
-          user: process.env.SMTP_USER,
+          // Authentification SMTP (adresse réelle du serveur)
+          user: process.env.SMTP_USER, // ex: noreply@maily.ovh
           password: process.env.SMTP_PASS,
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+          // Adresse d'affichage (ce que voit le destinataire)
+          from: process.env.SMTP_FROM || 'JobbingTrack <noreply@jobbingtrack.com>',
           replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
           tls: {
             rejectUnauthorized: false, // Pour dev
@@ -447,6 +455,104 @@ class EmailService {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
       logger.error('Erreur envoi email vérification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Envoyer un email de confirmation de changement de mot de passe
+   * @param {Object} user - Utilisateur
+   */
+  async sendPasswordChangedEmail(user) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const appName = 'JobbingTrack';
+      const userName = user.firstName || 'Utilisateur';
+      const changeTime = new Date().toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const supportLink = `${frontendUrl}/support`;
+
+      // Essayer de récupérer le template depuis la DB
+      const dbTemplate = await this.getTemplate('PASSWORD_CHANGED');
+      let html, text, subject;
+
+      if (dbTemplate && dbTemplate.isActive) {
+        // Utiliser le template de la DB
+        html = replaceVariables(dbTemplate.htmlContent, {
+          userName,
+          firstName: userName,
+          appName,
+          changeTime,
+          supportLink,
+        });
+        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
+          userName,
+          firstName: userName,
+          appName,
+          changeTime,
+          supportLink,
+        }) : null;
+        subject = replaceVariables(dbTemplate.subject, {
+          userName,
+          firstName: userName,
+          appName,
+        });
+      } else {
+        // Fallback sur le template fichier
+        html = passwordChangedTemplate.getPasswordChangedEmailHTML({
+          userName,
+          appName,
+          changeTime,
+          supportLink,
+        });
+        text = passwordChangedTemplate.getPasswordChangedEmailText({
+          userName,
+          appName,
+          changeTime,
+          supportLink,
+        });
+        subject = '✅ Votre mot de passe a été modifié - JobbingTrack';
+      }
+
+      // Logger l'email
+      const emailLog = await this.logEmail({
+        userId: user.id,
+        to: user.email,
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        subject,
+        type: 'PASSWORD_CHANGED',
+        emailContent: html,
+        metadata: { changeTime },
+      });
+
+      // Envoyer l'email via le provider
+      const result = await this.getProvider().sendEmail({
+        to: user.email,
+        subject,
+        htmlContent: html,
+        textContent: text,
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+      });
+
+      // Mettre à jour le statut
+      if (emailLog && emailLog.id) {
+        await this.updateEmailLogStatus(emailLog.id, 'SENT');
+      }
+
+      logger.info(`Email de confirmation de changement de mot de passe envoyé à ${user.email}`);
+      return result;
+    } catch (error) {
+      // Mettre à jour le statut en FAILED
+      if (emailLog && emailLog.id) {
+        await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
+      }
+      logger.error('Erreur envoi email confirmation changement mot de passe:', error);
       throw error;
     }
   }

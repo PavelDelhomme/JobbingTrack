@@ -54,14 +54,22 @@ class SMTPEmailProvider extends BaseEmailProvider {
    */
   async sendEmail({ to, subject, htmlContent, textContent, from, replyTo }) {
     try {
+      // L'adresse d'affichage (from) peut être différente de l'authentification SMTP
+      // Exemple : authentification avec noreply@maily.ovh mais affichage noreply@jobbingtrack.com
+      const displayFrom = from || this.config.from;
+      const displayReplyTo = replyTo || this.config.replyTo || displayFrom;
+      
       const mailOptions = {
-        from: from || this.config.from,
+        // Adresse d'affichage (ce que voit le destinataire)
+        from: displayFrom,
         to: to,
         subject: subject,
-        // Headers pour que l'email apparaisse comme venant de noreply@jobbingtrack.com
+        // Headers pour personnaliser l'affichage
         headers: {
-          'From': from || this.config.from,
-          'Reply-To': replyTo || this.config.replyTo || from || this.config.from,
+          'From': displayFrom,
+          'Reply-To': displayReplyTo,
+          // Permettre l'affichage personnalisé même si l'authentification est différente
+          'X-Mailer': 'JobbingTrack Email Service',
         },
       };
 
