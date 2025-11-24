@@ -871,3 +871,18 @@ model EmailTemplate {
   @@index([type])
   @@index([isActive])
 }
+
+// ============================================
+// ⚙️ PRÉFÉRENCES UTILISATEUR
+// ============================================
+
+model UserCustomization {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  settings  Json     // Préférences utilisateur (refreshInterval, display, notifications, etc.)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
