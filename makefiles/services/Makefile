@@ -389,10 +389,11 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 
 # Fonction interne pour démarrer tous les services (sans message MickDevil)
 _up-full-internal:
-	# Nettoyage complet
+	# Nettoyage complet (en préservant les volumes de données)
 	@echo "🧹 Nettoyage complet de l'environnement Docker..."
+	@echo "  ⚠️  Les volumes de données (PostgreSQL, métriques) seront préservés"
 	@echo "  1/4 Arrêt et suppression des conteneurs..."
-	$(call docker_compose, -f docker-compose.yml down --remove-orphans --volumes --timeout 30) 2>/dev/null || true
+	$(call docker_compose, -f docker-compose.yml down --remove-orphans --timeout 30) 2>/dev/null || true
 	
 	@echo "  2/4 Suppression des conteneurs orphelins..."
 	@if command -v docker &>/dev/null 2>&1; then \
@@ -404,9 +405,10 @@ _up-full-internal:
 		docker network rm backend_jobbingtrack-network jobbingtrack_jobbingtrack-network 2>/dev/null || true; \
 	fi
 	
-	@echo "  4/4 Nettoyage des volumes orphelins..."
+	@echo "  4/4 Nettoyage des volumes orphelins (en préservant les données de métriques)..."
 	@if command -v docker &>/dev/null 2>&1; then \
-		docker volume ls -q --filter "name=jobbingtrack" 2>/dev/null | xargs -r docker volume rm -f 2>/dev/null || true; \
+		echo "  ⚠️  Préservation du volume PostgreSQL (contient les métriques historiques)"; \
+		docker volume ls -q --filter "name=jobbingtrack" 2>/dev/null | grep -v "postgres_data" | xargs -r docker volume rm -f 2>/dev/null || true; \
 	fi
 	
 	# Création réseau

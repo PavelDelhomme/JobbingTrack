@@ -132,19 +132,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ]
     },
     {
-      id: 'data',
-      label: 'Gestion des Données',
-      icon: '📝',
+      id: 'admin',
+      label: 'Administration',
+      icon: '⚙️',
       isCollapsible: true,
       items: [
-        { name: 'Candidatures', href: '/backoffice/applications', icon: '📝' },
-        { name: 'Entreprises', href: '/backoffice/companies', icon: '🏢' },
-        { name: 'Contacts', href: '/backoffice/contacts', icon: '👤' },
-        { name: 'Entretiens', href: '/backoffice/interviews', icon: '📅' },
-        { name: 'Appels', href: '/backoffice/calls', icon: '📞' },
-        { name: 'Relances', href: '/backoffice/followups', icon: '📧' },
-        { name: 'Événements', href: '/backoffice/events', icon: '🗓️' },
-        { name: 'Notifications', href: '/backoffice/notifications', icon: '🔔' },
+        { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
+        { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
+        { name: 'Mon Profil', icon: '👤', onClick: () => setIsProfileOpen(true) },
+      ]
+    },
+    {
+      id: 'dev',
+      label: 'Développement',
+      icon: '🛠️',
+      isCollapsible: true,
+      items: [
+        { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
+        { name: 'Données de Test', href: '/backoffice/test-data', icon: '🎲' },
+        { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
+        { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
+        { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
+        { name: 'Parcours Utilisateur', href: '/backoffice/user-journey', icon: '🚶' },
       ]
     },
     {
@@ -161,6 +170,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ]
     },
     {
+      id: 'data',
+      label: 'Gestion des Données',
+      icon: '📝',
+      isCollapsible: false,
+      items: [
+        { name: 'Gestion des Données', href: '/backoffice/data', icon: '💾' },
+      ]
+    },
+    {
       id: 'cleanup',
       label: 'Archives & Corbeille',
       icon: '📦',
@@ -168,32 +186,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
         { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
-      ]
-    },
-    {
-      id: 'admin',
-      label: 'Administration',
-      icon: '⚙️',
-      isCollapsible: true,
-      items: [
-        { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
-        { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
-        { name: 'Mon Profil', icon: '👤', onClick: () => setIsProfileOpen(true) },
-        { name: 'Gestion Données', href: '/backoffice/data-management', icon: '💾' },
-      ]
-    },
-    {
-      id: 'dev',
-      label: 'Développement',
-      icon: '🛠️',
-      isCollapsible: true,
-      items: [
-        { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
-        { name: 'Données de Test', href: '/backoffice/test-data', icon: '🎲' },
-        { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
-        { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
-        { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
-        { name: 'Parcours Utilisateur', href: '/backoffice/user-journey', icon: '🚶' },
       ]
     },
   ]

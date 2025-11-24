@@ -206,7 +206,7 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'system' | 'services' | 'network' | 'security' | 'logs'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'security' | 'logs'>('overview')
 
   // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false)
@@ -701,11 +701,9 @@ export default function StatisticsPage() {
           <nav className="flex space-x-4 overflow-x-auto">
             {[
               { id: 'overview', label: '📊 Vue d\'ensemble', icon: BarChart3 },
-              { id: 'system', label: '💻 Système', icon: Cpu },
               { id: 'services', label: '🔧 Services', icon: Server },
-              { id: 'network', label: '🌐 Réseau', icon: Network },
               { id: 'security', label: '🔒 Sécurité', icon: Shield },
-              { id: 'logs', label: '📋 Logs', icon: FileText }
+              { id: 'logs', label: '📊 Statistiques Logs', icon: FileText }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -733,26 +731,12 @@ export default function StatisticsPage() {
               router={router}
             />
           )}
-          {activeTab === 'system' && (
-            <SystemTab 
-              stats={stats} 
-              chartData={chartData}
-              customization={customization}
-            />
-          )}
           {activeTab === 'services' && (
             <ServicesTab 
               stats={stats}
               serviceHistory={serviceHistory}
               customization={customization}
               formatTimestamp={formatTimestamp}
-            />
-          )}
-          {activeTab === 'network' && (
-            <NetworkTab 
-              stats={stats}
-              chartData={chartData}
-              customization={customization}
             />
           )}
           {activeTab === 'security' && (
@@ -775,271 +759,208 @@ export default function StatisticsPage() {
 
 // Composant Overview Tab
 function OverviewTab({ stats, previousStats, chartData, customization, router }: any) {
-  // Calculer les tendances en comparant avec la moyenne des 30 dernières minutes
-  const last30Minutes = chartData.slice(-30) // Environ 30 points (1 point par minute si collecte toutes les minutes)
-  
-  const cpuAvgLast30 = last30Minutes.length > 0 
-    ? last30Minutes.reduce((sum: number, d: any) => sum + d.cpu, 0) / last30Minutes.length 
-    : stats.system.cpu.current
-  const cpuTrend = stats.system.cpu.current - cpuAvgLast30
-
-  const memoryAvgLast30 = last30Minutes.length > 0 
-    ? last30Minutes.reduce((sum: number, d: any) => sum + d.memory, 0) / last30Minutes.length 
-    : stats.system.memory.current
-  const memoryTrend = stats.system.memory.current - memoryAvgLast30
-
-  const responseTimeAvgLast30 = last30Minutes.length > 0 
-    ? last30Minutes.reduce((sum: number, d: any) => sum + d.responseTime, 0) / last30Minutes.length 
-    : stats.performance.averageResponseTime
-  const responseTimeTrend = stats.performance.averageResponseTime - responseTimeAvgLast30
-
-  const availabilityAvgLast30 = last30Minutes.length > 0 
-    ? last30Minutes.reduce((sum: number, d: any) => sum + d.availability, 0) / last30Minutes.length 
-    : stats.system.availability
-  const availabilityTrend = stats.system.availability - availabilityAvgLast30
+  // Calculer les tendances en comparant avec les stats précédentes
+  const usersTrend = previousStats 
+    ? stats.users.total - (previousStats.users?.total || 0)
+    : 0
+  const applicationsTrend = previousStats
+    ? stats.applications.total - (previousStats.applications?.total || 0)
+    : 0
+  const companiesTrend = previousStats
+    ? stats.companies.total - (previousStats.companies?.total || 0)
+    : 0
+  const contactsTrend = previousStats
+    ? (stats.contacts?.total || 0) - (previousStats.contacts?.total || 0)
+    : 0
 
   return (
     <div className="space-y-6">
-      {/* Cartes de résumé */}
+      {/* Cartes de résumé - Statistiques métier */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={<Cpu className="w-6 h-6" />}
-          title="CPU Moyen"
-          value={`${stats.system.cpu.average.toFixed(1)}%`}
-          trend={cpuTrend}
+          icon={<Users className="w-6 h-6" />}
+          title="Utilisateurs"
+          value={stats.users.total.toLocaleString()}
+          trend={usersTrend}
           color="blue"
-          subtitle={`Actuel: ${stats.system.cpu.current.toFixed(1)}%`}
-          trendType="positive-is-bad"
+          subtitle={`${stats.users.activeUsers || 0} actifs • ${stats.users.newThisMonth || 0} ce mois`}
+          trendType="positive-is-good"
         />
         <StatCard
-          icon={<MemoryStick className="w-6 h-6" />}
-          title="Mémoire Moyenne"
-          value={`${stats.system.memory.average.toFixed(1)}%`}
-          trend={memoryTrend}
+          icon={<FileText className="w-6 h-6" />}
+          title="Candidatures"
+          value={stats.applications.total.toLocaleString()}
+          trend={applicationsTrend}
           color="green"
-          subtitle={`Actuelle: ${stats.system.memory.current.toFixed(1)}%`}
-          trendType="positive-is-bad"
+          subtitle={`${stats.applications.thisWeek || 0} cette semaine • ${stats.applications.thisMonth || 0} ce mois`}
+          trendType="positive-is-good"
         />
         <StatCard
-          icon={<Clock className="w-6 h-6" />}
-          title="Temps de Réponse"
-          value={`${stats.performance.averageResponseTime.toFixed(0)}ms`}
-          trend={responseTimeTrend}
+          icon={<Building2 className="w-6 h-6" />}
+          title="Entreprises"
+          value={stats.companies.total.toLocaleString()}
+          trend={companiesTrend}
           color="purple"
-          subtitle="Moyen sur la période"
-          trendType="positive-is-bad"
+          subtitle={`${Object.keys(stats.companies.byIndustry || {}).length} secteurs`}
+          trendType="positive-is-good"
         />
         <StatCard
-          icon={<Activity className="w-6 h-6" />}
-          title="Disponibilité"
-          value={`${stats.system.availability.toFixed(1)}%`}
-          trend={availabilityTrend}
-          color="green"
-          subtitle={`${stats.services.filter((s: any) => s.status === 'healthy').length}/${stats.services.length} services`}
-          trendType="negative-is-bad"
+          icon={<Users className="w-6 h-6" />}
+          title="Contacts"
+          value={(stats.contacts?.total || 0).toLocaleString()}
+          trend={contactsTrend}
+          color="orange"
+          subtitle={`${(stats.contacts?.thisWeek || 0)} cette semaine`}
+          trendType="positive-is-good"
         />
       </div>
 
-      {/* Graphiques principaux */}
-      {chartData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* CPU & Mémoire */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              💻 Utilisation CPU & Mémoire
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="cpu" 
-                  stroke={COLORS.primary} 
-                  strokeWidth={2}
-                  name="CPU (%)"
-                  dot={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="memory" 
-                  stroke={COLORS.secondary} 
-                  strokeWidth={2}
-                  name="Mémoire (%)"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Réseau */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              🌐 Trafic Réseau
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="networkRx" 
-                  stackId="1"
-                  stroke={COLORS.info} 
-                  fill={COLORS.info}
-                  fillOpacity={0.6}
-                  name="RX (MB)"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="networkTx" 
-                  stackId="1"
-                  stroke={COLORS.warning} 
-                  fill={COLORS.warning}
-                  fillOpacity={0.6}
-                  name="TX (MB)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Temps de réponse & Taux d'erreur */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚡ Performance & Erreurs
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  yAxisId="left"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  label={{ value: 'Temps (ms)', angle: -90, position: 'insideLeft' }}
-                />
-                <YAxis 
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  label={{ value: 'Erreurs (%)', angle: 90, position: 'insideRight' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  stroke={COLORS.purple} 
-                  strokeWidth={2}
-                  name="Temps réponse (ms)"
-                  dot={false}
-                />
-                <Bar 
-                  yAxisId="right"
-                  dataKey="errorRate" 
-                  fill={COLORS.danger}
-                  name="Taux d'erreur (%)"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Disponibilité */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              📊 Disponibilité & Score de Charge
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="availability" 
-                  stroke={COLORS.success} 
-                  strokeWidth={2}
-                  name="Disponibilité (%)"
-                  dot={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="loadScore" 
-                  stroke={COLORS.warning} 
-                  strokeWidth={2}
-                  name="Score de charge"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Graphiques de statistiques métier */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Évolution des utilisateurs et candidatures */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            📈 Évolution des Données
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={[]}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+              />
+              <Legend />
+              <Area 
+                type="monotone" 
+                dataKey="users" 
+                stroke={COLORS.primary} 
+                fill={COLORS.primary}
+                fillOpacity={0.3}
+                name="Utilisateurs"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="applications" 
+                stroke={COLORS.secondary} 
+                fill={COLORS.secondary}
+                fillOpacity={0.3}
+                name="Candidatures"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+            Les graphiques temporels seront disponibles une fois l'historique collecté
+          </p>
         </div>
-      )}
+
+        {/* Répartition des candidatures par statut */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            📊 Candidatures par Statut
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <RechartsPieChart>
+              <Pie
+                data={Object.entries(stats.applications.byStatus || {}).map(([status, count]) => ({
+                  name: status,
+                  value: count
+                }))}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {Object.entries(stats.applications.byStatus || {}).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </RechartsPieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Répartition des utilisateurs par rôle */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            👥 Utilisateurs par Rôle
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <RechartsPieChart>
+              <Pie
+                data={Object.entries(stats.users.byRole || {}).map(([role, count]) => ({
+                  name: role,
+                  value: count
+                }))}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {Object.entries(stats.users.byRole || {}).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </RechartsPieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Répartition des entreprises par secteur */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            🏢 Entreprises par Secteur
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart 
+              data={Object.entries(stats.companies.byIndustry || {}).map(([industry, count]) => ({
+                name: industry.length > 15 ? industry.substring(0, 15) + '...' : industry,
+                value: count
+              }))}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis type="number" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+              <YAxis 
+                type="category" 
+                dataKey="name" 
+                stroke="#9CA3AF" 
+                style={{ fontSize: '11px' }}
+                width={120}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+              />
+              <Bar dataKey="value" fill={COLORS.info} name="Nombre" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
       {/* Stats applicatives */}
       {customization.showApplications && (
@@ -2180,10 +2101,13 @@ function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'neg
     
     if (trendType === 'positive-is-bad') {
       // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
-      return trend > 0 ? 'text-red-600' : 'text-green-600'
+      return trend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+    } else if (trendType === 'positive-is-good') {
+      // Pour statistiques métier : augmentation = bon (vert), diminution = mauvais (rouge)
+      return trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
     } else {
       // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? 'text-green-600' : 'text-red-600'
+      return trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
     }
   }
 
@@ -2195,7 +2119,7 @@ function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'neg
         </div>
         {trend !== undefined && trend !== null && trend !== 0 && (
           <span className={`text-xs font-medium ${getTrendColor()}`}>
-            {trend > 0 ? '↗' : '↘'} {Math.abs(trend).toFixed(1)}%
+            {trend > 0 ? '↗' : '↘'} {Math.abs(trend).toLocaleString()}
           </span>
         )}
       </div>

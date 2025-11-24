@@ -14,7 +14,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history'>('appearance')
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -205,6 +205,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 { id: 'refresh', label: '🔄 Rafraîchissement', icon: '🔄' },
                 { id: 'notifications', label: '🔔 Notifications', icon: '🔔' },
                 { id: 'display', label: '📱 Affichage', icon: '📱' },
+                { id: 'history', label: '📊 Historique', icon: '📊' },
                 { id: 'system', label: '⚙️ Système', icon: '⚙️' }
               ].map(tab => (
                 <button
@@ -415,6 +416,95 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       </label>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Onglet Historique */}
+            {activeTab === 'history' && preferences && (
+              <div className="space-y-6">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Configuration de l'Historique</h4>
+                
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    💡 <strong>Information :</strong> Configurez la durée de rétention des métriques et données d'historique. Les données plus anciennes seront automatiquement supprimées.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Durée de rétention des métriques (jours)
+                    </label>
+                    <select
+                      value={preferences.metricsRetentionDays || 30}
+                      onChange={(e) => {
+                        const days = parseInt(e.target.value)
+                        if (days >= 7) {
+                          updatePreferences({ metricsRetentionDays: days })
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="7">7 jours (minimum)</option>
+                      <option value="14">14 jours</option>
+                      <option value="30">30 jours (recommandé)</option>
+                      <option value="60">60 jours</option>
+                      <option value="90">90 jours</option>
+                      <option value="180">180 jours (6 mois)</option>
+                      <option value="365">365 jours (1 an)</option>
+                    </select>
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      Les métriques système (CPU, mémoire, réseau, etc.) seront conservées pendant cette durée. Minimum : 7 jours.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Durée de rétention des logs (jours)
+                    </label>
+                    <select
+                      value={preferences.logsRetentionDays || 30}
+                      onChange={(e) => {
+                        const days = parseInt(e.target.value)
+                        if (days >= 7) {
+                          updatePreferences({ logsRetentionDays: days })
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="7">7 jours (minimum)</option>
+                      <option value="14">14 jours</option>
+                      <option value="30">30 jours (recommandé)</option>
+                      <option value="60">60 jours</option>
+                      <option value="90">90 jours</option>
+                    </select>
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      Les logs système et d'application seront conservés pendant cette durée. Minimum : 7 jours.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">Nettoyage automatique</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Supprimer automatiquement les données expirées</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.autoCleanupHistory !== false}
+                        onChange={(e) => updatePreferences({ autoCleanupHistory: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                      ⚠️ <strong>Attention :</strong> La modification de la durée de rétention déclenchera immédiatement un nettoyage des données expirées. Cette action est irréversible.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

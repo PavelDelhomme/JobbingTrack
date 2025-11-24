@@ -680,24 +680,6 @@ export default function ServicesPage() {
               <p className="mt-1 md:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
                 Surveillez l'état et les performances de tous vos microservices
               </p>
-
-              {/* Indicateur de connexion au service de métriques */}
-              <div className="mt-2 flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className={`text-xs ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
-                  {isConnected ? 'Métriques en temps réel' : 'Service de métriques déconnecté'}
-                </span>
-                {metricsError && (
-                  <span className="text-xs text-red-600">({metricsError})</span>
-                )}
-              </div>
-
-              {/* Message d'information pour les métriques non disponibles */}
-              {!isConnected && (
-                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs text-yellow-800 dark:text-yellow-400">
-                  ⚠️ Certaines métriques affichent "N/A" car les services correspondants ne sont pas disponibles ou n'ont pas encore été déployés.
-                </div>
-              )}
             </div>
 
             {/* Contrôles */}
