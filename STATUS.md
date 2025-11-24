@@ -84,7 +84,13 @@
 3. ✅ **Valider tous les enums** de la base de données
 4. ✅ **Intégrer ces tests dans la pipeline CI/CD** (correction du job existant)
 
-**📊 Structure Complète de la Base de Données** (selon `docs/database/schema/README.md`) :
+**📊 Structure Complète de la Base de Données** :
+- 📋 **Actions à faire** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+- 📊 **Structure actuelle** : [docs/database/structure-actuelle.md](docs/database/structure-actuelle.md)
+- 🔗 **Relations** : [docs/database/relations.md](docs/database/relations.md)
+- 📚 **Documentation complète** : [docs/database/README.md](docs/database/README.md)
+
+**Diagramme ASCII** (selon `docs/database/schema/README.md`) :
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -333,7 +339,13 @@ Les tests d'email (SMTP, DNS) doivent être effectués avec l'utilisateur connec
 3. ✅ **Valider tous les enums** de la base de données
 4. ✅ **Intégrer ces tests dans la pipeline CI/CD** (correction du job existant)
 
-**📊 Structure Complète de la Base de Données** (selon `docs/database/schema/README.md`) :
+**📊 Structure Complète de la Base de Données** :
+- 📋 **Actions à faire** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+- 📊 **Structure actuelle** : [docs/database/structure-actuelle.md](docs/database/structure-actuelle.md)
+- 🔗 **Relations** : [docs/database/relations.md](docs/database/relations.md)
+- 📚 **Documentation complète** : [docs/database/README.md](docs/database/README.md)
+
+**Diagramme ASCII** (selon `docs/database/schema/README.md`) :
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
