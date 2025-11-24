@@ -3,7 +3,8 @@
 > **Fichier récapitulatif** de toutes les actions à effectuer pour la structure de la base de données JobbingTrack.
 
 **📄 Documentation complète** : Voir [docs/database/README.md](database/README.md)  
-**📊 Structure actuelle** : Voir [STATUS_STRUCTURE_BDD.md](../STATUS_STRUCTURE_BDD.md)
+**📊 Structure actuelle** : Voir [STATUS_STRUCTURE_BDD.md](../STATUS_STRUCTURE_BDD.md)  
+**⭐ Vos demandes de modifications** : Voir [docs/database/MODIFICATIONS_DEMANDEES.md](database/MODIFICATIONS_DEMANDEES.md) - **C'est ici que vous ajoutez vos demandes !**
 
 ---
 
@@ -96,6 +97,8 @@ Transformer les enums de statuts en modèles personnalisables par utilisateur av
 **À ajouter à TOUS les modèles applicatifs** dans `schema.prisma` :
 
 - [ ] `Company` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
+**Modèles applicatifs principaux** :
+- [ ] `Company` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
 - [ ] `Application` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
 - [ ] `Contact` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
 - [ ] `FollowUp` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
@@ -103,6 +106,15 @@ Transformer les enums de statuts en modèles personnalisables par utilisateur av
 - [ ] `Interview` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
 - [ ] `Event` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
 - [ ] `Document` : Ajouter `syncHash`, `entityHash`, `lastSyncAt`
+
+**Listes personnalisables par utilisateur** (voir [MODIFICATIONS_DEMANDEES.md](database/MODIFICATIONS_DEMANDEES.md) pour avis détaillé) :
+- [ ] `Platform` : Ajouter `syncHash`, `entityHash`, `lastSyncAt` (uniquement pour entrées utilisateur, pas système)
+- [ ] `FollowUpType` : Ajouter `syncHash`, `entityHash`, `lastSyncAt` (uniquement pour entrées utilisateur)
+- [ ] `InterviewType` : Ajouter `syncHash`, `entityHash`, `lastSyncAt` (uniquement pour entrées utilisateur)
+- [ ] `CallType` : Ajouter `syncHash`, `entityHash`, `lastSyncAt` (uniquement pour entrées utilisateur)
+- [ ] `EventType` : Ajouter `syncHash`, `entityHash`, `lastSyncAt` (uniquement pour entrées utilisateur)
+
+**Note** : Les entrées système (`userId = null`, `isPredefined = true`) n'ont PAS besoin de synchronisation car elles ne sont jamais modifiées par l'utilisateur.
 
 ### Service de Synchronisation
 

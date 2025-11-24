@@ -34,6 +34,7 @@
 
 ### 🔧 Migration & Implémentation
 - **[Actions Nécessaires](../STRUCTURE_BDD_ACTIONS.md)** - **📋 FICHIER PRINCIPAL** - Checklist complète de toutes les actions à effectuer
+- **[Modifications Demandées](MODIFICATIONS_DEMANDEES.md)** - **⭐ FICHIER CENTRAL** - Toutes vos demandes de modifications avec avis technique et actions à effectuer
 - **[Modifications Nécessaires](modifications-necessaires.md)** - Détails des modifications au schéma
 - **[Scripts de Migration](scripts-migration.md)** - Scripts à créer pour la migration
 

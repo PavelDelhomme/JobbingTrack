@@ -4,9 +4,12 @@
 
 ---
 
-## 🎯 FICHIER PRINCIPAL - Actions à Effectuer
+## 🎯 FICHIERS PRINCIPAUX
 
-### ⭐ **COMMENCEZ ICI** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+### ⭐ **Pour vos demandes de modifications** : [docs/database/MODIFICATIONS_DEMANDEES.md](docs/database/MODIFICATIONS_DEMANDEES.md)
+**👉 C'est ici que vous ajoutez vos demandes de modifications de structure BDD. Je donnerai mon avis et les actions à effectuer.**
+
+### 📋 **Pour les actions à effectuer** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
 
 **📋 Ce fichier contient TOUTES les actions à faire** :
 - ✅ Checklist complète pour système de statuts personnalisables
