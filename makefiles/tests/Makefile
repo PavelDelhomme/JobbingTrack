@@ -5,7 +5,7 @@
 # ================================================================
 
 .PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
-        tests-clean test-clean
+        tests-clean test-clean test-relations test-enums
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -41,6 +41,8 @@ tests-help:
 	@echo "  make tests-user-journey       Test API automatique"
 	@echo "  make tests-interface-web      Interface web de test"
 	@echo "  make test-email-verification  Test vérification email"
+	@echo "  make test-relations           Test relations many-to-many"
+	@echo "  make test-enums               Validation des enums"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -215,4 +217,63 @@ test-email-verification:
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "📚 Documentation : STATUS.md section 1.12"
+	@echo ""
+
+# ================================================================
+# 🔗 TEST RELATIONS - Test relations many-to-many
+# ================================================================
+
+test-relations: ## Teste toutes les relations many-to-many de la base de données
+	$(call check_help_read,test-relations)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🔗 TEST RELATIONS MANY-TO-MANY - JobbingTrack     ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie automatiquement :"
+	@echo "   ✓ Existence des tables de jonction"
+	@echo "   ✓ Contraintes d'unicité"
+	@echo "   ✓ Intégrité référentielle (foreign keys)"
+	@echo "   ✓ Présence des index"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Services démarrés (make up)"
+	@echo "   • Base de données accessible"
+	@echo ""
+	@echo "🚀 Lancement du test..."
+	@echo ""
+	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-relations.js" < scripts/test-relations.js && \
+		docker exec -w /app jobbingtrack-auth-service node /tmp/test-relations.js
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# ================================================================
+# 🎨 TEST ENUMS - Validation des enums
+# ================================================================
+
+test-enums: ## Valide tous les enums du schéma Prisma
+	$(call check_help_read,test-enums)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🎨 VALIDATION DES ENUMS - JobbingTrack          ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie automatiquement :"
+	@echo "   ✓ Définition des enums dans le schéma Prisma"
+	@echo "   ✓ Utilisation correcte dans la base de données"
+	@echo "   ✓ Complétude des valeurs attendues"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Services démarrés (make up)"
+	@echo "   • Base de données accessible"
+	@echo ""
+	@echo "🚀 Lancement du test..."
+	@echo ""
+	@docker exec jobbingtrack-auth-service sh -c "cat > /tmp/test-enums.js" < scripts/test-enums.js && \
+		docker exec -w /app jobbingtrack-auth-service node /tmp/test-enums.js
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
