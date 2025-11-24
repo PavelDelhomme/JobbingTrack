@@ -23,45 +23,104 @@
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums
 
-**Statut** : 🟡 **À FAIRE** - Créer des outils de test pour valider l'intégrité de la base de données.
+**Statut** : 🟡 **EN COURS** - Scripts de test créés, pages frontend et intégration CI/CD à créer.
 
 **Objectifs** :
-1. **Créer une commande Makefile** pour tester toutes les relations many-to-many
+1. ✅ **Créer une commande Makefile** pour tester toutes les relations many-to-many
 2. **Créer une interface frontend** dans le dashboard administrateur pour tester ces relations
-3. **Valider tous les enums** de la base de données
-4. **Intégrer ces tests dans la pipeline CI/CD**
+3. ✅ **Valider tous les enums** de la base de données
+4. ✅ **Intégrer ces tests dans la pipeline CI/CD** (correction du job existant)
 
-**Relations Many-to-Many à tester** :
-- `Application` ↔ `Contact` (via `ApplicationContact`)
-- `Application` ↔ `Tag` (via `ApplicationTag`)
-- `Company` ↔ `Contact` (via `CompanyContact`)
-- `Contact` ↔ `Tag` (via `ContactTag`)
-- `User` ↔ `Application` (via `UserApplication`)
-- Et toutes les autres relations many-to-many du schéma Prisma
+**📊 Structure Complète de la Base de Données** (selon `docs/database/schema/README.md`) :
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          USER (auth-service)                            │
+│  - id, email, password, firstName, lastName, role, isActive             │
+└──────┬──────────────────────────────────────────────────────────────────┘
+       │
+       ├──► Company (1:N) ────► ContactCompany (M:N) ────► Contact
+       │      │                      │                          │
+       │      │                      │                          │
+       │      └──► Application (1:N) │                          │
+       │             │                │                          │
+       │             ├──► ContactApplication (M:N) ──────────────┘
+       │             │
+       │             ├──► FollowUp (1:N)
+       │             │      ├──► FollowUpContact (M:N) ──► Contact
+       │             │      ├──► Call (1:N)
+       │             │      └──► Event (1:N)
+       │             │
+       │             ├──► Interview (1:N)
+       │             │      ├──► InterviewContact (M:N) ──► Contact
+       │             │      └──► Event (1:N)
+       │             │
+       │             ├──► Call (1:N) ──► Event (1:N)
+       │             ├──► Event (1:N)
+       │             ├──► Document (1:N)
+       │             └──► ApplicationStatusHistory (1:N)
+       │
+       ├──► Contact (1:N)
+       ├──► FollowUp (1:N)
+       ├──► Call (1:N)
+       ├──► Interview (1:N)
+       ├──► Event (1:N)
+       ├──► Notification (1:N)
+       ├──► Document (1:N)
+       └──► SyncQueue (1:N)
+
+📋 LISTES PERSONNALISABLES (FK directes) :
+  - Platform (pour Application)
+  - FollowUpType, FollowUpMethod (pour FollowUp)
+  - InterviewType, InterviewStyle (pour Interview)
+  - EventType (pour Event)
+  - CallType (pour Call)
+```
+
+**🔗 Relations Many-to-Many EXISTANTES** (selon `docs/database/schema/README.md` et schéma Prisma) :
+
+| Relation | Table de Jonction | Champs | Statut |
+|----------|-------------------|--------|--------|
+| Contact ↔ Company | `ContactCompany` | `contactId`, `companyId` | ✅ **IMPLÉMENTÉE** |
+| Contact ↔ Application | `ContactApplication` | `contactId`, `applicationId` | ✅ **IMPLÉMENTÉE** |
+| FollowUp ↔ Contact | `FollowUpContact` | `followUpId`, `contactId` | ✅ **IMPLÉMENTÉE** |
+| Interview ↔ Contact | `InterviewContact` | `interviewId`, `contactId` | ✅ **IMPLÉMENTÉE** |
+
+**⚠️ Relations NON PRÉVUES** (pas dans la documentation ni le schéma) :
+- ❌ `Application` ↔ `Tag` (via `ApplicationTag`) - **NON PRÉVU** (pas de système de Tags)
+- ❌ `Contact` ↔ `Tag` (via `ContactTag`) - **NON PRÉVU** (pas de système de Tags)
+- ❌ `User` ↔ `Application` (via `UserApplication`) - **NON PRÉVU** (relation directe via `userId`)
+
+**📝 Note** : D'après `docs/database/schema/README.md` et `docs/database/analysis/data-structure-comparison/README.md`, il n'y a **PAS de système de Tags** prévu dans le schéma actuel. Les relations mentionnées dans l'ancien STATUS.md n'existent pas.
 
 **Enums à valider** :
 - `ApplicationStatus` (12 valeurs)
-- `UserRole` (USER, ADMIN, SUPER_ADMIN)
+- `UserRole` (USER, ADMIN, SUPER_ADMIN, TESTER)
 - `EventType` (INTERVIEW, CALL, FOLLOWUP, etc.)
 - `NotificationType` (EMAIL, SMS, PUSH, etc.)
+- `ContractType` (CDI, CDD, ALTERNANCE, STAGE, FREELANCE, INTERIM, SAISONNIER)
+- `WorkMode` (ON_SITE, REMOTE, HYBRID)
+- `ApplicationType` (OFFRE, SPONTANEE)
+- `CompanySize` (STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE)
 - Et tous les autres enums du schéma Prisma
 
 **Actions à faire** :
-- [ ] Créer une commande `make test-relations` dans le Makefile
-- [ ] Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
+- [x] ✅ Créer une commande `make test-relations` dans le Makefile
+- [x] ✅ Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
 - [ ] Créer une page frontend `/backoffice/tests/relations` pour tester les relations
+- [x] ✅ Créer un script de validation des enums (`scripts/test-enums.js`)
+- [x] ✅ Créer une commande `make test-enums` dans le Makefile
 - [ ] Créer une page frontend `/backoffice/tests/enums` pour valider les enums
-- [ ] Ajouter un job dans `.github/workflows/ci-cd.yml` pour exécuter ces tests
-- [ ] Documenter les résultats des tests dans STATUS.md
+- [x] ✅ Corriger le job dans `.github/workflows/ci-cd.yml` pour tester les tables de jonction correctement
+- [x] ✅ Documenter la structure complète de la base de données dans STATUS.md
 
 **Fichiers à créer/modifier** :
-- `Makefile` (ajouter `test-relations`, `test-enums`)
-- `scripts/test-relations.js` (nouveau)
-- `scripts/test-enums.js` (nouveau)
-- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau)
-- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau)
-- `.github/workflows/ci-cd.yml` (ajouter job de test)
-
+- `Makefile` (ajouter `test-relations`, `test-enums`) ✅
+- `scripts/test-relations.js` (nouveau) ✅
+- `scripts/test-enums.js` (nouveau) ✅
+- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau) ⏳
+- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau) ⏳
+- `.github/workflows/ci-cd.yml` (corriger job de test) ✅
 ---
 
 #### 1. CI/CD - package-lock.json Non Synchronisé avec package.json
@@ -213,45 +272,104 @@ Les tests d'email (SMTP, DNS) doivent être effectués avec l'utilisateur connec
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums
 
-**Statut** : 🟡 **À FAIRE** - Créer des outils de test pour valider l'intégrité de la base de données.
+**Statut** : 🟡 **EN COURS** - Scripts de test créés, pages frontend et intégration CI/CD à créer.
 
 **Objectifs** :
-1. **Créer une commande Makefile** pour tester toutes les relations many-to-many
+1. ✅ **Créer une commande Makefile** pour tester toutes les relations many-to-many
 2. **Créer une interface frontend** dans le dashboard administrateur pour tester ces relations
-3. **Valider tous les enums** de la base de données
-4. **Intégrer ces tests dans la pipeline CI/CD**
+3. ✅ **Valider tous les enums** de la base de données
+4. ✅ **Intégrer ces tests dans la pipeline CI/CD** (correction du job existant)
 
-**Relations Many-to-Many à tester** :
-- `Application` ↔ `Contact` (via `ApplicationContact`)
-- `Application` ↔ `Tag` (via `ApplicationTag`)
-- `Company` ↔ `Contact` (via `CompanyContact`)
-- `Contact` ↔ `Tag` (via `ContactTag`)
-- `User` ↔ `Application` (via `UserApplication`)
-- Et toutes les autres relations many-to-many du schéma Prisma
+**📊 Structure Complète de la Base de Données** (selon `docs/database/schema/README.md`) :
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          USER (auth-service)                            │
+│  - id, email, password, firstName, lastName, role, isActive             │
+└──────┬──────────────────────────────────────────────────────────────────┘
+       │
+       ├──► Company (1:N) ────► ContactCompany (M:N) ────► Contact
+       │      │                      │                          │
+       │      │                      │                          │
+       │      └──► Application (1:N) │                          │
+       │             │                │                          │
+       │             ├──► ContactApplication (M:N) ──────────────┘
+       │             │
+       │             ├──► FollowUp (1:N)
+       │             │      ├──► FollowUpContact (M:N) ──► Contact
+       │             │      ├──► Call (1:N)
+       │             │      └──► Event (1:N)
+       │             │
+       │             ├──► Interview (1:N)
+       │             │      ├──► InterviewContact (M:N) ──► Contact
+       │             │      └──► Event (1:N)
+       │             │
+       │             ├──► Call (1:N) ──► Event (1:N)
+       │             ├──► Event (1:N)
+       │             ├──► Document (1:N)
+       │             └──► ApplicationStatusHistory (1:N)
+       │
+       ├──► Contact (1:N)
+       ├──► FollowUp (1:N)
+       ├──► Call (1:N)
+       ├──► Interview (1:N)
+       ├──► Event (1:N)
+       ├──► Notification (1:N)
+       ├──► Document (1:N)
+       └──► SyncQueue (1:N)
+
+📋 LISTES PERSONNALISABLES (FK directes) :
+  - Platform (pour Application)
+  - FollowUpType, FollowUpMethod (pour FollowUp)
+  - InterviewType, InterviewStyle (pour Interview)
+  - EventType (pour Event)
+  - CallType (pour Call)
+```
+
+**🔗 Relations Many-to-Many EXISTANTES** (selon `docs/database/schema/README.md` et schéma Prisma) :
+
+| Relation | Table de Jonction | Champs | Statut |
+|----------|-------------------|--------|--------|
+| Contact ↔ Company | `ContactCompany` | `contactId`, `companyId` | ✅ **IMPLÉMENTÉE** |
+| Contact ↔ Application | `ContactApplication` | `contactId`, `applicationId` | ✅ **IMPLÉMENTÉE** |
+| FollowUp ↔ Contact | `FollowUpContact` | `followUpId`, `contactId` | ✅ **IMPLÉMENTÉE** |
+| Interview ↔ Contact | `InterviewContact` | `interviewId`, `contactId` | ✅ **IMPLÉMENTÉE** |
+
+**⚠️ Relations NON PRÉVUES** (pas dans la documentation ni le schéma) :
+- ❌ `Application` ↔ `Tag` (via `ApplicationTag`) - **NON PRÉVU** (pas de système de Tags)
+- ❌ `Contact` ↔ `Tag` (via `ContactTag`) - **NON PRÉVU** (pas de système de Tags)
+- ❌ `User` ↔ `Application` (via `UserApplication`) - **NON PRÉVU** (relation directe via `userId`)
+
+**📝 Note** : D'après `docs/database/schema/README.md` et `docs/database/analysis/data-structure-comparison/README.md`, il n'y a **PAS de système de Tags** prévu dans le schéma actuel. Les relations mentionnées dans l'ancien STATUS.md n'existent pas.
 
 **Enums à valider** :
 - `ApplicationStatus` (12 valeurs)
-- `UserRole` (USER, ADMIN, SUPER_ADMIN)
+- `UserRole` (USER, ADMIN, SUPER_ADMIN, TESTER)
 - `EventType` (INTERVIEW, CALL, FOLLOWUP, etc.)
 - `NotificationType` (EMAIL, SMS, PUSH, etc.)
+- `ContractType` (CDI, CDD, ALTERNANCE, STAGE, FREELANCE, INTERIM, SAISONNIER)
+- `WorkMode` (ON_SITE, REMOTE, HYBRID)
+- `ApplicationType` (OFFRE, SPONTANEE)
+- `CompanySize` (STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE)
 - Et tous les autres enums du schéma Prisma
 
 **Actions à faire** :
-- [ ] Créer une commande `make test-relations` dans le Makefile
-- [ ] Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
+- [x] ✅ Créer une commande `make test-relations` dans le Makefile
+- [x] ✅ Créer un script de test des relations many-to-many (`scripts/test-relations.js`)
 - [ ] Créer une page frontend `/backoffice/tests/relations` pour tester les relations
+- [x] ✅ Créer un script de validation des enums (`scripts/test-enums.js`)
+- [x] ✅ Créer une commande `make test-enums` dans le Makefile
 - [ ] Créer une page frontend `/backoffice/tests/enums` pour valider les enums
-- [ ] Ajouter un job dans `.github/workflows/ci-cd.yml` pour exécuter ces tests
-- [ ] Documenter les résultats des tests dans STATUS.md
+- [x] ✅ Corriger le job dans `.github/workflows/ci-cd.yml` pour tester les tables de jonction correctement
+- [x] ✅ Documenter la structure complète de la base de données dans STATUS.md
 
 **Fichiers à créer/modifier** :
-- `Makefile` (ajouter `test-relations`, `test-enums`)
-- `scripts/test-relations.js` (nouveau)
-- `scripts/test-enums.js` (nouveau)
-- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau)
-- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau)
-- `.github/workflows/ci-cd.yml` (ajouter job de test)
-
+- `Makefile` (ajouter `test-relations`, `test-enums`) ✅
+- `scripts/test-relations.js` (nouveau) ✅
+- `scripts/test-enums.js` (nouveau) ✅
+- `frontend/src/app/(admin)/backoffice/tests/relations/page.tsx` (nouveau) ⏳
+- `frontend/src/app/(admin)/backoffice/tests/enums/page.tsx` (nouveau) ⏳
+- `.github/workflows/ci-cd.yml` (corriger job de test) ✅
 ---
 
 #### 5. Table User Manquante dans la Base de Données
