@@ -21,7 +21,7 @@
 
 #### 0. Routes API - Erreurs 404/500 sur `/api/v1/auth/users/:id` et `/api/v1/preferences`
 
-**Statut** : ✅ **RÉSOLU** (2025-11-24) - Toutes les routes fonctionnent maintenant après reconstruction du conteneur auth-service.
+**Statut** : ✅ **TERMINÉ** (2025-11-24) - Toutes les routes fonctionnent maintenant après reconstruction du conteneur auth-service. **DÉPLACÉ VERS SECTION TERMINÉ**.
 
 **Problèmes identifiés et résolus** :
 - ✅ `GET /api/v1/emails/stats?days=30` → **FONCTIONNE** (testé avec token valide)
@@ -647,6 +647,34 @@ app.use(wafCheck);
 ---
 
 ## ✅ TERMINÉ - Réalisations (Du Plus Récent au Plus Ancien)
+
+### 🎉 Routes API - Erreurs 404/500 Résolues - TERMINÉ (2025-11-24)
+
+**Statut** : ✅ **TERMINÉ** - Toutes les routes API fonctionnent correctement après création de l'utilisateur admin et reconstruction du conteneur.
+
+**Problèmes résolus** :
+- ✅ `GET /api/v1/emails/stats?days=30` → **FONCTIONNE** (testé avec token valide)
+- ✅ `GET /api/v1/emails/logs?page=1&limit=50` → **FONCTIONNE** (testé avec token valide)
+- ✅ `GET /api/v1/preferences` → **FONCTIONNE** (retourne les préférences par défaut si UserCustomization n'existe pas)
+- ✅ `GET /api/v1/auth/users/:id` → **FONCTIONNE** (route ajoutée dans auth.routes.js)
+
+**Actions effectuées** :
+- ✅ Création de l'utilisateur admin : `admin@jobbingtrack.test` / `password123`
+- ✅ Utilisateur créé avec ID valide : `cmideyqu3000011fe1jj9a6vt`, rôle `SUPER_ADMIN`
+- ✅ Test de connexion réussi : Token JWT valide généré
+- ✅ Ajout de la route `/api/v1/auth/users/:id` dans `auth.routes.js`
+- ✅ Correction du problème des préférences : Vérification robuste de `prisma.userCustomization`
+- ✅ Reconstruction du conteneur auth-service : `docker-compose build auth-service`
+- ✅ Toutes les actions de vérification cochées et validées
+
+**Fichiers modifiés** :
+- `backend/auth-service/src/routes/auth.routes.js` (ajout route users/:id)
+- `backend/auth-service/src/controllers/preferences.controller.js` (amélioration vérification userCustomization)
+- `frontend/src/components/features/QuickMenuPopup.tsx` (ajout affichage/copie token JWT)
+
+**Résultat** : Toutes les routes API sont opérationnelles et testées avec succès.
+
+---
 
 ### 🎉 Amélioration Fallbacks Prisma P2021 - TERMINÉ (2025-01-XX)
 
