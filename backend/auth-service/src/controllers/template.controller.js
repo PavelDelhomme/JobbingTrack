@@ -9,9 +9,22 @@ const prisma = new PrismaClient();
  */
 const getTemplates = async (req, res) => {
   try {
-    const templates = await prisma.emailTemplate.findMany({
-      orderBy: { type: 'asc' },
-    });
+    let templates = [];
+    
+    try {
+      templates = await prisma.emailTemplate.findMany({
+        orderBy: { type: 'asc' },
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner des templates par défaut
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table EmailTemplate non trouvée, retour de templates par défaut. Exécutez: make db-push-all');
+        // Retourner des templates par défaut vides (le frontend a déjà des fallbacks)
+        templates = [];
+      } else {
+        throw dbError;
+      }
+    }
 
     res.json({
       success: true,
@@ -22,6 +35,7 @@ const getTemplates = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erreur lors de la récupération des templates',
+      details: error.message,
     });
   }
 };
@@ -33,9 +47,21 @@ const getTemplate = async (req, res) => {
   try {
     const { type } = req.params;
 
-    let template = await prisma.emailTemplate.findUnique({
-      where: { type },
-    });
+    let template = null;
+    
+    try {
+      template = await prisma.emailTemplate.findUnique({
+        where: { type },
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, continuer avec template = null
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table EmailTemplate non trouvée, utilisation de templates par défaut. Exécutez: make db-push-all');
+        template = null;
+      } else {
+        throw dbError;
+      }
+    }
 
     // Si le template n'existe pas en DB, retourner les templates par défaut
     if (!template) {
@@ -123,9 +149,24 @@ const upsertTemplate = async (req, res) => {
     }
 
     // Vérifier si le template existe déjà
-    const existing = await prisma.emailTemplate.findUnique({
-      where: { type },
-    });
+    let existing = null;
+    try {
+      existing = await prisma.emailTemplate.findUnique({
+        where: { type },
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner une erreur explicite
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.error('Table EmailTemplate non trouvée. Exécutez: make db-push-all');
+        return res.status(500).json({
+          success: false,
+          error: 'Table EmailTemplate non trouvée. Exécutez: make db-push-all',
+          details: dbError.message,
+        });
+      } else {
+        throw dbError;
+      }
+    }
 
     const templateData = {
       type,

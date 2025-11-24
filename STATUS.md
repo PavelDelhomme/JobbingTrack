@@ -769,3 +769,76 @@ app.use(wafCheck);
 - `frontend/src/app/(admin)/backoffice/services/page.tsx` - Filtres ajoutés
 
 **📜 Pour l'historique détaillé des réalisations, consultez [HISTORIQUE.md](HISTORIQUE.md)**
+
+---
+
+## 🎉 Système de Logs Centralisé - TERMINÉ (24/11/2025)
+
+### ✅ Implémentation Complète
+
+**Réalisations** :
+- ✅ Création d'un système de logs centralisé dans `metrics-aggregator-service`
+- ✅ Endpoint POST `/api/v1/persistence/logs` pour recevoir les logs des services
+- ✅ Filtrage automatique : seuls ERROR, WARN, FATAL sont stockés en base de données
+- ✅ Utilitaire `centralLogger.js` pour que les services envoient leurs logs facilement
+- ✅ Interface dans Analytics : nouvel onglet "Erreurs Récentes" pour visualiser les logs critiques
+- ✅ Stockage en base de données avec modèle `AggregatedLog` dans Prisma
+- ✅ Récupération en temps réel et historique des logs
+- ✅ Configuration automatique via variables d'environnement
+
+**Fichiers créés/modifiés** :
+- `backend/metrics-aggregator-service/src/services/persistence.service.js` - Méthodes `saveAggregatedLog`, `saveMultipleAggregatedLogs`, `getAggregatedLogs`
+- `backend/metrics-aggregator-service/src/routes/persistence.routes.js` - Routes POST/GET `/api/v1/persistence/logs`
+- `backend/shared/utils/centralLogger.js` - Utilitaire logger centralisé (singleton)
+- `frontend/src/app/(admin)/backoffice/analytics/page.tsx` - Nouvel onglet "Erreurs Récentes" avec composant `LogsTab`
+- `docker-compose.yml` - Variables d'environnement `METRICS_SERVICE_URL`, `SERVICE_NAME`, `ENABLE_CENTRAL_LOGGING` pour tous les services
+
+**Fonctionnalités** :
+- 📊 **Filtrage intelligent** : Seuls les logs ERROR, WARN, FATAL sont stockés (INFO/DEBUG ignorés)
+- 🔄 **Envoi par batch** : Les logs sont envoyés par batch toutes les 5 secondes ou quand le buffer est plein (10 logs)
+- 💾 **Persistance** : Stockage en base de données PostgreSQL avec historique complet
+- 🔍 **Recherche** : Filtrage par service, niveau, date, recherche textuelle
+- 📈 **Interface Analytics** : Visualisation des erreurs récentes avec stack traces et métadonnées
+- ⚡ **Temps réel** : Rafraîchissement automatique toutes les 10 secondes
+
+**Utilisation dans les services** :
+```javascript
+const logger = require('@shared/utils/centralLogger');
+
+// Les logs ERROR/WARN/FATAL sont automatiquement envoyés au service centralisé
+logger.error('Erreur critique', { userId: '123', stackTrace: error.stack });
+logger.warn('Avertissement important', { service: 'auth-service' });
+logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont stockés)
+```
+
+**Configuration** :
+- `METRICS_SERVICE_URL` : URL du service metrics-aggregator (défaut: `http://metrics-aggregator-service:8014`)
+- `SERVICE_NAME` : Nom du service (défaut: nom du package npm)
+- `ENABLE_CENTRAL_LOGGING` : Activer/désactiver le logging centralisé (défaut: `true`)
+- `LOG_BATCH_SIZE` : Taille du batch avant envoi (défaut: 10)
+- `LOG_BATCH_INTERVAL` : Intervalle d'envoi en ms (défaut: 5000)
+
+**Statut** : ✅ **OPÉRATIONNEL** - Le système est prêt à être utilisé. Les services doivent être configurés avec les variables d'environnement et utiliser `centralLogger.js` pour envoyer leurs logs.
+
+---
+
+## 🎉 Corrections Styles Dark Mode & Gestion Templates - TERMINÉ (24/11/2025)
+
+### ✅ Corrections Appliquées
+
+**Réalisations** :
+- ✅ Correction des styles dark mode pour les dropdowns (type/status) dans `logs/page.tsx`
+- ✅ Correction des styles dark mode pour les champs de saisie dans `page.tsx` (dashboard emails)
+- ✅ Correction de l'éditeur HTML dans `templates/page.tsx` pour le mode sombre
+- ✅ Gestion des erreurs 500 pour `/api/v1/emails/stats`, `/api/v1/emails/logs`, `/api/v1/emails/templates`, `/api/v1/emails/test-smtp` avec fallback P2021
+- ✅ Ajout de la possibilité d'ajouter/supprimer des variables dans les templates depuis l'interface
+- ✅ Sauvegarde persistante des variables dans les templates
+
+**Fichiers modifiés** :
+- `frontend/src/app/(admin)/backoffice/emails/logs/page.tsx` - Styles dark mode pour dropdowns
+- `frontend/src/app/(admin)/backoffice/emails/page.tsx` - Styles dark mode pour textarea
+- `frontend/src/app/(admin)/backoffice/emails/templates/page.tsx` - Styles dark mode pour éditeur HTML + gestion variables
+- `backend/auth-service/src/controllers/email.controller.js` - Gestion erreurs P2021
+- `backend/auth-service/src/controllers/template.controller.js` - Gestion erreurs P2021
+
+**Statut** : ✅ **TERMINÉ** - Tous les styles dark mode sont corrigés et la gestion des templates est opérationnelle.

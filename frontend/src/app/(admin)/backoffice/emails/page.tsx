@@ -392,7 +392,7 @@ export default function EmailsPage() {
                     <Label htmlFor="test-content">Contenu (optionnel)</Label>
                     <textarea
                       id="test-content"
-                      className="w-full min-h-[100px] p-2 border rounded-md"
+                      className="w-full min-h-[100px] p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Contenu HTML de l'email (optionnel)"
                       value={testEmail.content}
                       onChange={(e) => setTestEmail({ ...testEmail, content: e.target.value })}

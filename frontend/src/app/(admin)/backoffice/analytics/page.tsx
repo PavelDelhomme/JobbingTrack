@@ -44,6 +44,7 @@ const TABS = [
   { id: 'performance', label: 'Performance' },
   { id: 'network', label: 'Réseau & Fiabilité' },
   { id: 'services', label: 'Services & Logs' },
+  { id: 'logs', label: 'Erreurs Récentes' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -118,6 +119,8 @@ export default function AnalyticsPage() {
   const [serviceLogs, setServiceLogs] = useState<Array<{ timestamp: string; level: string; message: string }>>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
+  const [aggregatedLogs, setAggregatedLogs] = useState<any[]>([]);
+  const [loadingAggregatedLogs, setLoadingAggregatedLogs] = useState(false);
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(10000);
@@ -309,6 +312,38 @@ export default function AnalyticsPage() {
       clearInterval(interval);
     };
   }, [timeRange, metricsRefreshInterval]);
+
+  // Charger les logs agrégés (erreurs récentes)
+  const loadAggregatedLogs = async () => {
+    setLoadingAggregatedLogs(true);
+    try {
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setAggregatedLogs(data.data);
+        } else {
+          setAggregatedLogs([]);
+        }
+      } else {
+        setAggregatedLogs([]);
+      }
+    } catch (error) {
+      console.error('Erreur chargement logs agrégés:', error);
+      setAggregatedLogs([]);
+    } finally {
+      setLoadingAggregatedLogs(false);
+    }
+  };
+
+  // Charger les logs agrégés au montage et périodiquement
+  useEffect(() => {
+    loadAggregatedLogs();
+    const interval = setInterval(loadAggregatedLogs, 10000); // Toutes les 10 secondes
+    return () => clearInterval(interval);
+  }, []);
 
   // Charger les logs d'un service
   const loadServiceLogs = async (service: ServiceMetrics) => {
@@ -590,6 +625,14 @@ export default function AnalyticsPage() {
             loadingLogs={loadingLogs}
             logsError={logsError}
             onSelectService={loadServiceLogs}
+          />
+        )}
+
+        {activeTab === 'logs' && (
+          <LogsTab
+            logs={aggregatedLogs}
+            loading={loadingAggregatedLogs}
+            onRefresh={loadAggregatedLogs}
           />
         )}
       </div>
@@ -1757,6 +1800,137 @@ function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, 
               </div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant Logs Tab
+function LogsTab({ logs, loading, onRefresh }: any) {
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'ERROR':
+      case 'FATAL':
+        return 'text-red-400 bg-red-900/20 border-red-800';
+      case 'WARN':
+        return 'text-yellow-400 bg-yellow-900/20 border-yellow-800';
+      default:
+        return 'text-gray-400 bg-gray-900/20 border-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            📋 Erreurs Récentes
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Logs critiques (ERROR, WARN, FATAL) enregistrés depuis tous les services
+          </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Chargement...' : 'Actualiser'}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement des logs...</p>
+        </div>
+      )}
+
+      {!loading && logs.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400">
+            ✅ Aucune erreur récente enregistrée
+          </p>
+        </div>
+      )}
+
+      {!loading && logs.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Niveau
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Message
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {logs.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(log.timestamp)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {log.serviceName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded border ${getLevelColor(log.level)}`}>
+                        {log.level}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      <div className="max-w-md truncate" title={log.message}>
+                        {log.message}
+                      </div>
+                      {log.stackTrace && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                            Stack trace
+                          </summary>
+                          <pre className="mt-2 text-xs bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
+                            {log.stackTrace}
+                          </pre>
+                        </details>
+                      )}
+                      {log.metadata && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                            Métadonnées
+                          </summary>
+                          <pre className="mt-2 text-xs bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
+                            {JSON.stringify(log.metadata, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

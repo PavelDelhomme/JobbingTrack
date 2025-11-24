@@ -97,19 +97,34 @@ const getEmailLog = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const log = await prisma.emailLog.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true
+    let log = null;
+    
+    try {
+      log = await prisma.emailLog.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true
+            }
           }
         }
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner 404
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table EmailLog non trouvée. Exécutez: make db-push-all');
+        return res.status(404).json({
+          success: false,
+          error: 'Table EmailLog non trouvée. Exécutez: make db-push-all'
+        });
+      } else {
+        throw dbError;
       }
-    });
+    }
 
     if (!log) {
       return res.status(404).json({
@@ -126,7 +141,8 @@ const getEmailLog = async (req, res) => {
     logger.error('Erreur récupération log email:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération du log email'
+      error: 'Erreur lors de la récupération du log email',
+      details: error.message
     });
   }
 };

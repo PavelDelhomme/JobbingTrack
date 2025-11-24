@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, Mail, Eye, Edit, Save, X } from 'lucide-react'
+import { FileText, Mail, Eye, Edit, Save, X, Plus, Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -26,6 +28,7 @@ export default function EmailTemplatesPage() {
   const [editedContent, setEditedContent] = useState('')
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
+  const [newVariable, setNewVariable] = useState('')
 
   // Templates par défaut (fallback)
   const defaultTemplates: Template[] = [
@@ -201,6 +204,70 @@ export default function EmailTemplatesPage() {
     setEditing(false)
   }
 
+  const handleAddVariable = () => {
+    if (!selectedTemplate || !newVariable.trim()) return
+
+    const variableName = newVariable.trim().replace(/[{}]/g, '')
+    if (selectedTemplate.variables.includes(variableName)) {
+      alert('Cette variable existe déjà')
+      return
+    }
+
+    const updatedTemplate = {
+      ...selectedTemplate,
+      variables: [...selectedTemplate.variables, variableName],
+    }
+    setSelectedTemplate(updatedTemplate)
+    setNewVariable('')
+  }
+
+  const handleRemoveVariable = (variable: string) => {
+    if (!selectedTemplate) return
+
+    const updatedTemplate = {
+      ...selectedTemplate,
+      variables: selectedTemplate.variables.filter(v => v !== variable),
+    }
+    setSelectedTemplate(updatedTemplate)
+  }
+
+  const handleSaveVariables = async () => {
+    if (!selectedTemplate) return
+
+    try {
+      const token = localStorage.getItem('token')
+      // Sauvegarder le template avec les variables mises à jour
+      // Le backend détectera automatiquement les variables dans le HTML, mais on peut aussi les envoyer explicitement
+      const response = await axios.put(
+        `${API_URL}/api/v1/emails/templates/${selectedTemplate.type}`,
+        {
+          type: selectedTemplate.type,
+          name: selectedTemplate.name,
+          subject: selectedTemplate.subject,
+          htmlContent: selectedTemplate.html,
+          textContent: null,
+          isActive: true,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      if (response.data.success) {
+        // Mettre à jour avec les variables détectées par le backend (qui fusionnera avec celles du HTML)
+        const updatedTemplate = {
+          ...selectedTemplate,
+          variables: response.data.data.variables || selectedTemplate.variables,
+        }
+        setSelectedTemplate(updatedTemplate)
+        alert('Variables sauvegardées avec succès !')
+      }
+    } catch (error: any) {
+      console.error('Erreur sauvegarde variables:', error)
+      alert(`Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
@@ -324,7 +391,7 @@ export default function EmailTemplatesPage() {
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Éditer le HTML :</p>
                           <textarea
-                            className="w-full h-96 p-4 border rounded-md font-mono text-sm"
+                            className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             value={editedContent}
                             onChange={(e) => setEditedContent(e.target.value)}
                           />
@@ -332,8 +399,8 @@ export default function EmailTemplatesPage() {
                       ) : (
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Code HTML :</p>
-                          <pre className="w-full h-96 p-4 border rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs">
-                            <code>{selectedTemplate.html}</code>
+                          <pre className="w-full h-96 p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 overflow-auto text-xs text-gray-900 dark:text-gray-100">
+                            <code className="text-gray-900 dark:text-gray-100">{selectedTemplate.html}</code>
                           </pre>
                         </div>
                       )}
@@ -341,20 +408,87 @@ export default function EmailTemplatesPage() {
 
                     <TabsContent value="variables" className="space-y-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Variables disponibles :</p>
-                        <div className="space-y-2">
-                          {selectedTemplate.variables.map((variable) => (
-                            <div key={variable} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                              <code className="text-sm font-mono">{`{{${variable}}}`}</code>
-                              <span className="text-xs text-gray-500">
-                                {variable === 'firstName' && 'Prénom de l\'utilisateur'}
-                                {variable === 'lastName' && 'Nom de l\'utilisateur'}
-                                {variable === 'frontendUrl' && 'URL du frontend'}
-                                {variable === 'verificationUrl' && 'URL de vérification email'}
-                                {variable === 'resetUrl' && 'URL de réinitialisation mot de passe'}
-                              </span>
-                            </div>
-                          ))}
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Variables disponibles :</p>
+                        
+                        {/* Liste des variables */}
+                        <div className="space-y-2 mb-4">
+                          {selectedTemplate.variables.length > 0 ? (
+                            selectedTemplate.variables.map((variable) => (
+                              <div key={variable} className="flex items-center justify-between gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <code className="text-sm font-mono bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{`{{${variable}}}`}</code>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {variable === 'firstName' && 'Prénom de l\'utilisateur'}
+                                    {variable === 'lastName' && 'Nom de l\'utilisateur'}
+                                    {variable === 'frontendUrl' && 'URL du frontend'}
+                                    {variable === 'verificationUrl' && 'URL de vérification email'}
+                                    {variable === 'resetUrl' && 'URL de réinitialisation mot de passe'}
+                                    {variable === 'resetLink' && 'URL de réinitialisation mot de passe'}
+                                    {variable === 'userName' && 'Nom d\'utilisateur'}
+                                    {variable === 'appName' && 'Nom de l\'application'}
+                                    {variable === 'expiryMinutes' && 'Minutes avant expiration'}
+                                    {!['firstName', 'lastName', 'frontendUrl', 'verificationUrl', 'resetUrl', 'resetLink', 'userName', 'appName', 'expiryMinutes'].includes(variable) && 'Variable personnalisée'}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveVariable(variable)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 italic">Aucune variable définie</p>
+                          )}
+                        </div>
+
+                        {/* Ajouter une variable */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <Label htmlFor="new-variable" className="text-sm font-medium mb-2 block">
+                            Ajouter une variable
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="new-variable"
+                              type="text"
+                              placeholder="nomVariable (sans {{ }})"
+                              value={newVariable}
+                              onChange={(e) => setNewVariable(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddVariable()
+                                }
+                              }}
+                              className="flex-1"
+                            />
+                            <Button
+                              onClick={handleAddVariable}
+                              size="sm"
+                              variant="outline"
+                              disabled={!newVariable.trim()}
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Ajouter
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            💡 Les variables sont automatiquement détectées dans le HTML. Vous pouvez aussi les ajouter manuellement ici.
+                          </p>
+                        </div>
+
+                        {/* Bouton de sauvegarde */}
+                        <div className="mt-4">
+                          <Button
+                            onClick={handleSaveVariables}
+                            className="w-full"
+                            variant="default"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            Sauvegarder les variables
+                          </Button>
                         </div>
                       </div>
                     </TabsContent>
