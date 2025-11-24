@@ -27,9 +27,11 @@
   - `GET /api/v1/auth/users` → 404 (Not Found) - **Page Utilisateurs**
   - `GET /api/v1/auth/sessions/active` → 404 (Not Found) - **Page Vue d'Ensemble**
   - `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres**
-- La page vue d'ensemble affiche "0 utilisateur" alors qu'il y a 1 session active
+**Impact** :
+- **Page Utilisateurs** (`/backoffice/users`) : Affiche "0 utilisateur" et ne charge pas la liste des utilisateurs
+- **Page Vue d'Ensemble** (`/backoffice`) : Affiche "0 utilisateur" alors qu'il y a 1 session active
+- **Page Paramètres** (popup) : Ne charge pas les préférences utilisateur, utilise les valeurs par défaut
 - Les statistiques utilisateurs ne se chargent pas correctement
-- La page Paramètres ne charge pas les préférences utilisateur
 
 **Cause identifiée** :
 - ❌ **La table `User` n'existe pas dans la base de données** (erreur Prisma P2021)
