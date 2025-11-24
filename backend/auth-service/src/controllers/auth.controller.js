@@ -408,9 +408,14 @@ const getAllUsers = async (req, res, next) => {
         orderBy: { createdAt: 'desc' }
       });
     } catch (dbError) {
-      // Si la table User n'existe pas, retourner l'utilisateur connecté en développement
-      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      // Vérifier si l'erreur est liée à une table manquante (P2021 ou message contenant "does not exist")
+      const isTableMissing = dbError.code === 'P2021' || 
+                            (dbError.message && dbError.message.includes('does not exist')) ||
+                            (dbError.message && dbError.message.includes('User') && dbError.message.includes('not exist'));
+      
+      if (isTableMissing && process.env.NODE_ENV === 'development') {
         logger.warn('Table User non trouvée, retour de l\'utilisateur connecté uniquement. Exécutez: make db-push-all');
+        logger.warn(`Erreur Prisma: ${dbError.code || 'N/A'} - ${dbError.message}`);
         // Retourner l'utilisateur connecté comme seul utilisateur
         if (req.user) {
           users = [{
@@ -420,6 +425,21 @@ const getAllUsers = async (req, res, next) => {
             lastName: req.user.lastName || 'User',
             phone: req.user.phone || null,
             role: req.user.role || 'ADMIN',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            emailVerified: true,
+            lastLoginAt: new Date()
+          }];
+        } else {
+          // Si pas d'utilisateur connecté, retourner un utilisateur mock
+          users = [{
+            id: 'dev_user_1',
+            email: 'admin@jobbingtrack.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            phone: null,
+            role: 'ADMIN',
             isActive: true,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -459,28 +479,62 @@ const getAllUsers = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Erreur récupération utilisateurs:', error);
+    logger.error(`Code erreur: ${error.code}, Message: ${error.message}`);
+    
+    // Vérifier si l'erreur est liée à une table manquante
+    const isTableMissing = error.code === 'P2021' || 
+                          (error.message && error.message.includes('does not exist')) ||
+                          (error.message && error.message.includes('User') && error.message.includes('not exist'));
+    
     // En cas d'erreur, retourner au moins l'utilisateur connecté si disponible
-    if (req.user && process.env.NODE_ENV === 'development') {
-      logger.warn('Erreur récupération utilisateurs, retour de l\'utilisateur connecté uniquement');
-      return res.json({
-        success: true,
-        users: [{
-          id: req.user.id,
-          email: req.user.email,
-          firstName: req.user.firstName || 'Admin',
-          lastName: req.user.lastName || 'User',
-          phone: req.user.phone || null,
-          role: req.user.role || 'ADMIN',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          emailVerified: true,
-          lastLoginAt: new Date()
-        }],
-        total: 1
-      });
+    if (isTableMissing && process.env.NODE_ENV === 'development') {
+      logger.warn('Erreur récupération utilisateurs (table manquante), retour de l\'utilisateur connecté uniquement');
+      if (req.user) {
+        return res.json({
+          success: true,
+          users: [{
+            id: req.user.id,
+            email: req.user.email,
+            firstName: req.user.firstName || 'Admin',
+            lastName: req.user.lastName || 'User',
+            phone: req.user.phone || null,
+            role: req.user.role || 'ADMIN',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            emailVerified: true,
+            lastLoginAt: new Date()
+          }],
+          total: 1
+        });
+      } else {
+        // Si pas d'utilisateur connecté, retourner un utilisateur mock
+        return res.json({
+          success: true,
+          users: [{
+            id: 'dev_user_1',
+            email: 'admin@jobbingtrack.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            phone: null,
+            role: 'ADMIN',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            emailVerified: true,
+            lastLoginAt: new Date()
+          }],
+          total: 1
+        });
+      }
     }
-    next(error);
+    
+    // Si ce n'est pas une erreur de table manquante, passer à l'erreur handler
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des utilisateurs',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
