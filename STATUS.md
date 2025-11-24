@@ -41,14 +41,9 @@
 - [ ] Créer modèles `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`, `PlatformType`
 - [ ] Modifier modèles `Application`, `Interview`, `FollowUp`, `Platform`
 - [ ] Ajouter champs synchronisation (`syncHash`, `entityHash`, `lastSyncAt`) à tous les modèles applicatifs :
-  - [ ] `Company`
-  - [ ] `Application`
-  - [ ] `Contact`
-  - [ ] `FollowUp`
-  - [ ] `Call`
-  - [ ] `Interview`
-  - [ ] `Event`
-  - [ ] `Document`
+  - [ ] **Modèles principaux** : `Company`, `Application`, `Contact`, `FollowUp`, `Call`, `Interview`, `Event`, `Document`
+  - [ ] **Listes personnalisables** : `Platform`, `FollowUpType`, `InterviewType`, `CallType`, `EventType` (uniquement pour entrées utilisateur, pas système)
+  - [ ] Voir avis détaillé dans [docs/database/MODIFICATIONS_DEMANDEES.md](docs/database/MODIFICATIONS_DEMANDEES.md)
 - [ ] Supprimer enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
 - [ ] Exécuter `npx prisma format`
 - [ ] Exécuter `npx prisma generate`
