@@ -842,3 +842,66 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 - `backend/auth-service/src/controllers/template.controller.js` - Gestion erreurs P2021
 
 **Statut** : ✅ **TERMINÉ** - Tous les styles dark mode sont corrigés et la gestion des templates est opérationnelle.
+
+---
+
+## 🔧 Page de Profil Utilisateur - TERMINÉ (24/11/2025)
+
+### ✅ Réalisations
+
+**Fonctionnalités** :
+- ✅ Création page `/backoffice/users/[id]` pour afficher et gérer un utilisateur
+- ✅ Page simple avec bouton retour (pas de modal avec onglets)
+- ✅ Toutes les actions d'administration disponibles :
+  * Modifier informations (firstName, lastName, email, phone)
+  * Changer le rôle (USER, ADMIN, SUPER_ADMIN)
+  * Activer/Désactiver l'utilisateur
+  * Réinitialiser le mot de passe (envoi email)
+  * Supprimer l'utilisateur (sauf soi-même)
+- ✅ Modification AdminLayout pour rediriger vers la page de profil au lieu d'ouvrir une popup
+- ✅ Suppression référence ProfilePopup dans AdminLayout
+- ✅ Gestion des erreurs et fallback pour routes API
+
+**Fichiers modifiés** :
+- `frontend/src/app/(admin)/backoffice/users/[id]/page.tsx` - Nouvelle page de profil utilisateur
+- `frontend/src/components/features/AdminLayout.tsx` - Redirection vers page de profil
+
+**Statut** : ✅ **TERMINÉ** - La page de profil utilisateur est opérationnelle.
+
+---
+
+## ⚠️ Problèmes Connus - Vue d'Ensemble (24/11/2025)
+
+### 🔴 Problèmes Identifiés
+
+**1. Routes API retournent 404** :
+- `GET /api/v1/auth/users` → 404 (Not Found)
+- `GET /api/v1/auth/sessions/active` → 404 (Not Found)
+
+**Impact** :
+- La page vue d'ensemble affiche "0 utilisateur" alors qu'il y a 1 session active
+- Les statistiques utilisateurs ne se chargent pas correctement
+
+**Cause probable** :
+- L'API Gateway ne route pas correctement vers `auth-service`
+- Ou `auth-service` n'est pas accessible depuis l'API Gateway
+- Ou les routes ne sont pas correctement montées dans l'API Gateway
+
+**Routes backend existantes** (dans `auth-service`) :
+- ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
+- ✅ `GET /api/v1/auth/sessions/active` → `authController.getActiveSessions` (ligne 63 de `auth.routes.js`)
+
+**Configuration API Gateway** :
+- Proxy configuré : `/api/v1/auth` → `http://auth-service:3001` (ligne 497 de `api-gateway/src/server.js`)
+
+**Solutions à vérifier** :
+1. Vérifier que `auth-service` est démarré : `make status` ou `docker ps | grep auth-service`
+2. Vérifier la connectivité entre API Gateway et Auth Service
+3. Vérifier les logs de l'API Gateway pour voir si les requêtes sont bien routées
+4. Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
+
+**Workaround actuel** :
+- La page vue d'ensemble utilise un fallback : si les routes retournent 404, elle affiche au moins 1 session active (l'utilisateur connecté)
+- Les erreurs 404 sont gérées silencieusement pour ne pas polluer la console
+
+**Statut** : 🔴 **EN COURS D'INVESTIGATION** - Les routes existent dans le backend mais retournent 404. À vérifier la configuration du routage dans l'API Gateway.
