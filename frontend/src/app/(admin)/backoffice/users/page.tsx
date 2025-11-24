@@ -41,16 +41,35 @@ export default function UsersManagementPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // ✅ Correction: utiliser /api/v1/auth/users au lieu de /api/v1/users
-      const response = await axios.get(`${API_URL}/api/v1/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Essayer d'abord /api/v1/auth/users, puis /api/v1/users en fallback
+      let response;
+      try {
+        response = await axios.get(`${API_URL}/api/v1/auth/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (error) {
+        // Fallback vers /api/v1/users si /api/v1/auth/users échoue
+        console.warn('Tentative avec /api/v1/users...');
+        response = await axios.get(`${API_URL}/api/v1/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
       
       if (response.data.success) {
-        setUsers(response.data.users || []);
+        const usersList = response.data.users || [];
+        console.log(`[USERS] ✅ ${usersList.length} utilisateurs chargés`);
+        setUsers(usersList);
+      } else {
+        console.error('[USERS] ⚠️ Réponse API invalide:', response.data);
+        setUsers([]);
       }
-    } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
+    } catch (error: any) {
+      console.error('[USERS] ❌ Erreur chargement utilisateurs:', error);
+      if (error.response) {
+        console.error('[USERS] Status:', error.response.status);
+        console.error('[USERS] Data:', error.response.data);
+      }
+      setUsers([]);
     } finally {
       setLoading(false);
     }
