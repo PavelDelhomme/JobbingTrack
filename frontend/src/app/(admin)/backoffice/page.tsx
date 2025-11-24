@@ -54,6 +54,7 @@ export default function BackofficePage() {
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
+  const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false)
 
   const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -530,36 +531,68 @@ export default function BackofficePage() {
               </p>
             </div>
 
-            {/* Boutons d'action rapide */}
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+            {/* Boutons d'action rapide - Dropdown */}
+            <div className="relative">
               <button
-                onClick={() => router.push('/backoffice/analytics')}
+                onClick={() => setIsQuickActionsDropdownOpen(!isQuickActionsDropdownOpen)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
               >
                 <TrendingUp className="h-4 w-4" />
-                Analytics
+                <span>Actions Rapides</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-              <button
-                onClick={() => router.push('/backoffice/statistique')}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-              >
-                <Database className="h-4 w-4" />
-                Statistiques
-              </button>
-              <button
-                onClick={() => router.push('/search')}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-              >
-                <Activity className="h-4 w-4" />
-                Recherche
-              </button>
-              <button
-                onClick={() => setShowServicesPopup(true)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-              >
-                <Server className="h-4 w-4" />
-                Services
-              </button>
+              {isQuickActionsDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsQuickActionsDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                    <button
+                      onClick={() => {
+                        router.push('/backoffice/analytics')
+                        setIsQuickActionsDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                      <span>Analytics</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        router.push('/backoffice/statistique')
+                        setIsQuickActionsDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      <Database className="h-4 w-4 text-purple-600" />
+                      <span>Statistiques</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        router.push('/search')
+                        setIsQuickActionsDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      <Activity className="h-4 w-4 text-orange-600" />
+                      <span>Recherche</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowServicesPopup(true)
+                        setIsQuickActionsDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      <Server className="h-4 w-4 text-green-600" />
+                      <span>Services</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
