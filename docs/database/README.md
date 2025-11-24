@@ -1,42 +1,58 @@
 # 📊 Documentation Structure Base de Données - JobbingTrack
 
-> **Index principal** de la documentation complète de la structure de la base de données JobbingTrack.
+> **Index principal** de la documentation de la structure de la base de données JobbingTrack.
 
 ---
 
-## 📚 Navigation Rapide
+## 🎯 Fichiers Essentiels (2 fichiers)
 
-### 📋 Vue d'Ensemble
-- **[Structure Actuelle](structure-actuelle.md)** - Vue d'ensemble de tous les modèles actuels
-- **[Structure Souhaitée](structure-souhaitee.md)** - Spécifications pour la structure future
+### 1. ⭐ **[ACTIONS_ET_MODIFICATIONS.md](ACTIONS_ET_MODIFICATIONS.md)** - **FICHIER PRINCIPAL**
 
-### 🔗 Relations & Liaisons
+**C'est ici que vous travaillez !**
+
+- **Vos demandes de modifications** : Ajoutez vos demandes dans la section "📝 Vos Demandes de Modifications"
+- **Actions à effectuer** : Toutes les actions à faire pour la structure BDD
+- **Checklist complète** : Toutes les phases d'implémentation
+
+**Comment utiliser** :
+1. Ajoutez vos demandes dans la section "📝 Vos Demandes de Modifications"
+2. Je donnerai mon avis technique et les actions à effectuer
+3. Une fois implémenté, la demande sera déplacée dans "✅ Demandes Implémentées"
+
+### 2. 📊 **[STRUCTURE_ACTUELLE.md](STRUCTURE_ACTUELLE.md)** - **Fichier de Référence**
+
+**Structure actuelle de la base de données** :
+- Résumé des modèles (42 modèles Prisma, 18 enums)
+- Valeurs par défaut des anciens enums (ApplicationStatus, InterviewStatus, FollowUpStatus)
+- Système de synchronisation
+- Liste des modèles principaux, tables de jonction, listes personnalisables
+
+---
+
+## 📚 Documentation Complémentaire (Référence)
+
+### Relations & Liaisons
 - **[Liaisons Inter-Modèles](relations.md)** - Toutes les relations 1:N et M:N implémentées
 
-### 🔄 Systèmes Avancés
-- **[Système de Synchronisation](synchronisation.md)** - Synchronisation avec hash (SHA-256)
-- **[Système de Statuts Personnalisables](statuts-personnalisables.md)** - Statuts par défaut et personnalisés par utilisateur
+### Structure Détaillée
+- **[Structure Actuelle Complète](structure-actuelle.md)** - Vue d'ensemble détaillée de tous les modèles actuels (si besoin de détails)
 
-### 📝 Détails Techniques
-- **[Modèles Principaux](models-principaux.md)** - Types de données complets pour tous les modèles applicatifs
-- **[Tables de Jonction](tables-jonction.md)** - Tables M:N avec types détaillés
-- **[Listes Personnalisables](listes-personnalisables.md)** - Platform, FollowUpType, InterviewType, etc.
-- **[Enums](enums.md)** - Tous les enums (18 enums)
+---
 
-### 📊 Modèles par Service
-- **[Modèles Email](models-email.md)** - EmailLog, EmailTemplate (auth-service)
-- **[Modèles Préférences](models-preferences.md)** - UserCustomization (auth-service)
-- **[Modèles Monitoring](models-monitoring.md)** - Métriques et logs (metrics-aggregator-service)
-- **[Modèles Sécurité](models-securite.md)** - SecurityLog, Vulnerability, etc. (security-service)
+## 🚀 Processus de Travail
 
-### 🎯 Valeurs par Défaut
-- **[Valeurs par Défaut Enums](valeurs-par-defaut.md)** - Statuts système à créer lors de la migration (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
+### Pour Ajouter une Demande de Modification
 
-### 🔧 Migration & Implémentation
-- **[Actions Nécessaires](../STRUCTURE_BDD_ACTIONS.md)** - **📋 FICHIER PRINCIPAL** - Checklist complète de toutes les actions à effectuer
-- **[Modifications Demandées](MODIFICATIONS_DEMANDEES.md)** - **⭐ FICHIER CENTRAL** - Toutes vos demandes de modifications avec avis technique et actions à effectuer
-- **[Modifications Nécessaires](modifications-necessaires.md)** - Détails des modifications au schéma
-- **[Scripts de Migration](scripts-migration.md)** - Scripts à créer pour la migration
+1. **Ouvrez** `ACTIONS_ET_MODIFICATIONS.md`
+2. **Ajoutez votre demande** dans la section "📝 Vos Demandes de Modifications"
+3. **Dites-moi** : "Regarde `ACTIONS_ET_MODIFICATIONS.md`, j'ai ajouté une nouvelle demande"
+4. **Je donnerai** mon avis technique et les actions à effectuer
+5. **Une fois implémenté**, la demande sera déplacée dans "✅ Demandes Implémentées"
+
+### Pour Consulter la Structure Actuelle
+
+1. **Ouvrez** `STRUCTURE_ACTUELLE.md`
+2. **Consultez** les valeurs par défaut, les modèles, les relations
 
 ---
 
@@ -48,15 +64,6 @@
 - **Relations M:N** : 4 (via tables de jonction)
 - **Modèles applicatifs** : 12 modèles principaux
 - **Modèles système** : 30 modèles (monitoring, sécurité, email, etc.)
-
----
-
-## 🚀 Démarrage Rapide
-
-1. **Comprendre la structure actuelle** : Commencez par [Structure Actuelle](structure-actuelle.md)
-2. **Voir les relations** : Consultez [Liaisons Inter-Modèles](relations.md)
-3. **Comprendre les systèmes** : Lisez [Système de Synchronisation](synchronisation.md) et [Système de Statuts](statuts-personnalisables.md)
-4. **Planifier les modifications** : Voir [Modifications Nécessaires](modifications-necessaires.md)
 
 ---
 

@@ -26,8 +26,8 @@
 **Objectif** : Réviser complètement la structure de la base de données, implémenter le système de statuts personnalisables, ajouter les champs de synchronisation, et s'assurer que tout est opérationnel.
 
 **📋 FICHIERS PRINCIPAUX** : 
-- ⭐ **[docs/database/MODIFICATIONS_DEMANDEES.md](docs/database/MODIFICATIONS_DEMANDEES.md)** - **VOS DEMANDES ICI** - Ajoutez vos demandes de modifications, je donnerai mon avis et les actions à effectuer
-- 📋 **[docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)** - **ACTIONS À EFFECTUER** - Checklist complète de toutes les actions
+- ⭐ **[docs/database/ACTIONS_ET_MODIFICATIONS.md](docs/database/ACTIONS_ET_MODIFICATIONS.md)** - **FICHIER PRINCIPAL** - Ajoutez vos demandes de modifications, je donnerai mon avis et les actions à effectuer. Toutes les actions à faire sont aussi dans ce fichier.
+- 📊 **[docs/database/STRUCTURE_ACTUELLE.md](docs/database/STRUCTURE_ACTUELLE.md)** - **FICHIER DE RÉFÉRENCE** - Structure actuelle de la base de données, valeurs par défaut, synchronisation
 - 📊 **[STATUS_STRUCTURE_BDD.md](STATUS_STRUCTURE_BDD.md)** - Index de la documentation BDD
 - 📚 **[docs/database/README.md](docs/database/README.md)** - Documentation complète organisée
 - 🎯 **[docs/database/valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
@@ -43,7 +43,7 @@
 - [ ] Ajouter champs synchronisation (`syncHash`, `entityHash`, `lastSyncAt`) à tous les modèles applicatifs :
   - [ ] **Modèles principaux** : `Company`, `Application`, `Contact`, `FollowUp`, `Call`, `Interview`, `Event`, `Document`
   - [ ] **Listes personnalisables** : `Platform`, `FollowUpType`, `InterviewType`, `CallType`, `EventType` (uniquement pour entrées utilisateur, pas système)
-  - [ ] Voir avis détaillé dans [docs/database/MODIFICATIONS_DEMANDEES.md](docs/database/MODIFICATIONS_DEMANDEES.md)
+  - [ ] Voir avis détaillé dans [docs/database/ACTIONS_ET_MODIFICATIONS.md](docs/database/ACTIONS_ET_MODIFICATIONS.md)
 - [ ] Supprimer enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
 - [ ] Exécuter `npx prisma format`
 - [ ] Exécuter `npx prisma generate`
