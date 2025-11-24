@@ -6,10 +6,11 @@
 
 ## 🎯 FICHIERS PRINCIPAUX
 
-### ⭐ **Pour vos demandes de modifications** : [docs/database/MODIFICATIONS_DEMANDEES.md](docs/database/MODIFICATIONS_DEMANDEES.md)
-**👉 C'est ici que vous ajoutez vos demandes de modifications de structure BDD. Je donnerai mon avis et les actions à effectuer.**
+### ⭐ **FICHIER PRINCIPAL** : [docs/database/ACTIONS_ET_MODIFICATIONS.md](docs/database/ACTIONS_ET_MODIFICATIONS.md)
+**👉 C'est ici que vous travaillez ! Ajoutez vos demandes de modifications, je donnerai mon avis et les actions à effectuer.**
 
-### 📋 **Pour les actions à effectuer** : [docs/STRUCTURE_BDD_ACTIONS.md](docs/STRUCTURE_BDD_ACTIONS.md)
+### 📊 **Structure actuelle** : [docs/database/STRUCTURE_ACTUELLE.md](docs/database/STRUCTURE_ACTUELLE.md)
+**Fichier de référence pour la structure actuelle de la base de données.**
 
 **📋 Ce fichier contient TOUTES les actions à faire** :
 - ✅ Checklist complète pour système de statuts personnalisables
@@ -35,7 +36,7 @@
 - **[Liaisons Inter-Modèles](docs/database/relations.md)** - Toutes les relations 1:N et M:N implémentées
 
 ### 🔄 Systèmes Avancés
-- **[Système de Synchronisation](docs/database/synchronisation.md)** - Synchronisation avec hash (SHA-256)
+- **[Système de Synchronisation](docs/database/STRUCTURE_ACTUELLE.md#système-de-synchronisation)** - Synchronisation avec hash (SHA-256) - Voir STRUCTURE_ACTUELLE.md
 - **[Système de Statuts Personnalisables](docs/database/statuts-personnalisables.md)** - Statuts par défaut et personnalisés par utilisateur
 
 ### 📝 Détails Techniques
@@ -51,10 +52,10 @@
 - **[Modèles Sécurité](docs/database/models-securite.md)** - SecurityLog, Vulnerability, etc. (security-service)
 
 ### 🎯 Valeurs par Défaut
-- **[Valeurs par Défaut Enums](docs/database/valeurs-par-defaut.md)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
+- **[Valeurs par Défaut Enums](docs/database/STRUCTURE_ACTUELLE.md#valeurs-par-défaut-des-anciens-enums)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus) - Voir STRUCTURE_ACTUELLE.md
 
 ### 🔧 Migration & Implémentation
-- **[Actions Nécessaires](docs/STRUCTURE_BDD_ACTIONS.md)** - **⭐ FICHIER PRINCIPAL** - Checklist complète de toutes les actions
+- **[Actions et Modifications](docs/database/ACTIONS_ET_MODIFICATIONS.md)** - **⭐ FICHIER PRINCIPAL** - Checklist complète de toutes les actions et vos demandes
 - **[Modifications Nécessaires](docs/database/modifications-necessaires.md)** - Détails des modifications au schéma
 - **[Scripts de Migration](docs/database/scripts-migration.md)** - Scripts à créer pour la migration
 
