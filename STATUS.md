@@ -2,9 +2,9 @@
 
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
-**Dernière MAJ** : 2025-11-18  
-**Version Projet** : v1.0.1 (BETA)  
-**Branche** : feat/send-reset-and-validate-email  
+**Dernière MAJ** : 2025-01-27  
+**Version Projet** : v1.0.2 (BETA)  
+**Branche** : main  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  

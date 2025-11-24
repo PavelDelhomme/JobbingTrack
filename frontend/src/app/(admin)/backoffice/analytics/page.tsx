@@ -40,6 +40,7 @@ import {
 
 const TABS = [
   { id: 'overview', label: 'Synthèse' },
+  { id: 'system', label: 'Système' },
   { id: 'performance', label: 'Performance' },
   { id: 'network', label: 'Réseau & Fiabilité' },
   { id: 'services', label: 'Services & Logs' },
@@ -552,6 +553,15 @@ export default function AnalyticsPage() {
           />
         )}
 
+        {activeTab === 'system' && (
+          <SystemTab
+            metrics={metrics}
+            chartData={chartData}
+            aggregatedStats={aggregatedStats}
+            loadingHistory={loadingHistory}
+          />
+        )}
+
         {activeTab === 'performance' && (
           <PerformanceTab
             metrics={metrics}
@@ -589,6 +599,18 @@ export default function AnalyticsPage() {
 
 // Composant Overview Tab
 function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: any) {
+  // Calculer les tendances depuis l'historique
+  const last30Points = chartData.slice(-30)
+  const cpuTrend = last30Points.length > 0 
+    ? aggregatedStats.avgCpuUsage - (last30Points.reduce((sum: number, d: any) => sum + d.cpu, 0) / last30Points.length)
+    : 0
+  const memoryTrend = last30Points.length > 0
+    ? aggregatedStats.totalMemoryMb - (last30Points.reduce((sum: number, d: any) => sum + d.memory, 0) / last30Points.length)
+    : 0
+  const responseTimeTrend = last30Points.length > 0
+    ? aggregatedStats.avgResponseTime - (last30Points.reduce((sum: number, d: any) => sum + d.responseTime, 0) / last30Points.length)
+    : 0
+
   return (
     <div className="space-y-6">
       {/* Cartes de synthèse */}
@@ -604,6 +626,8 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: an
           icon={<Cpu className="w-6 h-6" />}
           title="CPU Moyen"
           value={aggregatedStats.avgCpuUsage !== null ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` : '...'}
+          trend={cpuTrend}
+          trendType="positive-is-bad"
           color="purple"
           loading={aggregatedStats.avgCpuUsage === null}
         />
@@ -611,6 +635,8 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: an
           icon={<MemoryStick className="w-6 h-6" />}
           title="Mémoire Totale"
           value={aggregatedStats.totalMemoryMb !== null ? formatMb(aggregatedStats.totalMemoryMb) : '...'}
+          trend={memoryTrend}
+          trendType="positive-is-bad"
           color="green"
           loading={aggregatedStats.totalMemoryMb === null}
         />
@@ -618,6 +644,8 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: an
           icon={<Clock className="w-6 h-6" />}
           title="Temps Réponse Moy."
           value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          trend={responseTimeTrend}
+          trendType="positive-is-bad"
           color="orange"
           loading={aggregatedStats.avgResponseTime === null}
         />
@@ -904,68 +932,86 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
               </LineChart>
             </ResponsiveContainer>
           </div>
-{/* Graphique temporel des performances */}
-<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          {/* Graphique temporel des performances */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               📈 Évolution des Performances
             </h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  yAxisId="left"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="cpu" 
-                  stroke={COLORS.primary}
-                  fill={COLORS.primary}
-                  fillOpacity={0.3}
-                  name="CPU (%)"
-                />
-                <Area 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="memory" 
-                  stroke={COLORS.secondary}
-                  fill={COLORS.secondary}
-                  fillOpacity={0.3}
-                  name="Mémoire (%)"
-                />
-                <Line 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  stroke={COLORS.purple}
-                  strokeWidth={2}
-                  name="Temps réponse (ms)"
-                  dot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                    domain={[0, 100]}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'Temps réponse (ms)') {
+                        return [value > 0 ? `${value.toFixed(0)} ms` : 'N/A', name];
+                      }
+                      return [value > 0 ? `${value.toFixed(1)}%` : 'N/A', name];
+                    }}
+                  />
+                  <Legend />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="cpu" 
+                    stroke={COLORS.primary}
+                    fill={COLORS.primary}
+                    fillOpacity={0.3}
+                    name="CPU (%)"
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="memory" 
+                    stroke={COLORS.secondary}
+                    fill={COLORS.secondary}
+                    fillOpacity={0.3}
+                    name="Mémoire (%)"
+                  />
+                  {chartData.some((d: any) => d.responseTime > 0) && (
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="responseTime" 
+                      stroke={COLORS.purple}
+                      strokeWidth={2}
+                      name="Temps réponse (ms)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Chargement des données de performance...</p>
+                <p className="text-xs mt-2">Les données apparaîtront ici une fois collectées</p>
+              </div>
+            )}
           </div>
           {/* CPU par service - État actuel */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -1370,11 +1416,31 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
             </h3>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
-                data={servicesList.map((s: any) => ({ 
-                  name: s.displayName || s.name,
-                  rx: toNumber(s.networkMb?.rx || s.metrics?.network?.rx_mb, 0),
-                  tx: toNumber(s.networkMb?.tx || s.metrics?.network?.tx_mb, 0)
-                }))}
+                data={servicesList
+                  .map((s: any) => {
+                    // Essayer plusieurs sources pour les données réseau
+                    const rx = toNumber(
+                      s.networkMb?.rx || 
+                      s.networkMb?.rx_mb || 
+                      s.metrics?.network?.rx_mb || 
+                      (s.metrics?.network?.rx_bytes ? (s.metrics.network.rx_bytes / 1024 / 1024) : 0), 
+                      0
+                    )
+                    const tx = toNumber(
+                      s.networkMb?.tx || 
+                      s.networkMb?.tx_mb || 
+                      s.metrics?.network?.tx_mb || 
+                      (s.metrics?.network?.tx_bytes ? (s.metrics.network.tx_bytes / 1024 / 1024) : 0), 
+                      0
+                    )
+                    return {
+                      name: (s.displayName || s.name || s.rawName || 'Service inconnu').substring(0, 20),
+                      rx: Math.max(0, rx),
+                      tx: Math.max(0, tx),
+                      total: rx + tx
+                    }
+                  })
+                  .sort((a: any, b: any) => (b.total || 0) - (a.total || 0))}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
@@ -1396,13 +1462,185 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
                     borderRadius: '8px',
                     color: '#F3F4F6'
                   }}
+                  formatter={(value: any, name: string) => {
+                    if (name === 'RX (MB)' || name === 'TX (MB)') {
+                      return [`${value.toFixed(2)} MB`, name]
+                    }
+                    return [value, name]
+                  }}
                 />
                 <Legend />
                 <Bar dataKey="rx" fill={COLORS.info} name="RX (MB)" />
                 <Bar dataKey="tx" fill={COLORS.warning} name="TX (MB)" />
               </BarChart>
             </ResponsiveContainer>
+            {servicesList.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Network className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Aucun service avec données réseau disponible</p>
+              </div>
+            )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant System Tab
+function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Métriques système principales */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Cpu className="w-5 h-5" />}
+          title="CPU Moyen"
+          value={aggregatedStats.avgCpuUsage !== null ? `${Math.min(aggregatedStats.avgCpuUsage, 100).toFixed(1)}%` : '...'}
+          color="blue"
+          loading={aggregatedStats.avgCpuUsage === null}
+        />
+        <StatCard
+          icon={<MemoryStick className="w-5 h-5" />}
+          title="Mémoire Moyenne"
+          value={aggregatedStats.totalMemoryMb !== null ? `${aggregatedStats.totalMemoryMb.toFixed(0)} MB` : '...'}
+          color="green"
+          loading={aggregatedStats.totalMemoryMb === null}
+        />
+        <StatCard
+          icon={<Clock className="w-5 h-5" />}
+          title="Temps Réponse Moy."
+          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          color="purple"
+          loading={aggregatedStats.avgResponseTime === null}
+        />
+        <StatCard
+          icon={<Activity className="w-5 h-5" />}
+          title="Disponibilité"
+          value={aggregatedStats.servicesTotal > 0 
+            ? `${((aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100).toFixed(1)}%`
+            : '...'}
+          color="green"
+          loading={aggregatedStats.servicesTotal === 0}
+        />
+      </div>
+
+      {/* Graphiques système */}
+      {chartData.length > 0 && !loadingHistory && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* CPU détaillé */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              💻 Utilisation CPU
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorCpuSystem" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.primary}
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorCpuSystem)"
+                  name="CPU (%)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Mémoire détaillée */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🧠 Utilisation Mémoire
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorMemorySystem" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.secondary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={COLORS.secondary} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="memory" 
+                  stroke={COLORS.secondary}
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorMemorySystem)"
+                  name="Mémoire (%)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Charge système combinée */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 lg:col-span-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              📊 Charge Système Globale
+            </h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
+                <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (%)" />
+                <Line 
+                  type="monotone" 
+                  dataKey="loadScore" 
+                  stroke={COLORS.warning}
+                  strokeWidth={3}
+                  name="Score de charge"
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {loadingHistory && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de l'historique...</p>
         </div>
       )}
     </div>
@@ -1526,13 +1764,32 @@ function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, 
 }
 
 // Composant StatCard
-function StatCard({ icon, title, value, subtitle, color, loading }: any) {
+function StatCard({ icon, title, value, subtitle, color, loading, trend, trendType = 'negative-is-bad' }: any) {
   const colors = {
     blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
     orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
   };
+
+  // Déterminer la couleur de la tendance selon le type
+  const getTrendColor = () => {
+    if (trend === undefined || trend === null || trend === 0) return 'text-gray-500 dark:text-gray-400'
+    
+    if (trendType === 'positive-is-bad') {
+      // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
+      return trend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+    } else {
+      // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
+      return trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+    }
+  }
+
+  const formatTrend = (trendValue: number) => {
+    if (Math.abs(trendValue) < 0.1) return '0.0'
+    if (Math.abs(trendValue) < 1) return trendValue.toFixed(1)
+    return trendValue.toFixed(0)
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 relative">
@@ -1545,6 +1802,12 @@ function StatCard({ icon, title, value, subtitle, color, loading }: any) {
         <div className={`p-2 rounded-lg ${colors[color]}`}>
           {icon}
         </div>
+        {trend !== undefined && trend !== null && trend !== 0 && (
+          <span className={`text-xs font-medium ${getTrendColor()}`}>
+            {trend > 0 ? '↗' : '↘'} {formatTrend(Math.abs(trend))}
+            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : ''}
+          </span>
+        )}
       </div>
       <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
         {title}

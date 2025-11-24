@@ -31,6 +31,9 @@ export interface UserPreferences {
   theme: string;
   language: string;
   timezone: string;
+  metricsRetentionDays?: number;
+  logsRetentionDays?: number;
+  autoCleanupHistory?: boolean;
 }
 
 class PreferencesService {
@@ -200,7 +203,10 @@ class PreferencesService {
       },
       theme: 'light',
       language: 'fr',
-      timezone: 'Europe/Paris'
+      timezone: 'Europe/Paris',
+      metricsRetentionDays: 30,
+      logsRetentionDays: 30,
+      autoCleanupHistory: true
     };
   }
 

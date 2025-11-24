@@ -4,7 +4,7 @@
 > Pour les tâches à faire, consultez **[STATUS.md](STATUS.md)**.  
 > [🏠 Retour au README principal](README.md)
 
-**Dernière mise à jour** : 2025-11-17
+**Dernière mise à jour** : 2025-01-27
 
 ---
 
@@ -17,6 +17,41 @@
 ---
 
 ## ✅ Réalisations Récentes
+
+### 🎉 27/01/2025 – Réorganisation Navigation et Gestion des Données
+
+**Statut** : ✅ **TERMINÉ**
+
+**Réalisations** :
+- ✅ Création d'une page unifiée `/backoffice/data` avec système d'onglets
+- ✅ Intégration de l'export/import comme onglet "Gestion Données"
+- ✅ Création de composants pour chaque type de données (Candidatures, Entreprises, Contacts, Entretiens, Appels, Relances, Événements, Notifications)
+- ✅ Modification de la navigation : "Gestion des Données" pointe maintenant vers la page unifiée
+- ✅ Retrait de "Gestion Données" de la section Administration
+- ✅ Correction du problème où "Candidatures" redirigeait vers "Gestion des Services"
+
+**Fichiers créés** :
+- `frontend/src/app/(admin)/backoffice/data/page.tsx` - Page principale avec onglets
+- `frontend/src/app/(admin)/backoffice/data/components/DataManagementTab.tsx` - Onglet export/import
+- `frontend/src/app/(admin)/backoffice/data/components/ApplicationsTab.tsx` - Onglet candidatures
+- `frontend/src/app/(admin)/backoffice/data/components/CompaniesTab.tsx` - Onglet entreprises
+- `frontend/src/app/(admin)/backoffice/data/components/ContactsTab.tsx` - Onglet contacts
+- `frontend/src/app/(admin)/backoffice/data/components/InterviewsTab.tsx` - Onglet entretiens
+- `frontend/src/app/(admin)/backoffice/data/components/CallsTab.tsx` - Onglet appels
+- `frontend/src/app/(admin)/backoffice/data/components/FollowupsTab.tsx` - Onglet relances
+- `frontend/src/app/(admin)/backoffice/data/components/EventsTab.tsx` - Onglet événements
+- `frontend/src/app/(admin)/backoffice/data/components/NotificationsTab.tsx` - Onglet notifications
+
+**Fichiers modifiés** :
+- `frontend/src/components/features/AdminLayout.tsx` - Navigation réorganisée
+
+**Améliorations UX** :
+- Navigation simplifiée : un seul point d'entrée pour toutes les données
+- Onglets avec navigation par URL (`?tab=applications`)
+- Interface cohérente pour tous les types de données
+- Export/import accessible directement depuis la page de gestion
+
+---
 
 ### 🎉 17/11/2025 – Corrections Critiques
 
