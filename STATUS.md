@@ -19,15 +19,15 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/*` et `/api/v1/preferences`
+#### 0. Routes API - Erreurs 404/500 sur `/api/v1/auth/users/:id` et `/api/v1/preferences`
 
-**Statut** : ✅ **RÉSOLU** (2025-11-24) - Les routes email fonctionnent maintenant après création de l'utilisateur admin.
+**Statut** : ✅ **RÉSOLU** (2025-11-24) - Toutes les routes fonctionnent maintenant après reconstruction du conteneur auth-service.
 
-**Problèmes identifiés** :
+**Problèmes identifiés et résolus** :
 - ✅ `GET /api/v1/emails/stats?days=30` → **FONCTIONNE** (testé avec token valide)
 - ✅ `GET /api/v1/emails/logs?page=1&limit=50` → **FONCTIONNE** (testé avec token valide)
-- ⚠️ `GET /api/v1/preferences` → Erreur (pas 404, probablement 500 lié à UserCustomization)
-- ⚠️ `GET /api/v1/auth/users/dev_user_1` → 404 (ID utilisateur invalide dans l'ancien token)
+- ✅ `GET /api/v1/preferences` → **FONCTIONNE** (retourne les préférences par défaut si UserCustomization n'existe pas)
+- ✅ `GET /api/v1/auth/users/:id` → **FONCTIONNE** (route ajoutée dans auth.routes.js)
 
 **Causes possibles** :
 1. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps`
@@ -196,10 +196,11 @@
 
 **Actions effectuées** :
 - ✅ Désactivation de `app.use('/', authRoutes)` dans `server.js` ligne 89 (commentée)
-- ✅ Redémarrage de `auth-service` pour appliquer les changements
-- ✅ Vérification que les routes sont bien montées (✅ Routes montées)
 - ✅ **Création de l'utilisateur admin** : `admin@jobbingtrack.com` avec le mot de passe `password123`
 - ✅ **Test de connexion réussi** : Le token JWT contient maintenant un ID utilisateur valide (`cmideyqu3000011fe1jj9a6vt`)
+- ✅ **Ajout de la route `/api/v1/auth/users/:id`** dans `auth.routes.js` pour récupérer un utilisateur par ID
+- ✅ **Correction du problème des préférences** : Vérification robuste de `prisma.userCustomization` avec retour des préférences par défaut si la table n'existe pas
+- ✅ **Reconstruction du conteneur auth-service** : `docker-compose build auth-service` pour appliquer les modifications
 
 **Actions effectuées** :
 - [x] ✅ Création de l'utilisateur admin dans la base de données : `admin@jobbingtrack.com` / `password123`
