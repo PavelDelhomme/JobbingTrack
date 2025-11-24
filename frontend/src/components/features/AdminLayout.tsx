@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/auth'
 import { useTheme } from '@/lib/hooks/theme'
 import Breadcrumb from './Breadcrumb'
@@ -11,6 +11,7 @@ import { OfflineActions } from './OfflineActions'
 import { SettingsPopup } from './SettingsPopup'
 import { ProfilePopup } from './ProfilePopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
+import { TrendingUp, Database, Activity, Server } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -34,12 +35,15 @@ interface NavSection {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
   const [isProfileOpen, setIsProfileOpen] = useState(false) // ✅ État pour la popup du profil
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
+  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false) // ✅ État pour le dropdown du thème
+  const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false) // ✅ État pour le dropdown des actions rapides
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     security: true,
@@ -524,21 +528,140 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </svg>
               </button>
 
-              {/* Theme Toggle - Toujours visible mais compact sur mobile */}
-              <button
-                onClick={toggleTheme}
-                className={`flex items-center gap-1 sm:gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
-                  actualTheme === 'dark'
-                    ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-              >
-                <span className="text-lg">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
-                <span className="hidden sm:inline text-xs font-medium">
-                  {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
-                </span>
-              </button>
+              {/* Quick Actions Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsQuickActionsDropdownOpen(!isQuickActionsDropdownOpen)}
+                  className="px-2 sm:px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-1 sm:gap-2 text-sm font-medium"
+                  title="Actions rapides"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="hidden sm:inline">Actions</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isQuickActionsDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsQuickActionsDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                      <button
+                        onClick={() => {
+                          router.push('/backoffice/analytics')
+                          setIsQuickActionsDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                      >
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                        <span>Analytics</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/backoffice/statistique')
+                          setIsQuickActionsDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                      >
+                        <Database className="h-4 w-4 text-purple-600" />
+                        <span>Statistiques</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/search')
+                          setIsQuickActionsDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                      >
+                        <Activity className="h-4 w-4 text-orange-600" />
+                        <span>Recherche</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/backoffice/services')
+                          setIsQuickActionsDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                      >
+                        <Server className="h-4 w-4 text-green-600" />
+                        <span>Services</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Theme Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
+                  className={`flex items-center gap-1 sm:gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
+                    actualTheme === 'dark'
+                      ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                >
+                  <span className="text-lg">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
+                  <span className="hidden sm:inline text-xs font-medium">
+                    {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
+                  </span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isThemeDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsThemeDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                      <button
+                        onClick={() => {
+                          setThemeMode('light')
+                          setIsThemeDropdownOpen(false)
+                        }}
+                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                          theme === 'light' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <span>☀️</span>
+                        <span>Mode Clair</span>
+                        {theme === 'light' && <span className="ml-auto">✓</span>}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setThemeMode('dark')
+                          setIsThemeDropdownOpen(false)
+                        }}
+                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                          theme === 'dark' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <span>🌙</span>
+                        <span>Mode Sombre</span>
+                        {theme === 'dark' && <span className="ml-auto">✓</span>}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setThemeMode('system')
+                          setIsThemeDropdownOpen(false)
+                        }}
+                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                          theme === 'system' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <span>💻</span>
+                        <span>Mode Système</span>
+                        {theme === 'system' && <span className="ml-auto">✓</span>}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
