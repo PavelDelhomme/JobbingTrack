@@ -89,7 +89,41 @@ curl -X POST http://localhost:3000/api/v1/auth/forgot-password \
 
 ---
 
-#### 3. Tests Déliverabilité & Sécurité (20 min) - **À FAIRE**
+#### 3. CI/CD - Script Manquant pour Lecture Version Node.js
+
+**Statut** : 🔴 **EN COURS** - Script `get-docker-node-version.sh` créé, à tester
+
+**Problème** :
+- Erreur dans le job "analyse de sécurité" : `./scripts/get-docker-node-version.sh: No such file or directory`
+- Erreur dans le job "validation de la structure de base de données" : même problème
+- Erreur : `Format de version invalide: ''` car le script n'existe pas
+
+**Solution implémentée** :
+- ✅ Script `scripts/get-docker-node-version.sh` créé
+- ✅ Script extrait la version Node.js depuis tous les Dockerfiles du projet
+- ✅ Script trouve la version la plus récente (actuellement `20.18.0`)
+- ✅ Script retourne une version par défaut si aucune n'est trouvée
+
+**Actions à faire** :
+- [ ] Tester le script localement : `./scripts/get-docker-node-version.sh`
+- [ ] Vérifier que le script retourne bien `20.18.0`
+- [ ] Vérifier que le script est exécutable (`chmod +x`)
+- [ ] Tester dans le workflow CI/CD
+- [ ] Vérifier que tous les jobs CI/CD utilisent correctement le script
+
+**Fichiers modifiés** :
+- `scripts/get-docker-node-version.sh` (créé)
+
+**Jobs CI/CD affectés** :
+- `security-scan` (ligne 35)
+- `database-schema-validation` (ligne 349)
+- `system-integration-tests` (ligne 852)
+- `performance-tests` (ligne 957)
+- `ci-summary` (ligne 1130)
+
+---
+
+#### 4. Tests Déliverabilité & Sécurité (20 min) - **À FAIRE**
 
 ```bash
 # Test 1 : Vérifier DNS maily.ovh
@@ -120,7 +154,7 @@ sudo iptables -L | grep -E "465|587"
 
 ### 🟡 MOINS URGENT - Autres Problèmes
 
-#### 4. API `/api/v1/preferences` - Erreur 404
+#### 5. API `/api/v1/preferences` - Erreur 404
 
 **Statut** : 🔴 **LIÉ AU PROBLÈME #1** - Même cause : table `User` manquante
 
