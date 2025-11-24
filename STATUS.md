@@ -3,14 +3,14 @@
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
 **Dernière MAJ** : 2025-01-27  
-**Version Projet** : v1.0.2 (BETA)  
-**Branche** : main  
+**Version Projet** : v1.0.3 (BETA)  
+**Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (redacted@example.invalid)  
 **Base de Données** : ✅ 26 TABLES CRÉÉES (Prisma sync OK - EmailLog ajoutée)  
 **Système Gestion Emails** : 🟡 CRÉÉ MAIS ROUTES NON ACCESSIBLES (API Gateway à redémarrer)  
-**Projet Global** : 🟢 ~78% (backend 100%, frontend 73%, mobile 0%)
+**Projet Global** : 🟢 ~82% (backend 100%, frontend 78%, mobile 0%)
 
 ---
 
@@ -656,5 +656,31 @@ app.use(wafCheck);
 ```
 
 ---
+
+---
+
+## 🎉 Réalisations Récentes (27/01/2025)
+
+### ✅ Navigation et Gestion des Données - TERMINÉ
+
+**Réalisations** :
+- ✅ "Gestion des Données" déplacée dans Administration avec sous-catégories (Archives, Corbeille)
+- ✅ "Sécurité & Logs" renommé en "Sécurité"
+- ✅ Pages Archives et Corbeille créées dans `/backoffice/archives` et `/backoffice/trash`
+- ✅ Tous les onglets de gestion des données opérationnels (Candidatures, Entreprises, Contacts, Entretiens, Appels, Relances, Événements, Notifications)
+- ✅ Page Services améliorée : filtres par état, CPU, Mémoire implémentés
+- ✅ Page Services : "Services actifs" renommé en "Liste des Services"
+- ✅ Page Utilisateurs : amélioration gestion erreurs avec fallback
+- ✅ Section Sécurité : pages Logs et Politiques créées
+- ✅ Section Sécurité : amélioration page Analyse avec détection d'injection et IPs bloquées
+
+**Fichiers créés/modifiés** :
+- `frontend/src/app/(admin)/backoffice/data/components/*.tsx` - Tous les onglets de gestion
+- `frontend/src/app/(admin)/backoffice/archives/page.tsx` - Page archives
+- `frontend/src/app/(admin)/backoffice/trash/page.tsx` - Page corbeille
+- `frontend/src/app/(admin)/backoffice/security/logs/page.tsx` - Logs de sécurité
+- `frontend/src/app/(admin)/backoffice/security/policies/page.tsx` - Politiques de sécurité
+- `frontend/src/components/features/AdminLayout.tsx` - Navigation réorganisée
+- `frontend/src/app/(admin)/backoffice/services/page.tsx` - Filtres ajoutés
 
 **📜 Pour l'historique détaillé des réalisations, consultez [HISTORIQUE.md](HISTORIQUE.md)**

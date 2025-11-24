@@ -114,24 +114,53 @@ export default function SecurityAnalysisPage() {
           </div>
         </div>
 
-        {/* Évolution du score */}
+        {/* Détections d'injection */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-6 w-6" />
-            Évolution du Score de Sécurité
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+            Tentatives d'Injection Détectées
           </h2>
-          <div className="h-64 flex items-end justify-around gap-2">
-            {[85, 82, 88, 86, 90, 85, securityScore].map((score, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center">
-                <div
-                  className={`w-full bg-${scoreColor}-600 rounded-t transition-all`}
-                  style={{ height: `${score}%` }}
-                />
-                <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                  {i === 6 ? 'Maintenant' : `J-${7-i}`}
-                </span>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium">SQL Injection</p>
+              <p className="text-2xl font-bold text-red-700 dark:text-red-300 mt-1">
+                {summary?.totalSqlInjections || 0}
+              </p>
+            </div>
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">XSS</p>
+              <p className="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-1">
+                {summary?.totalXssAttempts || 0}
+              </p>
+            </div>
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Autres</p>
+              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300 mt-1">
+                {summary?.totalOtherInjections || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* IPs bloquées */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Lock className="h-6 w-6 text-red-600" />
+            IPs Bloquées Actuellement
+          </h2>
+          <div className="space-y-2">
+            {summary?.blockedIPs?.length > 0 ? (
+              summary.blockedIPs.map((ip: string, index: number) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-mono text-gray-900 dark:text-gray-100">{ip}</span>
+                  <span className="text-xs text-red-600 dark:text-red-400">Bloquée</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                Aucune IP bloquée actuellement
+              </p>
+            )}
           </div>
         </div>
 
