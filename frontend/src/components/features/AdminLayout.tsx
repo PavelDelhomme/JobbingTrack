@@ -42,7 +42,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
     security: true,
-    data: true,
     emails: true,
     admin: true,
     dev: true,
@@ -138,6 +137,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
+        { name: 'Gestion des Données', href: '/backoffice/data', icon: '💾' },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
         { name: 'Mon Profil', icon: '👤', onClick: () => setIsProfileOpen(true) },
       ]
@@ -167,15 +167,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
         { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
         { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
-      ]
-    },
-    {
-      id: 'data',
-      label: 'Gestion des Données',
-      icon: '📝',
-      isCollapsible: false,
-      items: [
-        { name: 'Gestion des Données', href: '/backoffice/data', icon: '💾' },
       ]
     },
     {
