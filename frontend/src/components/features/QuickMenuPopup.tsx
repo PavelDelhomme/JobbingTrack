@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { Settings, User, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Settings, User, X, Copy, Check, Key } from 'lucide-react'
 
 interface QuickMenuPopupProps {
   isOpen: boolean
@@ -11,6 +11,10 @@ interface QuickMenuPopupProps {
 }
 
 export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSettings }: QuickMenuPopupProps) {
+  const [token, setToken] = useState<string | null>(null)
+  const [tokenCopied, setTokenCopied] = useState(false)
+  const [showToken, setShowToken] = useState(false)
+
   // Récupérer le token depuis localStorage
   useEffect(() => {
     if (isOpen) {
