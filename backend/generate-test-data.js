@@ -220,6 +220,8 @@ async function main() {
   const presetName = args.find(arg => !arg.startsWith('--') && PRESETS[arg]);
   const configArg = args.find(arg => !arg.startsWith('--') && arg !== presetName);
   const isClean = args.includes('--clean');
+  const tagArg = args.find(arg => arg.startsWith('--tag='));
+  const testTag = tagArg ? tagArg.split('=')[1] : `test-${Date.now()}`;
 
   let config = DEFAULT_CONFIG;
 
@@ -247,6 +249,7 @@ async function main() {
   }
 
   console.log('📋 Configuration finale:', config);
+  console.log(`🏷️  Tag de test: ${testTag}`);
   console.log('');
 
   try {
@@ -283,7 +286,13 @@ async function main() {
     for (let i = 0; i < Math.min(config.companies, COMPANIES_DATA.length); i++) {
       const companyData = COMPANIES_DATA[i];
       const company = await prisma.company.create({
-        data: companyData
+        data: {
+          ...companyData,
+          // Ajouter le tag dans la description ou un champ metadata si disponible
+          description: companyData.description 
+            ? `${companyData.description}\n[TEST_DATA_TAG:${testTag}]`
+            : `[TEST_DATA_TAG:${testTag}]`
+        }
       });
       companies.push(company);
     }
@@ -305,7 +314,8 @@ async function main() {
           position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
           email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
           phone: `+3361234${1000 + i}`,
-          linkedinUrl: `https://linkedin.com/in/contact${i + 1}`
+          linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
+          notes: `[TEST_DATA_TAG:${testTag}]`
         }
       });
       contacts.push(contact);
@@ -337,7 +347,7 @@ async function main() {
           applicationDate,
           source: ['LinkedIn', 'Indeed', 'Site entreprise', 'Recommandation', 'Welcome to the Jungle'][i % 5],
           jobUrl: `https://careers.${company.name.toLowerCase()}.com/jobs/${position.toLowerCase().replace(/\s/g, '-')}`,
-          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.`
+          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`
         }
       });
       applications.push(application);
@@ -400,7 +410,7 @@ async function main() {
           location: ['Visioconférence', 'Bureau Paris', 'Téléphone', 'Remote'][i % 4],
           meetingUrl: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
           interviewer: `${FIRST_NAMES[i % FIRST_NAMES.length]} ${LAST_NAMES[i % LAST_NAMES.length]}`,
-          notes: 'Entretien technique prévu',
+          notes: `Entretien technique prévu\n[TEST_DATA_TAG:${testTag}]`,
           status: ['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3]
         }
       });
@@ -435,7 +445,7 @@ async function main() {
           completed: i % 3 === 0,
           completedDate: i % 3 === 0 ? new Date() : null,
           subject: `Suivi candidature ${application.position}`,
-          message: `Bonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement`,
+          message: `Bonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
           response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null
         }
       });
@@ -461,7 +471,7 @@ async function main() {
           callDate: i % 2 === 0 ? callDate : null,
           duration: i % 2 === 0 ? Math.floor(Math.random() * 1800) + 300 : null, // 5-35 minutes en secondes
           status: ['SCHEDULED', 'COMPLETED', 'NO_ANSWER', 'VOICEMAIL'][i % 4],
-          notes: `Appel concernant la candidature ${application.position}`,
+          notes: `Appel concernant la candidature ${application.position}\n[TEST_DATA_TAG:${testTag}]`,
           outcome: i % 2 === 0 ? 'Discussion positive' : null,
           followUpNeeded: i % 3 === 0
         }
