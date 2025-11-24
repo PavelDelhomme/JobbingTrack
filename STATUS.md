@@ -62,7 +62,11 @@
 - ✅ **`user.controller.js`** : Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `User` manquante)
   - Retourne l'utilisateur connecté si la table `User` est manquante et que l'ID correspond à l'utilisateur connecté
   - Gestion des erreurs Prisma P2021 à tous les niveaux (findUnique, create, update)
-- ✅ **`auth.controller.js`** : Fallbacks déjà présents pour `getAllUsers` et `getActiveSessions` (lignes 410-432 et 990-1008)
+- ✅ **`auth.controller.js`** : Amélioration des fallbacks pour `getAllUsers` (ligne 385)
+  - Détection améliorée des erreurs de table manquante (P2021, message contenant "does not exist")
+  - Retourne l'utilisateur connecté si disponible, sinon un utilisateur mock en développement
+  - Double niveau de fallback : dans le try-catch interne ET dans le catch externe
+  - Fallbacks déjà présents pour `getActiveSessions` (lignes 990-1008)
 
 **Routes backend existantes** (dans `auth-service`) :
 - ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
