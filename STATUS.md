@@ -19,37 +19,6 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 0. Routes API - Erreurs 404/500 sur `/api/v1/auth/users/:id` et `/api/v1/preferences`
-
-**Statut** : ✅ **TERMINÉ** (2025-11-24) - Toutes les routes fonctionnent maintenant après reconstruction du conteneur auth-service. **DÉPLACÉ VERS SECTION TERMINÉ**.
-
-**Problèmes identifiés et résolus** :
-- ✅ `GET /api/v1/emails/stats?days=30` → **FONCTIONNE** (testé avec token valide)
-- ✅ `GET /api/v1/emails/logs?page=1&limit=50` → **FONCTIONNE** (testé avec token valide)
-- ✅ `GET /api/v1/preferences` → **FONCTIONNE** (retourne les préférences par défaut si UserCustomization n'existe pas)
-- ✅ `GET /api/v1/auth/users/:id` → **FONCTIONNE** (route ajoutée dans auth.routes.js)
-
-**Causes possibles** :
-1. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps`
-2. **API Gateway ne route pas correctement** - Vérifier les logs de l'API Gateway
-3. **Token JWT contient un ID utilisateur invalide** (`dev_user_1`) - Le token doit contenir un ID utilisateur réel de la base de données
-4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
-
-**Actions à faire** :
-- [x] ✅ Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
-- [x] ✅ Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50` - **Aucune erreur détectée, routes correctement routées**
-- [x] ✅ Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50` - **Routes fonctionnent correctement (200 OK)**
-- [x] ✅ Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`) - **Token contient `cmideyqu3000011fe1jj9a6vt`**
-- [x] ✅ Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats` - **Routes testées et fonctionnelles**
-- [x] ✅ Créer un utilisateur réel dans la base de données et se reconnecter - **Utilisateur admin créé et connexion réussie**
-
-**Fichiers à vérifier** :
-- `backend/api-gateway/src/server.js` (lignes 497-500)
-- `backend/auth-service/src/server.js` (lignes 78-81)
-- `backend/auth-service/src/routes/email.routes.js` (ligne 28)
-- `backend/auth-service/src/routes/preferences.routes.js` (ligne 17)
-- `backend/auth-service/src/middlewares/auth.middleware.js` (extraction userId du token)
-
 ---
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums
@@ -648,7 +617,7 @@ app.use(wafCheck);
 
 ## ✅ TERMINÉ - Réalisations (Du Plus Récent au Plus Ancien)
 
-### 🎉 Routes API - Erreurs 404/500 Résolues - TERMINÉ (2025-11-24)
+### 🎉 0. Routes API - Erreurs 404/500 sur `/api/v1/auth/users/:id` et `/api/v1/preferences` - TERMINÉ (2025-11-24)
 
 **Statut** : ✅ **TERMINÉ** - Toutes les routes API fonctionnent correctement après création de l'utilisateur admin et reconstruction du conteneur.
 
