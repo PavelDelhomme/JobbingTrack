@@ -17,6 +17,53 @@
 
 ## 🎯 À FAIRE - PRIORITÉS
 
+### 🔴 PRIORITÉ ABSOLUE - Système de Statuts Personnalisables
+
+**Statut** : 🔴 **À FAIRE EN PRIORITÉ** - Fonctionnalité critique pour la partie applicative
+
+**Objectif** : Transformer les enums de statuts en modèles personnalisables par utilisateur avec système de statuts par défaut (système) et personnalisés.
+
+**Fonctionnalités requises** :
+- [ ] ✅ Système de statuts par défaut (système) avec `userId = null` ou `isPredefined = true`
+- [ ] ✅ Système de statuts personnalisés par utilisateur avec `userId` spécifique
+- [ ] ✅ Gestion CRUD des statuts personnalisés par utilisateur
+- [ ] ✅ Interface utilisateur pour créer/modifier/supprimer ses statuts personnalisés
+- [ ] ✅ Migration des données existantes (enum → table avec statuts système)
+
+**Modèles à créer** :
+- [ ] `ApplicationStatus` (table) - Conversion depuis enum `ApplicationStatus`
+- [ ] `InterviewStatus` (table) - Conversion depuis enum `InterviewStatus`
+- [ ] `FollowUpStatus` (table) - Conversion depuis enum `FollowUpStatus`
+- [ ] `PlatformType` (table) - Nouveau modèle pour catégoriser les plateformes
+
+**Modèles à modifier** :
+- [ ] `Application` - Remplacer `status` (enum) par `applicationStatusId` (String, FK)
+- [ ] `Interview` - Remplacer `status` (enum) par `interviewStatusId` (String, FK)
+- [ ] `FollowUp` - Remplacer `status` (enum) par `followUpStatusId` (String, FK)
+- [ ] `Platform` - Ajouter `platformTypeId` (String?, FK vers `PlatformType`)
+
+**Valeurs par défaut à créer** (statuts système) :
+- [ ] ApplicationStatus : CANDIDATE_PENDING, NO_RESPONSE, NO_RESPONSE_AFTER_FIRST_FOLLOWUP, NO_RESPONSE_AFTER_SECOND_FOLLOWUP, FIRST_INTERVIEW_PENDING, OTHER_INTERVIEW_PENDING, TECHNICAL_TEST_PENDING, OFFER_RECEIVED, ACCEPTED_AFTER_INTERVIEW, REJECTED_WITHOUT_INTERVIEW, REJECTED_AFTER_INTERVIEW, WITHDRAWN
+- [ ] InterviewStatus : SCHEDULED, COMPLETED, FEEDBACK_PENDING, CANCELLED, RESCHEDULED
+- [ ] FollowUpStatus : PENDING, POSITIVE_RESPONSE, NEGATIVE_RESPONSE, NO_RESPONSE, PLANNED
+
+**Système de synchronisation avec hash** :
+- [ ] Ajouter champs `syncHash` (String) et `entityHash` (String) à tous les modèles applicatifs
+- [ ] Ajouter champ `lastSyncAt` (DateTime?) pour tracking synchronisation
+- [ ] Implémenter logique de calcul de hash pour détection de modifications
+- [ ] Système de résolution de conflits lors de synchronisation
+
+**Fichiers à créer/modifier** :
+- `backend/prisma/schema.prisma` - Créer nouveaux modèles et modifier existants
+- `scripts/migrations/create-default-statuses.js` - Script pour créer statuts système par défaut
+- `backend/auth-service/src/controllers/status.controller.js` - CRUD statuts personnalisés
+- `frontend/src/app/(admin)/backoffice/settings/statuses/page.tsx` - Interface gestion statuts
+- `backend/auth-service/src/services/sync.service.js` - Service de synchronisation avec hash
+
+**Référence** : Voir détails complets dans [STATUS_STRUCTURE_BDD.md](STATUS_STRUCTURE_BDD.md)
+
+---
+
 ### 🔴 URGENT - Problèmes Critiques
 
 ---

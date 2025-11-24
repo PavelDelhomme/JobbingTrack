@@ -5,48 +5,122 @@
 ### 👤 Modèles Principaux (12 modèles)
 
 #### 1. **User** (Utilisateur)
-- **Champs** : `id`, `email`, `password`, `firstName`, `lastName`, `phone`, `profilePicture`
-- **Authentification** : `authToken`, `refreshToken`, `tokenExpiresAt`, `resetToken`, `resetTokenExpiry`, `emailVerified`, `emailVerifiedAt`
-- **Rôle/Statut** : `role` (UserRole), `isActive`, `lastLoginAt`
-- **Préférences** : `theme`, `language`, `timezone`, `notificationsEnabled`
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt` (soft delete)
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `email` : String (unique, indexé)
+  - `password` : String (hashé)
+  - `firstName` : String
+  - `lastName` : String
+  - `phone` : String? (optionnel)
+  - `profilePicture` : String? (URL, optionnel)
+- **Authentification** :
+  - `authToken` : String? (JWT, optionnel)
+  - `refreshToken` : String? (optionnel)
+  - `tokenExpiresAt` : DateTime? (optionnel)
+  - `resetToken` : String? (optionnel)
+  - `resetTokenExpiry` : DateTime? (optionnel)
+  - `emailVerified` : Boolean (@default(false))
+  - `emailVerifiedAt` : DateTime? (optionnel)
+- **Rôle/Statut** :
+  - `role` : UserRole (enum: USER, ADMIN, SUPER_ADMIN, TESTER, @default(USER), indexé)
+  - `isActive` : Boolean (@default(true), indexé)
+  - `lastLoginAt` : DateTime? (optionnel)
+- **Préférences** :
+  - `theme` : String? (@default("light"))
+  - `language` : String? (@default("fr"))
+  - `timezone` : String? (@default("Europe/Paris"))
+  - `notificationsEnabled` : Boolean (@default(true))
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel)
+  - `entityHash` : String? (hash de l'entité, optionnel)
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel)
 - **Relations** : 
-  - → `Application[]` (1:N)
-  - → `Company[]` (1:N)
-  - → `Contact[]` (1:N)
-  - → `FollowUp[]` (1:N)
-  - → `Call[]` (1:N)
-  - → `Interview[]` (1:N)
-  - → `Event[]` (1:N)
-  - → `Notification[]` (1:N)
-  - → `Document[]` (1:N)
-  - → `SyncQueue[]` (1:N)
+  - → `Application[]` (1:N) - `applications`
+  - → `Company[]` (1:N) - `companies`
+  - → `Contact[]` (1:N) - `contacts`
+  - → `FollowUp[]` (1:N) - `followUps`
+  - → `Call[]` (1:N) - `calls`
+  - → `Interview[]` (1:N) - `interviews`
+  - → `Event[]` (1:N) - `events`
+  - → `Notification[]` (1:N) - `notifications`
+  - → `Document[]` (1:N) - `documents`
+  - → `SyncQueue[]` (1:N) - `syncQueue`
 
 #### 2. **Company** (Entreprise)
-- **Champs** : `id`, `userId`, `name`, `website`, `industry`, `size` (CompanySize), `location`, `address`, `city`, `postalCode`, `country`, `logoUrl`, `description`
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt`
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `userId` : String (FK vers User, indexé, onDelete: Cascade)
+  - `name` : String (indexé)
+  - `website` : String? (URL, optionnel)
+  - `industry` : String? (secteur d'activité, optionnel)
+  - `size` : CompanySize? (enum: STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE, optionnel)
+  - `location` : String? (optionnel)
+  - `address` : String? (optionnel)
+  - `city` : String? (optionnel)
+  - `postalCode` : String? (optionnel)
+  - `country` : String? (@default("France"), optionnel)
+  - `logoUrl` : String? (URL, optionnel)
+  - `description` : String? (optionnel)
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel)
+  - `entityHash` : String? (hash de l'entité, optionnel)
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel)
 - **Relations** :
-  - ← `User` (N:1)
-  - → `Application[]` (1:N)
-  - → `ContactCompany[]` (M:N avec Contact)
-  - → `FollowUp[]` (1:N)
-  - → `Call[]` (1:N)
-  - → `Interview[]` (1:N)
+  - ← `User` (N:1) - `user` (FK: userId)
+  - → `Application[]` (1:N) - `applications`
+  - → `ContactCompany[]` (M:N avec Contact) - `contacts`
+  - → `FollowUp[]` (1:N) - `followUps`
+  - → `Call[]` (1:N) - `calls`
+  - → `Interview[]` (1:N) - `interviews`
 
 #### 3. **Application** (Candidature)
-- **Champs** : `id`, `userId`, `companyId`, `platformId`, `position`, `description`, `jobUrl`, `location`, `contractType` (ContractType), `workMode` (WorkMode), `applicationDate`, `applicationType` (ApplicationType), `status` (ApplicationStatus), `salaryMin`, `salaryMax`, `salaryNegotiable`, `notes`, `archived`, `archivedAt`
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt`
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `userId` : String (FK vers User, indexé, onDelete: Cascade)
+  - `companyId` : String (FK vers Company, indexé)
+  - `platformId` : String? (FK vers Platform, optionnel, indexé)
+  - `position` : String (intitulé du poste)
+  - `description` : String? (description du poste, optionnel)
+  - `jobUrl` : String? (URL de l'offre, optionnel)
+  - `location` : String? (lieu du poste, optionnel)
+  - `contractType` : ContractType (enum: CDI, CDD, ALTERNANCE, STAGE, FREELANCE, INTERIM, SAISONNIER, @default(CDI))
+  - `workMode` : WorkMode? (enum: ON_SITE, REMOTE, HYBRID, optionnel)
+  - `applicationDate` : DateTime (@default(now()), indexé)
+  - `applicationType` : ApplicationType (enum: OFFRE, SPONTANEE, @default(OFFRE))
+  - `status` : ApplicationStatus (enum, @default(CANDIDATE_PENDING), indexé) → **À TRANSFORMER EN FK vers ApplicationStatus (table)**
+  - `salaryMin` : Int? (en euros/an, optionnel)
+  - `salaryMax` : Int? (en euros/an, optionnel)
+  - `salaryNegotiable` : Boolean (@default(false))
+  - `notes` : String? (optionnel)
+  - `archived` : Boolean (@default(false))
+  - `archivedAt` : DateTime? (optionnel)
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel)
+  - `entityHash` : String? (hash de l'entité, optionnel)
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel)
 - **Relations** :
-  - ← `User` (N:1)
-  - ← `Company` (N:1)
-  - ← `Platform` (N:1, optionnel)
-  - → `ContactApplication[]` (M:N avec Contact)
-  - → `FollowUp[]` (1:N)
-  - → `Call[]` (1:N)
-  - → `Interview[]` (1:N)
-  - → `Event[]` (1:N)
-  - → `Document[]` (1:N)
-  - → `ApplicationStatusHistory[]` (1:N)
+  - ← `User` (N:1) - `user` (FK: userId)
+  - ← `Company` (N:1) - `company` (FK: companyId)
+  - ← `Platform` (N:1, optionnel) - `platform` (FK: platformId)
+  - → `ContactApplication[]` (M:N avec Contact) - `contacts`
+  - → `FollowUp[]` (1:N) - `followUps`
+  - → `Call[]` (1:N) - `calls`
+  - → `Interview[]` (1:N) - `interviews`
+  - → `Event[]` (1:N) - `events`
+  - → `Document[]` (1:N) - `documents`
+  - → `ApplicationStatusHistory[]` (1:N) - `statusHistory`
 
 #### 4. **Contact**
 - **Champs** : `id`, `userId`, `firstName`, `lastName`, `position`, `email`, `phone`, `linkedinUrl`, `notes`, `isArchived`, `archivedAt`, `archivedReason`
@@ -60,41 +134,100 @@
   - → `Call[]` (1:N)
 
 #### 5. **FollowUp** (Relance)
-- **Champs** : `id`, `userId`, `applicationId`, `companyId`, `followUpTypeId`, `followUpMethodId`, `followUpDate`, `status` (FollowUpStatus), `response`, `notes`
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt`
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `userId` : String (FK vers User, indexé, onDelete: Cascade)
+  - `applicationId` : String (FK vers Application, indexé, onDelete: Cascade)
+  - `companyId` : String (FK vers Company, indexé)
+  - `followUpTypeId` : String? (FK vers FollowUpType, optionnel)
+  - `followUpMethodId` : String? (FK vers FollowUpMethod, optionnel)
+  - `followUpDate` : DateTime (indexé)
+  - `status` : FollowUpStatus (enum, @default(PENDING), indexé) → **À TRANSFORMER EN FK vers FollowUpStatus (table)**
+  - `response` : String? (réponse reçue, optionnel)
+  - `notes` : String? (optionnel)
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel) → **À AJOUTER**
+  - `entityHash` : String? (hash de l'entité, optionnel) → **À AJOUTER**
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel) → **À AJOUTER**
 - **Relations** :
-  - ← `User` (N:1)
-  - ← `Application` (N:1)
-  - ← `Company` (N:1)
-  - ← `FollowUpType` (N:1, optionnel)
-  - ← `FollowUpMethod` (N:1, optionnel)
-  - → `FollowUpContact[]` (M:N avec Contact)
-  - → `Call[]` (1:N)
-  - → `Event[]` (1:N)
+  - ← `User` (N:1) - `user` (FK: userId)
+  - ← `Application` (N:1) - `application` (FK: applicationId)
+  - ← `Company` (N:1) - `company` (FK: companyId)
+  - ← `FollowUpType` (N:1, optionnel) - `followUpType` (FK: followUpTypeId)
+  - ← `FollowUpMethod` (N:1, optionnel) - `followUpMethod` (FK: followUpMethodId)
+  - → `FollowUpContact[]` (M:N avec Contact) - `contacts`
+  - → `Call[]` (1:N) - `calls`
+  - → `Event[]` (1:N) - `events`
 
 #### 6. **Call** (Appel)
-- **Champs** : `id`, `userId`, `applicationId`, `companyId`, `followUpId`, `contactId`, `callTypeId`, `callDate`, `duration`, `subject`, `notes`, `status` (CallStatus)
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt`
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `userId` : String (FK vers User, indexé, onDelete: Cascade)
+  - `applicationId` : String? (FK vers Application, optionnel, onDelete: SetNull)
+  - `companyId` : String? (FK vers Company, optionnel, onDelete: SetNull)
+  - `followUpId` : String? (FK vers FollowUp, optionnel, onDelete: SetNull)
+  - `contactId` : String? (FK vers Contact, optionnel, onDelete: SetNull)
+  - `callTypeId` : String? (FK vers CallType, optionnel)
+  - `callDate` : DateTime (indexé)
+  - `duration` : Int? (durée en minutes, optionnel)
+  - `subject` : String (objet de l'appel)
+  - `notes` : String? (optionnel)
+  - `status` : CallStatus (enum: SCHEDULED, COMPLETED, MISSED, CANCELLED, @default(COMPLETED), indexé)
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel) → **À AJOUTER**
+  - `entityHash` : String? (hash de l'entité, optionnel) → **À AJOUTER**
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel) → **À AJOUTER**
 - **Relations** :
-  - ← `User` (N:1)
-  - ← `Application` (N:1, optionnel)
-  - ← `Company` (N:1, optionnel)
-  - ← `FollowUp` (N:1, optionnel)
-  - ← `Contact` (N:1, optionnel)
-  - ← `CallType` (N:1, optionnel)
-  - → `Event[]` (1:N)
+  - ← `User` (N:1) - `user` (FK: userId)
+  - ← `Application` (N:1, optionnel) - `application` (FK: applicationId)
+  - ← `Company` (N:1, optionnel) - `company` (FK: companyId)
+  - ← `FollowUp` (N:1, optionnel) - `followUp` (FK: followUpId)
+  - ← `Contact` (N:1, optionnel) - `contact` (FK: contactId)
+  - ← `CallType` (N:1, optionnel) - `callType` (FK: callTypeId)
+  - → `Event[]` (1:N) - `events`
 
 #### 7. **Interview** (Entretien)
-- **Champs** : `id`, `userId`, `applicationId`, `companyId`, `interviewTypeId`, `interviewStyleId`, `interviewDate`, `estimatedDuration`, `location`, `videoLink`, `status` (InterviewStatus), `feedbackExpectedFrom`, `feedbackExpectedTo`, `feedbackReceived`, `outcome` (InterviewOutcome), `notes`
-- **Timestamps** : `createdAt`, `updatedAt`, `deletedAt`
+- **Champs** :
+  - `id` : String (CUID, @id, @default(cuid()))
+  - `userId` : String (FK vers User, indexé, onDelete: Cascade)
+  - `applicationId` : String (FK vers Application, indexé, onDelete: Cascade)
+  - `companyId` : String (FK vers Company, indexé)
+  - `interviewTypeId` : String? (FK vers InterviewType, optionnel)
+  - `interviewStyleId` : String? (FK vers InterviewStyle, optionnel)
+  - `interviewDate` : DateTime (indexé)
+  - `estimatedDuration` : Int? (durée estimée en minutes, optionnel)
+  - `location` : String? (lieu physique, optionnel)
+  - `videoLink` : String? (lien visio, optionnel)
+  - `status` : InterviewStatus (enum, @default(SCHEDULED), indexé) → **À TRANSFORMER EN FK vers InterviewStatus (table)**
+  - `feedbackExpectedFrom` : DateTime? (début plage de retour, optionnel)
+  - `feedbackExpectedTo` : DateTime? (fin plage de retour, optionnel)
+  - `feedbackReceived` : Boolean (@default(false))
+  - `outcome` : InterviewOutcome? (enum: POSITIVE, NEGATIVE, NEUTRAL, PENDING, optionnel)
+  - `notes` : String? (optionnel)
+- **Timestamps** :
+  - `createdAt` : DateTime (@default(now()))
+  - `updatedAt` : DateTime (@updatedAt)
+  - `deletedAt` : DateTime? (soft delete, optionnel)
+- **Synchronisation** :
+  - `syncHash` : String? (hash pour synchronisation, optionnel) → **À AJOUTER**
+  - `entityHash` : String? (hash de l'entité, optionnel) → **À AJOUTER**
+  - `lastSyncAt` : DateTime? (dernière synchronisation, optionnel) → **À AJOUTER**
 - **Relations** :
-  - ← `User` (N:1)
-  - ← `Application` (N:1)
-  - ← `Company` (N:1)
-  - ← `InterviewType` (N:1, optionnel)
-  - ← `InterviewStyle` (N:1, optionnel)
-  - → `InterviewContact[]` (M:N avec Contact)
-  - → `Event[]` (1:N)
+  - ← `User` (N:1) - `user` (FK: userId)
+  - ← `Application` (N:1) - `application` (FK: applicationId)
+  - ← `Company` (N:1) - `company` (FK: companyId)
+  - ← `InterviewType` (N:1, optionnel) - `interviewType` (FK: interviewTypeId)
+  - ← `InterviewStyle` (N:1, optionnel) - `interviewStyle` (FK: interviewStyleId)
+  - → `InterviewContact[]` (M:N avec Contact) - `contacts`
+  - → `Event[]` (1:N) - `events`
 
 #### 8. **Event** (Événement Calendrier)
 - **Champs** : `id`, `userId`, `eventTypeId`, `title`, `description`, `startDate`, `endDate`, `allDay`, `applicationId`, `interviewId`, `followUpId`, `callId` (lien polymorphe), `reminderEnabled`, `reminderMinutes`, `color`
