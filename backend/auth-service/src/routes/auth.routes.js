@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/auth.controller');
+const userController = require('../controllers/user.controller');
 const { authenticate } = require('../middlewares/auth.middleware');
 
 // Health check
@@ -55,6 +56,7 @@ router.post('/generate-test-token', authenticate, authController.generateTestTok
 
 // ✅ ADMIN - Routes de gestion des utilisateurs
 router.get('/users', authenticate, authController.getAllUsers);
+router.get('/users/:id', authenticate, userController.getUserById);
 router.put('/users/:id/role', authenticate, authController.updateUserRole);
 router.put('/users/:id/status', authenticate, authController.toggleUserStatus);
 router.delete('/users/:id', authenticate, authController.deleteUser);
