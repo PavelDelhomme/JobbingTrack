@@ -11,6 +11,38 @@ interface QuickMenuPopupProps {
 }
 
 export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSettings }: QuickMenuPopupProps) {
+  // Récupérer le token depuis localStorage
+  useEffect(() => {
+    if (isOpen) {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('authToken')
+      setToken(storedToken)
+    }
+  }, [isOpen])
+
+  // Copier le token dans le presse-papier
+  const handleCopyToken = async () => {
+    if (token) {
+      try {
+        await navigator.clipboard.writeText(token)
+        setTokenCopied(true)
+        setTimeout(() => setTokenCopied(false), 2000)
+      } catch (err) {
+        console.error('Erreur lors de la copie:', err)
+        // Fallback pour les navigateurs qui ne supportent pas clipboard API
+        const textArea = document.createElement('textarea')
+        textArea.value = token
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        setTokenCopied(true)
+        setTimeout(() => setTokenCopied(false), 2000)
+      }
+    }
+  }
+
   // Fermer la popup avec la touche Échap
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -101,6 +133,48 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
               </div>
             </div>
           </button>
+
+          {/* Option Token JWT */}
+          {token && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Key className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Token JWT
+                </span>
+              </div>
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowToken(!showToken)}
+                    className="flex-1 text-left text-xs font-mono bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {showToken ? token : '••••••••••••••••••••••••••••••••'}
+                  </button>
+                  <button
+                    onClick={handleCopyToken}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors"
+                    title="Copier le token"
+                  >
+                    {tokenCopied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span className="hidden sm:inline">Copié</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span className="hidden sm:inline">Copier</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Cliquez pour {showToken ? 'masquer' : 'afficher'} le token
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

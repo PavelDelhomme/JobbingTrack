@@ -36,12 +36,12 @@
 4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
 
 **Actions à faire** :
-- [x] Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
-- [ ] Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50`
-- [ ] Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50`
-- [ ] Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
-- [ ] Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats`
-- [ ] Si le token contient `dev_user_1`, créer un utilisateur réel dans la base de données et se reconnecter
+- [x] ✅ Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
+- [x] ✅ Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50` - **Aucune erreur détectée, routes correctement routées**
+- [x] ✅ Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50` - **Routes fonctionnent correctement (200 OK)**
+- [x] ✅ Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`) - **Token contient `cmideyqu3000011fe1jj9a6vt`**
+- [x] ✅ Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats` - **Routes testées et fonctionnelles**
+- [x] ✅ Créer un utilisateur réel dans la base de données et se reconnecter - **Utilisateur admin créé et connexion réussie**
 
 **Fichiers à vérifier** :
 - `backend/api-gateway/src/server.js` (lignes 497-500)
