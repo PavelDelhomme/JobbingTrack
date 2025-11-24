@@ -244,33 +244,42 @@ jobs:
         run: |
           echo "🔗 Test des relations many-to-many..."
 
-          # Vérifier que les relations sont bien définies dans le schéma
+          # Vérifier que les tables de jonction existent dans le schéma
           cd backend
 
-          # Vérifier les relations dans Contact
-          if grep -q "contactCompanies ContactCompany" prisma/schema.prisma; then
-            echo "✅ Relations many-to-many Contact ↔ Company définies"
+          # Vérifier ContactCompany
+          if grep -q "model ContactCompany" prisma/schema.prisma; then
+            echo "✅ Table de jonction ContactCompany trouvée"
           else
-            echo "❌ Relations many-to-many Contact ↔ Company manquantes"
+            echo "❌ Table de jonction ContactCompany manquante"
             exit 1
           fi
 
-          if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
-            echo "✅ Relations many-to-many Contact ↔ Application définies"
+          # Vérifier ContactApplication
+          if grep -q "model ContactApplication" prisma/schema.prisma; then
+            echo "✅ Table de jonction ContactApplication trouvée"
           else
-            echo "❌ Relations many-to-many Contact ↔ Application manquantes"
+            echo "❌ Table de jonction ContactApplication manquante"
             exit 1
           fi
 
-          # Vérifier les relations dans Application
-          if grep -q "contactApplications ContactApplication" prisma/schema.prisma; then
-            echo "✅ Relations many-to-many Application ↔ Contact définies"
+          # Vérifier FollowUpContact
+          if grep -q "model FollowUpContact" prisma/schema.prisma; then
+            echo "✅ Table de jonction FollowUpContact trouvée"
           else
-            echo "❌ Relations many-to-many Application ↔ Contact manquantes"
+            echo "❌ Table de jonction FollowUpContact manquante"
             exit 1
           fi
 
-          echo "✅ Relations many-to-many validées"
+          # Vérifier InterviewContact
+          if grep -q "model InterviewContact" prisma/schema.prisma; then
+            echo "✅ Table de jonction InterviewContact trouvée"
+          else
+            echo "❌ Table de jonction InterviewContact manquante"
+            exit 1
+          fi
+
+          echo "✅ Toutes les tables de jonction many-to-many sont présentes"
 
       - name: 🏷️ Validation des enums
         run: |
