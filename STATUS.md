@@ -23,42 +23,54 @@
 **Statut** : 🔴 **CAUSE IDENTIFIÉE** - La table `User` est manquante dans la base de données.
 
 **Problème** :
-- Routes API retournent 404 :
-  - `GET /api/v1/auth/users` → 404 (Not Found) - **Page Utilisateurs**
-  - `GET /api/v1/auth/sessions/active` → 404 (Not Found) - **Page Vue d'Ensemble**
-  - `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres**
+- Routes API retournent **500 Internal Server Error** :
+  - `GET /api/v1/auth/users` → 500 (Internal Server Error) - **Page Utilisateurs**
+  - `GET /api/v1/auth/sessions/active` → 500 (Internal Server Error) - **Page Vue d'Ensemble**
+  - `GET /api/v1/preferences` → 500 (Internal Server Error) - **Page Paramètres**
+  - `GET /api/v1/applications` → 500 (Internal Server Error) - **Page Vue d'Ensemble**
+  - `GET /api/v1/companies` → 500 (Internal Server Error) - **Page Vue d'Ensemble**
+- Route API retourne **404 Not Found** :
+  - `GET /api/v1/auth/users/dev_user_1` → 404 (Not Found) - **Page Profil Utilisateur** (via "Mon Profil" dans le menu rapide)
+
 **Impact** :
 - **Page Utilisateurs** (`/backoffice/users`) : Affiche "0 utilisateur" et ne charge pas la liste des utilisateurs
-- **Page Vue d'Ensemble** (`/backoffice`) : Affiche "0 utilisateur" alors qu'il y a 1 session active
+- **Page Vue d'Ensemble** (`/backoffice`) : Affiche "0 utilisateur" alors qu'il y a 1 session active, ne charge pas les statistiques
 - **Page Paramètres** (popup) : Ne charge pas les préférences utilisateur, utilise les valeurs par défaut
+- **Page Profil Utilisateur** (`/backoffice/users/[id]`) : Erreur 404 lorsque l'utilisateur clique sur "Mon Profil" dans le menu rapide
 - Les statistiques utilisateurs ne se chargent pas correctement
 
 **Cause identifiée** :
 - ❌ **La table `User` n'existe pas dans la base de données** (erreur Prisma P2021)
-- ⚠️ Le fallback dans `getAllUsers` et `getActiveSessions` devrait retourner l'utilisateur connecté, mais semble ne pas fonctionner correctement
+- ⚠️ Le fallback dans `getAllUsers` et `getActiveSessions` devrait retourner l'utilisateur connecté, mais ne fonctionne pas car la table `User` est manquante
+- ⚠️ L'ID utilisateur `dev_user_1` dans le token JWT est probablement incorrect ou provient d'un token de développement
 - Les logs montrent : `The table public.User does not exist in the current database`
 
 **Solution** :
-1. **Exécuter `make db-push-all`** pour créer les tables dans la base de données
-2. Ou vérifier pourquoi le fallback ne fonctionne pas dans les contrôleurs (lignes 412-432 et 992-1004 de `auth.controller.js`)
+1. **Exécuter `make db-push-all`** pour créer les tables dans la base de données (solution principale)
+2. Vérifier que l'ID utilisateur dans le token JWT est correct (pas `dev_user_1`)
+3. Si nécessaire, recréer un token JWT valide avec un ID utilisateur correct
 
 **Workaround actuel** :
-- La page vue d'ensemble utilise un fallback : si les routes retournent 404, elle affiche au moins 1 session active (l'utilisateur connecté)
-- Les erreurs 404 sont gérées silencieusement pour ne pas polluer la console
+- La page vue d'ensemble utilise un fallback : si les routes retournent 500, elle affiche au moins 1 session active (l'utilisateur connecté)
+- Les erreurs 500 sont gérées silencieusement pour ne pas polluer la console
+- Le middleware d'authentification (`auth.middleware.js`) crée un utilisateur mock en développement si la table `User` est manquante (lignes 60-69)
 
 **Routes backend existantes** (dans `auth-service`) :
 - ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
+- ✅ `GET /api/v1/auth/users/:id` → `userController.getUserById` (ligne 21 de `user.routes.js`)
 - ✅ `GET /api/v1/auth/sessions/active` → `authController.getActiveSessions` (ligne 63 de `auth.routes.js`)
 - ✅ `GET /api/v1/preferences` → `preferencesController.getUserPreferences` (ligne 17 de `preferences.routes.js`)
 
 **Configuration API Gateway** :
 - Proxy configuré : `/api/v1/auth` → `http://auth-service:3001` (ligne 497 de `api-gateway/src/server.js`)
+- Proxy configuré : `/api/v1/preferences` → `http://auth-service:3001` (ligne 497 de `api-gateway/src/server.js`)
 
 **Vérifications effectuées** :
 1. ✅ Service `auth-service` est démarré
 2. ✅ Connectivité entre API Gateway et Auth Service OK
 3. ✅ Requêtes routées correctement
 4. ✅ Routes montées dans `auth-service/src/server.js`
+5. ✅ Fallbacks en développement pour gérer l'absence de la table `User` (P2021)
 
 ---
 
