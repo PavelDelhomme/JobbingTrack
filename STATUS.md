@@ -55,6 +55,15 @@
 - Les erreurs 500 sont gérées silencieusement pour ne pas polluer la console
 - Le middleware d'authentification (`auth.middleware.js`) crée un utilisateur mock en développement si la table `User` est manquante (lignes 60-69)
 
+**Améliorations apportées** (2025-01-XX) :
+- ✅ **`preferences.controller.js`** : Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `UserCustomization` manquante)
+  - Retourne maintenant les valeurs par défaut si la table n'existe pas en mode développement
+  - Gestion des erreurs lors de la création de la customization si la table est manquante
+- ✅ **`user.controller.js`** : Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `User` manquante)
+  - Retourne l'utilisateur connecté si la table `User` est manquante et que l'ID correspond à l'utilisateur connecté
+  - Gestion des erreurs Prisma P2021 à tous les niveaux (findUnique, create, update)
+- ✅ **`auth.controller.js`** : Fallbacks déjà présents pour `getAllUsers` et `getActiveSessions` (lignes 410-432 et 990-1008)
+
 **Routes backend existantes** (dans `auth-service`) :
 - ✅ `GET /api/v1/auth/users` → `authController.getAllUsers` (ligne 57 de `auth.routes.js`)
 - ✅ `GET /api/v1/auth/users/:id` → `userController.getUserById` (ligne 21 de `user.routes.js`)
@@ -366,6 +375,41 @@ app.use(wafCheck);
 ---
 
 ## ✅ TERMINÉ - Réalisations (Du Plus Récent au Plus Ancien)
+
+### 🎉 Amélioration Fallbacks Prisma P2021 - TERMINÉ (2025-01-XX)
+
+**Statut** : ✅ **TERMINÉ** - Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `User` ou `UserCustomization` manquante).
+
+**Problème résolu** :
+- Les contrôleurs `preferences.controller.js` et `user.controller.js` ne géraient pas correctement les erreurs Prisma P2021
+- Les erreurs 500 persistaient même avec les fallbacks existants dans `auth.controller.js`
+
+**Améliorations apportées** :
+- ✅ **`preferences.controller.js`** : 
+  - Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `UserCustomization` manquante)
+  - Retourne maintenant les valeurs par défaut si la table n'existe pas en mode développement
+  - Gestion des erreurs lors de la création de la customization si la table est manquante
+  - Double niveau de fallback : lors de la recherche ET lors de la création
+- ✅ **`user.controller.js`** : 
+  - Amélioration des fallbacks pour gérer les erreurs Prisma P2021 (table `User` manquante)
+  - Retourne l'utilisateur connecté si la table `User` est manquante et que l'ID correspond à l'utilisateur connecté
+  - Gestion des erreurs Prisma P2021 à tous les niveaux (findUnique, create, update)
+- ✅ **`auth.controller.js`** : 
+  - Fallbacks déjà présents pour `getAllUsers` et `getActiveSessions` (lignes 410-432 et 990-1008)
+  - Ces fallbacks fonctionnent correctement
+
+**Fichiers modifiés** :
+- `backend/auth-service/src/controllers/preferences.controller.js`
+- `backend/auth-service/src/controllers/user.controller.js`
+
+**Impact** :
+- Les erreurs 500 pour `/api/v1/preferences` sont maintenant gérées avec des valeurs par défaut en mode développement
+- Les erreurs 500 pour `/api/v1/auth/users/:id` sont maintenant gérées avec l'utilisateur connecté si l'ID correspond
+- Les erreurs 500 pour `/api/v1/auth/users` et `/api/v1/auth/sessions/active` sont déjà gérées par les fallbacks existants
+
+**Note** : La solution principale reste `make db-push-all` pour créer les tables dans la base de données. Les fallbacks permettent de continuer le développement même si les tables sont manquantes.
+
+---
 
 ### 🎉 Page de Profil Utilisateur - TERMINÉ (24/11/2025)
 
