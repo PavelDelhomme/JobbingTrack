@@ -114,6 +114,8 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [metricsHistory, setMetricsHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [lastHistoryTimestamp, setLastHistoryTimestamp] = useState<number | null>(null);
+  const [initialHistoryLoaded, setInitialHistoryLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [selectedService, setSelectedService] = useState<ServiceMetrics | null>(null);
   const [serviceLogs, setServiceLogs] = useState<Array<{ timestamp: string; level: string; message: string }>>([]);
@@ -277,25 +279,65 @@ export default function AnalyticsPage() {
     };
   }, [analyticsRefreshInterval]);
 
-  // Charger l'historique des métriques
+  // Charger l'historique des métriques (chargement initial complet, puis incrémental)
   useEffect(() => {
     let mounted = true;
 
-    const loadHistory = async () => {
+    const loadHistory = async (isInitialLoad: boolean = false) => {
       try {
         setLoadingHistory(true);
         const timeRangeMs = getTimeRangeMs();
         const endTime = Date.now();
         const startTime = endTime - timeRangeMs;
 
-        const history = await centralMetricsService.getMetricsHistory({
-          limit: 1000,
-          startTime,
-          endTime
-        });
+        // Si c'est le chargement initial ou si le timeRange a changé, charger tout l'historique
+        if (isInitialLoad || !initialHistoryLoaded || !lastHistoryTimestamp) {
+          const history = await centralMetricsService.getMetricsHistory({
+            limit: 1000,
+            startTime,
+            endTime
+          });
 
-        if (mounted && history && Array.isArray(history)) {
-          setMetricsHistory(history);
+          if (mounted && history && Array.isArray(history) && history.length > 0) {
+            // Trier par timestamp et stocker le dernier timestamp
+            const sortedHistory = [...history].sort((a, b) => 
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+            setMetricsHistory(sortedHistory);
+            
+            // Stocker le dernier timestamp pour les chargements incrémentaux
+            const lastTimestamp = new Date(sortedHistory[sortedHistory.length - 1].timestamp).getTime();
+            setLastHistoryTimestamp(lastTimestamp);
+            setInitialHistoryLoaded(true);
+          }
+        } else {
+          // Chargement incrémental : seulement les nouvelles données depuis le dernier timestamp
+          const incrementalHistory = await centralMetricsService.getMetricsHistory({
+            limit: 100, // Limiter à 100 nouvelles entrées max
+            startTime: lastHistoryTimestamp! + 1, // +1 pour éviter les doublons
+            endTime
+          });
+
+          if (mounted && incrementalHistory && Array.isArray(incrementalHistory) && incrementalHistory.length > 0) {
+            // Fusionner avec l'historique existant et trier
+            setMetricsHistory(prev => {
+              const merged = [...prev, ...incrementalHistory];
+              // Trier par timestamp
+              const sorted = merged.sort((a, b) => 
+                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+              
+              // Limiter à 1000 points max pour éviter la surcharge mémoire
+              // Garder les points les plus récents
+              const limited = sorted.slice(-1000);
+              
+              // Mettre à jour le dernier timestamp
+              const lastTimestamp = new Date(limited[limited.length - 1].timestamp).getTime();
+              setLastHistoryTimestamp(lastTimestamp);
+              
+              return limited;
+            });
+          }
         }
       } catch (error) {
         console.error('Erreur chargement historique:', error);
@@ -304,14 +346,19 @@ export default function AnalyticsPage() {
       }
     };
 
-    loadHistory();
-    const interval = setInterval(loadHistory, metricsRefreshInterval); // ⚡ Rafraîchir selon les préférences utilisateur
+    // Chargement initial complet
+    loadHistory(true);
+    
+    // Ensuite, chargement incrémental périodique
+    const interval = setInterval(() => {
+      loadHistory(false);
+    }, metricsRefreshInterval);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [timeRange, metricsRefreshInterval]);
+  }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp]);
 
   // Charger les logs agrégés (erreurs récentes)
   const loadAggregatedLogs = async () => {
@@ -384,7 +431,7 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Préparer les données pour les graphiques
+  // Préparer les données pour les graphiques (avec limitation pour éviter la surcharge)
   const chartData = useMemo(() => {
     if (!metricsHistory || metricsHistory.length === 0) return [];
     
@@ -393,7 +440,22 @@ export default function AnalyticsPage() {
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     
-    return sortedHistory.map((item: any) => ({
+    // Limiter le nombre de points selon la plage de temps pour optimiser les performances
+    // Plus la plage est grande, plus on peut avoir de points, mais avec une limite max
+    const maxPoints = timeRange === '1h' ? 60 : 
+                      timeRange === '6h' ? 180 : 
+                      timeRange === '24h' ? 288 : 
+                      timeRange === '7d' ? 336 : 720; // 30d
+    
+    // Si on a trop de points, on les sous-échantillonne intelligemment
+    let dataToUse = sortedHistory;
+    if (sortedHistory.length > maxPoints) {
+      // Prendre un point tous les N points pour garder une représentation équilibrée
+      const step = Math.ceil(sortedHistory.length / maxPoints);
+      dataToUse = sortedHistory.filter((_, index) => index % step === 0 || index === sortedHistory.length - 1);
+    }
+    
+    return dataToUse.map((item: any) => ({
       time: formatTimestamp(item.timestamp, timeRange),
       cpu: toNumber(item.cpu_percent, 0),
       memory: toNumber(item.memory_percent, 0),
@@ -1680,7 +1742,7 @@ function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory }: any)
         </div>
       )}
 
-      {loadingHistory && (
+      {loadingHistory && !initialHistoryLoaded && (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de l'historique...</p>
