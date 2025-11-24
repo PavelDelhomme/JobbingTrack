@@ -30,6 +30,7 @@ interface EmailStats {
     sent: number
     failed: number
     pending: number
+    bounced?: number
     successRate: number
   }
   recent: {
@@ -37,10 +38,25 @@ interface EmailStats {
     total: number
     sent: number
     failed: number
+    pending?: number
+    bounced?: number
     successRate: number
+    deliveryRate?: number
+    evolution?: number
   }
   byType: Array<{ type: string; count: number }>
   byStatus: Array<{ status: string; count: number }>
+  dailyStats?: Array<{
+    date: string
+    total: number
+    sent: number
+    failed: number
+    pending: number
+  }>
+  topRecipients?: Array<{
+    email: string
+    count: number
+  }>
 }
 
 export default function EmailsPage() {
@@ -53,14 +69,29 @@ export default function EmailsPage() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token')
+      if (!token) {
+        console.warn('⚠️ Aucun token trouvé, impossible de récupérer les statistiques')
+        setLoading(false)
+        return
+      }
+
       const response = await axios.get(`${API_URL}/api/v1/emails/stats?days=30`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      
       if (response.data.success) {
         setStats(response.data.data)
+      } else {
+        console.error('Erreur récupération stats:', response.data.error)
       }
     } catch (error: any) {
       console.error('Erreur récupération stats:', error)
+      // Si erreur 401/403, le token est invalide ou expiré
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.warn('Token invalide ou expiré, redirection vers la page de connexion...')
+        // Optionnel: rediriger vers la page de connexion
+        // window.location.href = '/login'
+      }
     } finally {
       setLoading(false)
     }
@@ -97,7 +128,7 @@ export default function EmailsPage() {
       )
 
       if (response.data.success) {
-        setSendResult({ success: true, message: 'Email de test envoyé avec succès !' })
+        setSendResult({ success: true, message: `Email de test envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
         setTestEmail({ to: '', subject: 'Test Email - JobbingTrack', content: '' })
         // Rafraîchir les stats
         setTimeout(fetchStats, 1000)
@@ -135,7 +166,7 @@ export default function EmailsPage() {
       )
 
       if (response.data.success) {
-        setSendResult({ success: true, message: 'Email de réinitialisation de mot de passe envoyé !' })
+        setSendResult({ success: true, message: `Email de réinitialisation de mot de passe envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
         setTimeout(fetchStats, 1000)
       } else {
         setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
@@ -248,11 +279,16 @@ export default function EmailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
-                Statistiques des 30 derniers jours
+                Statistiques des {stats.recent.days} derniers jours
+                {stats.recent.evolution !== undefined && (
+                  <Badge variant={stats.recent.evolution >= 0 ? "default" : "destructive"} className="ml-2">
+                    {stats.recent.evolution >= 0 ? '+' : ''}{stats.recent.evolution}%
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
                   <p className="text-2xl font-bold">{stats.recent.total}</p>
@@ -265,10 +301,53 @@ export default function EmailsPage() {
                   <p className="text-sm text-muted-foreground">Échoués</p>
                   <p className="text-2xl font-bold text-red-600">{stats.recent.failed}</p>
                 </div>
+                {stats.recent.bounced !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Rejetés</p>
+                    <p className="text-2xl font-bold text-orange-600">{stats.recent.bounced}</p>
+                  </div>
+                )}
+                {stats.recent.pending !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">En attente</p>
+                    <p className="text-2xl font-bold text-yellow-600">{stats.recent.pending}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground">Taux de succès</p>
                   <p className="text-2xl font-bold">{stats.recent.successRate}%</p>
                 </div>
+                {stats.recent.deliveryRate !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Taux de livraison</p>
+                    <p className="text-2xl font-bold">{stats.recent.deliveryRate}%</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Top Destinataires */}
+        {stats && stats.topRecipients && stats.topRecipients.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Top 10 Destinataires ({stats.recent.days} derniers jours)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {stats.topRecipients.map((recipient, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 border rounded">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                      <span className="text-sm">{recipient.email}</span>
+                    </div>
+                    <Badge variant="outline">{recipient.count} email{recipient.count > 1 ? 's' : ''}</Badge>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

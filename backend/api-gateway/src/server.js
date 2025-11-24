@@ -531,18 +531,48 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
         method: req.method,
         url: targetUrl,
         data: req.body,
-        headers: req.headers,
-        timeout: 5000,
+        headers: {
+          ...req.headers,
+          'X-Forwarded-For': req.ip,
+          'X-Forwarded-Proto': req.protocol,
+          'X-Forwarded-Host': req.get('host')
+        },
+        timeout: 30000, // Augmenter le timeout à 30 secondes pour les tests DNS
         validateStatus: () => true
       });
 
-      Object.keys(response.headers).forEach(key => {
-        res.set(key, response.headers[key]);
-      });
+      // Ne pas copier tous les headers (peut causer des problèmes)
+      // Copier seulement les headers nécessaires
+      if (response.headers['content-type']) {
+        res.set('Content-Type', response.headers['content-type']);
+      }
 
+      // Transmettre le statut et les données
       res.status(response.status).json(response.data);
     } catch (error) {
-      logger.error(`Error proxying ${path}:`, error.message);
+      logger.error(`Error proxying ${path}:`, {
+        message: error.message,
+        code: error.code,
+        url: targetUrl,
+        method: req.method
+      });
+      
+      // En développement, retourner une erreur claire au lieu d'un fallback
+      if (process.env.NODE_ENV === 'development') {
+        return res.status(503).json({
+          success: false,
+          error: `Service ${path} non disponible`,
+          message: `Impossible de joindre le service ${serviceName} à l'adresse ${target}`,
+          details: {
+            error: error.message,
+            code: error.code,
+            targetUrl,
+            suggestion: `Vérifiez que le service ${serviceName} est démarré avec "make start-service SERVICE=${serviceName}"`
+          }
+        });
+      }
+      
+      // En production, retourner un fallback
       res.status(200).json({
         success: true,
         data: [],

@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service logs-service status logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service rebuild-service start-service up-service logs-service status logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -635,16 +635,22 @@ start-applications: ## Démarrer le service d'applications
 
 # Démarrer un service spécifique
 up-service: ## Démarrer un service spécifique (SERVICE=nom)
+start-service: ## Alias pour up-service - Démarrer un service spécifique (SERVICE=nom)
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
 		echo "📋 Exemples:"; \
-		echo "   make up-service SERVICE=api-gateway    # API Gateway"; \
-		echo "   make up-service SERVICE=auth-service  # Service d'authentification"; \
-		echo "   make up-service SERVICE=frontend       # Frontend"; \
+		echo "   make start-service SERVICE=api-gateway    # API Gateway"; \
+		echo "   make start-service SERVICE=auth-service  # Service d'authentification"; \
+		echo "   make start-service SERVICE=frontend       # Frontend"; \
 		exit 1; \
 	fi
 	@echo "🚀 Démarrage du service: $(SERVICE)"
-	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d $(SERVICE))
+	@(cd $(ROOT_DIR); \
+	if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+		docker compose $(COMPOSE_FILES_FULL) up -d $(SERVICE); \
+	else \
+		docker-compose $(COMPOSE_FILES_FULL) up -d $(SERVICE); \
+	fi)
 	@echo "⏳ Attente que le service démarre (3 secondes)..."
 	@sleep 3
 	@echo "✅ Service $(SERVICE) démarré"
@@ -680,17 +686,54 @@ rebuild-service: ## Reconstruire un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🔨 Reconstruction du service: $(SERVICE)"
-	@echo "🛑 Arrêt du service..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) stop $(SERVICE) || true)
+	@# Vérifier si le service est démarré
+	@container_name="jobbingtrack-$(SERVICE)"; \
+	if [ "$(SERVICE)" = "metrics-aggregator" ]; then \
+		container_name="jobbingtrack-metrics-aggregator"; \
+	fi; \
+	if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container_name$$"; then \
+		echo "🛑 Arrêt du service en cours d'exécution..."; \
+		(cd $(ROOT_DIR); \
+		if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+			docker compose $(COMPOSE_FILES_FULL) stop $(SERVICE) || true; \
+		else \
+			docker-compose $(COMPOSE_FILES_FULL) stop $(SERVICE) || true; \
+		fi); \
+	else \
+		echo "ℹ️  Service $(SERVICE) n'est pas démarré (normal pour rebuild)"; \
+	fi
 	@echo "🗑️  Suppression de l'ancienne image..."
-	@docker rmi jobbingtrack-$(SERVICE) 2>/dev/null || echo "⚠️  Image non trouvée (normal)"
+	@container_name="jobbingtrack-$(SERVICE)"; \
+	if [ "$(SERVICE)" = "metrics-aggregator" ]; then \
+		container_name="jobbingtrack-metrics-aggregator"; \
+	fi; \
+	docker rmi $$container_name 2>/dev/null || echo "⚠️  Image non trouvée (normal)"
 	@echo "🔨 Build en cours..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) build --no-cache $(SERVICE))
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+		cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_FULL) build --no-cache $(SERVICE); \
+	else \
+		cd $(ROOT_DIR) && docker-compose $(COMPOSE_FILES_FULL) build --no-cache $(SERVICE); \
+	fi
 	@echo "🚀 Démarrage du service..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d $(SERVICE))
+	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+		cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_FULL) up -d $(SERVICE); \
+	else \
+		cd $(ROOT_DIR) && docker-compose $(COMPOSE_FILES_FULL) up -d $(SERVICE); \
+	fi
 	@echo "⏳ Attente que le service démarre (5 secondes)..."
 	@sleep 5
-	@echo "✅ Service $(SERVICE) reconstruit et redémarré"
+	@# Vérifier que le service est bien démarré
+	@container_name="jobbingtrack-$(SERVICE)"; \
+	if [ "$(SERVICE)" = "metrics-aggregator" ]; then \
+		container_name="jobbingtrack-metrics-aggregator"; \
+	fi; \
+	if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container_name$$"; then \
+		echo "✅ Service $(SERVICE) reconstruit et démarré avec succès"; \
+	else \
+		echo "⚠️  Service $(SERVICE) reconstruit mais n'est pas démarré"; \
+		echo "💡 Essayez de le démarrer manuellement: make start-service SERVICE=$(SERVICE)"; \
+	fi
+	@echo "💡 Vérifiez le statut avec: make status"
 
 # Logs d'un service spécifique
 logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)

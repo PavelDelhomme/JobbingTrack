@@ -853,3 +853,21 @@ enum EmailStatus {
   FAILED
   BOUNCED
 }
+
+// Templates d'emails personnalisables
+model EmailTemplate {
+  id          String    @id @default(cuid())
+  type        EmailType @unique // WELCOME, VERIFICATION, RESET_PASSWORD, etc.
+  name        String    // Nom du template
+  subject     String    // Sujet de l'email (peut contenir des variables {{variableName}})
+  htmlContent String    @db.Text // Contenu HTML du template
+  textContent String?   @db.Text // Contenu texte du template (optionnel)
+  variables   String[]  // Variables détectées automatiquement (ex: ["firstName", "lastName", "resetUrl"])
+  isActive    Boolean   @default(true) // Si le template est actif (utilisé) ou non
+  version     Int       @default(1) // Version du template pour tracking
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([type])
+  @@index([isActive])
+}

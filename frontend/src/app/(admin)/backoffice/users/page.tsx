@@ -41,18 +41,57 @@ export default function UsersManagementPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      
+      if (!token) {
+        console.warn('[USERS] ⚠️ Aucun token trouvé, impossible de charger les utilisateurs');
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
       // Essayer d'abord /api/v1/auth/users, puis /api/v1/users en fallback
       let response;
       try {
         response = await axios.get(`${API_URL}/api/v1/auth/users`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
         });
-      } catch (error) {
-        // Fallback vers /api/v1/users si /api/v1/auth/users échoue
-        console.warn('Tentative avec /api/v1/users...');
-        response = await axios.get(`${API_URL}/api/v1/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+      } catch (error: any) {
+        // Si erreur réseau, essayer le fallback
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          console.warn('[USERS] Tentative avec /api/v1/users...');
+          try {
+            response = await axios.get(`${API_URL}/api/v1/users`, {
+              headers: { Authorization: `Bearer ${token}` },
+              validateStatus: (status) => status < 500
+            });
+          } catch (fallbackError: any) {
+            throw fallbackError;
+          }
+        } else {
+          throw error;
+        }
+      }
+      
+      // Gérer les erreurs d'authentification
+      if (response.status === 401 || response.status === 403) {
+        console.warn(`[USERS] ⚠️ Erreur d'authentification (${response.status}):`, response.data.error);
+        // Si token invalide, essayer de recharger le token ou rediriger vers login
+        if (response.status === 401) {
+          console.warn('[USERS] Token invalide ou expiré, redirection vers la page de connexion...');
+          // Optionnel: window.location.href = '/login'
+        }
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Gérer les erreurs 404
+      if (response.status === 404) {
+        console.warn('[USERS] ⚠️ Route non trouvée (404), vérification du service...');
+        setUsers([]);
+        setLoading(false);
+        return;
       }
       
       if (response.data.success) {
@@ -68,6 +107,11 @@ export default function UsersManagementPage() {
       if (error.response) {
         console.error('[USERS] Status:', error.response.status);
         console.error('[USERS] Data:', error.response.data);
+        
+        // Si erreur 401/403, le token est invalide
+        if (error.response.status === 401 || error.response.status === 403) {
+          console.warn('[USERS] Token invalide ou expiré');
+        }
       }
       setUsers([]);
     } finally {

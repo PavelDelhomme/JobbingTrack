@@ -162,7 +162,11 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
-      - FRONTEND_URL=${FRONTEND_URL}
+      - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
+      - APP_URL=${APP_URL:-http://localhost:8080}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
     networks:

@@ -161,7 +161,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ]
         },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
-        { name: 'Mon Profil', icon: '👤', onClick: () => setIsProfileOpen(true) },
       ]
     },
     {
