@@ -9,7 +9,6 @@ import Breadcrumb from './Breadcrumb'
 import { GlobalSearch } from './GlobalSearch'
 import { OfflineActions } from './OfflineActions'
 import { SettingsPopup } from './SettingsPopup'
-import { ProfilePopup } from './ProfilePopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
 import { TrendingUp, Database, Activity, Server } from 'lucide-react'
 
@@ -40,7 +39,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
-  const [isProfileOpen, setIsProfileOpen] = useState(false) // ✅ État pour la popup du profil
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false) // ✅ État pour le dropdown du thème
   const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false) // ✅ État pour le dropdown des actions rapides
@@ -431,9 +429,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <button
-                  onClick={() => setIsProfileOpen(true)}
-                  className="flex items-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-                  title="Ouvrir le profil"
+                  onClick={() => {
+                    if (user?.id) {
+                      router.push(`/backoffice/users/${user.id}`)
+                    }
+                  }}
+                  className="flex items-center hover:bg-gray-800 rounded-lg p-2 transition-colors cursor-pointer"
+                  title="Voir le profil"
                 >
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -684,17 +686,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onClose={() => setIsSettingsOpen(false)}
       />
 
-      {/* Popup du profil utilisateur */}
-      <ProfilePopup
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-      />
-
       {/* Menu rapide utilisateur */}
       <QuickMenuPopup
         isOpen={isQuickMenuOpen}
         onClose={() => setIsQuickMenuOpen(false)}
-        onSelectProfile={() => setIsProfileOpen(true)}
+        onSelectProfile={() => {
+          if (user?.id) {
+            router.push(`/backoffice/users/${user.id}`)
+          }
+          setIsQuickMenuOpen(false)
+        }}
         onSelectSettings={() => setIsSettingsOpen(true)}
       />
     </div>
