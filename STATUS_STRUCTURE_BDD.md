@@ -284,19 +284,160 @@
 
 ---
 
-**📝 Structure Souhaitée de la Base de Données** (À compléter par l'utilisateur) :
+**📝 Structure Souhaitée de la Base de Données** (Spécifications utilisateur) :
 
-> **Note** : Cette section est réservée pour documenter la structure de base de données souhaitée et les améliorations futures.
+> **Note** : Cette section documente la structure de base de données souhaitée pour la partie applicative (non administrative).
 
-```
-[À compléter - Décrire ici la structure souhaitée de la base de données]
+### 📋 Modèles Requis pour la Partie Applicative
 
-Exemple de format :
-- Modèles à ajouter
-- Relations à modifier
-- Enums à créer
-- Index à optimiser
-- Contraintes à ajouter
-- etc.
-```
+Les modèles suivants doivent être présents pour la gestion des données applicatives :
 
+#### Modèles Principaux :
+- ✅ **Application** (Candidature) - Déjà présent
+- ✅ **Company** (Entreprise) - Déjà présent
+- ✅ **Contact** - Déjà présent
+- ✅ **Interview** (Entretien) - Déjà présent
+- ✅ **Call** (Appel) - Déjà présent
+- ✅ **FollowUp** (Relance) - Déjà présent
+- ✅ **Platform** (Plateforme de candidature) - Déjà présent
+
+#### Modèles de Configuration :
+- ✅ **CallType** (Types d'appel) - Déjà présent
+- ✅ **InterviewType** (Types d'entretien) - Déjà présent
+- ⚠️ **PlatformType** - **À AJOUTER** (nouveau modèle pour types de plateformes)
+
+#### Statuts et États :
+- ✅ **ApplicationStatus** (Enum) - Déjà présent
+- ✅ **InterviewStatus** (Enum) - Déjà présent
+- ✅ **FollowUpStatus** (Enum) - Déjà présent
+
+### 🎯 Système de Statuts Personnalisables par Utilisateur
+
+**Spécification importante** : Les statuts doivent pouvoir être définis à deux niveaux :
+
+1. **Statuts par défaut (système)** :
+   - Définis initialement par le système
+   - Disponibles pour tous les utilisateurs
+   - Non modifiables par les utilisateurs
+   - Identifiés par `userId = null` ou `isPredefined = true`
+
+2. **Statuts personnalisés (utilisateur)** :
+   - Définis par chaque utilisateur individuellement
+   - Uniques à chaque utilisateur
+   - Modifiables et supprimables par l'utilisateur qui les a créés
+   - Identifiés par `userId` spécifique et `isPredefined = false`
+
+#### Modèles à Modifier/Créer :
+
+##### 1. **ApplicationStatus** (Enum → Modèle)
+- **Transformation** : Convertir l'enum `ApplicationStatus` en modèle `ApplicationStatus` (table)
+- **Champs** :
+  - `id` (String, @id)
+  - `userId` (String?, nullable pour statuts système)
+  - `name` (String) - Nom du statut
+  - `code` (String) - Code unique (ex: "CANDIDATE_PENDING")
+  - `description` (String?) - Description du statut
+  - `color` (String?) - Couleur d'affichage
+  - `icon` (String?) - Icône
+  - `order` (Int) - Ordre d'affichage
+  - `isPredefined` (Boolean, @default(false)) - Statut système ou utilisateur
+  - `isActive` (Boolean, @default(true)) - Statut actif ou non
+  - `createdAt` (DateTime, @default(now()))
+  - `updatedAt` (DateTime, @updatedAt)
+- **Contraintes** :
+  - `@@unique([userId, code])` - Code unique par utilisateur
+  - `@@unique([userId, name])` - Nom unique par utilisateur
+- **Relations** :
+  - ← `User` (N:1, optionnel)
+  - → `Application[]` (1:N)
+
+##### 2. **InterviewStatus** (Enum → Modèle)
+- **Transformation** : Convertir l'enum `InterviewStatus` en modèle `InterviewStatus` (table)
+- **Champs** : Similaires à `ApplicationStatus`
+- **Relations** :
+  - ← `User` (N:1, optionnel)
+  - → `Interview[]` (1:N)
+
+##### 3. **FollowUpStatus** (Enum → Modèle)
+- **Transformation** : Convertir l'enum `FollowUpStatus` en modèle `FollowUpStatus` (table)
+- **Champs** : Similaires à `ApplicationStatus`
+- **Relations** :
+  - ← `User` (N:1, optionnel)
+  - → `FollowUp[]` (1:N)
+
+##### 4. **PlatformType** (Nouveau Modèle)
+- **Champs** :
+  - `id` (String, @id)
+  - `userId` (String?, nullable pour types système)
+  - `name` (String) - Nom du type (ex: "Réseau social", "Site emploi", "Cabinet recrutement")
+  - `description` (String?) - Description
+  - `icon` (String?) - Icône
+  - `isPredefined` (Boolean, @default(false))
+  - `createdAt` (DateTime, @default(now()))
+  - `updatedAt` (DateTime, @updatedAt)
+- **Contraintes** :
+  - `@@unique([userId, name])`
+- **Relations** :
+  - ← `User` (N:1, optionnel)
+  - → `Platform[]` (1:N) - Relation avec Platform pour catégoriser les plateformes
+
+##### 5. **Modifications aux Modèles Existants** :
+
+**Application** :
+- Modifier `status` : `ApplicationStatus` (enum) → `applicationStatusId` (String, FK vers `ApplicationStatus`)
+- Relation : ← `ApplicationStatus` (N:1)
+
+**Interview** :
+- Modifier `status` : `InterviewStatus` (enum) → `interviewStatusId` (String, FK vers `InterviewStatus`)
+- Relation : ← `InterviewStatus` (N:1)
+
+**FollowUp** :
+- Modifier `status` : `FollowUpStatus` (enum) → `followUpStatusId` (String, FK vers `FollowUpStatus`)
+- Relation : ← `FollowUpStatus` (N:1)
+
+**Platform** :
+- Ajouter `platformTypeId` (String?, FK vers `PlatformType`)
+- Relation : ← `PlatformType` (N:1, optionnel)
+
+### 📊 Résumé des Modifications Nécessaires
+
+**Modèles à créer** :
+- ✅ `ApplicationStatus` (table) - Conversion depuis enum
+- ✅ `InterviewStatus` (table) - Conversion depuis enum
+- ✅ `FollowUpStatus` (table) - Conversion depuis enum
+- ✅ `PlatformType` (table) - Nouveau modèle
+
+**Modèles à modifier** :
+- ✅ `Application` - Remplacer enum par FK vers `ApplicationStatus`
+- ✅ `Interview` - Remplacer enum par FK vers `InterviewStatus`
+- ✅ `FollowUp` - Remplacer enum par FK vers `FollowUpStatus`
+- ✅ `Platform` - Ajouter FK vers `PlatformType`
+
+**Enums à supprimer** :
+- ❌ `ApplicationStatus` (enum) → Remplacé par modèle
+- ❌ `InterviewStatus` (enum) → Remplacé par modèle
+- ❌ `FollowUpStatus` (enum) → Remplacé par modèle
+
+**Fonctionnalités requises** :
+- ✅ Système de statuts par défaut (système) avec `userId = null` ou `isPredefined = true`
+- ✅ Système de statuts personnalisés par utilisateur avec `userId` spécifique
+- ✅ Gestion CRUD des statuts personnalisés par utilisateur
+- ✅ Interface utilisateur pour créer/modifier/supprimer ses statuts personnalisés
+- ✅ Migration des données existantes (enum → table avec statuts système)
+Je dois avoir les élément suivant concernant au moins la partie applicative et non administrative des données
+a savoir je dois avoir normalement efectivement les modèle suivant : 
+- Application
+- Company
+- Contact
+- Interview
+- Call
+- CallType
+- InterviewType
+- InterviewStatus
+- ApplicationStatus
+- FollowUp
+- FollowUp Status
+- Platform
+- PlatformType
+
+Il faut donc avoir la possibilité de définir des status par défaut (système définit initialement), et des status que l'utilisateur aura définit cela sera relier et définit uniquement pour cette utilisateur
