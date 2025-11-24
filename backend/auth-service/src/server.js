@@ -84,8 +84,10 @@ app.use('/api/v1/emails/templates', templateRoutes);
 logger.info('✅ Route /api/v1/emails enregistrée');
 logger.info('✅ Route /api/v1/emails/templates enregistrée');
 
-// Routes sans préfixe
-app.use('/', authRoutes);
+// Routes sans préfixe (doit être APRÈS les routes spécifiques pour éviter les conflits)
+// Cette route ne doit intercepter que les routes qui ne commencent pas par /api/v1
+// ⚠️ DÉSACTIVÉ car intercepte toutes les requêtes, y compris /api/v1/emails/*
+// app.use('/', authRoutes);
 
 // ✅ Endpoint Prometheus metrics pour l'Auth Service
 app.get('/metrics', async (req, res) => {

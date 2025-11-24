@@ -173,27 +173,40 @@
 
 ---
 
-#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/stats` et `/api/v1/preferences`
+#### 0. Routes API - Erreurs 404 sur `/api/v1/emails/*` et `/api/v1/preferences`
 
 **Statut** : 🟡 **EN COURS** - Les routes retournent 404 malgré leur existence dans le code.
 
 **Problèmes identifiés** :
 - ❌ `GET /api/v1/emails/stats?days=30` → 404 (Not Found) - **Page Dashboard Emails**
+- ❌ `GET /api/v1/emails/logs?page=1&limit=50` → 404 (Not Found) - **Page Historique Emails**
+- ❌ `GET /api/v1/emails/test-dns?domain=maily.ovh` → 404 (Not Found) - **Page Déliverabilité**
+- ❌ `GET /api/v1/emails/test-smtp` → 404 (Not Found) - **Page Configuration SMTP**
+- ❌ `POST /api/v1/emails/test` → 404 (Not Found) - **Page Déliverabilité**
+- ❌ `GET /api/v1/emails/templates` → 404 (Not Found) - **Page Templates**
 - ❌ `GET /api/v1/preferences` → 404 (Not Found) - **Page Paramètres (popup)**
 - ❌ `GET /api/v1/auth/users/dev_user_1` → 404 (Not Found) - **Page Profil Utilisateur**
 
-**Causes possibles** :
-1. **Token JWT contient un ID utilisateur invalide** (`dev_user_1`) - Le token doit contenir un ID utilisateur réel de la base de données
-2. **Service `auth-service` non démarré** - Vérifier avec `make status` ou `docker-compose ps` (✅ Services démarrés)
-3. **API Gateway ne route pas correctement** - Vérifier les logs de l'API Gateway
-4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js` (✅ Routes montées)
+**Causes identifiées** :
+1. ✅ **Route `/api/v1/emails/health` fonctionne** - Les routes sont bien montées
+2. ❌ **Route `app.use('/', authRoutes)` dans `server.js` ligne 89** - DÉSACTIVÉE car interceptait toutes les requêtes
+3. ⚠️ **Middleware `authenticate` bloque les requêtes** - Retourne 401 si token manquant, mais les logs montrent 404
+4. ⚠️ **Token JWT contient un ID utilisateur invalide** (`dev_user_1`) - Le token doit contenir un ID utilisateur réel de la base de données
+
+**Actions effectuées** :
+- ✅ Désactivation de `app.use('/', authRoutes)` dans `server.js` ligne 89 (commentée)
+- ✅ Redémarrage de `auth-service` pour appliquer les changements
+- ✅ Vérification que les routes sont bien montées (✅ Routes montées)
 
 **Actions à faire** :
 - [ ] Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
 - [ ] Si le token contient `dev_user_1`, créer un utilisateur réel dans la base de données et se reconnecter
-- [ ] Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50`
-- [ ] Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50`
-- [ ] Tester les routes directement : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats`
+- [ ] Tester les routes avec un token valide : `curl -H "Authorization: Bearer <token>" http://localhost:3000/api/v1/emails/stats`
+- [ ] Vérifier les logs de `auth-service` pour voir si le middleware `authenticate` bloque correctement : `docker-compose logs auth-service | grep -E "authenticate|401|404" | tail -20`
+- [ ] Si le middleware retourne 401, vérifier que le frontend envoie bien le token dans les headers
+
+**Fichiers modifiés** :
+- `backend/auth-service/src/server.js` (ligne 89) - Route `app.use('/', authRoutes)` désactivée
 
 **Fichiers à vérifier** :
 - `backend/api-gateway/src/server.js` (lignes 497-500) ✅ Routes configurées
@@ -203,10 +216,14 @@
 - `backend/auth-service/src/middlewares/auth.middleware.js` (extraction userId du token)
 
 **Solution probable** :
-Le token JWT actuel contient `userId: 'dev_user_1'` qui n'existe pas dans la base de données. Il faut :
-1. Se déconnecter et se reconnecter pour obtenir un nouveau token avec un ID utilisateur valide
-2. Ou créer un utilisateur avec l'ID `dev_user_1` dans la base de données
-3. Ou modifier le token JWT pour utiliser un ID utilisateur réel
+1. **Le token JWT actuel contient `userId: 'dev_user_1'`** qui n'existe pas dans la base de données
+2. **Le middleware `authenticate` bloque les requêtes** et retourne 401, mais le frontend voit 404
+3. **Il faut se déconnecter et se reconnecter** pour obtenir un nouveau token avec un ID utilisateur valide
+4. **Ou créer un utilisateur avec l'ID `dev_user_1`** dans la base de données
+5. **Ou modifier le token JWT** pour utiliser un ID utilisateur réel
+
+**Note importante** :
+Les tests d'email (SMTP, DNS) doivent être effectués avec l'utilisateur connecté (`admin@jobbingtrack.test`). Le système utilise les informations de l'utilisateur connecté pour les tests, pas un utilisateur séparé.
 
 ---
 
