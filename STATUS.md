@@ -36,7 +36,7 @@
 4. **Routes non montées correctement** - Vérifier que les routes sont bien montées dans `auth-service/src/server.js`
 
 **Actions à faire** :
-- [ ] Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
+- [x] Vérifier que `auth-service` est démarré : `docker-compose ps | grep auth-service`
 - [ ] Vérifier les logs de l'API Gateway : `docker-compose logs api-gateway | tail -50`
 - [ ] Vérifier les logs de `auth-service` : `docker-compose logs auth-service | tail -50`
 - [ ] Vérifier que le token JWT contient un ID utilisateur valide (pas `dev_user_1`)
