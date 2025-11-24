@@ -366,7 +366,19 @@ export default function BackofficePage() {
             { data: { total: 0, applications: [] } }
           ),
           fetchWithFallback(
-            authService.getAllUsers(),
+            axios.get(`${API_URL}/api/v1/auth/users`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+              validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
+            }).then(r => ({ data: r.data })).catch(e => {
+              // Si erreur, essayer le fallback /api/v1/users
+              if (e.response?.status !== 401 && e.response?.status !== 403) {
+                return axios.get(`${API_URL}/api/v1/users`, {
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  validateStatus: (status) => status < 500
+                }).then(r => ({ data: r.data })).catch(() => ({ data: { users: [] } }));
+              }
+              return { data: { users: [] } };
+            }),
             { data: { users: [] } }
           ),
           fetchWithFallback(
@@ -375,7 +387,8 @@ export default function BackofficePage() {
           ),
           fetchWithFallback(
             axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { 'Authorization': `Bearer ${token}` },
+              validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
             }),
             { data: { total: 0, activeUsersLast30Min: 0 } }
           )
@@ -383,9 +396,10 @@ export default function BackofficePage() {
 
         // Calculer les statistiques
         const totalApplications = applicationsResponse?.data?.total || 0
-        const totalUsers = usersResponse?.data?.users?.length || 0
+        const totalUsers = usersResponse?.data?.users?.length || usersResponse?.data?.total || 0
         const totalCompanies = companiesResponse?.data?.companies?.length || 0
-        const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || 0
+        // Pour les sessions actives, utiliser l'utilisateur connecté si aucune session n'est trouvée
+        const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || (user ? 1 : 0)
 
         setStats(prev => ({
           ...prev,

@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import AdminLayout from '@/components/features/AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FileText, Mail, Eye, Edit, Save, X } from 'lucide-react'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 interface Template {
   type: string
@@ -21,8 +24,11 @@ export default function EmailTemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [editing, setEditing] = useState(false)
   const [editedContent, setEditedContent] = useState('')
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const templates: Template[] = [
+  // Templates par défaut (fallback)
+  const defaultTemplates: Template[] = [
     {
       type: 'WELCOME',
       name: 'Email de Bienvenue',
@@ -103,6 +109,42 @@ export default function EmailTemplatesPage() {
     }
   ]
 
+  // Charger les templates depuis l'API
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await axios.get(`${API_URL}/api/v1/emails/templates`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (response.data.success && response.data.data.length > 0) {
+          // Convertir les templates de la DB au format attendu
+          const dbTemplates = response.data.data.map((t: any) => ({
+            type: t.type,
+            name: t.name,
+            description: `Template ${t.name}`,
+            subject: t.subject,
+            html: t.htmlContent,
+            variables: t.variables || [],
+          }))
+          setTemplates(dbTemplates)
+        } else {
+          // Utiliser les templates par défaut
+          setTemplates(defaultTemplates)
+        }
+      } catch (error: any) {
+        console.error('Erreur chargement templates:', error)
+        // Utiliser les templates par défaut en cas d'erreur
+        setTemplates(defaultTemplates)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTemplates()
+  }, [])
+
   const handlePreview = (template: Template) => {
     setSelectedTemplate(template)
     setEditedContent(template.html)
@@ -115,10 +157,41 @@ export default function EmailTemplatesPage() {
     setEditing(true)
   }
 
-  const handleSave = () => {
-    // TODO: Sauvegarder le template modifié (nécessite backend)
-    alert('La sauvegarde des templates sera disponible prochainement. Les modifications doivent être faites dans le code backend.')
-    setEditing(false)
+  const handleSave = async () => {
+    if (!selectedTemplate) return
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.put(
+        `${API_URL}/api/v1/emails/templates/${selectedTemplate.type}`,
+        {
+          type: selectedTemplate.type,
+          name: selectedTemplate.name,
+          subject: selectedTemplate.subject,
+          htmlContent: editedContent,
+          textContent: null,
+          isActive: true,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      if (response.data.success) {
+        // Mettre à jour le template local avec les variables détectées
+        const updatedTemplate = {
+          ...selectedTemplate,
+          html: editedContent,
+          variables: response.data.data.variables || [],
+        }
+        setSelectedTemplate(updatedTemplate)
+        setEditing(false)
+        alert('Template sauvegardé avec succès !')
+      }
+    } catch (error: any) {
+      console.error('Erreur sauvegarde template:', error)
+      alert(`Erreur lors de la sauvegarde: ${error.response?.data?.error || error.message}`)
+    }
   }
 
   const handleCancel = () => {

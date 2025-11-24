@@ -2,8 +2,8 @@ FROM node:20.18.0-alpine
 
 WORKDIR /app
 
-# Installer les dépendances système nécessaires pour Prisma
-RUN apk add --no-cache openssl
+# Installer les dépendances système nécessaires pour Prisma et DNS
+RUN apk add --no-cache openssl bind-tools
 
 # Installer Prisma CLI
 RUN npm install -g prisma

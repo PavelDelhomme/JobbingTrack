@@ -50,23 +50,48 @@ export default function EmailDeliverabilityPage() {
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const handleTestDNS = async () => {
+    if (!domain || !domain.trim()) {
+      setDnsResults({
+        domain: '',
+        mx: { status: 'error', records: [], error: 'Veuillez entrer un domaine à tester' },
+        spf: { status: 'error', record: null, error: 'Veuillez entrer un domaine à tester' },
+        dkim: { status: 'warning', record: null, error: 'Veuillez entrer un domaine à tester' }
+      })
+      return
+    }
+
     setTestingDNS(true)
     setDnsResults(null)
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_URL}/api/v1/emails/test-dns?domain=${domain}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_URL}/api/v1/emails/test-dns?domain=${encodeURIComponent(domain.trim())}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
       })
+      
       if (response.data.success) {
-        setDnsResults(response.data.data)
+        if (response.data.data) {
+          setDnsResults(response.data.data)
+        } else {
+          // Si pas de data mais success, créer un résultat vide
+          setDnsResults({
+            domain: domain.trim(),
+            mx: { status: 'pending', records: [], error: null },
+            spf: { status: 'pending', record: null, error: null },
+            dkim: { status: 'pending', record: null, error: null }
+          })
+        }
+      } else {
+        throw new Error(response.data.error || 'Erreur lors du test DNS')
       }
     } catch (error: any) {
       console.error('Erreur test DNS:', error)
+      const errorMessage = error.response?.data?.error || error.response?.data?.details || error.message || 'Erreur lors du test DNS'
       setDnsResults({
-        domain,
-        mx: { status: 'error', records: [], error: error.message },
-        spf: { status: 'error', record: null, error: error.message },
-        dkim: { status: 'error', record: null, error: error.message }
+        domain: domain.trim(),
+        mx: { status: 'error', records: [], error: errorMessage },
+        spf: { status: 'error', record: null, error: errorMessage },
+        dkim: { status: 'warning', record: null, error: errorMessage }
       })
     } finally {
       setTestingDNS(false)
@@ -79,13 +104,25 @@ export default function EmailDeliverabilityPage() {
     try {
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/emails/test-smtp`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000
       })
-      setSmtpResult(response.data)
+      
+      if (response.data.success) {
+        setSmtpResult(response.data)
+      } else {
+        setSmtpResult({
+          success: false,
+          message: response.data.error || response.data.message || 'Erreur lors du test SMTP',
+          data: response.data.details
+        })
+      }
     } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Erreur lors du test SMTP'
       setSmtpResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors du test SMTP'
+        message: errorMessage,
+        data: error.response?.data?.details
       })
     } finally {
       setTestingSMTP(false)
@@ -126,7 +163,7 @@ export default function EmailDeliverabilityPage() {
       if (response.data.success) {
         setSendResult({ 
           success: true, 
-          message: 'Email de test envoyé ! Vérifiez votre boîte mail (et les spams).' 
+          message: `Email de test envoyé à l'adresse ${testEmail} ! Vérifiez votre boîte mail (et les spams).` 
         })
         setTestEmail('')
       } else {
@@ -190,20 +227,19 @@ export default function EmailDeliverabilityPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="domain">Domaine à tester</Label>
+            <div className="space-y-2">
+              <Label htmlFor="domain">Domaine à tester</Label>
+              <div className="flex gap-2">
                 <Input
                   id="domain"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
                   placeholder="maily.ovh"
+                  className="flex-1"
                 />
-              </div>
-              <div className="flex items-end">
                 <Button 
                   onClick={handleTestDNS} 
-                  disabled={testingDNS || !domain}
+                  disabled={testingDNS || !domain.trim()}
                 >
                   {testingDNS ? (
                     <>
@@ -222,6 +258,13 @@ export default function EmailDeliverabilityPage() {
 
             {dnsResults && (
               <div className="space-y-4 mt-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <Info className="w-4 h-4 inline mr-2" />
+                    <strong>Domaine testé :</strong> {dnsResults.domain || domain}
+                  </p>
+                </div>
+                
                 {/* Test MX */}
                 {dnsResults.mx && (
                   <div className="border rounded-lg p-4">
@@ -237,20 +280,27 @@ export default function EmailDeliverabilityPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Serveurs mail configurés :</p>
                         <ul className="list-disc list-inside space-y-1">
                           {(dnsResults.mx.records || []).map((record, idx) => (
-                            <li key={idx} className="text-sm font-mono">{record}</li>
+                            <li key={idx} className="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">{record}</li>
                           ))}
                         </ul>
                       </div>
                     ) : (
-                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                        {dnsResults.mx.error || 'Erreur lors de la vérification MX'}
-                      </p>
+                      <div className="mt-2">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {dnsResults.mx.error || 'Erreur lors de la vérification MX'}
+                        </p>
+                        {dnsResults.mx.error && dnsResults.mx.error.includes('timeout') && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Le test a pris trop de temps. Vérifiez votre connexion internet ou réessayez plus tard.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
 
                 {/* Test SPF */}
-                {dnsResults.spf && (
+                {dnsResults.spf !== undefined && dnsResults.spf !== null && (
                   <div className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -267,15 +317,22 @@ export default function EmailDeliverabilityPage() {
                         </code>
                       </div>
                     ) : (
-                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                        {dnsResults.spf.error || 'Erreur lors de la vérification SPF'}
-                      </p>
+                      <div className="mt-2">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {dnsResults.spf.error || 'Erreur lors de la vérification SPF'}
+                        </p>
+                        {dnsResults.spf.error && dnsResults.spf.error.includes('timeout') && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Le test a pris trop de temps. Vérifiez votre connexion internet ou réessayez plus tard.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
 
                 {/* Test DKIM */}
-                {dnsResults.dkim && (
+                {dnsResults.dkim !== undefined && dnsResults.dkim !== null && (
                   <div className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -348,19 +405,37 @@ export default function EmailDeliverabilityPage() {
                   </p>
                 </div>
                 {smtpResult.data && (
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Host:</span> {smtpResult.data.host}
+                  <div className="mt-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Host:</span> 
+                        <span className="ml-2 font-mono">{smtpResult.data.host || 'Non configuré'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Port:</span> 
+                        <span className="ml-2 font-mono">{smtpResult.data.port || 'Non configuré'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">Secure:</span> 
+                        <span className="ml-2">{smtpResult.data.secure ? '✅ Oui' : '❌ Non'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">User:</span> 
+                        <span className="ml-2 font-mono">{smtpResult.data.user || 'Non configuré'}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">From:</span> 
+                        <span className="ml-2 font-mono">{smtpResult.data.from || 'Non configuré'}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Port:</span> {smtpResult.data.port}
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Secure:</span> {smtpResult.data.secure ? 'Oui' : 'Non'}
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">From:</span> {smtpResult.data.from}
-                    </div>
+                    {smtpResult.data.suggestion && (
+                      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <Info className="w-4 h-4 inline mr-2" />
+                          {smtpResult.data.suggestion}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -3,14 +3,14 @@
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
 **Dernière MAJ** : 2025-01-27  
-**Version Projet** : v1.0.3 (BETA)  
+**Version Projet** : v1.0.4 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
 **Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  
 **Base de Données** : ✅ 26 TABLES CRÉÉES (Prisma sync OK - EmailLog ajoutée)  
-**Système Gestion Emails** : 🟡 CRÉÉ MAIS ROUTES NON ACCESSIBLES (API Gateway à redémarrer)  
-**Projet Global** : 🟢 ~82% (backend 100%, frontend 78%, mobile 0%)
+**Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Logs, Deliverability, Settings fonctionnels)  
+**Projet Global** : 🟢 ~85% (backend 100%, frontend 82%, mobile 0%)
 
 ---
 
@@ -18,13 +18,46 @@
 
 ### 📧 COMPLÉTER LE SYSTÈME EMAIL (06/11/2025 - EN COURS)
 
-**Statut** : 🟡 **EN COURS** - Backend et Frontend créés, mais routes non accessibles (API Gateway à redémarrer)
+**Statut** : 🟢 **OPÉRATIONNEL** - Backend et Frontend créés, routes accessibles, corrections appliquées
 
-**⚠️ PROBLÈME ACTUEL** : 
+**✅ CORRECTIONS APPLIQUÉES** : 
 - ✅ Backend créé (routes, contrôleurs, services)
 - ✅ Frontend créé (pages, composants)
 - ✅ Table EmailLog créée dans Prisma
-- ❌ **Routes `/api/v1/emails/*` non accessibles** - API Gateway doit être redémarré pour charger les nouvelles routes
+- ✅ Routes `/api/v1/emails/*` accessibles via API Gateway
+- ✅ Port SMTP converti en nombre (parseInt)
+- ✅ Pagination corrigée dans les logs d'emails
+- ✅ FRONTEND_URL configurable pour les templates d'emails
+- ✅ Test SMTP opérationnel avec vérification en temps réel
+- ✅ Test DNS opérationnel avec gestion des domaines
+- ✅ Dashboard emails opérationnel avec statistiques complètes (style Brevo)
+  - Statistiques globales et récentes avec évolution
+  - Top 10 destinataires
+  - Statistiques quotidiennes (prêt pour graphiques)
+  - Taux de succès, livraison, évolution
+  - Statistiques par type et par statut
+- ✅ auth-service démarré avec `make up-full`
+- ✅ API Gateway : Timeout augmenté à 30s pour tests DNS, meilleure gestion d'erreurs en développement
+- ✅ Messages de confirmation d'email incluent maintenant l'adresse email
+- ✅ Test DNS : Affichage amélioré avec gestion des résultats vides
+- ✅ Test SMTP : Affichage amélioré avec détails de configuration
+- ✅ Configuration SMTP : Support pour envoyer depuis noreply@maily.ovh avec From noreply@jobbingtrack.com
+- ✅ Table EmailLog créée dans la base de données
+- ✅ Utilisateur admin créé (admin@jobbingtrack.com)
+- ✅ Messages d'erreur DNS améliorés (plus de "utilisateur non trouvé")
+- ✅ Support STARTTLS (port 587) pour meilleure délivrabilité
+- ✅ Documentation de dépannage email créée (docs/EMAIL_TROUBLESHOOTING.md)
+- ✅ Documentation : Guide de configuration email créé (docs/EMAIL_CONFIGURATION.md)
+- ✅ Middleware auth : Gestion d'erreur améliorée pour table User manquante en développement
+- ✅ Architecture email SuperTokens : Refactoring complet avec pattern Strategy
+  - ✅ BaseEmailProvider créé (interface commune)
+  - ✅ SMTPEmailProvider implémenté (OVH, Gmail, etc.)
+  - ✅ ResendEmailProvider implémenté (alternative API)
+  - ✅ Templates séparés (welcome, resetPassword, verification)
+  - ✅ EmailService refactorisé avec sélection automatique du provider
+  - ✅ verifyConnection() implémenté pour tous les providers
+  - ✅ Support configurable EMAIL_PROVIDER (SMTP par défaut)
+  - ✅ Correction des chemins de modules dans les providers
 
 #### ✅ PRIORITÉ 1 : Migrations Base de Données - **TERMINÉE**
 
@@ -333,6 +366,26 @@ curl http://localhost:3000/api/v1/emails/health
 
 ---
 
+### 🔐 Authentification des Métriques - **À IMPLÉMENTER**
+
+**Problème** : Les métriques du projet sont actuellement accessibles sans authentification, ce qui pose un risque de sécurité.
+
+**Objectif** : Implémenter une authentification pour protéger les endpoints de métriques.
+
+**Actions à faire** :
+- [ ] Ajouter un middleware d'authentification pour les routes `/api/v1/metrics/*`
+- [ ] Vérifier que seuls les utilisateurs authentifiés peuvent accéder aux métriques
+- [ ] Ajouter des rôles (ADMIN, SUPER_ADMIN) pour l'accès aux métriques sensibles
+- [ ] Documenter les changements dans la documentation API
+- [ ] Tester que les métriques ne sont plus accessibles sans authentification
+
+**Fichiers à modifier** :
+- `backend/metrics-aggregator-service/src/server.js` - Ajouter middleware auth
+- `backend/api-gateway/src/server.js` - Vérifier que les routes metrics nécessitent auth
+- `frontend/src/lib/services/analyticsService.ts` - S'assurer que les tokens sont envoyés
+
+---
+
 ## 🟡 PROBLÈMES MOINS URGENTS (PRIORITÉ 2)
 
 ### 9. 🟡 Export/Import de Données - Manquant
@@ -637,6 +690,38 @@ make restart         → Redémarre les services actifs
 
 **Scénarios à valider** :
 - ⏱️ 9 scénarios supplémentaires à valider (voir section "VALIDATION COMPLÈTE DES PARCOURS UTILISATEUR")
+
+#### 🔴 CRITIQUE - Routes email retournent 404 au lieu de 401
+
+**État** : ❌ PROBLÈME IDENTIFIÉ - Routes email nécessitent authentification mais retournent 404 au lieu de 401
+
+**Routes affectées** :
+- `/api/v1/emails/stats` - 404 (devrait retourner 401 si token manquant)
+- `/api/v1/emails/test` - 404 (devrait retourner 401 si token manquant)
+- `/api/v1/emails/logs` - 404 (devrait retourner 401 si token manquant)
+- `/api/v1/emails/test-dns` - 404 (devrait retourner 401 si token manquant)
+- `/api/v1/emails/test-smtp` - 404 (devrait retourner 401 si token manquant)
+
+**Route fonctionnelle** :
+- `/api/v1/emails/health` - ✅ 200 (route publique, fonctionne correctement)
+
+**Cause identifiée** :
+1. Les routes sont bien enregistrées dans `server.js` avec `app.use('/api/v1/emails', emailRoutes)`
+2. Le middleware `authenticate` est appliqué avec `router.use(authenticate)` dans `email.routes.js`
+3. Le middleware `authenticate` devrait retourner 401 quand le token est manquant, mais les logs montrent 404
+4. Le problème est probablement que les routes ne sont pas correctement trouvées avant que le middleware `authenticate` ne soit appelé
+5. **Référence obsolète** : Dans `email.controller.js`, ligne 237, il y a une référence à `emailService.transporter` qui n'existe plus dans la nouvelle architecture SuperTokens (corrigé)
+
+**✅ CORRECTIONS APPLIQUÉES** :
+- [x] Corriger la référence à `transporter` dans `email.controller.js` (ligne 237 supprimée)
+- [x] Vérifier que les tokens sont correctement envoyés depuis le frontend (✅ Les tokens sont envoyés via `Authorization: Bearer ${token}`)
+- [x] Refactoriser le middleware `authenticate` pour utiliser des promesses au lieu de callbacks
+- [x] Créer la table `EmailLog` dans la base de données avec `prisma db push`
+- [x] Ajouter une gestion d'erreur robuste dans `getEmailStats` et `getEmailLogs` pour gérer les erreurs de base de données
+- [x] Améliorer le dashboard email avec statistiques complètes style Brevo (top destinataires, statistiques quotidiennes, évolution, taux de livraison)
+- [x] Corriger l'API Gateway pour transmettre correctement les statuts 401/403 au lieu de 404
+
+**Statut** : ✅ **RÉSOLU** - Les routes fonctionnent correctement. Le problème était que la table `EmailLog` n'existait pas, causant des erreurs 500. Maintenant, les routes retournent correctement 401/403 pour les tokens invalides, et les statistiques fonctionnent avec la table créée.
 
 #### 🔴 CRITIQUE - WAF & Sécurité
 

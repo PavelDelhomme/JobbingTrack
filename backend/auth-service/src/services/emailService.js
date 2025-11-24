@@ -1,31 +1,100 @@
-const nodemailer = require('nodemailer');
-const logger = require('../utils/logger');
+/**
+ * EmailService - Service principal d'envoi d'emails
+ * Architecture inspirée de SuperTokens avec pattern Strategy
+ */
+
 const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
+const { replaceVariables } = require('../utils/templateParser');
+
+// Providers
+const SMTPEmailProvider = require('./email/providers/smtp.provider');
+const ResendEmailProvider = require('./email/providers/resend.provider');
+
+// Templates (fallback si pas en DB)
+const welcomeTemplate = require('./email/templates/welcome.template');
+const resetPasswordTemplate = require('./email/templates/resetPassword.template');
+const verificationTemplate = require('./email/templates/verification.template');
 
 const prisma = new PrismaClient();
 
 class EmailService {
   constructor() {
-    // Configuration de base
-    const config = {
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_SECURE === 'true',
-      tls: {
-        rejectUnauthorized: false
-      }
-    };
+    this.provider = null;
+    this.initialized = false;
+  }
 
-    // Ajouter l'authentification seulement si SMTP_USER est défini
-    // (MailHog n'a pas besoin d'auth)
-    if (process.env.SMTP_USER && process.env.SMTP_USER.trim() !== '') {
-      config.auth = {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      };
+  /**
+   * Initialiser le provider selon la configuration (Pattern Strategy - SuperTokens)
+   */
+  initializeProvider() {
+    if (this.initialized && this.provider) {
+      return this.provider;
     }
 
-    this.transporter = nodemailer.createTransport(config);
+    const emailProvider = process.env.EMAIL_PROVIDER || 'SMTP';
+
+    switch (emailProvider.toUpperCase()) {
+      case 'RESEND':
+        logger.info('📧 [EmailService] Initializing Resend provider');
+        this.provider = new ResendEmailProvider({
+          apiKey: process.env.RESEND_API_KEY,
+          from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@jobbingtrack.com',
+          replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+        });
+        break;
+
+      case 'SMTP':
+      default:
+        logger.info('📧 [EmailService] Initializing SMTP provider');
+        this.provider = new SMTPEmailProvider({
+          host: process.env.SMTP_HOST || 'mailhog',
+          port: process.env.SMTP_PORT || '1025',
+          secure: process.env.SMTP_SECURE || 'false',
+          user: process.env.SMTP_USER,
+          password: process.env.SMTP_PASS,
+          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+          replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+          tls: {
+            rejectUnauthorized: false, // Pour dev
+          },
+        });
+        break;
+    }
+
+    // Vérifier la connexion au démarrage (comme SuperTokens)
+    this.provider.verifyConnection().then((verified) => {
+      if (verified) {
+        logger.info(`✅ [EmailService] Provider ${this.provider.getProviderName()} initialized and verified`);
+      } else {
+        logger.warn(`⚠️ [EmailService] Provider ${this.provider.getProviderName()} initialized but verification failed`);
+      }
+    });
+
+    this.initialized = true;
+    return this.provider;
+  }
+
+  /**
+   * Obtenir le provider actuel (lazy initialization)
+   */
+  getProvider() {
+    if (!this.provider) {
+      this.initializeProvider();
+    }
+    return this.provider;
+  }
+
+  /**
+   * Transporter Nodemailer (pour compatibilité avec l'ancien code)
+   * @deprecated Utiliser getProvider().sendEmail() à la place
+   */
+  get transporter() {
+    const provider = this.getProvider();
+    if (provider.getProviderName() === 'SMTP') {
+      return provider.transporter;
+    }
+    throw new Error('transporter only available for SMTP provider');
   }
 
   /**
@@ -34,19 +103,32 @@ class EmailService {
   async logEmail(emailData) {
     try {
       const { userId, to, from, subject, type, emailContent, metadata } = emailData;
-      
-      const emailLog = await prisma.emailLog.create({
-        data: {
-          userId: userId || null,
-          to,
-          from: from || process.env.SMTP_FROM,
-          subject,
-          type,
-          status: 'PENDING',
-          emailContent,
-          metadata: metadata || {}
+
+      // Vérifier si la table EmailLog existe
+      let emailLog = null;
+      try {
+        emailLog = await prisma.emailLog.create({
+          data: {
+            userId: userId || null,
+            to,
+            from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+            subject,
+            type,
+            status: 'PENDING',
+            emailContent,
+            metadata: metadata || {},
+          },
+        });
+      } catch (dbError) {
+        // Si la table n'existe pas, logger l'erreur mais continuer
+        if (dbError.code === 'P2021') {
+          logger.warn('Table EmailLog non trouvée, email sera envoyé sans log. Exécutez: make db-push-all');
+          // Retourner un objet mock pour que le code continue
+          emailLog = { id: 'temp-' + Date.now() };
+        } else {
+          throw dbError;
         }
-      });
+      }
 
       return emailLog;
     } catch (error) {
@@ -61,86 +143,120 @@ class EmailService {
    */
   async updateEmailLogStatus(emailLogId, status, error = null, sentAt = null) {
     try {
+      // Ignorer si l'ID est temporaire (table EmailLog n'existe pas)
+      if (emailLogId && emailLogId.toString().startsWith('temp-')) {
+        logger.debug('EmailLog temporaire, mise à jour ignorée');
+        return;
+      }
+
       await prisma.emailLog.update({
         where: { id: emailLogId },
         data: {
           status,
           error: error ? error.toString() : null,
-          sentAt: sentAt || (status === 'SENT' ? new Date() : null)
-        }
+          sentAt: sentAt || (status === 'SENT' ? new Date() : null),
+        },
       });
     } catch (error) {
       logger.error('Erreur lors de la mise à jour du log email:', error);
+      // Ne pas faire échouer l'envoi si la mise à jour du log échoue
     }
   }
 
-  async sendWelcomeEmail(user) {
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
-          <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d'emploi</p>
-        </div>
-
-        <h2 style="color: #1f2937;">Bienvenue ${user.firstName} ! 🎉</h2>
-
-        <p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p>
-
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #374151; margin-top: 0;">🚀 Vous pouvez maintenant :</h3>
-          <ul style="color: #4b5563; line-height: 1.6;">
-            <li>📝 <strong>Suivre vos candidatures</strong> - Gardez trace de toutes vos applications</li>
-            <li>📅 <strong>Gérer vos entretiens</strong> - Planifiez et préparez vos rendez-vous</li>
-            <li>🔔 <strong>Recevoir des rappels</strong> - Ne manquez plus jamais une relance</li>
-            <li>👥 <strong>Organiser vos contacts</strong> - Votre carnet d'adresses professionnel</li>
-            <li>📊 <strong>Analyser vos performances</strong> - Statistiques de vos candidatures</li>
-          </ul>
-        </div>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}"
-             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Commencer maintenant
-          </a>
-        </div>
-
-        <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
-          Si vous avez des questions, n'hésitez pas à nous contacter.
-        </p>
-      </div>
-    `;
-
-    let emailLog = null;
+  /**
+   * Récupérer un template depuis la DB ou utiliser le fallback
+   */
+  async getTemplate(type) {
     try {
-      // Logger l'email avant l'envoi
-      emailLog = await this.logEmail({
+      const template = await prisma.emailTemplate.findUnique({
+        where: { type, isActive: true },
+      });
+      return template;
+    } catch (error) {
+      logger.warn(`Erreur récupération template ${type} depuis DB, utilisation du fallback:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Envoyer un email de bienvenue
+   */
+  async sendWelcomeEmail(user) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const appName = 'JobbingTrack';
+      const userName = user.firstName || 'Utilisateur';
+
+      // Essayer de récupérer le template depuis la DB
+      const dbTemplate = await this.getTemplate('WELCOME');
+      let html, text, subject;
+
+      if (dbTemplate && dbTemplate.isActive) {
+        // Utiliser le template de la DB
+        html = replaceVariables(dbTemplate.htmlContent, {
+          userName,
+          firstName: userName,
+          appName,
+          frontendUrl,
+        });
+        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
+          userName,
+          firstName: userName,
+          appName,
+          frontendUrl,
+        }) : null;
+        subject = replaceVariables(dbTemplate.subject, {
+          userName,
+          firstName: userName,
+          appName,
+          frontendUrl,
+        });
+      } else {
+        // Fallback sur le template fichier
+        html = welcomeTemplate.getWelcomeEmailHTML({
+          userName,
+          appName,
+          frontendUrl,
+        });
+        text = welcomeTemplate.getWelcomeEmailText({
+          userName,
+          appName,
+          frontendUrl,
+        });
+        subject = '🎉 Bienvenue sur JobbingTrack !';
+      }
+
+      // Logger l'email
+      const emailLog = await this.logEmail({
         userId: user.id,
         to: user.email,
-        from: process.env.SMTP_FROM,
-        subject: '🎉 Bienvenue sur JobbingTrack !',
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        subject,
         type: 'WELCOME',
-        emailContent,
-        metadata: { firstName: user.firstName, lastName: user.lastName }
+        emailContent: html,
+        metadata: { appName, frontendUrl },
       });
 
-      const mailOptions = {
-        from: process.env.SMTP_FROM,
+      // Envoyer l'email via le provider
+      const result = await this.getProvider().sendEmail({
         to: user.email,
-        subject: '🎉 Bienvenue sur JobbingTrack !',
-        html: emailContent
-      };
+        subject,
+        htmlContent: html,
+        textContent: text,
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+      });
 
-      await this.transporter.sendMail(mailOptions);
-      
-      // Mettre à jour le statut en SENT
-      if (emailLog) {
+      // Mettre à jour le statut
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'SENT');
       }
-      
+
       logger.info(`Email de bienvenue envoyé à ${user.email}`);
+      return result;
     } catch (error) {
       // Mettre à jour le statut en FAILED
-      if (emailLog) {
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
       logger.error('Erreur envoi email bienvenue:', error);
@@ -148,78 +264,91 @@ class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(user, resetUrl) {
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
-          <p style="color: #6b7280; margin: 5px 0;">Réinitialisation de mot de passe</p>
-        </div>
-
-        <h2 style="color: #1f2937;">Bonjour ${user.firstName},</h2>
-
-        <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte JobbingTrack.</p>
-
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="color: #374151; margin: 0;">
-            Cliquez sur le bouton ci-dessous pour réinitialiser votre mot de passe. Ce lien est valide pendant <strong>1 heure</strong>.
-          </p>
-        </div>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}"
-             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Réinitialiser mon mot de passe
-          </a>
-        </div>
-
-        <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-          <p style="color: #92400e; margin: 0; font-size: 14px;">
-            <strong>Si vous n'avez pas demandé cette réinitialisation,</strong> ignorez simplement cet email. Votre mot de passe restera inchangé.
-          </p>
-        </div>
-
-        <p style="color: #6b7280; font-size: 14px;">
-          Pour des raisons de sécurité, ne partagez jamais ce lien avec qui que ce soit.
-        </p>
-
-        <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
-          Cordialement,<br>L'équipe JobbingTrack
-        </p>
-      </div>
-    `;
-
-    let emailLog = null;
+  /**
+   * Envoyer un email de réinitialisation de mot de passe
+   */
+  async sendPasswordResetEmail(user, resetToken) {
     try {
-      // Logger l'email avant l'envoi
-      emailLog = await this.logEmail({
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const appName = 'JobbingTrack';
+      const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&userId=${user.id}`;
+      const userName = user.firstName || 'Utilisateur';
+
+      // Essayer de récupérer le template depuis la DB
+      const dbTemplate = await this.getTemplate('RESET_PASSWORD');
+      let html, text, subject;
+
+      if (dbTemplate && dbTemplate.isActive) {
+        // Utiliser le template de la DB
+        html = replaceVariables(dbTemplate.htmlContent, {
+          userName,
+          firstName: userName,
+          resetLink,
+          resetUrl: resetLink,
+          appName,
+          expiryMinutes: 60,
+        });
+        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
+          userName,
+          firstName: userName,
+          resetLink,
+          resetUrl: resetLink,
+          appName,
+          expiryMinutes: 60,
+        }) : null;
+        subject = replaceVariables(dbTemplate.subject, {
+          userName,
+          firstName: userName,
+          appName,
+        });
+      } else {
+        // Fallback sur le template fichier
+        html = resetPasswordTemplate.getResetPasswordEmailHTML({
+          userName,
+          resetLink,
+          appName,
+          expiryMinutes: 60,
+        });
+        text = resetPasswordTemplate.getResetPasswordEmailText({
+          userName,
+          resetLink,
+          appName,
+          expiryMinutes: 60,
+        });
+        subject = '🔐 Réinitialisation de votre mot de passe JobbingTrack';
+      }
+
+      // Logger l'email
+      const emailLog = await this.logEmail({
         userId: user.id,
         to: user.email,
-        from: process.env.SMTP_FROM,
-        subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        subject,
         type: 'RESET_PASSWORD',
-        emailContent,
-        metadata: { resetUrl, firstName: user.firstName }
+        emailContent: html,
+        metadata: { resetToken, resetLink },
       });
 
-      const mailOptions = {
-        from: process.env.SMTP_FROM,
+      // Envoyer l'email via le provider
+      const result = await this.getProvider().sendEmail({
         to: user.email,
-        subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
-        html: emailContent
-      };
+        subject,
+        htmlContent: html,
+        textContent: text,
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+      });
 
-      await this.transporter.sendMail(mailOptions);
-      
-      // Mettre à jour le statut en SENT
-      if (emailLog) {
+      // Mettre à jour le statut
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'SENT');
       }
-      
+
       logger.info(`Email de réinitialisation envoyé à ${user.email}`);
+      return result;
     } catch (error) {
       // Mettre à jour le statut en FAILED
-      if (emailLog) {
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
       logger.error('Erreur envoi email réinitialisation:', error);
@@ -227,91 +356,130 @@ class EmailService {
     }
   }
 
-  async sendVerificationEmail(user, verificationUrl) {
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
-          <p style="color: #6b7280; margin: 5px 0;">Vérification de votre adresse email</p>
-        </div>
-
-        <h2 style="color: #1f2937;">Bonjour ${user.firstName} ! 👋</h2>
-
-        <p>Bienvenue sur JobbingTrack ! Pour activer votre compte et commencer à utiliser toutes nos fonctionnalités, veuillez vérifier votre adresse email.</p>
-
-        <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
-          <p style="color: #1e40af; margin: 0; font-size: 14px;">
-            <strong>Pourquoi vérifier mon email ?</strong><br>
-            La vérification de votre email assure la sécurité de votre compte et vous permet de recevoir des notifications importantes concernant vos candidatures.
-          </p>
-        </div>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}"
-             style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-            ✓ Vérifier mon adresse email
-          </a>
-        </div>
-
-        <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
-          <p style="color: #374151; margin: 0; font-size: 13px;">
-            <strong>Le bouton ne fonctionne pas ?</strong><br>
-            Copiez et collez ce lien dans votre navigateur :<br>
-            <code style="background: #fff; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all;">${verificationUrl}</code>
-          </p>
-        </div>
-
-        <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-          <p style="color: #92400e; margin: 0; font-size: 14px;">
-            <strong>Ce lien expire dans 24 heures.</strong> Si vous n'avez pas créé de compte sur JobbingTrack, ignorez simplement cet email.
-          </p>
-        </div>
-
-        <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
-          Besoin d'aide ? Contactez-nous à support@jobbingtrack.com<br>
-          <br>
-          Cordialement,<br>L'équipe JobbingTrack
-        </p>
-      </div>
-    `;
-
-    let emailLog = null;
+  /**
+   * Envoyer un email de vérification
+   * @param {Object} user - Utilisateur
+   * @param {string} verificationToken - Token de vérification
+   */
+  async sendVerificationEmail(user, verificationToken) {
     try {
-      // Logger l'email avant l'envoi
-      emailLog = await this.logEmail({
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+      const appName = 'JobbingTrack';
+      const verificationLink = `${frontendUrl}/verify-email?token=${verificationToken}&userId=${user.id}`;
+      const verificationUrl = verificationLink;
+      const userName = user.firstName || 'Utilisateur';
+
+      // Essayer de récupérer le template depuis la DB
+      const dbTemplate = await this.getTemplate('VERIFICATION');
+      let html, text, subject;
+
+      if (dbTemplate && dbTemplate.isActive) {
+        // Utiliser le template de la DB
+        html = replaceVariables(dbTemplate.htmlContent, {
+          userName,
+          firstName: userName,
+          verificationLink,
+          verificationUrl,
+          appName,
+          expiryMinutes: 60,
+        });
+        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
+          userName,
+          firstName: userName,
+          verificationLink,
+          verificationUrl,
+          appName,
+          expiryMinutes: 60,
+        }) : null;
+        subject = replaceVariables(dbTemplate.subject, {
+          userName,
+          firstName: userName,
+          appName,
+        });
+      } else {
+        // Fallback sur le template fichier
+        html = verificationTemplate.getVerificationEmailHTML({
+          userName,
+          verificationLink,
+          appName,
+          expiryMinutes: 60,
+        });
+        text = verificationTemplate.getVerificationEmailText({
+          userName,
+          verificationLink,
+          appName,
+          expiryMinutes: 60,
+        });
+        subject = '✅ Vérifiez votre adresse email - JobbingTrack';
+      }
+
+      // Logger l'email
+      const emailLog = await this.logEmail({
         userId: user.id,
         to: user.email,
-        from: process.env.SMTP_FROM,
-        subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        subject,
         type: 'VERIFICATION',
-        emailContent,
-        metadata: { verificationUrl, firstName: user.firstName }
+        emailContent: html,
+        metadata: { verificationToken, verificationLink },
       });
 
-      const mailOptions = {
-        from: process.env.SMTP_FROM,
+      // Envoyer l'email via le provider
+      const result = await this.getProvider().sendEmail({
         to: user.email,
-        subject: '✅ Vérifiez votre adresse email - JobbingTrack',
-        html: emailContent
-      };
+        subject,
+        htmlContent: html,
+        textContent: text,
+        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+      });
 
-      await this.transporter.sendMail(mailOptions);
-      
-      // Mettre à jour le statut en SENT
-      if (emailLog) {
+      // Mettre à jour le statut
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'SENT');
       }
-      
+
       logger.info(`Email de vérification envoyé à ${user.email}`);
+      return result;
     } catch (error) {
       // Mettre à jour le statut en FAILED
-      if (emailLog) {
+      if (emailLog && emailLog.id) {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
       logger.error('Erreur envoi email vérification:', error);
       throw error;
     }
   }
+
+  /**
+   * Envoyer un email générique (pour les tests)
+   */
+  async sendGenericEmail({ to, subject, htmlContent, textContent, from, replyTo }) {
+    try {
+      const result = await this.getProvider().sendEmail({
+        to,
+        subject,
+        htmlContent,
+        textContent,
+        from: from || process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+        replyTo: replyTo || process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
+      });
+
+      logger.info(`Email générique envoyé à ${to}`);
+      return result;
+    } catch (error) {
+      logger.error('Erreur envoi email générique:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Vérifier la connexion du provider
+   */
+  async verifyConnection() {
+    return await this.getProvider().verifyConnection();
+  }
 }
 
+// Singleton (comme SuperTokens)
 module.exports = new EmailService();

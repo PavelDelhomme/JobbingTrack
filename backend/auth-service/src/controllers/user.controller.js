@@ -338,7 +338,7 @@ const verifyEmail = async (req, res) => {
 
 // Fonction interne pour envoyer l'email de vérification
 async function sendVerificationEmailInternal(userId, email, firstName, token) {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:8080';
   const verificationUrl = `${frontendUrl}/verify-email/${token}`;
 
   const emailHtml = `

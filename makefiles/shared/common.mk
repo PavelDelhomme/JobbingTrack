@@ -223,8 +223,8 @@ COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend
 # Fichiers pour les services essentiels (sans backend services conflictuels)
 COMPOSE_FILES_ESSENTIAL := -f docker-compose.yml
 
-# Fichiers pour tous les services
-COMPOSE_FILES_FULL := -f docker-compose.yml -f backend/docker-compose.yml -f frontend/docker-compose.frontend.yml
+# Fichiers pour tous les services (sans backend/docker-compose.yml qui peut redéfinir les contextes)
+COMPOSE_FILES_FULL := -f docker-compose.yml
 
 # Afficher la commande Docker Compose détectée
 DOCKER_COMPOSE_INFO := $(shell echo "🐳 Commande Docker Compose: $(DOCKER_COMPOSE_CMD)")
@@ -262,7 +262,7 @@ endef
 
 # Fonction wrapper simple pour Docker Compose
 define docker_compose
-	@if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+	if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
 		docker compose --ansi never $(1); \
 	elif echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker-compose"; then \
 		docker-compose --ansi never $(1); \

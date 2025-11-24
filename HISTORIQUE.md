@@ -6,6 +6,74 @@
 
 **Dernière mise à jour** : 2025-01-27
 
+### 🎉 27/01/2025 – Correction Test DNS dans Tests de Déliverabilité
+
+**Statut** : ✅ **TERMINÉ**
+
+**Réalisations** :
+- ✅ Installation de `bind-tools` dans le Dockerfile de `auth-service` pour avoir `dig` disponible
+- ✅ Ajout d'un fallback vers `dns.promises` (module Node.js intégré) si `dig` n'est pas disponible
+- ✅ Amélioration de la gestion d'erreurs pour chaque test DNS (MX, SPF, DKIM)
+- ✅ Ajout de timeouts (5 secondes) pour éviter les blocages
+- ✅ Amélioration de l'affichage frontend avec messages d'erreur plus clairs
+- ✅ Validation du domaine avant le test
+- ✅ Encodage URL du domaine pour éviter les problèmes avec les caractères spéciaux
+- ✅ Affichage du domaine testé dans les résultats
+
+**Fichiers modifiés** :
+- `backend/auth-service/Dockerfile` : Ajout de `bind-tools` pour avoir `dig` disponible
+- `backend/auth-service/src/controllers/email.controller.js` : 
+  - Import de `dns.promises` pour fallback
+  - Amélioration des tests MX, SPF et DKIM avec fallback
+  - Ajout de timeouts et meilleure gestion d'erreurs
+- `frontend/src/app/(admin)/backoffice/emails/deliverability/page.tsx` :
+  - Validation du domaine avant test
+  - Encodage URL du domaine
+  - Messages d'erreur améliorés
+  - Affichage du domaine testé dans les résultats
+  - Gestion des timeouts avec messages explicites
+
+**Problèmes résolus** :
+- ❌ Test DNS non fonctionnel (dig non disponible) → ✅ Test DNS avec fallback vers dns.promises
+- ❌ Pas de gestion d'erreurs claire → ✅ Messages d'erreur détaillés et timeouts
+- ❌ Domaine non validé → ✅ Validation et encodage URL du domaine
+
+---
+
+### 🎉 27/01/2025 – Corrections Complètes Système Email et Services
+
+**Statut** : ✅ **TERMINÉ**
+
+**Réalisations** :
+- ✅ Correction port SMTP : conversion en nombre (parseInt) pour éviter les erreurs de connexion
+- ✅ Correction pagination logs emails : gestion sécurisée de `pagination.pages` avec fallback
+- ✅ Configuration FRONTEND_URL : variable d'environnement configurable pour les templates d'emails (développement/production)
+- ✅ Test SMTP opérationnel : bouton "Vérifier" dans la page Settings avec vérification en temps réel
+- ✅ Test DNS opérationnel : amélioration gestion des domaines vides et messages d'erreur
+- ✅ Dashboard emails opérationnel : statistiques complètes (total, envoyés, échoués, en attente, par type, par statut)
+- ✅ Envoi d'emails de test : fonctionnel depuis le dashboard avec gestion des erreurs
+- ✅ auth-service démarré : vérifié que le service démarre avec `make up-full` (ligne 426 et 441 du Makefile)
+- ✅ Routes emails accessibles : proxy API Gateway correctement configuré pour `/api/v1/emails/*`
+
+**Fichiers modifiés** :
+- `backend/auth-service/src/services/emailService.js` : Correction port SMTP (parseInt)
+- `frontend/src/app/(admin)/backoffice/emails/logs/page.tsx` : Correction pagination
+- `backend/auth-service/src/services/emailService.js` : Ajout FRONTEND_URL dans templates
+- `backend/auth-service/src/controllers/auth.controller.js` : Utilisation FRONTEND_URL pour liens
+- `docker-compose.yml` : Ajout FRONTEND_URL pour auth-service et security-service
+- `frontend/src/app/(admin)/backoffice/emails/settings/page.tsx` : Bouton vérification SMTP
+- `frontend/src/app/(admin)/backoffice/emails/deliverability/page.tsx` : Amélioration test DNS
+- `frontend/src/app/(admin)/backoffice/emails/page.tsx` : Dashboard opérationnel avec statistiques
+
+**Problèmes résolus** :
+- ❌ Port SMTP en string → ✅ Port SMTP en nombre
+- ❌ Pagination undefined → ✅ Pagination avec fallback sécurisé
+- ❌ Templates avec localhost hardcodé → ✅ Templates avec FRONTEND_URL configurable
+- ❌ Test SMTP non fonctionnel → ✅ Test SMTP avec vérification en temps réel
+- ❌ Test DNS sans résultats → ✅ Test DNS avec gestion des erreurs
+- ❌ Dashboard emails vide → ✅ Dashboard emails avec statistiques complètes
+- ❌ auth-service non démarré → ✅ auth-service démarré avec make up-full
+
 ---
 
 ## 📋 Table des Matières
