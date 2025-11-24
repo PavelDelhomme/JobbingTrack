@@ -12,24 +12,58 @@ const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        lastLoginAt: true,
-        loginCount: true,
-        createdAt: true,
-        updatedAt: true
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          role: true,
+          isActive: true,
+          emailVerified: true,
+          emailVerifiedAt: true,
+          lastLoginAt: true,
+          loginCount: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+    } catch (dbError) {
+      // Si la table User n'existe pas, retourner l'utilisateur connecté en développement
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table User non trouvée, mode développement. Exécutez: make db-push-all');
+        // Si l'ID correspond à l'utilisateur connecté, le retourner
+        if (req.user && req.user.id === id) {
+          return res.json({
+            success: true,
+            user: {
+              id: req.user.id,
+              email: req.user.email,
+              firstName: req.user.firstName || 'Admin',
+              lastName: req.user.lastName || 'User',
+              phone: req.user.phone || null,
+              role: req.user.role || 'ADMIN',
+              isActive: true,
+              emailVerified: true,
+              emailVerifiedAt: new Date(),
+              lastLoginAt: new Date(),
+              loginCount: 0,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          });
+        }
+        return res.status(404).json({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
       }
-    });
+      throw dbError;
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -44,9 +78,35 @@ const getUserById = async (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur récupération utilisateur:', error);
+    // En développement, si la table n'existe pas, retourner l'utilisateur connecté
+    if (error.code === 'P2021' && process.env.NODE_ENV === 'development' && req.user) {
+      logger.warn('Table User non trouvée, mode développement. Exécutez: make db-push-all');
+      const { id } = req.params;
+      if (req.user.id === id) {
+        return res.json({
+          success: true,
+          user: {
+            id: req.user.id,
+            email: req.user.email,
+            firstName: req.user.firstName || 'Admin',
+            lastName: req.user.lastName || 'User',
+            phone: req.user.phone || null,
+            role: req.user.role || 'ADMIN',
+            isActive: true,
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+            lastLoginAt: new Date(),
+            loginCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+      }
+    }
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération de l\'utilisateur'
+      error: 'Erreur lors de la récupération de l\'utilisateur',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

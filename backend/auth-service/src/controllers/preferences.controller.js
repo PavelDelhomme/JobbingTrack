@@ -17,56 +17,84 @@ const getUserPreferences = async (req, res) => {
       });
     }
 
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
-    });
+    // Valeurs par défaut
+    const defaultPreferences = {
+      refreshInterval: {
+        logs: 30000,              // 30 secondes pour les logs de sécurité
+        analytics: 10000,         // 10 secondes pour analytics
+        metrics: 15000,           // 15 secondes pour les métriques
+        dashboard: 30000,         // 30 secondes pour le dashboard
+        services: 20000,          // 20 secondes pour les services
+        notifications: 60000     // 60 secondes pour les notifications
+      },
+      display: {
+        itemsPerPage: 20,
+        compactMode: false,
+        showCharts: true,
+        showMetrics: true,
+        detailedMetrics: false
+      },
+      notifications: {
+        desktop: true,
+        sound: false,
+        highPriorityOnly: false,
+        applicationUpdates: true,
+        interviewReminders: true,
+        followupReminders: true,
+        deadlineAlerts: true,
+        systemAlerts: true
+      },
+      theme: 'light',
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      metricsRetentionDays: 30,
+      logsRetentionDays: 30,
+      autoCleanupHistory: true
+    };
 
-    // Si pas de customization, créer avec valeurs par défaut
-    if (!customization) {
-      customization = await prisma.userCustomization.create({
-        data: {
-          userId,
-          settings: {
-            refreshInterval: {
-              logs: 30000,              // 30 secondes pour les logs de sécurité
-              analytics: 10000,         // 10 secondes pour analytics
-              metrics: 15000,           // 15 secondes pour les métriques
-              dashboard: 30000,         // 30 secondes pour le dashboard
-              services: 20000,          // 20 secondes pour les services
-              notifications: 60000     // 60 secondes pour les notifications
-            },
-            display: {
-              itemsPerPage: 20,
-              compactMode: false,
-              showCharts: true,
-              showMetrics: true,
-              detailedMetrics: false
-            },
-            notifications: {
-              desktop: true,
-              sound: false,
-              highPriorityOnly: false,
-              applicationUpdates: true,
-              interviewReminders: true,
-              followupReminders: true,
-              deadlineAlerts: true,
-              systemAlerts: true
-            },
-            theme: 'light',
-            language: 'fr',
-            timezone: 'Europe/Paris',
-            metricsRetentionDays: 30,
-            logsRetentionDays: 30,
-            autoCleanupHistory: true
-          }
-        }
+    let customization;
+    try {
+      customization = await prisma.userCustomization.findUnique({
+        where: { userId }
       });
-    }
 
-    res.json({
-      success: true,
-      preferences: customization.settings
-    });
+      // Si pas de customization, créer avec valeurs par défaut
+      if (!customization) {
+        try {
+          customization = await prisma.userCustomization.create({
+            data: {
+              userId,
+              settings: defaultPreferences
+            }
+          });
+        } catch (createError) {
+          // Si la table n'existe pas, retourner les valeurs par défaut
+          if (createError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+            logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
+            return res.json({
+              success: true,
+              preferences: defaultPreferences
+            });
+          }
+          throw createError;
+        }
+      }
+
+      res.json({
+        success: true,
+        preferences: customization.settings
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner les valeurs par défaut
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
+        return res.json({
+          success: true,
+          preferences: defaultPreferences
+        });
+      }
+      throw dbError;
+    }
   } catch (error) {
     logger.error('Erreur récupération préférences:', error);
     // En développement, si la table n'existe pas, retourner les valeurs par défaut
