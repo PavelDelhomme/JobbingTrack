@@ -56,36 +56,52 @@ const getCompanies = async (req, res, next) => {
       } : {})
     };
 
-    const [companies, total] = await Promise.all([
-      prisma.company.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              applications: true,
-              contacts: true
+    let companies, total;
+    try {
+      [companies, total] = await Promise.all([
+        prisma.company.findMany({
+          where,
+          include: {
+            _count: {
+              select: {
+                applications: true,
+                contacts: true
+              }
             }
-          }
-        },
-        orderBy: { name: 'asc' },
-        skip: parseInt(offset),
-        take: parseInt(limit)
-      }),
-      prisma.company.count({ where })
-    ]);
+          },
+          orderBy: { name: 'asc' },
+          skip: parseInt(offset),
+          take: parseInt(limit)
+        }),
+        prisma.company.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table Company n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Company non trouvée, retour de données vides (mode développement)');
+        companies = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération entreprises:', error);
+        throw error; // Re-throw pour que le catch externe le gère
+      }
+    }
 
     res.json({
       success: true,
-      companies,
+      companies: companies || [],
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+        total: total || 0,
+        pages: Math.ceil((total || 0) / limit)
+      },
+      ...(total === 0 && (!companies || companies.length === 0) ? {
+        warning: 'Table Company non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
-    // Fallback si table Company n'existe pas (P2021) - Mode développement
+    // Si l'erreur n'a pas été gérée par le try-catch interne
     if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
       logger.warn('Table Company non trouvée, retour de données vides (mode développement)');
       return res.json({
