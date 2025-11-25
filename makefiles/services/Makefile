@@ -676,6 +676,20 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 		exit 1; \
 	fi
 	@echo "🔄 Redémarrage du service: $(SERVICE)"
+	@echo ""
+	@echo "🔍 Vérification des tables Prisma avant redémarrage..."
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
+		if ! ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  ATTENTION : Tables manquantes détectées !\033[0m"; \
+			echo -e "\033[1;33m💡 Il est recommandé d'exécuter 'make db-push-all' avant de redémarrer\033[0m"; \
+			echo ""; \
+			read -t 5 -p "Continuer quand même ? (o/N): " continue_choice || continue_choice="N"; \
+			if [ "$$continue_choice" != "o" ] && [ "$$continue_choice" != "O" ]; then \
+				echo "❌ Redémarrage annulé. Exécutez 'make db-push-all' d'abord."; \
+				exit 1; \
+			fi; \
+		fi; \
+	fi
 	$(call docker_compose, $(COMPOSE_FILES_FULL) restart $(SERVICE))
 	@echo "✅ Service $(SERVICE) redémarré"
 
@@ -819,6 +833,18 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	else \
 		printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+	fi
+	@echo ""
+	@echo "🔍 Vérification des tables Prisma..."
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
+		if ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
+			echo -e "\033[0;32m✅ Base de données OK\033[0m"; \
+		else \
+			echo -e "\033[1;33m⚠️  Tables manquantes détectées\033[0m"; \
+			echo -e "\033[1;33m💡 Exécutez 'make db-push-all' pour créer toutes les tables\033[0m"; \
+		fi; \
+	else \
+		echo -e "\033[1;33m⚠️  PostgreSQL non démarré, vérification des tables impossible\033[0m"; \
 	fi
 
 # Statut en temps réel (actualisation automatique)
