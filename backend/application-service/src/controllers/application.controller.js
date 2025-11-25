@@ -199,8 +199,21 @@ const getApplications = async (req, res, next) => {
         logger.warn('Table Application non trouvée, retour de données vides (mode développement)');
         applications = [];
         total = 0;
+        
+        return res.json({
+          success: true,
+          applications: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          },
+          warning: 'Table Application non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+        });
       } else {
-        throw error;
+        logger.error('Erreur récupération candidatures:', error);
+        return next(error);
       }
     }
 
