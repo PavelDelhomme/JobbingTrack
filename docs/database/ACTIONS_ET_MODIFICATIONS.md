@@ -126,34 +126,45 @@
 
 ---
 
-### 🔧 Correction Erreur 500 - GET /api/v1/companies
+### 🔧 Correction Erreurs 500 - Tables Manquantes (Company, SecurityLog)
 
 **Date** : 2025-01-27  
 **Demandé par** : Utilisateur
 
-**Description** : Erreur 500 Internal Server Error lors de l'accès à `/api/v1/companies` dans l'onglet Entreprises du dashboard.
+**Description** : Erreurs 500 Internal Server Error dues à des tables manquantes dans la base de données :
+- `/api/v1/companies` → Table `Company` manquante (P2021)
+- `security-service` → Table `security_logs` manquante (P2021)
 
-**Contexte** : L'utilisateur ne peut pas créer d'entreprise car l'API retourne une erreur 500.
+**Contexte** : Les tables n'existent pas dans la base de données, causant des erreurs Prisma P2021.
 
 **💡 Avis Technique** :
 
-**✅ PROBLÈME IDENTIFIÉ** : La table `Company` n'existe pas dans la base de données (erreur Prisma P2021).
+**✅ PROBLÈME IDENTIFIÉ** : Les tables `Company` et `SecurityLog` n'existent pas dans la base de données (erreur Prisma P2021).
 
-**Solution immédiate** : Ajouter un fallback dans le contrôleur pour gérer l'erreur P2021 en mode développement, comme pour les autres contrôleurs (User, UserCustomization).
+**Solution immédiate** : Ajouter des fallbacks dans les contrôleurs/services pour gérer l'erreur P2021 en mode développement.
 
 **Solution définitive** : Exécuter `make db-push-all` pour créer toutes les tables dans la base de données.
 
 **📝 Actions à Effectuer** :
 
 - [x] Ajouter fallback dans `getCompanies` pour gérer erreur P2021
-- [ ] Tester que l'API retourne maintenant un tableau vide au lieu d'une erreur 500
-- [ ] Exécuter `make db-push-all` pour créer la table Company
-- [ ] Vérifier que l'API fonctionne correctement après création de la table
+- [x] Ajouter fallbacks dans `securityService.js` pour toutes les méthodes utilisant `securityLog` :
+  - [x] `getSecurityLogs()` - Retourne tableau vide
+  - [x] `createSecurityLog()` - Retourne null
+  - [x] `getSystemMetrics()` - Retourne métriques vides
+  - [x] `analyzeAndRecordSecurityData()` - Ignore analyse
+  - [x] `analyzeSecurityRisks()` - Retourne risques vides
+  - [x] `cleanupOldLogs()` - Retourne 0
+  - [x] `getSecurityMetrics()` - Retourne métriques vides
+- [ ] Tester que les APIs retournent maintenant des données vides au lieu d'erreurs 500
+- [ ] Exécuter `make db-push-all` pour créer toutes les tables
+- [ ] Vérifier que les APIs fonctionnent correctement après création des tables
 
 **📄 Fichiers à Modifier** :
 - `backend/company-service/src/controllers/company.controller.js` - ✅ Fallback ajouté
+- `backend/security-service/src/services/securityService.js` - ✅ Fallbacks ajoutés
 
-**Statut** : 🟡 **EN COURS** - Fallback ajouté, reste à créer la table avec `make db-push-all`
+**Statut** : 🟡 **EN COURS** - Fallbacks ajoutés, reste à créer les tables avec `make db-push-all`
 
 ---
 

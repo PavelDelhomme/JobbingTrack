@@ -74,6 +74,11 @@ class SecurityService {
 
       return logs;
     } catch (error) {
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table SecurityLog non trouvée, retour de données vides (mode développement)');
+        return [];
+      }
       logger.error('Erreur lors de la récupération des logs de sécurité:', error);
       throw error;
     }
@@ -82,6 +87,14 @@ class SecurityService {
   // Créer un log de sécurité
   async createSecurityLog(logData) {
     try {
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      if (!prisma.securityLog || typeof prisma.securityLog.create !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, création de log ignorée (mode développement)');
+          return null;
+        }
+      }
+
       const {
         level,
         category,
@@ -148,6 +161,11 @@ class SecurityService {
 
       return log;
     } catch (error) {
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table SecurityLog non trouvée, création de log ignorée (mode développement)');
+        return null;
+      }
       logger.error('Erreur lors de la création du log de sécurité:', error);
       throw error;
     }
@@ -583,15 +601,26 @@ class SecurityService {
   async getSystemMetrics() {
     try {
       // Récupérer les métriques récentes (dernière heure)
-      const recentLogs = await prisma.securityLog.findMany({
-        where: {
-          timestamp: {
-            gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
-          }
-        },
-        orderBy: { timestamp: 'desc' },
-        take: 1000
-      });
+      let recentLogs;
+      try {
+        recentLogs = await prisma.securityLog.findMany({
+          where: {
+            timestamp: {
+              gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
+            }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 1000
+        });
+      } catch (error) {
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
+          recentLogs = [];
+        } else {
+          throw error;
+        }
+      }
 
       // Calculer les métriques à partir des vraies données collectées
       const totalLogs = recentLogs.length;
@@ -707,15 +736,26 @@ class SecurityService {
   async analyzeAndRecordSecurityData() {
     try {
       // Récupérer les données de sécurité récentes pour analyse
-      const recentLogs = await prisma.securityLog.findMany({
-        where: {
-          timestamp: {
-            gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
-          }
-        },
-        orderBy: { timestamp: 'desc' },
-        take: 1000
-      });
+      let recentLogs;
+      try {
+        recentLogs = await prisma.securityLog.findMany({
+          where: {
+            timestamp: {
+              gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
+            }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 1000
+        });
+      } catch (error) {
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, analyse ignorée (mode développement)');
+          return { success: true, message: 'Table SecurityLog non trouvée' };
+        } else {
+          throw error;
+        }
+      }
 
       // Analyser les patterns d'attaques
       const attackAnalysis = this.analyzeAttackPatterns(recentLogs);
@@ -785,11 +825,23 @@ class SecurityService {
       const lastDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       // Récupérer les données récentes pour analyse
-      const [recentLogs, intrusionAttempts, ddosAttacks, vulnerabilities] = await Promise.all([
-        prisma.securityLog.findMany({
+      let recentLogs;
+      try {
+        recentLogs = await prisma.securityLog.findMany({
           where: { timestamp: { gte: lastHour } },
           orderBy: { timestamp: 'desc' }
-        }),
+        });
+      } catch (error) {
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, analyse des risques ignorée (mode développement)');
+          recentLogs = [];
+        } else {
+          throw error;
+        }
+      }
+
+      const [intrusionAttempts, ddosAttacks, vulnerabilities] = await Promise.all([
         prisma.intrusionAttempt.findMany({
           where: { timestamp: { gte: lastDay } },
           orderBy: { timestamp: 'desc' }
@@ -1066,15 +1118,25 @@ class SecurityService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-      const deletedLogs = await prisma.securityLog.deleteMany({
-        where: {
-          timestamp: {
-            lt: cutoffDate
+      let deletedLogs;
+      try {
+        deletedLogs = await prisma.securityLog.deleteMany({
+          where: {
+            timestamp: {
+              lt: cutoffDate
+            }
           }
+        });
+        logger.info(`Nettoyage des logs de sécurité: ${deletedLogs.count} logs supprimés`);
+      } catch (error) {
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, nettoyage ignoré (mode développement)');
+          return 0;
+        } else {
+          throw error;
         }
-      });
-
-      logger.info(`Nettoyage des logs de sécurité: ${deletedLogs.count} logs supprimés`);
+      }
 
       return deletedLogs.count;
     } catch (error) {
