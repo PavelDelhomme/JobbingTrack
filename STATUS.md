@@ -159,6 +159,65 @@
 - [ ] Vérifier que l'étape `cleanup_test_data` fonctionne correctement
 - [ ] Documenter les nouveaux scénarios dans la documentation
 
+#### 0.2. Routes Archive et Corbeille - Erreurs 404
+
+**Statut** : ✅ **RÉSOLU** - Routes ajoutées dans `admin.routes.js`
+
+**Problème** :
+- Erreur 404 pour `/api/v1/admin/archive` lors de l'accès à la page Archives
+- Erreur 404 pour `/api/v1/admin/trash` lors de l'accès à la page Corbeille
+- Les contrôleurs existaient mais les routes n'étaient pas définies
+
+**Solution Implémentée** :
+- ✅ Routes `/api/v1/admin/archive` ajoutées dans `admin.routes.js`
+- ✅ Routes `/api/v1/admin/trash` ajoutées dans `admin.routes.js`
+- ✅ Import des contrôleurs `archiveController` et `trashController`
+- ✅ Routes protégées par middleware `authenticate`
+
+**Fichiers Modifiés** :
+- `backend/api-gateway/src/routes/admin.routes.js` ✅
+
+**Routes Ajoutées** :
+- `GET /api/v1/admin/archive` - Récupérer tous les éléments archivés
+- `POST /api/v1/admin/archive/:type/:id` - Archiver un élément
+- `POST /api/v1/admin/archive/:type/:id/unarchive` - Désarchiver un élément
+- `GET /api/v1/admin/trash` - Récupérer tous les éléments supprimés
+- `POST /api/v1/admin/trash/:type/:id/restore` - Restaurer un élément
+- `DELETE /api/v1/admin/trash/:type/:id/permanent` - Supprimer définitivement
+- `POST /api/v1/admin/trash/empty` - Vider la corbeille (SUPER_ADMIN uniquement)
+
+#### 0.3. Logs Console Excessifs - Page Services
+
+**Statut** : ✅ **RÉSOLU** - Logs réduits et conditionnels
+
+**Problème** :
+- Logs console répétitifs toutes les 5 secondes dans la page des services
+- `[SERVICE DETAIL] Métriques reçues`, `[SERVICE DETAIL] Logs reçus`, `[SERVICE DETAIL] Historique reçu`, `[SERVICE DETAIL] Statuts` affichés en boucle
+
+**Solution Implémentée** :
+- ✅ Logs conditionnels : uniquement en mode développement
+- ✅ Logs uniquement lors du premier chargement (vérification de l'état avant log)
+- ✅ Réduction drastique du bruit dans la console
+
+**Fichiers Modifiés** :
+- `frontend/src/app/(admin)/backoffice/services/[serviceName]/page.tsx` ✅
+
+#### 0.4. Erreur 500 pour `/api/v1/companies` - Amélioration Fallback
+
+**Statut** : ✅ **RÉSOLU** - Fallback Prisma P2021 amélioré
+
+**Problème** :
+- Erreur 500 persistante pour `/api/v1/companies` même avec le fallback
+- Le fallback ne fonctionnait pas correctement car l'erreur était dans `Promise.all`
+
+**Solution Implémentée** :
+- ✅ Try-catch interne autour de `Promise.all` pour capturer l'erreur P2021
+- ✅ Fallback amélioré avec gestion correcte des erreurs
+- ✅ Retour de données vides avec message d'avertissement clair
+
+**Fichiers Modifiés** :
+- `backend/company-service/src/controllers/company.controller.js` ✅
+
 ---
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums
