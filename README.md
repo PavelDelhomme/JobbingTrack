@@ -46,6 +46,12 @@ Accès rapide à toute la documentation du projet : architecture, API, déploiem
 
 ## 🎯 Fonctionnalités
 
+> **⚠️ IMPORTANT** : JobbingTrack est un **outil personnel de suivi de candidatures pour un chercheur d'emploi**.
+> - ✅ Pour le candidat : Suivre ses propres candidatures sur différents sites de recrutement
+> - ✅ Centralisation : Centraliser toutes les informations de ses candidatures
+> - ✅ Automatisation : Automatiser certaines tâches (relances, rappels, etc.)
+> - ❌ PAS pour l'employeur/recruteur : Ce n'est PAS un outil ATS
+
 - ✅ Dashboard administrateur Next.js
 - ✅ Microservices backend Node.js
 - ✅ Monitoring temps réel

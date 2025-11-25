@@ -4,6 +4,20 @@
 
 ---
 
+## 🎯 Objectif du Projet
+
+**⚠️ IMPORTANT** : JobbingTrack est un **outil personnel de suivi de candidatures pour un chercheur d'emploi**.
+
+- ✅ **Pour le candidat** : Suivre ses propres candidatures sur différents sites de recrutement
+- ✅ **Centralisation** : Centraliser toutes les informations de ses candidatures
+- ✅ **Automatisation** : Automatiser certaines tâches (relances, rappels, etc.)
+- ❌ **PAS pour l'employeur** : Ce n'est PAS un outil pour gérer les candidatures reçues par une entreprise
+- ❌ **PAS pour le recruteur** : Ce n'est PAS un outil ATS (Applicant Tracking System)
+
+**L'utilisateur = Le candidat qui cherche un emploi et suit ses propres candidatures.**
+
+---
+
 ## 🎯 FICHIERS PRINCIPAUX
 
 ### ⭐ **FICHIER PRINCIPAL** : [docs/database/ACTIONS_ET_MODIFICATIONS.md](docs/database/ACTIONS_ET_MODIFICATIONS.md)
