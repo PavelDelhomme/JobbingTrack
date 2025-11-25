@@ -1043,6 +1043,47 @@ app.use(wafCheck);
 
 **Note** : La solution principale reste `make db-push-all` pour créer les tables dans la base de données. Les fallbacks permettent de continuer le développement même si les tables sont manquantes.
 
+#### 0.5. Commande `make db-push-all` - Synchronisation Incomplète
+
+**Statut** : ✅ **RÉSOLU** - Tous les services avec Prisma sont maintenant synchronisés
+
+**Problème** :
+- La commande `make db-push-all` ne synchronisait que 3 services :
+  - `auth-service` ✅
+  - `metrics-aggregator-service` ✅
+  - `security-service` ✅
+- Les autres services avec schémas Prisma n'étaient pas synchronisés :
+  - `application-service` ❌
+  - `company-service` ❌
+  - `contact-service` ❌
+  - `interview-service` ❌ (généré mais pas pushé)
+  - `call-service` ❌ (généré mais pas pushé)
+  - `followup-service` ❌ (généré mais pas pushé)
+  - `event-service` ❌ (généré mais pas pushé)
+
+**Solution Implémentée** :
+- ✅ Refactorisation de `db-push-all` pour utiliser une boucle sur tous les services
+- ✅ Liste complète des services avec schémas Prisma :
+  - `auth-service`
+  - `application-service`
+  - `company-service`
+  - `contact-service`
+  - `interview-service`
+  - `call-service`
+  - `followup-service`
+  - `event-service`
+  - `metrics-aggregator-service`
+  - `security-service`
+- ✅ Chaque service est vérifié et synchronisé avec `prisma db push --accept-data-loss`
+- ✅ Suppression de la génération séparée (tous les services sont maintenant pushés)
+
+**Fichiers Modifiés** :
+- `makefiles/database/Makefile` ✅
+
+**Résultat** :
+- Tous les services avec `schema.prisma` sont maintenant synchronisés
+- Les tables `Company`, `Application`, `Contact`, `FollowUp`, `Call`, `Interview`, `Event` seront créées lors de l'exécution de `make db-push-all`
+
 ---
 
 ### 🎉 Page de Profil Utilisateur - TERMINÉ (24/11/2025)
