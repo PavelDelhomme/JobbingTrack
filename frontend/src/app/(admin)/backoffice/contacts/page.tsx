@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { Users, Search, Plus, Edit, Trash2, Mail, Phone, Building2, RefreshCw } from 'lucide-react';
-import axios from 'axios';
+import { Users, Search, Plus, Edit, Trash2, Mail, Phone, Building2, RefreshCw, X } from 'lucide-react';
+import { contactService, companyService } from '@/lib/api';
+import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -16,6 +17,7 @@ interface Contact {
   email?: string;
   phone?: string;
   position?: string;
+  companyId?: string;
   companyName?: string;
   createdAt: string;
 }
@@ -26,6 +28,9 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -36,17 +41,28 @@ export default function ContactsPage() {
   const loadContacts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/v1/contacts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        setContacts(response.data.contacts || []);
-      }
-    } catch (error) {
+      const response = await contactService.getAll();
+      setContacts(response.data.contacts || response.data || []);
+    } catch (error: any) {
       console.error('Erreur chargement contacts:', error);
+      // Fallback si erreur
+      if (error.response?.status === 500 || error.code === 'ERR_NETWORK') {
+        setContacts([]);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return;
+    
+    try {
+      await contactService.delete(id);
+      loadContacts();
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      alert('Erreur lors de la suppression');
     }
   };
 
@@ -79,8 +95,8 @@ export default function ContactsPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push('/backoffice/contacts/new')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-5 w-5" />
             Nouveau contact
@@ -108,7 +124,7 @@ export default function ContactsPage() {
             </div>
             <button
               onClick={loadContacts}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               <RefreshCw className="h-5 w-5" />
             </button>
@@ -172,19 +188,30 @@ export default function ContactsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => router.push(`/backoffice/contacts/${contact.id}`)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            setShowEditModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 hover:dark:text-blue-300"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(contact.id)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 hover:dark:text-red-300"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {filteredContacts.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      Aucun contact trouvé
+                      {contacts.length === 0 ? 'Aucun contact trouvé' : 'Aucun résultat pour votre recherche'}
                     </td>
                   </tr>
                 )}
@@ -193,7 +220,257 @@ export default function ContactsPage() {
           </div>
         </div>
       </div>
+
+      {showCreateModal && (
+        <ContactFormModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            loadContacts();
+          }}
+        />
+      )}
+
+      {showEditModal && selectedContact && (
+        <ContactFormModal
+          contact={selectedContact}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedContact(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setSelectedContact(null);
+            loadContacts();
+          }}
+        />
+      )}
     </AdminLayout>
   );
 }
 
+function ContactFormModal({ 
+  contact, 
+  onClose, 
+  onSuccess 
+}: { 
+  contact?: Contact; 
+  onClose: () => void; 
+  onSuccess: () => void;
+}) {
+  const { token } = useAuth();
+  const [formData, setFormData] = useState({
+    firstName: contact?.firstName || '',
+    lastName: contact?.lastName || '',
+    email: contact?.email || '',
+    phone: contact?.phone || '',
+    position: contact?.position || '',
+    companyName: contact?.companyName || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+
+  useEffect(() => {
+    loadCompanySuggestions();
+  }, []);
+
+  const loadCompanySuggestions = async () => {
+    try {
+      setLoadingCompanies(true);
+      const response = await companyService.getAll();
+      const companies = response.data.companies || response.data || [];
+      setCompanySuggestions(companies.map((c: any) => c.name));
+    } catch (error) {
+      console.error('Erreur chargement entreprises:', error);
+      setCompanySuggestions([]);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.firstName || !formData.lastName) {
+      alert('Le prénom et le nom sont obligatoires');
+      return;
+    }
+
+    if (!formData.companyName) {
+      alert('L\'entreprise est obligatoire');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Créer ou récupérer l'entreprise
+      let companyId: string;
+      try {
+        // Chercher l'entreprise existante
+        const companiesResponse = await companyService.getAll();
+        const companies = companiesResponse.data.companies || companiesResponse.data || [];
+        const existingCompany = companies.find((c: any) => 
+          c.name.toLowerCase() === formData.companyName.toLowerCase()
+        );
+
+        if (existingCompany) {
+          companyId = existingCompany.id;
+        } else {
+          // Créer l'entreprise automatiquement
+          const newCompanyResponse = await companyService.create({
+            name: formData.companyName,
+          });
+          companyId = newCompanyResponse.data.company?.id || newCompanyResponse.data.id;
+        }
+      } catch (error) {
+        console.error('Erreur gestion entreprise:', error);
+        alert('Erreur lors de la création/récupération de l\'entreprise');
+        setLoading(false);
+        return;
+      }
+
+      // Créer ou mettre à jour le contact
+      const contactData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        position: formData.position || undefined,
+        companyId,
+      };
+
+      if (contact) {
+        await contactService.update(contact.id, contactData);
+      } else {
+        await contactService.create(contactData);
+      }
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Erreur création/modification contact:', error);
+      alert(error.response?.data?.error || 'Erreur lors de la création/modification du contact');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {contact ? 'Modifier le contact' : 'Nouveau contact'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Prénom *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nom *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Entreprise *
+            </label>
+            <AutocompleteInput
+              value={formData.companyName}
+              onChange={(value) => setFormData({ ...formData, companyName: value })}
+              placeholder="Rechercher ou saisir une entreprise..."
+              suggestions={companySuggestions}
+              loading={loadingCompanies}
+              required
+              className="w-full"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              L'entreprise sera créée automatiquement si elle n'existe pas
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Téléphone
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Poste
+            </label>
+            <input
+              type="text"
+              value={formData.position}
+              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? 'Enregistrement...' : contact ? 'Modifier' : 'Créer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
