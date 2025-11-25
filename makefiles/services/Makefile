@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service rebuild-service start-service up-service logs-service status logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests restart restart-clean restart-force up-profile start-auth start-applications stop-service restart-service rebuild-service start-service up-service logs-service status status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -183,6 +183,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "📊 STATUS & LOGS:"
 	@echo "  make status                - Statut détaillé des services"
+	@echo "  make status-live           - Statut en temps réel (actualisation automatique)"
 	@echo "  make ps                    - Liste conteneurs actifs"
 	@echo "  make logs                  - Tous les logs"
 	@echo "  make logs-service SERVICE=x - Logs d'un service"
@@ -800,6 +801,47 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
 	else \
 		printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+	fi
+
+# Statut en temps réel (actualisation automatique)
+status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)
+	@if command -v watch &> /dev/null; then \
+		echo "📊 Statut en temps réel des services JobbingTrack"; \
+		echo "=========================================="; \
+		echo ""; \
+		echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"; \
+		echo ""; \
+		watch -n 2 -c 'make status' 2>/dev/null || \
+		watch -n 2 'make status' 2>/dev/null; \
+	elif command -v gwatch &> /dev/null; then \
+		echo "📊 Statut en temps réel des services JobbingTrack"; \
+		echo "=========================================="; \
+		echo ""; \
+		echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"; \
+		echo ""; \
+		gwatch -n 2 -c 'make status' 2>/dev/null || \
+		gwatch -n 2 'make status' 2>/dev/null; \
+	else \
+		echo "📊 Statut en temps réel des services JobbingTrack"; \
+		echo "=========================================="; \
+		echo ""; \
+		echo "⚠️  La commande 'watch' n'est pas installée."; \
+		echo ""; \
+		echo "💡 Installation:"; \
+		echo "   Ubuntu/Debian: sudo apt-get install watch"; \
+		echo "   Fedora/RHEL:   sudo dnf install watch"; \
+		echo "   Arch/Manjaro:  sudo pacman -S procps-ng"; \
+		echo ""; \
+		echo "🔄 Mode manuel (actualisation toutes les 2 secondes):"; \
+		echo "   Appuyez sur Ctrl+C pour quitter"; \
+		echo ""; \
+		while true; do \
+			clear; \
+			$(MAKE) status; \
+			echo ""; \
+			echo "💡 Actualisation dans 2 secondes... (Ctrl+C pour quitter)"; \
+			sleep 2; \
+		done; \
 	fi
 
 # Liste conteneurs actifs
