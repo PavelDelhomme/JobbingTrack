@@ -7,6 +7,20 @@
 
 ---
 
+## 🎯 Objectif du Projet
+
+**⚠️ IMPORTANT** : JobbingTrack est un **outil personnel de suivi de candidatures pour un chercheur d'emploi**.
+
+- ✅ **Pour le candidat** : Suivre ses propres candidatures sur différents sites de recrutement
+- ✅ **Centralisation** : Centraliser toutes les informations de ses candidatures
+- ✅ **Automatisation** : Automatiser certaines tâches (relances, rappels, etc.)
+- ❌ **PAS pour l'employeur** : Ce n'est PAS un outil pour gérer les candidatures reçues par une entreprise
+- ❌ **PAS pour le recruteur** : Ce n'est PAS un outil ATS (Applicant Tracking System)
+
+**L'utilisateur = Le candidat qui cherche un emploi et suit ses propres candidatures.**
+
+---
+
 ## 📋 Comment Utiliser Ce Fichier
 
 ### Pour Ajouter une Demande de Modification
@@ -92,9 +106,15 @@
 **Date** : 2025-01-27  
 **Demandé par** : Utilisateur
 
-**Description** : Je souhaite avoir les relations décrites dans le fichier `relations.md` et m'assurer que toutes les relations manquantes sont implémentées. Un utilisateur est le point central de toutes mes données globalement orienté applicatif.
+**Description** : Je souhaite avoir les relations décrites dans le fichier `relations.md` et m'assurer que toutes les relations manquantes sont implémentées. 
 
-**Contexte** : Vérifier et compléter toutes les relations many-to-many et one-to-many décrites dans la documentation.
+**Contexte** : 
+- **Objectif du projet** : Outil personnel de suivi de candidatures pour un chercheur d'emploi
+- L'utilisateur (candidat) est le point central de toutes les données
+- L'utilisateur suit ses propres candidatures sur différents sites de recrutement
+- Centralisation des informations de candidatures et automatisation de certaines tâches
+- **PAS de côté employeur/recruteur** : uniquement pour le candidat qui cherche un poste
+- Vérifier et compléter toutes les relations many-to-many et one-to-many décrites dans la documentation
 
 **💡 Avis Technique** : *À compléter après analyse*
 
