@@ -52,15 +52,28 @@ const getContacts = async (req, res, next) => {
       })
     };
 
-    const [contacts, total] = await Promise.all([
-      prisma.contact.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: parseInt(offset),
-        take: parseInt(limit)
-      }),
-      prisma.contact.count({ where })
-    ]);
+    let contacts, total;
+    try {
+      [contacts, total] = await Promise.all([
+        prisma.contact.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: parseInt(offset),
+          take: parseInt(limit)
+        }),
+        prisma.contact.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table Contact n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Contact non trouvée, retour de données vides (mode développement)');
+        contacts = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération contacts:', error);
+        return next(error);
+      }
+    }
 
     res.json({
       success: true,
@@ -70,7 +83,10 @@ const getContacts = async (req, res, next) => {
         limit: parseInt(limit),
         total,
         pages: Math.ceil(total / limit)
-      }
+      },
+      ...(total === 0 && contacts.length === 0 ? {
+        warning: 'Table Contact non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération contacts:', error);

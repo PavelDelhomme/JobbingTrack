@@ -172,25 +172,37 @@ const getApplications = async (req, res, next) => {
     })
   };
 
-    const [applications, total] = await Promise.all([
-      prisma.application.findMany({
-        where,
-        include: {
-          company: true,
-          platform: true, // ✅ NOUVEAU - Inclure la plateforme
-          _count: {
-            select: {
-              interviews: true,
-              followUps: true
+    let applications, total;
+    try {
+      [applications, total] = await Promise.all([
+        prisma.application.findMany({
+          where,
+          include: {
+            company: true,
+            platform: true, // ✅ NOUVEAU - Inclure la plateforme
+            _count: {
+              select: {
+                interviews: true,
+                followUps: true
+              }
             }
-          }
-        },
-        orderBy: { [sortBy]: sortOrder },
-        skip: parseInt(offset),
-        take: parseInt(limit)
-      }),
-      prisma.application.count({ where })
-    ]);
+          },
+          orderBy: { [sortBy]: sortOrder },
+          skip: parseInt(offset),
+          take: parseInt(limit)
+        }),
+        prisma.application.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table Application n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Application non trouvée, retour de données vides (mode développement)');
+        applications = [];
+        total = 0;
+      } else {
+        throw error;
+      }
+    }
 
     res.json({
       success: true,

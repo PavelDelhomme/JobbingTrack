@@ -70,15 +70,28 @@ const getAllEvents = async (req, res, next) => {
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    const [events, total] = await Promise.all([
-      prisma.event.findMany({
-        where: { userId },
-        orderBy: { startDate: 'desc' },
-        skip,
-        take: limitNum
-      }),
-      prisma.event.count({ where: { userId } })
-    ]);
+    let events, total;
+    try {
+      [events, total] = await Promise.all([
+        prisma.event.findMany({
+          where: { userId },
+          orderBy: { startDate: 'desc' },
+          skip,
+          take: limitNum
+        }),
+        prisma.event.count({ where: { userId } })
+      ]);
+    } catch (error) {
+      // Fallback si table Event n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Event non trouvée, retour de données vides (mode développement)');
+        events = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération événements:', error);
+        return next(error);
+      }
+    }
 
     res.json({
       success: true,
@@ -88,7 +101,10 @@ const getAllEvents = async (req, res, next) => {
         limit: limitNum,
         total,
         pages: Math.ceil(total / limitNum)
-      }
+      },
+      ...(total === 0 && events.length === 0 ? {
+        warning: 'Table Event non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération événements:', error);
