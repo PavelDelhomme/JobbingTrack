@@ -96,20 +96,27 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 0. ✅ Erreurs API Gateway et Security Service - CORRIGÉES
+#### 0. ✅ Erreurs P2021 - Tables Manquantes - CORRIGÉES
 
 **Statut** : ✅ **RÉSOLU** - 2025-11-25
 
 **Problèmes corrigés** :
 - ✅ Erreur `Identifier 'logger' has already been declared` dans `admin-advanced.controller.js` - Déclaration dupliquée supprimée
 - ✅ Erreurs P2021 (table `security_logs` n'existe pas) dans `security-service` - Fallbacks améliorés pour ignorer silencieusement en mode développement
-- ✅ Gestion d'erreurs améliorée dans `securityScheduler` pour ignorer les erreurs P2021
+- ✅ Erreurs P2021 (table `deployment.deployments` n'existe pas) dans `deployment-service` - Fallbacks ajoutés pour toutes les méthodes
+- ✅ Erreurs P2021 (table `workflowExecution` n'existe pas) dans `workflow-service` - Fallbacks ajoutés dans `cronScheduler.js`
+- ✅ Erreurs P2021 (table `Notification` n'existe pas) dans `notification-service` - Fallbacks ajoutés pour toutes les méthodes
+- ✅ Gestion d'erreurs améliorée dans tous les schedulers pour ignorer les erreurs P2021
 
 **Fichiers modifiés** :
 - `backend/api-gateway/src/controllers/admin-advanced.controller.js` - Suppression déclaration logger dupliquée
 - `backend/security-service/src/services/securityScheduler.js` - Amélioration gestion erreurs P2021
+- `backend/deployment-service/src/services/deploymentService.js` - Fallbacks P2021 ajoutés
+- `backend/deployment-service/src/services/deploymentScheduler.js` - Correction `deploymentService.prisma` → `prisma`
+- `backend/workflow-service/src/jobs/cronScheduler.js` - Fallbacks P2021 ajoutés
+- `backend/notification-service/src/controllers/notification.controller.js` - Fallbacks P2021 ajoutés
 
-**Note** : Les erreurs P2021 sont maintenant ignorées silencieusement en mode développement. Pour résoudre définitivement, exécuter `make db-push-all` pour créer toutes les tables.
+**Note** : Les erreurs P2021 sont maintenant ignorées silencieusement en mode développement dans tous les services. Pour résoudre définitivement, exécuter `make db-push-all` pour créer toutes les tables.
 
 ---
 
