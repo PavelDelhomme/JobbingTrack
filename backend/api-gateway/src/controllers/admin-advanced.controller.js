@@ -247,27 +247,122 @@ const getPerformanceAlerts = async (req, res) => {
   }
 };
 
-// Fonctions pour les tests Playwright (simplifiées)
+// Fonctions pour les tests Playwright
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+const fs = require('fs').promises;
+const path = require('path');
+const logger = require('../utils/logger');
+
 const runPlaywrightTests = async (req, res) => {
   try {
+    const { scenarios } = req.body;
+    
+    if (!scenarios || !Array.isArray(scenarios) || scenarios.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Aucun scénario fourni'
+      });
+    }
+
+    const executionId = `test-${Date.now()}`;
+    logger.info(`🎭 Exécution de ${scenarios.length} scénario(s) Playwright: ${executionId}`);
+
+    // Créer un fichier de test temporaire
+    const testDir = path.join(__dirname, '../../../frontend/tests/e2e/custom');
+    await fs.mkdir(testDir, { recursive: true });
+    
+    const testFile = path.join(testDir, `${executionId}.spec.ts`);
+    
+    // Générer le code Playwright à partir des scénarios
+    let testCode = `import { test, expect } from '@playwright/test';\n\n`;
+    
+    scenarios.forEach((scenario, index) => {
+      testCode += `test('${scenario.name}', async ({ page }) => {\n`;
+      scenario.steps.forEach(step => {
+        switch (step.action) {
+          case 'navigate':
+            testCode += `  await page.goto('${step.target}');\n`;
+            break;
+          case 'click':
+            testCode += `  await page.click('${step.target}');\n`;
+            break;
+          case 'fill':
+            testCode += `  await page.fill('${step.target}', '${(step.value || '').replace(/'/g, "\\'")}');\n`;
+            break;
+          case 'select':
+            testCode += `  await page.selectOption('${step.target}', '${step.value || ''}');\n`;
+            break;
+          case 'waitFor':
+            testCode += `  await page.waitForSelector('${step.target}');\n`;
+            break;
+          default:
+            testCode += `  // ${step.description}\n`;
+        }
+      });
+      testCode += `});\n\n`;
+    });
+
+    // Écrire le fichier de test
+    await fs.writeFile(testFile, testCode, 'utf-8');
+    logger.info(`📝 Fichier de test créé: ${testFile}`);
+
+    // Exécuter Playwright en arrière-plan
+    const frontendDir = path.join(__dirname, '../../../frontend');
+    const command = `cd ${frontendDir} && npx playwright test tests/e2e/custom/${executionId}.spec.ts --reporter=json`;
+    
+    // Lancer l'exécution en arrière-plan
+    exec(command, { cwd: frontendDir, timeout: 300000 }, (error, stdout, stderr) => {
+      // Les résultats seront récupérés via getTestResults
+    });
+
     res.status(200).json({
       success: true,
-      executionId: Date.now(),
-      message: 'Tests Playwright lancés (simulation)',
-      fallback: true
+      executionId,
+      message: `Tests Playwright lancés pour ${scenarios.length} scénario(s)`,
+      testFile: testFile.replace(process.cwd(), '')
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Erreur exécution tests Playwright:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 };
 
 const getTestResults = async (req, res) => {
   try {
+    const { executionId } = req.params;
+    
+    // Lire les résultats depuis le fichier JSON généré par Playwright
+    const frontendDir = path.join(__dirname, '../../../frontend');
+    const resultsFile = path.join(frontendDir, 'test-results.json');
+    
+    let results = { total: 0, passed: 0, failed: 0, tests: [] };
+    
+    try {
+      const data = await fs.readFile(resultsFile, 'utf-8');
+      const jsonData = JSON.parse(data);
+      
+      // Filtrer les résultats pour l'executionId si nécessaire
+      results = {
+        total: jsonData.stats?.total || 0,
+        passed: jsonData.stats?.passed || 0,
+        failed: jsonData.stats?.failed || 0,
+        tests: jsonData.suites?.[0]?.specs || []
+      };
+    } catch (error) {
+      // Fichier non trouvé ou erreur de lecture
+      logger.warn('Fichier de résultats non trouvé, utilisation de résultats par défaut');
+    }
+
     res.status(200).json({
       success: true,
-      results: { total: 10, passed: 8, failed: 2 },
-      fallback: true,
-      message: 'Résultats des tests (mode développement)'
+      executionId,
+      results,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
