@@ -74,96 +74,188 @@ const generateTestData = async (req, res) => {
 
 /**
  * Nettoie toutes les données de test ou par tag
+ * Utilise maintenant le champ isTestData pour distinguer les données
  */
 const clearTestData = async (req, res) => {
   try {
     // Vérifier les permissions SUPER_ADMIN uniquement
-    if (req.user?.role !== 'SUPER_ADMIN') {
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.role !== 'ADMIN') {
       return res.status(403).json({
         success: false,
-        error: 'Accès refusé. Seuls les SUPER_ADMIN peuvent nettoyer les données.'
+        error: 'Accès refusé. Seuls les ADMIN peuvent nettoyer les données de test.'
       });
     }
 
-    const { tag } = req.body || {};
+    const { tag, onlyTestData = true } = req.body || {};
 
-    if (tag) {
-      logger.warn(`🗑️ SUPER_ADMIN ${req.user.email} nettoie les données de test avec tag: ${tag}`);
-      
-      // Nettoyer uniquement les données avec le tag spécifié
-      // Rechercher dans les notes/descriptions pour trouver le tag
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-      
-      const tagPattern = `[TEST_DATA_TAG:${tag}]`;
-      
-      // Supprimer les applications avec le tag
-      await prisma.application.deleteMany({
-        where: {
-          notes: { contains: tagPattern }
-        }
-      });
-      
-      // Supprimer les entreprises avec le tag
-      await prisma.company.deleteMany({
-        where: {
-          description: { contains: tagPattern }
-        }
-      });
-      
-      // Supprimer les contacts avec le tag
-      await prisma.contact.deleteMany({
-        where: {
-          notes: { contains: tagPattern }
-        }
-      });
-      
-      // Supprimer les entretiens avec le tag
-      await prisma.interview.deleteMany({
-        where: {
-          notes: { contains: tagPattern }
-        }
-      });
-      
-      // Supprimer les relances avec le tag
-      await prisma.followUp.deleteMany({
-        where: {
-          message: { contains: tagPattern }
-        }
-      });
-      
-      // Supprimer les appels avec le tag
-      await prisma.call.deleteMany({
-        where: {
-          notes: { contains: tagPattern }
-        }
-      });
+    logger.warn(`🗑️ ${req.user.role} ${req.user.email} nettoie les données de test${tag ? ` avec tag: ${tag}` : ''}`);
+
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    let deletedCounts = {
+      users: 0,
+      companies: 0,
+      applications: 0,
+      contacts: 0,
+      interviews: 0,
+      followUps: 0,
+      calls: 0,
+      events: 0
+    };
+
+    try {
+      // Supprimer uniquement les données marquées comme test (isTestData = true)
+      if (onlyTestData) {
+        // Supprimer dans l'ordre inverse des dépendances
+        deletedCounts.events = await prisma.event.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.calls = await prisma.call.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.followUps = await prisma.followUp.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.interviews = await prisma.interview.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.applications = await prisma.application.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.contacts = await prisma.contact.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.companies = await prisma.company.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        // Supprimer les utilisateurs de test (ceux avec email contenant 'user' ou 'test')
+        deletedCounts.users = await prisma.user.deleteMany({
+          where: {
+            OR: [
+              { isTestData: true },
+              { email: { contains: '@jobbingtrack.com' } },
+              { email: { contains: 'test' } }
+            ]
+          }
+        }).then(r => r.count);
+
+        logger.info(`✅ Données de test nettoyées:`, deletedCounts);
+      } else if (tag) {
+        // Nettoyer par tag (ancienne méthode de fallback)
+        const tagPattern = `[TEST_DATA_TAG:${tag}]`;
+        
+        deletedCounts.applications = await prisma.application.deleteMany({
+          where: {
+            notes: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.companies = await prisma.company.deleteMany({
+          where: {
+            description: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.contacts = await prisma.contact.deleteMany({
+          where: {
+            notes: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.interviews = await prisma.interview.deleteMany({
+          where: {
+            notes: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.followUps = await prisma.followUp.deleteMany({
+          where: {
+            notes: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.calls = await prisma.call.deleteMany({
+          where: {
+            notes: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+        
+        deletedCounts.events = await prisma.event.deleteMany({
+          where: {
+            description: { contains: tagPattern },
+            isTestData: true
+          }
+        }).then(r => r.count);
+      } else {
+        // Nettoyer toutes les données de test (sans tag spécifique)
+        deletedCounts.events = await prisma.event.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.calls = await prisma.call.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.followUps = await prisma.followUp.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.interviews = await prisma.interview.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.applications = await prisma.application.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.contacts = await prisma.contact.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.companies = await prisma.company.deleteMany({
+          where: { isTestData: true }
+        }).then(r => r.count);
+
+        deletedCounts.users = await prisma.user.deleteMany({
+          where: {
+            OR: [
+              { isTestData: true },
+              { email: { contains: '@jobbingtrack.com' } }
+            ]
+          }
+        }).then(r => r.count);
+      }
       
       await prisma.$disconnect();
       
-      logger.info(`✅ Données de test avec tag ${tag} nettoyées`);
+      const totalDeleted = Object.values(deletedCounts).reduce((sum, count) => sum + count, 0);
+      
+      logger.info(`✅ ${totalDeleted} données de test nettoyées`);
       
       res.json({
         success: true,
-        message: `Données de test avec tag "${tag}" supprimées`,
-        tag,
+        message: `${totalDeleted} données de test supprimées`,
+        deletedCounts,
+        tag: tag || null,
         timestamp: new Date().toISOString()
       });
-    } else {
-      logger.warn(`🗑️ SUPER_ADMIN ${req.user.email} nettoie toutes les données de test`);
-
-      // Exécuter le script de nettoyage complet
-      const { stdout, stderr } = await execPromise(
-        'cd /app/.. && docker compose exec -T postgres psql -U jobbingtrack -d jobbingtrack -c "TRUNCATE TABLE \\"Application\\", \\"Interview\\", \\"FollowUp\\", \\"Call\\", \\"Contact\\", \\"Company\\", \\"Activity\\", \\"ApplicationContact\\", \\"ApplicationDocument\\", \\"Document\\", \\"Reminder\\", \\"MessageTemplate\\" CASCADE;"'
-      );
-
-      logger.info('✅ Toutes les données de test nettoyées');
-
-      res.json({
-        success: true,
-        message: 'Toutes les données de test ont été supprimées',
-        timestamp: new Date().toISOString()
-      });
+    } catch (prismaError) {
+      await prisma.$disconnect();
+      throw prismaError;
     }
 
   } catch (error) {
