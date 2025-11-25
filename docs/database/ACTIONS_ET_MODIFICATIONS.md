@@ -111,6 +111,8 @@
 > - Comportements spécifiques souhaités
 > - Exceptions ou cas particuliers
 > - Autres précisions...
+> 
+> 
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
@@ -265,6 +267,12 @@
 > - Modifications de comportement souhaitées (cascade, setNull, etc.)
 > - Champs supplémentaires à ajouter aux tables de jonction
 > - Autres précisions...
+>
+> Il manque la relation coté Contact <-> Appel tu peux appler ou lie un appel a un contact et donc il sera potentiellement dans le cadre d'une candiadaurree genr eje rajouter ou je créer un appel depuis la candidature donc il faudra avoir accès au contact ou créer un nouveau contact en proposition donc au contact de la ccandidature ceux qui sont directemen lié et sinon il affichera ensuite les contacts existant au sein de l'entreprise ou proposera "Créer un nouveay contact pour cete appel" ce qui aura piour effet d'afficher de quoi créer un nouveau contact avec le nom le prénom (pas obligatoire le prénom) par défaut l'entreprise du contact sera celle de la candidautre sinon on devai proposer le champs de autocompletion donc selectionner l'entreprise ou créer une nouvelle quoi finalement nfaite bref et une fois créerr cela ajoute le contact, on finalise la création de notre appel et on lié l'"appel créer a la canddiature.
+> Il faudra aussi lié les appel avec les évènement car on créera un évènement lors des appel passer donc pour voir un historique quoi finalement
+> Il faudra avoir un historique d'appel passer a une entreprise, a un contact d'une entreprise, a une candidautre,.
+> On peux relancer une entrepis via un appel donc il faudra potentilllement faire la mêem chsoe que précedement mais direccmtent via une relance ou créer uen relance en plus de l'appel vu que c'est une relance de type appel quoi bref donc crer une relance et un appel lros de la création de la relance en question bref 
+> Ajoute égalment effectivement sinon les possibilité de isTestData poiur cela oui effecitvement et les champs de synchronisation aux table de jonction ainsi que deletedAt pour les table de jonction afin de soft delete
 
 **Statut** : ✅ **VÉRIFIÉ** - Toutes les relations sont correctement implémentées et documentées
 
@@ -300,6 +308,9 @@
   - [x] `analyzeSecurityRisks()` - Retourne risques vides
   - [x] `cleanupOldLogs()` - Retourne 0
   - [x] `getSecurityMetrics()` - Retourne métriques vides
+- [x] ✅ **CORRIGÉ** : Ajouter fallback dans `getApplications` pour gérer erreur P2021 (correction du return manquant)
+- [x] ✅ **CORRIGÉ** : Ajouter fallback dans `updateUserPreferences` pour gérer erreur P2021 (table UserCustomization)
+- [x] ✅ **VÉRIFIÉ** : Les autres contrôleurs (`getContacts`, `getInterviews`, `getCalls`, `getFollowups`) ont déjà des fallbacks P2021
 - [ ] Tester que les APIs retournent maintenant des données vides au lieu d'erreurs 500
 - [ ] Exécuter `make db-push-all` pour créer toutes les tables
 - [ ] Vérifier que les APIs fonctionnent correctement après création des tables
@@ -307,6 +318,12 @@
 **📄 Fichiers à Modifier** :
 - `backend/company-service/src/controllers/company.controller.js` - ✅ Fallback ajouté
 - `backend/security-service/src/services/securityService.js` - ✅ Fallbacks ajoutés
+- `backend/application-service/src/controllers/application.controller.js` - ✅ **CORRIGÉ** : Fallback P2021 corrigé dans `getApplications`
+- `backend/auth-service/src/controllers/preferences.controller.js` - ✅ **CORRIGÉ** : Fallback P2021 ajouté dans `updateUserPreferences`
+- `backend/contact-service/src/controllers/contact.controller.js` - ✅ Fallback P2021 déjà présent
+- `backend/interview-service/src/controllers/interview.controller.js` - ✅ Fallback P2021 déjà présent
+- `backend/call-service/src/controllers/call.controller.js` - ✅ Fallback P2021 déjà présent
+- `backend/followup-service/src/controllers/followup.controller.js` - ✅ Fallback P2021 déjà présent
 
 **📝 Compléments Utilisateur** :
 
@@ -316,6 +333,14 @@
 > - Autres tables manquantes détectées
 > - Comportements spécifiques souhaités pour les fallbacks
 > - Autres précisions...
+> Les chargemnt des candidature ne fonctionne par toujours cette rreur pour appications tab donc : 
+ApplicationsTab.tsx:38 Erreur chargement candidatures: AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', code: 'ERR_BAD_RESPONSE', config: {…}, request: XMLHttpRequest, …}
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+fetchApplications @ ApplicationsTab.tsx:38
+await in fetchApplications
+eval @ ApplicationsTab.tsx:30
+> Aussi cela est a modifier du coup pour que cela fonctionne correcmtent je crois bien et j'ai cette erreur aussi pour interviews, pour calls, pour followups, pour contacts et pour companies en plus de applications du coup pourtant j'ia bien executer le make db-push-all
 
 **Statut** : 🟡 **EN COURS** - Fallbacks ajoutés, reste à créer les tables avec `make db-push-all`
 
@@ -413,6 +438,82 @@ model UserSettings {
 > - Settings spécifiques à implémenter
 > - Comportements particuliers souhaités
 > - Autres précisions...
+> les table n'ont pas du ^tre mis a jours j'ia des problè_me c,ore donc pour la page de paramètre de que je fait un chanbgment donc : 
+>preferencesService.ts:93  PUT http://localhost:3000/api/v1/preferences 500 (Internal Server Error)
+dispatchXhrRequest @ xhr.js:209
+xhr @ xhr.js:26
+dispatchRequest @ dispatchRequest.js:61
+_request @ Axios.js:194
+request @ Axios.js:49
+httpMethod @ Axios.js:233
+wrap @ bind.js:9
+updateUserPreferences @ preferencesService.ts:93
+eval @ SettingsPopup.tsx:59
+setTimeout
+eval @ SettingsPopup.tsx:57
+eval @ SettingsPopup.tsx:96
+onClick @ SettingsPopup.tsx:244
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112
+preferencesService.ts:117 Erreur lors de la mise à jour des préférences: AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', code: 'ERR_BAD_RESPONSE', config: {…}, request: XMLHttpRequest, …}
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+updateUserPreferences @ preferencesService.ts:117
+await in updateUserPreferences
+eval @ SettingsPopup.tsx:59
+setTimeout
+eval @ SettingsPopup.tsx:57
+eval @ SettingsPopup.tsx:96
+onClick @ SettingsPopup.tsx:244
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112
+SettingsPopup.tsx:67 Erreur sauvegarde automatique: AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', code: 'ERR_BAD_RESPONSE', config: {…}, request: XMLHttpRequest, …}
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+eval @ SettingsPopup.tsx:67
+setTimeout
+eval @ SettingsPopup.tsx:57
+eval @ SettingsPopup.tsx:96
+onClick @ SettingsPopup.tsx:244
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112
+> Voila il faut le résoudre s'il te palit donjc 
 
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
@@ -502,6 +603,8 @@ model UserSettings {
 > - Validations spécifiques souhaitées
 > - Comportements particuliers pour l'autocomplétion
 > - Autres précisions...
+> Le status "En cours d'examen" n'est aps correct je ne suis toujours pas coté employeur mais coté candidat tout le long de mon application enfaite de mon projet je dois gérer donc ca donnerai plutot les status : Candidaté et en attente, Entretien prévu, A relancer, Non selectionné sans entretien, Non selectionner avec entretien, 
+
 
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 

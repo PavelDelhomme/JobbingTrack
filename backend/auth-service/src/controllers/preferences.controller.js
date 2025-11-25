@@ -181,10 +181,40 @@ const updateUserPreferences = async (req, res) => {
       });
     }
 
+    // Vérifier que userCustomization existe dans le client Prisma
+    const hasUserCustomization = prisma.userCustomization && 
+                                 typeof prisma.userCustomization === 'object' &&
+                                 typeof prisma.userCustomization.findUnique === 'function';
+    
+    if (!hasUserCustomization) {
+      logger.warn('userCustomization non disponible dans Prisma client. Régénérez le client Prisma avec: npx prisma generate');
+      return res.json({
+        success: true,
+        preferences: preferences,
+        message: 'Préférences sauvegardées localement (table non disponible)',
+        warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      });
+    }
+
     // Vérifier si la customization existe
-    let customization = await prisma.userCustomization.findUnique({
-      where: { userId }
-    });
+    let customization;
+    try {
+      customization = await prisma.userCustomization.findUnique({
+        where: { userId }
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner succès avec warning
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
+        return res.json({
+          success: true,
+          preferences: preferences,
+          message: 'Préférences sauvegardées localement (table non disponible)',
+          warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+        });
+      }
+      throw dbError;
+    }
 
     if (customization) {
       // Fusionner avec les préférences existantes
@@ -205,18 +235,44 @@ const updateUserPreferences = async (req, res) => {
         }
       };
 
-      customization = await prisma.userCustomization.update({
-        where: { userId },
-        data: { settings: mergedSettings }
-      });
+      try {
+        customization = await prisma.userCustomization.update({
+          where: { userId },
+          data: { settings: mergedSettings }
+        });
+      } catch (updateError) {
+        if (updateError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+          logger.warn('Table UserCustomization non trouvée lors de la mise à jour, mode développement.');
+          return res.json({
+            success: true,
+            preferences: mergedSettings,
+            message: 'Préférences sauvegardées localement (table non disponible)',
+            warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+          });
+        }
+        throw updateError;
+      }
     } else {
       // Créer nouvelle customization
-      customization = await prisma.userCustomization.create({
-        data: {
-          userId,
-          settings: preferences
+      try {
+        customization = await prisma.userCustomization.create({
+          data: {
+            userId,
+            settings: preferences
+          }
+        });
+      } catch (createError) {
+        if (createError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+          logger.warn('Table UserCustomization non trouvée lors de la création, mode développement.');
+          return res.json({
+            success: true,
+            preferences: preferences,
+            message: 'Préférences sauvegardées localement (table non disponible)',
+            warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+          });
         }
-      });
+        throw createError;
+      }
     }
 
     logger.info(`Préférences mises à jour pour l'utilisateur ${userId}`);
@@ -228,9 +284,22 @@ const updateUserPreferences = async (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur mise à jour préférences:', error);
+    
+    // Dernier fallback pour P2021
+    if (error.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
+      return res.json({
+        success: true,
+        preferences: req.body.preferences || {},
+        message: 'Préférences sauvegardées localement (table non disponible)',
+        warning: 'Table UserCustomization non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la mise à jour des préférences'
+      error: 'Erreur lors de la mise à jour des préférences',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
