@@ -115,79 +115,41 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
-	@echo "📦 Services avec schémas Prisma complets à synchroniser:"
+	@echo "📦 Services avec schémas Prisma à synchroniser:"
 	@echo "   - auth-service (tables principales: User, Application, Company, etc.)"
+	@echo "   - application-service (tables: Application, Platform, etc.)"
+	@echo "   - company-service (tables: Company, etc.)"
+	@echo "   - contact-service (tables: Contact, ContactCompany, ContactApplication, etc.)"
+	@echo "   - interview-service (tables: Interview, InterviewContact, etc.)"
+	@echo "   - call-service (tables: Call, etc.)"
+	@echo "   - followup-service (tables: FollowUp, FollowUpContact, etc.)"
+	@echo "   - event-service (tables: Event, etc.)"
 	@echo "   - metrics-aggregator (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
 	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
 	@echo ""
 	@PUSHED=0; \
 	SKIPPED=0; \
-	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-auth-service$$"; then \
-		echo "  🔍 Vérification de auth-service..."; \
-		if docker exec jobbingtrack-auth-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
-			echo "  📦 Prisma db push sur auth-service..."; \
-			if docker exec -w /app jobbingtrack-auth-service npx prisma db push --accept-data-loss; then \
-				echo "  ✅ auth-service - Schéma synchronisé"; \
-				PUSHED=$$((PUSHED + 1)); \
-			else \
-				echo "  ❌ auth-service - Échec de prisma db push"; \
-				SKIPPED=$$((SKIPPED + 1)); \
-			fi; \
-		else \
-			echo "  ⏭️  auth-service - Pas de Prisma (ignoré)"; \
-			SKIPPED=$$((SKIPPED + 1)); \
-		fi; \
-	else \
-		echo "  ⚠️  auth-service - Conteneur non démarré (ignoré)"; \
-		SKIPPED=$$((SKIPPED + 1)); \
-	fi; \
-	echo ""; \
-	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-metrics-aggregator$$"; then \
-		echo "  🔍 Vérification de metrics-aggregator..."; \
-		if docker exec jobbingtrack-metrics-aggregator test -f /app/prisma/schema.prisma 2>/dev/null; then \
-			echo "  📦 Prisma db push sur metrics-aggregator..."; \
-			if docker exec -w /app jobbingtrack-metrics-aggregator npx prisma db push --accept-data-loss; then \
-				echo "  ✅ metrics-aggregator - Schéma synchronisé"; \
-				PUSHED=$$((PUSHED + 1)); \
-			else \
-				echo "  ❌ metrics-aggregator - Échec de prisma db push"; \
-				SKIPPED=$$((SKIPPED + 1)); \
-			fi; \
-		else \
-			echo "  ⏭️  metrics-aggregator - Pas de Prisma (ignoré)"; \
-			SKIPPED=$$((SKIPPED + 1)); \
-		fi; \
-	else \
-		echo "  ⚠️  metrics-aggregator - Conteneur non démarré (ignoré)"; \
-		SKIPPED=$$((SKIPPED + 1)); \
-	fi; \
-	echo ""; \
-	if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-security-service$$"; then \
-		echo "  🔍 Vérification de security-service..."; \
-		if docker exec jobbingtrack-security-service test -f /app/prisma/schema.prisma 2>/dev/null; then \
-			echo "  📦 Prisma db push sur security-service..."; \
-			if docker exec -w /app jobbingtrack-security-service npx prisma db push --accept-data-loss; then \
-				echo "  ✅ security-service - Schéma synchronisé"; \
-				PUSHED=$$((PUSHED + 1)); \
-			else \
-				echo "  ❌ security-service - Échec de prisma db push"; \
-				SKIPPED=$$((SKIPPED + 1)); \
-			fi; \
-		else \
-			echo "  ⏭️  security-service - Pas de Prisma (ignoré)"; \
-			SKIPPED=$$((SKIPPED + 1)); \
-		fi; \
-	else \
-		echo "  ⚠️  security-service - Conteneur non démarré (ignoré)"; \
-		SKIPPED=$$((SKIPPED + 1)); \
-	fi; \
-	echo ""; \
-	GENERATORS="call-service followup-service event-service interview-service"; \
-	for service in $$GENERATORS; do \
+	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator-service security-service"; \
+	for service in $$SERVICES; do \
 		CONTAINER="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
-			echo "  🔄 Génération Prisma pour $$service..."; \
-			docker exec -w /app $$CONTAINER npx prisma generate >/dev/null 2>&1 && echo "  ✅ $$service - Client Prisma à jour" || echo "  ⚠️  $$service - Génération Prisma impossible"; \
+			echo "  🔍 Vérification de $$service..."; \
+			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
+				echo "  📦 Prisma db push sur $$service..."; \
+				if docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss; then \
+					echo "  ✅ $$service - Schéma synchronisé"; \
+					PUSHED=$$((PUSHED + 1)); \
+				else \
+					echo "  ❌ $$service - Échec de prisma db push"; \
+					SKIPPED=$$((SKIPPED + 1)); \
+				fi; \
+			else \
+				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
+		else \
+			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
+			SKIPPED=$$((SKIPPED + 1)); \
 		fi; \
 		echo ""; \
 	done; \
