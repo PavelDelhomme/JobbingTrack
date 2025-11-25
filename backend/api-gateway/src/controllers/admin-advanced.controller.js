@@ -253,7 +253,7 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const fs = require('fs').promises;
 const path = require('path');
-const logger = require('../utils/logger');
+// logger déjà importé en haut du fichier, pas besoin de le réimporter
 
 const runPlaywrightTests = async (req, res) => {
   try {

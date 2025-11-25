@@ -193,10 +193,19 @@ class SecurityScheduler {
     const job = cron.schedule('* * * * *', async () => {
       try {
         // Analyser les logs de la dernière minute
-        const recentLogs = await securityService.getSecurityLogs({
-          startDate: new Date(Date.now() - 60 * 1000), // Dernière minute
-          level: 'critical'
-        });
+        let recentLogs;
+        try {
+          recentLogs = await securityService.getSecurityLogs({
+            startDate: new Date(Date.now() - 60 * 1000), // Dernière minute
+            level: 'critical'
+          });
+        } catch (error) {
+          // Si la table n'existe pas, ignorer silencieusement en mode développement
+          if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+            return; // Sortir silencieusement si la table n'existe pas
+          }
+          throw error; // Relancer l'erreur si ce n'est pas P2021
+        }
 
         if (recentLogs.length > 5) {
           // Créer une alerte si trop d'événements critiques
@@ -217,8 +226,20 @@ class SecurityScheduler {
         await this.collectSystemMetrics();
 
         // Analyser les vraies données de sécurité
-        await securityService.analyzeAndRecordSecurityData();
+        try {
+          await securityService.analyzeAndRecordSecurityData();
+        } catch (error) {
+          // Ignorer silencieusement les erreurs P2021 (table non trouvée) en mode développement
+          if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+            return; // Sortir silencieusement
+          }
+          logger.error('Erreur lors de l\'analyse des données de sécurité:', error);
+        }
       } catch (error) {
+        // Ignorer silencieusement les erreurs P2021 (table non trouvée) en mode développement
+        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+          return; // Sortir silencieusement
+        }
         logger.error('Erreur lors de l\'analyse des menaces en temps réel:', error);
       }
     }, {
