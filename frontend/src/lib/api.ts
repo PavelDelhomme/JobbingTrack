@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
+import { FRONTEND_URLS } from '@/config/ports.config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = FRONTEND_URLS.api;
 
 // Cache simple pour éviter les requêtes dupliquées
 const requestCache = new Map<string, Promise<any>>();

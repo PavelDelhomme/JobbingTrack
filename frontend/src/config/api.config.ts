@@ -3,12 +3,14 @@
  * Permet de gérer dynamiquement la version de l'API
  */
 
+import { FRONTEND_URLS } from './ports.config';
+
 export const API_CONFIG = {
   // Version actuelle de l'API
   VERSION: 'v1',
   
   // URL de base de l'API (depuis les variables d'environnement ou par défaut)
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  BASE_URL: FRONTEND_URLS.api,
   
   // Timeout par défaut pour les requêtes (en ms)
   DEFAULT_TIMEOUT: 15000,
