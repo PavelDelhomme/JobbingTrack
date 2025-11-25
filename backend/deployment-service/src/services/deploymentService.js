@@ -5,6 +5,15 @@ class DeploymentService {
   // Créer un nouveau déploiement
   async createDeployment(deploymentData) {
     try {
+      // Vérifier si la table existe
+      if (!prisma.deployment || typeof prisma.deployment.create !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non disponible, création ignorée (mode développement)');
+          return null;
+        }
+        throw new Error('Table Deployment non disponible');
+      }
+
       const {
         version,
         environment,
@@ -63,6 +72,15 @@ class DeploymentService {
         if (endDate) where.createdAt.lte = endDate;
       }
 
+      // Vérifier si la table existe avant d'essayer de la lire
+      if (!prisma.deployment || typeof prisma.deployment.findMany !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non disponible, retour de données vides (mode développement)');
+          return [];
+        }
+        throw new Error('Table Deployment non disponible');
+      }
+
       const deployments = await prisma.deployment.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -72,6 +90,11 @@ class DeploymentService {
 
       return deployments;
     } catch (error) {
+      // Fallback si table Deployment n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Deployment non trouvée, retour de données vides (mode développement)');
+        return [];
+      }
       logger.error('Erreur lors de la récupération des déploiements:', error);
       throw error;
     }
@@ -90,6 +113,11 @@ class DeploymentService {
 
       return deployment;
     } catch (error) {
+      // Fallback si table Deployment n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Deployment non trouvée, retour null (mode développement)');
+        return null;
+      }
       logger.error('Erreur lors de la récupération du déploiement:', error);
       throw error;
     }
@@ -98,6 +126,15 @@ class DeploymentService {
   // Mettre à jour le statut d'un déploiement
   async updateDeploymentStatus(id, status, additionalData = {}) {
     try {
+      // Vérifier si la table existe
+      if (!prisma.deployment || typeof prisma.deployment.update !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non disponible, mise à jour ignorée (mode développement)');
+          return null;
+        }
+        throw new Error('Table Deployment non disponible');
+      }
+
       const updateData = {
         status,
         updatedAt: new Date()
@@ -107,7 +144,16 @@ class DeploymentService {
         updateData.endTime = new Date();
 
         // Calculer la durée si on a un startTime
-        const deployment = await prisma.deployment.findUnique({ where: { id } });
+        let deployment = null;
+        try {
+          deployment = await prisma.deployment.findUnique({ where: { id } });
+        } catch (error) {
+          if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+            logger.warn('Table Deployment non trouvée, mise à jour ignorée (mode développement)');
+            return null;
+          }
+          throw error;
+        }
         if (deployment && deployment.startTime) {
           updateData.duration = Math.floor(
             (updateData.endTime - deployment.startTime) / 1000
@@ -133,6 +179,17 @@ class DeploymentService {
         status,
         duration: updateData.duration
       });
+
+      return updatedDeployment;
+    } catch (error) {
+      // Fallback si table Deployment n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Deployment non trouvée, mise à jour ignorée (mode développement)');
+        return null;
+      }
+      logger.error('Erreur lors de la mise à jour du statut:', error);
+      throw error;
+    }
 
       return updatedDeployment;
     } catch (error) {
@@ -169,9 +226,27 @@ class DeploymentService {
   // Mettre à jour les métriques d'un déploiement
   async updateDeploymentMetrics(deploymentId, metric) {
     try {
-      const deployment = await prisma.deployment.findUnique({
-        where: { id: deploymentId }
-      });
+      // Vérifier si la table existe
+      if (!prisma.deployment || typeof prisma.deployment.findUnique !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non disponible, mise à jour métriques ignorée (mode développement)');
+          return;
+        }
+        throw new Error('Table Deployment non disponible');
+      }
+
+      let deployment;
+      try {
+        deployment = await prisma.deployment.findUnique({
+          where: { id: deploymentId }
+        });
+      } catch (error) {
+        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non trouvée, mise à jour métriques ignorée (mode développement)');
+          return;
+        }
+        throw error;
+      }
 
       if (!deployment) return;
 
@@ -199,11 +274,24 @@ class DeploymentService {
           break;
       }
 
-      await prisma.deployment.update({
-        where: { id: deploymentId },
-        data: { metrics }
-      });
+      try {
+        await prisma.deployment.update({
+          where: { id: deploymentId },
+          data: { metrics }
+        });
+      } catch (error) {
+        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table Deployment non trouvée, mise à jour métriques ignorée (mode développement)');
+          return;
+        }
+        throw error;
+      }
     } catch (error) {
+      // Fallback si table Deployment n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Deployment non trouvée, mise à jour métriques ignorée (mode développement)');
+        return;
+      }
       logger.error('Erreur lors de la mise à jour des métriques:', error);
     }
   }
