@@ -4,7 +4,7 @@
 # Diagnostics, vérifications et corrections automatiques
 # ============================================================================
 
-.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics help-diagnostic
+.PHONY: health check-deps show-docker-info clean-docker-cache cors-fix cors-fix-auto diagnostic diagnostic-docker diagnostic-docker-compose diagnostic-cors diagnostic-network diagnostic-fix docker-compose-fix diag-services diagnostic-metrics status-port help-diagnostic
 
 # ============================================================================
 # AIDE
@@ -19,6 +19,7 @@ help-diagnostic: ## Afficher l'aide diagnostic
 	@echo "  make health                - Vérifier santé de tous les services"
 	@echo "  make check-deps            - Vérifier dépendances (Docker, etc.)"
 	@echo "  make show-docker-info      - Afficher infos Docker"
+	@echo "  make status-port           - Afficher tous les ports exposés Docker"
 	@echo ""
 	@echo "🔧 DIAGNOSTICS SPÉCIALISÉS:"
 	@echo "  make diagnostic            - Diagnostic complet système"
@@ -239,3 +240,11 @@ diag-services: ## Diagnostic détaillé des services Docker en cours
 diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte
 	@echo "📈 Diagnostic des métriques Docker & hôte..."
 	@./scripts/monitoring/diagnostic-metrics.sh
+
+# ============================================================================
+# AFFICHAGE DES PORTS
+# ============================================================================
+
+# Afficher tous les ports exposés Docker
+status-port: ## Afficher tous les ports externes Docker utilisés par JobbingTrack
+	@./scripts/utils/show-ports.sh
