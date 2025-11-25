@@ -770,9 +770,18 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-			status=$$(docker ps --filter "name=$$container" --format "{{.Status}}" 2>/dev/null); \
-			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null | head -c 40); \
-			printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports"; \
+			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+				if [ -n "$$port_main" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+				else \
+					ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+			fi; \
 		else \
 			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
 		fi; \
@@ -784,9 +793,18 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-			status=$$(docker ps --filter "name=$$container" --format "{{.Status}}" 2>/dev/null); \
-			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null | head -c 40); \
-			printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports"; \
+			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+				if [ -n "$$port_main" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+				else \
+					ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+			fi; \
 		else \
 			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
 		fi; \
@@ -823,8 +841,13 @@ status-live: ## Statut détaillé en temps réel avec actualisation automatique 
 			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
 				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
 				if [ -n "$$ports" ]; then \
-					ports_short=$$(echo "$$ports" | cut -c1-60); \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+					if [ -n "$$port_main" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+					else \
+						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					fi; \
 				else \
 					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
 				fi; \
@@ -841,8 +864,13 @@ status-live: ## Statut détaillé en temps réel avec actualisation automatique 
 			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
 				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
 				if [ -n "$$ports" ]; then \
-					ports_short=$$(echo "$$ports" | cut -c1-60); \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+					if [ -n "$$port_main" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+					else \
+						ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					fi; \
 				else \
 					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
 				fi; \
