@@ -83,13 +83,24 @@ class CronScheduler {
         } catch (error) {
           console.error(`❌ Error executing workflow ${execution.id}:`, error);
           
-          await prisma.workflowExecution.update({
-            where: { id: execution.id },
-            data: {
-              status: 'FAILED',
-              errorMessage: error.message
+          // Essayer de mettre à jour le statut, ignorer si la table n'existe pas
+          try {
+            if (prisma.workflowExecution && typeof prisma.workflowExecution.update === 'function') {
+              await prisma.workflowExecution.update({
+                where: { id: execution.id },
+                data: {
+                  status: 'FAILED',
+                  errorMessage: error.message
+                }
+              });
             }
-          });
+          } catch (updateError) {
+            if ((updateError.code === 'P2021' || updateError.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+              console.warn('Table WorkflowExecution non trouvée, mise à jour ignorée (mode développement)');
+            } else {
+              console.error('Erreur lors de la mise à jour du statut:', updateError);
+            }
+          }
         }
       }
     } catch (error) {
