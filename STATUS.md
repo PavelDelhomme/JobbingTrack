@@ -96,7 +96,24 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
-#### 0. Erreurs Prisma P2021 - Tables Manquantes (Company, Application, Contact, etc.)
+#### 0. ✅ Erreurs API Gateway et Security Service - CORRIGÉES
+
+**Statut** : ✅ **RÉSOLU** - 2025-11-25
+
+**Problèmes corrigés** :
+- ✅ Erreur `Identifier 'logger' has already been declared` dans `admin-advanced.controller.js` - Déclaration dupliquée supprimée
+- ✅ Erreurs P2021 (table `security_logs` n'existe pas) dans `security-service` - Fallbacks améliorés pour ignorer silencieusement en mode développement
+- ✅ Gestion d'erreurs améliorée dans `securityScheduler` pour ignorer les erreurs P2021
+
+**Fichiers modifiés** :
+- `backend/api-gateway/src/controllers/admin-advanced.controller.js` - Suppression déclaration logger dupliquée
+- `backend/security-service/src/services/securityScheduler.js` - Amélioration gestion erreurs P2021
+
+**Note** : Les erreurs P2021 sont maintenant ignorées silencieusement en mode développement. Pour résoudre définitivement, exécuter `make db-push-all` pour créer toutes les tables.
+
+---
+
+#### 0.1. Erreurs Prisma P2021 - Tables Manquantes (Company, Application, Contact, etc.)
 
 **Statut** : 🟡 **EN COURS** - Fallbacks ajoutés, mais tables doivent être créées avec `make db-push-all`
 
