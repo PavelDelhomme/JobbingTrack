@@ -129,7 +129,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo ""
 	@PUSHED=0; \
 	SKIPPED=0; \
-	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator-service security-service"; \
+	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator security-service"; \
 	for service in $$SERVICES; do \
 		CONTAINER="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
