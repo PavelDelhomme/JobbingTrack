@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const advancedController = require('../controllers/admin-advanced.controller');
 const adminController = require('../controllers/admin.controller');
+const archiveController = require('../controllers/archive.controller');
+const trashController = require('../controllers/trash.controller');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -57,6 +59,17 @@ router.post('/services/stop', authenticate, adminController.stopService);
 
 // ✅ Route pour récupérer la liste des services avec leur statut
 router.get('/services', authenticate, adminController.getServicesList);
+
+// ✅ Routes Archive
+router.get('/archive', authenticate, archiveController.getAllArchivedItems);
+router.post('/archive/:type/:id', authenticate, archiveController.archiveItem);
+router.post('/archive/:type/:id/unarchive', authenticate, archiveController.unarchiveItem);
+
+// ✅ Routes Corbeille (Trash)
+router.get('/trash', authenticate, trashController.getAllDeletedItems);
+router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
+router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
+router.post('/trash/empty', authenticate, trashController.emptyTrash);
 
 // Debug: ajouter une route de test
 router.get('/test', authenticate, (req, res) => {

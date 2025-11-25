@@ -43,17 +43,25 @@ export default function ServiceDetailPage() {
       const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}`);
       if (metricsResponse.ok) {
         const data = await metricsResponse.json();
-        console.log('[SERVICE DETAIL] Métriques reçues:', data.service);
+        // Log uniquement en mode développement et seulement la première fois
+        if (process.env.NODE_ENV === 'development' && !serviceMetrics) {
+          console.log('[SERVICE DETAIL] Métriques reçues:', data.service);
+        }
         setServiceMetrics(data.service);
       } else {
-        console.error('[SERVICE DETAIL] Erreur métriques:', metricsResponse.status);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[SERVICE DETAIL] Erreur métriques:', metricsResponse.status);
+        }
       }
       
       // Récupérer les logs
       const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
       if (logsResponse.ok) {
         const logsData = await logsResponse.json();
-        console.log('[SERVICE DETAIL] Logs reçus:', logsData.total, 'lignes');
+        // Log uniquement en mode développement et seulement la première fois
+        if (process.env.NODE_ENV === 'development' && !serviceLogs) {
+          console.log('[SERVICE DETAIL] Logs reçus:', logsData.total, 'lignes');
+        }
         setServiceLogs(logsData);
       }
       
@@ -61,7 +69,10 @@ export default function ServiceDetailPage() {
       const historyResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/history?limit=50`);
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
-        console.log('[SERVICE DETAIL] Historique reçu:', historyData.data?.length, 'points');
+        // Log uniquement en mode développement et seulement la première fois
+        if (process.env.NODE_ENV === 'development' && !serviceHistory.length) {
+          console.log('[SERVICE DETAIL] Historique reçu:', historyData.data?.length, 'points');
+        }
         setServiceHistory(historyData.data || []);
       }
     } catch (error) {
@@ -107,7 +118,10 @@ export default function ServiceDetailPage() {
   const pids = serviceMetrics?.pids || 0;
   const responseTime = serviceMetrics?.response_time_ms;
   
-  console.log('[SERVICE DETAIL] Statuts:', { dockerHealth, httpHealth, isHealthy, cpuPercent, memoryPercent, networkRxMb, networkTxMb });
+  // Log uniquement en mode développement et seulement lors du premier rendu
+  if (process.env.NODE_ENV === 'development' && !serviceMetrics) {
+    console.log('[SERVICE DETAIL] Statuts:', { dockerHealth, httpHealth, isHealthy, cpuPercent, memoryPercent, networkRxMb, networkTxMb });
+  }
   
   return (
     <AdminLayout>
