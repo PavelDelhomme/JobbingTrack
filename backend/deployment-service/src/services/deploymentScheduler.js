@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { logger } = require('../utils/logger');
 const deploymentService = require('./deploymentService');
+const { prisma } = require('../config/database');
 
 class DeploymentScheduler {
   constructor() {
@@ -155,7 +156,16 @@ class DeploymentScheduler {
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-        const deletedMetrics = await deploymentService.prisma.deploymentMetric.deleteMany({
+        // Vérifier si prisma et deploymentMetric existent
+        if (!prisma || !prisma.deploymentMetric || typeof prisma.deploymentMetric.deleteMany !== 'function') {
+          if (process.env.NODE_ENV !== 'production') {
+            logger.warn('Table DeploymentMetric non disponible, nettoyage ignoré (mode développement)');
+            return;
+          }
+          throw new Error('Table DeploymentMetric non disponible');
+        }
+
+        const deletedMetrics = await prisma.deploymentMetric.deleteMany({
           where: {
             timestamp: {
               lt: ninetyDaysAgo
@@ -167,7 +177,16 @@ class DeploymentScheduler {
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
 
-        const deletedDeployments = await deploymentService.prisma.deployment.deleteMany({
+        // Vérifier si prisma et deployment existent
+        if (!prisma || !prisma.deployment || typeof prisma.deployment.deleteMany !== 'function') {
+          if (process.env.NODE_ENV !== 'production') {
+            logger.warn('Table Deployment non disponible, nettoyage ignoré (mode développement)');
+            return;
+          }
+          throw new Error('Table Deployment non disponible');
+        }
+
+        const deletedDeployments = await prisma.deployment.deleteMany({
           where: {
             createdAt: {
               lt: sixMonthsAgo

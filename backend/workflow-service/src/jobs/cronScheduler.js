@@ -48,14 +48,33 @@ class CronScheduler {
 
   async processPendingExecutions() {
     try {
-      const pendingExecutions = await prisma.workflowExecution.findMany({
-        where: {
-          status: 'PENDING',
-          scheduledAt: {
-            lte: new Date()
-          }
+      // Vérifier si la table existe avant d'essayer de la lire
+      if (!prisma.workflowExecution || typeof prisma.workflowExecution.findMany !== 'function') {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Table WorkflowExecution non disponible, traitement ignoré (mode développement)');
+          return;
         }
-      });
+        throw new Error('Table WorkflowExecution non disponible');
+      }
+
+      let pendingExecutions;
+      try {
+        pendingExecutions = await prisma.workflowExecution.findMany({
+          where: {
+            status: 'PENDING',
+            scheduledAt: {
+              lte: new Date()
+            }
+          }
+        });
+      } catch (error) {
+        // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
+        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+          console.warn('Table WorkflowExecution non trouvée, traitement ignoré (mode développement)');
+          return;
+        }
+        throw error;
+      }
 
       for (const execution of pendingExecutions) {
         try {
