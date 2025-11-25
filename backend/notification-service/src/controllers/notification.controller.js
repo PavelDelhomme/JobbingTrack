@@ -20,15 +20,42 @@ const getNotifications = async (req, res, next) => {
       ...(isRead !== undefined && { isRead: isRead === 'true' })
     };
 
-    const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limitNum
-      }),
-      prisma.notification.count({ where })
-    ]);
+    // Vérifier si la table existe
+    if (!prisma.notification || typeof prisma.notification.findMany !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non disponible, retour de données vides (mode développement)');
+        return res.json({
+          success: true,
+          notifications: [],
+          pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 }
+        });
+      }
+      throw new Error('Table Notification non disponible');
+    }
+
+    let notifications, total;
+    try {
+      [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum
+        }),
+        prisma.notification.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table Notification n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non trouvée, retour de données vides (mode développement)');
+        return res.json({
+          success: true,
+          notifications: [],
+          pagination: { page: pageNum, limit: limitNum, total: 0, pages: 0 }
+        });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,
@@ -79,17 +106,42 @@ const createNotification = async (req, res, next) => {
     const userId = req.user.id;
     const { type, title, message, link, relatedId, relatedType } = req.body;
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        link,
-        relatedId,
-        relatedType
+    // Vérifier si la table existe
+    if (!prisma.notification || typeof prisma.notification.create !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non disponible, création ignorée (mode développement)');
+        return res.status(201).json({
+          success: true,
+          notification: { id: 'mock-notification', userId, type, title, message }
+        });
       }
-    });
+      throw new Error('Table Notification non disponible');
+    }
+
+    let notification;
+    try {
+      notification = await prisma.notification.create({
+        data: {
+          userId,
+          type,
+          title,
+          message,
+          link,
+          relatedId,
+          relatedType
+        }
+      });
+    } catch (error) {
+      // Fallback si table Notification n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non trouvée, création ignorée (mode développement)');
+        return res.status(201).json({
+          success: true,
+          notification: { id: 'mock-notification', userId, type, title, message }
+        });
+      }
+      throw error;
+    }
 
     res.status(201).json({
       success: true,
@@ -120,13 +172,32 @@ const markAsRead = async (req, res, next) => {
       });
     }
 
-    const updatedNotification = await prisma.notification.update({
-      where: { id },
-      data: {
-        isRead: true,
-        readAt: new Date()
+    // Vérifier si la table existe
+    if (!prisma.notification || typeof prisma.notification.update !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non disponible, mise à jour ignorée (mode développement)');
+        return res.json({ success: true, notification: { id, isRead: true } });
       }
-    });
+      throw new Error('Table Notification non disponible');
+    }
+
+    let updatedNotification;
+    try {
+      updatedNotification = await prisma.notification.update({
+        where: { id },
+        data: {
+          isRead: true,
+          readAt: new Date()
+        }
+      });
+    } catch (error) {
+      // Fallback si table Notification n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non trouvée, mise à jour ignorée (mode développement)');
+        return res.json({ success: true, notification: { id, isRead: true } });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,
@@ -143,16 +214,35 @@ const markAllAsRead = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const result = await prisma.notification.updateMany({
-      where: {
-        userId,
-        isRead: false
-      },
-      data: {
-        isRead: true,
-        readAt: new Date()
+    // Vérifier si la table existe
+    if (!prisma.notification || typeof prisma.notification.updateMany !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non disponible, marquage lu ignoré (mode développement)');
+        return res.json({ success: true, count: 0 });
       }
-    });
+      throw new Error('Table Notification non disponible');
+    }
+
+    let result;
+    try {
+      result = await prisma.notification.updateMany({
+        where: {
+          userId,
+          isRead: false
+        },
+        data: {
+          isRead: true,
+          readAt: new Date()
+        }
+      });
+    } catch (error) {
+      // Fallback si table Notification n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non trouvée, marquage lu ignoré (mode développement)');
+        return res.json({ success: true, count: 0 });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,
@@ -181,9 +271,27 @@ const deleteNotification = async (req, res, next) => {
       });
     }
 
-    await prisma.notification.delete({
-      where: { id }
-    });
+    // Vérifier si la table existe
+    if (!prisma.notification || typeof prisma.notification.delete !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non disponible, suppression ignorée (mode développement)');
+        return res.json({ success: true });
+      }
+      throw new Error('Table Notification non disponible');
+    }
+
+    try {
+      await prisma.notification.delete({
+        where: { id }
+      });
+    } catch (error) {
+      // Fallback si table Notification n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Notification non trouvée, suppression ignorée (mode développement)');
+        return res.json({ success: true });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,
