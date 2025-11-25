@@ -103,8 +103,12 @@ export default function TestDataPage() {
     }
   };
 
-  const clearTestData = async () => {
-    if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les données de test ?\n\nCette action est irréversible !')) {
+  const clearTestData = async (onlyTestData: boolean = true) => {
+    const message = onlyTestData
+      ? '⚠️ Êtes-vous sûr de vouloir supprimer UNIQUEMENT les données de test (marquées isTestData=true) ?\n\nLes données de production ne seront PAS affectées.\n\nCette action est irréversible !'
+      : '⚠️ DANGER ⚠️\n\nVoulez-vous supprimer TOUTES les données (test ET production) ?\n\n⚠️ CETTE ACTION EST IRRÉVERSIBLE ⚠️\n\nÊtes-vous ABSOLUMENT SÛR ?';
+    
+    if (!confirm(message)) {
       return;
     }
 
@@ -114,16 +118,19 @@ export default function TestDataPage() {
       
       const response = await axios.post(
         `${API_URL}/api/v1/admin/clear-test-data`,
-        {},
+        { onlyTestData },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
       if (response.data.success) {
+        const counts = response.data.deletedCounts || {};
+        const total = Object.values(counts).reduce((sum: number, count: any) => sum + (count || 0), 0);
+        
         setMessage({ 
           type: 'success', 
-          text: 'Données de test supprimées avec succès' 
+          text: `✅ ${total} données de test supprimées avec succès\n\nDétail: ${JSON.stringify(counts, null, 2)}` 
         });
-        setOutput('');
+        setOutput(response.data.message || '');
       }
     } catch (error: any) {
       console.error('Erreur nettoyage:', error);
@@ -150,14 +157,26 @@ export default function TestDataPage() {
               Générez des données réalistes et cohérentes avec relations entrecroisées
             </p>
           </div>
-          <button
-            onClick={clearTestData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            <Trash2 className="h-5 w-5" />
-            Nettoyer
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => clearTestData(true)}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+              title="Nettoyer uniquement les données de test (isTestData=true)"
+            >
+              <Trash2 className="h-5 w-5" />
+              Nettoyer données de test
+            </button>
+            <button
+              onClick={() => clearTestData(false)}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              title="⚠️ DANGER: Supprimer TOUTES les données"
+            >
+              <Trash2 className="h-5 w-5" />
+              Tout supprimer
+            </button>
+          </div>
         </div>
 
         {message && (

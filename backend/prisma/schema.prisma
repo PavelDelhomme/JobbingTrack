@@ -47,6 +47,9 @@ model User {
   timezone          String?   @default("Europe/Paris")
   notificationsEnabled Boolean @default(true)
   
+  // Données de test
+  isTestData        Boolean   @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -67,6 +70,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([isActive])
+  @@index([isTestData])
 }
 
 enum UserRole {
@@ -95,6 +99,9 @@ model Company {
   logoUrl           String?
   description       String?
   
+  // Données de test
+  isTestData        Boolean   @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -110,6 +117,7 @@ model Company {
   
   @@index([userId])
   @@index([name])
+  @@index([isTestData])
 }
 
 enum CompanySize {
@@ -153,6 +161,9 @@ model Application {
   archived              Boolean             @default(false)
   archivedAt            DateTime?
   
+  // Données de test
+  isTestData            Boolean             @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -175,6 +186,7 @@ model Application {
   @@index([companyId])
   @@index([status])
   @@index([applicationDate])
+  @@index([isTestData])
 }
 
 enum ContractType {
@@ -233,6 +245,9 @@ model Contact {
   archivedAt        DateTime?
   archivedReason    String?
   
+  // Données de test
+  isTestData        Boolean             @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -250,6 +265,7 @@ model Contact {
   @@index([userId])
   @@index([email])
   @@index([lastName, firstName])
+  @@index([isTestData])
 }
 
 // ============================================
@@ -269,6 +285,9 @@ model FollowUp {
   status            FollowUpStatus      @default(PENDING)
   response          String?             // Réponse reçue
   notes             String?
+  
+  // Données de test
+  isTestData        Boolean             @default(false) // Marqueur pour distinguer données de test de production
   
   // Timestamps
   createdAt         DateTime            @default(now())
@@ -290,6 +309,7 @@ model FollowUp {
   @@index([applicationId])
   @@index([status])
   @@index([followUpDate])
+  @@index([isTestData])
 }
 
 enum FollowUpStatus {
@@ -320,6 +340,9 @@ model Call {
   notes             String?
   status            CallStatus          @default(COMPLETED)
   
+  // Données de test
+  isTestData        Boolean             @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -338,6 +361,7 @@ model Call {
   @@index([userId])
   @@index([callDate])
   @@index([status])
+  @@index([isTestData])
 }
 
 enum CallStatus {
@@ -375,6 +399,9 @@ model Interview {
   outcome               InterviewOutcome?
   notes                 String?
   
+  // Données de test
+  isTestData            Boolean             @default(false) // Marqueur pour distinguer données de test de production
+  
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -394,6 +421,7 @@ model Interview {
   @@index([applicationId])
   @@index([status])
   @@index([interviewDate])
+  @@index([isTestData])
 }
 
 enum InterviewStatus {
@@ -439,6 +467,9 @@ model Event {
   
   // Personnalisation
   color             String?             @default("#3B82F6")
+  
+  // Données de test
+  isTestData        Boolean             @default(false) // Marqueur pour distinguer données de test de production
   
   // Timestamps
   createdAt         DateTime            @default(now())

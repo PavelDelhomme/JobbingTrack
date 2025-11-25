@@ -266,14 +266,15 @@ async function main() {
     for (let i = 0; i < config.users; i++) {
       const user = await prisma.user.upsert({
         where: { email: `user${i + 1}@jobbingtrack.test` },
-        update: {},
+        update: { isTestData: true },
         create: {
           email: `user${i + 1}@jobbingtrack.test`,
           password: hashedPassword,
           firstName: FIRST_NAMES[i % FIRST_NAMES.length],
           lastName: LAST_NAMES[i % LAST_NAMES.length],
           phone: `+3361234567${i}`,
-          role: i === 0 ? 'SUPER_ADMIN' : (i === 1 ? 'ADMIN' : 'USER')
+          role: i === 0 ? 'SUPER_ADMIN' : (i === 1 ? 'ADMIN' : 'USER'),
+          isTestData: true
         }
       });
       users.push(user);
@@ -288,10 +289,12 @@ async function main() {
       const company = await prisma.company.create({
         data: {
           ...companyData,
+          userId: users[i % users.length].id,
           // Ajouter le tag dans la description ou un champ metadata si disponible
           description: companyData.description 
             ? `${companyData.description}\n[TEST_DATA_TAG:${testTag}]`
-            : `[TEST_DATA_TAG:${testTag}]`
+            : `[TEST_DATA_TAG:${testTag}]`,
+          isTestData: true
         }
       });
       companies.push(company);
@@ -308,16 +311,28 @@ async function main() {
       const contact = await prisma.contact.create({
         data: {
           userId: user.id,
-          companyId: company.id,
           firstName: FIRST_NAMES[i % FIRST_NAMES.length],
           lastName: LAST_NAMES[(i + 3) % LAST_NAMES.length],
           position: ['Recruteur', 'RH Manager', 'Tech Lead', 'CEO', 'CTO'][i % 5],
           email: `contact${i + 1}@${company.name.toLowerCase().replace(/\s/g, '')}.com`,
           phone: `+3361234${1000 + i}`,
           linkedinUrl: `https://linkedin.com/in/contact${i + 1}`,
-          notes: `[TEST_DATA_TAG:${testTag}]`
+          notes: `[TEST_DATA_TAG:${testTag}]`,
+          isTestData: true
         }
       });
+      
+      // Lier le contact à l'entreprise via la table de jonction
+      try {
+        await prisma.contactCompany.create({
+          data: {
+            contactId: contact.id,
+            companyId: company.id
+          }
+        });
+      } catch (error) {
+        // Ignorer les erreurs de duplication
+      }
       contacts.push(contact);
     }
     console.log(`   ✅ ${contacts.length} contacts créés`);
@@ -341,13 +356,12 @@ async function main() {
           position,
           description: `Poste de ${position} chez ${company.name}. Opportunité intéressante dans le domaine de ${company.industry}.`,
           location: ['Remote', 'Paris, France', 'Lyon, France', 'Marseille, France', company.location][i % 5],
-          type: ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'REMOTE'][i % 5],
-          salary: ['50-60K€', '60-70K€', '70-80K€', '80-100K€', '100K+'][i % 5],
-          status,
+          contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
           applicationDate,
-          source: ['LinkedIn', 'Indeed', 'Site entreprise', 'Recommandation', 'Welcome to the Jungle'][i % 5],
-          jobUrl: `https://careers.${company.name.toLowerCase()}.com/jobs/${position.toLowerCase().replace(/\s/g, '-')}`,
-          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`
+          applicationType: 'OFFRE',
+          status,
+          notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
+          isTestData: true
         }
       });
       applications.push(application);
@@ -403,15 +417,16 @@ async function main() {
       
       const interview = await prisma.interview.create({
         data: {
+          userId: application.userId,
           applicationId: application.id,
-          type: ['PHONE_SCREENING', 'VIDEO', 'ON_SITE', 'TECHNICAL', 'HR', 'MANAGER'][i % 6],
-          scheduledAt: scheduledDate,
-          duration: [30, 45, 60, 90][i % 4],
+          companyId: application.companyId,
+          interviewDate: scheduledDate,
+          estimatedDuration: [30, 45, 60, 90][i % 4],
           location: ['Visioconférence', 'Bureau Paris', 'Téléphone', 'Remote'][i % 4],
-          meetingUrl: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
-          interviewer: `${FIRST_NAMES[i % FIRST_NAMES.length]} ${LAST_NAMES[i % LAST_NAMES.length]}`,
+          videoLink: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
           notes: `Entretien technique prévu\n[TEST_DATA_TAG:${testTag}]`,
-          status: ['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3]
+          status: ['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3],
+          isTestData: true
         }
       });
       interviews.push(interview);
@@ -438,15 +453,14 @@ async function main() {
       
       const followup = await prisma.followUp.create({
         data: {
+          userId: application.userId,
           applicationId: application.id,
-          contactId: contact.id,
-          type: ['EMAIL', 'PHONE', 'LINKEDIN', 'MESSAGE'][i % 4],
-          scheduledDate,
-          completed: i % 3 === 0,
-          completedDate: i % 3 === 0 ? new Date() : null,
-          subject: `Suivi candidature ${application.position}`,
-          message: `Bonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
-          response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null
+          companyId: application.companyId,
+          followUpDate: scheduledDate,
+          status: i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING',
+          response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null,
+          notes: `Suivi candidature ${application.position}\nBonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
+          isTestData: true
         }
       });
       followups.push(followup);
@@ -464,16 +478,16 @@ async function main() {
       
       const call = await prisma.call.create({
         data: {
+          userId: application.userId,
           applicationId: application.id,
+          companyId: application.companyId,
           contactId: contact.id,
-          type: ['OUTGOING', 'INCOMING', 'MISSED'][i % 3],
-          scheduledDate: callDate,
-          callDate: i % 2 === 0 ? callDate : null,
-          duration: i % 2 === 0 ? Math.floor(Math.random() * 1800) + 300 : null, // 5-35 minutes en secondes
-          status: ['SCHEDULED', 'COMPLETED', 'NO_ANSWER', 'VOICEMAIL'][i % 4],
+          callDate: callDate,
+          duration: i % 2 === 0 ? Math.floor(Math.random() * 30) + 5 : null, // 5-35 minutes
+          subject: `Appel concernant la candidature ${application.position}`,
           notes: `Appel concernant la candidature ${application.position}\n[TEST_DATA_TAG:${testTag}]`,
-          outcome: i % 2 === 0 ? 'Discussion positive' : null,
-          followUpNeeded: i % 3 === 0
+          status: ['SCHEDULED', 'COMPLETED', 'MISSED', 'CANCELLED'][i % 4],
+          isTestData: true
         }
       });
       calls.push(call);
@@ -502,7 +516,8 @@ async function main() {
             applicationId: application.id,
             reminderEnabled: true,
             reminderMinutes: 15,
-            color: '#3B82F6'
+            color: '#3B82F6',
+            isTestData: true
           }
         });
         events.push(event);
@@ -521,15 +536,16 @@ async function main() {
         const event = await prisma.event.create({
           data: {
             userId: application.userId,
-            title: `Entretien: ${interview.type} - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
-            description: `Entretien ${interview.type} pour ${application.position}`,
-            startDate: interview.scheduledAt,
-            endDate: new Date(new Date(interview.scheduledAt).getTime() + (interview.duration || 60) * 60 * 1000),
+            title: `Entretien - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
+            description: `Entretien pour ${application.position}`,
+            startDate: interview.interviewDate,
+            endDate: new Date(new Date(interview.interviewDate).getTime() + (interview.estimatedDuration || 60) * 60 * 1000),
             allDay: false,
             interviewId: interview.id,
             reminderEnabled: true,
             reminderMinutes: 30,
-            color: '#10B981'
+            color: '#10B981',
+            isTestData: true
           }
         });
         events.push(event);
@@ -548,15 +564,16 @@ async function main() {
         const event = await prisma.event.create({
           data: {
             userId: application.userId,
-            title: `Relance: ${followup.subject}`,
-            description: `Relance ${followup.type} pour ${application.position}`,
-            startDate: followup.scheduledDate,
-            endDate: new Date(new Date(followup.scheduledDate).getTime() + 15 * 60 * 1000), // 15 minutes
+            title: `Relance: ${application.position}`,
+            description: `Relance pour ${application.position}`,
+            startDate: followup.followUpDate,
+            endDate: new Date(new Date(followup.followUpDate).getTime() + 15 * 60 * 1000), // 15 minutes
             allDay: false,
             followUpId: followup.id,
             reminderEnabled: true,
             reminderMinutes: 60,
-            color: '#F59E0B'
+            color: '#F59E0B',
+            isTestData: true
           }
         });
         events.push(event);
@@ -575,17 +592,18 @@ async function main() {
         const event = await prisma.event.create({
           data: {
             userId: application.userId,
-            title: `Appel: ${call.type} - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
-            description: `Appel ${call.type} concernant ${application.position}`,
-            startDate: call.scheduledDate || call.callDate || new Date(),
-            endDate: call.callDate && call.duration 
-              ? new Date(new Date(call.callDate).getTime() + call.duration * 1000)
-              : new Date(new Date(call.scheduledDate || call.callDate || new Date()).getTime() + 15 * 60 * 1000),
+            title: `Appel: ${call.subject}`,
+            description: `Appel concernant ${application.position}`,
+            startDate: call.callDate,
+            endDate: call.duration 
+              ? new Date(new Date(call.callDate).getTime() + call.duration * 60 * 1000)
+              : new Date(new Date(call.callDate).getTime() + 15 * 60 * 1000),
             allDay: false,
             callId: call.id,
             reminderEnabled: true,
             reminderMinutes: 15,
-            color: '#8B5CF6'
+            color: '#8B5CF6',
+            isTestData: true
           }
         });
         events.push(event);
@@ -616,7 +634,8 @@ async function main() {
             allDay: false,
             reminderEnabled: i % 2 === 0,
             reminderMinutes: 60,
-            color: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][i % 5]
+            color: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][i % 5],
+            isTestData: true
           }
         });
         events.push(event);
