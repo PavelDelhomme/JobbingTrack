@@ -1,3 +1,7 @@
+#!/bin/bash
+# Script pour générer le fichier .env.example avec toutes les variables de ports
+
+cat > .env.example << 'EOF'
 # Configuration JobbingTrack Microservices
 
 # ============================================
@@ -121,3 +125,7 @@ GRAFANA_ADMIN_PASSWORD=change-me-in-production
 PROMETHEUS_RETENTION_TIME=90d
 PROMETHEUS_RETENTION_SIZE=50GB
 LOKI_RETENTION_DAYS=30
+EOF
+
+echo "✅ Fichier .env.example généré avec succès !"
+

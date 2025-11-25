@@ -15,7 +15,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
       - jobbingtrack_postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
@@ -33,7 +33,7 @@ services:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:${REDIS_INTERNAL_PORT:-6379}"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -51,7 +51,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-api-gateway
     ports:
-      - "3000:3000"
+      - "${API_GATEWAY_PORT:-3000}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - WAF_ENABLED=false
@@ -59,7 +59,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
@@ -86,15 +86,19 @@ services:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
     ports:
-      - "8080:3000"
+      - "${FRONTEND_PORT:-8080}:${FRONTEND_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:3000
-      - NEXT_PUBLIC_METRICS_URL=http://localhost:8014
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:${API_GATEWAY_PORT:-3000}}
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://localhost:${AUTH_SERVICE_PORT:-8001}}
+      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://localhost:${METRICS_AGGREGATOR_PORT:-8014}}
+      - FRONTEND_PORT=${FRONTEND_PORT:-8080}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-3000}
+      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-8001}
+      - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-8014}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
-      - API_GATEWAY_URL=http://api-gateway:3000
+      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
       - WATCHPACK_POLLING=true
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -120,7 +124,7 @@ services:
     container_name: jobbingtrack-metrics-aggregator
     user: "0:0"
     ports:
-      - "8014:3014"
+      - "${METRICS_AGGREGATOR_PORT:-8014}:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}"
     environment:
       - NODE_ENV=development
       - PORT=3014
@@ -150,7 +154,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-auth-service
     ports:
-      - "8001:3001"
+      - "${AUTH_SERVICE_PORT:-8001}:${AUTH_SERVICE_INTERNAL_PORT:-3001}"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -189,12 +193,12 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-application-service
     ports:
-      - "8002:3002"
+      - "${APPLICATION_SERVICE_PORT:-8002}:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET}
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - PORT=3002
       - LOG_LEVEL=info
       - METRICS_SERVICE_URL=http://metrics-aggregator-service:8014
@@ -220,13 +224,13 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-company-service
     ports:
-      - "8003:3003"
+      - "${COMPANY_SERVICE_PORT:-8003}:${COMPANY_SERVICE_INTERNAL_PORT:-3003}"
     environment:
       - NODE_ENV=development
       - PORT=3003
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - METRICS_SERVICE_URL=http://metrics-aggregator-service:8014
       - SERVICE_NAME=company-service
       - ENABLE_CENTRAL_LOGGING=true
@@ -251,13 +255,13 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-contact-service
     ports:
-      - "8004:3004"
+      - "${CONTACT_SERVICE_PORT:-8004}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
     environment:
       - NODE_ENV=development
       - PORT=3004
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
     depends_on:
       postgres:
         condition: service_healthy
@@ -276,7 +280,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-interview-service
     ports:
-      - "8005:3005"
+      - "${INTERVIEW_SERVICE_PORT:-8005}:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -298,7 +302,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-call-service
     ports:
-      - "8006:3006"
+      - "${CALL_SERVICE_PORT:-8006}:${CALL_SERVICE_INTERNAL_PORT:-3006}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -320,7 +324,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-event-service
     ports:
-      - "8007:3007"
+      - "${EVENT_SERVICE_PORT:-8007}:${EVENT_SERVICE_INTERNAL_PORT:-3007}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -342,7 +346,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-followup-service
     ports:
-      - "8008:3008"
+      - "${FOLLOWUP_SERVICE_PORT:-8008}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3008}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -411,13 +415,13 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
     ports:
-      - "8012:3000"
+      - "${DASHBOARD_SERVICE_PORT:-8012}:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=development
       - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:3001
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
     depends_on:
       postgres:
         condition: service_healthy

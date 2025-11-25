@@ -35,9 +35,24 @@ const nextConfig = {
         minimumCacheTTL: 60,
     },
     env: {
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
-        NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:3001',
-        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014',
+        // Ports externes
+        NEXT_PUBLIC_FRONTEND_PORT: process.env.FRONTEND_PORT || '8080',
+        NEXT_PUBLIC_API_GATEWAY_PORT: process.env.API_GATEWAY_PORT || '3000',
+        NEXT_PUBLIC_AUTH_SERVICE_PORT: process.env.AUTH_SERVICE_PORT || '8001',
+        NEXT_PUBLIC_APPLICATION_SERVICE_PORT: process.env.APPLICATION_SERVICE_PORT || '8002',
+        NEXT_PUBLIC_COMPANY_SERVICE_PORT: process.env.COMPANY_SERVICE_PORT || '8003',
+        NEXT_PUBLIC_CONTACT_SERVICE_PORT: process.env.CONTACT_SERVICE_PORT || '8004',
+        NEXT_PUBLIC_INTERVIEW_SERVICE_PORT: process.env.INTERVIEW_SERVICE_PORT || '8005',
+        NEXT_PUBLIC_CALL_SERVICE_PORT: process.env.CALL_SERVICE_PORT || '8006',
+        NEXT_PUBLIC_EVENT_SERVICE_PORT: process.env.EVENT_SERVICE_PORT || '8007',
+        NEXT_PUBLIC_FOLLOWUP_SERVICE_PORT: process.env.FOLLOWUP_SERVICE_PORT || '8008',
+        NEXT_PUBLIC_METRICS_AGGREGATOR_PORT: process.env.METRICS_AGGREGATOR_PORT || '8014',
+        NEXT_PUBLIC_DASHBOARD_SERVICE_PORT: process.env.DASHBOARD_SERVICE_PORT || '8012',
+        // URLs complètes
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.API_GATEWAY_PORT || '3000'}`,
+        NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || `http://localhost:${process.env.AUTH_SERVICE_PORT || '8001'}`,
+        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || `http://localhost:${process.env.METRICS_AGGREGATOR_PORT || '8014'}`,
+        NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '8080'}`,
         NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET: process.env.NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET || 'false',
     },
     // ✅ Désactiver les messages de développement React DevTools
@@ -51,7 +66,7 @@ const nextConfig = {
             {
                 source: '/api/v1/:path*',
                 // ✅ Utiliser le nom Docker pour la communication inter-conteneurs
-                destination: 'http://api-gateway:3000/api/v1/:path*',
+                destination: `http://api-gateway:${process.env.API_GATEWAY_INTERNAL_PORT || '3000'}/api/v1/:path*`,
             },
             {
                 source: '/api/health',
