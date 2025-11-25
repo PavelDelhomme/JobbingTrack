@@ -126,6 +126,250 @@
 
 ---
 
+### 🔧 Correction Erreur 500 - GET /api/v1/companies
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Erreur 500 Internal Server Error lors de l'accès à `/api/v1/companies` dans l'onglet Entreprises du dashboard.
+
+**Contexte** : L'utilisateur ne peut pas créer d'entreprise car l'API retourne une erreur 500.
+
+**💡 Avis Technique** :
+
+**✅ PROBLÈME IDENTIFIÉ** : La table `Company` n'existe pas dans la base de données (erreur Prisma P2021).
+
+**Solution immédiate** : Ajouter un fallback dans le contrôleur pour gérer l'erreur P2021 en mode développement, comme pour les autres contrôleurs (User, UserCustomization).
+
+**Solution définitive** : Exécuter `make db-push-all` pour créer toutes les tables dans la base de données.
+
+**📝 Actions à Effectuer** :
+
+- [x] Ajouter fallback dans `getCompanies` pour gérer erreur P2021
+- [ ] Tester que l'API retourne maintenant un tableau vide au lieu d'une erreur 500
+- [ ] Exécuter `make db-push-all` pour créer la table Company
+- [ ] Vérifier que l'API fonctionne correctement après création de la table
+
+**📄 Fichiers à Modifier** :
+- `backend/company-service/src/controllers/company.controller.js` - ✅ Fallback ajouté
+
+**Statut** : 🟡 **EN COURS** - Fallback ajouté, reste à créer la table avec `make db-push-all`
+
+---
+
+### 👤 Profil Utilisateur et Settings
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : 
+- Créer une table `UserProfile` pour le profil utilisateur (expériences, compétences, etc.)
+- Créer une table `UserSettings` pour les paramètres utilisateur
+- Le profil utilisateur sera automatiquement rattaché à l'utilisateur
+- Le profil pourra être utilisé plus tard pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil
+
+**Contexte** : L'utilisateur doit pouvoir compléter son profil avec ses expériences, compétences, etc. pour aider dans l'analyse future des candidatures.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Créer modèle `UserProfile` dans `schema.prisma` :
+  - `id`, `userId` (FK, unique), `experiences` (JSON ou relation), `competences` (JSON ou relation), `education`, `languages`, `summary`, etc.
+- [ ] Créer modèle `UserSettings` dans `schema.prisma` :
+  - `id`, `userId` (FK, unique), `notifications`, `automatisations`, `preferences`, etc.
+- [ ] Créer automatiquement un profil vide à la création d'un utilisateur
+- [ ] Créer interface frontend pour compléter le profil
+- [ ] Créer interface frontend pour les settings
+
+**📄 Fichiers à Modifier** :
+- `backend/prisma/schema.prisma` - Ajouter modèles UserProfile et UserSettings
+- `backend/auth-service/src/controllers/user.controller.js` - Créer profil automatiquement
+- `frontend/src/app/(admin)/backoffice/profile/page.tsx` - Interface profil
+- `frontend/src/app/(admin)/backoffice/settings/page.tsx` - Interface settings
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 📝 Mise à Jour Formulaires de Création Frontend
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Mettre à jour tous les formulaires de création dans le dashboard administrateur pour :
+- Candidatures
+- Entreprises
+- Relances
+- Entretiens
+- Contacts
+- Appels
+- Événements
+
+**Contexte** : Les formulaires actuels ne sont pas à jour avec les règles de gestion des données.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Corriger statuts candidature : Supprimer "Brouillon", utiliser "Candidaté et en attente", etc.
+- [ ] Ajouter autocomplétion pour entreprises existantes
+- [ ] Ajouter autocomplétion pour localisations
+- [ ] Ajouter autocomplétion pour intitulés de poste
+- [ ] Gérer création automatique d'entreprise si n'existe pas
+- [ ] Gérer création automatique d'entreprise pour contact si n'existe pas
+- [ ] Date/heure de candidature : Date par défaut = maintenant, heure enregistrée automatiquement
+- [ ] Interface pour forcer manuellement un statut (désactive automatisme)
+
+**📄 Fichiers à Modifier** :
+- `frontend/src/app/(admin)/backoffice/data/applications/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/companies/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/followups/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/interviews/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/contacts/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/calls/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/events/page.tsx`
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 🔄 Règles de Gestion des Données
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Implémenter les règles de gestion des données suivantes :
+
+1. **Candidature** :
+   - Doit avoir une entreprise (obligatoire)
+   - Si entreprise n'existe pas, la créer automatiquement à partir du nom
+
+2. **Contact** :
+   - N'est pas forcément lié à une candidature
+   - Est forcément lié à une entreprise (obligatoire)
+   - Si entreprise n'existe pas, la créer automatiquement
+
+3. **Relance** :
+   - Ne peut pas avoir lieu sans candidature attachée (obligatoire)
+   - Est créée uniquement à partir d'une candidature
+   - Récupère automatiquement l'entreprise de la candidature
+
+4. **Entretien** :
+   - Ne peut pas avoir lieu sans candidature attachée (obligatoire)
+   - Est créé uniquement à partir d'une candidature
+   - Récupère automatiquement l'entreprise de la candidature
+
+5. **Appel** :
+   - Peut être passé à un contact OU juste à l'entreprise OU dans le cadre d'une candidature
+   - Peut être de type "candidature spontanée" pour proposer sa candidature soi-même
+
+**Contexte** : Ces règles doivent être respectées dans le backend et le frontend.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Valider règles dans backend (controllers)
+- [ ] Créer fonctions utilitaires pour création automatique d'entreprise
+- [ ] Mettre à jour formulaires frontend pour respecter les règles
+- [ ] Ajouter validations côté frontend et backend
+
+**📄 Fichiers à Modifier** :
+- `backend/*-service/src/controllers/*.controller.js` - Valider règles
+- `backend/*-service/src/utils/company.utils.js` - Fonction création auto entreprise
+- `frontend/src/app/(admin)/backoffice/data/**/page.tsx` - Mettre à jour formulaires
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 📅 Création Automatique d'Événements
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Créer automatiquement un événement dans le calendrier lors de :
+- Création d'une candidature
+- Création d'une relance
+- Création d'un entretien
+- Création d'un appel
+
+**Contexte** : L'utilisateur doit pouvoir suivre tous ses événements dans un calendrier.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Créer service `event.service.js` pour création automatique d'événements
+- [ ] Appeler service lors de création candidature
+- [ ] Appeler service lors de création relance
+- [ ] Appeler service lors de création entretien
+- [ ] Appeler service lors de création appel
+- [ ] Créer interface calendrier pour visualiser tous les événements
+
+**📄 Fichiers à Modifier** :
+- `backend/*-service/src/services/event.service.js` - Service création événements
+- `backend/*-service/src/controllers/*.controller.js` - Appeler service
+- `frontend/src/app/(admin)/backoffice/calendar/page.tsx` - Interface calendrier
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 🤖 Gestion Automatique des Statuts
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : 
+- Système de proposition automatique de statuts en fonction de l'état d'une candidature ou des différents champs
+- Possibilité pour l'utilisateur de forcer manuellement un statut (désactive alors l'automatisme pour cette candidature)
+- Si candidature marquée comme "rejetée" ou "acceptée", stopper les automatismes
+- Si utilisateur indique qu'il n'est plus en recherche active, désactiver une partie des automatismes (relances, etc.)
+
+**Contexte** : Automatiser la gestion des statuts tout en gardant le contrôle manuel.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Créer service `status.service.js` pour gestion automatique des statuts
+- [ ] Définir règles de proposition automatique de statuts
+- [ ] Ajouter champ `isManualStatus` dans Application pour forcer manuellement
+- [ ] Ajouter champ `isRejected` et `isAccepted` dans Application
+- [ ] Ajouter champ `isActiveSearch` dans UserSettings
+- [ ] Désactiver automatismes si `isRejected`, `isAccepted`, ou `!isActiveSearch`
+
+**📄 Fichiers à Modifier** :
+- `backend/prisma/schema.prisma` - Ajouter champs
+- `backend/*-service/src/services/status.service.js` - Service automatisation
+- `frontend/src/app/(admin)/backoffice/data/applications/page.tsx` - Interface statuts
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 🧪 Tests Automatisés avec Playwright
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Créer des tests automatisés avec Playwright pour tester les scénarios dans l'interface mobile du projet.
+
+**Contexte** : Tester automatiquement les fonctionnalités pour s'assurer que tout fonctionne correctement.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Installer Playwright
+- [ ] Créer tests pour scénarios de création de données
+- [ ] Créer tests pour interface mobile
+- [ ] Intégrer dans CI/CD
+
+**📄 Fichiers à Modifier** :
+- `tests/e2e/**/*.spec.ts` - Tests Playwright
+- `.github/workflows/ci-cd.yml` - Intégrer tests
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
 ### 💡 Propositions de Travail - Relations et Données Entrecroisées
 
 *Voici des propositions de travail sur les relations many-to-many et les données entrecroisées que vous pourriez vouloir implémenter :*

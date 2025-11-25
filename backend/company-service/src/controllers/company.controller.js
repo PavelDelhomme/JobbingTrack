@@ -85,6 +85,21 @@ const getCompanies = async (req, res, next) => {
       }
     });
   } catch (error) {
+    // Fallback si table Company n'existe pas (P2021) - Mode développement
+    if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+      logger.warn('Table Company non trouvée, retour de données vides (mode développement)');
+      return res.json({
+        success: true,
+        companies: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0
+        },
+        warning: 'Table Company non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      });
+    }
     logger.error('Erreur récupération entreprises:', error);
     next(error);
   }
