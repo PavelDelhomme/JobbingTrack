@@ -1362,6 +1362,20 @@ export default function UserJourneyPage() {
           };
           break;
 
+        case 'cleanup_test_data':
+          const cleanupRes = await fetch('/api/v1/admin/clear-test-data', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              onlyTestData: true // Nettoyer uniquement les données isTestData=true
+            })
+          });
+          result = await handleFetchResponse(cleanupRes);
+          break;
+
         default:
           result = { message: 'Étape non implémentée' };
       }
