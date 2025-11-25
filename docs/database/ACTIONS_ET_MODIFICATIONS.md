@@ -102,6 +102,16 @@
 - `backend/prisma/schema.prisma` - Ajouter champs aux modèles
 - `backend/auth-service/src/services/sync.service.js` - Gérer synchronisation des listes
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant la synchronisation des listes personnalisables.
+> 
+> Par exemple :
+> - Autres modèles personnalisables à synchroniser
+> - Comportements spécifiques souhaités
+> - Exceptions ou cas particuliers
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER**
 
 ---
@@ -121,13 +131,142 @@
 - **PAS de côté employeur/recruteur** : uniquement pour le candidat qui cherche un poste
 - Vérifier et compléter toutes les relations many-to-many et one-to-many décrites dans la documentation
 
-**💡 Avis Technique** : *À compléter après analyse*
+**💡 Avis Technique** :
 
-**📝 Actions à Effectuer** : *À compléter après analyse*
+**✅ ANALYSE COMPLÈTE EFFECTUÉE** : J'ai analysé le schéma Prisma (`backend/prisma/schema.prisma`) et la documentation (`docs/database/relations.md`).
 
-**📄 Fichiers à Modifier** : *À compléter après analyse*
+#### Relations Many-to-Many (M:N) - État Actuel
 
-**Statut** : 🔴 **À IMPLÉMENTER**
+**✅ 4 Relations M:N Implémentées** (via tables de jonction) :
+
+1. **Contact ↔ Company** (via `ContactCompany`)
+   - ✅ Modèle `ContactCompany` existe dans le schéma
+   - ✅ Relations définies : `Contact.contacts` → `ContactCompany[]` et `Company.contacts` → `ContactCompany[]`
+   - ✅ Contrainte unique : `@@unique([contactId, companyId])`
+   - ✅ Index sur `contactId` et `companyId`
+   - ✅ Documentation : ✅ Documentée dans `relations.md`
+
+2. **Contact ↔ Application** (via `ContactApplication`)
+   - ✅ Modèle `ContactApplication` existe dans le schéma
+   - ✅ Relations définies : `Contact.applications` → `ContactApplication[]` et `Application.contacts` → `ContactApplication[]`
+   - ✅ Contrainte unique : `@@unique([contactId, applicationId])`
+   - ✅ Index sur `contactId` et `applicationId`
+   - ✅ Documentation : ✅ Documentée dans `relations.md`
+
+3. **FollowUp ↔ Contact** (via `FollowUpContact`)
+   - ✅ Modèle `FollowUpContact` existe dans le schéma
+   - ✅ Relations définies : `FollowUp.contacts` → `FollowUpContact[]` et `Contact.followUps` → `FollowUpContact[]`
+   - ✅ Contrainte unique : `@@unique([followUpId, contactId])`
+   - ✅ Index sur `followUpId` et `contactId`
+   - ✅ Documentation : ✅ Documentée dans `relations.md`
+
+4. **Interview ↔ Contact** (via `InterviewContact`)
+   - ✅ Modèle `InterviewContact` existe dans le schéma
+   - ✅ Relations définies : `Interview.contacts` → `InterviewContact[]` et `Contact.interviews` → `InterviewContact[]`
+   - ✅ Contrainte unique : `@@unique([interviewId, contactId])`
+   - ✅ Index sur `interviewId` et `contactId`
+   - ✅ Documentation : ✅ Documentée dans `relations.md`
+
+**✅ Toutes les relations M:N sont correctement implémentées et documentées.**
+
+#### Relations One-to-Many (1:N) - État Actuel
+
+**✅ 20+ Relations 1:N Implémentées** :
+
+**User → Autres Modèles** (9 relations) :
+- ✅ `User` → `Application[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Company[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Contact[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `FollowUp[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Call[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Interview[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Event[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Notification[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `Document[]` (via `userId`, `onDelete: Cascade`)
+- ✅ `User` → `SyncQueue[]` (via `userId`, `onDelete: Cascade`)
+
+**Company → Autres Modèles** (4 relations) :
+- ✅ `Company` → `Application[]` (via `companyId`)
+- ✅ `Company` → `FollowUp[]` (via `companyId`)
+- ✅ `Company` → `Call[]` (via `companyId`, optionnel, `onDelete: SetNull`)
+- ✅ `Company` → `Interview[]` (via `companyId`)
+
+**Application → Autres Modèles** (6 relations) :
+- ✅ `Application` → `FollowUp[]` (via `applicationId`, `onDelete: Cascade`)
+- ✅ `Application` → `Call[]` (via `applicationId`, optionnel, `onDelete: SetNull`)
+- ✅ `Application` → `Interview[]` (via `applicationId`, `onDelete: Cascade`)
+- ✅ `Application` → `Event[]` (via `applicationId`, optionnel, `onDelete: Cascade`)
+- ✅ `Application` → `Document[]` (via `applicationId`, optionnel, `onDelete: SetNull`)
+- ✅ `Application` → `ApplicationStatusHistory[]` (via `applicationId`, `onDelete: Cascade`)
+
+**Autres Relations 1:N** :
+- ✅ `FollowUp` → `Call[]` (via `followUpId`, optionnel, `onDelete: SetNull`)
+- ✅ `FollowUp` → `Event[]` (via `followUpId`, optionnel, `onDelete: Cascade`)
+- ✅ `Interview` → `Event[]` (via `interviewId`, optionnel, `onDelete: Cascade`)
+- ✅ `Call` → `Event[]` (via `callId`, optionnel, `onDelete: Cascade`)
+- ✅ `Contact` → `Call[]` (via `contactId`, optionnel, `onDelete: SetNull`)
+
+**✅ Toutes les relations 1:N sont correctement implémentées et documentées.**
+
+#### Relations Optionnelles (Personnalisables)
+
+**✅ 7 Relations Optionnelles Implémentées** :
+- ✅ `Platform` → `Application[]` (via `platformId`, optionnel)
+- ✅ `FollowUpType` → `FollowUp[]` (via `followUpTypeId`, optionnel)
+- ✅ `FollowUpMethod` → `FollowUp[]` (via `followUpMethodId`, optionnel)
+- ✅ `InterviewType` → `Interview[]` (via `interviewTypeId`, optionnel)
+- ✅ `InterviewStyle` → `Interview[]` (via `interviewStyleId`, optionnel)
+- ✅ `EventType` → `Event[]` (via `eventTypeId`, optionnel)
+- ✅ `CallType` → `Call[]` (via `callTypeId`, optionnel)
+
+**✅ Toutes les relations optionnelles sont correctement implémentées.**
+
+#### Vérifications Techniques
+
+**✅ Cohérence Schéma ↔ Documentation** :
+- ✅ Toutes les relations du schéma Prisma sont documentées dans `relations.md`
+- ✅ Toutes les relations documentées existent dans le schéma Prisma
+- ✅ Aucune relation manquante détectée
+
+**✅ Bonnes Pratiques Respectées** :
+- ✅ Tables de jonction M:N avec contraintes `@@unique([field1, field2])`
+- ✅ Index sur les clés étrangères pour performance
+- ✅ `onDelete: Cascade` pour relations obligatoires
+- ✅ `onDelete: SetNull` pour relations optionnelles
+- ✅ Champs `createdAt` dans les tables de jonction
+
+**⚠️ Points d'Attention** :
+- ⚠️ Les tables de jonction n'ont pas de champs de synchronisation (`syncHash`, `entityHash`, `lastSyncAt`)
+- ⚠️ Les tables de jonction n'ont pas de champ `isTestData` (mais ce n'est peut-être pas nécessaire)
+- ⚠️ Pas de champ `deletedAt` dans les tables de jonction (soft delete)
+
+**📝 Actions à Effectuer** :
+
+- [x] ✅ Vérifier que toutes les relations M:N sont implémentées dans le schéma Prisma
+- [x] ✅ Vérifier que toutes les relations 1:N sont implémentées dans le schéma Prisma
+- [x] ✅ Comparer avec la documentation `relations.md`
+- [x] ✅ Vérifier les contraintes et index
+- [ ] **Optionnel** : Ajouter champs de synchronisation aux tables de jonction si nécessaire
+- [ ] **Optionnel** : Ajouter champ `isTestData` aux tables de jonction si nécessaire
+- [ ] **Optionnel** : Ajouter champ `deletedAt` aux tables de jonction pour soft delete
+
+**📄 Fichiers à Modifier** :
+
+- `backend/prisma/schema.prisma` - ✅ Aucune modification nécessaire (toutes les relations sont correctes)
+- `docs/database/relations.md` - ✅ Documentation à jour
+- `docs/database/STRUCTURE_ACTUELLE.md` - ✅ Documentation à jour
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire que vous souhaitez concernant les relations many-to-many et one-to-many.
+> 
+> Par exemple :
+> - Relations manquantes que vous souhaitez ajouter
+> - Modifications de comportement souhaitées (cascade, setNull, etc.)
+> - Champs supplémentaires à ajouter aux tables de jonction
+> - Autres précisions...
+
+**Statut** : ✅ **VÉRIFIÉ** - Toutes les relations sont correctement implémentées et documentées
 
 ---
 
@@ -168,6 +307,15 @@
 **📄 Fichiers à Modifier** :
 - `backend/company-service/src/controllers/company.controller.js` - ✅ Fallback ajouté
 - `backend/security-service/src/services/securityService.js` - ✅ Fallbacks ajoutés
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant les erreurs 500 et les tables manquantes.
+> 
+> Par exemple :
+> - Autres tables manquantes détectées
+> - Comportements spécifiques souhaités pour les fallbacks
+> - Autres précisions...
 
 **Statut** : 🟡 **EN COURS** - Fallbacks ajoutés, reste à créer les tables avec `make db-push-all`
 
@@ -256,6 +404,16 @@ model UserSettings {
 - `frontend/src/app/(admin)/backoffice/profile/page.tsx` - Interface profil (créer si n'existe pas)
 - `frontend/src/app/(admin)/backoffice/settings/page.tsx` - Interface settings (créer si n'existe pas)
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant le profil utilisateur et les settings.
+> 
+> Par exemple :
+> - Champs supplémentaires à ajouter au profil
+> - Settings spécifiques à implémenter
+> - Comportements particuliers souhaités
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
 ---
@@ -334,6 +492,16 @@ model UserSettings {
 - `frontend/src/app/(admin)/backoffice/data/calls/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/events/page.tsx`
 - `frontend/src/components/ui/autocomplete-input.tsx` - Créer composant réutilisable
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant la mise à jour des formulaires de création.
+> 
+> Par exemple :
+> - Champs supplémentaires à ajouter aux formulaires
+> - Validations spécifiques souhaitées
+> - Comportements particuliers pour l'autocomplétion
+> - Autres précisions...
 
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
@@ -439,6 +607,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `backend/call-service/src/controllers/call.controller.js` - Valider règles
 - `frontend/src/app/(admin)/backoffice/data/**/page.tsx` - Mettre à jour tous les formulaires
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant les règles de gestion des données.
+> 
+> Par exemple :
+> - Règles supplémentaires à ajouter
+> - Exceptions ou cas particuliers
+> - Comportements spécifiques souhaités
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
 ---
@@ -471,6 +649,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `backend/*-service/src/controllers/*.controller.js` - Appeler service
 - `frontend/src/app/(admin)/backoffice/calendar/page.tsx` - Interface calendrier
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant la création automatique d'événements.
+> 
+> Par exemple :
+> - Types d'événements supplémentaires à créer automatiquement
+> - Paramètres spécifiques pour les événements
+> - Comportements particuliers souhaités
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER**
 
 ---
@@ -502,6 +690,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `backend/prisma/schema.prisma` - Ajouter champs
 - `backend/*-service/src/services/status.service.js` - Service automatisation
 - `frontend/src/app/(admin)/backoffice/data/applications/page.tsx` - Interface statuts
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant la gestion automatique des statuts.
+> 
+> Par exemple :
+> - Règles spécifiques de proposition automatique de statuts
+> - Comportements particuliers souhaités
+> - Exceptions ou cas particuliers
+> - Autres précisions...
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
@@ -564,6 +762,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `.github/workflows/ci-cd.yml` - Intégrer tests Playwright
 - `playwright.config.ts` - Configuration Playwright
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant les tests automatisés avec Playwright.
+> 
+> Par exemple :
+> - Scénarios de test supplémentaires à ajouter
+> - Cas de test spécifiques souhaités
+> - Configuration particulière pour les tests
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ BASSE** (après implémentation fonctionnalités)
 
 ---
@@ -589,6 +797,16 @@ async function getOrCreateCompany(companyName, userId) {
 **📄 Fichiers à Modifier** :
 - `frontend/src/app/(admin)/backoffice/calendar/page.tsx` - Interface calendrier
 - `frontend/src/components/features/Calendar.tsx` - Composant calendrier
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant le calendrier utilisateur.
+> 
+> Par exemple :
+> - Fonctionnalités supplémentaires souhaitées pour le calendrier
+> - Types d'affichage spécifiques
+> - Intégrations particulières
+> - Autres précisions...
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
@@ -639,6 +857,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `backend/*-service/src/services/matching.service.js` - Service d'analyse de matching
 - `frontend/src/app/(admin)/backoffice/data/applications/[id]/page.tsx` - Afficher analyse de potentialité
 
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant l'analyse de potentialité de candidature.
+> 
+> Par exemple :
+> - Critères spécifiques à prendre en compte dans l'analyse
+> - Algorithme de matching personnalisé souhaité
+> - Affichage spécifique de l'analyse
+> - Autres précisions...
+
 **Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ TRÈS BASSE** (fonctionnalité avancée pour plus tard)
 
 ---
@@ -668,6 +896,16 @@ async function getOrCreateCompany(companyName, userId) {
 - `backend/prisma/schema.prisma` - Ajouter champs
 - `backend/*-service/src/services/automation.service.js` - Vérifier champs
 - `frontend/src/app/(admin)/backoffice/data/applications/page.tsx` - Interface statuts
+
+**📝 Compléments Utilisateur** :
+
+> **💡 Espace pour vos précisions** : Ajoutez ici toute information supplémentaire concernant la gestion des automatismes et le statut de recherche.
+> 
+> Par exemple :
+> - Automatismes supplémentaires à gérer
+> - Comportements spécifiques souhaités
+> - Exceptions ou cas particuliers
+> - Autres précisions...
 
 **Statut** : 🔴 **À IMPLÉMENTER**
 
