@@ -480,7 +480,154 @@ async function main() {
     }
     console.log(`   ✅ ${calls.length} appels créés`);
 
-    // 9. Archiver quelques éléments
+    // 9. Créer des événements automatiquement liés
+    console.log('📅 Création des événements...');
+    const events = [];
+    
+    // Événements pour les candidatures (date de candidature)
+    for (let i = 0; i < Math.min(Math.floor(config.events * 0.3), applications.length); i++) {
+      const application = applications[i];
+      const eventDate = new Date(application.applicationDate);
+      eventDate.setHours(10 + (i % 8), 0, 0, 0); // Entre 10h et 17h
+      
+      try {
+        const event = await prisma.event.create({
+          data: {
+            userId: application.userId,
+            title: `Candidature: ${application.position} - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
+            description: `Candidature envoyée pour le poste de ${application.position}`,
+            startDate: eventDate,
+            endDate: new Date(eventDate.getTime() + 30 * 60 * 1000), // 30 minutes
+            allDay: false,
+            applicationId: application.id,
+            reminderEnabled: true,
+            reminderMinutes: 15,
+            color: '#3B82F6'
+          }
+        });
+        events.push(event);
+      } catch (error) {
+        // Ignorer les erreurs de contrainte unique
+      }
+    }
+    
+    // Événements pour les entretiens
+    for (let i = 0; i < interviews.length; i++) {
+      const interview = interviews[i];
+      const application = applications.find(a => a.id === interview.applicationId);
+      if (!application) continue;
+      
+      try {
+        const event = await prisma.event.create({
+          data: {
+            userId: application.userId,
+            title: `Entretien: ${interview.type} - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
+            description: `Entretien ${interview.type} pour ${application.position}`,
+            startDate: interview.scheduledAt,
+            endDate: new Date(new Date(interview.scheduledAt).getTime() + (interview.duration || 60) * 60 * 1000),
+            allDay: false,
+            interviewId: interview.id,
+            reminderEnabled: true,
+            reminderMinutes: 30,
+            color: '#10B981'
+          }
+        });
+        events.push(event);
+      } catch (error) {
+        // Ignorer les erreurs de contrainte unique
+      }
+    }
+    
+    // Événements pour les relances
+    for (let i = 0; i < Math.min(Math.floor(config.events * 0.2), followups.length); i++) {
+      const followup = followups[i];
+      const application = applications.find(a => a.id === followup.applicationId);
+      if (!application) continue;
+      
+      try {
+        const event = await prisma.event.create({
+          data: {
+            userId: application.userId,
+            title: `Relance: ${followup.subject}`,
+            description: `Relance ${followup.type} pour ${application.position}`,
+            startDate: followup.scheduledDate,
+            endDate: new Date(new Date(followup.scheduledDate).getTime() + 15 * 60 * 1000), // 15 minutes
+            allDay: false,
+            followUpId: followup.id,
+            reminderEnabled: true,
+            reminderMinutes: 60,
+            color: '#F59E0B'
+          }
+        });
+        events.push(event);
+      } catch (error) {
+        // Ignorer les erreurs de contrainte unique
+      }
+    }
+    
+    // Événements pour les appels
+    for (let i = 0; i < Math.min(Math.floor(config.events * 0.2), calls.length); i++) {
+      const call = calls[i];
+      const application = applications.find(a => a.id === call.applicationId);
+      if (!application) continue;
+      
+      try {
+        const event = await prisma.event.create({
+          data: {
+            userId: application.userId,
+            title: `Appel: ${call.type} - ${companies.find(c => c.id === application.companyId)?.name || 'Entreprise'}`,
+            description: `Appel ${call.type} concernant ${application.position}`,
+            startDate: call.scheduledDate || call.callDate || new Date(),
+            endDate: call.callDate && call.duration 
+              ? new Date(new Date(call.callDate).getTime() + call.duration * 1000)
+              : new Date(new Date(call.scheduledDate || call.callDate || new Date()).getTime() + 15 * 60 * 1000),
+            allDay: false,
+            callId: call.id,
+            reminderEnabled: true,
+            reminderMinutes: 15,
+            color: '#8B5CF6'
+          }
+        });
+        events.push(event);
+      } catch (error) {
+        // Ignorer les erreurs de contrainte unique
+      }
+    }
+    
+    // Événements autonomes (rappels, tâches, etc.)
+    const remainingEvents = config.events - events.length;
+    for (let i = 0; i < remainingEvents; i++) {
+      const user = users[i % users.length];
+      const eventDate = new Date();
+      eventDate.setDate(eventDate.getDate() + Math.floor(Math.random() * 30));
+      eventDate.setHours(9 + (i % 8), 0, 0, 0);
+      
+      const eventTypes = ['Rappel candidature', 'Suivi entreprise', 'Préparation entretien', 'Relance à faire', 'Tâche administrative'];
+      const eventType = eventTypes[i % eventTypes.length];
+      
+      try {
+        const event = await prisma.event.create({
+          data: {
+            userId: user.id,
+            title: eventType,
+            description: `Événement de test: ${eventType}`,
+            startDate: eventDate,
+            endDate: new Date(eventDate.getTime() + 60 * 60 * 1000), // 1 heure
+            allDay: false,
+            reminderEnabled: i % 2 === 0,
+            reminderMinutes: 60,
+            color: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][i % 5]
+          }
+        });
+        events.push(event);
+      } catch (error) {
+        // Ignorer les erreurs
+      }
+    }
+    
+    console.log(`   ✅ ${events.length} événements créés`);
+
+    // 10. Archiver quelques éléments
     console.log('📦 Archivage de quelques éléments...');
     let archivedCount = 0;
     for (let i = 0; i < Math.min(config.archivedItems, applications.length); i++) {
@@ -493,7 +640,7 @@ async function main() {
     }
     console.log(`   ✅ ${archivedCount} éléments archivés`);
 
-    // 10. Supprimer (soft delete) quelques éléments
+    // 11. Supprimer (soft delete) quelques éléments
     console.log('🗑️ Suppression soft de quelques éléments...');
     let deletedCount = 0;
     for (let i = 0; i < Math.min(config.deletedItems, applications.length - config.archivedItems); i++) {
@@ -521,6 +668,7 @@ async function main() {
     console.log(`   - ${interviews.length} entretiens`);
     console.log(`   - ${followups.length} relances`);
     console.log(`   - ${calls.length} appels`);
+    console.log(`   - ${events.length} événements`);
     console.log(`   - ${linkedContacts} liaisons contact-candidature`);
     console.log(`   - ${archivedCount} éléments archivés`);
     console.log(`   - ${deletedCount} éléments en corbeille`);
