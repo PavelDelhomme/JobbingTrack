@@ -268,6 +268,19 @@ const SCENARIOS = {
       'login',
       'view_statistics'
     ]
+  },
+  test_data_management: {
+    name: 'Gestion Données de Test',
+    description: 'Test du système de marquage isTestData : génération, nettoyage sélectif',
+    steps: [
+      'login',
+      'create_applications',
+      'create_contacts',
+      'create_companies',
+      'view_statistics',
+      'cleanup_test_data',
+      'view_statistics'
+    ]
   }
 };
 
@@ -459,6 +472,12 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
     name: 'Réinitialiser Password',
     description: 'Réinitialiser le mot de passe avec le token reçu',
     icon: Shield
+  },
+  cleanup_test_data: {
+    id: 'cleanup_test_data',
+    name: 'Nettoyer Données de Test',
+    description: 'Supprimer uniquement les données marquées isTestData=true',
+    icon: Trash2
   }
 };
 
