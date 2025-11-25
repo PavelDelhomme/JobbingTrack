@@ -805,44 +805,66 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 
 # Statut en temps réel (actualisation automatique)
 status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)
-	@if command -v watch &> /dev/null; then \
-		echo "📊 Statut en temps réel des services JobbingTrack"; \
+	@echo "📊 Statut en temps réel des services JobbingTrack"
+	@echo "=========================================="
+	@echo ""
+	@echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"
+	@echo ""
+	@while true; do \
+		clear; \
+		echo "📊 Statut détaillé des services JobbingTrack"; \
 		echo "=========================================="; \
 		echo ""; \
-		echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"; \
+		echo "🟢 Services essentiels:"; \
 		echo ""; \
-		watch -n 2 -c 'make status' 2>/dev/null || \
-		watch -n 2 'make status' 2>/dev/null; \
-	elif command -v gwatch &> /dev/null; then \
-		echo "📊 Statut en temps réel des services JobbingTrack"; \
-		echo "=========================================="; \
-		echo ""; \
-		echo "💡 Actualisation toutes les 2 secondes (Ctrl+C pour quitter)"; \
-		echo ""; \
-		gwatch -n 2 -c 'make status' 2>/dev/null || \
-		gwatch -n 2 'make status' 2>/dev/null; \
-	else \
-		echo "📊 Statut en temps réel des services JobbingTrack"; \
-		echo "=========================================="; \
-		echo ""; \
-		echo "⚠️  La commande 'watch' n'est pas installée."; \
-		echo ""; \
-		echo "💡 Installation:"; \
-		echo "   Ubuntu/Debian: sudo apt-get install watch"; \
-		echo "   Fedora/RHEL:   sudo dnf install watch"; \
-		echo "   Arch/Manjaro:  sudo pacman -S procps-ng"; \
-		echo ""; \
-		echo "🔄 Mode manuel (actualisation toutes les 2 secondes):"; \
-		echo "   Appuyez sur Ctrl+C pour quitter"; \
-		echo ""; \
-		while true; do \
-			clear; \
-			$(MAKE) status; \
-			echo ""; \
-			echo "💡 Actualisation dans 2 secondes... (Ctrl+C pour quitter)"; \
-			sleep 2; \
+		services="postgres redis api-gateway frontend auth-service dashboard-service"; \
+		for service in $$services; do \
+			container="jobbingtrack-$$service"; \
+			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+				if [ -n "$$ports" ]; then \
+					ports_short=$$(echo "$$ports" | cut -c1-60); \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		done; \
-	fi
+		echo ""; \
+		echo "🔵 Services optionnels:"; \
+		echo ""; \
+		services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
+		for service in $$services; do \
+			container="jobbingtrack-$$service"; \
+			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+				if [ -n "$$ports" ]; then \
+					ports_short=$$(echo "$$ports" | cut -c1-60); \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
+		done; \
+		echo ""; \
+		up_count=$$(docker ps --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | wc -l | tr -d ' '); \
+		all_count=$$(docker ps -a --filter "name=jobbingtrack-" --format '{{.Names}}' 2>/dev/null | sort -u | wc -l | tr -d ' '); \
+		if [ "$$all_count" -eq 0 ]; then all_count="$$up_count"; fi; \
+		if [ "$$up_count" -eq 0 ]; then \
+			printf "📊 Résumé : \033[1;31m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+		elif [ "$$up_count" -lt "$$all_count" ]; then \
+			printf "📊 Résumé : \033[1;33m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+		else \
+			printf "📊 Résumé : \033[1;32m%d/%d services actifs\033[0m\n" "$$up_count" "$$all_count"; \
+		fi; \
+		echo ""; \
+		echo "💡 Actualisation dans 2 secondes... (Ctrl+C pour quitter)"; \
+		sleep 2; \
+	done
 
 # Liste conteneurs actifs
 ps: ## Liste les conteneurs actifs
