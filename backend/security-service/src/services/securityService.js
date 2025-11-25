@@ -16,14 +16,46 @@ class SecurityService {
       startDate.setDate(startDate.getDate() - days);
 
       // Récupérer les logs de sécurité récents (données réelles collectées)
-      const securityLogs = await this.getSecurityLogs({
-        startDate,
-        category,
-        limit: 1000
-      });
+      let securityLogs;
+      try {
+        securityLogs = await this.getSecurityLogs({
+          startDate,
+          category,
+          limit: 1000
+        });
+      } catch (error) {
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
+          securityLogs = [];
+        } else {
+          throw error;
+        }
+      }
 
       // Analyser les métriques à partir des vraies données collectées
       const metrics = await this.analyzeSecurityMetrics(securityLogs);
+
+      let trends, topThreats, vulnerabilities, alerts;
+      try {
+        [trends, topThreats, vulnerabilities, alerts] = await Promise.all([
+          this.getSecurityTrends(days),
+          this.getTopThreats(days),
+          this.getVulnerabilities(),
+          this.getSecurityAlerts()
+        ]);
+      } catch (error) {
+        // Fallback si erreur P2021 - Mode développement
+        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+          logger.warn('Tables de sécurité non trouvées, retour de données vides (mode développement)');
+          trends = [];
+          topThreats = [];
+          vulnerabilities = [];
+          alerts = [];
+        } else {
+          throw error;
+        }
+      }
 
       return {
         overview: {
@@ -35,10 +67,10 @@ class SecurityService {
           securityScore: this.calculateSecurityScore(metrics)
         },
         logs: securityLogs.slice(0, 10), // 10 logs les plus récents
-        trends: await this.getSecurityTrends(days),
-        topThreats: await this.getTopThreats(days),
-        vulnerabilities: await this.getVulnerabilities(),
-        alerts: await this.getSecurityAlerts()
+        trends,
+        topThreats,
+        vulnerabilities,
+        alerts
       };
     } catch (error) {
       logger.error('Erreur lors de la récupération des métriques de sécurité:', error);
