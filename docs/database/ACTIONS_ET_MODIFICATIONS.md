@@ -57,6 +57,11 @@
 
 ## 📝 Vos Demandes de Modifications
 
+> **⚠️ PRIORISATION** : Les demandes sont organisées par priorité :
+> - 🔴 **HAUTE** : À faire en premier (formulaires, règles de gestion, profil utilisateur)
+> - 🟡 **MOYENNE** : À faire après les priorités hautes (calendrier, automatismes)
+> - 🟢 **BASSE** : À faire plus tard (tests, fonctionnalités avancées)
+
 > **💡 Note** : Vous pouvez aussi consulter les propositions de travail sur les relations et données entrecroisées en bas de cette section (en italique).
 
 ### 🔄 Synchronisation des Listes Personnalisables
@@ -171,43 +176,97 @@
 ### 👤 Profil Utilisateur et Settings
 
 **Date** : 2025-01-27  
-**Demandé par** : Utilisateur
+**Demandé par** : Utilisateur  
+**Priorité** : 🔴 **HAUTE** - Nécessaire pour la gestion des données utilisateur
 
 **Description** : 
-- Créer une table `UserProfile` pour le profil utilisateur (expériences, compétences, etc.)
-- Créer une table `UserSettings` pour les paramètres utilisateur
-- Le profil utilisateur sera automatiquement rattaché à l'utilisateur
-- Le profil pourra être utilisé plus tard pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil
+- **L'entité User DOIT avoir** :
+  1. Une table `UserProfile` pour le profil utilisateur (expériences, compétences, éducation, langues, etc.)
+  2. Une table `UserSettings` pour les paramètres utilisateur globaux (notifications, automatisations, préférences, statut de recherche active, etc.)
+- Le profil utilisateur sera **automatiquement rattaché** à l'utilisateur lors de sa création
+- Le profil pourra être utilisé plus tard pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil dans la base de données
 
-**Contexte** : L'utilisateur doit pouvoir compléter son profil avec ses expériences, compétences, etc. pour aider dans l'analyse future des candidatures.
+**Contexte** : 
+- L'utilisateur doit pouvoir compléter son profil avec ses expériences, compétences, etc.
+- Le profil servira à l'analyse future des candidatures (croisement avec autres candidats ayant le même profil)
+- Les settings permettront de gérer les automatismes (recherche active/inactive, notifications, etc.)
 
-**💡 Avis Technique** : *À compléter*
+**💡 Avis Technique** :
+
+**Structure Prisma** :
+```prisma
+model UserProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Expériences professionnelles
+  experiences Json?    // Array d'objets {company, position, startDate, endDate, description}
+  
+  // Compétences
+  competences Json?    // Array de strings ou objets {name, level}
+  
+  // Éducation
+  education   Json?    // Array d'objets {school, degree, field, graduationDate}
+  
+  // Langues
+  languages   Json?    // Array d'objets {language, level}
+  
+  // Résumé/Description
+  summary     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Statut de recherche
+  isActiveSearch  Boolean  @default(true) // Si false, désactive automatismes (relances, etc.)
+  
+  // Notifications
+  notifications   Json?    // {email: boolean, push: boolean, etc.}
+  
+  // Automatisations
+  automatisations Json?    // {autoStatus: boolean, autoFollowUp: boolean, etc.}
+  
+  // Préférences générales
+  preferences     Json?    // Autres préférences utilisateur
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+```
 
 **📝 Actions à Effectuer** :
-- [ ] Créer modèle `UserProfile` dans `schema.prisma` :
-  - `id`, `userId` (FK, unique), `experiences` (JSON ou relation), `competences` (JSON ou relation), `education`, `languages`, `summary`, etc.
-- [ ] Créer modèle `UserSettings` dans `schema.prisma` :
-  - `id`, `userId` (FK, unique), `notifications`, `automatisations`, `preferences`, etc.
-- [ ] Créer automatiquement un profil vide à la création d'un utilisateur
-- [ ] Créer interface frontend pour compléter le profil
-- [ ] Créer interface frontend pour les settings
+- [ ] Créer modèle `UserProfile` dans `schema.prisma` avec tous les champs nécessaires
+- [ ] Créer modèle `UserSettings` dans `schema.prisma` avec `isActiveSearch` et autres settings
+- [ ] Ajouter relations `profile` et `settings` dans modèle `User`
+- [ ] Créer automatiquement un profil vide et des settings par défaut à la création d'un utilisateur
+- [ ] Créer interface frontend `/backoffice/profile` pour compléter le profil
+- [ ] Créer interface frontend `/backoffice/settings` pour gérer les settings
+- [ ] Ajouter champ `isActiveSearch` dans interface settings pour contrôler les automatismes
 
 **📄 Fichiers à Modifier** :
-- `backend/prisma/schema.prisma` - Ajouter modèles UserProfile et UserSettings
-- `backend/auth-service/src/controllers/user.controller.js` - Créer profil automatiquement
-- `frontend/src/app/(admin)/backoffice/profile/page.tsx` - Interface profil
-- `frontend/src/app/(admin)/backoffice/settings/page.tsx` - Interface settings
+- `backend/prisma/schema.prisma` - Ajouter modèles UserProfile et UserSettings avec relations
+- `backend/auth-service/src/controllers/user.controller.js` - Créer profil et settings automatiquement lors de création utilisateur
+- `frontend/src/app/(admin)/backoffice/profile/page.tsx` - Interface profil (créer si n'existe pas)
+- `frontend/src/app/(admin)/backoffice/settings/page.tsx` - Interface settings (créer si n'existe pas)
 
-**Statut** : 🔴 **À IMPLÉMENTER**
+**Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
 ---
 
 ### 📝 Mise à Jour Formulaires de Création Frontend
 
 **Date** : 2025-01-27  
-**Demandé par** : Utilisateur
+**Demandé par** : Utilisateur  
+**Priorité** : 🔴 **HAUTE** - Nécessaire pour la création correcte des données
 
-**Description** : Mettre à jour tous les formulaires de création dans le dashboard administrateur pour :
+**Description** : Mettre à jour **TOUS** les formulaires de création dans le dashboard administrateur pour :
 - Candidatures
 - Entreprises
 - Relances
@@ -216,79 +275,171 @@
 - Appels
 - Événements
 
-**Contexte** : Les formulaires actuels ne sont pas à jour avec les règles de gestion des données.
+**Contexte** : Les formulaires actuels ne sont **PAS à jour** avec les règles de gestion des données et contiennent des erreurs (ex: statut "Brouillon" qui n'existe pas).
 
-**💡 Avis Technique** : *À compléter*
+**💡 Avis Technique** :
+
+**1. Correction des Statuts Candidature** :
+- ❌ **SUPPRIMER** : "Brouillon" (n'existe pas)
+- ✅ **UTILISER** : "Candidaté et en attente", "En cours d'examen", "Entretien programmé", "Refusé", "Accepté", etc.
+- Vérifier les statuts disponibles dans le modèle Prisma `ApplicationStatus` (enum ou table selon structure)
+
+**2. Système d'Autocomplétion** :
+- **Entreprises** : Proposer les entreprises existantes lors de la saisie du nom
+- **Localisations** : Proposer les localisations déjà utilisées (ex: "Paris", "Lyon", "Remote")
+- **Intitulés de poste** : Proposer les intitulés déjà utilisés (ex: "Développeur Full Stack", "Product Manager")
+- Utiliser un composant `Autocomplete` ou `Combobox` avec recherche en temps réel
+- API endpoint : `/api/v1/companies?search=...` pour entreprises
+- Stocker les suggestions dans un état local ou cache
+
+**3. Gestion Date/Heure Candidature** :
+- **Date** : Champ date uniquement (pas d'heure visible pour l'utilisateur)
+- **Heure** : Enregistrée automatiquement au moment de la création (`createdAt`)
+- **Valeur par défaut** : Date = aujourd'hui
+- L'utilisateur peut modifier la date mais pas l'heure (simplification UX)
+
+**4. Interface Forcer Statut Manuellement** :
+- Ajouter un toggle/checkbox "Forcer le statut manuellement"
+- Si activé : Désactive la gestion automatique des statuts pour cette candidature
+- Ajouter champ `isManualStatus` dans le formulaire
 
 **📝 Actions à Effectuer** :
-- [ ] Corriger statuts candidature : Supprimer "Brouillon", utiliser "Candidaté et en attente", etc.
-- [ ] Ajouter autocomplétion pour entreprises existantes
-- [ ] Ajouter autocomplétion pour localisations
-- [ ] Ajouter autocomplétion pour intitulés de poste
-- [ ] Gérer création automatique d'entreprise si n'existe pas
-- [ ] Gérer création automatique d'entreprise pour contact si n'existe pas
-- [ ] Date/heure de candidature : Date par défaut = maintenant, heure enregistrée automatiquement
-- [ ] Interface pour forcer manuellement un statut (désactive automatisme)
+- [ ] **Corriger statuts candidature** :
+  - [ ] Supprimer "Brouillon" de tous les formulaires
+  - [ ] Remplacer par statuts corrects : "Candidaté et en attente", "En cours d'examen", etc.
+  - [ ] Vérifier les statuts disponibles dans le backend
+- [ ] **Ajouter autocomplétion** :
+  - [ ] Créer composant `AutocompleteInput` réutilisable
+  - [ ] Implémenter autocomplétion entreprises (avec API `/api/v1/companies?search=...`)
+  - [ ] Implémenter autocomplétion localisations (récupérer depuis candidatures existantes)
+  - [ ] Implémenter autocomplétion intitulés de poste (récupérer depuis candidatures existantes)
+- [ ] **Gérer création automatique** :
+  - [ ] Entreprise : Si nom entreprise n'existe pas, créer automatiquement
+  - [ ] Contact : Si entreprise n'existe pas, créer automatiquement
+- [ ] **Date/heure candidature** :
+  - [ ] Champ date uniquement (type="date")
+  - [ ] Valeur par défaut = aujourd'hui
+  - [ ] Heure enregistrée automatiquement côté backend
+- [ ] **Interface forcer statut** :
+  - [ ] Ajouter toggle "Forcer le statut manuellement"
+  - [ ] Si activé, désactive automatisme pour cette candidature
+  - [ ] Envoyer `isManualStatus: true` au backend
 
 **📄 Fichiers à Modifier** :
-- `frontend/src/app/(admin)/backoffice/data/applications/page.tsx`
+- `frontend/src/app/(admin)/backoffice/data/applications/page.tsx` - ✅ PRIORITÉ 1
 - `frontend/src/app/(admin)/backoffice/data/companies/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/followups/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/interviews/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/contacts/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/calls/page.tsx`
 - `frontend/src/app/(admin)/backoffice/data/events/page.tsx`
+- `frontend/src/components/ui/autocomplete-input.tsx` - Créer composant réutilisable
 
-**Statut** : 🔴 **À IMPLÉMENTER**
+**Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
 ---
 
 ### 🔄 Règles de Gestion des Données
 
 **Date** : 2025-01-27  
-**Demandé par** : Utilisateur
+**Demandé par** : Utilisateur  
+**Priorité** : 🔴 **HAUTE** - Fondamental pour la cohérence des données
 
-**Description** : Implémenter les règles de gestion des données suivantes :
+**Description** : Implémenter les règles de gestion des données suivantes **OBLIGATOIRES** :
 
-1. **Candidature** :
-   - Doit avoir une entreprise (obligatoire)
-   - Si entreprise n'existe pas, la créer automatiquement à partir du nom
+**1. Candidature** :
+- ✅ **DOIT avoir une entreprise** (obligatoire, champ requis)
+- ✅ **Si entreprise n'existe pas**, la créer automatiquement à partir du nom saisi
+- ✅ L'utilisateur saisit juste le nom, le système vérifie l'existence et crée si nécessaire
 
-2. **Contact** :
-   - N'est pas forcément lié à une candidature
-   - Est forcément lié à une entreprise (obligatoire)
-   - Si entreprise n'existe pas, la créer automatiquement
+**2. Contact** :
+- ✅ **N'est PAS forcément lié à une candidature** (relation optionnelle)
+- ✅ **EST forcément lié à une entreprise** (obligatoire, champ requis)
+- ✅ **Si entreprise n'existe pas**, la créer automatiquement à partir du nom saisi
 
-3. **Relance** :
-   - Ne peut pas avoir lieu sans candidature attachée (obligatoire)
-   - Est créée uniquement à partir d'une candidature
-   - Récupère automatiquement l'entreprise de la candidature
+**3. Relance** :
+- ✅ **Ne peut PAS avoir lieu sans candidature attachée** (obligatoire)
+- ✅ **Est créée UNIQUEMENT à partir d'une candidature** (pas de création standalone)
+- ✅ **Récupère automatiquement l'entreprise** de la candidature associée
+- ✅ Interface : Bouton "Créer une relance" depuis la page de détail d'une candidature
 
-4. **Entretien** :
-   - Ne peut pas avoir lieu sans candidature attachée (obligatoire)
-   - Est créé uniquement à partir d'une candidature
-   - Récupère automatiquement l'entreprise de la candidature
+**4. Entretien** :
+- ✅ **Ne peut PAS avoir lieu sans candidature attachée** (obligatoire)
+- ✅ **Est créé UNIQUEMENT à partir d'une candidature** (pas de création standalone)
+- ✅ **Récupère automatiquement l'entreprise** de la candidature associée
+- ✅ Interface : Bouton "Créer un entretien" depuis la page de détail d'une candidature
 
-5. **Appel** :
-   - Peut être passé à un contact OU juste à l'entreprise OU dans le cadre d'une candidature
-   - Peut être de type "candidature spontanée" pour proposer sa candidature soi-même
+**5. Appel** :
+- ✅ **Peut être passé à** :
+  - Un contact (optionnel)
+  - OU juste à l'entreprise (optionnel)
+  - OU dans le cadre d'une candidature (optionnel)
+- ✅ **Peut être de type "candidature spontanée"** pour proposer sa candidature soi-même
+- ✅ Au moins un de ces champs doit être rempli (contact OU entreprise OU candidature)
 
-**Contexte** : Ces règles doivent être respectées dans le backend et le frontend.
+**Contexte** : Ces règles doivent être **strictement respectées** dans le backend et le frontend pour garantir la cohérence des données.
 
-**💡 Avis Technique** : *À compléter*
+**💡 Avis Technique** :
+
+**Fonction Utilitaire Création Auto Entreprise** :
+```javascript
+// backend/*-service/src/utils/company.utils.js
+async function getOrCreateCompany(companyName, userId) {
+  // 1. Chercher entreprise existante (insensible à la casse)
+  let company = await prisma.company.findFirst({
+    where: {
+      name: { equals: companyName, mode: 'insensitive' },
+      userId
+    }
+  });
+  
+  // 2. Si n'existe pas, créer
+  if (!company) {
+    company = await prisma.company.create({
+      data: {
+        name: companyName,
+        userId
+      }
+    });
+  }
+  
+  return company;
+}
+```
+
+**Validations Backend** :
+- Valider que `companyId` est présent pour Application et Contact
+- Valider que `applicationId` est présent pour FollowUp et Interview
+- Valider qu'au moins un champ (contactId, companyId, applicationId) est présent pour Call
 
 **📝 Actions à Effectuer** :
-- [ ] Valider règles dans backend (controllers)
-- [ ] Créer fonctions utilitaires pour création automatique d'entreprise
-- [ ] Mettre à jour formulaires frontend pour respecter les règles
-- [ ] Ajouter validations côté frontend et backend
+- [ ] **Créer fonction utilitaire** `getOrCreateCompany()` dans `company.utils.js`
+- [ ] **Valider règles dans backend** :
+  - [ ] `application.controller.js` : Vérifier entreprise obligatoire, créer si n'existe pas
+  - [ ] `contact.controller.js` : Vérifier entreprise obligatoire, créer si n'existe pas
+  - [ ] `followup.controller.js` : Vérifier candidature obligatoire, récupérer entreprise auto
+  - [ ] `interview.controller.js` : Vérifier candidature obligatoire, récupérer entreprise auto
+  - [ ] `call.controller.js` : Vérifier qu'au moins un champ (contact/company/application) est présent
+- [ ] **Mettre à jour formulaires frontend** :
+  - [ ] Candidature : Champ entreprise avec autocomplétion + création auto
+  - [ ] Contact : Champ entreprise avec autocomplétion + création auto
+  - [ ] Relance : Création uniquement depuis page candidature
+  - [ ] Entretien : Création uniquement depuis page candidature
+  - [ ] Appel : Champs optionnels avec validation qu'au moins un est rempli
+- [ ] **Ajouter validations côté frontend** :
+  - [ ] Messages d'erreur clairs si règles non respectées
+  - [ ] Désactiver bouton création si règles non respectées
 
 **📄 Fichiers à Modifier** :
-- `backend/*-service/src/controllers/*.controller.js` - Valider règles
-- `backend/*-service/src/utils/company.utils.js` - Fonction création auto entreprise
-- `frontend/src/app/(admin)/backoffice/data/**/page.tsx` - Mettre à jour formulaires
+- `backend/*-service/src/utils/company.utils.js` - ✅ Créer fonction `getOrCreateCompany()`
+- `backend/application-service/src/controllers/application.controller.js` - Valider règles
+- `backend/contact-service/src/controllers/contact.controller.js` - Valider règles
+- `backend/followup-service/src/controllers/followup.controller.js` - Valider règles
+- `backend/interview-service/src/controllers/interview.controller.js` - Valider règles
+- `backend/call-service/src/controllers/call.controller.js` - Valider règles
+- `frontend/src/app/(admin)/backoffice/data/**/page.tsx` - Mettre à jour tous les formulaires
 
-**Statut** : 🔴 **À IMPLÉMENTER**
+**Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ HAUTE**
 
 ---
 
@@ -359,25 +510,61 @@
 ### 🧪 Tests Automatisés avec Playwright
 
 **Date** : 2025-01-27  
-**Demandé par** : Utilisateur
+**Demandé par** : Utilisateur  
+**Priorité** : 🟢 **BASSE** - Après implémentation des fonctionnalités
 
 **Description** : Créer des tests automatisés avec Playwright pour tester les scénarios dans l'interface mobile du projet.
 
-**Contexte** : Tester automatiquement les fonctionnalités pour s'assurer que tout fonctionne correctement.
+**Contexte** : 
+- Tester automatiquement les fonctionnalités pour s'assurer que tout fonctionne correctement
+- **PRIORITÉ** : D'abord implémenter les fonctionnalités, ensuite tester
+- Tests à faire **APRÈS** la mise à jour des formulaires et règles de gestion
 
-**💡 Avis Technique** : *À compléter*
+**💡 Avis Technique** :
+
+**Scénarios de Test à Implémenter** :
+1. **Création de données** :
+   - Créer une candidature avec entreprise existante
+   - Créer une candidature avec entreprise nouvelle (création auto)
+   - Créer un contact avec entreprise
+   - Créer une relance depuis une candidature
+   - Créer un entretien depuis une candidature
+   - Créer un appel (différents types)
+2. **Interface mobile** :
+   - Navigation dans l'interface mobile
+   - Création de données depuis mobile
+   - Affichage du calendrier
+   - Gestion des statuts
 
 **📝 Actions à Effectuer** :
-- [ ] Installer Playwright
-- [ ] Créer tests pour scénarios de création de données
-- [ ] Créer tests pour interface mobile
-- [ ] Intégrer dans CI/CD
+- [ ] **Installer Playwright** :
+  - [ ] `npm install -D @playwright/test`
+  - [ ] `npx playwright install`
+- [ ] **Créer structure de tests** :
+  - [ ] `tests/e2e/mobile/` - Tests interface mobile
+  - [ ] `tests/e2e/data-creation/` - Tests création de données
+- [ ] **Créer tests pour scénarios de création de données** :
+  - [ ] Test création candidature
+  - [ ] Test création entreprise auto
+  - [ ] Test création relance depuis candidature
+  - [ ] Test création entretien depuis candidature
+  - [ ] Test création appel
+- [ ] **Créer tests pour interface mobile** :
+  - [ ] Test navigation
+  - [ ] Test création données
+  - [ ] Test calendrier
+- [ ] **Intégrer dans CI/CD** :
+  - [ ] Ajouter étape "Tests E2E" dans `.github/workflows/ci-cd.yml`
+  - [ ] Exécuter tests sur chaque PR
 
 **📄 Fichiers à Modifier** :
-- `tests/e2e/**/*.spec.ts` - Tests Playwright
-- `.github/workflows/ci-cd.yml` - Intégrer tests
+- `package.json` - Ajouter dépendances Playwright
+- `tests/e2e/mobile/**/*.spec.ts` - Tests interface mobile
+- `tests/e2e/data-creation/**/*.spec.ts` - Tests création de données
+- `.github/workflows/ci-cd.yml` - Intégrer tests Playwright
+- `playwright.config.ts` - Configuration Playwright
 
-**Statut** : 🔴 **À IMPLÉMENTER**
+**Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ BASSE** (après implémentation fonctionnalités)
 
 ---
 
@@ -410,25 +597,49 @@
 ### 🎯 Analyse de Potentialité de Candidature
 
 **Date** : 2025-01-27  
-**Demandé par** : Utilisateur
+**Demandé par** : Utilisateur  
+**Priorité** : 🟢 **TRÈS BASSE** - Fonctionnalité avancée pour plus tard
 
-**Description** : Utiliser le profil utilisateur (expériences, compétences) pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil.
+**Description** : Utiliser le profil utilisateur (expériences, compétences, éducation, langues) pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil dans la base de données.
 
-**Contexte** : Aider l'utilisateur à évaluer ses chances de réussite pour une candidature donnée.
+**Contexte** : 
+- Aider l'utilisateur à évaluer ses chances de réussite pour une candidature donnée
+- Comparer le profil de l'utilisateur avec les profils de candidats qui ont réussi leurs candidatures
+- Calculer un score de potentialité basé sur les similitudes de profil
 
-**💡 Avis Technique** : *À compléter - Fonctionnalité avancée pour plus tard*
+**💡 Avis Technique** :
+
+**Algorithme de Matching** :
+1. Récupérer le profil utilisateur (expériences, compétences, éducation, langues)
+2. Trouver toutes les candidatures "acceptées" dans la base de données
+3. Pour chaque candidature acceptée, récupérer le profil du candidat
+4. Comparer les profils (expériences similaires, compétences communes, etc.)
+5. Calculer un score de matching (0-100%)
+6. Afficher le score et les raisons (ex: "80% de chances - Profil similaire à 5 candidatures acceptées")
+
+**Fonctionnalité Avancée** :
+- Nécessite une base de données avec suffisamment de données
+- Nécessite que les utilisateurs aient complété leur profil
+- Peut être implémentée plus tard une fois le système de base fonctionnel
 
 **📝 Actions à Effectuer** :
-- [ ] Créer service d'analyse de matching
-- [ ] Comparer profil utilisateur avec profils de candidatures réussies
-- [ ] Calculer score de potentialité
-- [ ] Afficher analyse dans interface candidature
+- [ ] **Créer service d'analyse de matching** `matching.service.js`
+- [ ] **Implémenter algorithme de comparaison de profils** :
+  - [ ] Comparer expériences (secteur, poste, durée)
+  - [ ] Comparer compétences (liste de compétences communes)
+  - [ ] Comparer éducation (niveau, domaine)
+  - [ ] Comparer langues
+- [ ] **Calculer score de potentialité** (0-100%)
+- [ ] **Afficher analyse dans interface candidature** :
+  - [ ] Section "Analyse de potentialité" dans page détail candidature
+  - [ ] Afficher score et explications
+  - [ ] Afficher nombre de candidatures similaires acceptées
 
 **📄 Fichiers à Modifier** :
-- `backend/*-service/src/services/matching.service.js` - Service d'analyse
-- `frontend/src/app/(admin)/backoffice/data/applications/[id]/page.tsx` - Afficher analyse
+- `backend/*-service/src/services/matching.service.js` - Service d'analyse de matching
+- `frontend/src/app/(admin)/backoffice/data/applications/[id]/page.tsx` - Afficher analyse de potentialité
 
-**Statut** : 🔴 **À IMPLÉMENTER** (Fonctionnalité avancée - Priorité basse)
+**Statut** : 🔴 **À IMPLÉMENTER** - **PRIORITÉ TRÈS BASSE** (fonctionnalité avancée pour plus tard)
 
 ---
 
