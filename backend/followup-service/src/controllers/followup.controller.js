@@ -31,24 +31,37 @@ const getFollowups = async (req, res, next) => {
       ...(status && { status: sanitizeStatus(status) })
     };
 
-    const [followups, total] = await Promise.all([
-      prisma.followUp.findMany({
-        where,
-        include: {
-          application: {
-            include: {
-              company: true
-            }
+    let followups, total;
+    try {
+      [followups, total] = await Promise.all([
+        prisma.followUp.findMany({
+          where,
+          include: {
+            application: {
+              include: {
+                company: true
+              }
+            },
+            company: true,
+            contact: true
           },
-          company: true,
-          contact: true
-        },
-        orderBy: { followUpDate: 'desc' },
-        skip,
-        take: limitNum
-      }),
-      prisma.followUp.count({ where })
-    ]);
+          orderBy: { followUpDate: 'desc' },
+          skip,
+          take: limitNum
+        }),
+        prisma.followUp.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table FollowUp n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table FollowUp non trouvée, retour de données vides (mode développement)');
+        followups = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération relances:', error);
+        return next(error);
+      }
+    }
 
     res.json({
       success: true,
@@ -58,7 +71,10 @@ const getFollowups = async (req, res, next) => {
         limit: limitNum,
         total,
         pages: Math.ceil(total / limitNum)
-      }
+      },
+      ...(total === 0 && followups.length === 0 ? {
+        warning: 'Table FollowUp non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération relances:', error);

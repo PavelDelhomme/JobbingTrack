@@ -96,6 +96,42 @@
 
 ### 🔴 URGENT - Problèmes Critiques
 
+#### 0. Erreurs Prisma P2021 - Tables Manquantes (Company, Application, Contact, etc.)
+
+**Statut** : 🟡 **EN COURS** - Fallbacks ajoutés, mais tables doivent être créées avec `make db-push-all`
+
+**Problème** : Les services retournent des erreurs `P2021` (table does not exist) pour :
+- `Company` (company-service)
+- `Application` (application-service)
+- `Contact` (contact-service)
+- `FollowUp` (followup-service)
+- `Call` (call-service)
+- `Interview` (interview-service)
+- `Event` (event-service)
+
+**Solution Implémentée** :
+- ✅ Fallbacks P2021 ajoutés dans tous les contrôleurs
+- ✅ Retour de données vides en mode développement
+- ✅ Messages d'avertissement avec instruction `make db-push-all`
+- ✅ Fonction utilitaire `prisma-fallback.js` créée dans `backend/shared/`
+
+**Fichiers Modifiés** :
+- `backend/company-service/src/controllers/company.controller.js` ✅
+- `backend/application-service/src/controllers/application.controller.js` ✅
+- `backend/contact-service/src/controllers/contact.controller.js` ✅
+- `backend/followup-service/src/controllers/followup.controller.js` ✅
+- `backend/call-service/src/controllers/call.controller.js` ✅
+- `backend/interview-service/src/controllers/interview.controller.js` ✅
+- `backend/event-service/src/controllers/event.controller.js` ✅
+- `backend/shared/prisma-fallback.js` ✅ (nouveau)
+
+**Action Requise** :
+1. Exécuter `make db-push-all` pour créer toutes les tables
+2. Redémarrer tous les services : `make restart-all` ou `make up-full`
+3. Vérifier que les erreurs P2021 disparaissent
+
+**Note** : Les fallbacks permettent au frontend de continuer à fonctionner même si les tables n'existent pas, mais les données seront vides jusqu'à ce que les tables soient créées.
+
 ---
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums

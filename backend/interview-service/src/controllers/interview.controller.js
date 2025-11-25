@@ -73,23 +73,36 @@ const getInterviews = async (req, res, next) => {
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    const [interviews, total] = await Promise.all([
-      prisma.interview.findMany({
-        where: { userId },
-        include: {
-          application: {
-            include: {
-              company: true
-            }
+    let interviews, total;
+    try {
+      [interviews, total] = await Promise.all([
+        prisma.interview.findMany({
+          where: { userId },
+          include: {
+            application: {
+              include: {
+                company: true
+              }
+            },
+            company: true
           },
-          company: true
-        },
-        orderBy: { interviewDate: 'desc' },
-        skip,
-        take: limitNum
-      }),
-      prisma.interview.count({ where: { userId } })
-    ]);
+          orderBy: { interviewDate: 'desc' },
+          skip,
+          take: limitNum
+        }),
+        prisma.interview.count({ where: { userId } })
+      ]);
+    } catch (error) {
+      // Fallback si table Interview n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Interview non trouvée, retour de données vides (mode développement)');
+        interviews = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération entretiens:', error);
+        return next(error);
+      }
+    }
 
     res.json({
       success: true,
@@ -99,7 +112,10 @@ const getInterviews = async (req, res, next) => {
         limit: limitNum,
         total,
         pages: Math.ceil(total / limitNum)
-      }
+      },
+      ...(total === 0 && interviews.length === 0 ? {
+        warning: 'Table Interview non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération entretiens:', error);

@@ -31,24 +31,37 @@ const getCalls = async (req, res, next) => {
       ...(status && { status: sanitizeStatus(status) })
     };
 
-    const [calls, total] = await Promise.all([
-      prisma.call.findMany({
-        where,
-        include: {
-          application: {
-            include: {
-              company: true
-            }
+    let calls, total;
+    try {
+      [calls, total] = await Promise.all([
+        prisma.call.findMany({
+          where,
+          include: {
+            application: {
+              include: {
+                company: true
+              }
+            },
+            company: true,
+            contact: true
           },
-          company: true,
-          contact: true
-        },
-        orderBy: { callDate: 'desc' },
-        skip,
-        take: limitNum
-      }),
-      prisma.call.count({ where })
-    ]);
+          orderBy: { callDate: 'desc' },
+          skip,
+          take: limitNum
+        }),
+        prisma.call.count({ where })
+      ]);
+    } catch (error) {
+      // Fallback si table Call n'existe pas (P2021) - Mode développement
+      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Call non trouvée, retour de données vides (mode développement)');
+        calls = [];
+        total = 0;
+      } else {
+        logger.error('Erreur récupération appels:', error);
+        return next(error);
+      }
+    }
 
     res.json({
       success: true,
@@ -58,7 +71,10 @@ const getCalls = async (req, res, next) => {
         limit: limitNum,
         total,
         pages: Math.ceil(total / limitNum)
-      }
+      },
+      ...(total === 0 && calls.length === 0 ? {
+        warning: 'Table Call non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+      } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération appels:', error);
