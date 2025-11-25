@@ -772,7 +772,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
 			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
 			if [ -n "$$ports" ]; then \
-				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://'); \
 				if [ -n "$$port_main" ]; then \
 					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
 				else \
@@ -795,7 +795,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
 			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
 			if [ -n "$$ports" ]; then \
-				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://' | cut -d'>' -f1); \
+				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://'); \
 				if [ -n "$$port_main" ]; then \
 					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
 				else \
