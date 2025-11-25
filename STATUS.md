@@ -132,6 +132,33 @@
 
 **Note** : Les fallbacks permettent au frontend de continuer à fonctionner même si les tables n'existent pas, mais les données seront vides jusqu'à ce que les tables soient créées.
 
+#### 0.1. Interface User Journey - Mise à Jour
+
+**Statut** : 🟡 **EN COURS** - Scénario de gestion données de test ajouté
+
+**Modifications** :
+- ✅ Nouveau scénario `test_data_management` ajouté pour tester le système `isTestData`
+- ✅ Nouvelle étape `cleanup_test_data` pour nettoyer uniquement les données de test
+- ✅ Scénarios existants conservés et fonctionnels
+
+**Fichiers Modifiés** :
+- `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` ✅
+
+**Scénarios Disponibles** :
+- Parcours Complet (14 étapes)
+- Parcours Rapide (3 étapes)
+- Chercheur d'Emploi Actif (8 étapes)
+- Nouvel Utilisateur (5 étapes)
+- Test Mobile Complet (7 étapes)
+- **Gestion Données de Test** (7 étapes) ⭐ NOUVEAU
+- Email Verification Workflow (7 étapes)
+- + 10 autres scénarios granulaires
+
+**Actions à Faire** :
+- [ ] Tester le nouveau scénario `test_data_management`
+- [ ] Vérifier que l'étape `cleanup_test_data` fonctionne correctement
+- [ ] Documenter les nouveaux scénarios dans la documentation
+
 ---
 
 #### 0.1. Tests Relations Many-to-Many et Validation Enums
