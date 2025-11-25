@@ -370,6 +370,87 @@
 
 ---
 
+### 📅 Calendrier Utilisateur
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : L'utilisateur doit avoir un calendrier avec tous ses événements (candidatures, relances, entretiens, appels).
+
+**Contexte** : Visualiser tous les événements dans un calendrier pour un suivi efficace.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Créer page calendrier `/backoffice/calendar`
+- [ ] Afficher tous les événements liés à l'utilisateur
+- [ ] Filtrer par type d'événement
+- [ ] Vue mensuelle, hebdomadaire, quotidienne
+- [ ] Intégrer avec création automatique d'événements
+
+**📄 Fichiers à Modifier** :
+- `frontend/src/app/(admin)/backoffice/calendar/page.tsx` - Interface calendrier
+- `frontend/src/components/features/Calendar.tsx` - Composant calendrier
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
+### 🎯 Analyse de Potentialité de Candidature
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : Utiliser le profil utilisateur (expériences, compétences) pour analyser la potentialité de réussite d'une candidature en comparant avec d'autres candidatures ayant le même profil.
+
+**Contexte** : Aider l'utilisateur à évaluer ses chances de réussite pour une candidature donnée.
+
+**💡 Avis Technique** : *À compléter - Fonctionnalité avancée pour plus tard*
+
+**📝 Actions à Effectuer** :
+- [ ] Créer service d'analyse de matching
+- [ ] Comparer profil utilisateur avec profils de candidatures réussies
+- [ ] Calculer score de potentialité
+- [ ] Afficher analyse dans interface candidature
+
+**📄 Fichiers à Modifier** :
+- `backend/*-service/src/services/matching.service.js` - Service d'analyse
+- `frontend/src/app/(admin)/backoffice/data/applications/[id]/page.tsx` - Afficher analyse
+
+**Statut** : 🔴 **À IMPLÉMENTER** (Fonctionnalité avancée - Priorité basse)
+
+---
+
+### ⚙️ Gestion Automatisme et Statut de Recherche
+
+**Date** : 2025-01-27  
+**Demandé par** : Utilisateur
+
+**Description** : 
+- Si candidature marquée comme "rejetée" ou "acceptée", stopper les automatismes pour cette candidature
+- Si utilisateur indique qu'il n'est plus en recherche active, désactiver une partie des automatismes (relances, etc.)
+
+**Contexte** : Permettre à l'utilisateur de contrôler les automatismes selon son état de recherche.
+
+**💡 Avis Technique** : *À compléter*
+
+**📝 Actions à Effectuer** :
+- [ ] Ajouter champ `isRejected` et `isAccepted` dans Application
+- [ ] Ajouter champ `isActiveSearch` dans UserSettings
+- [ ] Modifier service d'automatisation pour vérifier ces champs
+- [ ] Désactiver automatismes si `isRejected`, `isAccepted`, ou `!isActiveSearch`
+- [ ] Interface pour marquer candidature comme rejetée/acceptée
+- [ ] Interface pour indiquer recherche active/inactive
+
+**📄 Fichiers à Modifier** :
+- `backend/prisma/schema.prisma` - Ajouter champs
+- `backend/*-service/src/services/automation.service.js` - Vérifier champs
+- `frontend/src/app/(admin)/backoffice/data/applications/page.tsx` - Interface statuts
+
+**Statut** : 🔴 **À IMPLÉMENTER**
+
+---
+
 ### 💡 Propositions de Travail - Relations et Données Entrecroisées
 
 *Voici des propositions de travail sur les relations many-to-many et les données entrecroisées que vous pourriez vouloir implémenter :*
