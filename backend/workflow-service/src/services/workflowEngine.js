@@ -7,12 +7,31 @@ class WorkflowEngine {
   
   // Évalue les règles pour une candidature
   async evaluateApplicationRules(applicationId, event) {
-    const rules = await prisma.workflowRule.findMany({
-      where: {
-        triggerEvent: event,
-        isActive: true
+    // Vérifier si la table existe
+    if (!prisma.workflowRule || typeof prisma.workflowRule.findMany !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Table WorkflowRule non disponible, retour de règles vides (mode développement)');
+        return [];
       }
-    });
+      throw new Error('Table WorkflowRule non disponible');
+    }
+
+    let rules;
+    try {
+      rules = await prisma.workflowRule.findMany({
+        where: {
+          triggerEvent: event,
+          isActive: true
+        }
+      });
+    } catch (error) {
+      // Fallback si table WorkflowRule n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        console.warn('Table WorkflowRule non trouvée, retour de règles vides (mode développement)');
+        return [];
+      }
+      throw error;
+    }
 
     for (const rule of rules) {
       await this.processRule(rule, applicationId);
@@ -66,9 +85,28 @@ class WorkflowEngine {
 
   // Exécute les actions d'une règle
   async executeActions(execution) {
-    const rule = await prisma.workflowRule.findUnique({
-      where: { id: execution.ruleId }
-    });
+    // Vérifier si la table existe
+    if (!prisma.workflowRule || typeof prisma.workflowRule.findUnique !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Table WorkflowRule non disponible, exécution ignorée (mode développement)');
+        return;
+      }
+      throw new Error('Table WorkflowRule non disponible');
+    }
+
+    let rule;
+    try {
+      rule = await prisma.workflowRule.findUnique({
+        where: { id: execution.ruleId }
+      });
+    } catch (error) {
+      // Fallback si table WorkflowRule n'existe pas (P2021) - Mode développement
+      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+        console.warn('Table WorkflowRule non trouvée, exécution ignorée (mode développement)');
+        return;
+      }
+      throw error;
+    }
 
     const actions = rule.actionsJson;
 
@@ -76,13 +114,25 @@ class WorkflowEngine {
       await this.executeAction(action, execution.entityId);
     }
 
-    await prisma.workflowExecution.update({
-      where: { id: execution.id },
-      data: {
-        status: 'COMPLETED',
-        executedAt: new Date()
+    // Vérifier si la table existe avant de mettre à jour
+    if (prisma.workflowExecution && typeof prisma.workflowExecution.update === 'function') {
+      try {
+        await prisma.workflowExecution.update({
+          where: { id: execution.id },
+          data: {
+            status: 'COMPLETED',
+            executedAt: new Date()
+          }
+        });
+      } catch (error) {
+        // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
+        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
+          console.warn('Table WorkflowExecution non trouvée, mise à jour ignorée (mode développement)');
+        } else {
+          throw error;
+        }
       }
-    });
+    }
   }
 
   // Exécute une action spécifique
