@@ -489,6 +489,7 @@ model Event {
   @@index([startDate])
   @@index([applicationId])
   @@index([interviewId])
+  @@index([isTestData])
 }
 
 // ============================================
