@@ -77,8 +77,17 @@ const getCompanies = async (req, res, next) => {
       ]);
     } catch (error) {
       // Fallback si table Company n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+      const isTableError = error.code === 'P2021' || 
+                          error.code === 'P2022' ||
+                          (error.message && (
+                            error.message.includes('does not exist') || 
+                            error.message.includes('Table') || 
+                            error.message.includes('relation') && error.message.includes('does not exist')
+                          ));
+      
+      if (isTableError && process.env.NODE_ENV !== 'production') {
         logger.warn('Table Company non trouvée, retour de données vides (mode développement)');
+        logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
         companies = [];
         total = 0;
       } else {
@@ -102,8 +111,17 @@ const getCompanies = async (req, res, next) => {
     });
   } catch (error) {
     // Si l'erreur n'a pas été gérée par le try-catch interne
-    if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+    const isTableError = error.code === 'P2021' || 
+                        error.code === 'P2022' ||
+                        (error.message && (
+                          error.message.includes('does not exist') || 
+                          error.message.includes('Table') || 
+                          error.message.includes('relation') && error.message.includes('does not exist')
+                        ));
+    
+    if (isTableError && process.env.NODE_ENV !== 'production') {
       logger.warn('Table Company non trouvée, retour de données vides (mode développement)');
+      logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
       return res.json({
         success: true,
         companies: [],

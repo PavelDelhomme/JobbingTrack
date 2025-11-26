@@ -11,8 +11,8 @@ RUN npm install -g prisma
 # Copier les fichiers de dépendances
 COPY package*.json ./
 
-# Installer les dépendances
-RUN npm install --omit=dev
+# Installer les dépendances (inclure dev pour nodemon en développement)
+RUN npm install
 
 # Copier le schéma Prisma
 COPY prisma ./prisma/

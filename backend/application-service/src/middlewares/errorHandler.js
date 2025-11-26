@@ -27,6 +27,22 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Erreur table non trouvée Prisma (P2021) - Mode développement
+  if (err.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+    logger.warn('Table non trouvée (P2021), retour de données vides (mode développement)');
+    return res.status(200).json({
+      success: true,
+      applications: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        pages: 0
+      },
+      warning: 'Table non trouvée. Exécutez "make db-push-all" pour créer les tables.'
+    });
+  }
+
   // Erreur de validation
   if (err.name === 'ValidationError') {
     return res.status(400).json({

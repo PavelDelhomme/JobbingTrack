@@ -195,8 +195,17 @@ const getApplications = async (req, res, next) => {
       ]);
     } catch (error) {
       // Fallback si table Application n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
+      const isTableError = error.code === 'P2021' || 
+                          error.code === 'P2022' ||
+                          (error.message && (
+                            error.message.includes('does not exist') || 
+                            error.message.includes('Table') || 
+                            error.message.includes('relation') && error.message.includes('does not exist')
+                          ));
+      
+      if (isTableError && process.env.NODE_ENV !== 'production') {
         logger.warn('Table Application non trouvée, retour de données vides (mode développement)');
+        logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
         applications = [];
         total = 0;
         
