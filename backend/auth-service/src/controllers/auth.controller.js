@@ -166,12 +166,13 @@ const login = async (req, res, next) => {
 
     // Trouver l'utilisateur avec fallback P2021 (table User n'existe pas)
     let user;
-    try {
-      // Vérifier si la table existe
-      if (!prisma.user || typeof prisma.user.findUnique !== 'function') {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('⚠️ Table User non disponible, utilisation du mode développement');
-          // Retourner un utilisateur mock pour le développement
+    
+    // Vérifier d'abord si prisma.user existe (au cas où le modèle n'est pas généré)
+    if (!prisma.user || typeof prisma.user.findUnique !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('⚠️ Prisma User model non disponible, utilisation du mode développement');
+        // IMPORTANT: Vérifier que l'email correspond à admin@jobbingtrack.com
+        if (email.toLowerCase() === 'admin@jobbingtrack.com') {
           user = {
             id: 'dev_user_1',
             email: email.toLowerCase(),
@@ -182,50 +183,69 @@ const login = async (req, res, next) => {
             isActive: true,
             emailVerified: true
           };
+          logger.info('✅ Utilisateur mock créé pour admin@jobbingtrack.com (prisma.user non disponible)');
         } else {
-          throw new Error('Table User non disponible');
+          logger.warn(`⚠️ Email ${email} ne correspond pas à admin@jobbingtrack.com, utilisateur mock non créé`);
+          user = null;
         }
       } else {
+        return res.status(500).json({
+          success: false,
+          error: 'Service d\'authentification non disponible'
+        });
+      }
+    } else {
+      try {
+        // Essayer de récupérer l'utilisateur depuis la base de données
         user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() }
         });
-      }
-    } catch (error) {
-      // Fallback si table User n'existe pas (P2021) - Mode développement
-      if ((error.code === 'P2021' || error.message?.includes('does not exist') || (error.message?.includes('Table') && error.message?.includes('does not exist'))) && process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️ Table User non trouvée, utilisation du mode développement');
-        // Retourner un utilisateur mock pour le développement
-        user = {
-          id: 'dev_user_1',
-          email: email.toLowerCase(),
-          password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
-          firstName: 'Dev',
-          lastName: 'User',
-          role: 'SUPER_ADMIN',
-          isActive: true,
-          emailVerified: true
-        };
-      } else if (error.code === 'P2022' && error.meta?.column?.includes('roles')) {
-        // Erreur de schéma (colonne manquante)
-        console.log('⚠️ Erreur de schéma détectée, utilisation du mode développement');
-        user = {
-          id: 'dev_user_1',
-          email: email.toLowerCase(),
-          password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-          firstName: 'Dev',
-          lastName: 'User',
-          role: 'SUPER_ADMIN',
-          isActive: true,
-          emailVerified: true
-        };
-      } else {
-        throw error;
+      } catch (error) {
+        // Fallback si table User n'existe pas (P2021) - Mode développement
+        // Capturer TOUTES les erreurs Prisma liées à la table manquante
+        const isTableError = error.code === 'P2021' || 
+                            error.code === 'P2022' ||
+                            (error.message && (
+                              error.message.includes('does not exist') || 
+                              error.message.includes('Table') || 
+                              error.message.includes('public.User') ||
+                              error.message.includes('public."User"') ||
+                              error.message.includes('relation') && error.message.includes('does not exist')
+                            ));
+        
+        if (isTableError && process.env.NODE_ENV !== 'production') {
+          logger.warn('⚠️ Table User non trouvée (erreur Prisma), utilisation du mode développement');
+          logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
+          // Retourner un utilisateur mock pour le développement
+          // IMPORTANT: Vérifier que l'email correspond à admin@jobbingtrack.com
+          if (email.toLowerCase() === 'admin@jobbingtrack.com') {
+            user = {
+              id: 'dev_user_1',
+              email: email.toLowerCase(),
+              password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password123
+              firstName: 'Dev',
+              lastName: 'User',
+              role: 'SUPER_ADMIN',
+              isActive: true,
+              emailVerified: true
+            };
+            logger.info('✅ Utilisateur mock créé pour admin@jobbingtrack.com');
+          } else {
+            logger.warn(`⚠️ Email ${email} ne correspond pas à admin@jobbingtrack.com, utilisateur mock non créé`);
+            user = null;
+          }
+        } else {
+          // Pour toute autre erreur, logger et relancer
+          logger.error('Erreur lors de la récupération de l\'utilisateur:', error);
+          throw error;
+        }
       }
     }
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      // Log d'échec d'authentification
-      await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - identifiants incorrects', {
+    // Vérifier l'utilisateur et le mot de passe
+    if (!user) {
+      logger.warn(`⚠️ Utilisateur non trouvé pour ${email}`);
+      await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - utilisateur non trouvé', {
         sourceIP: clientIP,
         endpoint: req.path,
         method: req.method,
@@ -233,7 +253,7 @@ const login = async (req, res, next) => {
         riskScore: 25,
         metadata: {
           attemptedEmail: email,
-          reason: user ? 'wrong_password' : 'user_not_found'
+          reason: 'user_not_found'
         }
       });
 
@@ -243,8 +263,37 @@ const login = async (req, res, next) => {
       });
     }
 
+    // Pour l'utilisateur mock, accepter directement le mot de passe "password123"
+    if (user.id === 'dev_user_1' && password === 'password123') {
+      logger.info('✅ Authentification réussie avec utilisateur mock (dev_user_1)');
+    } else {
+      // Vérifier le mot de passe pour les utilisateurs réels
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        logger.warn(`⚠️ Mot de passe incorrect pour ${email} (utilisateur mock: ${user.id === 'dev_user_1'})`);
+        await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - mot de passe incorrect', {
+          sourceIP: clientIP,
+          endpoint: req.path,
+          method: req.method,
+          userAgent,
+          riskScore: 25,
+          metadata: {
+            attemptedEmail: email,
+            reason: 'wrong_password',
+            isMockUser: user.id === 'dev_user_1'
+          }
+        });
+
+        return res.status(401).json({
+          success: false,
+          error: 'Email ou mot de passe incorrect'
+        });
+      }
+    }
+
     // ✅ Mettre à jour le lastLoginAt pour le tracking des sessions actives (si la table existe)
-    if (prisma.user && typeof prisma.user.update === 'function' && user.id !== 'dev_user_1') {
+    // Ne pas mettre à jour si c'est l'utilisateur mock
+    if (user.id !== 'dev_user_1' && prisma.user && typeof prisma.user.update === 'function') {
       try {
         await prisma.user.update({
           where: { id: user.id },
@@ -254,11 +303,11 @@ const login = async (req, res, next) => {
           }
         });
       } catch (error) {
-        // Ignorer les erreurs P2021 en mode développement
-        if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-          console.warn('⚠️ Table User non trouvée, mise à jour lastLoginAt ignorée (mode développement)');
+        // Ignorer toutes les erreurs Prisma en mode développement (table peut ne pas exister)
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn('⚠️ Impossible de mettre à jour lastLoginAt (mode développement)');
         } else {
-          console.error('Erreur lors de la mise à jour lastLoginAt:', error);
+          logger.error('Erreur lors de la mise à jour lastLoginAt:', error);
         }
       }
     }

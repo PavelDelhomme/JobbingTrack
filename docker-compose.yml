@@ -155,6 +155,11 @@ services:
     container_name: jobbingtrack-auth-service
     ports:
       - "${AUTH_SERVICE_PORT:-8001}:${AUTH_SERVICE_INTERNAL_PORT:-3001}"
+    volumes:
+      # ✅ Monter le code source pour le développement (hot reload)
+      - ./backend/auth-service/src:/app/src
+      - ./backend/auth-service/package.json:/app/package.json:ro
+    command: npm run dev
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -194,6 +199,11 @@ services:
     container_name: jobbingtrack-application-service
     ports:
       - "${APPLICATION_SERVICE_PORT:-8002}:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}"
+    volumes:
+      # ✅ Monter le code source pour le développement (hot reload)
+      - ./backend/application-service/src:/app/src
+      - ./backend/application-service/package.json:/app/package.json:ro
+    command: npm run dev
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -225,6 +235,11 @@ services:
     container_name: jobbingtrack-company-service
     ports:
       - "${COMPANY_SERVICE_PORT:-8003}:${COMPANY_SERVICE_INTERNAL_PORT:-3003}"
+    volumes:
+      # ✅ Monter le code source pour le développement (hot reload)
+      - ./backend/company-service/src:/app/src
+      - ./backend/company-service/package.json:/app/package.json:ro
+    command: npm run dev
     environment:
       - NODE_ENV=development
       - PORT=3003

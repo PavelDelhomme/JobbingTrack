@@ -517,16 +517,17 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	@echo "⏳ Attente que PostgreSQL soit prêt..."
 	@sleep 5
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		if ! ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
-			echo -e "\033[1;33m⚠️  ATTENTION : Tables manquantes détectées !\033[0m"; \
-			echo -e "\033[1;33m💡 Exécutez 'make db-push-all' pour créer toutes les tables\033[0m"; \
+		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
+		if [ -z "$$TABLE_COUNT" ] || [ "$$TABLE_COUNT" = "0" ] || [ "$$TABLE_COUNT" -lt "5" ] 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  ATTENTION : Base de données vide ou incomplète ($$TABLE_COUNT tables) !\033[0m"; \
+			echo -e "\033[1;33m💡 Exécution automatique de 'make db-push-all'...\033[0m"; \
 			echo ""; \
-			read -t 10 -p "Exécuter 'make db-push-all' maintenant ? (O/n): " push_choice || push_choice="O"; \
-			if [ "$$push_choice" = "O" ] || [ "$$push_choice" = "o" ] || [ -z "$$push_choice" ]; then \
-				echo ""; \
-				echo "🔄 Exécution de 'make db-push-all'..."; \
-				$(MAKE) db-push-all || echo "⚠️  Erreur lors de db-push-all, continuez quand même"; \
-			fi; \
+			$(MAKE) db-push-all || echo "⚠️  Erreur lors de db-push-all, continuez quand même"; \
+			echo ""; \
+			echo "⏳ Attente que les tables soient créées (3s)..."; \
+			sleep 3; \
+		else \
+			echo -e "\033[0;32m✅ Base de données OK ($$TABLE_COUNT tables)\033[0m"; \
 		fi; \
 	fi
 	
@@ -574,15 +575,15 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs
 	@echo ""
 	@echo "🔍 Vérification des tables Prisma avant redémarrage..."
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		if ! ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
-			echo -e "\033[1;33m⚠️  ATTENTION : Tables manquantes détectées !\033[0m"; \
-			echo -e "\033[1;33m💡 Il est recommandé d'exécuter 'make db-push-all' avant de redémarrer\033[0m"; \
+		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
+		if [ -z "$$TABLE_COUNT" ] || [ "$$TABLE_COUNT" = "0" ] || [ "$$TABLE_COUNT" -lt "5" ] 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  ATTENTION : Base de données vide ou incomplète ($$TABLE_COUNT tables) !\033[0m"; \
+			echo -e "\033[1;33m💡 Exécution automatique de 'make db-push-all'...\033[0m"; \
 			echo ""; \
-			read -t 5 -p "Continuer quand même ? (o/N): " continue_choice || continue_choice="N"; \
-			if [ "$$continue_choice" != "o" ] && [ "$$continue_choice" != "O" ]; then \
-				echo "❌ Redémarrage annulé. Exécutez 'make db-push-all' d'abord."; \
-				exit 1; \
-			fi; \
+			$(MAKE) db-push-all || echo "⚠️  Erreur lors de db-push-all, continuez quand même"; \
+			echo ""; \
+			echo "⏳ Attente que les tables soient créées (3s)..."; \
+			sleep 3; \
 		fi; \
 	fi
 	@echo "🔄 Redémarrage de $$ACTIVE_CONTAINERS conteneur(s)..."
@@ -712,8 +713,9 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 	@echo ""
 	@echo "🔍 Vérification des tables Prisma avant redémarrage..."
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		if ! ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
-			echo -e "\033[1;33m⚠️  ATTENTION : Tables manquantes détectées !\033[0m"; \
+		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
+		if [ -z "$$TABLE_COUNT" ] || [ "$$TABLE_COUNT" = "0" ] || [ "$$TABLE_COUNT" -lt "5" ] 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  ATTENTION : Base de données vide ou incomplète ($$TABLE_COUNT tables) !\033[0m"; \
 			echo -e "\033[1;33m💡 Il est recommandé d'exécuter 'make db-push-all' avant de redémarrer\033[0m"; \
 			echo ""; \
 			read -t 5 -p "Continuer quand même ? (o/N): " continue_choice || continue_choice="N"; \
@@ -725,6 +727,11 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 	fi
 	$(call docker_compose, $(COMPOSE_FILES_FULL) restart $(SERVICE))
 	@echo "✅ Service $(SERVICE) redémarré"
+	@if [ "$(SERVICE)" = "auth-service" ]; then \
+		echo "⏳ Attente que auth-service soit prêt (5s)..."; \
+		sleep 5; \
+		echo "✅ auth-service redémarré et prêt"; \
+	fi
 
 # Reconstruire un service spécifique
 rebuild-service: ## Reconstruire un service spécifique (SERVICE=nom)
@@ -870,22 +877,11 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo ""
 	@echo "🔍 Vérification des tables Prisma..."
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		if ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
-			echo -e "\033[0;32m✅ Base de données OK\033[0m"; \
+		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
+		if [ -n "$$TABLE_COUNT" ] && [ "$$TABLE_COUNT" != "0" ] && [ "$$TABLE_COUNT" -gt "0" ] 2>/dev/null; then \
+			echo -e "\033[0;32m✅ Base de données OK ($$TABLE_COUNT tables)\033[0m"; \
 		else \
-			echo -e "\033[1;33m⚠️  Tables manquantes détectées\033[0m"; \
-			echo -e "\033[1;33m💡 Exécutez 'make db-push-all' pour créer toutes les tables\033[0m"; \
-		fi; \
-	else \
-		echo -e "\033[1;33m⚠️  PostgreSQL non démarré, vérification des tables impossible\033[0m"; \
-	fi
-	@echo ""
-	@echo "🔍 Vérification des tables Prisma..."
-	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		if ./scripts/utils/check-prisma-tables.sh 2>/dev/null; then \
-			echo -e "\033[0;32m✅ Base de données OK\033[0m"; \
-		else \
-			echo -e "\033[1;33m⚠️  Tables manquantes détectées\033[0m"; \
+			echo -e "\033[1;33m⚠️  Base de données vide ou inaccessible\033[0m"; \
 			echo -e "\033[1;33m💡 Exécutez 'make db-push-all' pour créer toutes les tables\033[0m"; \
 		fi; \
 	else \

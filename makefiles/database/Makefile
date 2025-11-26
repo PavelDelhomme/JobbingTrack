@@ -155,7 +155,18 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	done; \
 	echo "✅ Synchronisation terminée !"; \
 	echo "   📦 Services synchronisés: $$PUSHED"; \
-	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"
+	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"; \
+	echo ""; \
+	echo "🔄 Génération des Prisma Clients..."; \
+	for service in $$SERVICES; do \
+		CONTAINER="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
+			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
+				echo "  📦 Génération Prisma Client pour $$service..."; \
+				docker exec -w /app $$CONTAINER npx prisma generate 2>/dev/null && echo "  ✅ $$service - Prisma Client généré" || echo "  ⚠️  $$service - Erreur génération"; \
+			fi; \
+		fi; \
+	done
 
 # Seed de données de test
 db-seed: ## Insérer des données de test
