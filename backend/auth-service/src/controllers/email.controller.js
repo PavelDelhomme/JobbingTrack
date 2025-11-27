@@ -889,6 +889,56 @@ function getTransparentPixel() {
   );
 }
 
+/**
+ * Supprimer tous les emails échoués
+ */
+const deleteFailedEmails = async (req, res) => {
+  try {
+    const deleted = await prisma.emailLog.deleteMany({
+      where: { status: 'FAILED' }
+    });
+
+    logger.info(`Suppression de ${deleted.count} emails échoués`);
+
+    res.json({
+      success: true,
+      message: `${deleted.count} email(s) échoué(s) supprimé(s)`,
+      count: deleted.count
+    });
+  } catch (error) {
+    logger.error('Erreur suppression emails échoués:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la suppression des emails échoués',
+      details: error.message
+    });
+  }
+};
+
+/**
+ * Supprimer tous les logs d'emails
+ */
+const deleteAllEmailLogs = async (req, res) => {
+  try {
+    const deleted = await prisma.emailLog.deleteMany({});
+
+    logger.info(`Suppression de ${deleted.count} emails`);
+
+    res.json({
+      success: true,
+      message: `${deleted.count} email(s) supprimé(s)`,
+      count: deleted.count
+    });
+  } catch (error) {
+    logger.error('Erreur suppression logs emails:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la suppression des logs',
+      details: error.message
+    });
+  }
+};
+
 module.exports = {
   getEmailLogs,
   getEmailLog,
@@ -897,5 +947,7 @@ module.exports = {
   resendEmail,
   testDNS,
   testSMTPConnection,
-  trackEmailOpen
+  trackEmailOpen,
+  deleteFailedEmails,
+  deleteAllEmailLogs
 };

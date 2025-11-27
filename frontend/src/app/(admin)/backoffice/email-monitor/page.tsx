@@ -135,11 +135,54 @@ export default function EmailMonitorPage() {
     loadEmails();
   };
 
-  const clearLogs = () => {
-    if (confirm('Voulez-vous effacer tous les logs d\'emails ?')) {
-      localStorage.removeItem('email_logs');
-      setEmails([]);
-      setFilteredEmails([]);
+  const clearLogs = async () => {
+    if (confirm('Voulez-vous effacer tous les logs d\'emails ? Cette action est irréversible.')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/v1/emails/logs`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          setEmails([]);
+          setFilteredEmails([]);
+          loadEmails(); // Recharger pour mettre à jour les stats
+        } else {
+          alert('Erreur lors de la suppression des logs');
+        }
+      } catch (error) {
+        console.error('Erreur suppression logs:', error);
+        alert('Erreur lors de la suppression des logs');
+      }
+    }
+  };
+
+  const deleteFailedEmails = async () => {
+    if (confirm('Voulez-vous supprimer tous les emails échoués ? Cette action est irréversible.')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/v1/emails/logs/failed`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          loadEmails(); // Recharger pour mettre à jour
+          alert('Emails échoués supprimés avec succès');
+        } else {
+          alert('Erreur lors de la suppression des emails échoués');
+        }
+      } catch (error) {
+        console.error('Erreur suppression emails échoués:', error);
+        alert('Erreur lors de la suppression des emails échoués');
+      }
     }
   };
 
@@ -227,9 +270,13 @@ export default function EmailMonitorPage() {
               <Download className="h-4 w-4 mr-2" />
               Exporter
             </Button>
+            <Button onClick={deleteFailedEmails} variant="outline" className="text-orange-600">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer Échoués
+            </Button>
             <Button onClick={clearLogs} variant="outline" className="text-red-600">
               <Trash2 className="h-4 w-4 mr-2" />
-              Effacer
+              Effacer Tout
             </Button>
           </div>
         </div>
@@ -415,7 +462,13 @@ export default function EmailMonitorPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
-                            <span>Envoyé : {email.sentAt ? new Date(email.sentAt).toLocaleString('fr-FR') : 'N/A'}</span>
+                            {email.status === 'FAILED' ? (
+                              <span className="text-red-600 dark:text-red-400">Échoué : {email.error || 'Erreur inconnue'}</span>
+                            ) : email.sentAt ? (
+                              <span>Envoyé : {new Date(email.sentAt).toLocaleString('fr-FR')}</span>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400">En attente...</span>
+                            )}
                           </div>
                           {email.openedAt && (
                             <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
