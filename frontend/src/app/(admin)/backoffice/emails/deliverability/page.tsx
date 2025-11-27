@@ -15,7 +15,9 @@ import {
   Server,
   Shield,
   Mail,
-  TestTube
+  TestTube,
+  KeyRound,
+  CheckCircle2
 } from 'lucide-react'
 import axios from 'axios'
 
@@ -40,13 +42,15 @@ interface SMTPTestResult {
 }
 
 export default function EmailDeliverabilityPage() {
-  const [domain, setDomain] = useState('maily.ovh')
+  const [domain, setDomain] = useState('jobbingtrack.com')
   const [testingDNS, setTestingDNS] = useState(false)
   const [testingSMTP, setTestingSMTP] = useState(false)
   const [dnsResults, setDnsResults] = useState<DNSTestResult | null>(null)
   const [smtpResult, setSmtpResult] = useState<SMTPTestResult | null>(null)
   const [testEmail, setTestEmail] = useState('')
   const [sendingTest, setSendingTest] = useState(false)
+  const [sendingReset, setSendingReset] = useState(false)
+  const [sendingVerification, setSendingVerification] = useState(false)
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const handleTestDNS = async () => {
@@ -129,53 +133,79 @@ export default function EmailDeliverabilityPage() {
     }
   }
 
-  const handleSendTestEmail = async () => {
+  const handleSendTestEmail = async (emailType: 'test' | 'reset' | 'verification' = 'test') => {
     if (!testEmail) {
       setSendResult({ success: false, message: 'Veuillez entrer une adresse email' })
       return
     }
 
-    setSendingTest(true)
+    // Définir l'état de chargement approprié
+    if (emailType === 'reset') {
+      setSendingReset(true)
+    } else if (emailType === 'verification') {
+      setSendingVerification(true)
+    } else {
+      setSendingTest(true)
+    }
     setSendResult(null)
 
     try {
       const token = localStorage.getItem('token')
+      const payload: any = {
+        to: testEmail
+      }
+
+      if (emailType === 'reset') {
+        payload.type = 'reset_password'
+      } else if (emailType === 'verification') {
+        payload.type = 'verification'
+      } else {
+        payload.subject = '🧪 Test Déliverabilité - JobbingTrack'
+        payload.content = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #3b82f6;">Test de Déliverabilité</h1>
+            <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+            <p><strong>Domaine:</strong> ${domain}</p>
+            <p>Vérifiez votre boîte de réception (et les spams) pour confirmer la réception.</p>
+          </div>
+        `
+      }
+
       const response = await axios.post(
         `${API_URL}/api/v1/emails/test`,
+        payload,
         {
-          to: testEmail,
-          subject: '🧪 Test Déliverabilité - JobbingTrack',
-          content: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #3b82f6;">Test de Déliverabilité</h1>
-              <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
-              <p><strong>Domaine:</strong> ${domain}</p>
-              <p>Vérifiez votre boîte de réception (et les spams) pour confirmer la réception.</p>
-            </div>
-          `
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000
         }
       )
 
       if (response.data.success) {
+        const messages = {
+          test: `Email de test envoyé à l'adresse ${testEmail} ! Vérifiez votre boîte mail (et les spams).`,
+          reset: `Email de réinitialisation de mot de passe envoyé à ${testEmail} ! Vérifiez votre boîte mail.`,
+          verification: `Email de vérification envoyé à ${testEmail} ! Vérifiez votre boîte mail.`
+        }
         setSendResult({ 
           success: true, 
-          message: `Email de test envoyé à l'adresse ${testEmail} ! Vérifiez votre boîte mail (et les spams).` 
+          message: messages[emailType]
         })
-        setTestEmail('')
+        if (emailType === 'test') {
+          setTestEmail('')
+        }
       } else {
         setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email de test'
+        message: error.response?.data?.error || error.response?.data?.details || error.message || 'Erreur lors de l\'envoi de l\'email'
       })
     } finally {
       setSendingTest(false)
+      setSendingReset(false)
+      setSendingVerification(false)
     }
   }
 
@@ -470,9 +500,13 @@ export default function EmailDeliverabilityPage() {
                   onChange={(e) => setTestEmail(e.target.value)}
                   className="flex-1"
                 />
+              </div>
+              <div className="flex gap-2 mt-3">
                 <Button 
-                  onClick={handleSendTestEmail} 
-                  disabled={sendingTest || !testEmail}
+                  onClick={() => handleSendTestEmail('test')} 
+                  disabled={sendingTest || sendingReset || sendingVerification || !testEmail}
+                  variant="outline"
+                  className="flex-1"
                 >
                   {sendingTest ? (
                     <>
@@ -482,7 +516,43 @@ export default function EmailDeliverabilityPage() {
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      Envoyer
+                      Email Test
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => handleSendTestEmail('reset')} 
+                  disabled={sendingTest || sendingReset || sendingVerification || !testEmail}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {sendingReset ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      Reset Password
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => handleSendTestEmail('verification')} 
+                  disabled={sendingTest || sendingReset || sendingVerification || !testEmail}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {sendingVerification ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Vérification
                     </>
                   )}
                 </Button>

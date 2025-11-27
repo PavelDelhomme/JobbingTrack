@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
     try {
       setStatus('loading');
       
-      const response = await fetch(`/api/v1/auth/verify-email/${verificationToken}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/auth/verify-email/${verificationToken}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

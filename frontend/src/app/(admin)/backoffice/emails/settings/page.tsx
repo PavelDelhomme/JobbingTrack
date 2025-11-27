@@ -44,7 +44,7 @@ export default function EmailSettingsPage() {
             Configuration SMTP
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Configuration actuelle : OVH maily.ovh
+            Configuration actuelle : OVH jobbingtrack.com (noreply@jobbingtrack.test)
           </p>
         </div>
 

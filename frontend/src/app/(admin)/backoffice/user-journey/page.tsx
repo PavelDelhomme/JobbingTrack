@@ -24,7 +24,8 @@ import {
   Download,
   Trash2,
   Key,
-  Shield
+  Shield,
+  Mail
 } from 'lucide-react';
 
 // Types pour les étapes du parcours
@@ -269,6 +270,18 @@ const SCENARIOS = {
       'view_statistics'
     ]
   },
+  email_testing: {
+    name: 'Tests d\'Emails Complets',
+    description: 'Test de tous les types d\'emails : test générique, reset password, vérification',
+    steps: [
+      'test_email_generic',
+      'test_email_reset_password',
+      'test_email_verification',
+      'register',
+      'verify_email',
+      'request_password_reset'
+    ]
+  },
   test_data_management: {
     name: 'Gestion Données de Test',
     description: 'Test du système de marquage isTestData : génération, nettoyage sélectif',
@@ -454,6 +467,24 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
     name: 'Vérifier Entretiens',
     description: 'Consulter les entretiens à venir',
     icon: Calendar
+  },
+  test_email_generic: {
+    id: 'test_email_generic',
+    name: 'Test Email Générique',
+    description: 'Envoyer un email de test générique',
+    icon: Mail
+  },
+  test_email_reset_password: {
+    id: 'test_email_reset_password',
+    name: 'Test Email Reset Password',
+    description: 'Envoyer un email de réinitialisation de mot de passe',
+    icon: Key
+  },
+  test_email_verification: {
+    id: 'test_email_verification',
+    name: 'Test Email Vérification',
+    description: 'Envoyer un email de vérification de compte',
+    icon: Shield
   },
   verify_email: {
     id: 'verify_email',
@@ -1296,6 +1327,61 @@ export default function UserJourneyPage() {
           };
           break;
 
+        case 'test_email_generic':
+          // Envoyer un email de test générique
+          const testEmail = localStorage.getItem('testEmail') || `test-${Date.now()}@example.com`;
+          const genericEmailRes = await fetch('/api/v1/emails/test', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              to: testEmail,
+              subject: '🧪 Test Email - JobbingTrack',
+              content: '<p>Ceci est un email de test envoyé depuis le parcours utilisateur.</p>'
+            })
+          });
+          result = await handleFetchResponse(genericEmailRes);
+          result.message = `Email de test générique envoyé à ${testEmail}`;
+          break;
+
+        case 'test_email_reset_password':
+          // Envoyer un email de reset password
+          const testResetEmail = localStorage.getItem('testEmail') || `test-reset-${Date.now()}@example.com`;
+          const resetEmailRes = await fetch('/api/v1/emails/test', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              to: testResetEmail,
+              type: 'reset_password'
+            })
+          });
+          result = await handleFetchResponse(resetEmailRes);
+          result.message = `Email de réinitialisation de mot de passe envoyé à ${testResetEmail}`;
+          break;
+
+        case 'test_email_verification':
+          // Envoyer un email de vérification
+          const testVerifyEmail = localStorage.getItem('testEmail') || `test-verify-${Date.now()}@example.com`;
+          const verifyEmailRes = await fetch('/api/v1/emails/test', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              to: testVerifyEmail,
+              type: 'verification'
+            })
+          });
+          result = await handleFetchResponse(verifyEmailRes);
+          result.message = `Email de vérification envoyé à ${testVerifyEmail}`;
+          break;
+
         case 'verify_email':
           // Récupérer le token de vérification depuis le dernier utilisateur créé
           // Pour le test, on simule la vérification
@@ -1346,12 +1432,12 @@ export default function UserJourneyPage() {
         case 'reset_password':
           // Simuler le reset de password
           // En production, l'utilisateur clique sur le lien dans l'email
-          const resetTestEmail = localStorage.getItem('resetTestEmail') || 'redacted@example.invalid';
+          const storedResetEmail = localStorage.getItem('resetTestEmail') || 'redacted@example.invalid';
           
           result = {
             message: 'Simulation reset password',
             note: 'En production, utilisateur clique sur lien email → Page de reset → Nouveau mot de passe',
-            email: resetTestEmail,
+            email: storedResetEmail,
             workflow: [
               '1. Utilisateur reçoit email avec lien',
               '2. Clique sur le lien (contient token)',

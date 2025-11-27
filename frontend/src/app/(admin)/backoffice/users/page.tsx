@@ -155,6 +155,48 @@ export default function UsersManagementPage() {
     }
   };
 
+  const handleSendPasswordReset = async (userId: string, userEmail: string) => {
+    if (!confirm(`Envoyer un email de réinitialisation de mot de passe à ${userEmail} ?`)) return;
+    
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/v1/auth/users/${userId}/send-password-reset`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        alert(`✅ ${response.data.message || 'Email de réinitialisation envoyé avec succès'}`);
+      } else {
+        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
+      }
+    } catch (error: any) {
+      console.error('Erreur envoi email reset password:', error);
+      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
+    }
+  };
+
+  const handleSendVerification = async (userId: string, userEmail: string) => {
+    if (!confirm(`Envoyer un email de vérification à ${userEmail} ?`)) return;
+    
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/v1/auth/users/${userId}/send-verification`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        alert(`✅ ${response.data.message || 'Email de vérification envoyé avec succès'}`);
+      } else {
+        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
+      }
+    } catch (error: any) {
+      console.error('Erreur envoi email vérification:', error);
+      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -230,7 +272,7 @@ export default function UsersManagementPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Admins</p>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                  {users.filter(u => u.role === 'ADMIN').length}
+                  {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length}
                 </p>
               </div>
               <Shield className="h-10 w-10 text-purple-500" />
@@ -260,6 +302,7 @@ export default function UsersManagementPage() {
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="all">Tous les rôles</option>
+              <option value="SUPER_ADMIN">Super Administrateurs</option>
               <option value="ADMIN">Administrateurs</option>
               <option value="USER">Utilisateurs</option>
               <option value="GUEST">Invités</option>
@@ -331,13 +374,15 @@ export default function UsersManagementPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === 'ADMIN' 
+                        user.role === 'SUPER_ADMIN'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          : user.role === 'ADMIN' 
                           ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                           : user.role === 'USER'
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
-                        {user.role}
+                        {user.role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : user.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -362,14 +407,30 @@ export default function UsersManagementPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => router.push(`/backoffice/users/${user.id}`)}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Modifier"
                         >
                           <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleSendPasswordReset(user.id, user.email)}
+                          className="p-2 text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                          title="Envoyer email de réinitialisation de mot de passe"
+                        >
+                          <KeyRound className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleSendVerification(user.id, user.email)}
+                          className="p-2 text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title="Envoyer email de vérification"
+                        >
+                          <CheckCircle2 className="h-5 w-5" />
                         </button>
                         {currentUser?.id !== user.id && (
                           <button
                             onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Supprimer"
                           >
                             <Trash2 className="h-5 w-5" />
                           </button>

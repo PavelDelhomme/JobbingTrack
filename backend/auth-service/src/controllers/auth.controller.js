@@ -863,6 +863,83 @@ const verifyResetToken = async (req, res, next) => {
   }
 };
 
+// ✅ ADMIN - Envoyer un email de réinitialisation de mot de passe pour un utilisateur spécifique
+const sendPasswordResetForUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Vérifier que l'utilisateur existe
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Utilisateur non trouvé'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cet utilisateur est désactivé'
+      });
+    }
+
+    // Générer un token sécurisé
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Définir l'expiration (1 heure)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Supprimer les anciens tokens de cet utilisateur
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id }
+    }).catch(() => {
+      // Ignorer si la table n'existe pas
+    });
+
+    // Créer le nouveau token
+    try {
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          token: hashedToken,
+          expiresAt
+        }
+      });
+    } catch (dbError) {
+      if (dbError.code === 'P2021') {
+        logger.warn('Table PasswordResetToken non trouvée, email sera envoyé sans token en DB');
+      } else {
+        throw dbError;
+      }
+    }
+
+    // Envoyer l'email avec le token non hashé
+    await emailService.sendPasswordResetEmail(user, resetToken);
+
+    res.json({
+      success: true,
+      message: `Email de réinitialisation de mot de passe envoyé à ${user.email}`
+    });
+
+    logger.info(`Email de réinitialisation envoyé par admin pour: ${user.email}`);
+  } catch (error) {
+    logger.error('Erreur envoi email réinitialisation (admin):', error);
+    next(error);
+  }
+};
+
 const resetPassword = async (req, res, next) => {
   try {
     const { token } = req.params;
@@ -1543,6 +1620,7 @@ module.exports = {
   toggleUserStatus,
   deleteUser,
   forgotPassword,
+  sendPasswordResetForUser,
   verifyResetToken,
   resetPassword,
   getUserCustomization,

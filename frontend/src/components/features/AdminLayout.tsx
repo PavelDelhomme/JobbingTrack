@@ -186,6 +186,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
+        { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
         { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
         { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
         { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },

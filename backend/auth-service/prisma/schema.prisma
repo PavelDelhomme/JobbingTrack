@@ -821,9 +821,15 @@ model EmailLog {
   type              EmailType           // Type d'email
   status            EmailStatus         @default(PENDING) // Statut d'envoi
   sentAt            DateTime?           // Date d'envoi réussi
+  deliveredAt       DateTime?           // Date de livraison (si webhook disponible)
+  openedAt          DateTime?           // Date d'ouverture (pixel de tracking)
+  clickedAt         DateTime?           // Date de clic sur un lien
   error             String?             @db.Text // Message d'erreur si échec
   emailContent      String?             @db.Text // Contenu HTML de l'email
   metadata          Json?               // Métadonnées additionnelles (resetToken, verificationUrl, etc.)
+  trackingId        String?             @unique // ID unique pour le tracking (pixel de tracking)
+  openCount         Int                 @default(0) // Nombre de fois que l'email a été ouvert
+  clickCount        Int                 @default(0) // Nombre de clics sur les liens
   
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -836,6 +842,7 @@ model EmailLog {
   @@index([status])
   @@index([sentAt])
   @@index([createdAt])
+  @@index([trackingId])
 }
 
 enum EmailType {
@@ -848,10 +855,12 @@ enum EmailType {
 }
 
 enum EmailStatus {
-  PENDING
-  SENT
-  FAILED
-  BOUNCED
+  PENDING      // En attente d'envoi
+  SENT         // Envoyé avec succès au serveur SMTP
+  DELIVERED    // Livré dans la boîte mail du destinataire (si webhook disponible)
+  READ         // Lu par le destinataire (si tracking disponible)
+  FAILED       // Échec d'envoi
+  BOUNCED      // Email rejeté par le serveur destinataire
 }
 
 // Templates d'emails personnalisables

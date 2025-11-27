@@ -338,62 +338,192 @@ const getEmailStats = async (req, res) => {
  */
 const sendTestEmail = async (req, res) => {
   try {
-    const { to, subject, content } = req.body;
+    const { to, subject, content, type } = req.body;
     const userId = req.user?.id;
 
-    if (!to || !subject) {
+    if (!to) {
       return res.status(400).json({
         success: false,
-        error: 'Destinataire et sujet requis'
+        error: 'Destinataire requis'
       });
     }
 
-    const emailContent = content || `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1>Email de Test - JobbingTrack</h1>
-        <p>Ceci est un email de test envoyé depuis l'interface d'administration.</p>
-        <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
-        <p><strong>Date d'envoi:</strong> ${new Date().toLocaleString('fr-FR')}</p>
-      </div>
-    `;
+    // Utiliser le service Python pour l'envoi
+    const PythonEmailService = require('../services/email/pythonEmailService');
+    const pythonService = PythonEmailService;
 
     let emailLog = null;
     try {
-      // Logger l'email
-      emailLog = await emailService.logEmail({
-        userId,
-        to,
-        from: process.env.SMTP_FROM,
-        subject,
-        type: 'TEST',
-        emailContent,
-        metadata: { test: true, sentBy: userId }
-      });
-
-      // Envoyer l'email via le provider (pattern Strategy - SuperTokens)
-      await emailService.sendGenericEmail({
-        to,
-        subject,
-        htmlContent: emailContent,
-        textContent: content || null,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.test',
-      });
-
-      // Mettre à jour le statut
-      if (emailLog) {
-        await emailService.updateEmailLogStatus(emailLog.id, 'SENT');
+      // Si type spécifié (reset ou verification), utiliser les méthodes dédiées
+      if (type === 'reset_password') {
+        // Créer un utilisateur mock pour le test
+        const mockUser = {
+          id: userId || 'test-user',
+          email: to,
+          firstName: 'Test',
+          lastName: 'User'
+        };
+        const resetToken = require('crypto').randomBytes(32).toString('hex');
+        
+        const result = await pythonService.sendPasswordResetEmail(mockUser, resetToken);
+        
+        if (result.success) {
+          // Récupérer le dernier email loggé pour cet utilisateur
+          let emailLog = null;
+          try {
+            emailLog = await prisma.emailLog.findFirst({
+              where: { to, type: 'RESET_PASSWORD' },
+              orderBy: { createdAt: 'desc' }
+            });
+          } catch (dbError) {
+            logger.warn('Impossible de récupérer le log email:', dbError.message);
+          }
+          
+          res.json({
+            success: true,
+            message: 'Email de réinitialisation de mot de passe envoyé avec succès',
+            data: { 
+              type: 'reset_password',
+              emailLogId: emailLog?.id 
+            }
+          });
+        } else {
+          throw new Error(result.error || 'Erreur lors de l\'envoi');
+        }
+        return;
       }
 
-      res.json({
-        success: true,
-        message: 'Email de test envoyé avec succès',
-        data: { emailLogId: emailLog?.id }
-      });
+      if (type === 'verification') {
+        // Créer un utilisateur mock pour le test
+        const mockUser = {
+          id: userId || 'test-user',
+          email: to,
+          firstName: 'Test',
+          lastName: 'User'
+        };
+        const verificationToken = require('crypto').randomBytes(32).toString('hex');
+        
+        const result = await pythonService.sendVerificationEmail(mockUser, verificationToken);
+        
+        if (result.success) {
+          // Récupérer le dernier email loggé pour cet utilisateur
+          let emailLog = null;
+          try {
+            emailLog = await prisma.emailLog.findFirst({
+              where: { to, type: 'VERIFICATION' },
+              orderBy: { createdAt: 'desc' }
+            });
+          } catch (dbError) {
+            logger.warn('Impossible de récupérer le log email:', dbError.message);
+          }
+          
+          res.json({
+            success: true,
+            message: 'Email de vérification envoyé avec succès',
+            data: { 
+              type: 'verification',
+              emailLogId: emailLog?.id 
+            }
+          });
+        } else {
+          throw new Error(result.error || 'Erreur lors de l\'envoi');
+        }
+        return;
+      }
+
+      // Email de test générique
+      const emailSubject = subject || '🧪 Test Email - JobbingTrack';
+      const emailContent = content || `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1>Email de Test - JobbingTrack</h1>
+          <p>Ceci est un email de test envoyé depuis l'interface d'administration.</p>
+          <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
+          <p><strong>Date d'envoi:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+        </div>
+      `;
+
+      // Logger l'email avant l'envoi
+      let emailLog = null;
+      try {
+        emailLog = await prisma.emailLog.create({
+          data: {
+            userId: userId || null,
+            to,
+            from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+            subject: emailSubject,
+            type: 'TEST',
+            status: 'PENDING',
+            emailContent,
+            metadata: { test: true, sentBy: userId }
+          }
+        });
+      } catch (dbError) {
+        if (dbError.code === 'P2021') {
+          logger.warn('Table EmailLog non trouvée, email sera envoyé sans log');
+        } else {
+          logger.error('Erreur log email test:', dbError.message);
+        }
+      }
+
+      // Utiliser le service Python pour envoyer un email générique
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const path = require('path');
+      const execAsync = promisify(exec);
+      const pythonScript = path.join(__dirname, '../services/email/email_service.py');
+      
+      // Échapper correctement les guillemets et caractères spéciaux
+      const escapedContent = emailContent.replace(/"/g, '\\"').replace(/\$/g, '\\$');
+      const command = `python3 "${pythonScript}" send_generic "${to}" "${emailSubject}" "${escapedContent}" "${escapedContent}"`;
+      
+      try {
+        const { stdout } = await execAsync(command, {
+          env: process.env,
+          maxBuffer: 10 * 1024 * 1024,
+          timeout: 15000
+        });
+
+        const result = JSON.parse(stdout.trim());
+        
+        // Mettre à jour le statut
+        if (emailLog && emailLog.id) {
+          if (result.success) {
+            await prisma.emailLog.update({
+              where: { id: emailLog.id },
+              data: { status: 'SENT', sentAt: new Date() }
+            });
+          } else {
+            await prisma.emailLog.update({
+              where: { id: emailLog.id },
+              data: { status: 'FAILED', error: result.error }
+            });
+          }
+        }
+        
+        if (result.success) {
+          res.json({
+            success: true,
+            message: 'Email de test envoyé avec succès',
+            data: { 
+              type: 'test',
+              emailLogId: emailLog?.id 
+            }
+          });
+        } else {
+          throw new Error(result.error || 'Erreur lors de l\'envoi');
+        }
+      } catch (execError) {
+        // Mettre à jour le statut en cas d'erreur
+        if (emailLog && emailLog.id) {
+          await prisma.emailLog.update({
+            where: { id: emailLog.id },
+            data: { status: 'FAILED', error: execError.message }
+          }).catch(() => {});
+        }
+        throw execError;
+      }
     } catch (error) {
-      if (emailLog) {
-        await emailService.updateEmailLogStatus(emailLog.id, 'FAILED', error);
-      }
+      logger.error('Erreur envoi email test:', error);
       throw error;
     }
   } catch (error) {
@@ -636,31 +766,45 @@ const testDNS = async (req, res) => {
 };
 
 /**
- * Tester la connexion SMTP
+ * Tester la connexion SMTP (utilise le service Python)
  */
 const testSMTPConnection = async (req, res) => {
   try {
-    // Utiliser la méthode verifyConnection du provider (comme SuperTokens)
-    const verified = await emailService.verifyConnection();
+    // Utiliser le service Python pour tester la connexion SMTP
+    // PythonEmailService est exporté comme une instance déjà créée
+    const pythonService = require('../services/email/pythonEmailService');
     
-    if (!verified) {
-      throw new Error('Connexion SMTP échouée');
+    logger.info('[EmailController] Test de connexion SMTP via service Python...');
+    const result = await pythonService.testConnection();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message || 'Connexion SMTP réussie',
+        data: {
+          provider: 'SMTP (Python)',
+          host: process.env.SMTP_HOST || 'non configuré',
+          port: process.env.SMTP_PORT || 'non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
+          useSSL: process.env.SMTP_USE_SSL === 'true',
+          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
+          user: process.env.SMTP_USER ? `${process.env.SMTP_USER.substring(0, 3)}***` : 'non configuré',
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Connexion SMTP échouée',
+        message: result.message || 'Impossible de se connecter au serveur SMTP',
+        details: {
+          host: process.env.SMTP_HOST || 'non configuré',
+          port: process.env.SMTP_PORT || 'non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
+          useSSL: process.env.SMTP_USE_SSL === 'true',
+          suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible'
+        }
+      });
     }
-
-    const provider = emailService.getProvider();
-    
-    res.json({
-      success: true,
-      message: `Connexion ${provider.getProviderName()} réussie`,
-      data: {
-        provider: provider.getProviderName(),
-        host: process.env.SMTP_HOST || 'non configuré',
-        port: process.env.SMTP_PORT || 'non configuré',
-        secure: process.env.SMTP_SECURE === 'true',
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.test',
-        user: process.env.SMTP_USER ? `${process.env.SMTP_USER.substring(0, 3)}***` : 'non configuré',
-      }
-    });
   } catch (error) {
     logger.error('Erreur test SMTP:', error);
     res.status(500).json({
@@ -670,12 +814,80 @@ const testSMTPConnection = async (req, res) => {
       details: {
         host: process.env.SMTP_HOST || 'non configuré',
         port: process.env.SMTP_PORT || 'non configuré',
-        secure: process.env.SMTP_SECURE === 'true',
-        suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible'
+        secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
+        useSSL: process.env.SMTP_USE_SSL === 'true',
+        suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible. Vérifiez aussi que Python 3 est installé dans le conteneur.'
       }
     });
   }
 };
+
+/**
+ * Tracker l'ouverture d'un email (pixel de tracking)
+ */
+const trackEmailOpen = async (req, res) => {
+  try {
+    const { trackingId } = req.params;
+
+    if (!trackingId) {
+      return res.status(400).send('Tracking ID manquant');
+    }
+
+    // Trouver l'email par trackingId
+    const emailLog = await prisma.emailLog.findUnique({
+      where: { trackingId }
+    });
+
+    if (!emailLog) {
+      // Retourner un pixel transparent même si l'email n'est pas trouvé
+      return res.status(200).send(getTransparentPixel());
+    }
+
+    // Mettre à jour le statut et les informations de tracking
+    const updateData = {
+      openCount: { increment: 1 }
+    };
+
+    // Si c'est la première ouverture, enregistrer la date
+    if (!emailLog.openedAt) {
+      updateData.openedAt = new Date();
+      // Si l'email était SENT, passer à READ
+      if (emailLog.status === 'SENT') {
+        updateData.status = 'READ';
+      }
+    }
+
+    await prisma.emailLog.update({
+      where: { trackingId },
+      data: updateData
+    });
+
+    logger.info(`Email ouvert: ${emailLog.id} (${emailLog.to})`);
+
+    // Retourner un pixel transparent 1x1
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    return res.status(200).send(getTransparentPixel());
+  } catch (error) {
+    logger.error('Erreur tracking email:', error);
+    // Retourner quand même un pixel pour ne pas casser l'affichage
+    res.set('Content-Type', 'image/png');
+    return res.status(200).send(getTransparentPixel());
+  }
+};
+
+/**
+ * Générer un pixel PNG transparent 1x1
+ */
+function getTransparentPixel() {
+  // PNG transparent 1x1 en base64
+  return Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64'
+  );
+}
 
 module.exports = {
   getEmailLogs,
@@ -684,5 +896,6 @@ module.exports = {
   sendTestEmail,
   resendEmail,
   testDNS,
-  testSMTPConnection
+  testSMTPConnection,
+  trackEmailOpen
 };
