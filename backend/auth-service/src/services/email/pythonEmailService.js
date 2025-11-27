@@ -21,6 +21,12 @@ class PythonEmailService {
    */
   async executePythonCommand(action, ...args) {
     try {
+      // Délai supplémentaire avant l'exécution pour éviter le rate limiting OVH
+      // Sauf pour test_connection qui n'envoie pas d'email
+      if (action !== 'test_connection') {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 secondes supplémentaires
+      }
+      
       const command = `python3 "${PYTHON_SCRIPT}" ${action} ${args.map(arg => `"${String(arg).replace(/"/g, '\\"')}"`).join(' ')}`;
       
       logger.debug(`[PythonEmailService] Exécution: ${command}`);
@@ -28,7 +34,7 @@ class PythonEmailService {
       const { stdout, stderr } = await execAsync(command, {
         env: process.env,
         maxBuffer: 10 * 1024 * 1024, // 10MB
-        timeout: 15000, // 15 secondes timeout
+        timeout: 30000, // 30 secondes timeout (augmenté pour OVH)
       });
       
       // Afficher stderr pour le debug (contient les messages Python)
@@ -72,7 +78,8 @@ class PythonEmailService {
       if (error.message && error.message.includes('timeout')) {
         return {
           success: false,
-          error: 'Timeout lors de la connexion SMTP. Vérifiez que MailHog est démarré.'
+          error: 'Timeout lors de la connexion SMTP',
+          message: 'Le serveur SMTP n\'a pas répondu dans les temps. Vérifiez que le serveur SMTP est accessible et que les paramètres (host, port) sont corrects.'
         };
       }
       
@@ -214,8 +221,8 @@ class PythonEmailService {
   async sendPasswordResetEmail(user, resetToken) {
     let emailLog = null;
     try {
-      // Délai pour éviter le rate limiting OVH (1 seconde entre les envois)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Délai pour éviter le rate limiting OVH (3 secondes entre les envois pour OVH)
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       const userEmail = user.email;
       const userName = user.firstName || 'Utilisateur';
@@ -276,8 +283,8 @@ class PythonEmailService {
   async sendVerificationEmail(user, verificationToken) {
     let emailLog = null;
     try {
-      // Délai pour éviter le rate limiting OVH (1 seconde entre les envois)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Délai pour éviter le rate limiting OVH (3 secondes entre les envois pour OVH)
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       const userEmail = user.email;
       const userName = user.firstName || 'Utilisateur';

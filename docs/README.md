@@ -1,6 +1,6 @@
 # 📚 Documentation JobbingTrack
 
-[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📁 Organisation](ORGANISATION_DOCUMENTATION.md)
+[← Retour au README principal](../README.md) | [🧭 Navigation](navigation.md) | [📑 Index](INDEX.md)
 
 ##  **[⚡ Guide de Démarrage Rapide](getting-started/README.md)** - Commencez ici !
 
@@ -10,7 +10,7 @@ Documentation complète et organisée du projet **JobbingTrack v4.1** - Système
 
 ### 🧭 Navigation
 - **[Navigation complète](./navigation.md)** - Guide de navigation dans toute la documentation
-- **[Organisation](ORGANISATION_DOCUMENTATION.md)** - ⭐ Structure et organisation de la documentation (mise à jour 4 nov 2025)
+- **[Index Documentation](./INDEX.md)** - Index complet de la documentation
 
 ## 📋 Structure de la documentation
 
@@ -39,14 +39,21 @@ docs/
 ├── 🚀 deployment/                      # Guides de déploiement
 │   ├── getting-started/README.md       # Démarrage rapide
 │   ├── production/README.md            # Déploiement production
-│   └── security/README.md              # Sécurité déploiement
+│   ├── security/README.md              # Sécurité déploiement
+│   └── configuration/                  # Configuration
+│       └── CONFIGURATION_PORTS.md     # Configuration des ports
 ├── 💻 development/                     # Guides développement
 │   ├── setup/README.md                 # Configuration environnement
 │   ├── workflow/README.md              # Workflow développement
 │   ├── makefile/README.md              # Guide Makefile complet
-│   └── testing/README.md               # Stratégies de tests
+│   ├── testing/README.md               # Stratégies de tests
+│   └── recap/                          # Récapitulatifs
+│       ├── RECAP_FINAL_SESSION.md      # Récapitulatif session
+│       └── RECAPITULATIF_FINAL.md      # Récapitulatif final
 ├── 📊 monitoring/                      # Monitoring système
 │   └── README.md                       # Stack monitoring complète
+├── 📧 emails/                          # Documentation emails
+│   └── README.md                       # Configuration et dépannage emails
 ├── 🖥️ frontend/                        # Guide frontend
 │   ├── README.md                        # Index frontend
 │   ├── GUIDE_ENREGISTREMENT_AUTOMATIQUE.md     # Enregistrement auto
@@ -61,7 +68,8 @@ docs/
 │   ├── CORRECTIONS_ANALYTICS_DASHBOARD.md      # Corrections analytics
 │   ├── CORRECTIONS_ERREURS_404_TIMEOUTS.md     # Corrections 404/timeouts
 │   ├── CORRECTIONS_FINALES_SESSION.md          # Corrections session
-│   └── CORRECTIONS_GRAPHIQUES_ANALYTICS.md     # Corrections graphiques
+│   ├── CORRECTIONS_GRAPHIQUES_ANALYTICS.md     # Corrections graphiques
+│   └── TROUBLESHOOTING_LOGIN.md                # Dépannage login
 ├── ⚡ performance/guide/README.md      # Optimisation
 ├── 🔒 security/                        # Sécurité
 │   ├── README.md                        # Index sécurité
@@ -122,11 +130,20 @@ docs/
 - **[Corrections 404/Timeouts](troubleshooting/CORRECTIONS_ERREURS_404_TIMEOUTS.md)** - Erreurs HTTP
 - **[Corrections Session](troubleshooting/CORRECTIONS_FINALES_SESSION.md)** - Gestion des sessions
 - **[Corrections Graphiques](troubleshooting/CORRECTIONS_GRAPHIQUES_ANALYTICS.md)** - Graphiques analytics
+- **[Dépannage Login](troubleshooting/TROUBLESHOOTING_LOGIN.md)** - Dépannage problèmes de connexion
 
 ### 🔒 Sécurité
 - **[Guide Sécurité](security/README.md)** - Bonnes pratiques de sécurité
 - **[Système Sécurité](security/SYSTEME_SECURITE_README.md)** - Architecture sécurité complète
 - **[Services Sécurité](security/DEMARRAGE_SERVICES_SECURITE.md)** - Démarrage et configuration
+
+### 📧 Emails
+- **[Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
+- **[État du Système](emails/EMAIL_STATUS.md)** - État complet du système email
+- **[Configuration OVH](emails/OVH_EMAIL_SETUP.md)** - Configuration complète OVH
+- **[Configuration Production](emails/CONFIGURATION_PRODUCTION_EMAIL.md)** - Configuration pour la production
+- **[Tests](emails/TEST_EMAIL_DEVELOPPEMENT.md)** - Guide de test en développement
+- **[Prochaines Étapes](emails/PROCHAINES_ETAPES_EMAIL.md)** - Prochaines étapes après configuration
 
 ### 🧪 Tests
 - **[Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
