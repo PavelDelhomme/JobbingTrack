@@ -37,6 +37,10 @@ router.post('/test', [
 // Renvoyer un email
 router.post('/resend/:id', emailController.resendEmail);
 
+// Supprimer des emails
+router.delete('/logs/failed', emailController.deleteFailedEmails);
+router.delete('/logs', emailController.deleteAllEmailLogs);
+
 // Tests de déliverabilité
 router.get('/test-dns', emailController.testDNS);
 router.get('/test-smtp', emailController.testSMTPConnection);
