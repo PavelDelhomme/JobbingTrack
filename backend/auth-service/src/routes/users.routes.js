@@ -22,4 +22,7 @@ router.post('/:id/impersonate', userController.impersonateUser);
 router.post('/:id/send-verification', userController.sendVerificationEmail);
 router.post('/:id/resend-verification', userController.resendVerificationEmail);
 
+// Route pour envoyer un email de réinitialisation de mot de passe (admin)
+router.post('/:id/send-password-reset', authController.sendPasswordResetForUser);
+
 module.exports = router;

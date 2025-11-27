@@ -3,7 +3,8 @@ FROM node:20.18.0-alpine
 WORKDIR /app
 
 # Installer les dépendances système nécessaires pour Prisma et DNS
-RUN apk add --no-cache openssl bind-tools
+# Ajouter Python 3 pour le service d'envoi d'emails
+RUN apk add --no-cache openssl bind-tools python3 py3-pip
 
 # Installer Prisma CLI
 RUN npm install -g prisma

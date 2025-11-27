@@ -41,5 +41,8 @@ router.post('/resend/:id', emailController.resendEmail);
 router.get('/test-dns', emailController.testDNS);
 router.get('/test-smtp', emailController.testSMTPConnection);
 
+// Tracking des emails (sans authentification pour permettre le pixel de tracking)
+router.get('/track/:trackingId.png', emailController.trackEmailOpen);
+
 module.exports = router;
 

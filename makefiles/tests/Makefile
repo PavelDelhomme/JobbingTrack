@@ -5,7 +5,9 @@
 # ================================================================
 
 .PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
-        tests-clean test-clean test-relations test-enums
+        tests-clean test-clean test-relations test-enums test-email-python \
+        test-email-python-reset test-email-python-verification test-email-diagnostic \
+        test-email-logs test-email-logs-all test-email-logs-stats
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -211,6 +213,83 @@ test-email-verification:
 	@echo "🚀 Lancement du test..."
 	@echo ""
 	@docker exec jobbingtrack-auth-service node test-email-verification.js
+
+# 📧 TEST SERVICE PYTHON EMAIL - Test du service Python d'envoi d'emails
+test-email-diagnostic: ## Diagnostic du service Python email (vérifie Python, MailHog, config)
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║     🔧 DIAGNOSTIC SERVICE PYTHON EMAIL - JobbingTrack         ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@docker exec jobbingtrack-auth-service node /app/test-email-diagnostic.js || \
+		(echo ""; \
+		 echo "❌ Erreur lors du diagnostic"; \
+		 exit 1)
+
+test-email-python: ## Test du service Python d'envoi d'emails (connexion SMTP)
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║     📧 TEST SERVICE PYTHON EMAIL - JobbingTrack               ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "💡 Conseil : Exécutez d'abord 'make test-email-diagnostic' pour vérifier la configuration"
+	@echo ""
+	@echo "🔍 Test de connexion SMTP..."
+	@echo ""
+	@docker exec jobbingtrack-auth-service node /app/test-email-python.js test_connection || \
+		(echo ""; \
+		 echo "❌ Erreur lors du test de connexion SMTP"; \
+		 echo "💡 Exécutez 'make test-email-diagnostic' pour diagnostiquer le problème"; \
+		 exit 1)
+
+test-email-python-reset: ## Test d'envoi d'email de réinitialisation (service Python)
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║     📧 TEST EMAIL RESET PASSWORD - Service Python             ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📧 Test d'envoi d'email de réinitialisation..."
+	@echo ""
+	@if [ -z "$(TEST_EMAIL)" ]; then \
+		echo "⚠️  Variable TEST_EMAIL non définie, utilisation de test@example.com"; \
+		echo "   Pour spécifier un email : TEST_EMAIL=votre@email.com make test-email-python-reset"; \
+		echo ""; \
+	fi
+	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/test-email-python.js test_reset || \
+		(echo ""; \
+		 echo "❌ Erreur : Le service Python n'est pas disponible."; \
+		 echo "💡 Solution : Reconstruire le conteneur avec 'make rebuild auth-service'"; \
+		 exit 1)
+
+test-email-logs: ## Afficher les logs d'emails récents
+	@echo "📧 Logs d'emails récents..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;" 2>/dev/null || \
+		echo "❌ Erreur lors de la récupération des logs. Vérifiez que la table EmailLog existe."
+
+test-email-logs-all: ## Afficher tous les logs d'emails
+	@echo "📧 Tous les logs d'emails..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC;" 2>/dev/null || \
+		echo "❌ Erreur lors de la récupération des logs."
+
+test-email-logs-stats: ## Statistiques des emails
+	@echo "📊 Statistiques des emails..."
+	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT type, status, COUNT(*) as count FROM \"EmailLog\" GROUP BY type, status ORDER BY type, status;" 2>/dev/null || \
+		echo "❌ Erreur lors de la récupération des statistiques."
+
+test-email-python-verification: ## Test d'envoi d'email de vérification (service Python)
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║     📧 TEST EMAIL VERIFICATION - Service Python              ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📧 Test d'envoi d'email de vérification..."
+	@echo ""
+	@if [ -z "$(TEST_EMAIL)" ]; then \
+		echo "⚠️  Variable TEST_EMAIL non définie, utilisation de test@example.com"; \
+		echo "   Pour spécifier un email : TEST_EMAIL=votre@email.com make test-email-python-verification"; \
+		echo ""; \
+	fi
+	@docker exec -e TEST_EMAIL="$(TEST_EMAIL)" jobbingtrack-auth-service node /app/test-email-python.js test_verification || \
+		(echo ""; \
+		 echo "❌ Erreur : Le service Python n'est pas disponible."; \
+		 echo "💡 Solution : Reconstruire le conteneur avec 'make rebuild auth-service'"; \
+		 exit 1)
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║                ✅ TEST TERMINÉ                         ║"

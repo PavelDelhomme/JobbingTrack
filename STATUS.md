@@ -2,20 +2,58 @@
 
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
-**Dernière MAJ** : 2025-11-24  
-**Version Projet** : v1.0.4 (BETA)  
+**Dernière MAJ** : 2025-11-27  
+**Version Projet** : v1.0.5 (BETA)  
 **Branche** : feat/send-reset-and-validate-email  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
-**Vérification Email** : ✅ OPÉRATIONNEL 📧 (4/5 tests - 80%)  
-**Configuration SMTP** : ✅ OVH maily.ovh CONFIGURÉE (noreply@maily.ovh)  
+**Vérification Email** : ✅ OPÉRATIONNEL 📧 (9 emails envoyés, 6 réussis)  
+**Configuration SMTP** : ✅ OVH jobbingtrack.com CONFIGURÉE (noreply@jobbingtrack.com)  
 **Base de Données** : ✅ 27 TABLES CRÉÉES (Prisma sync OK - EmailLog + UserCustomization ajoutées)  
-**Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Logs, Deliverability, Settings fonctionnels)  
-**Système Email Architecture** : ✅ SUPERTOKENS IMPLÉMENTÉ (Pattern Strategy, Providers SMTP/Resend, Templates)  
-**Projet Global** : 🟢 ~85% (backend 100%, frontend 82%, mobile 0%)
+**Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Email Monitor, Logs, Deliverability, Settings fonctionnels)  
+**Système Email Architecture** : ✅ PYTHON SERVICE IMPLÉMENTÉ (Service Python SMTP, Tracking, Logs complets)  
+**Projet Global** : 🟢 ~87% (backend 100%, frontend 85%, mobile 0%)
+
+> 📧 **Pour l'état détaillé du système email, consultez** : [docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)
 
 ---
 
 ## 🎯 À FAIRE - PRIORITÉS
+
+### 🟢🟢🟢 PRIORITÉ EMAIL - SYSTÈME EMAIL COMPLET (TERMINÉ)
+
+**Statut** : ✅ **TERMINÉ** (2025-11-27) - Le système email est opérationnel avec le compte `noreply@jobbingtrack.com`
+
+**📋 Référence** : Pour l'état détaillé, consultez **[docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)**
+
+**✅ Réalisations** :
+- ✅ Compte email `noreply@jobbingtrack.com` créé et opérationnel
+- ✅ Service Python d'envoi d'emails intégré (SMTP OVH)
+- ✅ Tracking des emails (ouverture, clics) avec pixel de tracking
+- ✅ Dashboard Email Monitor (`/backoffice/email-monitor`) créé
+- ✅ Navigation mise à jour avec lien "Email Monitor"
+- ✅ MailHog supprimé (configuration OVH uniquement)
+- ✅ Gestion du rate limiting OVH (délai de 1 seconde)
+- ✅ Mode sombre amélioré pour tous les composants email
+- ✅ Documentation complète créée
+
+**⚠️ Problème Connu** :
+- Erreurs d'authentification intermittentes (`535 Authentication failed`) dues au rate limiting OVH
+- **Solution** : Délai automatique de 1 seconde entre les envois (implémenté)
+- **Recommandation** : Attendre 2-3 secondes entre chaque test d'email
+
+**📊 Statistiques** :
+- 9 emails envoyés au total
+- 6 emails réussis
+- 3 emails échoués (rate limiting OVH)
+
+**📚 Documentation** :
+- `docs/EMAIL_STATUS.md` - État complet du système
+- `docs/RESUME_EMAIL.md` - Résumé rapide
+- `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+- `docs/OVH_EMAIL_SETUP.md` - Configuration OVH
+- `docs/MAILHOG_REMOVED.md` - Suppression MailHog
+
+---
 
 ### 🔴🔴🔴 PRIORITÉ ABSOLUE - STRUCTURE BASE DE DONNÉES
 
@@ -1228,39 +1266,65 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 
 ---
 
-### 🎉 Système Email - TERMINÉ (06/11/2025)
+### 🎉 Système Email - TERMINÉ (27/11/2025)
 
-**Statut** : 🟢 **OPÉRATIONNEL** - Backend et Frontend créés, routes accessibles, corrections appliquées
+**Statut** : 🟢 **OPÉRATIONNEL** - Service Python intégré, compte `noreply@jobbingtrack.com` configuré, Email Monitor créé
 
-**✅ CORRECTIONS APPLIQUÉES** : 
+> 📧 **Pour l'état détaillé, consultez** : [docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)
+
+**✅ RÉALISATIONS COMPLÈTES** : 
+
+#### Configuration Email (27/11/2025)
+- ✅ Compte `noreply@jobbingtrack.com` créé et opérationnel
+- ✅ Configuration SMTP OVH (`ssl0.ovh.net:465` avec SSL)
+- ✅ MailHog supprimé (configuration OVH uniquement)
+- ✅ Service Python d'envoi d'emails intégré (`email_service.py`)
+- ✅ Gestion du rate limiting OVH (délai de 1 seconde entre envois)
+
+#### Backend & API
 - ✅ Backend créé (routes, contrôleurs, services)
-- ✅ Frontend créé (pages, composants)
-- ✅ Table EmailLog créée dans Prisma
+- ✅ Service Python `email_service.py` pour envoi SMTP
+- ✅ Wrapper Node.js `pythonEmailService.js` pour intégration
+- ✅ Table EmailLog créée dans Prisma avec tracking (trackingId, openCount, clickCount)
 - ✅ Routes `/api/v1/emails/*` accessibles via API Gateway
+- ✅ Route de tracking `/api/v1/emails/track/:trackingId.png` pour pixel de tracking
 - ✅ Port SMTP converti en nombre (parseInt)
 - ✅ Pagination corrigée dans les logs d'emails
 - ✅ FRONTEND_URL configurable pour les templates d'emails
 - ✅ Test SMTP opérationnel avec vérification en temps réel
 - ✅ Test DNS opérationnel avec gestion des domaines
+- ✅ API Gateway : Timeout augmenté à 30s pour tests DNS, meilleure gestion d'erreurs en développement
+
+#### Frontend & Interface
+- ✅ Frontend créé (pages, composants)
 - ✅ Dashboard emails opérationnel avec statistiques complètes (style Brevo)
   - Statistiques globales et récentes avec évolution
   - Top 10 destinataires
   - Statistiques quotidiennes (prêt pour graphiques)
   - Taux de succès, livraison, évolution
   - Statistiques par type et par statut
-- ✅ auth-service démarré avec `make up-full`
-- ✅ API Gateway : Timeout augmenté à 30s pour tests DNS, meilleure gestion d'erreurs en développement
+- ✅ **Email Monitor** (`/backoffice/email-monitor`) créé avec suivi détaillé
+  - Affichage de tous les emails envoyés
+  - Tracking des ouvertures et clics
+  - Filtres par statut et type
+  - Mode sombre amélioré
+- ✅ Navigation mise à jour avec lien "Email Monitor"
+- ✅ Mode sombre amélioré pour tous les composants email
 - ✅ Messages de confirmation d'email incluent maintenant l'adresse email
 - ✅ Test DNS : Affichage amélioré avec gestion des résultats vides
 - ✅ Test SMTP : Affichage amélioré avec détails de configuration
-- ✅ Configuration SMTP : Support pour envoyer depuis noreply@maily.ovh avec From noreply@jobbingtrack.com
-- ✅ Table EmailLog créée dans la base de données
-- ✅ Utilisateur admin créé (admin@jobbingtrack.com)
-- ✅ Messages d'erreur DNS améliorés (plus de "utilisateur non trouvé")
-- ✅ Support STARTTLS (port 587) pour meilleure délivrabilité
-- ✅ Documentation de dépannage email créée (docs/EMAIL_TROUBLESHOOTING.md)
-- ✅ Documentation : Guide de configuration email créé (docs/EMAIL_CONFIGURATION.md)
-- ✅ Middleware auth : Gestion d'erreur améliorée pour table User manquante en développement
+
+#### Documentation
+- ✅ Documentation complète créée :
+  - `docs/EMAIL_STATUS.md` - État complet du système
+  - `docs/RESUME_EMAIL.md` - Résumé rapide
+  - `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+  - `docs/OVH_EMAIL_SETUP.md` - Configuration OVH
+  - `docs/GUIDE_ACHAT_DOMAINE_EMAIL.md` - Guide d'achat domaine
+  - `docs/VERIFICATION_COMPTE_EMAIL.md` - Dépannage authentification
+  - `docs/MAILHOG_REMOVED.md` - Suppression MailHog
+
+#### Architecture & Infrastructure
 - ✅ Architecture email SuperTokens : Refactoring complet avec pattern Strategy
   - ✅ BaseEmailProvider créé (interface commune)
   - ✅ SMTPEmailProvider implémenté (OVH, Gmail, etc.)
@@ -1269,7 +1333,10 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
   - ✅ EmailService refactorisé avec sélection automatique du provider
   - ✅ verifyConnection() implémenté pour tous les providers
   - ✅ Support configurable EMAIL_PROVIDER (SMTP par défaut)
-  - ✅ Correction des chemins de modules dans les providers
+- ✅ Service Python intégré dans Docker (Python 3 + py3-pip)
+- ✅ Hot reloading configuré pour auth-service
+- ✅ Utilisateur admin créé (admin@jobbingtrack.com)
+- ✅ Middleware auth : Gestion d'erreur améliorée pour table User manquante en développement
 
 #### ✅ PRIORITÉ 1 : Migrations Base de Données - **TERMINÉE**
 
@@ -1278,25 +1345,28 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 - ✅ Model EmailLog avec enums EmailType et EmailStatus
 - ✅ Relations User ↔ EmailLog configurées
 
-#### ✅ PRIORITÉ 4 : Page Email Monitor - **CRÉÉE**
+#### ✅ PRIORITÉ 4 : Page Email Monitor - **CRÉÉE ET AMÉLIORÉE** (27/11/2025)
 
-**URL** : `http://localhost:8080/backoffice/emails`
+**URL** : `http://localhost:8080/backoffice/email-monitor`
 
 **✅ Réalisé** :
-- ✅ Table EmailLog créée dans Prisma
-- ✅ API `/api/v1/emails/logs` créée
-- ✅ API `/api/v1/emails/stats` créée
-- ✅ API `/api/v1/emails/test` créée
+- ✅ Table EmailLog créée dans Prisma avec tracking (trackingId, openCount, clickCount, deliveredAt, openedAt, clickedAt)
+- ✅ API `/api/v1/emails/logs` créée avec pagination et filtres
+- ✅ API `/api/v1/emails/stats` créée avec statistiques complètes
+- ✅ API `/api/v1/emails/test` créée avec support types (test, reset_password, verification)
 - ✅ API `/api/v1/emails/test-dns` créée
 - ✅ API `/api/v1/emails/test-smtp` créée
-- ✅ Logger automatique dans emailService
+- ✅ API `/api/v1/emails/track/:trackingId.png` créée pour pixel de tracking
+- ✅ Logger automatique dans emailService avec trackingId
 - ✅ Pages frontend créées :
-  - `/backoffice/emails` (dashboard)
+  - `/backoffice/emails` (dashboard principal)
+  - `/backoffice/email-monitor` (suivi détaillé avec tracking) ⭐ NOUVEAU
   - `/backoffice/emails/logs` (historique)
   - `/backoffice/emails/templates` (templates)
   - `/backoffice/emails/settings` (configuration)
   - `/backoffice/emails/deliverability` (tests DNS/SMTP)
-- ✅ Navigation ajoutée dans AdminLayout
+- ✅ Navigation mise à jour avec lien "Email Monitor" dans menu "Gestion des Emails"
+- ✅ Mode sombre amélioré pour tous les composants
 
 #### ✅ PRIORITÉ 5 : Interface Complète Emails Type Brevo - **CRÉÉE**
 

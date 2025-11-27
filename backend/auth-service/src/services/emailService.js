@@ -11,6 +11,9 @@ const { replaceVariables } = require('../utils/templateParser');
 const SMTPEmailProvider = require('./email/providers/smtp.provider');
 const ResendEmailProvider = require('./email/providers/resend.provider');
 
+// Service Python pour l'envoi d'emails (reset password et verification)
+const PythonEmailService = require('./email/pythonEmailService');
+
 // Templates (fallback si pas en DB)
 const welcomeTemplate = require('./email/templates/welcome.template');
 const resetPasswordTemplate = require('./email/templates/resetPassword.template');
@@ -274,187 +277,106 @@ class EmailService {
 
   /**
    * Envoyer un email de réinitialisation de mot de passe
+   * Utilise le service Python pour l'envoi
    */
   async sendPasswordResetEmail(user, resetToken) {
+    let emailLog = null;
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-      const appName = 'JobbingTrack';
-      const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&userId=${user.id}`;
-      const userName = user.firstName || 'Utilisateur';
-
-      // Essayer de récupérer le template depuis la DB
-      const dbTemplate = await this.getTemplate('RESET_PASSWORD');
-      let html, text, subject;
-
-      if (dbTemplate && dbTemplate.isActive) {
-        // Utiliser le template de la DB
-        html = replaceVariables(dbTemplate.htmlContent, {
-          userName,
-          firstName: userName,
-          resetLink,
-          resetUrl: resetLink,
-          appName,
-          expiryMinutes: 60,
+      // Logger l'email dans la DB
+      try {
+        emailLog = await this.logEmail({
+          userId: user.id,
+          to: user.email,
+          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+          subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+          type: 'RESET_PASSWORD',
+          emailContent: `Reset password email for ${user.email}`,
+          metadata: { resetToken, userId: user.id },
         });
-        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
-          userName,
-          firstName: userName,
-          resetLink,
-          resetUrl: resetLink,
-          appName,
-          expiryMinutes: 60,
-        }) : null;
-        subject = replaceVariables(dbTemplate.subject, {
-          userName,
-          firstName: userName,
-          appName,
-        });
-      } else {
-        // Fallback sur le template fichier
-        html = resetPasswordTemplate.getResetPasswordEmailHTML({
-          userName,
-          resetLink,
-          appName,
-          expiryMinutes: 60,
-        });
-        text = resetPasswordTemplate.getResetPasswordEmailText({
-          userName,
-          resetLink,
-          appName,
-          expiryMinutes: 60,
-        });
-        subject = '🔐 Réinitialisation de votre mot de passe JobbingTrack';
+      } catch (dbError) {
+        logger.warn('Erreur log email (table EmailLog peut-être absente):', dbError.message);
       }
 
-      // Logger l'email
-      const emailLog = await this.logEmail({
-        userId: user.id,
-        to: user.email,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-        subject,
-        type: 'RESET_PASSWORD',
-        emailContent: html,
-        metadata: { resetToken, resetLink },
-      });
-
-      // Envoyer l'email via le provider
-      const result = await this.getProvider().sendEmail({
-        to: user.email,
-        subject,
-        htmlContent: html,
-        textContent: text,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
-      });
+      // Utiliser le service Python pour l'envoi
+      logger.info(`[EmailService] Utilisation du service Python pour reset password`);
+      const result = await PythonEmailService.sendPasswordResetEmail(user, resetToken);
 
       // Mettre à jour le statut
-      if (emailLog && emailLog.id) {
-        await this.updateEmailLogStatus(emailLog.id, 'SENT');
+      if (emailLog && emailLog.id && !emailLog.id.toString().startsWith('temp-')) {
+        if (result.success) {
+          await this.updateEmailLogStatus(emailLog.id, 'SENT');
+        } else {
+          await this.updateEmailLogStatus(emailLog.id, 'FAILED', result.error);
+        }
       }
 
-      logger.info(`Email de réinitialisation envoyé à ${user.email}`);
+      if (result.success) {
+        logger.info(`Email de réinitialisation envoyé à ${user.email} via service Python`);
+      } else {
+        logger.error(`Erreur envoi email réinitialisation via Python: ${result.error}`);
+      }
+
       return result;
     } catch (error) {
-      // Mettre à jour le statut en FAILED
-      if (emailLog && emailLog.id) {
+      logger.error('Erreur envoi email réinitialisation:', error);
+      // Mettre à jour le statut en FAILED si emailLog existe
+      if (emailLog && emailLog.id && !emailLog.id.toString().startsWith('temp-')) {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
-      logger.error('Erreur envoi email réinitialisation:', error);
       throw error;
     }
   }
 
   /**
    * Envoyer un email de vérification
+   * Utilise le service Python pour l'envoi
    * @param {Object} user - Utilisateur
    * @param {string} verificationToken - Token de vérification
    */
   async sendVerificationEmail(user, verificationToken) {
+    let emailLog = null;
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-      const appName = 'JobbingTrack';
-      const verificationLink = `${frontendUrl}/verify-email?token=${verificationToken}&userId=${user.id}`;
-      const verificationUrl = verificationLink;
-      const userName = user.firstName || 'Utilisateur';
-
-      // Essayer de récupérer le template depuis la DB
-      const dbTemplate = await this.getTemplate('VERIFICATION');
-      let html, text, subject;
-
-      if (dbTemplate && dbTemplate.isActive) {
-        // Utiliser le template de la DB
-        html = replaceVariables(dbTemplate.htmlContent, {
-          userName,
-          firstName: userName,
-          verificationLink,
-          verificationUrl,
-          appName,
-          expiryMinutes: 60,
+      // Logger l'email dans la DB
+      try {
+        emailLog = await this.logEmail({
+          userId: user.id,
+          to: user.email,
+          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+          subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+          type: 'VERIFICATION',
+          emailContent: `Verification email for ${user.email}`,
+          metadata: { verificationToken, userId: user.id },
         });
-        text = dbTemplate.textContent ? replaceVariables(dbTemplate.textContent, {
-          userName,
-          firstName: userName,
-          verificationLink,
-          verificationUrl,
-          appName,
-          expiryMinutes: 60,
-        }) : null;
-        subject = replaceVariables(dbTemplate.subject, {
-          userName,
-          firstName: userName,
-          appName,
-        });
-      } else {
-        // Fallback sur le template fichier
-        html = verificationTemplate.getVerificationEmailHTML({
-          userName,
-          verificationLink,
-          appName,
-          expiryMinutes: 60,
-        });
-        text = verificationTemplate.getVerificationEmailText({
-          userName,
-          verificationLink,
-          appName,
-          expiryMinutes: 60,
-        });
-        subject = '✅ Vérifiez votre adresse email - JobbingTrack';
+      } catch (dbError) {
+        logger.warn('Erreur log email (table EmailLog peut-être absente):', dbError.message);
       }
 
-      // Logger l'email
-      const emailLog = await this.logEmail({
-        userId: user.id,
-        to: user.email,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-        subject,
-        type: 'VERIFICATION',
-        emailContent: html,
-        metadata: { verificationToken, verificationLink },
-      });
-
-      // Envoyer l'email via le provider
-      const result = await this.getProvider().sendEmail({
-        to: user.email,
-        subject,
-        htmlContent: html,
-        textContent: text,
-        from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-        replyTo: process.env.SMTP_REPLY_TO || 'noreply@jobbingtrack.com',
-      });
+      // Utiliser le service Python pour l'envoi
+      logger.info(`[EmailService] Utilisation du service Python pour vérification email`);
+      const result = await PythonEmailService.sendVerificationEmail(user, verificationToken);
 
       // Mettre à jour le statut
-      if (emailLog && emailLog.id) {
-        await this.updateEmailLogStatus(emailLog.id, 'SENT');
+      if (emailLog && emailLog.id && !emailLog.id.toString().startsWith('temp-')) {
+        if (result.success) {
+          await this.updateEmailLogStatus(emailLog.id, 'SENT');
+        } else {
+          await this.updateEmailLogStatus(emailLog.id, 'FAILED', result.error);
+        }
       }
 
-      logger.info(`Email de vérification envoyé à ${user.email}`);
+      if (result.success) {
+        logger.info(`Email de vérification envoyé à ${user.email} via service Python`);
+      } else {
+        logger.error(`Erreur envoi email vérification via Python: ${result.error}`);
+      }
+
       return result;
     } catch (error) {
-      // Mettre à jour le statut en FAILED
-      if (emailLog && emailLog.id) {
+      logger.error('Erreur envoi email vérification:', error);
+      // Mettre à jour le statut en FAILED si emailLog existe
+      if (emailLog && emailLog.id && !emailLog.id.toString().startsWith('temp-')) {
         await this.updateEmailLogStatus(emailLog.id, 'FAILED', error);
       }
-      logger.error('Erreur envoi email vérification:', error);
       throw error;
     }
   }
