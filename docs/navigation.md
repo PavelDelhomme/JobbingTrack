@@ -37,9 +37,11 @@
 
 ### 📧 **Configuration Emails**
 - **[📧 Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
-- **[📖 Vue d'Ensemble](emails/MAIL.md)** - MailHog (tests) + OVH maily.ovh (production)
-- **[🏢 Configuration OVH](emails/GUIDE_COMPLET_OVH_MAILY.md)** - Guide complet OVH maily.ovh (20 min)
-- **[⚠️ Important](emails/IMPORTANT_LIRE_AVANT_CONFIG_OVH.md)** - Ne pas suivre solution Perplexity
+- **[📊 État du Système](emails/EMAIL_STATUS.md)** - État complet du système email
+- **[🏢 Configuration OVH](emails/OVH_EMAIL_SETUP.md)** - Configuration complète OVH
+- **[🚀 Configuration Production](emails/CONFIGURATION_PRODUCTION_EMAIL.md)** - Configuration pour la production
+- **[🧪 Tests](emails/TEST_EMAIL_DEVELOPPEMENT.md)** - Guide de test en développement
+- **[📋 Prochaines Étapes](emails/PROCHAINES_ETAPES_EMAIL.md)** - Prochaines étapes après configuration
 
 ### 🔧 **Administration**
 - **[⚙️ Guide Administration](administration/README.md)** | **[🐛 Dépannage](troubleshooting/README.md)**
@@ -85,9 +87,11 @@ docs/
 │   └── README.md                 # Développement mobile
 ├── 📧 emails/                   # Configuration emails
 │   ├── README.md                 # Index emails
-│   ├── MAIL.md                   # Vue d'ensemble (MailHog + OVH)
-│   ├── GUIDE_COMPLET_OVH_MAILY.md        # Configuration OVH détaillée
-│   └── IMPORTANT_LIRE_AVANT_CONFIG_OVH.md # Avertissement Perplexity
+│   ├── EMAIL_STATUS.md           # État complet du système
+│   ├── OVH_EMAIL_SETUP.md        # Configuration OVH
+│   ├── CONFIGURATION_PRODUCTION_EMAIL.md # Configuration production
+│   ├── TEST_EMAIL_DEVELOPPEMENT.md # Tests en développement
+│   └── PROCHAINES_ETAPES_EMAIL.md # Prochaines étapes
 ├── 🔧 administration/           # Guide administration
 │   ├── README.md                 # Dashboard administrateur
 │   └── GUIDE_GESTION_UTILISATEURS.md        # Gestion utilisateurs
@@ -96,7 +100,8 @@ docs/
 │   ├── CORRECTIONS_ANALYTICS_DASHBOARD.md   # Corrections analytics
 │   ├── CORRECTIONS_ERREURS_404_TIMEOUTS.md  # Corrections 404/timeouts
 │   ├── CORRECTIONS_FINALES_SESSION.md       # Corrections finales
-│   └── CORRECTIONS_GRAPHIQUES_ANALYTICS.md  # Corrections graphiques
+│   ├── CORRECTIONS_GRAPHIQUES_ANALYTICS.md  # Corrections graphiques
+│   └── TROUBLESHOOTING_LOGIN.md             # Dépannage login
 ├── ⚡ performance/              # Optimisation
 │   └── README.md                 # Guide performance
 ├── 🔒 security/                 # Sécurité

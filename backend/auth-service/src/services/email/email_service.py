@@ -37,8 +37,8 @@ class EmailService:
         self.frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
         self.app_name = 'JobbingTrack'
     
-    def test_smtp_connection(self) -> bool:
-        """Tester la connexion SMTP"""
+    def test_smtp_connection(self) -> Dict[str, Any]:
+        """Tester la connexion SMTP et retourner un dictionnaire avec les détails"""
         try:
             # Afficher la configuration pour debug
             print(f"🔍 Configuration SMTP:", file=sys.stderr)
@@ -56,49 +56,89 @@ class EmailService:
                     server = smtplib.SMTP(self.host, self.port, timeout=3)
                     server.quit()
                     print(f"✅ Connexion MailHog réussie !", file=sys.stderr)
-                    return True
+                    return {
+                        'success': True,
+                        'message': 'Connexion MailHog réussie',
+                        'provider': 'MailHog'
+                    }
                 except (smtplib.SMTPConnectError, OSError, ConnectionRefusedError) as e:
                     print(f"❌ Erreur connexion MailHog: {str(e)}", file=sys.stderr)
                     print(f"💡 Vérifiez que MailHog est démarré:", file=sys.stderr)
                     print(f"   docker ps | grep mailhog", file=sys.stderr)
                     print(f"   Ou démarrez-le: make up-full (inclut MailHog)", file=sys.stderr)
-                    return False
+                    return {
+                        'success': False,
+                        'error': f'Erreur connexion MailHog: {str(e)}',
+                        'message': 'MailHog n\'est pas accessible. Vérifiez qu\'il est démarré.'
+                    }
             
             # Pour les autres serveurs SMTP (OVH, etc.)
             print(f"📧 Connexion à {self.host}:{self.port}...", file=sys.stderr)
             if self.use_ssl:
                 print(f"   Utilisation SSL (port {self.port})", file=sys.stderr)
                 server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+                print(f"✅ Connexion SSL établie", file=sys.stderr)
             else:
                 server = smtplib.SMTP(self.host, self.port, timeout=15)
+                print(f"✅ Connexion SMTP établie", file=sys.stderr)
             
             if self.use_tls and not self.use_ssl:
                 print(f"   Activation STARTTLS...", file=sys.stderr)
                 server.starttls()
+                print(f"✅ STARTTLS activé", file=sys.stderr)
             
             if self.username and self.password:
                 print(f"   Authentification avec {self.username}...", file=sys.stderr)
                 try:
                     server.login(self.username, self.password)
-                except Exception as auth_error:
+                    print(f"✅ Authentification réussie", file=sys.stderr)
+                except smtplib.SMTPAuthenticationError as auth_error:
                     # En cas d'erreur d'authentification, afficher plus de détails
                     print(f"   ❌ Erreur authentification: {auth_error}", file=sys.stderr)
                     print(f"   User: {self.username}", file=sys.stderr)
                     print(f"   Password length: {len(self.password)}", file=sys.stderr)
-                    raise auth_error
+                    server.quit()
+                    return {
+                        'success': False,
+                        'error': f'Erreur d\'authentification SMTP: {str(auth_error)}',
+                        'message': 'Les identifiants SMTP sont incorrects. Vérifiez SMTP_USER et SMTP_PASS dans .env'
+                    }
+                except Exception as auth_error:
+                    print(f"   ❌ Erreur authentification: {auth_error}", file=sys.stderr)
+                    server.quit()
+                    return {
+                        'success': False,
+                        'error': f'Erreur authentification: {str(auth_error)}',
+                        'message': 'Erreur lors de l\'authentification SMTP'
+                    }
             else:
                 print(f"   Pas d'authentification requise", file=sys.stderr)
             
             server.quit()
-            return True
+            print(f"✅ Connexion SMTP réussie !", file=sys.stderr)
+            return {
+                'success': True,
+                'message': 'Connexion SMTP réussie',
+                'provider': 'SMTP',
+                'host': self.host,
+                'port': str(self.port)
+            }
         except smtplib.SMTPConnectError as e:
             print(f"❌ Erreur connexion SMTP (serveur inaccessible): {str(e)}", file=sys.stderr)
             print(f"💡 Vérifiez que le serveur SMTP est démarré et accessible", file=sys.stderr)
-            return False
+            return {
+                'success': False,
+                'error': f'Erreur connexion SMTP: {str(e)}',
+                'message': f'Le serveur SMTP {self.host}:{self.port} n\'est pas accessible. Vérifiez votre connexion internet et la configuration.'
+            }
         except Exception as e:
             print(f"❌ Erreur connexion SMTP: {str(e)}", file=sys.stderr)
             print(f"   Type: {type(e).__name__}", file=sys.stderr)
-            return False
+            return {
+                'success': False,
+                'error': f'Erreur connexion SMTP: {str(e)}',
+                'message': f'Erreur lors de la connexion SMTP: {str(e)}'
+            }
     
     def send_email(
         self,
@@ -156,42 +196,117 @@ class EmailService:
                 msg['Reply-To'] = self.reply_to
             
             # Connexion SMTP
-            if self.use_ssl:
-                server = smtplib.SMTP_SSL(self.host, self.port, timeout=10)
-            else:
-                server = smtplib.SMTP(self.host, self.port, timeout=10)
-            
-            if self.use_tls and not self.use_ssl:
-                server.starttls()
-            
-            if self.username and self.password:
-                server.login(self.username, self.password)
-            
-            # Envoyer l'email
+            server = None
             try:
+                if self.use_ssl:
+                    server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+                    print(f"✅ Connexion SSL établie", file=sys.stderr)
+                else:
+                    server = smtplib.SMTP(self.host, self.port, timeout=15)
+                    print(f"✅ Connexion SMTP établie", file=sys.stderr)
+                
+                if self.use_tls and not self.use_ssl:
+                    print(f"   Activation STARTTLS...", file=sys.stderr)
+                    server.starttls()
+                    print(f"✅ STARTTLS activé", file=sys.stderr)
+                
+                if self.username and self.password:
+                    print(f"   Authentification avec {self.username}...", file=sys.stderr)
+                    try:
+                        server.login(self.username, self.password)
+                        print(f"✅ Authentification réussie", file=sys.stderr)
+                    except smtplib.SMTPAuthenticationError as auth_error:
+                        if server:
+                            try:
+                                server.quit()
+                            except:
+                                pass
+                        error_msg = str(auth_error)
+                        print(f"❌ Erreur authentification SMTP: {error_msg}", file=sys.stderr)
+                        return {
+                            'success': False,
+                            'error': error_msg,
+                            'message': 'Erreur d\'authentification SMTP. Vérifiez vos identifiants SMTP_USER et SMTP_PASS.'
+                        }
+                    except Exception as auth_error:
+                        if server:
+                            try:
+                                server.quit()
+                            except:
+                                pass
+                        error_msg = str(auth_error)
+                        print(f"❌ Erreur authentification: {error_msg}", file=sys.stderr)
+                        return {
+                            'success': False,
+                            'error': error_msg,
+                            'message': 'Erreur lors de l\'authentification SMTP'
+                        }
+                else:
+                    print(f"   Pas d'authentification requise", file=sys.stderr)
+                
+                # Envoyer l'email
+                print(f"📧 Envoi de l'email à {to}...", file=sys.stderr)
                 server.send_message(msg)
                 print(f"✅ Email envoyé avec succès à {to}", file=sys.stderr)
-            except Exception as send_error:
+                
                 server.quit()
-                raise send_error
-            
-            server.quit()
-            
-            return {
-                'success': True,
-                'message': f'Email envoyé avec succès à {to}',
-                'details': {
-                    'to': to,
-                    'from': from_email,
-                    'subject': subject
+                
+                return {
+                    'success': True,
+                    'message': f'Email envoyé avec succès à {to}',
+                    'details': {
+                        'to': to,
+                        'from': from_email,
+                        'subject': subject
+                    }
                 }
-            }
+            except smtplib.SMTPAuthenticationError as e:
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        pass
+                error_msg = str(e)
+                print(f"❌ Erreur authentification SMTP lors de l'envoi: {error_msg}", file=sys.stderr)
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'message': 'Erreur d\'authentification SMTP. Vérifiez vos identifiants SMTP_USER et SMTP_PASS.'
+                }
+            except smtplib.SMTPException as e:
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        pass
+                error_msg = str(e)
+                print(f"❌ Erreur SMTP: {error_msg}", file=sys.stderr)
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'message': f'Erreur SMTP: {error_msg}'
+                }
+            except Exception as e:
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        pass
+                error_msg = str(e)
+                print(f"❌ Erreur envoi email: {error_msg}", file=sys.stderr)
+                print(f"   Type: {type(e).__name__}", file=sys.stderr)
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'message': f'Erreur lors de l\'envoi de l\'email: {error_msg}'
+                }
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ Erreur envoi email: {error_msg}", file=sys.stderr)
+            print(f"❌ Erreur générale envoi email: {error_msg}", file=sys.stderr)
             return {
                 'success': False,
-                'error': error_msg
+                'error': error_msg,
+                'message': f'Erreur lors de l\'envoi de l\'email: {error_msg}'
             }
     
     def send_password_reset_email(self, user_email: str, user_name: str, reset_token: str, user_id: str, tracking_id: Optional[str] = None) -> Dict[str, Any]:
@@ -376,11 +491,9 @@ def main():
     if action == 'test_connection':
         # Tester la connexion SMTP
         result = service.test_smtp_connection()
-        print(json.dumps({
-            'success': result,
-            'message': 'Connexion SMTP réussie' if result else 'Connexion SMTP échouée'
-        }))
-        sys.exit(0 if result else 1)
+        # result est déjà un dictionnaire avec success, message, etc.
+        print(json.dumps(result))
+        sys.exit(0 if result.get('success') else 1)
     
     elif action == 'send_password_reset':
         # Envoyer un email de réinitialisation

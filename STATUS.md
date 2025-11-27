@@ -13,7 +13,7 @@
 **Système Email Architecture** : ✅ PYTHON SERVICE IMPLÉMENTÉ (Service Python SMTP, Tracking, Logs complets)  
 **Projet Global** : 🟢 ~87% (backend 100%, frontend 85%, mobile 0%)
 
-> 📧 **Pour l'état détaillé du système email, consultez** : [docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)
+> 📧 **Pour l'état détaillé du système email, consultez** : [docs/emails/EMAIL_STATUS.md](docs/emails/EMAIL_STATUS.md)
 
 ---
 
@@ -23,7 +23,7 @@
 
 **Statut** : ✅ **TERMINÉ** (2025-11-27) - Le système email est opérationnel avec le compte `noreply@jobbingtrack.com`
 
-**📋 Référence** : Pour l'état détaillé, consultez **[docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)**
+**📋 Référence** : Pour l'état détaillé, consultez **[docs/emails/EMAIL_STATUS.md](docs/emails/EMAIL_STATUS.md)**
 
 **✅ Réalisations** :
 - ✅ Compte email `noreply@jobbingtrack.com` créé et opérationnel
@@ -47,11 +47,11 @@
 - 3 emails échoués (rate limiting OVH)
 
 **📚 Documentation** :
-- `docs/EMAIL_STATUS.md` - État complet du système
-- `docs/RESUME_EMAIL.md` - Résumé rapide
-- `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
-- `docs/OVH_EMAIL_SETUP.md` - Configuration OVH
-- `docs/MAILHOG_REMOVED.md` - Suppression MailHog
+- `docs/emails/EMAIL_STATUS.md` - État complet du système
+- `docs/emails/RESUME_EMAIL.md` - Résumé rapide
+- `docs/emails/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+- `docs/emails/OVH_EMAIL_SETUP.md` - Configuration OVH
+- `docs/emails/MAILHOG_REMOVED.md` - Suppression MailHog
 
 ---
 
@@ -1270,7 +1270,7 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 
 **Statut** : 🟢 **OPÉRATIONNEL** - Service Python intégré, compte `noreply@jobbingtrack.com` configuré, Email Monitor créé
 
-> 📧 **Pour l'état détaillé, consultez** : [docs/EMAIL_STATUS.md](docs/EMAIL_STATUS.md)
+> 📧 **Pour l'état détaillé, consultez** : [docs/emails/EMAIL_STATUS.md](docs/emails/EMAIL_STATUS.md)
 
 **✅ RÉALISATIONS COMPLÈTES** : 
 
@@ -1316,13 +1316,13 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 
 #### Documentation
 - ✅ Documentation complète créée :
-  - `docs/EMAIL_STATUS.md` - État complet du système
-  - `docs/RESUME_EMAIL.md` - Résumé rapide
-  - `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
-  - `docs/OVH_EMAIL_SETUP.md` - Configuration OVH
-  - `docs/GUIDE_ACHAT_DOMAINE_EMAIL.md` - Guide d'achat domaine
-  - `docs/VERIFICATION_COMPTE_EMAIL.md` - Dépannage authentification
-  - `docs/MAILHOG_REMOVED.md` - Suppression MailHog
+  - `docs/emails/EMAIL_STATUS.md` - État complet du système
+  - `docs/emails/RESUME_EMAIL.md` - Résumé rapide
+  - `docs/emails/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+  - `docs/emails/OVH_EMAIL_SETUP.md` - Configuration OVH
+  - `docs/emails/GUIDE_ACHAT_DOMAINE_EMAIL.md` - Guide d'achat domaine
+  - `docs/emails/VERIFICATION_COMPTE_EMAIL.md` - Dépannage authentification
+  - `docs/emails/MAILHOG_REMOVED.md` - Suppression MailHog
 
 #### Architecture & Infrastructure
 - ✅ Architecture email SuperTokens : Refactoring complet avec pattern Strategy

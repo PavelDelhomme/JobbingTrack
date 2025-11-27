@@ -32,15 +32,15 @@
 - ✅ MailHog supprimé (configuration OVH uniquement)
 - ✅ Gestion du rate limiting OVH (délai de 1 seconde)
 - ✅ Mode sombre amélioré pour tous les composants email
-- ✅ Documentation complète créée (`docs/EMAIL_STATUS.md`, `docs/RESUME_EMAIL.md`, etc.)
+- ✅ Documentation complète créée (`docs/emails/EMAIL_STATUS.md`, `docs/emails/RESUME_EMAIL.md`, etc.)
 
 **Fichiers créés** :
 - `backend/auth-service/src/services/email/email_service.py` - Service Python SMTP
 - `backend/auth-service/src/services/email/pythonEmailService.js` - Wrapper Node.js
 - `frontend/src/app/(admin)/backoffice/email-monitor/page.tsx` - Page Email Monitor
-- `docs/EMAIL_STATUS.md` - État complet du système
-- `docs/RESUME_EMAIL.md` - Résumé rapide
-- `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+- `docs/emails/EMAIL_STATUS.md` - État complet du système
+- `docs/emails/RESUME_EMAIL.md` - Résumé rapide
+- `docs/emails/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
 
 **Fichiers modifiés** :
 - `frontend/src/components/features/AdminLayout.tsx` - Navigation mise à jour
@@ -57,13 +57,13 @@
 - 3 emails échoués (rate limiting OVH)
 
 **Documentation** :
-- `docs/EMAIL_STATUS.md` - État complet du système
-- `docs/RESUME_EMAIL.md` - Résumé rapide
-- `docs/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
-- `docs/OVH_EMAIL_SETUP.md` - Configuration OVH (mis à jour)
-- `docs/GUIDE_ACHAT_DOMAINE_EMAIL.md` - Guide d'achat domaine (mis à jour)
-- `docs/VERIFICATION_COMPTE_EMAIL.md` - Dépannage (mis à jour)
-- `docs/MAILHOG_REMOVED.md` - Suppression MailHog (mis à jour)
+- `docs/emails/EMAIL_STATUS.md` - État complet du système
+- `docs/emails/RESUME_EMAIL.md` - Résumé rapide
+- `docs/emails/EMAIL_RESUME_COMPLET.md` - Résumé détaillé
+- `docs/emails/OVH_EMAIL_SETUP.md` - Configuration OVH (mis à jour)
+- `docs/emails/GUIDE_ACHAT_DOMAINE_EMAIL.md` - Guide d'achat domaine (mis à jour)
+- `docs/emails/VERIFICATION_COMPTE_EMAIL.md` - Dépannage (mis à jour)
+- `docs/emails/MAILHOG_REMOVED.md` - Suppression MailHog (mis à jour)
 
 **Impact** :
 - Système email complètement opérationnel avec compte professionnel
