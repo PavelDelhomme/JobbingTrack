@@ -198,11 +198,15 @@ class EmailService:
             # Connexion SMTP
             server = None
             try:
+                # Délai avant connexion pour éviter le rate limiting OVH
+                import time
+                time.sleep(1)  # 1 seconde avant connexion
+                
                 if self.use_ssl:
-                    server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+                    server = smtplib.SMTP_SSL(self.host, self.port, timeout=20)
                     print(f"✅ Connexion SSL établie", file=sys.stderr)
                 else:
-                    server = smtplib.SMTP(self.host, self.port, timeout=15)
+                    server = smtplib.SMTP(self.host, self.port, timeout=20)
                     print(f"✅ Connexion SMTP établie", file=sys.stderr)
                 
                 if self.use_tls and not self.use_ssl:

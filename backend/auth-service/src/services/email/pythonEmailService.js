@@ -15,16 +15,46 @@ const prisma = new PrismaClient();
 // Chemin vers le script Python
 const PYTHON_SCRIPT = path.join(__dirname, 'email_service.py');
 
+// Système de verrouillage pour éviter les envois simultanés
+let isSendingEmail = false;
+let lastAuthErrorTime = 0;
+const AUTH_ERROR_COOLDOWN = 60000; // 60 secondes après une erreur d'authentification
+
 class PythonEmailService {
   /**
    * Exécuter une commande Python et retourner le résultat JSON
    */
   async executePythonCommand(action, ...args) {
     try {
+      // Vérifier si on a eu une erreur d'authentification récente
+      const timeSinceLastAuthError = Date.now() - lastAuthErrorTime;
+      if (timeSinceLastAuthError < AUTH_ERROR_COOLDOWN && action !== 'test_connection') {
+        const waitTime = AUTH_ERROR_COOLDOWN - timeSinceLastAuthError;
+        logger.warn(`[PythonEmailService] Attente ${Math.ceil(waitTime / 1000)}s après erreur d'authentification récente`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      
+      // Attendre si un email est en cours d'envoi (verrouillage)
+      if (action !== 'test_connection') {
+        let waitCount = 0;
+        while (isSendingEmail && waitCount < 30) { // Attendre max 30 secondes
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          waitCount++;
+        }
+        if (isSendingEmail) {
+          return {
+            success: false,
+            error: 'Un email est déjà en cours d\'envoi. Veuillez réessayer dans quelques instants.',
+            message: 'Trop de tentatives simultanées. Attendez quelques secondes avant de réessayer.'
+          };
+        }
+        isSendingEmail = true;
+      }
+      
       // Délai supplémentaire avant l'exécution pour éviter le rate limiting OVH
       // Sauf pour test_connection qui n'envoie pas d'email
       if (action !== 'test_connection') {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 secondes supplémentaires
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 secondes supplémentaires (augmenté)
       }
       
       const command = `python3 "${PYTHON_SCRIPT}" ${action} ${args.map(arg => `"${String(arg).replace(/"/g, '\\"')}"`).join(' ')}`;
@@ -55,6 +85,17 @@ class PythonEmailService {
       
       // Parser le JSON retourné
       const result = JSON.parse(stdout.trim());
+      
+      // Vérifier si c'est une erreur d'authentification
+      if (!result.success && (
+        result.error?.includes('Authentication failed') ||
+        result.error?.includes('535') ||
+        result.error?.includes('5.7.1')
+      )) {
+        lastAuthErrorTime = Date.now();
+        logger.error(`[PythonEmailService] Erreur d'authentification détectée. Cooldown de ${AUTH_ERROR_COOLDOWN / 1000}s activé.`);
+      }
+      
       return result;
     } catch (error) {
       logger.error(`[PythonEmailService] Erreur exécution Python: ${error.message}`);
@@ -62,11 +103,30 @@ class PythonEmailService {
       // Afficher stderr si disponible pour debug
       if (error.stderr) {
         logger.error(`[PythonEmailService] stderr: ${error.stderr}`);
+        
+        // Vérifier si c'est une erreur d'authentification dans stderr
+        if (error.stderr.includes('Authentication failed') || 
+            error.stderr.includes('535') || 
+            error.stderr.includes('5.7.1')) {
+          lastAuthErrorTime = Date.now();
+          logger.error(`[PythonEmailService] Erreur d'authentification détectée dans stderr. Cooldown de ${AUTH_ERROR_COOLDOWN / 1000}s activé.`);
+        }
       }
       
       if (error.stdout) {
         try {
           const result = JSON.parse(error.stdout.trim());
+          
+          // Vérifier si c'est une erreur d'authentification
+          if (!result.success && (
+            result.error?.includes('Authentication failed') ||
+            result.error?.includes('535') ||
+            result.error?.includes('5.7.1')
+          )) {
+            lastAuthErrorTime = Date.now();
+            logger.error(`[PythonEmailService] Erreur d'authentification détectée. Cooldown de ${AUTH_ERROR_COOLDOWN / 1000}s activé.`);
+          }
+          
           return result;
         } catch (parseError) {
           logger.error(`[PythonEmailService] Erreur parsing JSON: ${parseError.message}`);
@@ -87,6 +147,13 @@ class PythonEmailService {
         success: false,
         error: error.message || 'Erreur inconnue lors de l\'exécution du service Python'
       };
+    } finally {
+      // Libérer le verrou après un délai supplémentaire
+      if (action !== 'test_connection') {
+        setTimeout(() => {
+          isSendingEmail = false;
+        }, 2000); // Libérer après 2 secondes supplémentaires
+      }
     }
   }
 
@@ -221,8 +288,8 @@ class PythonEmailService {
   async sendPasswordResetEmail(user, resetToken) {
     let emailLog = null;
     try {
-      // Délai pour éviter le rate limiting OVH (3 secondes entre les envois pour OVH)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Délai pour éviter le rate limiting OVH (5 secondes entre les envois pour OVH)
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       const userEmail = user.email;
       const userName = user.firstName || 'Utilisateur';
@@ -283,8 +350,8 @@ class PythonEmailService {
   async sendVerificationEmail(user, verificationToken) {
     let emailLog = null;
     try {
-      // Délai pour éviter le rate limiting OVH (3 secondes entre les envois pour OVH)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Délai pour éviter le rate limiting OVH (5 secondes entre les envois pour OVH)
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       const userEmail = user.email;
       const userName = user.firstName || 'Utilisateur';
