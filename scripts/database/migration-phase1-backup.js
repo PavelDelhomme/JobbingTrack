@@ -52,8 +52,21 @@ async function backupDatabase() {
 
     const [, user, password, host, port, database] = urlMatch;
 
+    // Détecter le nom du conteneur PostgreSQL
+    let containerName = 'jobbingtrack-postgres';
+    try {
+      const containers = execSync('docker ps --format "{{.Names}}"', { encoding: 'utf-8' });
+      const postgresContainer = containers.split('\n').find(name => name.includes('postgres'));
+      if (postgresContainer) {
+        containerName = postgresContainer.trim();
+        console.log(`📦 Conteneur PostgreSQL détecté : ${containerName}`);
+      }
+    } catch (error) {
+      console.warn('⚠️  Impossible de détecter le conteneur, utilisation du nom par défaut');
+    }
+
     // Créer le backup avec pg_dump via Docker
-    const dockerExec = `docker exec jobbingtrack-postgres pg_dump -U ${user} -d ${database} > ${pgBackupFile}`;
+    const dockerExec = `docker exec ${containerName} pg_dump -U ${user} -d ${database} > ${pgBackupFile}`;
     
     try {
       execSync(dockerExec, { stdio: 'inherit' });
