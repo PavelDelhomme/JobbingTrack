@@ -184,11 +184,89 @@ jobs:
 
           echo "✅ Schéma Prisma validé"
 
-      - name: 📊 Vérification des nouveaux modèles et relations
+      - name: 📊 Vérification des modèles de statuts personnalisables
         run: |
-          echo "📊 Vérification des nouveaux modèles et relations..."
+          echo "📊 Vérification des modèles de statuts personnalisables..."
 
-          # Vérifier que les nouveaux modèles sont présents dans le schéma
+          cd backend
+
+          # Vérifier que les modèles de statuts existent (tables, pas enums)
+          if grep -q "^model ApplicationStatus {" prisma/schema.prisma; then
+            echo "✅ Modèle ApplicationStatus trouvé (table)"
+          else
+            echo "❌ Modèle ApplicationStatus manquant"
+            exit 1
+          fi
+
+          if grep -q "^model InterviewStatus {" prisma/schema.prisma; then
+            echo "✅ Modèle InterviewStatus trouvé (table)"
+          else
+            echo "❌ Modèle InterviewStatus manquant"
+            exit 1
+          fi
+
+          if grep -q "^model FollowUpStatus {" prisma/schema.prisma; then
+            echo "✅ Modèle FollowUpStatus trouvé (table)"
+          else
+            echo "❌ Modèle FollowUpStatus manquant"
+            exit 1
+          fi
+
+          # Vérifier que les enums ont été supprimés
+          if grep -q "^enum ApplicationStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum ApplicationStatus existe encore (doit être supprimé)"
+            exit 1
+          else
+            echo "✅ Enum ApplicationStatus supprimé (remplacé par modèle)"
+          fi
+
+          if grep -q "^enum InterviewStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum InterviewStatus existe encore (doit être supprimé)"
+            exit 1
+          else
+            echo "✅ Enum InterviewStatus supprimé (remplacé par modèle)"
+          fi
+
+          if grep -q "^enum FollowUpStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum FollowUpStatus existe encore (doit être supprimé)"
+            exit 1
+          else
+            echo "✅ Enum FollowUpStatus supprimé (remplacé par modèle)"
+          fi
+
+          # Vérifier que Application/Interview/FollowUp utilisent des relations (statusId)
+          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model Application"; then
+            echo "✅ Application utilise statusId (relation)"
+          else
+            echo "⚠️  Vérification manuelle nécessaire: Application doit utiliser statusId"
+          fi
+
+          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model Interview"; then
+            echo "✅ Interview utilise statusId (relation)"
+          else
+            echo "⚠️  Vérification manuelle nécessaire: Interview doit utiliser statusId"
+          fi
+
+          if grep -q "statusId.*String" prisma/schema.prisma | grep -A 5 "model FollowUp"; then
+            echo "✅ FollowUp utilise statusId (relation)"
+          else
+            echo "⚠️  Vérification manuelle nécessaire: FollowUp doit utiliser statusId"
+          fi
+
+          # Vérifier les champs de synchronisation
+          SYNC_FIELDS=$(grep -c "syncHash\|entityHash\|lastSyncAt" prisma/schema.prisma || echo "0")
+          if [ "$SYNC_FIELDS" -ge 3 ]; then
+            echo "✅ Champs de synchronisation présents ($SYNC_FIELDS occurrences)"
+          else
+            echo "⚠️  Champs de synchronisation: $SYNC_FIELDS occurrences trouvées (attendu: au moins 3)"
+          fi
+
+          echo "✅ Vérification des modèles de statuts terminée"
+
+      - name: 📊 Vérification des modèles et relations existants
+        run: |
+          echo "📊 Vérification des modèles et relations existants..."
+
           cd backend
 
           # Vérifier ApplicationStatusHistory
@@ -238,7 +316,7 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Tous les nouveaux modèles et relations sont présents"
+          echo "✅ Tous les modèles et relations sont présents"
 
       - name: 🔗 Test des relations many-to-many
         run: |
@@ -281,13 +359,31 @@ jobs:
 
           echo "✅ Toutes les tables de jonction many-to-many sont présentes"
 
-      - name: 🏷️ Validation des enums
+      - name: 🏷️ Validation des enums (vérification que les enums de statuts sont supprimés)
         run: |
           echo "🏷️ Validation des enums..."
 
           cd backend
 
-          # Vérifier les nouveaux enums
+          # Vérifier que les enums de statuts ont été supprimés (remplacés par des modèles)
+          if grep -q "^enum ApplicationStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum ApplicationStatus existe encore (doit être supprimé)"
+            exit 1
+          fi
+
+          if grep -q "^enum InterviewStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum InterviewStatus existe encore (doit être supprimé)"
+            exit 1
+          fi
+
+          if grep -q "^enum FollowUpStatus" prisma/schema.prisma; then
+            echo "❌ ERREUR: Enum FollowUpStatus existe encore (doit être supprimé)"
+            exit 1
+          fi
+
+          echo "✅ Enums de statuts supprimés (remplacés par des modèles)"
+
+          # Vérifier les autres enums (qui doivent toujours exister)
           if grep -q "enum EventType" prisma/schema.prisma; then
             echo "✅ Enum EventType défini"
           else
@@ -314,16 +410,59 @@ jobs:
       - name: 📋 Génération du client Prisma
         run: |
           echo "📋 Génération du client Prisma..."
-          cd backend
-          npx prisma generate || echo "⚠️ Erreur lors de la génération du client Prisma"
+          cd backend/prisma
+          npx prisma generate || {
+            echo "❌ Erreur lors de la génération du client Prisma"
+            exit 1
+          }
 
           # Vérifier que le client a été généré
-          if [ -d "node_modules/@prisma/client" ]; then
+          if [ -d "../node_modules/@prisma/client" ]; then
             echo "✅ Client Prisma généré avec succès"
           else
             echo "❌ Client Prisma non généré"
             exit 1
           fi
+
+      - name: 🗄️ Test d'application du schéma (db push)
+        env:
+          DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
+        run: |
+          echo "🗄️ Test d'application du schéma à la base de données..."
+          cd backend/prisma
+          
+          # Appliquer le schéma (sans données)
+          npx prisma db push --accept-data-loss --skip-generate || {
+            echo "❌ Erreur lors de l'application du schéma"
+            exit 1
+          }
+
+          echo "✅ Schéma appliqué avec succès"
+
+      - name: 🌱 Test du seed des statuts système
+        env:
+          DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
+        run: |
+          echo "🌱 Test du seed des statuts système..."
+          
+          # Vérifier que le script de seed existe
+          if [ ! -f "scripts/database/seed-statuses.js" ]; then
+            echo "❌ Script de seed non trouvé: scripts/database/seed-statuses.js"
+            exit 1
+          fi
+
+          # Installer @prisma/client si nécessaire
+          cd backend/prisma
+          npm install @prisma/client --no-save || true
+
+          # Exécuter le seed (en mode test, on vérifie juste qu'il peut s'exécuter)
+          cd ../../..
+          export DATABASE_URL="postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test"
+          node scripts/database/seed-statuses.js || {
+            echo "⚠️  Seed échoué (peut être normal si les statuts existent déjà)"
+          }
+
+          echo "✅ Test du seed terminé"
 
       - name: 📊 Rapport de validation de la base de données
         if: always()

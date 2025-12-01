@@ -48,6 +48,74 @@ jobs:
         working-directory: backend/prisma
         run: npx prisma format --check
 
+      - name: Verify Status Models (Tables, not Enums)
+        working-directory: backend/prisma
+        run: |
+          echo "🔍 Vérification des modèles de statuts personnalisables..."
+          
+          # Vérifier que les modèles de statuts existent (tables)
+          if grep -q "^model ApplicationStatus {" schema.prisma; then
+            echo "✅ Modèle ApplicationStatus trouvé (table)"
+          else
+            echo "❌ Modèle ApplicationStatus manquant"
+            exit 1
+          fi
+
+          if grep -q "^model InterviewStatus {" schema.prisma; then
+            echo "✅ Modèle InterviewStatus trouvé (table)"
+          else
+            echo "❌ Modèle InterviewStatus manquant"
+            exit 1
+          fi
+
+          if grep -q "^model FollowUpStatus {" schema.prisma; then
+            echo "✅ Modèle FollowUpStatus trouvé (table)"
+          else
+            echo "❌ Modèle FollowUpStatus manquant"
+            exit 1
+          fi
+
+          # Vérifier que les enums ont été supprimés
+          if grep -q "^enum ApplicationStatus" schema.prisma; then
+            echo "❌ ERREUR: Enum ApplicationStatus existe encore"
+            exit 1
+          fi
+
+          if grep -q "^enum InterviewStatus" schema.prisma; then
+            echo "❌ ERREUR: Enum InterviewStatus existe encore"
+            exit 1
+          fi
+
+          if grep -q "^enum FollowUpStatus" schema.prisma; then
+            echo "❌ ERREUR: Enum FollowUpStatus existe encore"
+            exit 1
+          fi
+
+          echo "✅ Modèles de statuts validés (tables, pas enums)"
+
+      - name: Verify Synchronization Fields
+        working-directory: backend/prisma
+        run: |
+          echo "🔍 Vérification des champs de synchronisation..."
+          
+          # Compter les occurrences de champs de synchronisation
+          SYNC_COUNT=$(grep -c "syncHash\|entityHash\|lastSyncAt" schema.prisma || echo "0")
+          
+          if [ "$SYNC_COUNT" -ge 3 ]; then
+            echo "✅ Champs de synchronisation présents ($SYNC_COUNT occurrences)"
+          else
+            echo "⚠️  Champs de synchronisation: $SYNC_COUNT occurrences (attendu: au moins 3)"
+          fi
+
+          # Vérifier dans les modèles applicatifs principaux
+          for model in Application Company Contact FollowUp Interview Call Event Document; do
+            if grep -A 30 "^model $model {" schema.prisma | grep -q "syncHash"; then
+              echo "✅ $model a les champs de synchronisation"
+            else
+              echo "⚠️  $model n'a pas de champs de synchronisation"
+            fi
+          done
+
       - name: Generate Prisma Client
         working-directory: backend/prisma
         run: npx prisma generate
