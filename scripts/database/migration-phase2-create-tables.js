@@ -129,8 +129,14 @@ async function addStatusModelsToSchema() {
   console.log('📝 Lecture du schéma Prisma...');
   let schema = await readSchema();
 
-  // Vérifier si les modèles existent déjà
-  if (schema.includes('model ApplicationStatus')) {
+  // Vérifier si les modèles existent déjà (vérifier le modèle exact, pas ApplicationStatusHistory)
+  if (schema.includes('model ApplicationStatus {') && !schema.includes('model ApplicationStatusHistory')) {
+    console.log('⚠️  Le modèle ApplicationStatus existe déjà dans le schéma');
+    return false;
+  }
+  // Vérifier plus précisément avec regex
+  const applicationStatusModelPattern = /^model ApplicationStatus\s*\{/m;
+  if (applicationStatusModelPattern.test(schema)) {
     console.log('⚠️  Le modèle ApplicationStatus existe déjà dans le schéma');
     return false;
   }
