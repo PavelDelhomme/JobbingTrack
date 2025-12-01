@@ -102,6 +102,11 @@ model Company {
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
 
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
+
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -147,9 +152,9 @@ model Application {
   workMode     WorkMode? // Présentiel/Distanciel/Hybride
 
   // Candidature
-  applicationDate DateTime          @default(now())
-  applicationType ApplicationType   @default(OFFRE) // Spontanée ou à une offre
-  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  applicationDate DateTime        @default(now())
+  applicationType ApplicationType @default(OFFRE) // Spontanée ou à une offre
+  statusId        String // Relation vers ApplicationStatus
 
   // Rémunération
   salaryMin        Int? // en euros/an
@@ -164,15 +169,21 @@ model Application {
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
 
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
+
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relations
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company  Company   @relation(fields: [companyId], references: [id])
-  platform Platform? @relation(fields: [platformId], references: [id])
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company  Company           @relation(fields: [companyId], references: [id])
+  platform Platform?         @relation(fields: [platformId], references: [id])
+  status   ApplicationStatus @relation(fields: [statusId], references: [id])
 
   contacts      ContactApplication[] // Many-to-many
   followUps     FollowUp[]
@@ -184,7 +195,7 @@ model Application {
 
   @@index([userId])
   @@index([companyId])
-  @@index([status])
+  @@index([statusId])
   @@index([applicationDate])
   @@index([isTestData])
 }
@@ -210,20 +221,7 @@ enum ApplicationType {
   SPONTANEE // Candidature spontanée
 }
 
-enum ApplicationStatus {
-  CANDIDATE_PENDING // Candidaté et en attente
-  NO_RESPONSE // Aucune réponse
-  NO_RESPONSE_AFTER_FIRST_FOLLOWUP // Aucune réponse après 1 relance
-  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // Aucune réponse après 2 relances
-  FIRST_INTERVIEW_PENDING // 1er entretien en attente
-  OTHER_INTERVIEW_PENDING // Autre entretien en attente
-  TECHNICAL_TEST_PENDING // Test technique en cours
-  OFFER_RECEIVED // Offre reçue
-  ACCEPTED_AFTER_INTERVIEW // Retenue après entretien
-  REJECTED_WITHOUT_INTERVIEW // Non retenue sans entretien
-  REJECTED_AFTER_INTERVIEW // Non retenue après entretien
-  WITHDRAWN // Candidature retirée
-}
+// Enum ApplicationStatus supprimé - Remplacé par le modèle ApplicationStatus
 
 // ============================================
 // 👥 CONTACTS
@@ -247,6 +245,11 @@ model Contact {
 
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
+
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -282,12 +285,17 @@ model FollowUp {
 
   // Informations de la relance
   followUpDate DateTime
-  status       FollowUpStatus @default(PENDING)
+  statusId     String // Relation vers FollowUpStatus
   response     String? // Réponse reçue
   notes        String?
 
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
+
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -300,6 +308,7 @@ model FollowUp {
   company        Company         @relation(fields: [companyId], references: [id])
   followUpType   FollowUpType?   @relation(fields: [followUpTypeId], references: [id])
   followUpMethod FollowUpMethod? @relation(fields: [followUpMethodId], references: [id])
+  status         FollowUpStatus  @relation(fields: [statusId], references: [id])
 
   contacts FollowUpContact[] // Many-to-many
   calls    Call[]
@@ -307,18 +316,12 @@ model FollowUp {
 
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([followUpDate])
   @@index([isTestData])
 }
 
-enum FollowUpStatus {
-  PENDING // Relance en attente
-  POSITIVE_RESPONSE // Retour positif reçu
-  NEGATIVE_RESPONSE // Retour négatif reçu
-  NO_RESPONSE // Aucun retour
-  PLANNED // Relance prévisionnelle
-}
+// Enum FollowUpStatus supprimé - Remplacé par le modèle FollowUpStatus
 
 // ============================================
 // 📞 APPELS
@@ -342,6 +345,11 @@ model Call {
 
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
+
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -388,7 +396,7 @@ model Interview {
   estimatedDuration Int? // Durée estimée en minutes
   location          String? // Lieu physique
   videoLink         String? // Lien visio
-  status            InterviewStatus @default(SCHEDULED)
+  statusId          String // Relation vers InterviewStatus
 
   // Retour attendu
   feedbackExpectedFrom DateTime? // Début plage de retour
@@ -402,6 +410,11 @@ model Interview {
   // Données de test
   isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
 
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
+
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -413,50 +426,47 @@ model Interview {
   company        Company         @relation(fields: [companyId], references: [id])
   interviewType  InterviewType?  @relation(fields: [interviewTypeId], references: [id])
   interviewStyle InterviewStyle? @relation(fields: [interviewStyleId], references: [id])
+  status         InterviewStatus @relation(fields: [statusId], references: [id])
 
   contacts InterviewContact[] // Many-to-many
   events   Event[]
 
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([interviewDate])
   @@index([isTestData])
 }
 
-enum InterviewStatus {
-  SCHEDULED // Entretien programmé
-  COMPLETED // Entretien passé
-  FEEDBACK_PENDING // En attente de retour
-  CANCELLED // Annulé
-  RESCHEDULED // Reporté
-}
+// Enum InterviewStatus supprimé - Remplacé par le modèle InterviewStatus
 
 // ============================================
 // 📊 ApplicationStatus - Statuts Personnalisables
 // ============================================
 
 model ApplicationStatus {
-  id            String    @id @default(cuid())
-  code          String    @unique // Code unique du statut (ex: CANDIDATE_PENDING)
-  name          String              // Nom affiché (ex: "Candidaté")
-  description   String?             // Description du statut
-  order         Int                 // Ordre d'affichage
-  color         String?             // Couleur hexadécimale (ex: "#3B82F6")
-  icon          String?             // Nom de l'icône (ex: "Clock")
-  
+  id          String  @id @default(cuid())
+  code        String  @unique // Code unique du statut (ex: CANDIDATE_PENDING)
+  name        String // Nom affiché (ex: "Candidaté")
+  description String? // Description du statut
+  order       Int // Ordre d'affichage
+  color       String? // Couleur hexadécimale (ex: "#3B82F6")
+  icon        String? // Nom de l'icône (ex: "Clock")
+
   // Personnalisation
-  userId        String?             // null = statut système, String = statut utilisateur
-  isPredefined  Boolean   @default(false) // true = statut système, false = statut utilisateur
-  isActive      Boolean   @default(true)   // Statut actif/inactif
-  
+  userId       String? // null = statut système, String = statut utilisateur
+  isPredefined Boolean @default(false) // true = statut système, false = statut utilisateur
+  isActive     Boolean @default(true) // Statut actif/inactif
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  applications    Application[] // Relations vers les entités
-  
+  applications            Application[] // Relations vers les entités
+  previousStatusHistories ApplicationStatusHistory[] @relation("PreviousStatus")
+  newStatusHistories      ApplicationStatusHistory[] @relation("NewStatus")
+
   @@index([code])
   @@index([userId])
   @@index([isPredefined])
@@ -469,26 +479,26 @@ model ApplicationStatus {
 // ============================================
 
 model InterviewStatus {
-  id            String    @id @default(cuid())
-  code          String    @unique // Code unique du statut (ex: CANDIDATE_PENDING)
-  name          String              // Nom affiché (ex: "Candidaté")
-  description   String?             // Description du statut
-  order         Int                 // Ordre d'affichage
-  color         String?             // Couleur hexadécimale (ex: "#3B82F6")
-  icon          String?             // Nom de l'icône (ex: "Clock")
-  
+  id          String  @id @default(cuid())
+  code        String  @unique // Code unique du statut (ex: CANDIDATE_PENDING)
+  name        String // Nom affiché (ex: "Candidaté")
+  description String? // Description du statut
+  order       Int // Ordre d'affichage
+  color       String? // Couleur hexadécimale (ex: "#3B82F6")
+  icon        String? // Nom de l'icône (ex: "Clock")
+
   // Personnalisation
-  userId        String?             // null = statut système, String = statut utilisateur
-  isPredefined  Boolean   @default(false) // true = statut système, false = statut utilisateur
-  isActive      Boolean   @default(true)   // Statut actif/inactif
-  
+  userId       String? // null = statut système, String = statut utilisateur
+  isPredefined Boolean @default(false) // true = statut système, false = statut utilisateur
+  isActive     Boolean @default(true) // Statut actif/inactif
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  interviews    Interview[] // Relations vers les entités
-  
+  interviews Interview[] // Relations vers les entités
+
   @@index([code])
   @@index([userId])
   @@index([isPredefined])
@@ -501,34 +511,32 @@ model InterviewStatus {
 // ============================================
 
 model FollowUpStatus {
-  id            String    @id @default(cuid())
-  code          String    @unique // Code unique du statut (ex: CANDIDATE_PENDING)
-  name          String              // Nom affiché (ex: "Candidaté")
-  description   String?             // Description du statut
-  order         Int                 // Ordre d'affichage
-  color         String?             // Couleur hexadécimale (ex: "#3B82F6")
-  icon          String?             // Nom de l'icône (ex: "Clock")
-  
+  id          String  @id @default(cuid())
+  code        String  @unique // Code unique du statut (ex: CANDIDATE_PENDING)
+  name        String // Nom affiché (ex: "Candidaté")
+  description String? // Description du statut
+  order       Int // Ordre d'affichage
+  color       String? // Couleur hexadécimale (ex: "#3B82F6")
+  icon        String? // Nom de l'icône (ex: "Clock")
+
   // Personnalisation
-  userId        String?             // null = statut système, String = statut utilisateur
-  isPredefined  Boolean   @default(false) // true = statut système, false = statut utilisateur
-  isActive      Boolean   @default(true)   // Statut actif/inactif
-  
+  userId       String? // null = statut système, String = statut utilisateur
+  isPredefined Boolean @default(false) // true = statut système, false = statut utilisateur
+  isActive     Boolean @default(true) // Statut actif/inactif
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  followUps    FollowUp[] // Relations vers les entités
-  
+  followUps FollowUp[] // Relations vers les entités
+
   @@index([code])
   @@index([userId])
   @@index([isPredefined])
   @@index([isActive])
   @@index([order])
 }
-
-
 
 enum InterviewOutcome {
   POSITIVE // Retour positif
@@ -595,15 +603,17 @@ model Event {
 // ============================================
 
 model ApplicationStatusHistory {
-  id             String            @id @default(cuid())
-  applicationId  String
-  previousStatus ApplicationStatus
-  newStatus      ApplicationStatus
-  comment        String?
-  changedAt      DateTime          @default(now())
+  id               String   @id @default(cuid())
+  applicationId    String
+  previousStatusId String? // Relation vers ApplicationStatus (peut être null si premier statut)
+  newStatusId      String // Relation vers ApplicationStatus
+  comment          String?
+  changedAt        DateTime @default(now())
 
-  // Relation
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  // Relations
+  application    Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus ApplicationStatus? @relation("PreviousStatus", fields: [previousStatusId], references: [id])
+  newStatus      ApplicationStatus  @relation("NewStatus", fields: [newStatusId], references: [id])
 
   @@index([applicationId])
   @@index([changedAt])
@@ -625,6 +635,14 @@ model Document {
   fileSize     Int // en bytes
   mimeType     String
 
+  // Données de test
+  isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
+
+  // Synchronisation
+  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
+  entityHash String? // Hash de l'entité complète pour comparaison
+  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
+
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -637,6 +655,7 @@ model Document {
   @@index([userId])
   @@index([applicationId])
   @@index([documentType])
+  @@index([isTestData])
 }
 
 enum DocumentType {
