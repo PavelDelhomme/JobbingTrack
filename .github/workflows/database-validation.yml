@@ -182,6 +182,50 @@ jobs:
             exit 1
           fi
           
+          # Vérifier que les tables de statuts existent
+          if psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ApplicationStatus');" | grep -q t; then
+            echo "✅ Table ApplicationStatus existe"
+          else
+            echo "❌ Table ApplicationStatus manquante"
+            exit 1
+          fi
+
+          if psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InterviewStatus');" | grep -q t; then
+            echo "✅ Table InterviewStatus existe"
+          else
+            echo "❌ Table InterviewStatus manquante"
+            exit 1
+          fi
+
+          if psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'FollowUpStatus');" | grep -q t; then
+            echo "✅ Table FollowUpStatus existe"
+          else
+            echo "❌ Table FollowUpStatus manquante"
+            exit 1
+          fi
+
+          # Vérifier les statuts système (doivent être créés par le seed)
+          APP_STATUS_COUNT=$(psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"ApplicationStatus\" WHERE \"isPredefined\" = true;" | tr -d ' ')
+          if [ "$APP_STATUS_COUNT" -ge 12 ]; then
+            echo "✅ Statuts système ApplicationStatus créés ($APP_STATUS_COUNT/12)"
+          else
+            echo "⚠️  Statuts système ApplicationStatus: $APP_STATUS_COUNT/12 (seed nécessaire)"
+          fi
+
+          INT_STATUS_COUNT=$(psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"InterviewStatus\" WHERE \"isPredefined\" = true;" | tr -d ' ')
+          if [ "$INT_STATUS_COUNT" -ge 5 ]; then
+            echo "✅ Statuts système InterviewStatus créés ($INT_STATUS_COUNT/5)"
+          else
+            echo "⚠️  Statuts système InterviewStatus: $INT_STATUS_COUNT/5 (seed nécessaire)"
+          fi
+
+          FOL_STATUS_COUNT=$(psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"FollowUpStatus\" WHERE \"isPredefined\" = true;" | tr -d ' ')
+          if [ "$FOL_STATUS_COUNT" -ge 5 ]; then
+            echo "✅ Statuts système FollowUpStatus créés ($FOL_STATUS_COUNT/5)"
+          else
+            echo "⚠️  Statuts système FollowUpStatus: $FOL_STATUS_COUNT/5 (seed nécessaire)"
+          fi
+          
           # Count Foreign Keys
           FKS=$(psql -h localhost -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY';")
           echo "🔗 Foreign Keys: $FKS"
