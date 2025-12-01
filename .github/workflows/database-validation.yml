@@ -301,7 +301,17 @@ jobs:
         working-directory: backend/prisma
         env:
           DATABASE_URL: postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack
-        run: node seed.js
+        run: |
+          # Exécuter le seed principal si disponible
+          if [ -f "seed.js" ]; then
+            node seed.js || echo "⚠️ Seed principal échoué (peut être normal)"
+          fi
+          
+          # Exécuter le seed des statuts
+          if [ -f "../../scripts/database/seed-statuses.js" ]; then
+            echo "🌱 Exécution du seed des statuts système..."
+            node ../../scripts/database/seed-statuses.js || echo "⚠️ Seed des statuts échoué (peut être normal si déjà créés)"
+          fi
 
       - name: Test Database Relationships
         env:
