@@ -132,7 +132,7 @@ services:
       - CADVISOR_URL=http://jobbingtrack-cadvisor:8080
       - PROMETHEUS_URL=http://jobbingtrack-prometheus:9090
       - LOKI_URL=http://jobbingtrack-loki:3100
-      - FRONTEND_URL=http://localhost:8080
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:9393}
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
