@@ -501,7 +501,7 @@ services:
       - NODE_ENV=development
       - PORT=3017
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - FRONTEND_URL=http://localhost:8080
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:9393}
       - LOG_LEVEL=info
       - SECURITY_SERVICE_URL=http://security-service:3017
     depends_on:
