@@ -6,10 +6,12 @@ on:
       - main
       - develop
       - tech/**
+      - database/**
     paths:
       - 'backend/prisma/schema.prisma'
       - 'backend/prisma/seed.js'
       - 'backend/prisma/migrations/**'
+      - 'scripts/database/**'
       - '.github/workflows/database-validation.yml'
   pull_request:
     branches:
@@ -19,6 +21,7 @@ on:
       - 'backend/prisma/schema.prisma'
       - 'backend/prisma/seed.js'
       - 'backend/prisma/migrations/**'
+      - 'scripts/database/**'
 
 jobs:
   validate-schema:
