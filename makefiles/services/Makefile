@@ -89,8 +89,8 @@ setup: ## Setup complet du projet (installation initiale)
 	@echo "✅ Setup terminé !"
 	@echo ""
 	@echo "🌐 Accès aux services :"
-	@echo "  - Frontend:    http://localhost:8080"
-	@echo "  - API Gateway: http://localhost:3000"
+	@echo "  - Frontend:    http://localhost:5003"
+	@echo "  - API Gateway: http://localhost:5002"
 	@echo ""
 	@echo "🔑 Identifiants Admin :"
 	@echo "  Email:    admin@jobbingtrack.com"
@@ -146,7 +146,7 @@ fix-frontend: ## Rebuild et redémarrer le frontend (fix erreurs JavaScript)
 	@echo ""
 	@echo "✅ Frontend fixé !"
 	@echo ""
-	@echo "🌐 Accès: http://localhost:8080"
+	@echo "🌐 Accès: http://localhost:5003"
 	@echo ""
 	@echo "📋 Vérifier les logs: make logs-service SERVICE=frontend"
 
@@ -218,11 +218,11 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
 	@echo "🌐 Interfaces disponibles :"
-	@echo "   Frontend:           http://localhost:8080"
-	@echo "   API Gateway:        http://localhost:3000"
-	@echo "   Auth Service:       http://localhost:8001"
-	@echo "   Dashboard Service:  http://localhost:8012"
-	@echo "   Metrics:            http://localhost:8014"
+	@echo "   Frontend:           http://localhost:5003"
+	@echo "   API Gateway:        http://localhost:5002"
+	@echo "   Auth Service:       http://localhost:5005"
+	@echo "   Dashboard Service:  http://localhost:5015"
+	@echo "   Metrics:            http://localhost:5004"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
 	@echo "   Email:    ${ADMIN_EMAIL:-admin@jobbingtrack.com}"
@@ -240,8 +240,8 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	@echo "✅ Services démarrés (mode NO-CHECK)!"
 	@echo ""
 	@echo "🌐 Interfaces disponibles :"
-	@echo "   Frontend:    http://localhost:8080"
-	@echo "   API Gateway: http://localhost:3000"
+	@echo "   Frontend:    http://localhost:5003"
+	@echo "   API Gateway: http://localhost:5002"
 	@echo ""
 	@echo "💡 Utilisez 'make up' si les vérifications Docker fonctionnent"
 
@@ -286,7 +286,7 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "🌐 Services Actifs :"
 	@echo "   ✅ PostgreSQL       - Base de données"
 	@echo "   ✅ Redis            - Cache"
-	@echo "   ✅ API Gateway      - http://localhost:3000"
+	@echo "   ✅ API Gateway      - http://localhost:5002"
 	@echo "   ✅ Auth Service     - Authentification"
 	@echo "   ✅ Dashboard        - Statistiques"
 	@echo "   ✅ Applications     - Candidatures"
@@ -295,12 +295,12 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "   ✅ Events           - Événements calendrier"
 	@echo "   ✅ Followups        - Relances"
 	@echo "   ✅ Calls            - Appels téléphoniques"
-	@echo "   ✅ Frontend         - http://localhost:8080"
-	@echo "   ✅ Metrics Aggreg.  - http://localhost:8014 (monitoring)"
+	@echo "   ✅ Frontend         - http://localhost:5003"
+	@echo "   ✅ Metrics Aggreg.  - http://localhost:5004 (monitoring)"
 	@echo ""
 	@echo "🧪 Pages de Test :"
-	@echo "   📋 User Journey  : http://localhost:8080/backoffice/user-journey"
-	@echo "   📊 Statistiques  : http://localhost:8080/backoffice"
+	@echo "   📋 User Journey  : http://localhost:5003/backoffice/user-journey"
+	@echo "   📊 Statistiques  : http://localhost:5003/backoffice"
 	@echo ""
 	@echo "🔑 Identifiants :"
 	@echo "   Email:    admin@jobbingtrack.com"
@@ -356,20 +356,20 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   # Exemple: flutter run -d RZ8N41234AB (Android physique)"
 	@echo ""
 	@echo "🌐 Ou utilisez l'émulateur mobile intégré :"
-	@echo "   http://localhost:8080/backoffice/mobile-emulator"
+	@echo "   http://localhost:5003/backoffice/mobile-emulator"
 	@echo ""
 	@echo "================================================================"
 	@echo "✅ PROJET COMPLET DÉMARRÉ !"
 	@echo "================================================================"
 	@echo ""
 	@echo "🌐 Interfaces disponibles :"
-	@echo "   Frontend/Backoffice:  http://localhost:8080"
-	@echo "   API Gateway:          http://localhost:3000"
-	@echo "   Auth Service:         http://localhost:8001"
-	@echo "   Dashboard Service:    http://localhost:8012"
-	@echo "   Metrics:              http://localhost:8014"
-	@echo "   Émulateur Mobile:     http://localhost:8080/backoffice/mobile-emulator"
-	@echo "   Parcours Utilisateur: http://localhost:8080/backoffice/user-journey"
+	@echo "   Frontend/Backoffice:  http://localhost:5003"
+	@echo "   API Gateway:          http://localhost:5002"
+	@echo "   Auth Service:         http://localhost:5005"
+	@echo "   Dashboard Service:    http://localhost:5015"
+	@echo "   Metrics:              http://localhost:5004"
+	@echo "   Émulateur Mobile:     http://localhost:5003/backoffice/mobile-emulator"
+	@echo "   Parcours Utilisateur: http://localhost:5003/backoffice/user-journey"
 	@echo ""
 	@echo "📱 Application Mobile Flutter :"
 	@echo "   - Connectez votre smartphone et lancez: cd mobile && flutter run"
@@ -449,9 +449,9 @@ _up-full-internal:
 	@echo "✅ Tous les services ont été démarrés"
 	@echo ""
 	@echo "🌐 Accès aux services :"
-	@echo "  - Frontend:           http://localhost:8080"
-	@echo "  - API Gateway:        http://localhost:3000"
-	@echo "  - Metrics Aggregator: http://localhost:8014"
+	@echo "  - Frontend:           http://localhost:5003"
+	@echo "  - API Gateway:        http://localhost:5002"
+	@echo "  - Metrics Aggregator: http://localhost:5004"
 	@echo ""
 	
 	# Vérification Prisma migrations
@@ -877,11 +877,13 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo ""
 	@echo "🔍 Vérification des tables Prisma..."
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
-		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
-		if [ -n "$$TABLE_COUNT" ] && [ "$$TABLE_COUNT" != "0" ] && [ "$$TABLE_COUNT" -gt "0" ] 2>/dev/null; then \
+		POSTGRES_USER=$${POSTGRES_USER:-jobbingtrack}; \
+		POSTGRES_DB=$${POSTGRES_DB:-jobbingtrack}; \
+		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U $$POSTGRES_USER -d $$POSTGRES_DB -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
+		if [ -n "$$TABLE_COUNT" ] && [ "$$TABLE_COUNT" != "0" ] && [ "$$TABLE_COUNT" != "" ] && [ "$$TABLE_COUNT" -gt "0" ] 2>/dev/null; then \
 			echo -e "\033[0;32m✅ Base de données OK ($$TABLE_COUNT tables)\033[0m"; \
 		else \
-			echo -e "\033[1;33m⚠️  Base de données vide ou inaccessible\033[0m"; \
+			echo -e "\033[1;33m⚠️  Base de données vide ou inaccessible (tables: $$TABLE_COUNT)\033[0m"; \
 			echo -e "\033[1;33m💡 Exécutez 'make db-push-all' pour créer toutes les tables\033[0m"; \
 		fi; \
 	else \
