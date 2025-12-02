@@ -27,7 +27,7 @@ const getUserById = async (req, res) => {
           emailVerified: true,
           emailVerifiedAt: true,
           lastLoginAt: true,
-          loginCount: true,
+          // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
           createdAt: true,
           updatedAt: true
         }
@@ -51,7 +51,7 @@ const getUserById = async (req, res) => {
               emailVerified: true,
               emailVerifiedAt: new Date(),
               lastLoginAt: new Date(),
-              loginCount: 0,
+              // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
               createdAt: new Date(),
               updatedAt: new Date()
             }
@@ -96,7 +96,7 @@ const getUserById = async (req, res) => {
             emailVerified: true,
             emailVerifiedAt: new Date(),
             lastLoginAt: new Date(),
-            loginCount: 0,
+            // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
             createdAt: new Date(),
             updatedAt: new Date()
           }

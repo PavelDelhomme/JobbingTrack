@@ -239,6 +239,9 @@ export default function ServicesPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Ports
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -258,16 +261,32 @@ export default function ServicesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
+                        {/* État Docker (running, stopped, etc.) */}
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          service.is_healthy 
+                          service.is_running
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         }`}>
-                          {service.status}
+                          {service.is_running ? 'running' : service.status}
                         </span>
-                        {!service.is_healthy && service.health_status && (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        {/* Health status Docker (none, healthy, unhealthy, starting) */}
+                        {service.is_running && service.health_status && service.health_status !== 'none' && (
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            service.health_status === 'healthy'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : service.health_status === 'unhealthy'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              : service.health_status === 'starting'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                          }`}>
                             {service.health_status}
+                          </span>
+                        )}
+                        {/* Afficher "none" seulement si le service est running mais sans healthcheck */}
+                        {service.is_running && (!service.health_status || service.health_status === 'none') && (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                            none
                           </span>
                         )}
                       </div>
@@ -293,6 +312,66 @@ export default function ServicesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {service.ports || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        {!service.is_running ? (
+                          <button
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const serviceName = service.name.replace('jobbingtrack-', '');
+                              try {
+                                const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/start`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' }
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  setTimeout(() => loadServices(), 1000);
+                                } else {
+                                  alert(`Erreur: ${data.error}`);
+                                }
+                              } catch (error) {
+                                console.error('Erreur démarrage service:', error);
+                                alert('Erreur lors du démarrage du service');
+                              }
+                            }}
+                            title="Démarrer le service"
+                          >
+                            <Play className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm(`Êtes-vous sûr de vouloir arrêter ${service.name.replace('jobbingtrack-', '')} ?`)) {
+                                return;
+                              }
+                              const serviceName = service.name.replace('jobbingtrack-', '');
+                              try {
+                                const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/stop`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' }
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  setTimeout(() => loadServices(), 1000);
+                                } else {
+                                  alert(`Erreur: ${data.error}`);
+                                }
+                              } catch (error) {
+                                console.error('Erreur arrêt service:', error);
+                                alert('Erreur lors de l\'arrêt du service');
+                              }
+                            }}
+                            title="Arrêter le service"
+                          >
+                            <Square className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -354,8 +433,28 @@ export default function ServicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          onClick={() => console.log('TODO: Démarrer', service.name)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const serviceName = service.name.replace('jobbingtrack-', '');
+                            try {
+                              const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/start`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                // Rafraîchir la liste après 1 seconde
+                                setTimeout(() => loadServices(), 1000);
+                              } else {
+                                alert(`Erreur: ${data.error}`);
+                              }
+                            } catch (error) {
+                              console.error('Erreur démarrage service:', error);
+                              alert('Erreur lors du démarrage du service');
+                            }
+                          }}
+                          title="Démarrer le service"
                         >
                           <Play className="h-5 w-5" />
                         </button>

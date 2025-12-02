@@ -303,6 +303,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
     depends_on:
       postgres:
         condition: service_healthy
@@ -325,6 +326,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
     depends_on:
       postgres:
         condition: service_healthy
@@ -369,6 +371,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
     depends_on:
       postgres:
         condition: service_healthy
@@ -435,12 +438,21 @@ services:
     container_name: jobbingtrack-dashboard-service
     ports:
       - "${DASHBOARD_SERVICE_PORT:-5015}:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}"
+    volumes:
+      # ✅ Monter le code source pour le développement (hot reload)
+      - ./backend/dashboard-service/src:/app/src
+      - ./backend/dashboard-service/package.json:/app/package.json:ro
+    command: npm start
     environment:
       - NODE_ENV=development
       - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
-      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - APPLICATION_SERVICE_URL=http://jobbingtrack-application-service:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}
+      - COMPANY_SERVICE_URL=http://jobbingtrack-company-service:${COMPANY_SERVICE_INTERNAL_PORT:-3003}
+      - CONTACT_SERVICE_URL=http://jobbingtrack-contact-service:${CONTACT_SERVICE_INTERNAL_PORT:-3004}
+      - INTERVIEW_SERVICE_URL=http://jobbingtrack-interview-service:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}
     depends_on:
       postgres:
         condition: service_healthy

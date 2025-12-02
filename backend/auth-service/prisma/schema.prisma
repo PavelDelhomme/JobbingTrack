@@ -68,6 +68,13 @@ model User {
   syncQueue         SyncQueue[]
   emailLogs         EmailLog[]          // Logs des emails envoyés
   
+  // Relations Analytics & Tracking
+  sessions          UserSession[]
+  userEvents        UserEvent[]
+  userErrors        UserError[]
+  userPerformances  UserPerformance[]
+  devices           DeviceInfo[]
+  
   @@index([email])
   @@index([role])
   @@index([isActive])
@@ -894,4 +901,205 @@ model UserCustomization {
   updatedAt DateTime @updatedAt
   
   @@index([userId])
+}
+
+// ============================================
+// 📊 TRACKING & ANALYTICS UTILISATEUR
+// ============================================
+
+// Sessions utilisateur (web et mobile)
+model UserSession {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String   @unique
+  deviceId        String?  // Identifiant unique de l'appareil
+  platform        String   // "web", "ios", "android"
+  userAgent       String?
+  ipAddress       String?
+  
+  // Informations appareil
+  deviceModel     String?  // iPhone 13, Samsung Galaxy S21, etc.
+  osName          String?  // iOS, Android, Windows, macOS, Linux
+  osVersion       String?  // 15.0, 12, etc.
+  browserName     String?  // Chrome, Safari, Firefox, etc.
+  browserVersion  String?  // 120.0, etc.
+  screenWidth     Int?
+  screenHeight    Int?
+  language        String?  // fr, en, etc.
+  timezone        String?  // Europe/Paris, etc.
+  
+  // Métadonnées session
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  duration        Int?     // secondes
+  isActive        Boolean  @default(true)
+  pageViews       Int      @default(0)
+  actions         Int      @default(0)
+  errors          Int      @default(0)
+  
+  // Relations
+  events          UserEvent[]
+  errors          UserError[]
+  performances    UserPerformance[]
+  
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([deviceId])
+  @@index([startTime])
+  @@index([platform])
+  @@index([isActive])
+  @@map("user_sessions")
+}
+
+// Événements utilisateur (clics, navigation, etc.)
+model UserEvent {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String
+  deviceId    String?
+  
+  // Type d'événement
+  eventType   String   // "click", "navigation", "form_submit", "notification_received", etc.
+  eventName   String   // "button_click", "page_view", "notification_relance", etc.
+  category    String?  // "ui", "navigation", "notification", "form", etc.
+  
+  // Détails
+  elementId   String?  // ID de l'élément cliqué
+  elementType String?  // "button", "link", "input", etc.
+  elementText String?  // Texte de l'élément
+  page        String?  // URL ou nom de la page
+  properties  Json?    // Propriétés additionnelles
+  
+  // Contexte
+  timestamp   DateTime @default(now())
+  platform    String   // "web", "ios", "android"
+  appVersion  String?  // Version de l'app
+  
+  // Relations
+  session     UserSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([eventName])
+  @@index([timestamp])
+  @@index([category])
+  @@map("user_events")
+}
+
+// Erreurs et logs utilisateur
+model UserError {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  deviceId    String?
+  
+  // Type d'erreur
+  errorType   String   // "javascript", "api", "network", "crash", etc.
+  errorName   String   // "TypeError", "NetworkError", etc.
+  errorMessage String
+  stackTrace  String?  // Stack trace (sanitized)
+  
+  // Contexte
+  page        String?  // URL ou nom de la page
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  platform    String   // "web", "ios", "android"
+  appVersion  String?
+  
+  // Métadonnées
+  severity    String   @default("error") // "error", "warning", "critical"
+  resolved    Boolean  @default(false)
+  properties  Json?    // Propriétés additionnelles
+  
+  // Relations
+  session     UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([errorType])
+  @@index([severity])
+  @@index([timestamp])
+  @@index([resolved])
+  @@map("user_errors")
+}
+
+// Métriques de performance
+model UserPerformance {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  deviceId        String?
+  
+  // Type de métrique
+  metricType      String   // "page_load", "api_call", "render", "memory", "battery", etc.
+  metricName      String   // Nom spécifique (ex: "load_applications", "api_get_users")
+  
+  // Valeurs
+  value           Float?   // Valeur principale
+  duration        Int?     // Durée en millisecondes
+  memoryUsage     Float?   // MB
+  cpuUsage        Float?   // pourcentage
+  networkLatency  Int?     // ms
+  networkType     String?  // "wifi", "4g", "5g", "ethernet"
+  
+  // Contexte
+  page            String?  // URL ou nom de la page
+  timestamp       DateTime @default(now())
+  platform        String   // "web", "ios", "android"
+  appVersion      String?
+  
+  // Relations
+  session         UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([metricType])
+  @@index([metricName])
+  @@index([timestamp])
+  @@map("user_performances")
+}
+
+// Informations appareil (pour tracking mobile)
+model DeviceInfo {
+  id              String   @id @default(cuid())
+  userId          String?
+  deviceId        String   @unique
+  
+  // Informations appareil
+  platform        String   // "ios", "android", "web"
+  deviceModel     String?  // iPhone 13, Samsung Galaxy S21, etc.
+  osName          String?  // iOS, Android
+  osVersion       String?  // 15.0, 12, etc.
+  appVersion      String?  // Version de l'application
+  
+  // Informations écran
+  screenWidth     Int?
+  screenHeight    Int?
+  screenDensity   Float?   // DPI
+  
+  // Informations système
+  language        String?
+  timezone        String?
+  batteryLevel    Int?     // pourcentage
+  isCharging      Boolean?
+  networkType     String?  // "wifi", "4g", "5g"
+  
+  // Métadonnées
+  firstSeen       DateTime @default(now())
+  lastSeen        DateTime @default(now())
+  totalSessions   Int      @default(0)
+  
+  // Relations
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([deviceId])
+  @@index([platform])
+  @@map("device_infos")
 }

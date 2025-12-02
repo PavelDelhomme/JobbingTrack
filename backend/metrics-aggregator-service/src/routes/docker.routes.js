@@ -525,11 +525,32 @@ router.get('/services/all', async (req, res) => {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     
-    // Lister TOUS les conteneurs (même arrêtés)
+    // Lister TOUS les conteneurs (même arrêtés), mais exclure MailHog et les services optionnels
     const { stdout } = await execAsync('docker ps -a --filter "name=jobbingtrack" --format "{{json .}}"');
     const allContainers = stdout.trim().split('\n')
       .filter(line => line.length > 0)
-      .map(line => JSON.parse(line));
+      .map(line => JSON.parse(line))
+      // Exclure MailHog et les services optionnels
+      .filter(container => {
+        const name = container.Names;
+        // Exclure MailHog (insensible à la casse)
+        if (name.toLowerCase().includes('mailhog')) {
+          return false;
+        }
+        // Exclure les services optionnels (chercher avec ou sans préfixe jobbingtrack-)
+        const optionalServices = [
+          'workflow-service',
+          'notification-service',
+          'deployment-service',
+          'profile-service',
+          'event-service',
+          'security-service'
+        ];
+        // Vérifier si le nom du conteneur contient un des services optionnels
+        return !optionalServices.some(service => {
+          return name === `jobbingtrack-${service}` || name === service || name.includes(service);
+        });
+      });
     
     // Récupérer les stats uniquement pour les conteneurs en cours d'exécution
     const runningStats = await dockerService.getAllContainersStats();
@@ -538,8 +559,9 @@ router.get('/services/all', async (req, res) => {
       statsMap[stat.name] = stat;
     });
     
-    // Récupérer le health status pour tous les conteneurs
+    // Récupérer le health status et l'état réel pour tous les conteneurs
     const healthStatusMap = {};
+    const containerStateMap = {}; // Map pour stocker l'état réel des conteneurs
     for (const container of allContainers) {
       try {
         const containerName = container.Names;
@@ -552,17 +574,34 @@ router.get('/services/all', async (req, res) => {
           healthStatus = state.Health.Status; // healthy, unhealthy, starting
         }
         
+        // Utiliser state.Running qui est plus fiable que container.State
+        const isActuallyRunning = state.Running === true;
+        
         healthStatusMap[containerName] = {
           health: healthStatus,
-          running: state.Running,
+          running: isActuallyRunning,
           status: state.Status
+        };
+        
+        // Stocker l'état réel du conteneur
+        containerStateMap[containerName] = {
+          isRunning: isActuallyRunning,
+          status: state.Status,
+          state: state
         };
       } catch (err) {
         console.error(`[DOCKER ROUTES] Erreur inspection ${container.Names}:`, err.message);
+        // Fallback : utiliser container.State mais c'est moins fiable
+        const isRunning = container.State === 'running';
         healthStatusMap[container.Names] = {
           health: 'unknown',
-          running: container.State === 'running',
+          running: isRunning,
           status: container.State
+        };
+        containerStateMap[container.Names] = {
+          isRunning: isRunning,
+          status: container.State,
+          state: null
         };
       }
     }
@@ -571,10 +610,12 @@ router.get('/services/all', async (req, res) => {
     const healthChecks = await Promise.allSettled(
       allContainers.map(async (container) => {
         const name = container.Names;
-        const isRunning = container.State === 'running';
+        // Utiliser l'état réel du conteneur depuis containerStateMap
+        const containerState = containerStateMap[name] || { isRunning: container.State === 'running' };
+        const isRunning = containerState.isRunning;
         const stats = statsMap[name];
         
-        // Faire le health check HTTP uniquement si le service est en cours d'exécution
+        // Faire le health check HTTP uniquement si le service est vraiment en cours d'exécution
         if (isRunning) {
           try {
             const healthInfo = await probeServiceHealth(name, stats);
@@ -598,9 +639,12 @@ router.get('/services/all', async (req, res) => {
     // Mapper tous les conteneurs avec leurs stats, health status Docker ET HTTP
     const services = allContainers.map(container => {
       const name = container.Names;
-      const isRunning = container.State === 'running';
+      // Utiliser l'état réel du conteneur depuis containerStateMap
+      const containerState = containerStateMap[name] || { isRunning: container.State === 'running', status: container.State };
+      const isRunning = containerState.isRunning;
+      const actualStatus = containerState.status || container.State;
       const stats = statsMap[name];
-      const dockerHealthInfo = healthStatusMap[name] || { health: 'unknown', running: isRunning, status: container.State };
+      const dockerHealthInfo = healthStatusMap[name] || { health: 'unknown', running: isRunning, status: actualStatus };
       const httpHealthInfo = httpHealthMap[name] || { status: 'unknown', responseTime: null, error: null };
       
       // Déterminer le statut global
@@ -608,17 +652,36 @@ router.get('/services/all', async (req, res) => {
       if (dockerHealthInfo.health === 'unhealthy') {
         finalHealthStatus = 'unhealthy';
       } else if (dockerHealthInfo.health === 'healthy') {
-        finalHealthStatus = httpHealthInfo.status;
+        // Si Docker healthcheck est healthy, utiliser le statut HTTP si disponible
+        finalHealthStatus = httpHealthInfo.status !== 'unknown' ? httpHealthInfo.status : 'healthy';
       } else if (dockerHealthInfo.health === 'starting') {
         finalHealthStatus = 'starting';
+      } else if (!isRunning) {
+        // Si le conteneur n'est pas en cours d'exécution, le statut est 'stopped'
+        finalHealthStatus = 'stopped';
+      } else if (dockerHealthInfo.health === 'none') {
+        // Si pas de healthcheck Docker, utiliser le statut HTTP ou considérer comme sain
+        finalHealthStatus = httpHealthInfo.status !== 'unknown' ? httpHealthInfo.status : 'none';
       }
+      
+      // Un service est considéré comme sain s'il est running ET :
+      // - health_status === 'healthy' OU
+      // - health_status === 'none' (pas de healthcheck configuré) OU
+      // - health_status === 'starting' (en cours de démarrage) OU
+      // - httpHealthInfo.status === 'ok' (endpoint HTTP répond correctement)
+      const isHealthy = isRunning && (
+        dockerHealthInfo.health === 'healthy' ||
+        dockerHealthInfo.health === 'none' ||
+        dockerHealthInfo.health === 'starting' ||
+        httpHealthInfo.status === 'ok'
+      ) && dockerHealthInfo.health !== 'unhealthy';
       
       return {
         name: name,
-        status: container.State,
-        health_status: dockerHealthInfo.health, // Statut Docker natif
-        is_running: isRunning,
-        is_healthy: finalHealthStatus === 'healthy' || finalHealthStatus === 'none',
+        status: actualStatus, // Utiliser le statut réel du conteneur
+        health_status: dockerHealthInfo.health, // Statut Docker natif (none, healthy, unhealthy, starting)
+        is_running: isRunning, // Utiliser l'état réel (state.Running)
+        is_healthy: isHealthy,
         created: container.CreatedAt,
         ports: container.Ports,
         image: container.Image,
@@ -677,10 +740,10 @@ router.get('/service/:name/logs', async (req, res) => {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     
-    // Récupérer les logs du conteneur Docker
-    const { stdout } = await execAsync(`docker logs ${serviceName} --tail ${lines} 2>&1`);
+    // Récupérer les logs du conteneur Docker avec timestamps
+    const { stdout } = await execAsync(`docker logs ${serviceName} --tail ${lines} --timestamps 2>&1`);
     
-    // Traiter les logs
+    // Traiter les logs (les timestamps sont au format: 2025-12-02T17:21:30.123456789Z message)
     const logLines = stdout.split('\n').filter(line => line.trim().length > 0);
     
     // Identifier les lignes d'erreur
@@ -861,6 +924,168 @@ router.get('/history', async (req, res) => {
       success: false, 
       error: error.message,
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Endpoint pour démarrer un service
+ */
+router.post('/service/:name/start', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🚀 Démarrage du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Démarrer le conteneur
+    try {
+      await execAsync(`docker start ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} démarré avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} démarré avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur démarrage ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors du démarrage: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint pour arrêter un service
+ */
+router.post('/service/:name/stop', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🛑 Arrêt du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Arrêter le conteneur
+    try {
+      await execAsync(`docker stop ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} arrêté avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} arrêté avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur arrêt ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors de l'arrêt: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint pour redémarrer un service
+ */
+router.post('/service/:name/restart', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🔄 Redémarrage du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Redémarrer le conteneur
+    try {
+      await execAsync(`docker restart ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} redémarré avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} redémarré avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur redémarrage ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors du redémarrage: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

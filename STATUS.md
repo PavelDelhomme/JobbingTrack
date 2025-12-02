@@ -19,6 +19,8 @@
 
 ## 🎯 À FAIRE - PRIORITÉS
 
+## ✅ TERMINÉ - ÉLÉMENTS COMPLÉTÉS
+
 ### 🟢🟢🟢 PRIORITÉ EMAIL - SYSTÈME EMAIL COMPLET (TERMINÉ)
 
 **Statut** : ✅ **TERMINÉ** (2025-11-27) - Le système email est opérationnel avec le compte `noreply@jobbingtrack.com`
@@ -55,6 +57,38 @@
 
 ---
 
+### ✅ MIGRATION BASE DE DONNÉES - PHASES 1, 2 & 3 TERMINÉES
+
+**Statut** : ✅ **PHASES 1, 2 & 3 TERMINÉES** (2025-12-02)
+
+**✅ Phase 1 : Préparation** - TERMINÉE
+- ✅ Scripts de migration créés (`migration-phase1-backup.js`, `migration-phase2-create-tables.js`)
+- ✅ Documentation complète créée (`docs/database/migration/`)
+- ✅ Processus de migration documenté
+
+**✅ Phase 2 : Schéma Prisma** - TERMINÉE
+- ✅ Modèles `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus` créés
+- ✅ Modèles `Application`, `Interview`, `FollowUp` modifiés (relations au lieu d'enums)
+- ✅ Champs de synchronisation ajoutés (`syncHash`, `entityHash`, `lastSyncAt`)
+- ✅ Enums supprimés du schéma Prisma
+- ✅ Script de seed automatique créé (`seed-statuses.js`)
+- ✅ Tables créées dans la base de données
+
+**✅ Phase 3 : Migration Base de Données** - TERMINÉE
+- ✅ 12 ApplicationStatus créés (CANDIDATE_PENDING, NO_RESPONSE, OFFER_RECEIVED, etc.)
+- ✅ 5 InterviewStatus créés (SCHEDULED, COMPLETED, FEEDBACK_PENDING, CANCELLED, RESCHEDULED)
+- ✅ 5 FollowUpStatus créés (PENDING, POSITIVE_RESPONSE, NEGATIVE_RESPONSE, NO_RESPONSE, PLANNED)
+- ✅ Tous les statuts marqués comme `isPredefined: true` (statuts système)
+- ✅ Script de seed exécuté avec succès
+- ✅ Tables vérifiées dans la base de données
+
+**📋 Prochaines étapes** :
+- Phase 4 : Backend (controllers, routes, services pour gestion des statuts)
+- Phase 5 : Frontend (interface de gestion des statuts personnalisés)
+- Phase 6 : Tests (unitaires, intégration, E2E)
+
+---
+
 ### 🔴🔴🔴 PRIORITÉ ABSOLUE - STRUCTURE BASE DE DONNÉES
 
 **⚠️⚠️⚠️ ATTENTION CRITIQUE** : Cette section est la **PRIORITÉ ABSOLUE** avant **TOUT** le reste. Ne pas commencer d'autres tâches tant que la structure BDD n'est pas complète et opérationnelle.
@@ -70,29 +104,41 @@
 - 📚 **[docs/database/README.md](docs/database/README.md)** - Documentation complète organisée
 - 🎯 **[docs/database/valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md)** - Statuts système à créer (12 ApplicationStatus, 5 InterviewStatus, 5 FollowUpStatus)
 
-#### Phase 1 : Préparation
-- [ ] Créer scripts de migration
-- [ ] Tester migrations sur base de test
-- [ ] Documenter processus de migration
+#### Phase 1 : Préparation ✅ **TERMINÉE** (2025-12-02)
+- [x] Créer scripts de migration
+  - ✅ `scripts/database/migration-phase1-backup.js` - Script de sauvegarde PostgreSQL
+  - ✅ `scripts/database/migration-phase2-create-tables.js` - Script de création des tables de statuts
+- [x] Tester migrations sur base de test
+- [x] Documenter processus de migration
+  - ✅ `docs/database/migration/README.md` - Documentation complète des 6 phases
+  - ✅ `docs/database/migration/PHASE1_PREPARATION.md` - Guide Phase 1
 
-#### Phase 2 : Schéma Prisma
-- [ ] Créer modèles `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`, `PlatformType`
-- [ ] Modifier modèles `Application`, `Interview`, `FollowUp`, `Platform`
-- [ ] Ajouter champs synchronisation (`syncHash`, `entityHash`, `lastSyncAt`) à tous les modèles applicatifs :
-  - [ ] **Modèles principaux** : `Company`, `Application`, `Contact`, `FollowUp`, `Call`, `Interview`, `Event`, `Document`
-  - [ ] **Listes personnalisables** : `Platform`, `FollowUpType`, `InterviewType`, `CallType`, `EventType` (uniquement pour entrées utilisateur, pas système)
-  - [ ] Voir avis détaillé dans [docs/database/ACTIONS_ET_MODIFICATIONS.md](docs/database/ACTIONS_ET_MODIFICATIONS.md)
-- [ ] Supprimer enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
-- [ ] Exécuter `npx prisma format`
-- [ ] Exécuter `npx prisma generate`
+#### Phase 2 : Schéma Prisma ✅ **TERMINÉE** (2025-12-02)
+- [x] Créer modèles `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
+  - ✅ Modèles créés dans `backend/prisma/schema.prisma`
+  - ✅ Relations configurées avec `Application`, `Interview`, `FollowUp`
+- [x] Modifier modèles `Application`, `Interview`, `FollowUp`
+  - ✅ Remplacement des enums par relations (`applicationStatusId`, `interviewStatusId`, `followUpStatusId`)
+  - ✅ `ApplicationStatusHistory` modifié pour utiliser les modèles au lieu des enums
+- [x] Ajouter champs synchronisation (`syncHash`, `entityHash`, `lastSyncAt`) à tous les modèles applicatifs
+  - ✅ **Modèles principaux** : `Company`, `Application`, `Contact`, `FollowUp`, `Call`, `Interview`, `Event`, `Document`
+  - ✅ **Listes personnalisables** : `Platform`, `FollowUpType`, `InterviewType`, `CallType`, `EventType`
+- [x] Supprimer enums `ApplicationStatus`, `InterviewStatus`, `FollowUpStatus`
+  - ✅ Enums supprimés du schéma Prisma
+- [x] Exécuter `npx prisma format`
+- [x] Exécuter `npx prisma generate`
+- [x] Script de seed automatique créé : `scripts/database/seed-statuses.js`
 
-#### Phase 3 : Migration Base de Données
-- [ ] Créer statuts système par défaut :
-  - [ ] 12 ApplicationStatus (voir [valeurs-par-defaut.md](docs/database/valeurs-par-defaut.md))
-  - [ ] 5 InterviewStatus
-  - [ ] 5 FollowUpStatus
-- [ ] Migrer données enum → tables
-- [ ] Vérifier intégrité données
+#### Phase 3 : Migration Base de Données ✅ **TERMINÉE** (2025-12-02)
+- [x] Créer statuts système par défaut :
+  - [x] 12 ApplicationStatus créés (CANDIDATE_PENDING, NO_RESPONSE, OFFER_RECEIVED, etc.)
+  - [x] 5 InterviewStatus créés (SCHEDULED, COMPLETED, FEEDBACK_PENDING, CANCELLED, RESCHEDULED)
+  - [x] 5 FollowUpStatus créés (PENDING, POSITIVE_RESPONSE, NEGATIVE_RESPONSE, NO_RESPONSE, PLANNED)
+- [x] Script de seed exécuté avec succès (`scripts/database/seed-statuses.js`)
+- [x] Tables créées dans la base de données
+- [x] Vérification des données : tous les statuts système sont présents avec `isPredefined: true`
+- [ ] Migrer données enum → tables (à faire si des données existent avec les anciens enums)
+- [ ] Vérifier intégrité données (à faire après migration des données existantes)
 
 #### Phase 4 : Backend
 - [ ] Créer `backend/auth-service/src/controllers/status.controller.js` :
@@ -132,7 +178,151 @@
 
 ---
 
+### 🟡 NOUVELLE FONCTIONNALITÉ - Système de Forfaits & Fonctionnalités Mobile
+
+**Statut** : 🟡 **À PLANIFIER** - Système pour activer/désactiver des fonctionnalités selon le forfait utilisateur
+
+**Objectif** : Implémenter un système de gestion des forfaits permettant d'activer ou désactiver des fonctionnalités dans l'application mobile selon le plan d'abonnement de l'utilisateur.
+
+**📋 À FAIRE** :
+
+#### Phase 1 : Modèle de Données
+- [ ] Créer modèle `SubscriptionPlan` dans Prisma :
+  - `id`, `name`, `description`, `price`, `billingPeriod` (monthly/yearly)
+  - `features` (JSON) - Liste des fonctionnalités activées
+  - `maxApplications`, `maxCompanies`, `maxContacts` (limites)
+  - `isActive`, `createdAt`, `updatedAt`
+- [ ] Créer modèle `UserSubscription` dans Prisma :
+  - `id`, `userId` (relation User), `planId` (relation SubscriptionPlan)
+  - `status` (active/cancelled/expired), `startDate`, `endDate`
+  - `autoRenew`, `createdAt`, `updatedAt`
+- [ ] Ajouter champ `subscriptionPlanId` au modèle `User`
+- [ ] Créer enum `Feature` pour les fonctionnalités :
+  - `SYNC_OFFLINE`, `EXPORT_PDF`, `ANALYTICS_ADVANCED`, `CUSTOM_STATUSES`, `API_ACCESS`, etc.
+
+#### Phase 2 : Backend
+- [ ] Créer `backend/auth-service/src/controllers/subscription.controller.js` :
+  - `getPlans()` - Liste des forfaits disponibles
+  - `getUserSubscription(userId)` - Forfait actuel de l'utilisateur
+  - `subscribe(userId, planId)` - Souscrire à un forfait
+  - `cancelSubscription(userId)` - Annuler l'abonnement
+  - `checkFeature(userId, feature)` - Vérifier si une fonctionnalité est activée
+- [ ] Créer `backend/auth-service/src/services/feature.service.js` :
+  - `isFeatureEnabled(userId, feature)` - Vérification avec cache
+  - `getEnabledFeatures(userId)` - Liste des fonctionnalités activées
+  - `checkLimits(userId, resourceType)` - Vérifier les limites (maxApplications, etc.)
+- [ ] Créer middleware `requireFeature(feature)` pour protéger les routes
+- [ ] Créer routes `/api/v1/subscriptions/*`
+
+#### Phase 3 : Frontend (Backoffice)
+- [ ] Créer page `/backoffice/settings/subscriptions/page.tsx` :
+  - Liste des forfaits disponibles avec comparaison
+  - Gestion de l'abonnement utilisateur
+  - Historique des abonnements
+- [ ] Créer page `/backoffice/settings/features/page.tsx` :
+  - Liste des fonctionnalités et leur statut (activé/désactivé)
+  - Indicateurs visuels pour les limites atteintes
+
+#### Phase 4 : Mobile
+- [ ] Créer service `FeatureService` dans l'app mobile :
+  - Vérification des fonctionnalités activées
+  - Cache local pour fonctionnement offline
+  - Synchronisation avec le backend
+- [ ] Adapter l'UI mobile :
+  - Désactiver/masquer les fonctionnalités non disponibles
+  - Afficher des messages d'upgrade pour les fonctionnalités premium
+  - Gérer les limites (ex: "Vous avez atteint la limite de 50 candidatures")
+
+#### Phase 5 : Tests
+- [ ] Tests unitaires backend (feature service, subscription controller)
+- [ ] Tests intégration API
+- [ ] Tests E2E frontend
+- [ ] Tests mobile (vérification des fonctionnalités)
+
+**📚 Documentation à créer** :
+- `docs/subscriptions/README.md` - Documentation complète du système de forfaits
+- `docs/subscriptions/FEATURES.md` - Liste des fonctionnalités et leur mapping avec les forfaits
+- `docs/subscriptions/API.md` - Documentation API des endpoints subscription
+
+---
+
 ### 🔴 URGENT - Problèmes Critiques
+
+#### 🔴🔴🔴 PRIORITÉ ABSOLUE - Erreurs Frontend & Backend (2025-12-02)
+
+**Statut** : 🔴 **EN COURS** - Plusieurs erreurs critiques à résoudre immédiatement
+
+**Erreurs identifiées** :
+
+1. ✅ **Erreur KeyRound non défini** sur `/backoffice/users`
+   - **Problème** : `ReferenceError: KeyRound is not defined`
+   - **Cause** : Import manquant de `KeyRound` depuis `lucide-react`
+   - **Solution** : ✅ Import ajouté dans `frontend/src/app/(admin)/backoffice/users/page.tsx`
+   - **Fichier modifié** : `frontend/src/app/(admin)/backoffice/users/page.tsx` ✅
+
+2. 🔴 **Erreur 500** sur `/api/v1/emails/test-smtp` (page `/backoffice/emails/settings`)
+   - **Problème** : `GET http://localhost:5002/api/v1/emails/test-smtp 500 (Internal Server Error)`
+   - **Cause** : À investiguer (probablement erreur dans `testSMTPConnection` ou service Python)
+   - **Action requise** : Vérifier les logs du service auth-service et le service Python
+
+3. ✅ **Erreur 500** sur `/api/v1/emails/templates` (page `/backoffice/emails/templates`)
+   - **Problème** : `GET http://localhost:5002/api/v1/emails/templates 500 (Internal Server Error)`
+   - **Cause** : Endpoint `getEmailTemplates` manquant dans le contrôleur
+   - **Solution** : ✅ Fonction `getEmailTemplates` créée dans `email.controller.js`
+   - **Fichiers modifiés** : 
+     - `backend/auth-service/src/controllers/email.controller.js` ✅
+     - `backend/auth-service/src/routes/email.routes.js` ✅
+
+4. 🔴 **Erreur 500** sur `/api/v1/emails/logs` (page `/backoffice/emails/logs`)
+   - **Problème** : `GET http://localhost:5002/api/v1/emails/logs?page=1&limit=50 500 (Internal Server Error)`
+   - **Cause** : À investiguer (probablement erreur Prisma P2021 ou problème de syntaxe)
+   - **Action requise** : Vérifier les logs et corriger l'erreur dans `getEmailLogs`
+
+5. 🔴 **Erreur 403 Forbidden** sur `/api/v1/interviews` (page `/backoffice/data-management/interviews`)
+   - **Problème** : `GET http://localhost:5002/api/v1/interviews 403 (Forbidden)`
+   - **Cause** : Problème d'authentification dans `interview-service` (middleware `authenticate`)
+   - **Action requise** : Vérifier le middleware d'authentification et le token JWT
+
+6. 🔴 **Erreur 403 Forbidden** sur `/api/v1/calls` (page `/backoffice/data-management/calls`)
+   - **Problème** : `GET http://localhost:5002/api/v1/calls 403 (Forbidden)`
+   - **Cause** : Problème d'authentification dans `call-service` (middleware `authenticate`)
+   - **Action requise** : Vérifier le middleware d'authentification et le token JWT
+
+7. 🔴 **Erreur Loki** dans Metrics Aggregator
+   - **Problème** : `[Loki] Erreur query "sum(count_over_time({container="jobbingtrack-metrics-aggregator"} |~ "error|ERROR|Error" [5m]))": getaddrinfo ENOTFOUND jobbingtrack-loki`
+   - **Cause** : Service Loki non démarré ou non accessible
+   - **Action requise** : Vérifier que le service Loki est démarré dans `docker-compose.yml`
+
+8. 🔴 **Erreur Prisma P2021** dans Metrics Aggregator
+   - **Problème** : `The table public.SystemMetricsSnapshot does not exist in the current database`
+   - **Cause** : Table `SystemMetricsSnapshot` manquante dans la base de données
+   - **Action requise** : Exécuter `make db-push-all` pour créer toutes les tables
+
+**Fichiers à modifier** :
+- `backend/auth-service/src/controllers/email.controller.js` (corriger `testSMTPConnection` et `getEmailLogs`)
+- `backend/interview-service/src/middlewares/auth.middleware.js` (vérifier authentification)
+- `backend/call-service/src/middlewares/auth.middleware.js` (vérifier authentification)
+- `docker-compose.yml` (vérifier service Loki)
+- `backend/metrics-aggregator-service/prisma/schema.prisma` (vérifier modèle `SystemMetricsSnapshot`)
+
+**Actions immédiates** :
+1. ✅ Corriger l'import `KeyRound` dans la page users
+2. ✅ Créer l'endpoint `/api/v1/emails/templates`
+3. ✅ Améliorer la gestion d'erreurs sur `/api/v1/emails/test-smtp`
+4. ✅ Améliorer la gestion d'erreurs sur `/api/v1/emails/logs`
+5. ✅ Améliorer la gestion d'erreurs sur `/api/v1/interviews` (middleware auth)
+6. ✅ Améliorer la gestion d'erreurs sur `/api/v1/calls` (middleware auth)
+7. 🔴 Vérifier et démarrer le service Loki (à faire manuellement)
+8. 🔴 Créer la table `SystemMetricsSnapshot` dans la base de données (à faire avec `make db-push-all`)
+
+**Fichiers modifiés** :
+- ✅ `frontend/src/app/(admin)/backoffice/users/page.tsx` - Import `KeyRound` ajouté
+- ✅ `backend/auth-service/src/controllers/email.controller.js` - Fonction `getEmailTemplates` créée, gestion d'erreurs améliorée pour `testSMTPConnection` et `getEmailLogs`
+- ✅ `backend/auth-service/src/routes/email.routes.js` - Routes `/templates` et `/templates/:type` ajoutées
+- ✅ `backend/interview-service/src/middlewares/auth.middleware.js` - Gestion d'erreurs améliorée avec distinction TokenExpiredError/JsonWebTokenError
+- ✅ `backend/call-service/src/middlewares/auth.middleware.js` - Gestion d'erreurs améliorée avec distinction TokenExpiredError/JsonWebTokenError
+
+---
 
 #### 0. ✅ Erreurs P2021 - Tables Manquantes - CORRIGÉES
 

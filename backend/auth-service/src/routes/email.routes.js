@@ -45,6 +45,11 @@ router.delete('/logs', emailController.deleteAllEmailLogs);
 router.get('/test-dns', emailController.testDNS);
 router.get('/test-smtp', emailController.testSMTPConnection);
 
+// Templates d'emails
+router.get('/templates', emailController.getEmailTemplates);
+router.get('/templates/:type', emailController.getEmailTemplates);
+router.put('/templates/:type', emailController.updateEmailTemplate);
+
 // Tracking des emails (sans authentification pour permettre le pixel de tracking)
 router.get('/track/:trackingId.png', emailController.trackEmailOpen);
 

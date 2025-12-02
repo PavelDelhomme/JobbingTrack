@@ -5,8 +5,8 @@ import { useAuth } from '@/lib/hooks/auth';
 import { useTheme } from '@/lib/hooks/theme';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@jobbingtrack.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,13 +15,15 @@ export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
   const { actualTheme, toggleTheme } = useTheme();
 
-  // ✅ Si déjà connecté, rediriger automatiquement via middleware
+  // ✅ Si déjà connecté, rediriger automatiquement
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('✅ Déjà connecté, le middleware va rediriger vers /backoffice...');
-      // La redirection est gérée par le middleware Next.js
+      console.log('✅ Déjà connecté, redirection vers /backoffice...');
+      // Forcer la redirection immédiatement
+      router.push('/backoffice');
+      router.refresh();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,16 +43,14 @@ export default function LoginPage() {
       // ✅ UTILISER LA FONCTION login() du contexte d'authentification
       await login(email, password);
 
-      console.log('✅ Login réussi, attente de la redirection...');
+      console.log('✅ Login réussi, redirection immédiate...');
 
-      // Attendre que les états se mettent à jour et que le middleware redirige
-      setTimeout(() => {
-        // Vérifier si la redirection a eu lieu
-        if (window.location.pathname === '/login') {
-          console.log('⚠️ Redirection manuelle nécessaire...');
-          router.push('/backoffice');
-        }
-      }, 2000);
+      // Attendre un court instant pour que le cookie soit bien défini
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Forcer la redirection immédiatement
+      router.push('/backoffice');
+      router.refresh(); // Forcer le rafraîchissement pour que le middleware se déclenche
 
     } catch (err: any) {
       console.error('❌ Login error:', err);

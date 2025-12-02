@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const statisticsRoutes = require('./routes/statistics.routes');
 const preferencesRoutes = require('./routes/preferences.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
 
@@ -45,6 +46,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);
 app.use('/api/v1/preferences', preferencesRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // Gestion des erreurs 404
 app.use(notFound);

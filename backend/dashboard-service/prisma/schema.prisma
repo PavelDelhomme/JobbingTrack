@@ -25,3 +25,158 @@ model UserPreferences {
 
   @@map("user_preferences")
 }
+
+// ============================================
+// 📊 TRACKING & ANALYTICS UTILISATEUR
+// ============================================
+
+// Sessions utilisateur (web et mobile)
+model UserSession {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String   @unique
+  deviceId        String?
+  platform        String
+  userAgent       String?
+  ipAddress       String?
+  deviceModel     String?
+  osName          String?
+  osVersion       String?
+  browserName     String?
+  browserVersion  String?
+  screenWidth     Int?
+  screenHeight    Int?
+  language        String?
+  timezone        String?
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  duration        Int?
+  isActive        Boolean  @default(true)
+  pageViews       Int      @default(0)
+  actions         Int      @default(0)
+  errors          Int      @default(0)
+  events          UserEvent[]
+  userErrors      UserError[]
+  performances    UserPerformance[]
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([deviceId])
+  @@index([startTime])
+  @@index([platform])
+  @@index([isActive])
+  @@map("user_sessions")
+}
+
+// Événements utilisateur
+model UserEvent {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String
+  deviceId    String?
+  eventType   String
+  eventName   String
+  category    String?
+  elementId   String?
+  elementType String?
+  elementText String?
+  page        String?
+  properties  Json?
+  timestamp   DateTime @default(now())
+  platform    String
+  appVersion  String?
+  session     UserSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([eventName])
+  @@index([timestamp])
+  @@index([category])
+  @@map("user_events")
+}
+
+// Erreurs et logs utilisateur
+model UserError {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  deviceId    String?
+  errorType   String
+  errorName   String
+  errorMessage String
+  stackTrace  String?
+  page        String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  platform    String
+  appVersion  String?
+  severity    String   @default("error")
+  resolved    Boolean  @default(false)
+  properties  Json?
+  session     UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([errorType])
+  @@index([severity])
+  @@index([timestamp])
+  @@index([resolved])
+  @@map("user_errors")
+}
+
+// Métriques de performance
+model UserPerformance {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  deviceId        String?
+  metricType      String
+  metricName      String
+  value           Float?
+  duration        Int?
+  memoryUsage     Float?
+  cpuUsage        Float?
+  networkLatency  Int?
+  networkType     String?
+  page            String?
+  timestamp       DateTime @default(now())
+  platform        String
+  appVersion      String?
+  session         UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([metricType])
+  @@index([metricName])
+  @@index([timestamp])
+  @@map("user_performances")
+}
+
+// Informations appareil
+model DeviceInfo {
+  id              String   @id @default(cuid())
+  userId          String?
+  deviceId        String   @unique
+  platform        String
+  deviceModel     String?
+  osName          String?
+  osVersion       String?
+  appVersion      String?
+  screenWidth     Int?
+  screenHeight    Int?
+  screenDensity   Float?
+  language        String?
+  timezone        String?
+  batteryLevel    Int?
+  isCharging      Boolean?
+  networkType     String?
+  firstSeen       DateTime @default(now())
+  lastSeen        DateTime @default(now())
+  totalSessions   Int      @default(0)
+  
+  @@index([userId])
+  @@index([deviceId])
+  @@index([platform])
+  @@map("device_infos")
+}

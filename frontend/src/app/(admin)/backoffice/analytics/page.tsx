@@ -647,6 +647,7 @@ export default function AnalyticsPage() {
             chartData={chartData}
             aggregatedStats={aggregatedStats}
             loadingHistory={loadingHistory}
+            initialHistoryLoaded={initialHistoryLoaded}
           />
         )}
 
@@ -656,6 +657,7 @@ export default function AnalyticsPage() {
             chartData={chartData}
             aggregatedStats={aggregatedStats}
             loadingHistory={loadingHistory}
+            initialHistoryLoaded={initialHistoryLoaded}
           />
         )}
 
@@ -703,7 +705,7 @@ export default function AnalyticsPage() {
 }
 
 // Composant Overview Tab
-function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory }: any) {
+function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false }: any) {
   // Calculer les tendances depuis l'historique
   const last30Points = chartData.slice(-30)
   const cpuTrend = last30Points.length > 0 
@@ -1593,7 +1595,7 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
 }
 
 // Composant System Tab
-function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory }: any) {
+function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques système principales */}

@@ -13,7 +13,7 @@ const archiveApplication = async (req, res, next) => {
       where: {
         id,
         userId: req.user.id,
-        isArchived: false
+        archived: false
       }
     });
 
@@ -28,7 +28,7 @@ const archiveApplication = async (req, res, next) => {
     const archivedApplication = await prisma.application.update({
       where: { id },
       data: {
-        isArchived: true,
+        archived: true,
         archivedAt: new Date(),
         archivedBy: req.user.id,
         archivedReason: reason || null
@@ -69,7 +69,7 @@ const restoreApplication = async (req, res, next) => {
       where: {
         id,
         userId: req.user.id,
-        isArchived: true
+        archived: true
       }
     });
 
@@ -84,7 +84,7 @@ const restoreApplication = async (req, res, next) => {
     const restoredApplication = await prisma.application.update({
       where: { id },
       data: {
-        isArchived: false,
+        archived: false,
         archivedAt: null,
         archivedBy: null,
         archivedReason: null
@@ -124,7 +124,7 @@ const getArchivedApplications = async (req, res, next) => {
 
     const where = {
       userId: req.user.id,
-      isArchived: true,
+      archived: true,
       ...(search && {
         OR: [
           { position: { contains: search, mode: 'insensitive' } },
@@ -177,7 +177,7 @@ const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
     await prisma.interview.updateMany({
       where: { applicationId },
       data: {
-        isArchived: true,
+        archived: true,
         archivedAt: new Date(),
         archivedBy,
         archivedReason: reason
@@ -188,7 +188,7 @@ const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
     await prisma.followUp.updateMany({
       where: { applicationId },
       data: {
-        isArchived: true,
+        archived: true,
         archivedAt: new Date(),
         archivedBy,
         archivedReason: reason
@@ -199,7 +199,7 @@ const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
     await prisma.call.updateMany({
       where: { applicationId },
       data: {
-        isArchived: true,
+        archived: true,
         archivedAt: new Date(),
         archivedBy,
         archivedReason: reason
@@ -229,7 +229,7 @@ const restoreRelatedElements = async (applicationId) => {
     await prisma.interview.updateMany({
       where: { applicationId },
       data: {
-        isArchived: false,
+        archived: false,
         archivedAt: null,
         archivedBy: null,
         archivedReason: null
@@ -240,7 +240,7 @@ const restoreRelatedElements = async (applicationId) => {
     await prisma.followUp.updateMany({
       where: { applicationId },
       data: {
-        isArchived: false,
+        archived: false,
         archivedAt: null,
         archivedBy: null,
         archivedReason: null
@@ -251,7 +251,7 @@ const restoreRelatedElements = async (applicationId) => {
     await prisma.call.updateMany({
       where: { applicationId },
       data: {
-        isArchived: false,
+        archived: false,
         archivedAt: null,
         archivedBy: null,
         archivedReason: null
@@ -271,15 +271,15 @@ const getArchiveStats = async (req, res, next) => {
     const userId = req.user.id;
 
     const stats = await prisma.application.groupBy({
-      by: ['isArchived'],
+      by: ['archived'],
       where: { userId },
       _count: {
         id: true
       }
     });
 
-    const archivedCount = stats.find(s => s.isArchived)?._count.id || 0;
-    const activeCount = stats.find(s => !s.isArchived)?._count.id || 0;
+    const archivedCount = stats.find(s => s.archived)?._count.id || 0;
+    const activeCount = stats.find(s => !s.archived)?._count.id || 0;
 
     res.json({
       success: true,
@@ -305,7 +305,7 @@ const deleteArchivedApplication = async (req, res, next) => {
       where: {
         id,
         userId: req.user.id,
-        isArchived: true
+        archived: true
       }
     });
 

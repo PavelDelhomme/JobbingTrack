@@ -163,6 +163,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ]
         },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
+        { name: 'Analytics Utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
       ]
     },
     {
@@ -484,16 +485,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </svg>
               </button>
 
-              {/* Titre - Responsive */}
-              <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
-                <span className="hidden sm:inline">Backoffice Administrateur</span>
-                <span className="sm:hidden">Admin</span>
-              </h1>
-
-              {/* Fil d'Ariane pour la navigation - Caché sur très petits écrans */}
-              <div className="hidden lg:block flex-shrink-0">
-                <Breadcrumb />
-              </div>
+              {/* Titre retiré - Plus de texte "Backoffice Administrateur" ou "Backoffice" */}
             </div>
 
             {/* Section droite - Actions et contrôles */}

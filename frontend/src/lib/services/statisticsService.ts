@@ -2,7 +2,7 @@
  * Service pour récupérer les statistiques applicatives
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export interface ApplicationStatistics {
   applications: {
@@ -93,18 +93,48 @@ class StatisticsService {
    */
   async getCurrentStatistics(): Promise<ApplicationStatistics | null> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondes timeout
+
       const response = await fetch(`${API_URL}/api/v1/statistics`, {
         headers: this.getAuthHeaders(),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des statistiques');
+        // Si la réponse n'est pas OK, essayer de lire le message d'erreur
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      return data.statistics as ApplicationStatistics;
-    } catch (error) {
-      console.error('[STATISTICS] Erreur:', error);
+      
+      // Le backend retourne { success: true, statistics: {...} }
+      if (data.statistics) {
+        return data.statistics as ApplicationStatistics;
+      }
+      
+      // Fallback pour les anciens formats
+      if (data.data?.statistics) {
+        return data.data.statistics as ApplicationStatistics;
+      }
+      
+      if (data.data) {
+        return data.data as ApplicationStatistics;
+      }
+
+      console.warn('[STATISTICS] Format de réponse inattendu:', data);
+      return null;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('[STATISTICS] Timeout lors de la récupération des statistiques');
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_RESET')) {
+        console.error('[STATISTICS] Erreur de connexion:', error.message);
+      } else {
+        console.error('[STATISTICS] Erreur:', error);
+      }
       return null;
     }
   }

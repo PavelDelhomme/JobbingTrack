@@ -25,13 +25,37 @@ export default function ServiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
+  const [isLogsWidgetVisible, setIsLogsWidgetVisible] = useState(false);
 
-  // Auto-scroll vers le bas des logs
+  // Observer pour détecter si le widget des logs est visible
   useEffect(() => {
-    if (autoScroll && logsEndRef.current) {
+    if (!logsContainerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsLogsWidgetVisible(entry.isIntersecting);
+        });
+      },
+      { threshold: 0.1 } // Déclencher quand au moins 10% du widget est visible
+    );
+
+    observer.observe(logsContainerRef.current);
+
+    return () => {
+      if (logsContainerRef.current) {
+        observer.unobserve(logsContainerRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-scroll vers le bas des logs UNIQUEMENT si le widget est visible
+  useEffect(() => {
+    if (autoScroll && logsEndRef.current && isLogsWidgetVisible) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [serviceLogs, autoScroll]);
+  }, [serviceLogs, autoScroll, isLogsWidgetVisible]);
 
   const loadServiceData = async (showRefreshing = false) => {
     try {
@@ -434,7 +458,7 @@ export default function ServiceDetailPage() {
         </div>
 
         {/* Logs en Temps Réel */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+        <div ref={logsContainerRef} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
               <Terminal className="h-6 w-6 mr-2" />
@@ -493,24 +517,53 @@ export default function ServiceDetailPage() {
             <>
               <div className="relative">
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
-                  {serviceLogs.lines.slice(-100).map((line: string, index: number) => (
-                    <div 
-                      key={index} 
-                      className={`py-0.5 leading-relaxed ${
-                        line.toLowerCase().includes('error') || line.toLowerCase().includes('exception') || line.toLowerCase().includes('fatal')
-                          ? 'text-red-400 font-semibold'
-                          : line.toLowerCase().includes('warn')
-                          ? 'text-yellow-400'
-                          : line.toLowerCase().includes('info')
-                          ? 'text-blue-300'
-                          : line.toLowerCase().includes('debug')
-                          ? 'text-gray-500'
-                          : 'text-green-400'
-                      }`}
-                    >
-                      {line}
-                    </div>
-                  ))}
+                  {serviceLogs.lines.slice(-100).map((line: string, index: number) => {
+                    // Parser le timestamp Docker (format: 2025-12-02T17:21:30.123456789Z message)
+                    const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)\s+(.*)$/);
+                    const timestamp = timestampMatch ? timestampMatch[1] : null;
+                    const message = timestampMatch ? timestampMatch[2] : line;
+                    
+                    // Formater la date pour l'affichage
+                    let formattedDate = '';
+                    if (timestamp) {
+                      try {
+                        const date = new Date(timestamp);
+                        formattedDate = date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          fractionalSecondDigits: 3
+                        });
+                      } catch (e) {
+                        formattedDate = timestamp;
+                      }
+                    }
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`py-0.5 leading-relaxed ${
+                          message.toLowerCase().includes('error') || message.toLowerCase().includes('exception') || message.toLowerCase().includes('fatal')
+                            ? 'text-red-400 font-semibold'
+                            : message.toLowerCase().includes('warn')
+                            ? 'text-yellow-400'
+                            : message.toLowerCase().includes('info')
+                            ? 'text-blue-300'
+                            : message.toLowerCase().includes('debug')
+                            ? 'text-gray-500'
+                            : 'text-green-400'
+                        }`}
+                      >
+                        {formattedDate && (
+                          <span className="text-gray-500 mr-2">[{formattedDate}]</span>
+                        )}
+                        {message}
+                      </div>
+                    );
+                  })}
                   {/* Référence pour auto-scroll */}
                   <div ref={logsEndRef} />
                 </div>

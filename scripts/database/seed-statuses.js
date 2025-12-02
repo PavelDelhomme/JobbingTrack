@@ -17,7 +17,7 @@ async function seedStatuses() {
 
   try {
 // Seed ApplicationStatus - Statuts système par défaut
-  await prisma.applicationstatus.createMany({
+  await prisma.applicationStatus.createMany({
     data: [
     {
       code: 'CANDIDATE_PENDING',
@@ -158,7 +158,7 @@ async function seedStatuses() {
     console.log('✅ ApplicationStatus créés');
 
 // Seed InterviewStatus - Statuts système par défaut
-  await prisma.interviewstatus.createMany({
+  await prisma.interviewStatus.createMany({
     data: [
     {
       code: 'SCHEDULED',
@@ -222,7 +222,7 @@ async function seedStatuses() {
     console.log('✅ InterviewStatus créés');
 
 // Seed FollowUpStatus - Statuts système par défaut
-  await prisma.followupstatus.createMany({
+  await prisma.followUpStatus.createMany({
     data: [
     {
       code: 'PENDING',

@@ -7,6 +7,7 @@ import { AuthProvider } from '@/lib/hooks/auth'
 import { ThemeProvider, applyTheme, getSystemTheme } from '@/lib/hooks/theme'
 import { OfflineNotification } from '@/components/widgets'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { TrackingProvider } from '@/components/tracking/TrackingProvider'
 import { setupBrowserExtensionCleanup } from '@/utils/cleanBrowserExtensions'
 import { useEffect } from 'react'
 
@@ -38,10 +39,12 @@ export default function RootLayout({
         <ErrorBoundary>
           <ThemeProvider>
             <AuthProvider>
-              <div className="min-h-screen bg-gray-50 dark:bg-gray-950" suppressHydrationWarning>
-                {children}
-                {/* OfflineNotification temporairement désactivé pour éviter boucle infinie */}
-              </div>
+              <TrackingProvider>
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-950" suppressHydrationWarning>
+                  {children}
+                  {/* OfflineNotification temporairement désactivé pour éviter boucle infinie */}
+                </div>
+              </TrackingProvider>
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>

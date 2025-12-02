@@ -584,40 +584,50 @@ class PersistenceService {
       return [];
     }
     
-    const {
-      limit = 100,
-      offset = 0,
-      serviceName = null,
-      level = null,
-      startDate = null,
-      endDate = null,
-      search = null,
-    } = options;
+    try {
+      const {
+        limit = 100,
+        offset = 0,
+        serviceName = null,
+        level = null,
+        startDate = null,
+        endDate = null,
+        search = null,
+      } = options;
 
-    const where = {};
-    
-    if (serviceName) where.serviceName = serviceName;
-    if (level) where.level = level;
-    
-    if (startDate || endDate) {
-      where.timestamp = {};
-      if (startDate) where.timestamp.gte = new Date(startDate);
-      if (endDate) where.timestamp.lte = new Date(endDate);
+      const where = {};
+      
+      if (serviceName) where.serviceName = serviceName;
+      if (level) where.level = level;
+      
+      if (startDate || endDate) {
+        where.timestamp = {};
+        if (startDate) where.timestamp.gte = new Date(startDate);
+        if (endDate) where.timestamp.lte = new Date(endDate);
+      }
+
+      if (search) {
+        where.message = {
+          contains: search,
+          mode: 'insensitive',
+        };
+      }
+
+      return await prisma.aggregatedLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset),
+      });
+    } catch (error) {
+      // Si la table n'existe pas (P2021) ou autre erreur, retourner un tableau vide
+      if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+        console.warn('[PERSISTENCE] Table aggregatedLog non trouvée, retour de données vides');
+        return [];
+      }
+      console.error('[PERSISTENCE] Erreur récupération logs agrégés:', error.message);
+      throw error;
     }
-
-    if (search) {
-      where.message = {
-        contains: search,
-        mode: 'insensitive',
-      };
-    }
-
-    return await prisma.aggregatedLog.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      take: parseInt(limit),
-      skip: parseInt(offset),
-    });
   }
 
   /**

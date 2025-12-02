@@ -10,6 +10,7 @@ import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
 import axios from 'axios'
+import { useTracking } from '@/components/tracking/TrackingProvider'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -24,6 +25,7 @@ const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A')
 export default function BackofficePage() {
   const { user, loading, isAuthenticated, token } = useAuth()
   const router = useRouter()
+  const { trackEvent } = useTracking()
   const [stats, setStats] = useState({
     totalApplications: 0,
     totalCompanies: 0,

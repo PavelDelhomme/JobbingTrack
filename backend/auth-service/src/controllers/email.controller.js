@@ -41,32 +41,48 @@ const getEmailLogs = async (req, res) => {
     let total = 0;
 
     try {
-      [logs, total] = await Promise.all([
-        prisma.emailLog.findMany({
-          where,
-          skip,
-          take: parseInt(limit),
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true
+      // Essayer d'abord avec l'include user, sinon sans
+      try {
+        [logs, total] = await Promise.all([
+          prisma.emailLog.findMany({
+            where,
+            skip,
+            take: parseInt(limit),
+            orderBy: { createdAt: 'desc' },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
               }
             }
-          }
-        }).catch(() => []),
-        prisma.emailLog.count({ where }).catch(() => 0)
-      ]);
+          }),
+          prisma.emailLog.count({ where })
+        ]);
+      } catch (includeError) {
+        // Si l'include user échoue (relation manquante), essayer sans
+        logger.warn('Include user échoué, récupération sans relation user:', includeError.message);
+        [logs, total] = await Promise.all([
+          prisma.emailLog.findMany({
+            where,
+            skip,
+            take: parseInt(limit),
+            orderBy: { createdAt: 'desc' }
+          }),
+          prisma.emailLog.count({ where })
+        ]);
+      }
     } catch (dbError) {
       // Si la table n'existe pas, retourner des données vides
-      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
         logger.warn('Table EmailLog non trouvée, retour de données vides. Exécutez: make db-push-all');
         logs = [];
         total = 0;
       } else {
+        logger.error('Erreur base de données getEmailLogs:', dbError);
         throw dbError;
       }
     }
@@ -83,9 +99,26 @@ const getEmailLogs = async (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur récupération logs emails:', error);
+    
+    // Si c'est une erreur de table manquante, retourner des données vides
+    if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+      logger.warn('Table EmailLog non trouvée, retour de données vides. Exécutez: make db-push-all');
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: parseInt(req.query.page || 1),
+          limit: parseInt(req.query.limit || 50),
+          total: 0,
+          pages: 0
+        }
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération des logs emails'
+      error: 'Erreur lors de la récupération des logs emails',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -163,11 +196,11 @@ const getEmailStats = async (req, res) => {
     try {
       // Statistiques globales (tous les temps)
       [total, sent, failed, pending, bounced, byType, byStatus] = await Promise.all([
-        prisma.emailLog.count(),
-        prisma.emailLog.count({ where: { status: 'SENT' } }),
-        prisma.emailLog.count({ where: { status: 'FAILED' } }),
-        prisma.emailLog.count({ where: { status: 'PENDING' } }),
-        prisma.emailLog.count({ where: { status: 'BOUNCED' } }),
+        prisma.emailLog.count().catch(() => 0),
+        prisma.emailLog.count({ where: { status: 'SENT' } }).catch(() => 0),
+        prisma.emailLog.count({ where: { status: 'FAILED' } }).catch(() => 0),
+        prisma.emailLog.count({ where: { status: 'PENDING' } }).catch(() => 0),
+        prisma.emailLog.count({ where: { status: 'BOUNCED' } }).catch(() => 0),
         prisma.emailLog.groupBy({
           by: ['type'],
           _count: { type: true }
@@ -179,10 +212,18 @@ const getEmailStats = async (req, res) => {
       ]);
     } catch (dbError) {
       // Si la table n'existe pas, retourner des données vides
-      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
         logger.warn('Table EmailLog non trouvée, retour de données vides. Exécutez: make db-push-all');
         // Continuer avec des valeurs par défaut
+        total = 0;
+        sent = 0;
+        failed = 0;
+        pending = 0;
+        bounced = 0;
+        byType = [];
+        byStatus = [];
       } else {
+        logger.error('Erreur récupération stats emails:', dbError);
         throw dbError;
       }
     }
@@ -213,18 +254,20 @@ const getEmailStats = async (req, res) => {
 
       // Statistiques par jour (pour graphiques)
       try {
+        // Utiliser Prisma queryRaw avec la syntaxe correcte pour PostgreSQL
+        const daysLimit = parseInt(days) || 30;
         dailyStats = await prisma.$queryRaw`
           SELECT 
-            DATE(created_at) as date,
-            COUNT(*) as total,
-            COUNT(CASE WHEN status = 'SENT' THEN 1 END) as sent,
-            COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed,
-            COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending
+            "createdAt"::date as date,
+            COUNT(*)::int as total,
+            COUNT(CASE WHEN status = 'SENT' THEN 1 END)::int as sent,
+            COUNT(CASE WHEN status = 'FAILED' THEN 1 END)::int as failed,
+            COUNT(CASE WHEN status = 'PENDING' THEN 1 END)::int as pending
           FROM "EmailLog"
-          WHERE created_at >= ${startDate}
-          GROUP BY DATE(created_at)
+          WHERE "createdAt" >= ${startDate}
+          GROUP BY "createdAt"::date
           ORDER BY date DESC
-          LIMIT ${parseInt(days)}
+          LIMIT ${daysLimit}
         `;
       } catch (e) {
         logger.warn('Erreur récupération dailyStats:', e.message);
@@ -245,10 +288,18 @@ const getEmailStats = async (req, res) => {
         topRecipients = [];
       }
     } catch (dbError) {
-      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+      if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
         logger.warn('Table EmailLog non trouvée pour les statistiques récentes');
         // Continuer avec des valeurs par défaut
+        recentTotal = 0;
+        recentSent = 0;
+        recentFailed = 0;
+        recentPending = 0;
+        recentBounced = 0;
+        dailyStats = [];
+        topRecipients = [];
       } else {
+        logger.error('Erreur récupération stats emails récentes:', dbError);
         throw dbError;
       }
     }
@@ -310,16 +361,16 @@ const getEmailStats = async (req, res) => {
           status: item.status,
           count: item._count.status
         })),
-        dailyStats: dailyStats.map(stat => ({
+        dailyStats: (dailyStats || []).map(stat => ({
           date: stat.date ? (stat.date.toISOString ? stat.date.toISOString().split('T')[0] : String(stat.date)) : '',
           total: Number(stat.total || 0),
           sent: Number(stat.sent || 0),
           failed: Number(stat.failed || 0),
           pending: Number(stat.pending || 0)
         })),
-        topRecipients: topRecipients.map(item => ({
-          email: item.to,
-          count: item._count.to
+        topRecipients: (topRecipients || []).map(item => ({
+          email: item.to || '',
+          count: item._count?.to || 0
         }))
       }
     });
@@ -327,7 +378,7 @@ const getEmailStats = async (req, res) => {
     logger.error('Erreur récupération statistiques emails:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération des statistiques',
+      error: 'Erreur lors de la récupération des statistiques emails',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -775,20 +826,64 @@ const testSMTPConnection = async (req, res) => {
     const pythonService = require('../services/email/pythonEmailService');
     
     logger.info('[EmailController] Test de connexion SMTP via service Python...');
-    const result = await pythonService.testConnection();
     
-    if (result.success) {
+    let result;
+    try {
+      result = await pythonService.testConnection();
+      
+      // Vérifier que result est défini
+      if (!result) {
+        throw new Error('Le service Python n\'a retourné aucune réponse');
+      }
+    } catch (serviceError) {
+      logger.error('Erreur lors de l\'appel au service Python:', serviceError);
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur lors du test de connexion SMTP',
+        message: serviceError.message || 'Impossible d\'exécuter le service Python',
+        details: {
+          host: process.env.SMTP_HOST || 'Non configuré',
+          port: process.env.SMTP_PORT || 'Non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+          user: process.env.SMTP_USER || 'Non configuré',
+          from: process.env.SMTP_FROM || 'Non configuré',
+          suggestion: 'Vérifiez que Python 3 est installé dans le conteneur et que le script email_service.py existe'
+        }
+      });
+    }
+    
+    // Vérifier que result est un objet valide
+    if (!result || typeof result !== 'object') {
+      logger.error('[EmailController] Résultat invalide du service Python:', result);
+      return res.status(500).json({
+        success: false,
+        error: 'Réponse invalide du service Python',
+        message: 'Le service Python a retourné une réponse inattendue',
+        details: {
+          host: process.env.SMTP_HOST || 'Non configuré',
+          port: process.env.SMTP_PORT || 'Non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+          user: process.env.SMTP_USER || 'Non configuré',
+          from: process.env.SMTP_FROM || 'Non configuré',
+          suggestion: 'Vérifiez que Python 3 est installé dans le conteneur et que le script email_service.py existe'
+        }
+      });
+    }
+    
+    if (result.success === true) {
       res.json({
         success: true,
         message: result.message || 'Connexion SMTP réussie',
         data: {
           provider: 'SMTP (Python)',
-          host: process.env.SMTP_HOST || 'non configuré',
-          port: process.env.SMTP_PORT || 'non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
-          useSSL: process.env.SMTP_USE_SSL === 'true',
-          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-          user: process.env.SMTP_USER ? `${process.env.SMTP_USER.substring(0, 3)}***` : 'non configuré',
+          host: process.env.SMTP_HOST || 'Non configuré',
+          port: process.env.SMTP_PORT || 'Non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+          from: process.env.SMTP_FROM || 'Non configuré',
+          user: process.env.SMTP_USER || 'Non configuré',
         }
       });
     } else {
@@ -797,10 +892,12 @@ const testSMTPConnection = async (req, res) => {
         error: result.error || 'Connexion SMTP échouée',
         message: result.message || 'Impossible de se connecter au serveur SMTP',
         details: {
-          host: process.env.SMTP_HOST || 'non configuré',
-          port: process.env.SMTP_PORT || 'non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
-          useSSL: process.env.SMTP_USE_SSL === 'true',
+          host: process.env.SMTP_HOST || 'Non configuré',
+          port: process.env.SMTP_PORT || 'Non configuré',
+          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+          user: process.env.SMTP_USER || 'Non configuré',
+          from: process.env.SMTP_FROM || 'Non configuré',
           suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible'
         }
       });
@@ -810,12 +907,14 @@ const testSMTPConnection = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erreur lors du test de connexion SMTP',
-      message: error.message,
+      message: error.message || 'Erreur inconnue',
       details: {
-        host: process.env.SMTP_HOST || 'non configuré',
-        port: process.env.SMTP_PORT || 'non configuré',
-        secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true',
-        useSSL: process.env.SMTP_USE_SSL === 'true',
+        host: process.env.SMTP_HOST || 'Non configuré',
+        port: process.env.SMTP_PORT || 'Non configuré',
+        secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+        useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+        user: process.env.SMTP_USER || 'Non configuré',
+        from: process.env.SMTP_FROM || 'Non configuré',
         suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible. Vérifiez aussi que Python 3 est installé dans le conteneur.'
       }
     });
@@ -939,6 +1038,253 @@ const deleteAllEmailLogs = async (req, res) => {
   }
 };
 
+/**
+ * Mettre à jour un template d'email
+ */
+const updateEmailTemplate = async (req, res) => {
+  try {
+    const { type } = req.params;
+    const { name, subject, htmlContent, description, variables } = req.body;
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Type de template requis'
+      });
+    }
+
+    // Vérifier si la table EmailTemplate existe
+    try {
+      // Essayer de créer ou mettre à jour le template
+      const template = await prisma.emailTemplate.upsert({
+        where: { type },
+        update: {
+          name: name || undefined,
+          subject: subject || undefined,
+          htmlContent: htmlContent || undefined,
+          description: description || undefined,
+          variables: variables ? JSON.stringify(variables) : undefined,
+          updatedAt: new Date()
+        },
+        create: {
+          type,
+          name: name || `Template ${type}`,
+          subject: subject || '',
+          htmlContent: htmlContent || '',
+          description: description || '',
+          variables: variables ? JSON.stringify(variables) : '[]'
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Template mis à jour avec succès',
+        data: template
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas, retourner une erreur avec suggestion
+      if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+        logger.warn('Table EmailTemplate non trouvée. Exécutez: make db-push-all');
+        return res.status(404).json({
+          success: false,
+          error: 'Table EmailTemplate non trouvée',
+          suggestion: 'Exécutez "make db-push-all" pour créer la table EmailTemplate',
+          details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+        });
+      } else {
+        logger.error('Erreur mise à jour template:', dbError);
+        throw dbError;
+      }
+    }
+  } catch (error) {
+    logger.error('Erreur mise à jour template email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la mise à jour du template',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Récupérer les templates d'emails
+ */
+const getEmailTemplates = async (req, res) => {
+  try {
+    const { type } = req.params;
+
+    // Templates par défaut (fallback si pas de table EmailTemplate)
+    const defaultTemplates = [
+      {
+        type: 'WELCOME',
+        name: 'Email de Bienvenue',
+        description: 'Envoyé lors de l\'inscription d\'un nouvel utilisateur',
+        subject: '🎉 Bienvenue sur JobbingTrack !',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+              <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d'emploi</p>
+            </div>
+            <h2 style="color: #1f2937;">Bienvenue {{firstName}} ! 🎉</h2>
+            <p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p>
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #374151; margin-top: 0;">🚀 Vous pouvez maintenant :</h3>
+              <ul style="color: #4b5563; line-height: 1.6;">
+                <li>📝 <strong>Suivre vos candidatures</strong> - Gardez trace de toutes vos applications</li>
+                <li>📅 <strong>Gérer vos entretiens</strong> - Planifiez et préparez vos rendez-vous</li>
+                <li>🔔 <strong>Recevoir des rappels</strong> - Ne manquez plus jamais une relance</li>
+                <li>👥 <strong>Organiser vos contacts</strong> - Votre carnet d'adresses professionnel</li>
+                <li>📊 <strong>Analyser vos performances</strong> - Statistiques de vos candidatures</li>
+              </ul>
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{frontendUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Commencer maintenant
+              </a>
+            </div>
+          </div>
+        `,
+        variables: ['firstName', 'lastName', 'frontendUrl']
+      },
+      {
+        type: 'VERIFICATION',
+        name: 'Email de Vérification',
+        description: 'Pour vérifier l\'adresse email lors de l\'inscription',
+        subject: '✅ Vérifiez votre adresse email - JobbingTrack',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+              <p style="color: #6b7280; margin: 5px 0;">Vérification de votre adresse email</p>
+            </div>
+            <h2 style="color: #1f2937;">Bonjour {{firstName}} ! 👋</h2>
+            <p>Bienvenue sur JobbingTrack ! Pour activer votre compte, veuillez vérifier votre adresse email.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{verificationUrl}}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                ✓ Vérifier mon adresse email
+              </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px;">Ce lien expire dans 24 heures.</p>
+          </div>
+        `,
+        variables: ['firstName', 'verificationUrl']
+      },
+      {
+        type: 'RESET_PASSWORD',
+        name: 'Réinitialisation de Mot de Passe',
+        description: 'Lien de réinitialisation de mot de passe',
+        subject: '🔐 Réinitialisation de votre mot de passe JobbingTrack',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
+              <p style="color: #6b7280; margin: 5px 0;">Réinitialisation de mot de passe</p>
+            </div>
+            <h2 style="color: #1f2937;">Bonjour {{firstName}},</h2>
+            <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte JobbingTrack.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{{resetUrl}}" style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Réinitialiser mon mot de passe
+              </a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px;">Ce lien est valide pendant 1 heure.</p>
+          </div>
+        `,
+        variables: ['firstName', 'resetUrl']
+      }
+    ];
+
+    // Si un type spécifique est demandé, retourner uniquement ce template
+    if (type) {
+      const template = defaultTemplates.find(t => t.type === type);
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          error: `Template de type ${type} non trouvé`
+        });
+      }
+      return res.json({
+        success: true,
+        data: template
+      });
+    }
+
+    // Essayer de récupérer les templates depuis la base de données
+    let templates = [];
+    try {
+      templates = await prisma.emailTemplate.findMany({
+        orderBy: { name: 'asc' }
+      });
+      
+      // Si des templates existent en DB, les utiliser, sinon utiliser les defaults
+      if (templates.length > 0) {
+        // Merger avec les defaults pour s'assurer que tous les types sont présents
+        const templateMap = new Map();
+        templates.forEach(t => {
+          templateMap.set(t.type, {
+            type: t.type,
+            name: t.name,
+            description: t.description || '',
+            subject: t.subject || '',
+            htmlContent: t.htmlContent || '',
+            variables: t.variables ? (typeof t.variables === 'string' ? JSON.parse(t.variables) : t.variables) : []
+          });
+        });
+        
+        // Ajouter les defaults manquants
+        defaultTemplates.forEach(defaultTemplate => {
+          if (!templateMap.has(defaultTemplate.type)) {
+            templateMap.set(defaultTemplate.type, defaultTemplate);
+          }
+        });
+        
+        templates = Array.from(templateMap.values());
+      } else {
+        templates = defaultTemplates;
+      }
+    } catch (dbError) {
+      // Si la table n'existe pas, utiliser les templates par défaut
+      if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+        logger.warn('Table EmailTemplate non trouvée, utilisation des templates par défaut. Exécutez: make db-push-all');
+        templates = defaultTemplates;
+      } else {
+        logger.error('Erreur récupération templates depuis DB:', dbError);
+        // En cas d'erreur, utiliser les defaults
+        templates = defaultTemplates;
+      }
+    }
+
+    // Si un type spécifique est demandé, retourner uniquement ce template
+    if (type) {
+      const template = templates.find(t => t.type === type);
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          error: `Template de type ${type} non trouvé`
+        });
+      }
+      return res.json({
+        success: true,
+        data: template
+      });
+    }
+
+    // Sinon, retourner tous les templates
+    res.json({
+      success: true,
+      data: templates
+    });
+  } catch (error) {
+    logger.error('Erreur récupération templates emails:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des templates',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   getEmailLogs,
   getEmailLog,
@@ -949,5 +1295,7 @@ module.exports = {
   testSMTPConnection,
   trackEmailOpen,
   deleteFailedEmails,
-  deleteAllEmailLogs
+  deleteAllEmailLogs,
+  getEmailTemplates,
+  updateEmailTemplate
 };

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
 import { 
   Users, Search, Plus, Edit, Trash2, Shield, 
-  Mail, Phone, Calendar, UserCheck, UserX, RefreshCw 
+  Mail, Phone, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -32,13 +32,7 @@ export default function UsersManagementPage() {
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  useEffect(() => {
-    if (token) {
-      loadUsers();
-    }
-  }, [token]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -117,7 +111,13 @@ export default function UsersManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      loadUsers();
+    }
+  }, [token, loadUsers]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 

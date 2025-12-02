@@ -33,26 +33,43 @@ const io = new Server(server, {
   }
 })
 
-// Middleware de sécurité
-app.use(helmet())
-app.use(cors({
-  origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [
-    // Nouveaux ports (5000-5019) - prioritaires
-    'http://localhost:5003',  // Frontend
-    'http://localhost:5002',  // API Gateway
-    'http://localhost:5005',  // Auth Service
-    'http://localhost:5004',  // Metrics Aggregator
-    'http://127.0.0.1:5003',
-    'http://127.0.0.1:5002',
-    'http://127.0.0.1:5005',
-    'http://127.0.0.1:5004',
-    // Anciens ports (compatibilité)
-    'http://localhost:8080',
-    'http://localhost:3000',
-    'http://127.0.0.1:8080',
-    'http://127.0.0.1:3000'
-  ],
-  credentials: true
+// Middleware CORS - DOIT être avant Helmet pour éviter les conflits
+const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [
+  // Nouveaux ports (5000-5019) - prioritaires
+  'http://localhost:5003',  // Frontend
+  'http://localhost:5002',  // API Gateway
+  'http://localhost:5005',  // Auth Service
+  'http://localhost:5004',  // Metrics Aggregator
+  'http://127.0.0.1:5003',
+  'http://127.0.0.1:5002',
+  'http://127.0.0.1:5005',
+  'http://127.0.0.1:5004',
+  // Anciens ports (compatibilité)
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:3000'
+]
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (ex: Postman, curl)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(null, true) // En développement, autoriser toutes les origines
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'X-Requested-With', 'Accept']
+}
+app.use(cors(corsOptions))
+// Middleware de sécurité - après CORS pour éviter les conflits
+// Désactiver crossOriginResourcePolicy de Helmet car il peut bloquer CORS
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }))
 app.use(morgan('combined'))
 app.use(express.json())
