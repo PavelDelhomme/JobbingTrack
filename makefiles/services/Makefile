@@ -847,7 +847,7 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo ""
 	@echo "🔵 Services optionnels:"
 	@echo ""
-	@services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
+	@services="application-service company-service contact-service interview-service followup-service call-service metrics-aggregator"; \
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
@@ -931,7 +931,7 @@ status-live: ## Statut détaillé en temps réel avec actualisation automatique 
 		echo ""; \
 		echo "🔵 Services optionnels:"; \
 		echo ""; \
-		services="application-service company-service contact-service interview-service event-service followup-service call-service metrics-aggregator mailhog"; \
+		services="application-service company-service contact-service interview-service followup-service call-service metrics-aggregator"; \
 		for service in $$services; do \
 			container="jobbingtrack-$$service"; \
 			if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \

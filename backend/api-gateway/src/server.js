@@ -516,27 +516,28 @@ app.use('/api/v1/maintenance', maintenanceRoutes);
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 const services = {
-  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
-  '/api/v1/preferences': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
-  '/api/v1/users': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
-  '/api/v1/emails': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
+  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001', serviceName: 'auth-service' },
+  '/api/v1/preferences': { url: process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001', serviceName: 'auth-service' },
+  '/api/v1/users': { url: process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001', serviceName: 'auth-service' },
+  '/api/v1/emails': { url: process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/applications': { url: process.env.APPLICATION_SERVICE_URL || 'http://application-service:3002', serviceName: 'application-service' },
   '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://company-service:3003', serviceName: 'company-service' },
   '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://contact-service:3004', serviceName: 'contact-service' },
-  '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://interview-service:3005', serviceName: 'interview-service' },
+  '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://jobbingtrack-interview-service:3005', serviceName: 'interview-service' },
   '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3006', serviceName: 'notification-service' },
-  '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3007', serviceName: 'dashboard-service' },
-  '/api/v1/statistics': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3007', serviceName: 'dashboard-service' },
-  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3008', serviceName: 'call-service' },
+  '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://jobbingtrack-dashboard-service:3000', serviceName: 'dashboard-service' },
+  '/api/v1/statistics': { url: process.env.DASHBOARD_SERVICE_URL || 'http://jobbingtrack-dashboard-service:3000', serviceName: 'dashboard-service' },
+  '/api/v1/analytics': { url: process.env.DASHBOARD_SERVICE_URL || 'http://jobbingtrack-dashboard-service:3000', serviceName: 'dashboard-service' },
+  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://jobbingtrack-call-service:3008', serviceName: 'call-service' },
   '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
-  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },
+  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://jobbingtrack-followup-service:3012', serviceName: 'followup-service' },
   '/api/v1/workflows': { url: process.env.WORKFLOW_SERVICE_URL || 'http://workflow-service:3013', serviceName: 'workflow-service' },
-  '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/intrusions': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
-  '/api/v1/ddos': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
+  '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/alerts': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/intrusions': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
+  '/api/v1/ddos': { url: process.env.SECURITY_SERVICE_URL || 'http://jobbingtrack-security-service:3017', serviceName: 'security-service' },
   '/api/v1/vulnerabilities': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' }
 };
 
@@ -544,8 +545,16 @@ const services = {
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
   app.all(path + '*', MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
     try {
-      // Garder le path complet pour que chaque service gère ses propres routes
-      const targetUrl = `${target}${req.originalUrl}`;
+      // ✅ Pour les routes auth, garder le path complet car l'Auth Service monte ses routes sur /api/v1/auth
+      // Pour les autres services, utiliser req.originalUrl qui contient déjà le path complet
+      let targetUrl = `${target}${req.originalUrl}`;
+      
+      // ✅ Pour les routes /api/v1/auth/users, s'assurer que le path est correct
+      // L'auth-service monte les routes users sur /api/v1/users ET /api/v1/auth/users
+      if (req.originalUrl.startsWith('/api/v1/auth/users') && !req.originalUrl.startsWith('/api/v1/auth/users/api/v1')) {
+        // Le path est déjà correct
+        targetUrl = `${target}${req.originalUrl}`;
+      }
 
       logger.info(`${req.method} ${req.originalUrl} -> ${targetUrl}`);
 
@@ -615,41 +624,59 @@ app.get('/api/v1/services', async (req, res) => {
     // Essayer de récupérer les vraies informations depuis le service de métriques
     try {
       const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
-      const response = await axios.get(`${metricsServiceUrl}/api/v1/services`, {
-        timeout: 5000
+      // Utiliser l'endpoint /api/v1/docker/jobbingtrack/aggregated qui retourne containers
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/jobbingtrack/aggregated`, {
+        timeout: 10000
       });
 
-      if (response.data && response.data.containers) {
+      if (response.data && response.data.containers && Array.isArray(response.data.containers)) {
         // Convertir les conteneurs du format du service metrics-aggregator vers notre format
         servicesStatus = response.data.containers.map((container) => {
           // Extraire le nom du service à partir du nom du conteneur
-          const serviceName = container.name.replace('jobbingtrack-', '').replace('-service', '');
+          let serviceName = container.name || '';
+          serviceName = serviceName.replace('jobbingtrack-', '');
+          if (serviceName.endsWith('-service')) {
+            serviceName = serviceName.replace('-service', '');
+          }
           
-          // Déterminer le statut réel : si CPU > 0 ou PIDs > 0, c'est vraiment running
-          const isActuallyRunning = (container.cpu?.percent > 0 || container.pids > 0);
-          const status = isActuallyRunning ? 'running' : 'stopped';
+          // Déterminer le statut réel : utiliser health_status si disponible
+          let status = 'stopped';
+          if (container.health_status === 'healthy') {
+            status = 'running';
+          } else if (container.health_status === 'degraded') {
+            status = 'running'; // Dégradé mais toujours en cours d'exécution
+          } else if (container.health_status === 'offline') {
+            status = 'stopped';
+          } else {
+            // Fallback : si CPU > 0 ou PIDs > 0, c'est vraiment running
+            const isActuallyRunning = (container.cpu_percent > 0 || container.pids > 0);
+            status = isActuallyRunning ? 'running' : 'stopped';
+          }
 
           return {
             name: serviceName,
             status: status,
             port: 'N/A', // Port non exposé par cAdvisor, nécessiterait inspection Docker
             url: `http://localhost:N/A`,
-            health: status,
+            health: container.health_status || status,
             version: 'N/A', // Version non disponible via métriques conteneur
             environment: process.env.NODE_ENV || 'development',
             type: 'service',
             dataSource: 'metrics-aggregator',
             lastCheck: new Date().toISOString(),
-            responseTime: 'N/A',
-            error: undefined,
+            responseTime: container.response_time_ms ? `${container.response_time_ms}ms` : 'N/A',
+            error: container.health_error || undefined,
             metrics: {
-              cpu: container.cpu?.percent !== undefined ? container.cpu.percent : 'N/A',
+              cpu: container.cpu_percent !== undefined ? container.cpu_percent : 'N/A',
               memory: {
-                usage: container.memory?.usage || 'N/A',
-                limit: container.memory?.limit || 'N/A',
-                percent: container.memory?.percent !== undefined ? container.memory.percent : 'N/A'
+                usage: container.memory_usage_mb !== undefined ? `${container.memory_usage_mb}MB` : 'N/A',
+                limit: container.memory_limit_mb !== undefined ? `${container.memory_limit_mb}MB` : 'N/A',
+                percent: container.memory_percent !== undefined ? container.memory_percent : 'N/A'
               },
-              network: container.network || { rx_bytes: 'N/A', tx_bytes: 'N/A' },
+              network: container.network_rx_mb !== undefined ? { 
+                rx_mb: container.network_rx_mb, 
+                tx_mb: container.network_tx_mb 
+              } : { rx_bytes: 'N/A', tx_bytes: 'N/A' },
               pids: container.pids !== undefined ? container.pids : 'N/A'
             }
           };
@@ -657,7 +684,7 @@ app.get('/api/v1/services', async (req, res) => {
 
         logger.info(`✅ Services récupérés depuis le service de métriques (${servicesStatus.length} services) - données temps réel`);
       } else {
-        throw new Error('Format de réponse invalide du service de métriques');
+        throw new Error(`Format de réponse invalide du service de métriques. Réponse: ${JSON.stringify(response.data ? Object.keys(response.data).slice(0, 5) : 'N/A')}`);
       }
     } catch (metricsError) {
       logger.error('Service de métriques non disponible:', {

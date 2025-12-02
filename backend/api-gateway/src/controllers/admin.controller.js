@@ -236,41 +236,84 @@ const getServicesList = async (req, res) => {
     // Essayer de récupérer les vraies informations depuis le service de métriques
     try {
       const metricsServiceUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
-      const response = await axios.get(`${metricsServiceUrl}/api/v1/services`, {
-        timeout: 5000
+      // Utiliser l'endpoint /api/v1/docker/jobbingtrack/aggregated qui retourne containers
+      const response = await axios.get(`${metricsServiceUrl}/api/v1/docker/jobbingtrack/aggregated`, {
+        timeout: 10000
       });
 
-      if (response.data && response.data.containers) {
+      // Debug: logger la structure de la réponse
+      logger.info('Réponse Metrics Aggregator reçue:', {
+        status: response.status,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        hasContainers: !!(response.data && response.data.containers),
+        containersType: response.data?.containers ? typeof response.data.containers : 'N/A',
+        containersIsArray: !!(response.data && response.data.containers && Array.isArray(response.data.containers)),
+        containersLength: response.data?.containers?.length || 0,
+        responseKeys: response.data ? Object.keys(response.data).slice(0, 10) : []
+      });
+
+      // Vérifier si la réponse contient containers
+      if (!response.data) {
+        throw new Error('Réponse vide du service de métriques');
+      }
+
+      if (!response.data.containers) {
+        throw new Error(`Format de réponse invalide: propriété 'containers' manquante. Clés disponibles: ${Object.keys(response.data).join(', ')}`);
+      }
+
+      if (!Array.isArray(response.data.containers)) {
+        throw new Error(`Format de réponse invalide: 'containers' n'est pas un tableau (type: ${typeof response.data.containers})`);
+      }
+
+      if (response.data.containers && Array.isArray(response.data.containers)) {
         // Convertir les conteneurs du format du service metrics-aggregator vers notre format
         const servicesStatus = response.data.containers.map((container) => {
           // Extraire le nom du service à partir du nom du conteneur
-          const serviceName = container.name.replace('jobbingtrack-', '').replace('-service', '');
+          let serviceName = container.name || '';
+          serviceName = serviceName.replace('jobbingtrack-', '');
+          if (serviceName.endsWith('-service')) {
+            serviceName = serviceName.replace('-service', '');
+          }
           
-          // Déterminer le statut réel : si CPU > 0 ou PIDs > 0, c'est vraiment running
-          const isActuallyRunning = (container.cpu?.percent > 0 || container.pids > 0);
-          const status = isActuallyRunning ? 'running' : 'stopped';
+          // Déterminer le statut réel : utiliser health_status si disponible, sinon basé sur CPU/PIDs
+          let status = 'stopped';
+          if (container.health_status === 'healthy') {
+            status = 'running';
+          } else if (container.health_status === 'degraded') {
+            status = 'running'; // Dégradé mais toujours en cours d'exécution
+          } else if (container.health_status === 'offline') {
+            status = 'stopped';
+          } else {
+            // Fallback : si CPU > 0 ou PIDs > 0, c'est vraiment running
+            const isActuallyRunning = (container.cpu_percent > 0 || container.pids > 0);
+            status = isActuallyRunning ? 'running' : 'stopped';
+          }
 
           return {
             name: serviceName,
             status: status,
             port: 'N/A', // Port non exposé par cAdvisor, nécessiterait inspection Docker
             url: `http://localhost:N/A`,
-            health: status,
+            health: container.health_status || status,
             version: 'N/A', // Version non disponible via métriques conteneur
             environment: process.env.NODE_ENV || 'development',
             type: 'service',
             dataSource: 'metrics-aggregator',
             lastCheck: new Date().toISOString(),
-            responseTime: 'N/A',
-            error: undefined,
+            responseTime: container.response_time_ms ? `${container.response_time_ms}ms` : 'N/A',
+            error: container.health_error || undefined,
             metrics: {
-              cpu: container.cpu?.percent !== undefined ? container.cpu.percent : 'N/A',
+              cpu: container.cpu_percent !== undefined ? container.cpu_percent : 'N/A',
               memory: {
-                usage: container.memory?.usage || 'N/A',
-                limit: container.memory?.limit || 'N/A',
-                percent: container.memory?.percent !== undefined ? container.memory.percent : 'N/A'
+                usage: container.memory_usage_mb !== undefined ? `${container.memory_usage_mb}MB` : 'N/A',
+                limit: container.memory_limit_mb !== undefined ? `${container.memory_limit_mb}MB` : 'N/A',
+                percent: container.memory_percent !== undefined ? container.memory_percent : 'N/A'
               },
-              network: container.network || { rx_bytes: 'N/A', tx_bytes: 'N/A' },
+              network: container.network_rx_mb !== undefined ? { 
+                rx_mb: container.network_rx_mb, 
+                tx_mb: container.network_tx_mb 
+              } : { rx_bytes: 'N/A', tx_bytes: 'N/A' },
               pids: container.pids !== undefined ? container.pids : 'N/A'
             }
           };
@@ -293,6 +336,12 @@ const getServicesList = async (req, res) => {
     } catch (metricsError) {
       logger.error('Service de métriques non disponible:', {
         error: metricsError.message,
+        code: metricsError.code,
+        response: metricsError.response ? {
+          status: metricsError.response.status,
+          statusText: metricsError.response.statusText,
+          data: typeof metricsError.response.data === 'object' ? Object.keys(metricsError.response.data).slice(0, 5) : 'N/A'
+        } : 'N/A',
         url: process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014',
         timestamp: new Date().toISOString()
       });

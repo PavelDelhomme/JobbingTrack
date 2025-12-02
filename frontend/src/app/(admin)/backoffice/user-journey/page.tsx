@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/lib/hooks/auth';
 import { 
   Users, 
   UserPlus, 
@@ -25,8 +26,11 @@ import {
   Trash2,
   Key,
   Shield,
-  Mail
+  Mail,
+  FileDown
 } from 'lucide-react';
+
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
 
 // Types pour les étapes du parcours
 type JourneyStep = {
@@ -648,7 +652,7 @@ export default function UserJourneyPage() {
       
       switch (step.id) {
         case 'register':
-          const registerRes = await fetch('/api/v1/auth/register', {
+          const registerRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -674,7 +678,7 @@ export default function UserJourneyPage() {
           
           // Si mode user, créer d'abord l'utilisateur
           if (userMode === 'user') {
-            const registerUserRes = await fetch('/api/v1/auth/register', {
+            const registerUserRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -686,7 +690,7 @@ export default function UserJourneyPage() {
             await handleFetchResponse(registerUserRes);
           }
           
-          const loginRes = await fetch('/api/v1/auth/login', {
+          const loginRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(loginCredentials)
@@ -702,11 +706,11 @@ export default function UserJourneyPage() {
         case 'create_companies':
           const companies = [];
           for (let i = 0; i < 3; i++) {
-            const res = await fetch('/api/v1/companies', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 name: `Entreprise Test ${i + 1}`,
@@ -722,18 +726,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_companies':
-          const companiesListRes = await fetch('/api/v1/companies', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const companiesListRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const existingCompanies = await handleFetchResponse(companiesListRes);
           const companiesToUpdate = extractList(existingCompanies, 'companies');
           const updatedCompanies = [];
           for (let i = 0; i < Math.min(2, companiesToUpdate.length); i++) {
-            const res = await fetch(`/api/v1/companies/${companiesToUpdate[i].id}`, {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/companies/${companiesToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 industry: ['retail', 'manufacturing', 'services'][i % 3],
@@ -750,11 +754,11 @@ export default function UserJourneyPage() {
         case 'create_applications':
           const applications = [];
           for (let i = 0; i < 5; i++) {
-            const res = await fetch('/api/v1/applications', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
@@ -770,18 +774,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_applications':
-          const appsRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const existingApps = await handleFetchResponse(appsRes);
           const appsToUpdate = extractList(existingApps, 'applications');
           const updatedApps = [];
           for (let i = 0; i < Math.min(3, appsToUpdate.length); i++) {
-            const res = await fetch(`/api/v1/applications/${appsToUpdate[i].id}`, {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 status: ['FIRST_INTERVIEW_PENDING', 'OFFER_RECEIVED', 'ACCEPTED_AFTER_INTERVIEW'][i % 3],
@@ -797,11 +801,11 @@ export default function UserJourneyPage() {
         case 'create_contacts':
           const contacts = [];
           for (let i = 0; i < 3; i++) {
-            const res = await fetch('/api/v1/contacts', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 firstName: `Contact${i + 1}`,
@@ -817,18 +821,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_contacts':
-          const contactsRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const existingContacts = await handleFetchResponse(contactsRes);
           const contactsToUpdate = extractList(existingContacts, 'contacts');
           const updatedContacts = [];
           for (let i = 0; i < Math.min(2, contactsToUpdate.length); i++) {
-            const res = await fetch(`/api/v1/contacts/${contactsToUpdate[i].id}`, {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 phone: `+336${Math.floor(Math.random() * 100000000)}`,
@@ -843,8 +847,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'schedule_interviews':
-          const appsForInterviewsRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForInterviewsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForInterviewsPayload = await handleFetchResponse(appsForInterviewsRes);
           const appsForInterviews = extractList(appsForInterviewsPayload, 'applications');
@@ -854,11 +858,11 @@ export default function UserJourneyPage() {
           }
           const interviews = [];
           for (let i = 0; i < Math.min(2, appsForInterviews.length); i++) {
-            const res = await fetch('/api/v1/interviews', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 applicationId: appsForInterviews[i].id,
@@ -875,8 +879,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'create_events':
-          const appsForEventsRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForEventsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForEventsPayload = await handleFetchResponse(appsForEventsRes);
           const appsForEvents = extractList(appsForEventsPayload, 'applications');
@@ -889,11 +893,11 @@ export default function UserJourneyPage() {
           for (let i = 0; i < Math.min(3, appsForEvents.length); i++) {
             const targetApp = appsForEvents[i];
             const startDate = new Date(Date.now() + (i + 2) * 24 * 60 * 60 * 1000);
-            const res = await fetch('/api/v1/events', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -911,8 +915,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'create_followups':
-          const appsForFollowupsRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForFollowupsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForFollowupsPayload = await handleFetchResponse(appsForFollowupsRes);
           const appsForFollowups = extractList(appsForFollowupsPayload, 'applications');
@@ -921,8 +925,8 @@ export default function UserJourneyPage() {
             break;
           }
 
-          const contactsForFollowupsRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsForFollowupsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const contactsForFollowupsPayload = await handleFetchResponse(contactsForFollowupsRes);
           const contactsForFollowups = extractList(contactsForFollowupsPayload, 'contacts');
@@ -931,11 +935,11 @@ export default function UserJourneyPage() {
           for (let i = 0; i < Math.min(3, appsForFollowups.length); i++) {
             const targetApp = appsForFollowups[i];
             const linkedContact = contactsForFollowups[i % Math.max(1, contactsForFollowups.length)];
-            const res = await fetch('/api/v1/followups', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -952,8 +956,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'make_calls':
-          const appsForCallsRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForCallsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForCallsPayload = await handleFetchResponse(appsForCallsRes);
           const appsForCalls = extractList(appsForCallsPayload, 'applications');
@@ -962,8 +966,8 @@ export default function UserJourneyPage() {
             break;
           }
 
-          const contactsForCallsRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsForCallsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const contactsForCallsPayload = await handleFetchResponse(contactsForCallsRes);
           const contactsForCalls = extractList(contactsForCallsPayload, 'contacts');
@@ -972,11 +976,11 @@ export default function UserJourneyPage() {
           for (let i = 0; i < Math.min(2, appsForCalls.length); i++) {
             const targetApp = appsForCalls[i];
             const linkedContact = contactsForCalls[i % Math.max(1, contactsForCalls.length)];
-            const res = await fetch('/api/v1/calls', {
+            const res = await fetch(`${API_GATEWAY_URL}/api/v1/calls`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -995,9 +999,9 @@ export default function UserJourneyPage() {
           break;
 
         case 'test_mobile_calendar':
-          const calendarRes = await fetch('/api/v1/events', {
+          const calendarRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
             headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             }
           });
           const calendarEvents = await handleFetchResponse(calendarRes);
@@ -1010,9 +1014,9 @@ export default function UserJourneyPage() {
           break;
 
         case 'view_statistics':
-          const statsRes = await fetch('/api/v1/dashboard/statistics', {
+          const statsRes = await fetch(`${API_GATEWAY_URL}/api/v1/statistics`, {
             headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             }
           });
           result = await handleFetchResponse(statsRes);
@@ -1020,24 +1024,24 @@ export default function UserJourneyPage() {
 
         // Nouvelles étapes granulaires
         case 'link_contact_to_application':
-          const appsForLinkRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForLinkRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForLink = await handleFetchResponse(appsForLinkRes);
           const appsArray = extractList(appsForLink, 'applications');
           
-          const contactsForLinkRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsForLinkRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const contactsForLink = await handleFetchResponse(contactsForLinkRes);
           const contactsArray = extractList(contactsForLink, 'contacts');
           
           if (appsArray.length > 0 && contactsArray.length > 0) {
-            const linkRes = await fetch(`/api/v1/applications/${appsArray[0].id}/contacts`, {
+            const linkRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsArray[0].id}/contacts`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 contactId: contactsArray[0].id
@@ -1050,15 +1054,15 @@ export default function UserJourneyPage() {
           break;
 
         case 'view_contact_details':
-          const contactsListRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsListRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const contactsList = await handleFetchResponse(contactsListRes);
           const contactsListArray = extractList(contactsList, 'contacts');
           
           if (contactsListArray.length > 0) {
-            const detailsRes = await fetch(`/api/v1/contacts/${contactsListArray[0].id}`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const detailsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsListArray[0].id}`, {
+              headers: { 'Authorization': `Bearer ${testToken || token}` }
             });
             result = await handleFetchResponse(detailsRes);
           } else {
@@ -1067,16 +1071,16 @@ export default function UserJourneyPage() {
           break;
 
         case 'delete_contact':
-          const contactsToDeleteRes = await fetch('/api/v1/contacts', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const contactsToDeleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const contactsToDelete = await handleFetchResponse(contactsToDeleteRes);
           const contactsToDeleteArray = extractList(contactsToDelete, 'contacts');
           
           if (contactsToDeleteArray.length > 0) {
-            const deleteRes = await fetch(`/api/v1/contacts/${contactsToDeleteArray[contactsToDeleteArray.length - 1].id}`, {
+            const deleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsToDeleteArray[contactsToDeleteArray.length - 1].id}`, {
               method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              headers: { 'Authorization': `Bearer ${testToken || token}` }
             });
             result = await handleFetchResponse(deleteRes);
           } else {
@@ -1085,18 +1089,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_interview_status':
-          const interviewsToUpdateRes = await fetch('/api/v1/interviews', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const interviewsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const interviewsToUpdate = await handleFetchResponse(interviewsToUpdateRes);
           const interviewsArray = extractList(interviewsToUpdate, 'interviews');
           
           if (interviewsArray.length > 0) {
-            const updateRes = await fetch(`/api/v1/interviews/${interviewsArray[0].id}`, {
+            const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews/${interviewsArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 status: 'COMPLETED'
@@ -1109,18 +1113,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'add_interview_notes':
-          const interviewsForNotesRes = await fetch('/api/v1/interviews', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const interviewsForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const interviewsForNotes = await handleFetchResponse(interviewsForNotesRes);
           const interviewsForNotesArray = extractList(interviewsForNotes, 'interviews');
           
           if (interviewsForNotesArray.length > 0) {
-            const notesRes = await fetch(`/api/v1/interviews/${interviewsForNotesArray[0].id}`, {
+            const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews/${interviewsForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 notes: 'Notes ajoutées automatiquement lors du test - Entretien très positif'
@@ -1133,18 +1137,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_followup_status':
-          const followupsToUpdateRes = await fetch('/api/v1/followups', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const followupsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const followupsToUpdate = await handleFetchResponse(followupsToUpdateRes);
           const followupsArray = extractList(followupsToUpdate, 'followups');
           
           if (followupsArray.length > 0) {
-            const updateRes = await fetch(`/api/v1/followups/${followupsArray[0].id}`, {
+            const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups/${followupsArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 status: 'NO_RESPONSE',
@@ -1158,18 +1162,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'mark_followup_completed':
-          const followupsToCompleteRes = await fetch('/api/v1/followups', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const followupsToCompleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const followupsToComplete = await handleFetchResponse(followupsToCompleteRes);
           const followupsToCompleteArray = extractList(followupsToComplete, 'followups');
           
           if (followupsToCompleteArray.length > 0) {
-            const completeRes = await fetch(`/api/v1/followups/${followupsToCompleteArray[0].id}/complete`, {
+            const completeRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups/${followupsToCompleteArray[0].id}/complete`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 status: 'POSITIVE_RESPONSE',
@@ -1183,18 +1187,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_event':
-          const eventsToUpdateRes = await fetch('/api/v1/events', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const eventsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const eventsToUpdate = await handleFetchResponse(eventsToUpdateRes);
           const eventsToUpdateArray = extractList(eventsToUpdate, 'events');
           
           if (eventsToUpdateArray.length > 0) {
-            const updateRes = await fetch(`/api/v1/events/${eventsToUpdateArray[0].id}`, {
+            const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/events/${eventsToUpdateArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 title: 'Événement mis à jour - Test',
@@ -1209,7 +1213,7 @@ export default function UserJourneyPage() {
 
         case 'delete_event':
           const eventsToDeleteRes = await fetch('/api/v1/events', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const eventsToDelete = await handleFetchResponse(eventsToDeleteRes);
           const eventsToDeleteArray = extractList(eventsToDelete, 'events');
@@ -1217,7 +1221,7 @@ export default function UserJourneyPage() {
           if (eventsToDeleteArray.length > 0) {
             const deleteRes = await fetch(`/api/v1/events/${eventsToDeleteArray[eventsToDeleteArray.length - 1].id}`, {
               method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              headers: { 'Authorization': `Bearer ${testToken || token}` }
             });
             result = await handleFetchResponse(deleteRes);
           } else {
@@ -1226,9 +1230,9 @@ export default function UserJourneyPage() {
           break;
 
         case 'view_calendar':
-          const calendarViewRes = await fetch('/api/v1/events', {
+          const calendarViewRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
             headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             }
           });
           const calendarView = await handleFetchResponse(calendarViewRes);
@@ -1241,18 +1245,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'add_company_notes':
-          const companiesForNotesRes = await fetch('/api/v1/companies', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const companiesForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const companiesForNotes = await handleFetchResponse(companiesForNotesRes);
           const companiesForNotesArray = extractList(companiesForNotes, 'companies');
           
           if (companiesForNotesArray.length > 0) {
-            const notesRes = await fetch(`/api/v1/companies/${companiesForNotesArray[0].id}`, {
+            const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies/${companiesForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 description: 'Notes ajoutées automatiquement - Entreprise très intéressante',
@@ -1266,18 +1270,18 @@ export default function UserJourneyPage() {
           break;
 
         case 'add_application_notes':
-          const appsForNotesRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForNotes = await handleFetchResponse(appsForNotesRes);
           const appsForNotesArray = extractList(appsForNotes, 'applications');
           
           if (appsForNotesArray.length > 0) {
-            const notesRes = await fetch(`/api/v1/applications/${appsForNotesArray[0].id}`, {
+            const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 notes: 'Notes automatiques - candidature prometteuse',
@@ -1291,8 +1295,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'update_application_status':
-          const appsForStatusRes = await fetch('/api/v1/applications', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          const appsForStatusRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const appsForStatus = await handleFetchResponse(appsForStatusRes);
           const appsForStatusArray = extractList(appsForStatus, 'applications');
@@ -1302,7 +1306,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 status: 'FIRST_INTERVIEW_PENDING'
@@ -1316,7 +1320,7 @@ export default function UserJourneyPage() {
 
         case 'check_interviews':
           const upcomingInterviewsRes = await fetch('/api/v1/interviews', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${testToken || token}` }
           });
           const upcomingInterviews = await handleFetchResponse(upcomingInterviewsRes);
           const interviewList = extractList(upcomingInterviews, 'interviews');
@@ -1334,7 +1338,7 @@ export default function UserJourneyPage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
               to: testEmail,
@@ -1353,7 +1357,7 @@ export default function UserJourneyPage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
               to: testResetEmail,
@@ -1371,7 +1375,7 @@ export default function UserJourneyPage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
               to: testVerifyEmail,
@@ -1405,7 +1409,7 @@ export default function UserJourneyPage() {
           const resetRequestEmail = `test-reset-${Date.now()}@example.com`;
           
           // D'abord créer un compte pour pouvoir reset le password
-          const createForResetRes = await fetch('/api/v1/auth/register', {
+          const createForResetRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1418,7 +1422,7 @@ export default function UserJourneyPage() {
           await handleFetchResponse(createForResetRes);
           
           // Maintenant demander le reset
-          const requestResetRes = await fetch('/api/v1/auth/forgot-password', {
+          const requestResetRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: resetRequestEmail })
@@ -1449,11 +1453,11 @@ export default function UserJourneyPage() {
           break;
 
         case 'cleanup_test_data':
-          const cleanupRes = await fetch('/api/v1/admin/clear-test-data', {
+          const cleanupRes = await fetch(`${API_GATEWAY_URL}/api/v1/admin/clear-test-data`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
               onlyTestData: true // Nettoyer uniquement les données isTestData=true
@@ -1601,7 +1605,7 @@ export default function UserJourneyPage() {
     });
   };
 
-  // Exporter les résultats
+  // Exporter les résultats en JSON
   const exportResults = () => {
     const data = {
       scenario: SCENARIOS[selectedScenario].name,
@@ -1609,7 +1613,8 @@ export default function UserJourneyPage() {
         name: s.name,
         status: s.status,
         duration: s.duration,
-        error: s.error
+        error: s.error,
+        result: s.result
       })),
       analytics,
       timestamp: new Date().toISOString()
@@ -1623,19 +1628,214 @@ export default function UserJourneyPage() {
     a.click();
   };
 
+  // Générer le PDF du rapport complet
+  const generatePDF = async () => {
+    // Désactiver temporairement jusqu'à ce que les dépendances soient installées
+    alert('⚠️ La génération PDF est temporairement désactivée.\n\nLes dépendances jspdf et html2canvas doivent être installées dans le conteneur Docker.\n\nPour activer:\n1. docker-compose build frontend\n2. docker-compose up -d frontend');
+    return;
+    
+    /* Code désactivé temporairement
+    try {
+      // Importer dynamiquement jspdf et html2canvas avec gestion d'erreur
+      let jsPDF: any;
+      let html2canvas: any;
+      
+      try {
+        const jspdfModule = await import('jspdf');
+        jsPDF = jspdfModule.default || jspdfModule;
+        const html2canvasModule = await import('html2canvas');
+        html2canvas = html2canvasModule.default || html2canvasModule;
+      } catch (importError: any) {
+        alert(`❌ Les dépendances PDF ne sont pas installées.\n\nVeuillez exécuter:\n\nnpm install jspdf html2canvas\n\nErreur: ${importError.message}`);
+        return;
+      }
+
+      // Créer un élément temporaire pour le contenu PDF
+      const pdfContent = document.createElement('div');
+      pdfContent.style.width = '210mm';
+      pdfContent.style.padding = '20mm';
+      pdfContent.style.backgroundColor = 'white';
+      pdfContent.style.color = 'black';
+      pdfContent.style.fontFamily = 'Arial, sans-serif';
+      pdfContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 20px;">
+          <h1 style="color: #2563eb; margin: 0; font-size: 28px;">📊 Rapport de Parcours Utilisateur</h1>
+          <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">JobbingTrack - Test Automatisé</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; font-size: 20px;">📋 Informations Générales</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <tr style="background-color: #f9fafb;">
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold; width: 40%;">Scénario</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${SCENARIOS[selectedScenario].name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Date de Test</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${analytics.completedAt ? analytics.completedAt.toLocaleString('fr-FR') : new Date().toLocaleString('fr-FR')}</td>
+            </tr>
+            <tr style="background-color: #f9fafb;">
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Durée Totale</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${(analytics.totalDuration / 1000).toFixed(2)}s</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Taux de Réussite</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb; color: ${analytics.successRate >= 80 ? '#10b981' : analytics.successRate >= 50 ? '#f59e0b' : '#ef4444'}; font-weight: bold;">
+                ${analytics.successRate.toFixed(1)}%
+              </td>
+            </tr>
+            <tr style="background-color: #f9fafb;">
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Étapes Réussies</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${steps.filter(s => s.status === 'success').length} / ${steps.length}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Étapes Échouées</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb; color: #ef4444; font-weight: bold;">${analytics.failedSteps.length}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; font-size: 20px;">⏱️ Durée par Étape</h2>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+              <tr style="background-color: #2563eb; color: white;">
+                <th style="padding: 10px; border: 1px solid #1e40af; text-align: left;">Étape</th>
+                <th style="padding: 10px; border: 1px solid #1e40af; text-align: right;">Durée</th>
+                <th style="padding: 10px; border: 1px solid #1e40af; text-align: center;">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${steps.map((step, index) => `
+                <tr style="${index % 2 === 0 ? 'background-color: #f9fafb;' : ''}">
+                  <td style="padding: 10px; border: 1px solid #e5e7eb;">${step.name}</td>
+                  <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: right;">${step.duration ? step.duration + 'ms' : 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">
+                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; 
+                      ${step.status === 'success' ? 'background-color: #d1fae5; color: #065f46;' : ''}
+                      ${step.status === 'error' ? 'background-color: #fee2e2; color: #991b1b;' : ''}
+                      ${step.status === 'running' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
+                      ${step.status === 'pending' ? 'background-color: #f3f4f6; color: #6b7280;' : ''}">
+                      ${step.status === 'success' ? '✅ Réussi' : step.status === 'error' ? '❌ Échoué' : step.status === 'running' ? '⏳ En cours' : '⏸️ En attente'}
+                    </span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        ${analytics.failedSteps.length > 0 ? `
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #dc2626; border-bottom: 2px solid #fee2e2; padding-bottom: 10px; font-size: 20px;">❌ Étapes Échouées</h2>
+          <div style="margin-top: 15px;">
+            ${analytics.failedSteps.map((stepName, index) => {
+              const failedStep = steps.find(s => s.name === stepName);
+              return `
+                <div style="margin-bottom: 15px; padding: 15px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
+                  <h3 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px;">${index + 1}. ${stepName}</h3>
+                  ${failedStep?.error ? `<p style="color: #7f1d1d; margin: 5px 0; font-size: 14px;"><strong>Erreur:</strong> ${failedStep.error}</p>` : ''}
+                  ${failedStep?.duration ? `<p style="color: #7f1d1d; margin: 5px 0; font-size: 14px;"><strong>Durée:</strong> ${failedStep.duration}ms</p>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; font-size: 20px;">📝 Détails des Étapes</h2>
+          ${steps.map((step, index) => `
+            <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: ${step.status === 'success' ? '#f0fdf4' : step.status === 'error' ? '#fef2f2' : '#f9fafb'};">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; color: #1f2937; font-size: 16px;">${index + 1}. ${step.name}</h3>
+                <span style="padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;
+                  ${step.status === 'success' ? 'background-color: #10b981; color: white;' : ''}
+                  ${step.status === 'error' ? 'background-color: #ef4444; color: white;' : ''}
+                  ${step.status === 'running' ? 'background-color: #3b82f6; color: white;' : 'background-color: #6b7280; color: white;'}">
+                  ${step.status === 'success' ? '✅ Réussi' : step.status === 'error' ? '❌ Échoué' : step.status === 'running' ? '⏳ En cours' : '⏸️ En attente'}
+                </span>
+              </div>
+              <p style="color: #6b7280; margin: 5px 0; font-size: 14px;">${step.description}</p>
+              ${step.duration ? `<p style="color: #6b7280; margin: 5px 0; font-size: 14px;"><strong>Durée:</strong> ${step.duration}ms</p>` : ''}
+              ${step.error ? `
+                <div style="margin-top: 10px; padding: 10px; background-color: #fee2e2; border-radius: 4px;">
+                  <p style="color: #991b1b; margin: 0; font-size: 13px;"><strong>Erreur:</strong> ${step.error}</p>
+                </div>
+              ` : ''}
+              ${step.result && step.status === 'success' ? `
+                <details style="margin-top: 10px;">
+                  <summary style="color: #2563eb; cursor: pointer; font-size: 13px; font-weight: bold;">Voir le résultat</summary>
+                  <pre style="margin-top: 10px; padding: 10px; background-color: #1f2937; color: #f9fafb; border-radius: 4px; font-size: 11px; overflow-x: auto;">${JSON.stringify(step.result, null, 2)}</pre>
+                </details>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
+          <p>Rapport généré le ${new Date().toLocaleString('fr-FR')} par JobbingTrack</p>
+          <p>Version 4.1 - Système de Test Automatisé</p>
+        </div>
+      `;
+
+      // Ajouter temporairement au DOM
+      pdfContent.style.position = 'absolute';
+      pdfContent.style.left = '-9999px';
+      document.body.appendChild(pdfContent);
+
+      // Générer le canvas
+      const canvas = await html2canvas(pdfContent, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Créer le PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Télécharger le PDF
+      pdf.save(`rapport-parcours-utilisateur-${Date.now()}.pdf`);
+
+      // Nettoyer
+      document.body.removeChild(pdfContent);
+    } catch (error: any) {
+      console.error('Erreur génération PDF:', error);
+      alert(`❌ Erreur lors de la génération du PDF:\n\n${error.message}\n\nVeuillez installer les dépendances: npm install jspdf html2canvas`);
+    }
+    */
+  };
+
   // Générer un token de test permanent
   const generateTestToken = async () => {
     setIsGeneratingToken(true);
     try {
       // Récupérer le token normal depuis localStorage
-      const normalToken = localStorage.getItem('token');
+      const normalToken = testToken || token;
       
       if (!normalToken) {
         alert('❌ Vous devez être connecté pour générer un token de test.\n\nConnectez-vous d\'abord, puis réessayez.');
         return;
       }
 
-      const response = await fetch('/api/v1/auth/generate-test-token', {
+      const response = await fetch(`${API_GATEWAY_URL}/api/v1/auth/generate-test-token`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${normalToken}`
@@ -1719,9 +1919,21 @@ export default function UserJourneyPage() {
             onClick={exportResults}
             variant="outline"
             disabled={steps.every(s => s.status === 'pending')}
+            title="Exporter en JSON"
           >
             <Download className="h-4 w-4 mr-2" />
-            Exporter
+            Exporter JSON
+          </Button>
+          
+          <Button
+            onClick={generatePDF}
+            variant="outline"
+            disabled={steps.every(s => s.status === 'pending') || !analytics.completedAt}
+            className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-700"
+            title="Générer un PDF complet avec tous les détails et logs"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Générer PDF
           </Button>
           
           <Button
@@ -2243,20 +2455,38 @@ export default function UserJourneyPage() {
               </p>
               <div className="space-y-2">
                 <a 
-                  href="/docs/mobile/analytics/SUMMARY.md" 
+                  href="/docs/mobile/analytics/SUMMARY" 
                   target="_blank"
-                  className="block text-blue-600 hover:underline"
+                  rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline dark:text-blue-400"
                 >
                   📄 Voir la documentation complète →
                 </a>
                 <a 
-                  href="/docs/mobile/analytics/INTEGRATION.md" 
+                  href="/docs/mobile/analytics/INTEGRATION" 
                   target="_blank"
-                  className="block text-blue-600 hover:underline"
+                  rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline dark:text-blue-400"
                 >
                   🔧 Guide d&apos;intégration →
                 </a>
-                <p className="text-sm text-gray-600 mt-4">
+                <a 
+                  href="/docs/mobile/analytics/README" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  📚 Documentation technique →
+                </a>
+                <a 
+                  href="/docs/mobile/analytics/DASHBOARD" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  📊 Template Dashboard →
+                </a>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
                   <strong>Note :</strong> Une fois implémenté, vous pourrez visualiser les analytics mobile en temps réel depuis cette page.
                 </p>
               </div>

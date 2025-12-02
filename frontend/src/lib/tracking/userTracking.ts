@@ -1,0 +1,575 @@
+/**
+ * SDK de tracking des actions utilisateur
+ * Collecte automatique des événements, erreurs et métriques de performance
+ */
+
+interface DeviceInfo {
+  deviceId: string;
+  platform: 'web' | 'ios' | 'android';
+  deviceModel?: string;
+  osName?: string;
+  osVersion?: string;
+  browserName?: string;
+  browserVersion?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  language?: string;
+  timezone?: string;
+}
+
+interface SessionInfo {
+  sessionId: string;
+  startTime: Date;
+  pageViews: number;
+  actions: number;
+  errors: number;
+}
+
+interface EventProperties {
+  elementId?: string;
+  elementType?: string;
+  elementText?: string;
+  page?: string;
+  [key: string]: any;
+}
+
+class UserTracking {
+  private static instance: UserTracking;
+  private sessionId: string | null = null;
+  private deviceId: string | null = null;
+  private deviceInfo: DeviceInfo | null = null;
+  private sessionInfo: SessionInfo | null = null;
+  private apiUrl: string;
+  private enabled: boolean = true;
+  private eventQueue: any[] = [];
+  private flushInterval: NodeJS.Timeout | null = null;
+
+  private constructor() {
+    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+    this.init();
+  }
+
+  public static getInstance(): UserTracking {
+    if (!UserTracking.instance) {
+      UserTracking.instance = new UserTracking();
+    }
+    return UserTracking.instance;
+  }
+
+  /**
+   * Initialiser le tracking
+   */
+  private async init() {
+    if (typeof window === 'undefined') return;
+
+    // Vérifier si le tracking est désactivé
+    const trackingDisabled = localStorage.getItem('tracking_disabled') === 'true';
+    if (trackingDisabled) {
+      this.enabled = false;
+      return;
+    }
+
+    // Générer ou récupérer deviceId
+    this.deviceId = this.getOrCreateDeviceId();
+
+    // Collecter les informations de l'appareil
+    this.deviceInfo = this.collectDeviceInfo();
+
+    // Enregistrer l'appareil
+    await this.registerDevice();
+
+    // Démarrer une nouvelle session
+    await this.startSession();
+
+    // Démarrer le flush périodique
+    this.startFlushInterval();
+
+    // Écouter les erreurs JavaScript
+    this.setupErrorTracking();
+
+    // Écouter la navigation
+    this.setupNavigationTracking();
+
+    // Écouter la fermeture de la page
+    this.setupPageUnload();
+  }
+
+  /**
+   * Obtenir ou créer un deviceId
+   */
+  private getOrCreateDeviceId(): string {
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+      deviceId = this.generateId();
+      localStorage.setItem('device_id', deviceId);
+    }
+    return deviceId;
+  }
+
+  /**
+   * Générer un ID unique
+   */
+  private generateId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Collecter les informations de l'appareil
+   */
+  private collectDeviceInfo(): DeviceInfo {
+    const ua = navigator.userAgent;
+    const screen = window.screen;
+
+    // Détecter le navigateur
+    let browserName = 'Unknown';
+    let browserVersion = 'Unknown';
+    if (ua.includes('Chrome')) {
+      browserName = 'Chrome';
+      const match = ua.match(/Chrome\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (ua.includes('Firefox')) {
+      browserName = 'Firefox';
+      const match = ua.match(/Firefox\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (ua.includes('Safari') && !ua.includes('Chrome')) {
+      browserName = 'Safari';
+      const match = ua.match(/Version\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    } else if (ua.includes('Edge')) {
+      browserName = 'Edge';
+      const match = ua.match(/Edge\/(\d+)/);
+      browserVersion = match ? match[1] : 'Unknown';
+    }
+
+    // Détecter l'OS
+    let osName = 'Unknown';
+    let osVersion = 'Unknown';
+    if (ua.includes('Windows')) {
+      osName = 'Windows';
+      const match = ua.match(/Windows NT (\d+\.\d+)/);
+      osVersion = match ? match[1] : 'Unknown';
+    } else if (ua.includes('Mac OS X')) {
+      osName = 'macOS';
+      const match = ua.match(/Mac OS X (\d+[._]\d+)/);
+      osVersion = match ? match[1].replace('_', '.') : 'Unknown';
+    } else if (ua.includes('Linux')) {
+      osName = 'Linux';
+    } else if (ua.includes('Android')) {
+      osName = 'Android';
+      const match = ua.match(/Android (\d+\.\d+)/);
+      osVersion = match ? match[1] : 'Unknown';
+    } else if (ua.includes('iPhone') || ua.includes('iPad')) {
+      osName = 'iOS';
+      const match = ua.match(/OS (\d+[._]\d+)/);
+      osVersion = match ? match[1].replace('_', '.') : 'Unknown';
+    }
+
+    return {
+      deviceId: this.deviceId!,
+      platform: 'web',
+      osName,
+      osVersion,
+      browserName,
+      browserVersion,
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      language: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+  }
+
+  /**
+   * Enregistrer l'appareil
+   */
+  private async registerDevice() {
+    if (!this.deviceInfo) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${this.apiUrl}/api/v1/analytics/device`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(this.deviceInfo)
+      });
+    } catch (error) {
+      console.warn('[TRACKING] Erreur enregistrement appareil:', error);
+    }
+  }
+
+  /**
+   * Démarrer une nouvelle session
+   */
+  private async startSession() {
+    if (!this.deviceInfo) return;
+
+    this.sessionId = this.generateId();
+    const startTime = new Date();
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${this.apiUrl}/api/v1/analytics/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          sessionId: this.sessionId,
+          deviceId: this.deviceId,
+          platform: this.deviceInfo.platform,
+          userAgent: navigator.userAgent,
+          ...this.deviceInfo
+        })
+      });
+
+      if (response.ok) {
+        this.sessionInfo = {
+          sessionId: this.sessionId,
+          startTime,
+          pageViews: 0,
+          actions: 0,
+          errors: 0
+        };
+      }
+    } catch (error) {
+      console.warn('[TRACKING] Erreur démarrage session:', error);
+    }
+  }
+
+  /**
+   * Terminer la session
+   */
+  public async endSession() {
+    if (!this.sessionId || !this.sessionInfo) return;
+
+    const endTime = new Date();
+    const duration = Math.floor((endTime.getTime() - this.sessionInfo.startTime.getTime()) / 1000);
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${this.apiUrl}/api/v1/analytics/sessions/${this.sessionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          endTime: endTime.toISOString(),
+          duration,
+          pageViews: this.sessionInfo.pageViews,
+          actions: this.sessionInfo.actions,
+          errors: this.sessionInfo.errors
+        })
+      });
+    } catch (error) {
+      console.warn('[TRACKING] Erreur fin session:', error);
+    }
+  }
+
+  /**
+   * Tracker un événement
+   */
+  public trackEvent(
+    eventName: string,
+    eventType: string = 'click',
+    category?: string,
+    properties?: EventProperties
+  ) {
+    if (!this.enabled || !this.sessionId) return;
+
+    const event = {
+      sessionId: this.sessionId,
+      deviceId: this.deviceId,
+      eventType,
+      eventName,
+      category,
+      page: window.location.pathname,
+      properties: {
+        ...properties,
+        url: window.location.href,
+        referrer: document.referrer
+      },
+      platform: 'web',
+      appVersion: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'
+    };
+
+    this.eventQueue.push(event);
+    if (this.sessionInfo) {
+      this.sessionInfo.actions++;
+    }
+
+    // Flush immédiat si la queue est pleine
+    if (this.eventQueue.length >= 10) {
+      this.flushEvents();
+    }
+  }
+
+  /**
+   * Tracker un clic sur un élément
+   */
+  public trackClick(element: HTMLElement, eventName?: string) {
+    const elementId = element.id || element.getAttribute('data-id') || undefined;
+    const elementType = element.tagName.toLowerCase();
+    const elementText = element.textContent?.trim().substring(0, 100);
+
+    this.trackEvent(
+      eventName || `click_${elementType}`,
+      'click',
+      'ui',
+      {
+        elementId,
+        elementType,
+        elementText
+      }
+    );
+  }
+
+  /**
+   * Tracker une vue de page
+   */
+  public trackPageView(page?: string) {
+    if (!this.enabled || !this.sessionId) return;
+
+    if (this.sessionInfo) {
+      this.sessionInfo.pageViews++;
+    }
+
+    this.trackEvent(
+      'page_view',
+      'navigation',
+      'navigation',
+      {
+        page: page || window.location.pathname
+      }
+    );
+  }
+
+  /**
+   * Tracker une erreur
+   */
+  public trackError(
+    error: Error | string,
+    errorType: string = 'javascript',
+    severity: 'error' | 'warning' | 'critical' = 'error',
+    properties?: Record<string, any>
+  ) {
+    if (!this.enabled) return;
+
+    const errorMessage = typeof error === 'string' ? error : error.message;
+    const stackTrace = error instanceof Error ? error.stack : undefined;
+
+    if (this.sessionInfo) {
+      this.sessionInfo.errors++;
+    }
+
+    this.sendError({
+      sessionId: this.sessionId,
+      deviceId: this.deviceId,
+      errorType,
+      errorName: error instanceof Error ? error.name : 'Error',
+      errorMessage: errorMessage.substring(0, 1000),
+      stackTrace: stackTrace?.substring(0, 5000),
+      page: window.location.pathname,
+      userAgent: navigator.userAgent,
+      platform: 'web',
+      appVersion: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+      severity,
+      properties
+    });
+  }
+
+  /**
+   * Tracker une métrique de performance
+   */
+  public trackPerformance(
+    metricName: string,
+    metricType: string,
+    value?: number,
+    duration?: number,
+    additionalData?: Record<string, any>
+  ) {
+    if (!this.enabled || !this.sessionId) return;
+
+    this.sendPerformance({
+      sessionId: this.sessionId,
+      deviceId: this.deviceId,
+      metricType,
+      metricName,
+      value,
+      duration,
+      page: window.location.pathname,
+      platform: 'web',
+      appVersion: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+      ...additionalData
+    });
+  }
+
+  /**
+   * Envoyer un événement
+   */
+  private async sendEvent(event: any) {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${this.apiUrl}/api/v1/analytics/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(event)
+      });
+    } catch (error) {
+      console.warn('[TRACKING] Erreur envoi événement:', error);
+    }
+  }
+
+  /**
+   * Envoyer une erreur
+   */
+  private async sendError(error: any) {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${this.apiUrl}/api/v1/analytics/errors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(error)
+      });
+    } catch (error) {
+      console.warn('[TRACKING] Erreur envoi erreur:', error);
+    }
+  }
+
+  /**
+   * Envoyer une métrique de performance
+   */
+  private async sendPerformance(performance: any) {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${this.apiUrl}/api/v1/analytics/performance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(performance)
+      });
+    } catch (error) {
+      console.warn('[TRACKING] Erreur envoi performance:', error);
+    }
+  }
+
+  /**
+   * Flush les événements en queue
+   */
+  private async flushEvents() {
+    if (this.eventQueue.length === 0) return;
+
+    const events = [...this.eventQueue];
+    this.eventQueue = [];
+
+    // Envoyer les événements en batch
+    for (const event of events) {
+      await this.sendEvent(event);
+    }
+  }
+
+  /**
+   * Démarrer le flush périodique
+   */
+  private startFlushInterval() {
+    this.flushInterval = setInterval(() => {
+      this.flushEvents();
+    }, 5000); // Flush toutes les 5 secondes
+  }
+
+  /**
+   * Configurer le tracking des erreurs
+   */
+  private setupErrorTracking() {
+    // Erreurs JavaScript globales
+    window.addEventListener('error', (event) => {
+      this.trackError(event.error || event.message, 'javascript', 'error', {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+    });
+
+    // Promesses rejetées non gérées
+    window.addEventListener('unhandledrejection', (event) => {
+      this.trackError(
+        event.reason instanceof Error ? event.reason : String(event.reason),
+        'promise',
+        'error'
+      );
+    });
+  }
+
+  /**
+   * Configurer le tracking de navigation
+   */
+  private setupNavigationTracking() {
+    // Tracker la page initiale
+    this.trackPageView();
+
+    // Tracker les changements de route (Next.js)
+    if (typeof window !== 'undefined') {
+      const originalPushState = history.pushState;
+      const originalReplaceState = history.replaceState;
+
+      history.pushState = (...args) => {
+        originalPushState.apply(history, args);
+        setTimeout(() => this.trackPageView(), 100);
+      };
+
+      history.replaceState = (...args) => {
+        originalReplaceState.apply(history, args);
+        setTimeout(() => this.trackPageView(), 100);
+      };
+
+      window.addEventListener('popstate', () => {
+        setTimeout(() => this.trackPageView(), 100);
+      });
+    }
+  }
+
+  /**
+   * Configurer le tracking à la fermeture de la page
+   */
+  private setupPageUnload() {
+    window.addEventListener('beforeunload', () => {
+      // Flush les événements restants
+      this.flushEvents();
+      // Terminer la session
+      this.endSession();
+    });
+
+    // Pour les navigateurs qui supportent visibilitychange
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.flushEvents();
+      }
+    });
+  }
+
+  /**
+   * Activer/désactiver le tracking
+   */
+  public setEnabled(enabled: boolean) {
+    this.enabled = enabled;
+    localStorage.setItem('tracking_disabled', (!enabled).toString());
+  }
+}
+
+// Export singleton
+export const userTracking = UserTracking.getInstance();
+
+// Export pour utilisation directe
+export default userTracking;
+

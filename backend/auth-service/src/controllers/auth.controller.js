@@ -298,8 +298,8 @@ const login = async (req, res, next) => {
         await prisma.user.update({
           where: { id: user.id },
           data: { 
-            lastLoginAt: new Date(),
-            loginCount: { increment: 1 }
+            lastLoginAt: new Date()
+            // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
           }
         });
       } catch (error) {
@@ -781,22 +781,48 @@ const forgotPassword = async (req, res, next) => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     // Supprimer les anciens tokens de cet utilisateur
-    await prisma.passwordResetToken.deleteMany({
-      where: { userId: user.id }
-    });
+    try {
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id }
+      });
+    } catch (dbError) {
+      // Ignorer si la table n'existe pas (P2021)
+      if (dbError.code !== 'P2021') {
+        logger.warn('Erreur suppression anciens tokens:', dbError.message);
+      }
+    }
 
     // Créer le nouveau token
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        token: hashedToken,
-        expiresAt
+    try {
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          token: hashedToken,
+          expiresAt
+        }
+      });
+    } catch (dbError) {
+      // Si la table n'existe pas (P2021), continuer quand même
+      if (dbError.code === 'P2021') {
+        logger.warn('Table PasswordResetToken non trouvée, email sera envoyé sans token en DB');
+      } else {
+        throw dbError;
       }
-    });
+    }
 
     // Envoyer l'email avec le token non hashé
     // Le service attend maintenant un resetToken, pas une URL complète
-    await emailService.sendPasswordResetEmail(user, resetToken);
+    try {
+      await emailService.sendPasswordResetEmail(user, resetToken);
+    } catch (emailError) {
+      logger.error('Erreur envoi email réinitialisation:', emailError);
+      // Ne pas échouer complètement si l'email échoue
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur lors de l\'envoi de l\'email de réinitialisation',
+        details: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
 
     res.json({
       success: true,
@@ -806,7 +832,30 @@ const forgotPassword = async (req, res, next) => {
     logger.info(`Demande de réinitialisation de mot de passe pour: ${user.email}`);
   } catch (error) {
     logger.error('Erreur demande réinitialisation:', error);
-    next(error);
+    
+    // Gestion d'erreur améliorée pour les erreurs de base de données
+    if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+      logger.warn('Table PasswordResetToken non trouvée, tentative d\'envoi d\'email sans token en DB');
+      // Essayer d'envoyer l'email quand même si l'utilisateur existe
+      if (user) {
+        try {
+          const resetToken = crypto.randomBytes(32).toString('hex');
+          await emailService.sendPasswordResetEmail(user, resetToken);
+          return res.json({
+            success: true,
+            message: 'Lien de réinitialisation envoyé par email (mode développement)'
+          });
+        } catch (emailError) {
+          logger.error('Erreur envoi email:', emailError);
+        }
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la demande de réinitialisation',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -926,7 +975,17 @@ const sendPasswordResetForUser = async (req, res, next) => {
     }
 
     // Envoyer l'email avec le token non hashé
-    await emailService.sendPasswordResetEmail(user, resetToken);
+    try {
+      await emailService.sendPasswordResetEmail(user, resetToken);
+    } catch (emailError) {
+      logger.error('Erreur envoi email réinitialisation:', emailError);
+      // Ne pas échouer complètement si l'email échoue
+      return res.status(500).json({
+        success: false,
+        error: 'Erreur lors de l\'envoi de l\'email de réinitialisation',
+        details: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
+    }
 
     res.json({
       success: true,

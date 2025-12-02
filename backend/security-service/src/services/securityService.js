@@ -36,41 +36,77 @@ class SecurityService {
       // Analyser les métriques à partir des vraies données collectées
       const metrics = await this.analyzeSecurityMetrics(securityLogs);
 
-      let trends, topThreats, vulnerabilities, alerts;
+      // Récupérer les données avec gestion d'erreur individuelle pour chaque méthode
+      let trends = [];
+      let topThreats = [];
+      let vulnerabilities = [];
+      let alerts = [];
+
+      // Utiliser Promise.allSettled pour gérer les erreurs individuellement
+      const results = await Promise.allSettled([
+        this.getSecurityTrends(days).catch(err => {
+          if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
+            logger.warn('Table pour trends non trouvée, retour de tableau vide');
+            return [];
+          }
+          logger.error('Erreur récupération trends:', err.message);
+          return [];
+        }),
+        this.getTopThreats(days).catch(err => {
+          if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
+            logger.warn('Table pour topThreats non trouvée, retour de tableau vide');
+            return [];
+          }
+          logger.error('Erreur récupération topThreats:', err.message);
+          return [];
+        }),
+        this.getVulnerabilities().catch(err => {
+          if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
+            logger.warn('Table vulnerabilities non trouvée, retour de tableau vide');
+            return [];
+          }
+          logger.error('Erreur récupération vulnerabilities:', err.message);
+          return [];
+        }),
+        this.getSecurityAlerts().catch(err => {
+          if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
+            logger.warn('Table pour alerts non trouvée, retour de tableau vide');
+            return [];
+          }
+          logger.error('Erreur récupération alerts:', err.message);
+          return [];
+        })
+      ]);
+
+      // Extraire les résultats
+      if (results[0].status === 'fulfilled') trends = results[0].value || [];
+      if (results[1].status === 'fulfilled') topThreats = results[1].value || [];
+      if (results[2].status === 'fulfilled') vulnerabilities = results[2].value || [];
+      if (results[3].status === 'fulfilled') alerts = results[3].value || [];
+
+      // Calculer le score de sécurité avec gestion d'erreur
+      let securityScore = 100;
       try {
-        [trends, topThreats, vulnerabilities, alerts] = await Promise.all([
-          this.getSecurityTrends(days),
-          this.getTopThreats(days),
-          this.getVulnerabilities(),
-          this.getSecurityAlerts()
-        ]);
+        securityScore = this.calculateSecurityScore(metrics);
       } catch (error) {
-        // Fallback si erreur P2021 - Mode développement
-        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Tables de sécurité non trouvées, retour de données vides (mode développement)');
-          trends = [];
-          topThreats = [];
-          vulnerabilities = [];
-          alerts = [];
-        } else {
-          throw error;
-        }
+        logger.warn('Erreur calcul score sécurité, utilisation de valeur par défaut:', error.message);
+        securityScore = 100;
       }
 
       return {
         overview: {
-          totalLogs: metrics.totalLogs,
-          criticalEvents: metrics.criticalEvents,
-          intrusionAttempts: metrics.intrusionAttempts,
-          ddosAttacks: metrics.ddosAttacks,
-          vulnerabilities: metrics.vulnerabilities,
-          securityScore: this.calculateSecurityScore(metrics)
+          totalLogs: metrics.totalLogs || 0,
+          criticalEvents: metrics.criticalEvents || 0,
+          intrusionAttempts: metrics.intrusionAttempts || 0,
+          ddosAttacks: metrics.ddosAttacks || 0,
+          vulnerabilities: metrics.vulnerabilities || 0,
+          securityScore
         },
-        logs: securityLogs.slice(0, 10), // 10 logs les plus récents
-        trends,
-        topThreats,
-        vulnerabilities,
-        alerts
+        logs: (securityLogs || []).slice(0, 10), // 10 logs les plus récents
+        trends: trends || [],
+        topThreats: topThreats || [],
+        vulnerabilities: vulnerabilities || [],
+        alerts: alerts || []
       };
     } catch (error) {
       logger.error('Erreur lors de la récupération des métriques de sécurité:', error);
@@ -586,6 +622,15 @@ class SecurityService {
   // Récupérer les tendances de sécurité par heure
   async getSecurityTrendsByHour(hours = 24) {
     try {
+      // Vérifier que la table existe
+      if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityLog non disponible, retour de tendances vides (mode développement)');
+          return [];
+        }
+        throw new Error('Table SecurityLog non disponible');
+      }
+
       const startDate = new Date();
       startDate.setHours(startDate.getHours() - hours);
 
@@ -606,9 +651,10 @@ class SecurityService {
 
       // Remplir les heures manquantes avec des zéros
       const result = [];
+      const trendsArray = Array.isArray(trends) ? trends : [];
       for (let i = 0; i < hours; i++) {
         const hour = new Date(startDate.getTime() + i * 60 * 60 * 1000);
-        const existingTrend = trends.find(t => {
+        const existingTrend = trendsArray.find(t => {
           const trendHour = new Date(t.hour);
           return trendHour.getTime() === hour.getTime();
         });
@@ -624,6 +670,13 @@ class SecurityService {
 
       return result;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityLog non trouvée, retour de tendances vides (mode développement)');
+          return [];
+        }
+      }
       logger.error('Erreur lors de la récupération des tendances de sécurité:', error);
       return [];
     }
@@ -633,22 +686,36 @@ class SecurityService {
   async getSystemMetrics() {
     try {
       // Récupérer les métriques récentes (dernière heure)
-      let recentLogs;
+      let recentLogs = [];
       try {
-        recentLogs = await prisma.securityLog.findMany({
-          where: {
-            timestamp: {
-              gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
-            }
-          },
-          orderBy: { timestamp: 'desc' },
-          take: 1000
-        });
+        // Vérifier que la table existe
+        if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
+          if (process.env.NODE_ENV === 'development') {
+            logger.warn('Table SecurityLog non disponible, retour de métriques vides (mode développement)');
+            recentLogs = [];
+          } else {
+            throw new Error('Table SecurityLog non disponible');
+          }
+        } else {
+          recentLogs = await prisma.securityLog.findMany({
+            where: {
+              timestamp: {
+                gte: new Date(Date.now() - 60 * 60 * 1000) // Dernière heure
+              }
+            },
+            orderBy: { timestamp: 'desc' },
+            take: 1000
+          });
+        }
       } catch (error) {
         // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
-        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
-          recentLogs = [];
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
+            recentLogs = [];
+          } else {
+            throw error;
+          }
         } else {
           throw error;
         }
@@ -722,6 +789,15 @@ class SecurityService {
   // Récupérer les tendances d'erreurs système
   async getErrorTrends(hours = 24) {
     try {
+      // Vérifier que la table existe
+      if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityLog non disponible, retour de tendances d\'erreurs vides (mode développement)');
+          return [];
+        }
+        throw new Error('Table SecurityLog non disponible');
+      }
+
       const startDate = new Date();
       startDate.setHours(startDate.getHours() - hours);
 
@@ -741,9 +817,10 @@ class SecurityService {
 
       // Remplir les heures manquantes
       const result = [];
+      const errorTrendsArray = Array.isArray(errorTrends) ? errorTrends : [];
       for (let i = 0; i < hours; i++) {
         const hour = new Date(startDate.getTime() + i * 60 * 60 * 1000);
-        const existingTrend = errorTrends.find(t => {
+        const existingTrend = errorTrendsArray.find(t => {
           const trendHour = new Date(t.hour);
           return trendHour.getTime() === hour.getTime();
         });
@@ -756,6 +833,16 @@ class SecurityService {
 
       return result;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityLog non trouvée, retour de tendances d\'erreurs vides (mode développement)');
+          return Array.from({ length: hours }, (_, i) => ({
+            hour: `${i.toString().padStart(2, '0')}:00`,
+            count: 0
+          }));
+        }
+      }
       logger.error('Erreur lors de la récupération des tendances d\'erreurs:', error);
       return Array.from({ length: hours }, (_, i) => ({
         hour: `${i.toString().padStart(2, '0')}:00`,
@@ -781,9 +868,13 @@ class SecurityService {
         });
       } catch (error) {
         // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
-        if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, analyse ignorée (mode développement)');
-          return { success: true, message: 'Table SecurityLog non trouvée' };
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            logger.warn('Table SecurityLog non trouvée, analyse ignorée (mode développement)');
+            return { success: true, message: 'Table SecurityLog non trouvée' };
+          } else {
+            throw error;
+          }
         } else {
           throw error;
         }
@@ -1121,6 +1212,15 @@ class SecurityService {
   // Stocker les métriques système en base de données
   async storeSystemMetrics(metrics) {
     try {
+      // Vérifier que la table existe
+      if (!prisma.securityMetric || typeof prisma.securityMetric.create !== 'function') {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityMetric non disponible, stockage ignoré (mode développement)');
+          return;
+        }
+        throw new Error('Table SecurityMetric non disponible');
+      }
+
       await prisma.securityMetric.create({
         data: {
           metricType: 'system_metrics',
@@ -1140,6 +1240,13 @@ class SecurityService {
         }
       });
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityMetric non disponible, stockage ignoré (mode développement)');
+          return;
+        }
+      }
       logger.error('Erreur lors du stockage des métriques système:', error);
     }
   }

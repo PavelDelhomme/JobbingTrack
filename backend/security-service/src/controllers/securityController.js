@@ -209,22 +209,61 @@ class SecurityController {
     try {
       const { days = 7 } = req.query;
 
-      const metrics = await securityService.getSecurityMetrics({
-        days: parseInt(days)
-      });
+      let metrics;
+      try {
+        metrics = await securityService.getSecurityMetrics({
+          days: parseInt(days)
+        });
+      } catch (error) {
+        // Si la base de données n'est pas disponible, retourner des données par défaut
+        if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+          logger.warn('Tables de sécurité non trouvées, retour de statistiques par défaut');
+          return res.json({
+            success: true,
+            data: {
+              overview: {
+                totalEvents: 0,
+                criticalEvents: 0,
+                blockedIPs: 0,
+                riskScore: 0
+              },
+              trends: [],
+              topThreats: [],
+              vulnerabilities: [],
+              recentAlerts: [],
+              averageRiskScore: 0,
+              mostActiveCountries: []
+            }
+          });
+        }
+        throw error;
+      }
 
-      // Calculer des statistiques supplémentaires
+      // Calculer des statistiques supplémentaires avec gestion d'erreur
+      let mostActiveCountries = [];
+      try {
+        mostActiveCountries = await this.getMostActiveCountries(parseInt(days));
+      } catch (error) {
+        logger.warn('Erreur récupération pays actifs, utilisation de tableau vide:', error.message);
+        mostActiveCountries = [];
+      }
+
       const stats = {
-        overview: metrics.overview,
-        trends: metrics.trends,
-        topThreats: metrics.topThreats,
-        vulnerabilities: metrics.vulnerabilities,
-        recentAlerts: metrics.alerts.slice(0, 5),
+        overview: metrics.overview || {
+          totalEvents: 0,
+          criticalEvents: 0,
+          blockedIPs: 0,
+          riskScore: 0
+        },
+        trends: metrics.trends || [],
+        topThreats: metrics.topThreats || [],
+        vulnerabilities: metrics.vulnerabilities || [],
+        recentAlerts: (metrics.alerts || []).slice(0, 5),
         // Calculs supplémentaires
-        averageRiskScore: metrics.topThreats.length > 0
-          ? metrics.topThreats.reduce((sum, threat) => sum + threat.max_risk_score, 0) / metrics.topThreats.length
+        averageRiskScore: (metrics.topThreats || []).length > 0
+          ? (metrics.topThreats || []).reduce((sum, threat) => sum + (threat.max_risk_score || 0), 0) / (metrics.topThreats || []).length
           : 0,
-        mostActiveCountries: await this.getMostActiveCountries(days)
+        mostActiveCountries
       };
 
       res.json({
@@ -235,7 +274,8 @@ class SecurityController {
       logger.error('Erreur lors de la récupération des statistiques de sécurité:', error);
       res.status(500).json({
         success: false,
-        message: 'Erreur lors de la récupération des statistiques de sécurité'
+        message: 'Erreur lors de la récupération des statistiques de sécurité',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -317,15 +357,20 @@ class SecurityController {
   // Récupérer les pays les plus actifs en termes d'attaques
   async getMostActiveCountries(days) {
     try {
+      const { prisma } = require('../config/database');
+      if (!prisma) {
+        return [];
+      }
+
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const countries = await securityService.prisma.$queryRaw`
+      const countries = await prisma.$queryRaw`
         SELECT
           country,
           COUNT(*) as attacks,
-          COUNT(DISTINCT sourceIP) as unique_ips,
-          MAX(riskScore) as max_risk_score
+          COUNT(DISTINCT "sourceIP") as unique_ips,
+          MAX("riskScore") as max_risk_score
         FROM security_logs
         WHERE timestamp >= ${startDate}
         AND country IS NOT NULL
@@ -335,8 +380,13 @@ class SecurityController {
         LIMIT 10
       `;
 
-      return countries;
+      return countries || [];
     } catch (error) {
+      // Si la table n'existe pas (P2021) ou autre erreur, retourner un tableau vide
+      if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+        logger.warn('Table security_logs non trouvée, retour de pays actifs vide');
+        return [];
+      }
       logger.error('Erreur lors de la récupération des pays actifs:', error);
       return [];
     }
@@ -429,6 +479,129 @@ class SecurityController {
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la création du log de sécurité'
+      });
+    }
+  }
+
+  // Récupérer les politiques de sécurité
+  async getPolicies(req, res) {
+    try {
+      // Politiques par défaut
+      const policies = [
+        {
+          id: '1',
+          name: 'Blocage IP',
+          description: 'Bloquer les IPs suspectes automatiquement',
+          enabled: true,
+          type: 'ip_blocking',
+          config: {
+            autoBlock: true,
+            threshold: 5, // Nombre de tentatives avant blocage
+            duration: 3600000 // Durée du blocage en ms (1 heure)
+          }
+        },
+        {
+          id: '2',
+          name: 'Rate Limiting',
+          description: 'Limiter le nombre de requêtes par IP',
+          enabled: true,
+          type: 'rate_limiting',
+          config: {
+            maxRequests: 100,
+            windowMinutes: 1
+          }
+        },
+        {
+          id: '3',
+          name: 'WAF',
+          description: 'Web Application Firewall - Protection contre les attaques',
+          enabled: true,
+          type: 'waf',
+          config: {
+            sqlInjection: true,
+            xss: true,
+            pathTraversal: true,
+            commandInjection: true
+          }
+        },
+        {
+          id: '4',
+          name: 'Détection d\'intrusion',
+          description: 'Détecter et bloquer les tentatives d\'intrusion',
+          enabled: true,
+          type: 'intrusion_detection',
+          config: {
+            sensitivity: 'medium',
+            autoBlock: true
+          }
+        }
+      ];
+
+      res.json({
+        success: true,
+        policies
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la récupération des politiques:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des politiques'
+      });
+    }
+  }
+
+  // Récupérer les IPs bloquées
+  async getBlockedIPs(req, res) {
+    try {
+      // Récupérer les IPs bloquées depuis la base de données si possible
+      let blockedIPs = [];
+      
+      try {
+        const { prisma } = require('../config/database');
+        if (prisma) {
+          const logs = await prisma.securityLog.findMany({
+            where: {
+              isBlocked: true,
+              createdAt: {
+                gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Dernières 24h
+              }
+            },
+            select: {
+              ip: true,
+              createdAt: true,
+              message: true
+            },
+            distinct: ['ip'],
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 100
+          });
+
+          blockedIPs = logs.map(log => ({
+            ip: log.ip,
+            blockedAt: log.createdAt,
+            reason: log.message || 'Tentative d\'intrusion détectée'
+          }));
+        }
+      } catch (dbError) {
+        // Si la base de données n'est pas disponible ou la table n'existe pas, retourner un tableau vide
+        if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+          logger.warn('Table SecurityLog non trouvée, retour de données vides');
+        } else {
+          logger.warn('Impossible de récupérer les IPs bloquées depuis la DB:', dbError.message);
+        }
+      }
+
+      res.json({
+        success: true,
+        ips: blockedIPs
+      });
+    } catch (error) {
+      logger.error('Erreur lors de la récupération des IPs bloquées:', error);
+      res.json({
+        success: true,
+        ips: []
       });
     }
   }

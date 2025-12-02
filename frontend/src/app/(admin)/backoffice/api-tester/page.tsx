@@ -1,18 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/features';
 import { Play, Terminal, Copy, Check } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '@/lib/hooks/auth';
+
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
 
 export default function APITesterPage() {
+  const { token } = useAuth();
   const [method, setMethod] = useState('GET');
-  const [endpoint, setEndpoint] = useState('http://localhost:8080/api/v1/');
+  const [endpoint, setEndpoint] = useState(`${API_GATEWAY_URL}/api/v1/`);
   const [headers, setHeaders] = useState('{\n  "Authorization": "Bearer YOUR_TOKEN",\n  "Content-Type": "application/json"\n}');
   const [body, setBody] = useState('{\n  \n}');
   const [response, setResponse] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // ✅ Remplir automatiquement le token dans les headers au chargement
+  useEffect(() => {
+    if (token) {
+      try {
+        const parsedHeaders = JSON.parse(headers);
+        // Remplacer seulement si c'est le token par défaut ou s'il n'y a pas de token
+        if (parsedHeaders['Authorization'] === 'Bearer YOUR_TOKEN' || 
+            !parsedHeaders['Authorization'] || 
+            parsedHeaders['Authorization'].includes('YOUR_TOKEN')) {
+          parsedHeaders['Authorization'] = `Bearer ${token}`;
+          setHeaders(JSON.stringify(parsedHeaders, null, 2));
+        }
+      } catch (e) {
+        // Si les headers ne sont pas un JSON valide, les remplacer
+        setHeaders(JSON.stringify({
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }, null, 2));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Seulement quand le token change (pas headers pour éviter la boucle)
 
   const handleTest = async () => {
     try {
@@ -58,11 +85,15 @@ export default function APITesterPage() {
   };
 
   const quickEndpoints = [
-    { label: 'Utilisateurs', value: 'http://localhost:8080/api/v1/users' },
-    { label: 'Applications', value: 'http://localhost:8080/api/v1/applications' },
-    { label: 'Entreprises', value: 'http://localhost:8080/api/v1/companies' },
-    { label: 'Métriques', value: 'http://localhost:8014/api/v1/metrics' },
-    { label: 'Services', value: 'http://localhost:8014/api/v1/services' },
+    { label: 'Utilisateurs', value: `${API_GATEWAY_URL}/api/v1/users` },
+    { label: 'Applications', value: `${API_GATEWAY_URL}/api/v1/applications` },
+    { label: 'Entreprises', value: `${API_GATEWAY_URL}/api/v1/companies` },
+    { label: 'Entretiens', value: `${API_GATEWAY_URL}/api/v1/interviews` },
+    { label: 'Appels', value: `${API_GATEWAY_URL}/api/v1/calls` },
+    { label: 'Relances', value: `${API_GATEWAY_URL}/api/v1/followups` },
+    { label: 'Statistiques', value: `${API_GATEWAY_URL}/api/v1/statistics` },
+    { label: 'Métriques', value: `${API_GATEWAY_URL}/api/v1/metrics` },
+    { label: 'Services', value: `${API_GATEWAY_URL}/api/v1/services` },
   ];
 
   return (
@@ -114,7 +145,7 @@ export default function APITesterPage() {
                 type="text"
                 value={endpoint}
                 onChange={(e) => setEndpoint(e.target.value)}
-                placeholder="http://localhost:8080/api/v1/..."
+                placeholder={`${API_GATEWAY_URL}/api/v1/...`}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               />
               

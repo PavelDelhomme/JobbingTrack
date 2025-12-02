@@ -291,7 +291,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ? `domain=${window.location.hostname}` 
               : '';
             
-            document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; ${domain} SameSite=Lax${secureFlag}`;
+            // Définir le cookie avec les bonnes options
+            const cookieValue = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; ${domain} SameSite=Lax${secureFlag}`;
+            document.cookie = cookieValue;
+            
+            // Vérifier que le cookie a bien été défini
+            const cookieSet = document.cookie.includes('token=');
+            console.log('✅ Cookie défini:', cookieSet ? 'Oui' : 'Non');
+            if (!cookieSet) {
+              console.warn('⚠️ Le cookie n\'a pas pu être défini, tentative avec une méthode alternative...');
+              // Méthode alternative : utiliser un cookie sans domain en développement
+              document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+            }
           }
 
           console.log('✅ Token enregistré, chargement du profil...');

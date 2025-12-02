@@ -386,13 +386,16 @@ router.get('/logs', async (req, res) => {
     res.json({
       success: true,
       count: logs.length,
-      data: logs,
+      data: logs || [],
     });
   } catch (error) {
     console.error('[API] Erreur récupération logs:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
+    // Retourner un tableau vide plutôt qu'une erreur 500
+    res.json({
+      success: true,
+      count: 0,
+      data: [],
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

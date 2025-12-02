@@ -5,7 +5,9 @@ import { AdminLayout } from '@/components/features';
 import { Smartphone, RefreshCw } from 'lucide-react';
 
 export default function MobileEmulatorPage() {
-  const [url, setUrl] = useState('http://localhost:3000');
+  // Utiliser l'application mobile Flutter au lieu du frontend web
+  const MOBILE_APP_URL = process.env.NEXT_PUBLIC_MOBILE_APP_URL || 'http://localhost:5019';
+  const [url, setUrl] = useState(MOBILE_APP_URL);
   const [deviceType, setDeviceType] = useState('iphone');
 
   const devices = {

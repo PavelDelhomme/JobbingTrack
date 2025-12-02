@@ -43,8 +43,19 @@ class SecurityScheduler {
 
     // Arrêter tous les jobs cron
     this.jobs.forEach((job, name) => {
-      job.destroy();
-      logger.info(`Job cron arrêté: ${name}`);
+      try {
+        // Vérifier si le job a une méthode destroy ou stop
+        if (typeof job.destroy === 'function') {
+          job.destroy();
+        } else if (typeof job.stop === 'function') {
+          job.stop();
+        } else if (job && typeof job === 'object' && 'stop' in job) {
+          job.stop();
+        }
+        logger.info(`Job cron arrêté: ${name}`);
+      } catch (error) {
+        logger.warn(`Erreur lors de l'arrêt du job ${name}:`, error.message);
+      }
     });
 
     this.jobs.clear();
@@ -257,24 +268,42 @@ class SecurityScheduler {
       // Récupérer les métriques système actuelles
       const systemMetrics = await securityService.getSystemMetrics();
 
-      // Enregistrer les métriques dans la base de données
-      await securityService.prisma.securityMetric.create({
-        data: {
-          metricType: 'system_activity',
-          value: systemMetrics.totalLogs,
-          unit: 'logs',
-          period: 'hour',
-          metadata: {
-            criticalEvents: systemMetrics.criticalEvents,
-            intrusionAttempts: systemMetrics.intrusionAttempts,
-            ddosAttacks: systemMetrics.ddosAttacks,
-            authFailures: systemMetrics.authFailures,
-            uniqueIPs: systemMetrics.uniqueIPs,
-            blockedIPs: systemMetrics.blockedIPs,
-            averageRiskScore: systemMetrics.averageRiskScore
+      // Enregistrer les métriques dans la base de données (si la table existe)
+      if (securityService.prisma.securityMetric && typeof securityService.prisma.securityMetric.create === 'function') {
+        try {
+          await securityService.prisma.securityMetric.create({
+            data: {
+              metricType: 'system_activity',
+              value: systemMetrics.totalLogs,
+              unit: 'logs',
+              period: 'hour',
+              metadata: {
+                criticalEvents: systemMetrics.criticalEvents,
+                intrusionAttempts: systemMetrics.intrusionAttempts,
+                ddosAttacks: systemMetrics.ddosAttacks,
+                authFailures: systemMetrics.authFailures,
+                uniqueIPs: systemMetrics.uniqueIPs,
+                blockedIPs: systemMetrics.blockedIPs,
+                averageRiskScore: systemMetrics.averageRiskScore
+              }
+            }
+          });
+        } catch (error) {
+          // Gérer les erreurs P2021 (table non trouvée) gracieusement
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            if (process.env.NODE_ENV === 'development') {
+              logger.warn('Table SecurityMetric non disponible, enregistrement ignoré (mode développement)');
+              return;
+            }
           }
+          throw error;
         }
-      });
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Table SecurityMetric non disponible, enregistrement ignoré (mode développement)');
+          return;
+        }
+      }
 
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {

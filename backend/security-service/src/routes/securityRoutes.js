@@ -44,4 +44,10 @@ router.delete('/generate-continuous', securityController.stopContinuousGeneratio
 // État de la génération continue
 router.get('/generate-continuous/status', securityController.getGenerationStatus);
 
+// Récupérer les politiques de sécurité
+router.get('/policies', securityController.getPolicies);
+
+// Récupérer les IPs bloquées
+router.get('/blocked-ips', securityController.getBlockedIPs);
+
 module.exports = router;

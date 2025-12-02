@@ -101,6 +101,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/preferences', preferencesRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/auth/users', usersRoutes); // ✅ Dupliquer pour compatibilité avec /api/v1/auth/users
 app.use('/api/v1/emails', emailRoutes);
 app.use('/api/v1/emails/templates', templateRoutes);
 
