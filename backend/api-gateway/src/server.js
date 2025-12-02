@@ -208,6 +208,9 @@ app.post('/api/v1/auth/login', async (req, res) => {
 */
 
 // ✅ Route pour récupérer le profil utilisateur
+// ⚠️ DÉSACTIVÉ - Laisser le proxy vers auth-service gérer cette route
+// La route est maintenant gérée par le proxy défini plus bas (ligne 515)
+/* COMMENTÉ POUR UTILISER LE VRAI AUTH-SERVICE
 app.get('/api/v1/auth/profile', async (req, res) => {
   try {
     logger.info('👤 Route /api/v1/auth/profile interceptée');
@@ -241,6 +244,7 @@ app.get('/api/v1/auth/profile', async (req, res) => {
     });
   }
 });
+*/
 
 // ✅ Route pour l'inscription (register)
 app.post('/api/v1/auth/register', async (req, res) => {
