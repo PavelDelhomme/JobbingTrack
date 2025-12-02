@@ -19,15 +19,27 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: [
     // Développement local (prioritaires)
-    'http://localhost:8000',  // Frontend
+    'http://localhost:5003',  // Frontend (nouveau port)
+    'http://localhost:5002',  // API Gateway (nouveau port)
+    'http://localhost:5005',  // Auth Service (nouveau port)
+    'http://localhost:5000',  // PostgreSQL (nouveau port)
+    'http://localhost:5001',  // Redis (nouveau port)
+    'http://localhost:5004',  // Metrics Aggregator (nouveau port)
+    'http://localhost:8000',  // Frontend (ancien port)
     'http://localhost:8080',  // Frontend (port Next.js dev)
-    'http://localhost:3000',  // API Gateway
+    'http://localhost:3000',  // API Gateway (ancien port)
     'http://localhost:8081',  // cAdvisor
-    'http://localhost:8082',  // Metrics Aggregator
+    'http://localhost:8082',  // Metrics Aggregator (ancien)
     'http://localhost:8083',  // Grafana
     'http://localhost:8084',  // Node Exporter
     'http://localhost:8085',  // Alertmanager
     'http://localhost:8086',  // Blackbox Exporter
+    'http://127.0.0.1:5003',
+    'http://127.0.0.1:5002',
+    'http://127.0.0.1:5005',
+    'http://127.0.0.1:5000',
+    'http://127.0.0.1:5001',
+    'http://127.0.0.1:5004',
     'http://127.0.0.1:8000',
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
@@ -38,6 +50,12 @@ app.use(cors({
     'http://127.0.0.1:8085',
     'http://127.0.0.1:8086',
     // IPv6 localhost
+    'http://[::1]:5003',
+    'http://[::1]:5002',
+    'http://[::1]:5005',
+    'http://[::1]:5000',
+    'http://[::1]:5001',
+    'http://[::1]:5004',
     'http://[::1]:8000',
     'http://[::1]:8080',
     'http://[::1]:3000',
