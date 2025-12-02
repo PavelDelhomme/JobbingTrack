@@ -22,6 +22,31 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors({
   origin: [
+    // Nouveaux ports (5000-5019)
+    'http://localhost:5003',  // Frontend
+    'http://localhost:5002',  // API Gateway
+    'http://localhost:5005',  // Auth Service
+    'http://localhost:5000',  // PostgreSQL
+    'http://localhost:5001',  // Redis
+    'http://localhost:5004',  // Metrics
+    'http://localhost:5006',  // Application Service
+    'http://localhost:5007',  // Company Service
+    'http://localhost:5008',  // Contact Service
+    'http://localhost:5009',  // Interview Service
+    'http://localhost:5010',  // Call Service
+    'http://localhost:5011',  // Event Service
+    'http://localhost:5012',  // FollowUp Service
+    'http://localhost:5013',  // Profile Service
+    'http://localhost:5014',  // Notification Service
+    'http://localhost:5015',  // Dashboard Service
+    'http://localhost:5016',  // Workflow Service
+    'http://localhost:5017',  // Security Service
+    'http://localhost:5018',  // Deployment Service
+    'http://localhost:5019',  // Flutter Mobile
+    'http://127.0.0.1:5003',
+    'http://127.0.0.1:5002',
+    'http://127.0.0.1:5005',
+    // Anciens ports (compatibilité)
     'http://localhost:8000',
     'http://localhost:8080',
     'http://localhost:3000',
@@ -34,12 +59,10 @@ app.use(cors({
     'http://192.168.1.134:8000',
     'http://192.168.1.134:8080',
     'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:5173'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['set-cookie']
 }));

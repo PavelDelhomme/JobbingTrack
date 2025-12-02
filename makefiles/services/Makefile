@@ -213,7 +213,11 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	$(call check_docker)
 	$(call check_and_free_ports)
 	$(call ensure_docker_network)
+	@echo "🚀 Démarrage des services essentiels..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service jobbingtrack-metrics-aggregator)
+	@echo ""
+	@echo "🚀 Démarrage de TOUS les services optionnels (profil full)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	@echo ""
 	@echo "✅ Services essentiels démarrés avec succès !"
 	@echo ""
