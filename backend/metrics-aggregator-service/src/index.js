@@ -20,9 +20,21 @@ const LOKI_URL = process.env.LOKI_URL || 'http://loki:3100';
 // CORS - Autoriser les requêtes depuis le frontend
 app.use(cors({
   origin: [
+    // Nouveaux ports (5000-5019) - prioritaires
+    'http://localhost:5003',  // Frontend
+    'http://localhost:5002',  // API Gateway
+    'http://localhost:5005',  // Auth Service
+    'http://localhost:5004',  // Metrics Aggregator
+    'http://127.0.0.1:5003',
+    'http://127.0.0.1:5002',
+    'http://127.0.0.1:5005',
+    'http://127.0.0.1:5004',
+    // Anciens ports (compatibilité)
     'http://localhost:8080',
     'http://localhost:3000',
     'http://frontend:3000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
