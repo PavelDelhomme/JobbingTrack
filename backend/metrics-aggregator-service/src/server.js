@@ -12,7 +12,22 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || ["http://localhost:8080", "http://localhost:3000"],
+    origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [
+      // Nouveaux ports (5000-5019) - prioritaires
+      'http://localhost:5003',  // Frontend
+      'http://localhost:5002',  // API Gateway
+      'http://localhost:5005',  // Auth Service
+      'http://localhost:5004',  // Metrics Aggregator
+      'http://127.0.0.1:5003',
+      'http://127.0.0.1:5002',
+      'http://127.0.0.1:5005',
+      'http://127.0.0.1:5004',
+      // Anciens ports (compatibilité)
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:3000'
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -21,7 +36,22 @@ const io = new Server(server, {
 // Middleware de sécurité
 app.use(helmet())
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ["http://localhost:8080", "http://localhost:3000"],
+  origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [
+    // Nouveaux ports (5000-5019) - prioritaires
+    'http://localhost:5003',  // Frontend
+    'http://localhost:5002',  // API Gateway
+    'http://localhost:5005',  // Auth Service
+    'http://localhost:5004',  // Metrics Aggregator
+    'http://127.0.0.1:5003',
+    'http://127.0.0.1:5002',
+    'http://127.0.0.1:5005',
+    'http://127.0.0.1:5004',
+    // Anciens ports (compatibilité)
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000'
+  ],
   credentials: true
 }))
 app.use(morgan('combined'))
