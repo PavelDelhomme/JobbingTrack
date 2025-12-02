@@ -15,7 +15,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:${POSTGRES_INTERNAL_PORT:-5432}"
+      - "${POSTGRES_PORT:-5000}:${POSTGRES_INTERNAL_PORT:-5432}"
     volumes:
       - jobbingtrack_postgres_data:/var/lib/postgresql/data
       - ./backend/init-db:/docker-entrypoint-initdb.d
@@ -33,7 +33,7 @@ services:
     image: redis:7-alpine
     container_name: jobbingtrack-redis
     ports:
-      - "${REDIS_PORT:-6379}:${REDIS_INTERNAL_PORT:-6379}"
+      - "${REDIS_PORT:-5001}:${REDIS_INTERNAL_PORT:-6379}"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -51,7 +51,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-api-gateway
     ports:
-      - "${API_GATEWAY_PORT:-3000}:${API_GATEWAY_INTERNAL_PORT:-3000}"
+      - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - WAF_ENABLED=false
@@ -86,16 +86,16 @@ services:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
     ports:
-      - "${FRONTEND_PORT:-8080}:${FRONTEND_INTERNAL_PORT:-3000}"
+      - "${FRONTEND_PORT:-5003}:${FRONTEND_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:${API_GATEWAY_PORT:-9392}}
-      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://localhost:${AUTH_SERVICE_PORT:-9395}}
-      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://localhost:${METRICS_AGGREGATOR_PORT:-9394}}
-      - FRONTEND_PORT=${FRONTEND_PORT:-9393}
-      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-9392}
-      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-9395}
-      - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-9394}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:${API_GATEWAY_PORT:-5002}}
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-http://localhost:${AUTH_SERVICE_PORT:-5005}}
+      - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-http://localhost:${METRICS_AGGREGATOR_PORT:-5004}}
+      - FRONTEND_PORT=${FRONTEND_PORT:-5003}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-5002}
+      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-5005}
+      - METRICS_AGGREGATOR_PORT=${METRICS_AGGREGATOR_PORT:-5004}
       - NEXT_PUBLIC_APP_NAME=JobbingTrack
       - NEXT_PUBLIC_APP_VERSION=1.0.0
       - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
@@ -124,7 +124,7 @@ services:
     container_name: jobbingtrack-metrics-aggregator
     user: "0:0"
     ports:
-      - "${METRICS_AGGREGATOR_PORT:-8014}:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}"
+      - "${METRICS_AGGREGATOR_PORT:-5004}:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}"
     environment:
       - NODE_ENV=development
       - PORT=3014
@@ -132,7 +132,7 @@ services:
       - CADVISOR_URL=http://jobbingtrack-cadvisor:8080
       - PROMETHEUS_URL=http://jobbingtrack-prometheus:9090
       - LOKI_URL=http://jobbingtrack-loki:3100
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:9393}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -154,7 +154,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-auth-service
     ports:
-      - "${AUTH_SERVICE_PORT:-8001}:${AUTH_SERVICE_INTERNAL_PORT:-3001}"
+      - "${AUTH_SERVICE_PORT:-5005}:${AUTH_SERVICE_INTERNAL_PORT:-3001}"
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/auth-service/src:/app/src
@@ -178,8 +178,8 @@ services:
       - SMTP_REPLY_TO=${SMTP_REPLY_TO:-${SMTP_FROM}}
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-SMTP}
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:9393}
-      - APP_URL=${APP_URL:-http://localhost:9393}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
+      - APP_URL=${APP_URL:-http://localhost:5003}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
     networks:
@@ -202,7 +202,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-application-service
     ports:
-      - "${APPLICATION_SERVICE_PORT:-8002}:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}"
+      - "${APPLICATION_SERVICE_PORT:-5006}:${APPLICATION_SERVICE_INTERNAL_PORT:-3002}"
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/application-service/src:/app/src
@@ -238,7 +238,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-company-service
     ports:
-      - "${COMPANY_SERVICE_PORT:-8003}:${COMPANY_SERVICE_INTERNAL_PORT:-3003}"
+      - "${COMPANY_SERVICE_PORT:-5007}:${COMPANY_SERVICE_INTERNAL_PORT:-3003}"
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/company-service/src:/app/src
@@ -274,7 +274,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-contact-service
     ports:
-      - "${CONTACT_SERVICE_PORT:-8004}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
+      - "${CONTACT_SERVICE_PORT:-5008}:${CONTACT_SERVICE_INTERNAL_PORT:-3004}"
     environment:
       - NODE_ENV=development
       - PORT=3004
@@ -299,7 +299,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-interview-service
     ports:
-      - "${INTERVIEW_SERVICE_PORT:-8005}:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}"
+      - "${INTERVIEW_SERVICE_PORT:-5009}:${INTERVIEW_SERVICE_INTERNAL_PORT:-3005}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -321,7 +321,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-call-service
     ports:
-      - "${CALL_SERVICE_PORT:-8006}:${CALL_SERVICE_INTERNAL_PORT:-3006}"
+      - "${CALL_SERVICE_PORT:-5010}:${CALL_SERVICE_INTERNAL_PORT:-3006}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -343,7 +343,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-event-service
     ports:
-      - "${EVENT_SERVICE_PORT:-8007}:${EVENT_SERVICE_INTERNAL_PORT:-3007}"
+      - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3007}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -365,7 +365,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-followup-service
     ports:
-      - "${FOLLOWUP_SERVICE_PORT:-8008}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3008}"
+      - "${FOLLOWUP_SERVICE_PORT:-5012}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3008}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -387,7 +387,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-profile-service
     ports:
-      - "${PROFILE_SERVICE_PORT:-9403}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
+      - "${PROFILE_SERVICE_PORT:-5013}:${PROFILE_SERVICE_INTERNAL_PORT:-3009}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -409,7 +409,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-notification-service
     ports:
-      - "${NOTIFICATION_SERVICE_PORT:-9404}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3010}"
+      - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3010}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -434,7 +434,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-dashboard-service
     ports:
-      - "${DASHBOARD_SERVICE_PORT:-8012}:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}"
+      - "${DASHBOARD_SERVICE_PORT:-5015}:${DASHBOARD_SERVICE_INTERNAL_PORT:-3000}"
     environment:
       - NODE_ENV=development
       - PORT=3000
@@ -459,7 +459,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-workflow-service
     ports:
-      - "${WORKFLOW_SERVICE_PORT:-9406}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3011}"
+      - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3011}"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -480,7 +480,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-flutter-mobile
     ports:
-      - "${FLUTTER_MOBILE_PORT:-9409}:${FLUTTER_MOBILE_INTERNAL_PORT:-8080}"  # Interface web de l'émulateur Flutter
+      - "${FLUTTER_MOBILE_PORT:-5019}:${FLUTTER_MOBILE_INTERNAL_PORT:-8080}"  # Interface web de l'émulateur Flutter
     environment:
       - NODE_ENV=development
     networks:
@@ -496,12 +496,12 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-security-service
     ports:
-      - "${SECURITY_SERVICE_PORT:-9407}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
+      - "${SECURITY_SERVICE_PORT:-5017}:${SECURITY_SERVICE_INTERNAL_PORT:-3017}"
     environment:
       - NODE_ENV=development
       - PORT=3017
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:9393}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - LOG_LEVEL=info
       - SECURITY_SERVICE_URL=http://security-service:3017
     depends_on:
@@ -522,7 +522,7 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-deployment-service
     ports:
-      - "${DEPLOYMENT_SERVICE_PORT:-9408}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
+      - "${DEPLOYMENT_SERVICE_PORT:-5018}:${DEPLOYMENT_SERVICE_INTERNAL_PORT:-3016}"
     environment:
       - NODE_ENV=development
       - PORT=3016
