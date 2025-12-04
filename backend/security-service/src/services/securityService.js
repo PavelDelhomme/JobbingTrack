@@ -337,6 +337,16 @@ class SecurityService {
         vulnerabilities: typeof log.vulnerabilities === 'bigint' ? Number(log.vulnerabilities) : log.vulnerabilities
       }));
     } catch (error) {
+      // Gérer les erreurs de table manquante silencieusement en développement
+      if (error.code === 'P2010' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner tableau vide sans logger
+          return [];
+        } else {
+          logger.warn('Table security_logs non trouvée, retour de tendances vides');
+          return [];
+        }
+      }
       logger.error('Erreur lors de la récupération des tendances de sécurité:', error);
       return [];
     }
@@ -372,6 +382,16 @@ class SecurityService {
         max_risk_score: typeof threat.max_risk_score === 'bigint' ? Number(threat.max_risk_score) : threat.max_risk_score
       }));
     } catch (error) {
+      // Gérer les erreurs de table manquante silencieusement en développement
+      if (error.code === 'P2010' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner tableau vide sans logger
+          return [];
+        } else {
+          logger.warn('Table security_logs non trouvée, retour de menaces vides');
+          return [];
+        }
+      }
       logger.error('Erreur lors de la récupération des principales menaces:', error);
       return [];
     }
@@ -397,6 +417,16 @@ class SecurityService {
 
       return vulnerabilities;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner tableau vide sans logger
+          return [];
+        } else {
+          logger.warn('Table vulnerabilities non trouvée, retour de tableau vide');
+          return [];
+        }
+      }
       logger.error('Erreur lors de la récupération des vulnérabilités:', error);
       throw error;
     }
