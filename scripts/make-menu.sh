@@ -301,27 +301,97 @@ test_reports_menu() {
                 export_dir="test-reports-export-$(date +%Y%m%d-%H%M%S)"
                 mkdir -p "$export_dir"
                 
-                # Copier les rapports HTML
+                echo -e "${YELLOW}📋 Collecte des rapports...${NC}"
+                files_copied=0
+                
+                # Copier les rapports HTML mobile
                 if [ -d "frontend/playwright-report-mobile" ]; then
-                    cp -r frontend/playwright-report-mobile "$export_dir/" 2>/dev/null || true
+                    cp -r frontend/playwright-report-mobile "$export_dir/" 2>/dev/null && \
+                        echo -e "${GREEN}  ✅ Rapport HTML mobile copié${NC}" && files_copied=$((files_copied+1)) || true
+                else
+                    echo -e "${YELLOW}  ⚠️  Aucun rapport HTML mobile trouvé${NC}"
                 fi
+                
+                # Copier les rapports HTML Playwright
                 if [ -d "frontend/playwright-report" ]; then
-                    cp -r frontend/playwright-report "$export_dir/" 2>/dev/null || true
+                    cp -r frontend/playwright-report "$export_dir/" 2>/dev/null && \
+                        echo -e "${GREEN}  ✅ Rapport HTML Playwright copié${NC}" && files_copied=$((files_copied+1)) || true
+                else
+                    echo -e "${YELLOW}  ⚠️  Aucun rapport HTML Playwright trouvé${NC}"
                 fi
                 
                 # Copier les fichiers JSON
-                [ -f "frontend/test-results-mobile.json" ] && cp frontend/test-results-mobile.json "$export_dir/" 2>/dev/null || true
-                [ -f "frontend/test-results.json" ] && cp frontend/test-results.json "$export_dir/" 2>/dev/null || true
-                [ -f "frontend/test-results.xml" ] && cp frontend/test-results.xml "$export_dir/" 2>/dev/null || true
-                
-                # Créer un ZIP
-                zip -r "${export_dir}.zip" "$export_dir" 2>/dev/null || tar -czf "${export_dir}.tar.gz" "$export_dir" 2>/dev/null || true
-                
-                if [ -f "${export_dir}.zip" ] || [ -f "${export_dir}.tar.gz" ]; then
-                    echo -e "${GREEN}✅ Rapports exportés dans: ${export_dir}.zip (ou .tar.gz)${NC}"
-                else
-                    echo -e "${GREEN}✅ Rapports exportés dans: ${export_dir}/${NC}"
+                if [ -f "frontend/test-results-mobile.json" ]; then
+                    cp frontend/test-results-mobile.json "$export_dir/" 2>/dev/null && \
+                        echo -e "${GREEN}  ✅ JSON mobile copié${NC}" && files_copied=$((files_copied+1)) || true
                 fi
+                if [ -f "frontend/test-results.json" ]; then
+                    cp frontend/test-results.json "$export_dir/" 2>/dev/null && \
+                        echo -e "${GREEN}  ✅ JSON Playwright copié${NC}" && files_copied=$((files_copied+1)) || true
+                fi
+                if [ -f "frontend/test-results.xml" ]; then
+                    cp frontend/test-results.xml "$export_dir/" 2>/dev/null && \
+                        echo -e "${GREEN}  ✅ XML copié${NC}" && files_copied=$((files_copied+1)) || true
+                fi
+                
+                # Créer un fichier README avec les infos
+                cat > "$export_dir/README.txt" << EOF
+Rapports de Tests - JobbingTrack
+Exporté le: $(date)
+================================
+
+Contenu:
+- playwright-report-mobile/ : Rapports HTML des tests mobile
+- playwright-report/ : Rapports HTML des tests Playwright
+- test-results-mobile.json : Résultats JSON des tests mobile
+- test-results.json : Résultats JSON des tests Playwright
+- test-results.xml : Résultats XML (JUnit)
+
+Pour voir les rapports HTML:
+- Ouvrir playwright-report-mobile/index.html dans un navigateur
+- Ouvrir playwright-report/index.html dans un navigateur
+
+Fichiers copiés: $files_copied
+EOF
+                echo -e "${GREEN}  ✅ README.txt créé${NC}"
+                
+                echo ""
+                echo -e "${CYAN}📦 Création de l'archive...${NC}"
+                
+                # Essayer ZIP d'abord, puis TAR.GZ
+                archive_created=false
+                if command -v zip >/dev/null 2>&1; then
+                    cd "$export_dir" && zip -r "../${export_dir}.zip" . >/dev/null 2>&1 && cd ..
+                    if [ -f "${export_dir}.zip" ]; then
+                        archive_size=$(du -h "${export_dir}.zip" | cut -f1)
+                        archive_path="$(pwd)/${export_dir}.zip"
+                        echo -e "${GREEN}✅ Archive créée: ${export_dir}.zip${NC}"
+                        echo -e "${CYAN}   📏 Taille: ${archive_size}${NC}"
+                        echo -e "${CYAN}   📁 Emplacement: ${archive_path}${NC}"
+                        archive_created=true
+                    fi
+                fi
+                
+                if [ "$archive_created" = false ] && command -v tar >/dev/null 2>&1; then
+                    tar -czf "${export_dir}.tar.gz" "$export_dir" 2>/dev/null
+                    if [ -f "${export_dir}.tar.gz" ]; then
+                        archive_size=$(du -h "${export_dir}.tar.gz" | cut -f1)
+                        archive_path="$(pwd)/${export_dir}.tar.gz"
+                        echo -e "${GREEN}✅ Archive créée: ${export_dir}.tar.gz${NC}"
+                        echo -e "${CYAN}   📏 Taille: ${archive_size}${NC}"
+                        echo -e "${CYAN}   📁 Emplacement: ${archive_path}${NC}"
+                        archive_created=true
+                    fi
+                fi
+                
+                if [ "$archive_created" = false ]; then
+                    echo -e "${YELLOW}⚠️  Aucun outil d'archivage trouvé (zip/tar)${NC}"
+                    echo -e "${GREEN}✅ Rapports exportés dans: ${export_dir}/${NC}"
+                    echo -e "${CYAN}   📁 Emplacement: $(pwd)/${export_dir}${NC}"
+                fi
+                
+                echo ""
+                echo -e "${GREEN}✅ Export terminé !${NC}"
                 read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
                 ;;
             6) 
