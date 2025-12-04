@@ -50,6 +50,7 @@
 ### 📊 **Performance et Sécurité**
 - **[⚡ Performance](./performance/README.md)** | **[🔒 Sécurité](./security/README.md)**
 - **[🛡️ Système Sécurité](security/SYSTEME_SECURITE_README.md)** - Architecture sécurité complète
+- **[🔍 Audit Sécurité](security/SECURITY_AUDIT.md)** - ⭐ Audit complet avec recommandations
 - **[🔐 Services Sécurité](security/DEMARRAGE_SERVICES_SECURITE.md)** - Démarrage et configuration
 
 ### 🧪 **Tests**
