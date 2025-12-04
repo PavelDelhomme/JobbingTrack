@@ -400,8 +400,9 @@ execute_command() {
     # Exécuter la commande et capturer le code de sortie
     # Ne pas quitter en cas d'erreur, juste afficher le message
     set +e  # Ne pas quitter en cas d'erreur
-    make "$cmd" 2>&1
+    output=$(make "$cmd" 2>&1)
     exit_code=$?
+    echo "$output"
     set -e  # Réactiver la sortie en cas d'erreur
     
     echo ""
@@ -412,10 +413,10 @@ execute_command() {
         echo -e "${YELLOW}💡 Vous pouvez consulter les logs ci-dessus${NC}"
         
         # Si c'est une erreur de navigateur Playwright, proposer l'installation
-        if echo "$(make "$cmd" 2>&1)" | grep -q "Executable doesn't exist\|npx playwright install"; then
+        if echo "$output" | grep -q "Executable doesn't exist\|npx playwright install"; then
             echo ""
             echo -e "${CYAN}💡 Solution: Installez les navigateurs Playwright${NC}"
-            echo -e "${CYAN}   → Option 1 dans le menu Tests Mobile${NC}"
+            echo -e "${CYAN}   → make menu → Option 11 → Option 1 (test-mobile-install)${NC}"
         fi
     fi
     
