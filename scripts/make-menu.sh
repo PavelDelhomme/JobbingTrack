@@ -340,7 +340,8 @@ test_reports_menu() {
                 ;;
             7) 
                 echo -e "${YELLOW}⚠️  Nettoyage des anciens rapports...${NC}"
-                read -p "$(echo -e ${CYAN}Confirmer la suppression ? (o/N): ${NC})" confirm
+                echo -e "${CYAN}Confirmer la suppression ? (o/N): ${NC}"
+                read confirm
                 if [ "$confirm" = "o" ] || [ "$confirm" = "O" ]; then
                     rm -rf frontend/playwright-report-mobile frontend/playwright-report 2>/dev/null || true
                     rm -f frontend/test-results*.json frontend/test-results*.xml 2>/dev/null || true
