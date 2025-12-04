@@ -454,6 +454,16 @@ class SecurityService {
 
       return alerts;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner tableau vide sans logger
+          return [];
+        } else {
+          logger.warn('Table pour alerts non trouvée, retour de tableau vide');
+          return [];
+        }
+      }
       logger.error('Erreur lors de la récupération des alertes de sécurité:', error);
       throw error;
     }
