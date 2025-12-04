@@ -269,45 +269,59 @@ class SecurityScheduler {
       const systemMetrics = await securityService.getSystemMetrics();
 
       // Enregistrer les métriques dans la base de données (si la table existe)
-      if (securityService.prisma.securityMetric && typeof securityService.prisma.securityMetric.create === 'function') {
-        try {
-          await securityService.prisma.securityMetric.create({
-            data: {
-              metricType: 'system_activity',
-              value: systemMetrics.totalLogs,
-              unit: 'logs',
-              period: 'hour',
-              metadata: {
-                criticalEvents: systemMetrics.criticalEvents,
-                intrusionAttempts: systemMetrics.intrusionAttempts,
-                ddosAttacks: systemMetrics.ddosAttacks,
-                authFailures: systemMetrics.authFailures,
-                uniqueIPs: systemMetrics.uniqueIPs,
-                blockedIPs: systemMetrics.blockedIPs,
-                averageRiskScore: systemMetrics.averageRiskScore
-              }
-            }
-          });
-        } catch (error) {
-          // Gérer les erreurs P2021 (table non trouvée) gracieusement
-          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-            if (process.env.NODE_ENV === 'development') {
-              logger.warn('Table SecurityMetric non disponible, enregistrement ignoré (mode développement)');
-              return;
+      // Vérifier d'abord si la table existe avant d'essayer de créer
+      try {
+        // Tester si la table existe en essayant une requête simple
+        await securityService.prisma.$queryRaw`SELECT 1 FROM security_metrics LIMIT 1`;
+        
+        // Si on arrive ici, la table existe, on peut créer
+        await securityService.prisma.securityMetric.create({
+          data: {
+            metricType: 'system_activity',
+            value: systemMetrics.totalLogs,
+            unit: 'logs',
+            period: 'hour',
+            metadata: {
+              criticalEvents: systemMetrics.criticalEvents,
+              intrusionAttempts: systemMetrics.intrusionAttempts,
+              ddosAttacks: systemMetrics.ddosAttacks,
+              authFailures: systemMetrics.authFailures,
+              uniqueIPs: systemMetrics.uniqueIPs,
+              blockedIPs: systemMetrics.blockedIPs,
+              averageRiskScore: systemMetrics.averageRiskScore
             }
           }
+        });
+      } catch (error) {
+        // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+        if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            // Mode silencieux - ne pas logger l'erreur, juste retourner
+            return;
+          }
+        }
+        // En production, logger l'erreur seulement si ce n'est pas une erreur de table manquante
+        if (process.env.NODE_ENV === 'production' && error.code !== 'P2021') {
+          logger.error('Erreur lors de l\'enregistrement des métriques système:', error);
           throw error;
         }
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityMetric non disponible, enregistrement ignoré (mode développement)');
-          return;
-        }
+        // En développement, ignorer silencieusement toutes les erreurs de table
+        return;
       }
 
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
-      logger.error('Erreur lors de la collecte des métriques système:', error);
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - ne pas logger l'erreur
+          return;
+        }
+      }
+      // En production uniquement, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la collecte des métriques système:', error);
+      }
     }
   }
 

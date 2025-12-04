@@ -28,6 +28,11 @@ test_endpoint() {
     echo -e "${BLUE}[$TOTAL_TESTS] Test: $name${NC}"
     
     # Construire la commande curl avec timeout
+    # Utiliser le bon port pour l'API Gateway
+    local api_url="${url}"
+    if [[ "$url" == *"localhost:3000"* ]]; then
+        api_url="${url//localhost:3000/localhost:5002}"
+    fi
     local curl_cmd="curl -s -w '%{http_code}' -o /tmp/response.txt --max-time 10"
     
     if [ -n "$token" ]; then
@@ -71,8 +76,8 @@ echo -e "${GREEN}✨ Ce script utilise un token permanent qui n'expire jamais !$
 echo ""
 
 # Variables
-# Tester directement l'API Gateway (pas besoin du frontend)
-API_URL="http://localhost:3000"
+# Tester directement l'API Gateway (port 5002)
+API_URL="http://localhost:5002"
 TOKEN=""
 TEST_TOKEN=""
 

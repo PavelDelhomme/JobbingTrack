@@ -24,9 +24,9 @@ class SecurityService {
           limit: 1000
         });
       } catch (error) {
-        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
         if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
+          // Mode silencieux - ne pas logger
           securityLogs = [];
         } else {
           throw error;
@@ -46,34 +46,42 @@ class SecurityService {
       const results = await Promise.allSettled([
         this.getSecurityTrends(days).catch(err => {
           if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
-            logger.warn('Table pour trends non trouvée, retour de tableau vide');
+            // Mode silencieux en développement
             return [];
           }
-          logger.error('Erreur récupération trends:', err.message);
+          if (process.env.NODE_ENV === 'production') {
+            logger.error('Erreur récupération trends:', err.message);
+          }
           return [];
         }),
         this.getTopThreats(days).catch(err => {
           if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
-            logger.warn('Table pour topThreats non trouvée, retour de tableau vide');
+            // Mode silencieux en développement
             return [];
           }
-          logger.error('Erreur récupération topThreats:', err.message);
+          if (process.env.NODE_ENV === 'production') {
+            logger.error('Erreur récupération topThreats:', err.message);
+          }
           return [];
         }),
         this.getVulnerabilities().catch(err => {
           if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
-            logger.warn('Table vulnerabilities non trouvée, retour de tableau vide');
+            // Mode silencieux en développement
             return [];
           }
-          logger.error('Erreur récupération vulnerabilities:', err.message);
+          if (process.env.NODE_ENV === 'production') {
+            logger.error('Erreur récupération vulnerabilities:', err.message);
+          }
           return [];
         }),
         this.getSecurityAlerts().catch(err => {
           if (err.code === 'P2021' || (err.message && err.message.includes('does not exist'))) {
-            logger.warn('Table pour alerts non trouvée, retour de tableau vide');
+            // Mode silencieux en développement
             return [];
           }
-          logger.error('Erreur récupération alerts:', err.message);
+          if (process.env.NODE_ENV === 'production') {
+            logger.error('Erreur récupération alerts:', err.message);
+          }
           return [];
         })
       ]);
@@ -142,12 +150,15 @@ class SecurityService {
 
       return logs;
     } catch (error) {
-      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table SecurityLog non trouvée, retour de données vides (mode développement)');
+        // Mode silencieux - ne pas logger
         return [];
       }
-      logger.error('Erreur lors de la récupération des logs de sécurité:', error);
+      // En production, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la récupération des logs de sécurité:', error);
+      }
       throw error;
     }
   }
@@ -155,10 +166,10 @@ class SecurityService {
   // Créer un log de sécurité
   async createSecurityLog(logData) {
     try {
-      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (!prisma.securityLog || typeof prisma.securityLog.create !== 'function') {
         if (process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, création de log ignorée (mode développement)');
+          // Mode silencieux - ne pas logger
           return null;
         }
       }
@@ -229,9 +240,9 @@ class SecurityService {
 
       return log;
     } catch (error) {
-      // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+      // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
       if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table SecurityLog non trouvée, création de log ignorée (mode développement)');
+        // Mode silencieux - ne pas logger
         return null;
       }
       logger.error('Erreur lors de la création du log de sécurité:', error);
@@ -305,18 +316,26 @@ class SecurityService {
       const dailyLogs = await prisma.$queryRaw`
         SELECT
           DATE(timestamp) as date,
-          COUNT(*) as total_logs,
-          COUNT(CASE WHEN level = 'critical' THEN 1 END) as critical_events,
-          COUNT(CASE WHEN category = 'intrusion' THEN 1 END) as intrusion_attempts,
-          COUNT(CASE WHEN category = 'ddos' THEN 1 END) as ddos_attacks,
-          COUNT(CASE WHEN category = 'vulnerability' THEN 1 END) as vulnerabilities
+          COUNT(*)::int as total_logs,
+          COUNT(CASE WHEN level = 'critical' THEN 1 END)::int as critical_events,
+          COUNT(CASE WHEN category = 'intrusion' THEN 1 END)::int as intrusion_attempts,
+          COUNT(CASE WHEN category = 'ddos' THEN 1 END)::int as ddos_attacks,
+          COUNT(CASE WHEN category = 'vulnerability' THEN 1 END)::int as vulnerabilities
         FROM security_logs
         WHERE timestamp >= ${startDate}
         GROUP BY DATE(timestamp)
         ORDER BY date DESC
       `;
 
-      return dailyLogs;
+      // Convertir les BigInt en Number si nécessaire
+      return (dailyLogs || []).map(log => ({
+        ...log,
+        total_logs: typeof log.total_logs === 'bigint' ? Number(log.total_logs) : log.total_logs,
+        critical_events: typeof log.critical_events === 'bigint' ? Number(log.critical_events) : log.critical_events,
+        intrusion_attempts: typeof log.intrusion_attempts === 'bigint' ? Number(log.intrusion_attempts) : log.intrusion_attempts,
+        ddos_attacks: typeof log.ddos_attacks === 'bigint' ? Number(log.ddos_attacks) : log.ddos_attacks,
+        vulnerabilities: typeof log.vulnerabilities === 'bigint' ? Number(log.vulnerabilities) : log.vulnerabilities
+      }));
     } catch (error) {
       logger.error('Erreur lors de la récupération des tendances de sécurité:', error);
       return [];
@@ -334,8 +353,8 @@ class SecurityService {
         SELECT
           "sourceIP",
           country,
-          COUNT(*) as attempts,
-          MAX("riskScore") as max_risk_score,
+          COUNT(*)::int as attempts,
+          MAX("riskScore")::float as max_risk_score,
           ARRAY_AGG(DISTINCT category) as categories,
           MAX(timestamp) as last_seen
         FROM security_logs
@@ -346,7 +365,12 @@ class SecurityService {
         LIMIT 10
       `;
 
-      return threats;
+      // Convertir les BigInt en Number si nécessaire
+      return (threats || []).map(threat => ({
+        ...threat,
+        attempts: typeof threat.attempts === 'bigint' ? Number(threat.attempts) : threat.attempts,
+        max_risk_score: typeof threat.max_risk_score === 'bigint' ? Number(threat.max_risk_score) : threat.max_risk_score
+      }));
     } catch (error) {
       logger.error('Erreur lors de la récupération des principales menaces:', error);
       return [];
@@ -431,7 +455,21 @@ class SecurityService {
 
       return alert;
     } catch (error) {
-      logger.error('Erreur lors de la création de l\'alerte de sécurité:', error);
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner null au lieu de throw
+          return null;
+        }
+      }
+      // En production uniquement, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la création de l\'alerte de sécurité:', error);
+      }
+      // En développement, ne pas throw pour éviter les logs d'erreur
+      if (process.env.NODE_ENV === 'development') {
+        return null;
+      }
       throw error;
     }
   }
@@ -625,7 +663,7 @@ class SecurityService {
       // Vérifier que la table existe
       if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityLog non disponible, retour de tendances vides (mode développement)');
+          // Mode silencieux - ne pas logger
           return [];
         }
         throw new Error('Table SecurityLog non disponible');
@@ -637,12 +675,12 @@ class SecurityService {
       const trends = await prisma.$queryRaw`
         SELECT
           DATE_TRUNC('hour', timestamp) as hour,
-          COUNT(*) as total_logs,
-          COUNT(CASE WHEN level = 'critical' THEN 1 END) as critical_events,
-          COUNT(CASE WHEN category = 'intrusion' THEN 1 END) as intrusion_attempts,
-          COUNT(CASE WHEN category = 'ddos' THEN 1 END) as ddos_attacks,
-          COUNT(CASE WHEN category = 'vulnerability' THEN 1 END) as vulnerabilities,
-          COUNT(CASE WHEN eventType = 'login_attempt' THEN 1 END) as auth_failures
+          COUNT(*)::int as total_logs,
+          COUNT(CASE WHEN level = 'critical' THEN 1 END)::int as critical_events,
+          COUNT(CASE WHEN category = 'intrusion' THEN 1 END)::int as intrusion_attempts,
+          COUNT(CASE WHEN category = 'ddos' THEN 1 END)::int as ddos_attacks,
+          COUNT(CASE WHEN category = 'vulnerability' THEN 1 END)::int as vulnerabilities,
+          COUNT(CASE WHEN eventType = 'login_attempt' THEN 1 END)::int as auth_failures
         FROM security_logs
         WHERE timestamp >= ${startDate}
         GROUP BY DATE_TRUNC('hour', timestamp)
@@ -670,14 +708,17 @@ class SecurityService {
 
       return result;
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - Mode silencieux en développement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityLog non trouvée, retour de tendances vides (mode développement)');
+          // Mode silencieux - ne pas logger
           return [];
         }
       }
-      logger.error('Erreur lors de la récupération des tendances de sécurité:', error);
+      // En production, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la récupération des tendances de sécurité:', error);
+      }
       return [];
     }
   }
@@ -691,7 +732,7 @@ class SecurityService {
         // Vérifier que la table existe
         if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
           if (process.env.NODE_ENV === 'development') {
-            logger.warn('Table SecurityLog non disponible, retour de métriques vides (mode développement)');
+            // Mode silencieux - ne pas logger
             recentLogs = [];
           } else {
             throw new Error('Table SecurityLog non disponible');
@@ -708,10 +749,10 @@ class SecurityService {
           });
         }
       } catch (error) {
-        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
         if (error.code === 'P2021' || error.message?.includes('does not exist')) {
           if (process.env.NODE_ENV === 'development') {
-            logger.warn('Table SecurityLog non trouvée, retour de métriques vides (mode développement)');
+            // Mode silencieux - ne pas logger
             recentLogs = [];
           } else {
             throw error;
@@ -748,7 +789,26 @@ class SecurityService {
 
       return metrics;
     } catch (error) {
-      logger.error('Erreur lors de la récupération des métriques système:', error);
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - retourner des métriques vides sans logger
+          return {
+            totalLogs: 0,
+            criticalEvents: 0,
+            intrusionAttempts: 0,
+            ddosAttacks: 0,
+            authFailures: 0,
+            uniqueIPs: 0,
+            blockedIPs: 0,
+            averageRiskScore: 0
+          };
+        }
+      }
+      // En production uniquement, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la récupération des métriques système:', error);
+      }
       return {
         totalLogs: 0,
         criticalEvents: 0,
@@ -792,7 +852,7 @@ class SecurityService {
       // Vérifier que la table existe
       if (!prisma.securityLog || typeof prisma.securityLog.findMany !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityLog non disponible, retour de tendances d\'erreurs vides (mode développement)');
+          // Mode silencieux - ne pas logger
           return [];
         }
         throw new Error('Table SecurityLog non disponible');
@@ -833,17 +893,20 @@ class SecurityService {
 
       return result;
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - Mode silencieux en développement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityLog non trouvée, retour de tendances d\'erreurs vides (mode développement)');
+          // Mode silencieux - ne pas logger
           return Array.from({ length: hours }, (_, i) => ({
             hour: `${i.toString().padStart(2, '0')}:00`,
             count: 0
           }));
         }
       }
-      logger.error('Erreur lors de la récupération des tendances d\'erreurs:', error);
+      // En production, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la récupération des tendances d\'erreurs:', error);
+      }
       return Array.from({ length: hours }, (_, i) => ({
         hour: `${i.toString().padStart(2, '0')}:00`,
         count: 0
@@ -867,10 +930,10 @@ class SecurityService {
           take: 1000
         });
       } catch (error) {
-        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
         if (error.code === 'P2021' || error.message?.includes('does not exist')) {
           if (process.env.NODE_ENV === 'development') {
-            logger.warn('Table SecurityLog non trouvée, analyse ignorée (mode développement)');
+            // Mode silencieux - ne pas logger
             return { success: true, message: 'Table SecurityLog non trouvée' };
           } else {
             throw error;
@@ -885,19 +948,42 @@ class SecurityService {
 
       // Créer des alertes si nécessaire
       if (attackAnalysis.criticalThreats > 0) {
-        await this.createSecurityAlert({
-          level: 'critical',
-          title: 'Activité d\'attaque critique détectée',
-          description: `${attackAnalysis.criticalThreats} menaces critiques détectées dans la dernière heure`,
-          category: 'threat_analysis',
-          source: 'security-analyzer',
-          metadata: attackAnalysis
-        });
+        try {
+          await this.createSecurityAlert({
+            level: 'critical',
+            title: 'Activité d\'attaque critique détectée',
+            description: `${attackAnalysis.criticalThreats} menaces critiques détectées dans la dernière heure`,
+            category: 'threat_analysis',
+            source: 'security-analyzer',
+            metadata: attackAnalysis
+          });
+        } catch (error) {
+          // Gérer silencieusement les erreurs P2021 en développement
+          if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ignorer
+            } else {
+              throw error;
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
       logger.info(`Analyse de sécurité terminée: ${recentLogs.length} logs analysés`);
     } catch (error) {
-      logger.error('Erreur lors de l\'analyse des données de sécurité:', error);
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - ne pas logger
+          return { success: true, message: 'Table SecurityLog non trouvée' };
+        }
+      }
+      // En production uniquement, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de l\'analyse des données de sécurité:', error);
+      }
     }
   }
 
@@ -957,7 +1043,7 @@ class SecurityService {
       } catch (error) {
         // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
         if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, analyse des risques ignorée (mode développement)');
+          // Mode silencieux - ne pas logger
           recentLogs = [];
         } else {
           throw error;
@@ -1215,7 +1301,7 @@ class SecurityService {
       // Vérifier que la table existe
       if (!prisma.securityMetric || typeof prisma.securityMetric.create !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityMetric non disponible, stockage ignoré (mode développement)');
+          // Mode silencieux en développement
           return;
         }
         throw new Error('Table SecurityMetric non disponible');
@@ -1240,14 +1326,17 @@ class SecurityService {
         }
       });
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Table SecurityMetric non disponible, stockage ignoré (mode développement)');
+          // Mode silencieux - ne pas logger l'erreur
           return;
         }
       }
-      logger.error('Erreur lors du stockage des métriques système:', error);
+      // En production, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors du stockage des métriques système:', error);
+      }
     }
   }
 
@@ -1268,9 +1357,9 @@ class SecurityService {
         });
         logger.info(`Nettoyage des logs de sécurité: ${deletedLogs.count} logs supprimés`);
       } catch (error) {
-        // Fallback si table SecurityLog n'existe pas (P2021) - Mode développement
+        // Fallback si table SecurityLog n'existe pas (P2021) - Mode silencieux en développement
         if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-          logger.warn('Table SecurityLog non trouvée, nettoyage ignoré (mode développement)');
+          // Mode silencieux - ne pas logger
           return 0;
         } else {
           throw error;
