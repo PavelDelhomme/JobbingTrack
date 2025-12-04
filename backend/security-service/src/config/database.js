@@ -7,6 +7,20 @@ const prisma = new PrismaClient({
   log: [], // Désactiver TOUS les logs Prisma (query, info, warn, error) pour éviter le spam
 });
 
+// Désactiver les logs Prisma via variable d'environnement (si disponible)
+if (process.env.NODE_ENV === 'development') {
+  // Supprimer les logs Prisma de la console en redirigeant stderr pour les erreurs Prisma
+  const originalError = console.error;
+  console.error = function(...args) {
+    // Filtrer les logs Prisma (prisma:error, prisma:query)
+    if (args[0] && typeof args[0] === 'string' && (args[0].includes('prisma:error') || args[0].includes('prisma:query'))) {
+      // Ignorer silencieusement les logs Prisma en développement
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
 async function initializeDatabase() {
   try {
     // Test de connexion à la base de données
