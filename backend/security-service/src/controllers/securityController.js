@@ -1,6 +1,33 @@
 const securityService = require('../services/securityService');
 const { logger } = require('../utils/logger');
 
+// Helper pour sérialiser les BigInt en JSON
+function serializeBigInt(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => serializeBigInt(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const serialized = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+  
+  return obj;
+}
+
 class SecurityController {
   // Récupérer les métriques de sécurité pour le dashboard
   async getSecurityMetrics(req, res) {
@@ -244,7 +271,10 @@ class SecurityController {
       try {
         mostActiveCountries = await this.getMostActiveCountries(parseInt(days));
       } catch (error) {
-        logger.warn('Erreur récupération pays actifs, utilisation de tableau vide:', error.message);
+        // Mode silencieux en développement
+        if (process.env.NODE_ENV === 'production') {
+          logger.warn('Erreur récupération pays actifs, utilisation de tableau vide:', error.message);
+        }
         mostActiveCountries = [];
       }
 
@@ -266,9 +296,12 @@ class SecurityController {
         mostActiveCountries
       };
 
+      // Sérialiser les BigInt avant de retourner la réponse
+      const serializedStats = serializeBigInt(stats);
+
       res.json({
         success: true,
-        data: stats
+        data: serializedStats
       });
     } catch (error) {
       logger.error('Erreur lors de la récupération des statistiques de sécurité:', error);
@@ -368,9 +401,9 @@ class SecurityController {
       const countries = await prisma.$queryRaw`
         SELECT
           country,
-          COUNT(*) as attacks,
-          COUNT(DISTINCT "sourceIP") as unique_ips,
-          MAX("riskScore") as max_risk_score
+          COUNT(*)::int as attacks,
+          COUNT(DISTINCT "sourceIP")::int as unique_ips,
+          MAX("riskScore")::float as max_risk_score
         FROM security_logs
         WHERE timestamp >= ${startDate}
         AND country IS NOT NULL
@@ -380,7 +413,15 @@ class SecurityController {
         LIMIT 10
       `;
 
-      return countries || [];
+      // Convertir les BigInt en Number si nécessaire
+      const serialized = (countries || []).map(country => ({
+        ...country,
+        attacks: typeof country.attacks === 'bigint' ? Number(country.attacks) : country.attacks,
+        unique_ips: typeof country.unique_ips === 'bigint' ? Number(country.unique_ips) : country.unique_ips,
+        max_risk_score: typeof country.max_risk_score === 'bigint' ? Number(country.max_risk_score) : country.max_risk_score
+      }));
+
+      return serialized;
     } catch (error) {
       // Si la table n'existe pas (P2021) ou autre erreur, retourner un tableau vide
       if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {

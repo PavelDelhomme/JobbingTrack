@@ -230,7 +230,17 @@ class SecurityDataGenerator {
         }
       });
     } catch (error) {
-      logger.error('Erreur lors de la création de l\'alerte de sécurité:', error);
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - ne pas logger
+          return;
+        }
+      }
+      // En production uniquement, logger l'erreur
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la création de l\'alerte de sécurité:', error);
+      }
     }
   }
 

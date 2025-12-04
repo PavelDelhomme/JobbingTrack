@@ -70,6 +70,13 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ Snapshot système sauvegardé: ${snapshot.id} (availability: ${snapshot.availabilityPercent}%, load: ${snapshot.loadScore})`);
       return snapshot;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table SystemMetricsSnapshot non trouvée, sauvegarde ignorée (mode développement)');
+          return null;
+        }
+      }
       console.error('[PERSISTENCE] ❌ Erreur sauvegarde snapshot système:', error.message);
       throw error;
     }
@@ -106,6 +113,13 @@ class PersistenceService {
       
       return snapshot;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[PERSISTENCE] ⚠️ Table ContainerMetricsSnapshot non trouvée, sauvegarde ignorée (mode développement)`);
+          return null;
+        }
+      }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde métriques ${containerName}:`, error.message);
       throw error;
     }
@@ -169,6 +183,13 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ ${savedLogs.length} logs sauvegardés pour ${containerName}`);
       return savedLogs;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[PERSISTENCE] ⚠️ Table ContainerLog non trouvée, sauvegarde ignorée (mode développement)`);
+          return [];
+        }
+      }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde logs ${containerName}:`, error.message);
       throw error;
     }
@@ -357,6 +378,13 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ Événement créé: ${event.type} - ${event.title}`);
       return event;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table SystemEvent non trouvée, création ignorée (mode développement)');
+          return null;
+        }
+      }
       console.error('[PERSISTENCE] ❌ Erreur création événement:', error.message);
       throw error;
     }
@@ -431,12 +459,23 @@ class PersistenceService {
       if (endDate) where.timestamp.lte = new Date(endDate);
     }
 
-    return await prisma.systemMetricsSnapshot.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      take: limit,
-      skip: offset,
-    });
+    try {
+      return await prisma.systemMetricsSnapshot.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+    } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table SystemMetricsSnapshot non trouvée, retour de données vides (mode développement)');
+          return [];
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -461,12 +500,23 @@ class PersistenceService {
       if (endDate) where.timestamp.lte = new Date(endDate);
     }
 
-    return await prisma.containerMetricsSnapshot.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      take: limit,
-      skip: offset,
-    });
+    try {
+      return await prisma.containerMetricsSnapshot.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+    } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table ContainerMetricsSnapshot non trouvée, retour de données vides (mode développement)');
+          return [];
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -505,12 +555,23 @@ class PersistenceService {
       };
     }
 
-    return await prisma.containerLog.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      take: limit,
-      skip: offset,
-    });
+    try {
+      return await prisma.containerLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+    } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table ContainerLog non trouvée, retour de données vides (mode développement)');
+          return [];
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -547,6 +608,13 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ Log agrégé sauvegardé: ${level} - ${serviceName}`);
       return saved;
     } catch (error) {
+      // Gérer les erreurs P2021 (table non trouvée) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[PERSISTENCE] ⚠️ Table AggregatedLog non trouvée, sauvegarde ignorée (mode développement)');
+          return null;
+        }
+      }
       console.error('[PERSISTENCE] ❌ Erreur sauvegarde log agrégé:', error.message);
       throw error;
     }

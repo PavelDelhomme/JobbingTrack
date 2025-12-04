@@ -49,6 +49,7 @@ model SystemMetricsSnapshot {
 
   @@index([timestamp])
   @@index([createdAt])
+  @@map("system_metrics_snapshots")
 }
 
 // ✅ Métriques par conteneur (snapshots périodiques)
@@ -87,6 +88,7 @@ model ContainerMetricsSnapshot {
   @@index([timestamp])
   @@index([containerName])
   @@index([createdAt])
+  @@map("container_metrics_snapshots")
 }
 
 // ✅ Événements système (alertes, incidents, démarrages/arrêts)
@@ -113,6 +115,7 @@ model SystemEvent {
   @@index([source])
   @@index([isAlert])
   @@index([createdAt])
+  @@map("system_events")
 }
 
 // ✅ Logs agrégés (pour analyse et recherche)
@@ -135,6 +138,7 @@ model AggregatedLog {
   @@index([userId])
   @@index([requestId])
   @@index([createdAt])
+  @@map("aggregated_logs")
 }
 
 // ✅ Logs conteneurs Docker (directement depuis les conteneurs)
@@ -158,6 +162,7 @@ model ContainerLog {
   @@index([stream])
   @@index([parsedLevel])
   @@index([createdAt])
+  @@map("container_logs")
 }
 
 // ✅ Historique réseau par service
@@ -188,6 +193,7 @@ model ServiceNetworkHistory {
   @@index([timestamp])
   @@index([serviceName])
   @@index([createdAt])
+  @@map("service_network_history")
 }
 
 // ✅ Historique de disponibilité des services
@@ -210,6 +216,7 @@ model ServiceAvailabilityHistory {
   @@index([serviceName])
   @@index([isAvailable])
   @@index([createdAt])
+  @@map("service_availability_history")
 }
 
 // ✅ Métriques de sécurité
@@ -239,6 +246,7 @@ model SecurityMetric {
 
   @@index([timestamp])
   @@index([createdAt])
+  @@map("security_metrics_aggregated")
 }
 
 // ✅ Statistiques quotidiennes (pré-calculées pour le dashboard)
@@ -276,6 +284,7 @@ model DailyStats {
   updatedAt DateTime @updatedAt
 
   @@index([date])
+  @@map("daily_stats")
 }
 
 // ✅ Configuration des alertes (seuils)
@@ -305,6 +314,7 @@ model AlertThreshold {
 
   @@index([metricType])
   @@index([isEnabled])
+  @@map("alert_thresholds")
 }
 
 // ENUMS
