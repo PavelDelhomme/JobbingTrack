@@ -678,16 +678,40 @@ class SecurityService {
 
       // Enregistrer les vulnérabilités trouvées
       for (const vuln of mockVulnerabilities) {
-        await prisma.vulnerability.upsert({
-          where: {
-            title_affectedComponent: {
+        try {
+          // Chercher d'abord si la vulnérabilité existe déjà
+          const existing = await prisma.vulnerability.findFirst({
+            where: {
               title: vuln.title,
               affectedComponent: vuln.affectedComponent
             }
-          },
-          update: vuln,
-          create: vuln
-        });
+          });
+
+          if (existing) {
+            // Mettre à jour si elle existe
+            await prisma.vulnerability.update({
+              where: { id: existing.id },
+              data: vuln
+            });
+          } else {
+            // Créer si elle n'existe pas
+            await prisma.vulnerability.create({
+              data: vuln
+            });
+          }
+        } catch (error) {
+          // Gérer les erreurs P2021 (table non trouvée) gracieusement
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ignorer
+              continue;
+            } else {
+              logger.warn('Table vulnerabilities non trouvée, vulnérabilité non enregistrée');
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
       logger.info(`Analyse de vulnérabilités terminée: ${mockVulnerabilities.length} vulnérabilités analysées`);

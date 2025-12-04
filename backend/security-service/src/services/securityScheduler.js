@@ -102,6 +102,13 @@ class SecurityScheduler {
           }
         }
       } catch (error) {
+        // Gérer les erreurs P2021 silencieusement en développement
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            // Mode silencieux - ne pas logger
+            return;
+          }
+        }
         logger.error('Erreur lors de la collecte des métriques de sécurité:', error);
       }
     }, {
@@ -123,6 +130,13 @@ class SecurityScheduler {
 
         logger.debug('Analyse de vulnérabilités terminée');
       } catch (error) {
+        // Gérer les erreurs P2021 silencieusement en développement
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            // Mode silencieux - ne pas logger
+            return;
+          }
+        }
         logger.error('Erreur lors de l\'analyse de vulnérabilités:', error);
       }
     }, {
