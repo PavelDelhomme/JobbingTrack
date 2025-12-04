@@ -41,15 +41,16 @@ print_main_menu() {
     echo -e "${YELLOW}📋 MENU PRINCIPAL${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "${GREEN}1.${NC} 🚀 Démarrage & Services"
-    echo -e "${GREEN}2.${NC} 🧪 Tests (Backend, Frontend, Mobile)"
-    echo -e "${GREEN}3.${NC} 🗄️  Base de Données"
-    echo -e "${GREEN}4.${NC} 🔒 Sécurité"
-    echo -e "${GREEN}5.${NC} 📊 Monitoring & Logs"
-    echo -e "${GREEN}6.${NC} 🧹 Nettoyage & Maintenance"
-    echo -e "${GREEN}7.${NC} 📦 Build & Déploiement"
+    echo -e "${GREEN}1.${NC} 🚀 Démarrage & Services (up, down, restart, status, health)"
+    echo -e "${GREEN}2.${NC} 🧪 Tests (Backend, Frontend, Mobile, User Journey)"
+    echo -e "${GREEN}3.${NC} 🗄️  Base de Données (migrate, push, seed, reset)"
+    echo -e "${GREEN}4.${NC} 🔒 Sécurité (audit, tests sécurité)"
+    echo -e "${GREEN}5.${NC} 📊 Monitoring & Logs (logs, monitoring-stats)"
+    echo -e "${GREEN}6.${NC} 🧹 Nettoyage & Maintenance (clean, clean-docker)"
+    echo -e "${GREEN}7.${NC} 📦 Build & Déploiement (build, rebuild)"
     echo -e "${GREEN}8.${NC} 🔍 Recherche de commande"
     echo -e "${GREEN}9.${NC} 📚 Aide complète (make help)"
+    echo -e "${GREEN}10.${NC} 📱 Tests Mobile (menu dédié)"
     echo -e "${GREEN}0.${NC} ❌ Quitter"
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -215,7 +216,7 @@ execute_command() {
 main_menu() {
     while true; do
         print_main_menu
-        read -p "$(echo -e ${CYAN}Votre choix [0-9]: ${NC})" choice
+        read -p "$(echo -e ${CYAN}Votre choix [0-10]: ${NC})" choice
         
         case $choice in
             1) startup_menu ;;
@@ -227,6 +228,7 @@ main_menu() {
             7) build_menu ;;
             8) search_command ;;
             9) execute_command "help" "Aide complète" ;;
+            10) mobile_tests_menu ;;
             0) echo -e "${GREEN}👋 Au revoir !${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
