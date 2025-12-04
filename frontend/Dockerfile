@@ -19,6 +19,12 @@ RUN npm ci --legacy-peer-deps
 # ✅ VÉRIFICATION: S'assurer que socket.io-client est bien installé
 RUN npm list socket.io-client || echo "⚠️ socket.io-client non trouvé"
 
+# ✅ Installation Playwright et navigateurs pour les tests (si @playwright/test est dans package.json)
+RUN if grep -q "@playwright/test" package.json; then \
+		npx playwright install --with-deps chromium || \
+		(npx playwright install chromium || echo "⚠️ Playwright browsers installation skipped"); \
+	fi || echo "⚠️ Playwright not in dependencies"
+
 # Stage development (pour docker-compose)
 FROM base AS development
 WORKDIR /app
