@@ -56,6 +56,8 @@
 ### 🧪 **Tests**
 - **[🧪 Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
 - **[📊 Tests Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
+- **[📋 Rapport Tests Complets](tests/TESTS_COMPLETS_RAPPORT.md)** - ⭐ Rapport détaillé des tests système
+- **[✅ Résumé Tests](tests/RESUME_TESTS_COMPLETS.md)** - ⭐ Résumé exécutif (100% réussis)
 
 ---
 
@@ -108,10 +110,13 @@ docs/
 ├── 🔒 security/                 # Sécurité
 │   ├── README.md                 # Guide sécurité
 │   ├── SYSTEME_SECURITE_README.md           # Système sécurité
+│   ├── SECURITY_AUDIT.md                      # ⭐ Audit complet
 │   └── DEMARRAGE_SERVICES_SECURITE.md       # Démarrage services
 └── 🧪 tests/                    # Tests
     ├── README.md                 # Stratégie tests
-    └── TESTS_PAGE_DETAIL_SERVICES.md        # Tests page services
+    ├── TESTS_PAGE_DETAIL_SERVICES.md        # Tests page services
+    ├── TESTS_COMPLETS_RAPPORT.md             # ⭐ Rapport complet
+    └── RESUME_TESTS_COMPLETS.md              # ⭐ Résumé exécutif
 ```
 
 ---
