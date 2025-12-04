@@ -29,6 +29,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Timeouts pour éviter les échecs trop rapides
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
     viewport: { width: 375, height: 667 }, // iPhone SE par défaut
     deviceScaleFactor: 2,
     isMobile: true,

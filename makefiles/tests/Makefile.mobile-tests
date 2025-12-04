@@ -34,6 +34,9 @@ check-services-mobile: ## Vérifie que les services sont démarrés pour les tes
 	@echo "$(CYAN)🔍 Vérification des services...$(NC)"
 	@curl -s $(FRONTEND_URL) > /dev/null 2>&1 && echo "$(GREEN)✅ Frontend accessible$(NC)" || echo "$(RED)❌ Frontend non accessible sur $(FRONTEND_URL)$(NC)"
 	@curl -s $(API_URL)/health > /dev/null 2>&1 && echo "$(GREEN)✅ API Gateway accessible$(NC)" || echo "$(RED)❌ API Gateway non accessible sur $(API_URL)$(NC)"
+	@echo "$(CYAN)🔍 Vérification des navigateurs Playwright...$(NC)"
+	@cd $(FRONTEND_DIR) && npx playwright --version > /dev/null 2>&1 && echo "$(GREEN)✅ Playwright installé$(NC)" || (echo "$(RED)❌ Playwright non installé$(NC)" && echo "$(YELLOW)💡 Exécutez: ./scripts/setup-playwright.sh$(NC)" && exit 1)
+	@cd $(FRONTEND_DIR) && npx playwright install --dry-run chromium 2>&1 | grep -q "already installed" && echo "$(GREEN)✅ Navigateurs installés$(NC)" || (echo "$(YELLOW)⚠️  Navigateurs manquants$(NC)" && echo "$(YELLOW)💡 Exécutez: ./scripts/setup-playwright.sh$(NC)" && exit 1)
 
 test-mobile-install: ## Installe Playwright et les navigateurs (utilise scripts/setup-playwright.sh)
 	@echo "$(CYAN)📦 Installation Playwright via script spécialisé...$(NC)"
