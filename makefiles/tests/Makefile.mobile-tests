@@ -123,9 +123,10 @@ test-mobile-debug: check-services-mobile ## Mode debug step-by-step
 		--config=$(MOBILE_CONFIG) \
 		--debug
 
-test-mobile-report: ## Ouvre le rapport HTML des tests mobile
+test-mobile-report: ## Ouvre le rapport HTML des tests mobile (sur port 5004)
 	@echo "$(CYAN)📊 Ouverture du rapport HTML...$(NC)"
-	@cd $(FRONTEND_DIR) && npx playwright show-report playwright-report-mobile || \
+	@echo "$(YELLOW)💡 Le rapport sera accessible sur http://localhost:5004$(NC)"
+	@cd $(FRONTEND_DIR) && npx playwright show-report playwright-report-mobile --port 5004 || \
 		echo "$(RED)❌ Aucun rapport trouvé. Lancez d'abord les tests.$(NC)"
 
 test-mobile-interactive: ## Menu interactif pour les tests mobile
