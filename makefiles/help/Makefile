@@ -4,8 +4,11 @@
 # Système d'aide contextuelle pour chaque commande
 # ============================================================================
 
-.PHONY: help help-up help-down help-status help-logs help-monitoring-up help-test help-build help-clean \
+.PHONY: menu help help-up help-down help-status help-logs help-monitoring-up help-test help-build help-clean \
         help-tests help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate
+
+menu: ## Affiche le menu interactif CLI pour toutes les commandes Makefile
+	@./scripts/make-menu.sh
 help-tests: ## Aide globale pour les commandes de tests
 	@echo "================================================================"
 	@echo "🧪 AIDE: Suite de tests JobbingTrack"
