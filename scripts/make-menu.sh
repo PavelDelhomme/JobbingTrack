@@ -355,7 +355,8 @@ monitoring_menu() {
                 read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
                 ;;
             2) 
-                read -p "$(echo -e ${CYAN}Nom du service (ex: api-gateway, auth-service): ${NC})" service
+                echo -e "${CYAN}Nom du service (ex: api-gateway, auth-service): ${NC}"
+                read service
                 if [ -n "$service" ]; then
                     echo -e "${CYAN}📋 Logs du service $service (Ctrl+C pour quitter)${NC}"
                     docker-compose logs -f "$service"
