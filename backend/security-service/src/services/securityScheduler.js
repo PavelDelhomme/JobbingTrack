@@ -71,23 +71,36 @@ class SecurityScheduler {
 
         const metrics = await securityService.getSecurityMetrics({ days: 1 });
 
-        // Enregistrer les métriques dans la base de données
-        await securityService.prisma.securityMetric.create({
-          data: {
-            metricType: 'security_score',
-            value: metrics.overview.securityScore,
-            unit: 'score',
-            period: 'hour',
-            metadata: {
-              totalLogs: metrics.overview.totalLogs,
-              criticalEvents: metrics.overview.criticalEvents,
-              intrusionAttempts: metrics.overview.intrusionAttempts,
-              ddosAttacks: metrics.overview.ddosAttacks
+        // Enregistrer les métriques dans la base de données (si la table existe)
+        try {
+          await securityService.prisma.securityMetric.create({
+            data: {
+              metricType: 'security_score',
+              value: metrics.overview.securityScore,
+              unit: 'score',
+              period: 'hour',
+              metadata: {
+                totalLogs: metrics.overview.totalLogs,
+                criticalEvents: metrics.overview.criticalEvents,
+                intrusionAttempts: metrics.overview.intrusionAttempts,
+                ddosAttacks: metrics.overview.ddosAttacks
+              }
             }
+          });
+          logger.debug(`Métriques de sécurité collectées: score=${metrics.overview.securityScore}`);
+        } catch (error) {
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            // Table n'existe pas encore, ignorer silencieusement en développement
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ne pas logger
+              return;
+            } else {
+              logger.warn('Table security_metrics non trouvée, métriques non enregistrées');
+            }
+          } else {
+            throw error;
           }
-        });
-
-        logger.debug(`Métriques de sécurité collectées: score=${metrics.overview.securityScore}`);
+        }
       } catch (error) {
         logger.error('Erreur lors de la collecte des métriques de sécurité:', error);
       }
