@@ -27,7 +27,8 @@ docs/
 │       └── troubleshooting/README.md   # Dépannage métriques
 ├── 💾 database/                        # Base de données
 │   ├── README.md                       # Documentation BDD
-│   ├── analysis/                       # Analyses et audits
+│   ├── DATABASE_VERIFICATION.md        # ⭐ Vérification BDD et état actuel
+│   ├── analysis/                        # Analyses et audits
 │   │   ├── README.md                   # Index analyses
 │   │   ├── comprehensive-project-audit/
 │   │   ├── data-structure-analysis/
@@ -74,10 +75,13 @@ docs/
 ├── 🔒 security/                        # Sécurité
 │   ├── README.md                        # Index sécurité
 │   ├── SYSTEME_SECURITE_README.md      # Système sécurité
+│   ├── SECURITY_AUDIT.md                # ⭐ Audit complet de sécurité
 │   └── DEMARRAGE_SERVICES_SECURITE.md  # Démarrage services
 ├── 🧪 tests/                           # Tests
 │   ├── README.md                        # Stratégie tests
-│   └── TESTS_PAGE_DETAIL_SERVICES.md   # Tests page services
+│   ├── TESTS_PAGE_DETAIL_SERVICES.md   # Tests page services
+│   ├── TESTS_COMPLETS_RAPPORT.md        # ⭐ Rapport complet des tests
+│   └── RESUME_TESTS_COMPLETS.md         # ⭐ Résumé exécutif des tests
 └── 📄 pdfs/                            # PDFs générés
     └── documentation-complete.pdf      # PDF global
 ```
@@ -136,6 +140,7 @@ docs/
 - **[Guide Sécurité](security/README.md)** - Bonnes pratiques de sécurité
 - **[Système Sécurité](security/SYSTEME_SECURITE_README.md)** - Architecture sécurité complète
 - **[Services Sécurité](security/DEMARRAGE_SERVICES_SECURITE.md)** - Démarrage et configuration
+- **[Audit Sécurité](security/SECURITY_AUDIT.md)** - ⭐ Audit complet de sécurité avec recommandations
 
 ### 📧 Emails
 - **[Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
@@ -147,6 +152,8 @@ docs/
 
 ### 🧪 Tests
 - **[Stratégie Tests](tests/README.md)** - Tests unitaires, intégration, E2E
+- **[Rapport Tests Complets](tests/TESTS_COMPLETS_RAPPORT.md)** - ⭐ Rapport détaillé des tests système
+- **[Résumé Tests](tests/RESUME_TESTS_COMPLETS.md)** - ⭐ Résumé exécutif des tests (100% réussis)
 - **[Tests Page Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
 
 ## 🆕 Nouveautés v4.1
