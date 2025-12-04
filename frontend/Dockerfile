@@ -1,6 +1,18 @@
 # frontend/Dockerfile - VERSION FINALE SANS AUTO-INIT
 FROM node:20.18.0-alpine AS base
-RUN apk add --no-cache libc6-compat curl dumb-init
+# Installer les dépendances système nécessaires pour Playwright
+RUN apk add --no-cache \
+    libc6-compat \
+    curl \
+    dumb-init \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && rm -rf /var/cache/apk/*
 WORKDIR /app
 
 # Stage dependencies
