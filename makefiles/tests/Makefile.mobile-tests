@@ -8,8 +8,8 @@
 
 # Configuration
 FRONTEND_DIR = frontend
-MOBILE_TEST_DIR = $(FRONTEND_DIR)/tests/e2e/mobile
-MOBILE_CONFIG = $(FRONTEND_DIR)/playwright.mobile.config.ts
+MOBILE_TEST_DIR = tests/e2e/mobile
+MOBILE_CONFIG = playwright.mobile.config.ts
 FRONTEND_URL ?= http://localhost:5003
 API_URL ?= http://localhost:5002
 
