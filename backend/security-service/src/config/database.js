@@ -1,20 +1,25 @@
 const { PrismaClient } = require('@prisma/client');
 const { logger } = require('../utils/logger');
 
-// Configuration Prisma : désactiver les logs automatiques en développement pour éviter le spam P2021
+// Configuration Prisma : désactiver complètement les logs en développement pour éviter le spam P2021
 // Les erreurs P2021 (table non trouvée) sont gérées gracieusement dans le code
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? [] // Pas de logs automatiques en développement (on gère manuellement dans le code)
-    : [{ emit: 'event', level: 'error' }],
+  log: [], // Désactiver tous les logs Prisma (y compris prisma:error et prisma:query)
 });
 
-// En production uniquement, intercepter les logs Prisma
-if (process.env.NODE_ENV === 'production') {
-  prisma.$on('error', (e) => {
+// Intercepter les erreurs Prisma pour les filtrer en développement
+prisma.$on('error' as any, (e: any) => {
+  // Ignorer les erreurs P2021 (table n'existe pas) en développement
+  if (process.env.NODE_ENV === 'development') {
+    if (e.code === 'P2021' || e.message?.includes('does not exist')) {
+      return; // Ignorer silencieusement
+    }
+  }
+  // En production, logger toutes les erreurs
+  if (process.env.NODE_ENV === 'production') {
     logger.error(`[Prisma Error] ${e.message}`);
-  });
-}
+  }
+});
 
 async function initializeDatabase() {
   try {
