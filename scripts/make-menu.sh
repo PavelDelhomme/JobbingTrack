@@ -514,8 +514,8 @@ main_menu() {
             7) build_menu ;;
             8) status_menu ;;
             9) test_reports_menu ;;
-            10) search_command ;;
-            11) mobile_tests_menu ;;
+            10) mobile_tests_menu ;;
+            11) search_command ;;
             0) echo -e "${GREEN}👋 Au revoir !${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -574,24 +574,23 @@ tests_menu() {
 mobile_tests_menu() {
     while true; do
         print_mobile_tests_menu
-        read -p "$(echo -e ${CYAN}Votre choix [0-15]: ${NC})" choice
+        read -p "$(echo -e ${CYAN}Votre choix [0-14]: ${NC})" choice
         
         case $choice in
-            1) execute_command "test-mobile-install" "Installer Playwright" "true" ;;
-            2) execute_command "test-mobile" "Tous les tests mobile" "true" ;;
-            3) execute_command "test-mobile-all" "Tests tous appareils" "true" ;;
-            4) execute_command "test-mobile-auth" "Tests Authentification" "true" ;;
-            5) execute_command "test-mobile-applications" "Tests Candidatures" "true" ;;
-            6) execute_command "test-mobile-contacts" "Tests Contacts" "true" ;;
-            7) execute_command "test-mobile-calls" "Tests Appels" "true" ;;
-            8) execute_command "test-mobile-interviews" "Tests Entretiens" "true" ;;
-            9) execute_command "test-mobile-followups" "Tests Relances" "true" ;;
-            10) execute_command "test-mobile-notifications" "Tests Notifications" "true" ;;
-            11) execute_command "test-mobile-devices" "Tests différents appareils" "true" ;;
-            12) execute_command "test-mobile-ui" "Mode UI interactif" "true" ;;
-            13) execute_command "test-mobile-debug" "Mode Debug" "true" ;;
-            14) execute_command "test-mobile-report" "Voir rapport HTML" "true" ;;
-            15) execute_command "test-mobile-interactive" "Menu interactif CLI" "true" ;;
+            1) execute_command "test-mobile" "Tous les tests mobile" "true" ;;
+            2) execute_command "test-mobile-all" "Tests tous appareils" "true" ;;
+            3) execute_command "test-mobile-auth" "Tests Authentification" "true" ;;
+            4) execute_command "test-mobile-applications" "Tests Candidatures" "true" ;;
+            5) execute_command "test-mobile-contacts" "Tests Contacts" "true" ;;
+            6) execute_command "test-mobile-calls" "Tests Appels" "true" ;;
+            7) execute_command "test-mobile-interviews" "Tests Entretiens" "true" ;;
+            8) execute_command "test-mobile-followups" "Tests Relances" "true" ;;
+            9) execute_command "test-mobile-notifications" "Tests Notifications" "true" ;;
+            10) execute_command "test-mobile-devices" "Tests différents appareils" "true" ;;
+            11) execute_command "test-mobile-ui" "Mode UI interactif" "true" ;;
+            12) execute_command "test-mobile-debug" "Mode Debug" "true" ;;
+            13) execute_command "test-mobile-report" "Voir rapport HTML" "true" ;;
+            14) execute_command "test-mobile-interactive" "Menu interactif CLI" "true" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac

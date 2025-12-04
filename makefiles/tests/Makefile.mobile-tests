@@ -35,13 +35,10 @@ check-services-mobile: ## Vérifie que les services sont démarrés pour les tes
 	@curl -s $(FRONTEND_URL) > /dev/null 2>&1 && echo "$(GREEN)✅ Frontend accessible$(NC)" || echo "$(RED)❌ Frontend non accessible sur $(FRONTEND_URL)$(NC)"
 	@curl -s $(API_URL)/health > /dev/null 2>&1 && echo "$(GREEN)✅ API Gateway accessible$(NC)" || echo "$(RED)❌ API Gateway non accessible sur $(API_URL)$(NC)"
 
-test-mobile-install: ## Installe Playwright et les navigateurs pour les tests mobile
-	@echo "$(CYAN)📦 Installation de Playwright...$(NC)"
-	@cd $(FRONTEND_DIR) && npm install @playwright/test --save-dev --legacy-peer-deps || true
-	@echo "$(CYAN)🌐 Installation de tous les navigateurs (chromium, firefox, webkit)...$(NC)"
-	@cd $(FRONTEND_DIR) && npx playwright install --with-deps chromium firefox webkit || \
-		(cd $(FRONTEND_DIR) && npx playwright install chromium firefox webkit || true)
-	@echo "$(GREEN)✅ Playwright et navigateurs installés$(NC)"
+test-mobile-install: ## Installe Playwright et les navigateurs (utilise scripts/setup-playwright.sh)
+	@echo "$(CYAN)📦 Installation Playwright via script spécialisé...$(NC)"
+	@echo "$(YELLOW)💡 Utilisation de scripts/setup-playwright.sh pour l'installation${NC}"
+	@./scripts/setup-playwright.sh
 
 test-mobile: check-services-mobile ## Lance tous les tests mobile (iPhone 13 Pro)
 	@echo "$(CYAN)🧪 Lancement des tests mobile...$(NC)"
