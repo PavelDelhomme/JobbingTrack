@@ -516,6 +516,8 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - LOG_LEVEL=info
       - SECURITY_SERVICE_URL=http://security-service:3017
+      - PRISMA_DISABLE_WARNINGS=true
+      - DEBUG=
     depends_on:
       postgres:
         condition: service_healthy
