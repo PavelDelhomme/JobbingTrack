@@ -53,10 +53,8 @@ RUN chown -R nextjs:nodejs /app
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=deps --chown=nextjs:nodejs /app/package-lock.json* ./package-lock.json
-# Copier le cache Playwright (navigateurs installés) - optionnel
-# Note: Le cache sera créé automatiquement au premier run si absent
-RUN mkdir -p /root/.cache/ms-playwright || true
-COPY --from=deps /root/.cache/ms-playwright /root/.cache/ms-playwright 2>/dev/null || true
+# Note: Le cache Playwright sera créé automatiquement au premier run des tests
+# Les navigateurs sont déjà installés dans le stage deps et disponibles via node_modules
 
 
 # Copier tous les fichiers avec bonnes permissions
