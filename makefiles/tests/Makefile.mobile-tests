@@ -27,7 +27,7 @@ help-mobile: ## Affiche l'aide pour les tests mobile
 	@echo ""
 	@echo "$(GREEN)Commandes disponibles:$(NC)"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' makefiles/tests/Makefile.mobile-tests | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
 check-services-mobile: ## Vérifie que les services sont démarrés pour les tests mobile
