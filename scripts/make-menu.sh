@@ -80,11 +80,11 @@ print_tests_menu() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo -e "${GREEN}1.${NC} 📱 Tests Mobile (Playwright)"
-    echo -e "${GREEN}2.${NC} 🧪 Tests Backend"
-    echo -e "${GREEN}3.${NC} 🎨 Tests Frontend"
-    echo -e "${GREEN}4.${NC} 🚶 Tests User Journey"
-    echo -e "${GREEN}5.${NC} 🔒 Tests Sécurité"
-    echo -e "${GREEN}6.${NC} 📊 Tous les tests"
+    echo -e "${GREEN}2.${NC} 🔗 Tests Relations BDD"
+    echo -e "${GREEN}3.${NC} 📋 Tests Enums Prisma"
+    echo -e "${GREEN}4.${NC} 🚶 Tests User Journey (API)"
+    echo -e "${GREEN}5.${NC} 📧 Tests Email"
+    echo -e "${GREEN}6.${NC} 📊 Suite de tests (User Journey + Relations + Enums)"
     echo -e "${GREEN}0.${NC} ← Retour"
     echo ""
 }
@@ -247,8 +247,8 @@ startup_menu() {
             3) execute_command "restart" "Redémarrer les services" ;;
             4) execute_command "status" "Vérifier le statut" ;;
             5) execute_command "health" "Vérifier la santé" ;;
-            6) execute_command "dev" "Mode développement" ;;
-            7) execute_command "up-for-tests" "Démarrer pour les tests" ;;
+            6) execute_command "up" "Démarrer services essentiels" ;;
+            7) execute_command "diagnostic" "Diagnostic complet" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -262,11 +262,22 @@ tests_menu() {
         
         case $choice in
             1) mobile_tests_menu ;;
-            2) execute_command "test-backend" "Tests Backend" ;;
-            3) execute_command "test-frontend" "Tests Frontend" ;;
+            2) execute_command "test-relations" "Tests Relations BDD" ;;
+            3) execute_command "test-enums" "Tests Enums Prisma" ;;
             4) execute_command "tests-user-journey" "Tests User Journey" ;;
-            5) execute_command "test-security" "Tests Sécurité" ;;
-            6) execute_command "test-all" "Tous les tests" ;;
+            5) execute_command "test-email-verification" "Tests Email" ;;
+            6) 
+                echo -e "${YELLOW}📊 Exécution de plusieurs tests...${NC}"
+                echo ""
+                execute_command "tests-user-journey" "Tests User Journey" || true
+                echo ""
+                execute_command "test-relations" "Tests Relations" || true
+                echo ""
+                execute_command "test-enums" "Tests Enums" || true
+                echo ""
+                echo -e "${GREEN}✅ Tests terminés${NC}"
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -310,7 +321,7 @@ database_menu() {
             2) execute_command "db-push-all" "Push toutes les bases" ;;
             3) execute_command "db-reset" "Reset base de données" ;;
             4) execute_command "db-seed" "Seed données de test" ;;
-            5) execute_command "db-check" "Vérifier structure BDD" ;;
+            5) execute_command "health" "Vérifier santé services" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -320,11 +331,12 @@ database_menu() {
 security_menu() {
     while true; do
         print_security_menu
-        read -p "$(echo -e ${CYAN}Votre choix [0-2]: ${NC})" choice
+        read -p "$(echo -e ${CYAN}Votre choix [0-3]: ${NC})" choice
         
         case $choice in
-            1) execute_command "test-security" "Tests sécurité" ;;
-            2) execute_command "security-audit" "Audit sécurité" ;;
+            1) execute_command "test-email-verification" "Tests email" ;;
+            2) execute_command "test-relations" "Tests relations BDD" ;;
+            3) execute_command "test-enums" "Tests enums" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -337,12 +349,20 @@ monitoring_menu() {
         read -p "$(echo -e ${CYAN}Votre choix [0-3]: ${NC})" choice
         
         case $choice in
-            1) execute_command "logs" "Voir les logs" ;;
-            2) 
-                read -p "$(echo -e ${CYAN}Nom du service: ${NC})" service
-                execute_command "logs-service SERVICE=$service" "Logs du service"
+            1) 
+                echo -e "${CYAN}📋 Logs Docker (Ctrl+C pour quitter)${NC}"
+                docker-compose logs -f
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
                 ;;
-            3) execute_command "monitoring-stats" "Statistiques monitoring" ;;
+            2) 
+                read -p "$(echo -e ${CYAN}Nom du service (ex: api-gateway, auth-service): ${NC})" service
+                if [ -n "$service" ]; then
+                    echo -e "${CYAN}📋 Logs du service $service (Ctrl+C pour quitter)${NC}"
+                    docker-compose logs -f "$service"
+                    read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                fi
+                ;;
+            3) execute_command "monitoring-up" "Démarrer monitoring" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -356,8 +376,18 @@ cleanup_menu() {
         
         case $choice in
             1) execute_command "clean" "Nettoyer les builds" ;;
-            2) execute_command "clean-docker" "Nettoyer Docker" ;;
-            3) execute_command "clean-logs" "Nettoyer les logs" ;;
+            2) 
+                echo -e "${YELLOW}⚠️  Arrêt et suppression des volumes Docker...${NC}"
+                docker-compose down -v
+                echo -e "${GREEN}✅ Nettoyage Docker terminé${NC}"
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            3) 
+                echo -e "${YELLOW}⚠️  Suppression des volumes Docker inutilisés...${NC}"
+                docker volume prune -f
+                echo -e "${GREEN}✅ Nettoyage des volumes terminé${NC}"
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
@@ -377,9 +407,15 @@ build_menu() {
     read -p "$(echo -e ${CYAN}Votre choix [0-3]: ${NC})" choice
     
     case $choice in
-        1) execute_command "build-frontend" "Build frontend" ;;
-        2) execute_command "build-backend" "Build backend" ;;
-        3) execute_command "build" "Build tout" ;;
+        1) execute_command "build" "Build tous les services" ;;
+        2) execute_command "rebuild" "Rebuild sans cache" ;;
+        3) 
+            echo -e "${YELLOW}🧹 Nettoyage...${NC}"
+            make clean || true
+            echo -e "${YELLOW}🔨 Build...${NC}"
+            make build
+            read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+            ;;
         0) return ;;
         *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
     esac
