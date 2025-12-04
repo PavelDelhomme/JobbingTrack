@@ -337,10 +337,10 @@ class SecurityScheduler {
 
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
-      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+      // Gérer les erreurs P2021/P2010 (table non trouvée) gracieusement - mode silencieux en développement
+      if (error.code === 'P2021' || error.code === 'P2010' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
         if (process.env.NODE_ENV === 'development') {
-          // Mode silencieux - ne pas logger l'erreur
+          // Mode silencieux - ne pas logger l'erreur, juste retourner
           return;
         }
       }
