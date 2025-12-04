@@ -241,6 +241,121 @@ status_menu() {
     done
 }
 
+# Menu Rapports de Tests
+print_test_reports_menu() {
+    print_header
+    echo -e "${YELLOW}📈 RAPPORTS DE TESTS${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${GREEN}1.${NC} 📱 Voir rapport tests mobile (HTML)"
+    echo -e "${GREEN}2.${NC} 📊 Voir rapport tests Playwright (HTML)"
+    echo -e "${GREEN}3.${NC} 📄 Voir résultats JSON (tests mobile)"
+    echo -e "${GREEN}4.${NC} 📄 Voir résultats JSON (tests Playwright)"
+    echo -e "${GREEN}5.${NC} 📦 Exporter tous les rapports (ZIP)"
+    echo -e "${GREEN}6.${NC} 📋 Lister tous les rapports disponibles"
+    echo -e "${GREEN}7.${NC} 🧹 Nettoyer les anciens rapports"
+    echo -e "${GREEN}0.${NC} ← Retour"
+    echo ""
+}
+
+test_reports_menu() {
+    while true; do
+        print_test_reports_menu
+        read -p "$(echo -e ${CYAN}Votre choix [0-7]: ${NC})" choice
+        
+        case $choice in
+            1) 
+                echo -e "${CYAN}📱 Ouverture du rapport HTML tests mobile...${NC}"
+                cd frontend && npx playwright show-report playwright-report-mobile 2>/dev/null || \
+                    echo -e "${YELLOW}⚠️  Aucun rapport mobile trouvé. Lancez d'abord les tests mobile.${NC}"
+                cd ..
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            2) 
+                echo -e "${CYAN}📊 Ouverture du rapport HTML tests Playwright...${NC}"
+                cd frontend && npx playwright show-report 2>/dev/null || \
+                    echo -e "${YELLOW}⚠️  Aucun rapport Playwright trouvé. Lancez d'abord les tests.${NC}"
+                cd ..
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            3) 
+                if [ -f "frontend/test-results-mobile.json" ]; then
+                    echo -e "${CYAN}📄 Contenu du fichier test-results-mobile.json:${NC}"
+                    cat frontend/test-results-mobile.json | head -50
+                else
+                    echo -e "${YELLOW}⚠️  Fichier test-results-mobile.json non trouvé${NC}"
+                fi
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            4) 
+                if [ -f "frontend/test-results.json" ]; then
+                    echo -e "${CYAN}📄 Contenu du fichier test-results.json:${NC}"
+                    cat frontend/test-results.json | head -50
+                else
+                    echo -e "${YELLOW}⚠️  Fichier test-results.json non trouvé${NC}"
+                fi
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            5) 
+                echo -e "${CYAN}📦 Export des rapports de tests...${NC}"
+                export_dir="test-reports-export-$(date +%Y%m%d-%H%M%S)"
+                mkdir -p "$export_dir"
+                
+                # Copier les rapports HTML
+                if [ -d "frontend/playwright-report-mobile" ]; then
+                    cp -r frontend/playwright-report-mobile "$export_dir/" 2>/dev/null || true
+                fi
+                if [ -d "frontend/playwright-report" ]; then
+                    cp -r frontend/playwright-report "$export_dir/" 2>/dev/null || true
+                fi
+                
+                # Copier les fichiers JSON
+                [ -f "frontend/test-results-mobile.json" ] && cp frontend/test-results-mobile.json "$export_dir/" 2>/dev/null || true
+                [ -f "frontend/test-results.json" ] && cp frontend/test-results.json "$export_dir/" 2>/dev/null || true
+                [ -f "frontend/test-results.xml" ] && cp frontend/test-results.xml "$export_dir/" 2>/dev/null || true
+                
+                # Créer un ZIP
+                zip -r "${export_dir}.zip" "$export_dir" 2>/dev/null || tar -czf "${export_dir}.tar.gz" "$export_dir" 2>/dev/null || true
+                
+                if [ -f "${export_dir}.zip" ] || [ -f "${export_dir}.tar.gz" ]; then
+                    echo -e "${GREEN}✅ Rapports exportés dans: ${export_dir}.zip (ou .tar.gz)${NC}"
+                else
+                    echo -e "${GREEN}✅ Rapports exportés dans: ${export_dir}/${NC}"
+                fi
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            6) 
+                echo -e "${CYAN}📋 Rapports disponibles:${NC}"
+                echo ""
+                echo -e "${GREEN}Tests Mobile:${NC}"
+                [ -d "frontend/playwright-report-mobile" ] && echo "  ✅ HTML: frontend/playwright-report-mobile/" || echo "  ❌ Aucun rapport HTML mobile"
+                [ -f "frontend/test-results-mobile.json" ] && echo "  ✅ JSON: frontend/test-results-mobile.json" || echo "  ❌ Aucun JSON mobile"
+                echo ""
+                echo -e "${GREEN}Tests Playwright:${NC}"
+                [ -d "frontend/playwright-report" ] && echo "  ✅ HTML: frontend/playwright-report/" || echo "  ❌ Aucun rapport HTML"
+                [ -f "frontend/test-results.json" ] && echo "  ✅ JSON: frontend/test-results.json" || echo "  ❌ Aucun JSON"
+                [ -f "frontend/test-results.xml" ] && echo "  ✅ XML: frontend/test-results.xml" || echo "  ❌ Aucun XML"
+                echo ""
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            7) 
+                echo -e "${YELLOW}⚠️  Nettoyage des anciens rapports...${NC}"
+                read -p "$(echo -e ${CYAN}Confirmer la suppression ? (o/N): ${NC})" confirm
+                if [ "$confirm" = "o" ] || [ "$confirm" = "O" ]; then
+                    rm -rf frontend/playwright-report-mobile frontend/playwright-report 2>/dev/null || true
+                    rm -f frontend/test-results*.json frontend/test-results*.xml 2>/dev/null || true
+                    echo -e "${GREEN}✅ Rapports nettoyés${NC}"
+                else
+                    echo -e "${YELLOW}❌ Nettoyage annulé${NC}"
+                fi
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            0) return ;;
+            *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
 # Recherche de commande
 search_command() {
     print_header
@@ -268,10 +383,11 @@ search_command() {
     read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
 }
 
-# Exécuter une commande
+# Exécuter une commande (ne quitte pas le menu)
 execute_command() {
     local cmd=$1
     local description=$2
+    local return_to_menu=${3:-true}  # Par défaut, retourne au menu
     
     print_header
     echo -e "${CYAN}🚀 Exécution: ${description}${NC}"
@@ -280,17 +396,30 @@ execute_command() {
     echo -e "${YELLOW}Commande: make ${cmd}${NC}"
     echo ""
     
-    make "$cmd"
+    # Exécuter la commande et capturer le code de sortie
+    if make "$cmd" 2>&1; then
+        echo ""
+        echo -e "${GREEN}✅ Commande exécutée avec succès${NC}"
+    else
+        exit_code=$?
+        echo ""
+        echo -e "${RED}❌ Commande terminée avec erreur (code: $exit_code)${NC}"
+        echo -e "${YELLOW}💡 Vous pouvez consulter les logs ci-dessus${NC}"
+    fi
     
     echo ""
-    read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+    if [ "$return_to_menu" = "true" ]; then
+        read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour revenir au menu...${NC})"
+    else
+        read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+    fi
 }
 
 # Menu principal
 main_menu() {
     while true; do
         print_main_menu
-        read -p "$(echo -e ${CYAN}Votre choix [0-10]: ${NC})" choice
+        read -p "$(echo -e ${CYAN}Votre choix [0-11]: ${NC})" choice
         
         case $choice in
             1) startup_menu ;;
@@ -301,8 +430,9 @@ main_menu() {
             6) cleanup_menu ;;
             7) build_menu ;;
             8) status_menu ;;
-            9) search_command ;;
-            10) mobile_tests_menu ;;
+            9) test_reports_menu ;;
+            10) search_command ;;
+            11) mobile_tests_menu ;;
             0) echo -e "${GREEN}👋 Au revoir !${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
