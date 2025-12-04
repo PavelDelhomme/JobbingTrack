@@ -46,7 +46,7 @@ test-mobile: check-services-mobile ## Lance tous les tests mobile (iPhone 13 Pro
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR) \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-all: check-services-mobile ## Lance tous les tests mobile sur tous les appareils
 	@echo "$(CYAN)🧪 Lancement des tests mobile sur tous les appareils...$(NC)"
