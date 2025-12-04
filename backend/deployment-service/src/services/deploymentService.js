@@ -190,12 +190,6 @@ class DeploymentService {
       logger.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
     }
-
-      return updatedDeployment;
-    } catch (error) {
-      logger.error('Erreur lors de la mise à jour du statut:', error);
-      throw error;
-    }
   }
 
   // Enregistrer une métrique de déploiement

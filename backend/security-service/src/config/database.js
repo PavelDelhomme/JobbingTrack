@@ -43,6 +43,10 @@ async function seedDevelopmentData() {
     } catch (error) {
       // Si la table n'existe pas (P2021), considérer qu'il n'y a pas de données
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        // Mode silencieux - ne pas logger, juste retourner
+        if (process.env.NODE_ENV === 'development') {
+          return;
+        }
         existingLogs = 0;
       } else {
         throw error;
@@ -160,11 +164,14 @@ async function seedDevelopmentData() {
     // Gérer les erreurs P2021 gracieusement en développement
     if (error.code === 'P2021' || error.message?.includes('does not exist')) {
       if (process.env.NODE_ENV === 'development') {
-        // Mode silencieux - ne pas logger
+        // Mode silencieux - ne pas logger, juste retourner
         return;
       }
     }
-    logger.error('Erreur lors de la création des données de développement de sécurité:', error);
+    // Ne logger que si ce n'est pas une erreur P2021 en développement
+    if (process.env.NODE_ENV === 'production' || (error.code !== 'P2021' && !error.message?.includes('does not exist'))) {
+      logger.error('Erreur lors de la création des données de développement de sécurité:', error);
+    }
   }
 }
 
