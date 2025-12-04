@@ -168,6 +168,79 @@ print_cleanup_menu() {
     echo ""
 }
 
+# Menu Statut des Services
+print_status_menu() {
+    print_header
+    echo -e "${YELLOW}📊 STATUT DES SERVICES${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    
+    # Exécuter make status et capturer la sortie
+    status_output=$(make status 2>&1)
+    echo "$status_output"
+    
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 ACTIONS RECOMMANDÉES:${NC}"
+    echo ""
+    
+    # Analyser le statut et proposer des actions
+    if echo "$status_output" | grep -q "Aucun service\|DOWN"; then
+        echo -e "${RED}⚠️  Certains services ne sont pas démarrés !${NC}"
+        echo -e "${GREEN}   → Action: make up${NC}"
+        echo ""
+    elif echo "$status_output" | grep -q "Base de données.*vide\|incomplète"; then
+        echo -e "${YELLOW}⚠️  Base de données incomplète !${NC}"
+        echo -e "${GREEN}   → Action: make db-push-all${NC}"
+        echo ""
+    elif echo "$status_output" | grep -q "services actifs"; then
+        active_count=$(echo "$status_output" | grep -oP '\d+/\d+ services actifs' | grep -oP '\d+' | head -1 2>/dev/null || echo "")
+        total_count=$(echo "$status_output" | grep -oP '\d+/\d+ services actifs' | grep -oP '\d+' | tail -1 2>/dev/null || echo "")
+        
+        if [ -n "$active_count" ] && [ -n "$total_count" ] && [ "$active_count" -lt "$total_count" ] 2>/dev/null; then
+            echo -e "${YELLOW}⚠️  Certains services ne sont pas démarrés ($active_count/$total_count)${NC}"
+            echo -e "${GREEN}   → Action: make up-full${NC}"
+            echo ""
+        else
+            echo -e "${GREEN}✅ Tous les services sont actifs !${NC}"
+            echo -e "${CYAN}   → Vous pouvez:${NC}"
+            echo -e "${CYAN}      • make health (vérifier la santé)${NC}"
+            echo -e "${CYAN}      • make tests-user-journey (tester le système)${NC}"
+            echo ""
+        fi
+    fi
+    
+    echo -e "${GREEN}1.${NC} Vérifier la santé (make health)"
+    echo -e "${GREEN}2.${NC} Voir les logs (docker-compose logs -f)"
+    echo -e "${GREEN}3.${NC} Redémarrer les services (make restart)"
+    echo -e "${GREEN}4.${NC} Démarrer tous les services (make up-full)"
+    echo -e "${GREEN}5.${NC} Synchroniser la base de données (make db-push-all)"
+    echo -e "${GREEN}0.${NC} ← Retour"
+    echo ""
+}
+
+status_menu() {
+    while true; do
+        print_status_menu
+        read -p "$(echo -e ${CYAN}Votre choix [0-5]: ${NC})" choice
+        
+        case $choice in
+            1) execute_command "health" "Vérifier la santé" ;;
+            2) 
+                echo -e "${CYAN}📋 Logs Docker (Ctrl+C pour quitter)${NC}"
+                docker-compose logs -f
+                read -p "$(echo -e ${YELLOW}Appuyez sur Entrée pour continuer...${NC})"
+                ;;
+            3) execute_command "restart" "Redémarrer les services" ;;
+            4) execute_command "up-full" "Démarrer tous les services" ;;
+            5) execute_command "db-push-all" "Synchroniser la base de données" ;;
+            0) return ;;
+            *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
 # Recherche de commande
 search_command() {
     print_header
