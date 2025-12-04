@@ -49,10 +49,12 @@ RUN adduser --system --uid 1001 nextjs
 RUN mkdir -p /app/.next /app/src /app/public /app/node_modules
 RUN chown -R nextjs:nodejs /app
 
-# Copier node_modules en tant que root AVEC socket.io-client
+# Copier node_modules en tant que root AVEC socket.io-client et Playwright
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=deps --chown=nextjs:nodejs /app/package-lock.json* ./package-lock.json
+# Copier le cache Playwright (navigateurs installés)
+COPY --from=deps --chown=nextjs:nodejs /root/.cache/ms-playwright /root/.cache/ms-playwright 2>/dev/null || echo "⚠️ Playwright cache not found, will install on first run"
 
 
 # Copier tous les fichiers avec bonnes permissions
