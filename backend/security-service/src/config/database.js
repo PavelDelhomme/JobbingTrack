@@ -4,21 +4,7 @@ const { logger } = require('../utils/logger');
 // Configuration Prisma : désactiver complètement les logs en développement pour éviter le spam P2021
 // Les erreurs P2021 (table non trouvée) sont gérées gracieusement dans le code
 const prisma = new PrismaClient({
-  log: [], // Désactiver tous les logs Prisma (y compris prisma:error et prisma:query)
-});
-
-// Intercepter les erreurs Prisma pour les filtrer en développement
-prisma.$on('error' as any, (e: any) => {
-  // Ignorer les erreurs P2021 (table n'existe pas) en développement
-  if (process.env.NODE_ENV === 'development') {
-    if (e.code === 'P2021' || e.message?.includes('does not exist')) {
-      return; // Ignorer silencieusement
-    }
-  }
-  // En production, logger toutes les erreurs
-  if (process.env.NODE_ENV === 'production') {
-    logger.error(`[Prisma Error] ${e.message}`);
-  }
+  log: [], // Désactiver TOUS les logs Prisma (query, info, warn, error) pour éviter le spam
 });
 
 async function initializeDatabase() {
