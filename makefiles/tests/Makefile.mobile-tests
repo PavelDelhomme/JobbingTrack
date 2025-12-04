@@ -38,8 +38,10 @@ check-services-mobile: ## Vérifie que les services sont démarrés pour les tes
 test-mobile-install: ## Installe Playwright et les navigateurs pour les tests mobile
 	@echo "$(CYAN)📦 Installation de Playwright...$(NC)"
 	@cd $(FRONTEND_DIR) && npm install @playwright/test --save-dev --legacy-peer-deps || true
-	@cd $(FRONTEND_DIR) && npx playwright install chromium
-	@echo "$(GREEN)✅ Playwright installé$(NC)"
+	@echo "$(CYAN)🌐 Installation de tous les navigateurs (chromium, firefox, webkit)...$(NC)"
+	@cd $(FRONTEND_DIR) && npx playwright install --with-deps chromium firefox webkit || \
+		(cd $(FRONTEND_DIR) && npx playwright install chromium firefox webkit || true)
+	@echo "$(GREEN)✅ Playwright et navigateurs installés$(NC)"
 
 test-mobile: check-services-mobile ## Lance tous les tests mobile (iPhone 13 Pro)
 	@echo "$(CYAN)🧪 Lancement des tests mobile...$(NC)"
