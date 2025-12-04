@@ -300,8 +300,8 @@ main_menu() {
             5) monitoring_menu ;;
             6) cleanup_menu ;;
             7) build_menu ;;
-            8) search_command ;;
-            9) execute_command "help" "Aide complète" ;;
+            8) status_menu ;;
+            9) search_command ;;
             10) mobile_tests_menu ;;
             0) echo -e "${GREEN}👋 Au revoir !${NC}"; exit 0 ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
