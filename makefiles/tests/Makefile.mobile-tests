@@ -46,68 +46,68 @@ test-mobile: check-services-mobile ## Lance tous les tests mobile (iPhone 13 Pro
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR) \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list,html,json
+		--reporter=list,html,json,html,json
 
 test-mobile-all: check-services-mobile ## Lance tous les tests mobile sur tous les appareils
 	@echo "$(CYAN)🧪 Lancement des tests mobile sur tous les appareils...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR) \
 		--config=$(MOBILE_CONFIG) \
-		--reporter=list
+		--reporter=list,html,json,html,json
 
 test-mobile-auth: check-services-mobile ## Tests d'authentification mobile
 	@echo "$(CYAN)🔐 Tests d'authentification mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-auth.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json,html,json
 
 test-mobile-applications: check-services-mobile ## Tests de gestion des candidatures mobile
 	@echo "$(CYAN)📋 Tests candidatures mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-applications.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-contacts: check-services-mobile ## Tests de gestion des contacts mobile
 	@echo "$(CYAN)👥 Tests contacts mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-contacts.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-calls: check-services-mobile ## Tests de gestion des appels mobile
 	@echo "$(CYAN)📞 Tests appels mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-calls.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-interviews: check-services-mobile ## Tests de gestion des entretiens mobile
 	@echo "$(CYAN)📅 Tests entretiens mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-interviews.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-followups: check-services-mobile ## Tests de gestion des relances mobile
 	@echo "$(CYAN)🔔 Tests relances mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-followups.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-notifications: check-services-mobile ## Tests de notifications mobile
 	@echo "$(CYAN)🔔 Tests notifications mobile...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-notifications.spec.ts \
 		--config=$(MOBILE_CONFIG) \
 		--project="iPhone 13 Pro" \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-devices: check-services-mobile ## Lance les tests sur différents appareils
 	@echo "$(CYAN)📱 Tests sur différents appareils...$(NC)"
 	@cd $(FRONTEND_DIR) && npx playwright test $(MOBILE_TEST_DIR)/mobile-complete-journey.spec.ts \
 		--config=$(MOBILE_CONFIG) \
-		--reporter=list
+		--reporter=list,html,json
 
 test-mobile-ui: check-services-mobile ## Mode UI interactif Playwright
 	@echo "$(CYAN)🎬 Mode UI interactif...$(NC)"
