@@ -495,21 +495,21 @@ mobile_tests_menu() {
         read -p "$(echo -e ${CYAN}Votre choix [0-15]: ${NC})" choice
         
         case $choice in
-            1) execute_command "test-mobile-install" "Installer Playwright" ;;
-            2) execute_command "test-mobile" "Tous les tests mobile" ;;
-            3) execute_command "test-mobile-all" "Tests tous appareils" ;;
-            4) execute_command "test-mobile-auth" "Tests Authentification" ;;
-            5) execute_command "test-mobile-applications" "Tests Candidatures" ;;
-            6) execute_command "test-mobile-contacts" "Tests Contacts" ;;
-            7) execute_command "test-mobile-calls" "Tests Appels" ;;
-            8) execute_command "test-mobile-interviews" "Tests Entretiens" ;;
-            9) execute_command "test-mobile-followups" "Tests Relances" ;;
-            10) execute_command "test-mobile-notifications" "Tests Notifications" ;;
-            11) execute_command "test-mobile-devices" "Tests différents appareils" ;;
-            12) execute_command "test-mobile-ui" "Mode UI interactif" ;;
-            13) execute_command "test-mobile-debug" "Mode Debug" ;;
-            14) execute_command "test-mobile-report" "Voir rapport HTML" ;;
-            15) execute_command "test-mobile-interactive" "Menu interactif CLI" ;;
+            1) execute_command "test-mobile-install" "Installer Playwright" "true" ;;
+            2) execute_command "test-mobile" "Tous les tests mobile" "true" ;;
+            3) execute_command "test-mobile-all" "Tests tous appareils" "true" ;;
+            4) execute_command "test-mobile-auth" "Tests Authentification" "true" ;;
+            5) execute_command "test-mobile-applications" "Tests Candidatures" "true" ;;
+            6) execute_command "test-mobile-contacts" "Tests Contacts" "true" ;;
+            7) execute_command "test-mobile-calls" "Tests Appels" "true" ;;
+            8) execute_command "test-mobile-interviews" "Tests Entretiens" "true" ;;
+            9) execute_command "test-mobile-followups" "Tests Relances" "true" ;;
+            10) execute_command "test-mobile-notifications" "Tests Notifications" "true" ;;
+            11) execute_command "test-mobile-devices" "Tests différents appareils" "true" ;;
+            12) execute_command "test-mobile-ui" "Mode UI interactif" "true" ;;
+            13) execute_command "test-mobile-debug" "Mode Debug" "true" ;;
+            14) execute_command "test-mobile-report" "Voir rapport HTML" "true" ;;
+            15) execute_command "test-mobile-interactive" "Menu interactif CLI" "true" ;;
             0) return ;;
             *) echo -e "${RED}❌ Choix invalide${NC}"; sleep 1 ;;
         esac
