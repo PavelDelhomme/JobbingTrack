@@ -129,9 +129,10 @@ test-mobile-report: ## Ouvre le rapport HTML des tests mobile (sur port 5004)
 		echo "$(RED)❌ Aucun rapport trouvé dans $(FRONTEND_DIR)/playwright-report-mobile$(NC)"; \
 		echo "$(YELLOW)💡 Lancez d'abord les tests: make test-mobile$(NC)"; \
 		exit 1; \
+	else \
+		echo "$(YELLOW)💡 Le rapport sera accessible sur http://localhost:5004$(NC)"; \
+		cd $(FRONTEND_DIR) && npx playwright show-report playwright-report-mobile --port 5004; \
 	fi
-	@echo "$(YELLOW)💡 Le rapport sera accessible sur http://localhost:5004$(NC)"
-	@cd $(FRONTEND_DIR) && npx playwright show-report playwright-report-mobile --port 5004
 
 test-mobile-interactive: ## Menu interactif pour les tests mobile
 	@cd $(FRONTEND_DIR) && node scripts/test-mobile-cli.js || \
