@@ -1,0 +1,14 @@
+{
+  "testName": "Relations BDD",
+  "command": "docker exec jobbingtrack-auth-service sh -c 'cat > /tmp/test-relations.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node /tmp/test-relations.js 2>&1",
+  "timestamp": "2025-12-04T23:56:03+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "\n"
+}

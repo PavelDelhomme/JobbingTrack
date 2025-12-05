@@ -1,0 +1,14 @@
+{
+  "testName": "Relations BDD",
+  "command": "docker exec -i jobbingtrack-auth-service sh -c 'cat > /tmp/test-relations.js' < scripts/test-relations.js && docker exec jobbingtrack-auth-service node /tmp/test-relations.js",
+  "timestamp": "2025-12-05T00:00:38+01:00",
+  "duration": 0,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "❌ Impossible de charger Prisma Client: Cannot find module '@prisma/client'\nRequire stack:\n- /tmp/test-relations.js\n💡 Assurez-vous que les services sont démarrés et que Prisma est installé\n💡 Répertoire actuel: /app\n"
+}

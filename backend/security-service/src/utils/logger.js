@@ -1,7 +1,33 @@
 const winston = require('winston');
 const path = require('path');
 
+// Définir les niveaux de log personnalisés incluant "critical"
+const levels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  verbose: 4,
+  debug: 5,
+  silly: 6,
+  critical: 0 // critical est au même niveau que error (0 = plus important)
+};
+
+const colors = {
+  error: 'red',
+  warn: 'yellow',
+  info: 'green',
+  http: 'magenta',
+  verbose: 'cyan',
+  debug: 'blue',
+  silly: 'grey',
+  critical: 'red'
+};
+
+winston.addColors(colors);
+
 const logger = winston.createLogger({
+  levels,
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     winston.format.timestamp({

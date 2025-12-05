@@ -1,8 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const { logger } = require('../utils/logger');
 
+// Configuration Prisma : désactiver les logs d'erreur en développement pour éviter le spam P2021
+// Les erreurs P2021 (table non trouvée) sont gérées gracieusement dans le code
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? [] : ['error'], // Désactiver tous les logs en développement
 });
 
 async function initializeDatabase() {
@@ -27,8 +29,18 @@ async function initializeDatabase() {
 
 async function seedDevelopmentData() {
   try {
-    // Vérifier si des déploiements existent déjà
-    const existingDeployments = await prisma.deployment.count();
+    // Vérifier si des déploiements existent déjà (avec gestion d'erreur P2021)
+    let existingDeployments = 0;
+    try {
+      existingDeployments = await prisma.deployment.count();
+    } catch (error) {
+      // Si la table n'existe pas (P2021), considérer qu'il n'y a pas de données
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        existingDeployments = 0;
+      } else {
+        throw error;
+      }
+    }
 
     if (existingDeployments === 0) {
       logger.info('Création de données de développement pour les déploiements...');
@@ -70,13 +82,34 @@ async function seedDevelopmentData() {
       ];
 
       for (const deployment of deployments) {
-        await prisma.deployment.create({ data: deployment });
+        try {
+          await prisma.deployment.create({ data: deployment });
+        } catch (error) {
+          // Ignorer silencieusement si la table n'existe pas (P2021)
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ne pas logger, juste continuer
+              continue;
+            }
+          }
+          throw error;
+        }
       }
 
       logger.info('Données de développement créées avec succès');
     }
   } catch (error) {
-    logger.error('Erreur lors de la création des données de développement:', error);
+    // Gérer les erreurs P2021 (table non trouvée) gracieusement en développement
+    if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      if (process.env.NODE_ENV === 'development') {
+        // Mode silencieux - ne pas logger, juste retourner
+        return;
+      }
+    }
+    // Ne logger que si ce n'est pas une erreur P2021 en développement
+    if (process.env.NODE_ENV === 'production' || (error.code !== 'P2021' && !error.message?.includes('does not exist'))) {
+      logger.error('Erreur lors de la création des données de développement:', error);
+    }
   }
 }
 

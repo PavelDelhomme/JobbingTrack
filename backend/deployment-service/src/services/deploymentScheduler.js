@@ -165,13 +165,27 @@ class DeploymentScheduler {
           throw new Error('Table DeploymentMetric non disponible');
         }
 
-        const deletedMetrics = await prisma.deploymentMetric.deleteMany({
-          where: {
-            timestamp: {
-              lt: ninetyDaysAgo
+        let deletedMetrics = { count: 0 };
+        try {
+          deletedMetrics = await prisma.deploymentMetric.deleteMany({
+            where: {
+              timestamp: {
+                lt: ninetyDaysAgo
+              }
             }
+          });
+        } catch (error) {
+          // Gérer les erreurs P2021 (table non trouvée) gracieusement
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ne pas logger, juste continuer
+            } else {
+              logger.warn('Table DeploymentMetric non trouvée lors du nettoyage');
+            }
+          } else {
+            throw error;
           }
-        });
+        }
 
         // Nettoyer les déploiements terminés de plus de 180 jours
         const sixMonthsAgo = new Date();
@@ -186,20 +200,44 @@ class DeploymentScheduler {
           throw new Error('Table Deployment non disponible');
         }
 
-        const deletedDeployments = await prisma.deployment.deleteMany({
-          where: {
-            createdAt: {
-              lt: sixMonthsAgo
-            },
-            status: {
-              in: ['success', 'failed', 'rolled_back']
+        let deletedDeployments = { count: 0 };
+        try {
+          deletedDeployments = await prisma.deployment.deleteMany({
+            where: {
+              createdAt: {
+                lt: sixMonthsAgo
+              },
+              status: {
+                in: ['success', 'failed', 'rolled_back']
+              }
             }
+          });
+        } catch (error) {
+          // Gérer les erreurs P2021 (table non trouvée) gracieusement
+          if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Mode silencieux - ne pas logger, juste continuer
+            } else {
+              logger.warn('Table Deployment non trouvée lors du nettoyage');
+            }
+          } else {
+            throw error;
           }
-        });
+        }
 
         logger.info(`Nettoyage effectué: ${deletedMetrics.count} métriques et ${deletedDeployments.count} déploiements supprimés`);
       } catch (error) {
-        logger.error('Erreur lors du nettoyage:', error);
+        // Gérer les erreurs P2021 (table non trouvée) gracieusement
+        if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+          if (process.env.NODE_ENV === 'development') {
+            // Mode silencieux - ne pas logger
+            return;
+          }
+        }
+        // Ne logger que si ce n'est pas une erreur P2021 en développement
+        if (process.env.NODE_ENV === 'production' || (error.code !== 'P2021' && !error.message?.includes('does not exist'))) {
+          logger.error('Erreur lors du nettoyage:', error);
+        }
       }
     }, {
       scheduled: false

@@ -8,23 +8,18 @@
 const fs = require('fs');
 const path = require('path');
 
-// Utiliser Prisma depuis auth-service si disponible, sinon depuis le répertoire local
+// Utiliser Prisma depuis auth-service
 let PrismaClient, prisma;
 try {
-  // Essayer d'abord depuis auth-service
+  // Dans le conteneur Docker, le répertoire de travail est /app
+  // Prisma est installé dans /app/node_modules
   PrismaClient = require('@prisma/client').PrismaClient;
   prisma = new PrismaClient();
 } catch (e) {
-  // Si échec, essayer depuis backend/auth-service
-  try {
-    process.chdir(path.join(__dirname, '../backend/auth-service'));
-    PrismaClient = require('@prisma/client').PrismaClient;
-    prisma = new PrismaClient();
-  } catch (e2) {
-    console.error('❌ Impossible de charger Prisma Client:', e2.message);
-    console.error('💡 Assurez-vous que les services sont démarrés et que Prisma est installé');
-    process.exit(1);
-  }
+  console.error('❌ Impossible de charger Prisma Client:', e.message);
+  console.error('💡 Assurez-vous que les services sont démarrés et que Prisma est installé');
+  console.error('💡 Répertoire actuel:', process.cwd());
+  process.exit(1);
 }
 
 // Couleurs pour la console

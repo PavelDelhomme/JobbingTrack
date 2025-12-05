@@ -5,7 +5,8 @@
 # ============================================================================
 
 .PHONY: menu help help-up help-down help-status help-logs help-monitoring-up help-test help-build help-clean \
-        help-tests help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate
+        help-tests help-tests-reset help-tests-user-journey help-tests-interface-web help-tests-help help-migrate \
+        disable-help enable-help help-status-help
 
 menu: ## Affiche le menu interactif CLI pour toutes les commandes Makefile
 	@./scripts/make-menu.sh
@@ -31,6 +32,153 @@ help-tests: ## Aide globale pour les commandes de tests
 	@echo "💡 Astuce: alias disponibles -> make tests-clean / make test-clean"
 	@echo ""
 
+# ============================================================================
+# GESTION DU MESSAGE D'AIDE
+# ============================================================================
+
+disable-help: ## Désactiver le message d'aide (temporairement ou définitivement)
+	@echo "🔕 Désactivation du message d'aide..."
+	@echo ""
+	@echo "Choisissez une option :"
+	@echo "  1) Temporaire (cette session uniquement)"
+	@echo "  2) Définitivement (ajout dans ~/.bashrc ou ~/.zshrc)"
+	@echo ""
+	@read -p "Votre choix (1 ou 2) : " choice; \
+	if [ "$$choice" = "1" ]; then \
+		echo ""; \
+		echo "✅ Message d'aide désactivé pour cette session"; \
+		echo ""; \
+		echo "Pour l'activer dans cette session, exécutez :"; \
+		echo "  export JOBBINGTRACK_HELP_READ="; \
+		echo ""; \
+		echo "Ou utilisez : make enable-help"; \
+		echo ""; \
+		echo "⚠️  Note : Cette désactivation sera perdue à la fermeture du terminal"; \
+		echo ""; \
+		echo "Pour activer maintenant dans cette session, exécutez :"; \
+		echo "  export JOBBINGTRACK_HELP_READ=1"; \
+	elif [ "$$choice" = "2" ]; then \
+		echo ""; \
+		echo "✅ Désactivation définitive..."; \
+		SHELL_RC=""; \
+		if [ -f "$$HOME/.zshrc" ]; then \
+			SHELL_RC="$$HOME/.zshrc"; \
+		elif [ -f "$$HOME/.bashrc" ]; then \
+			SHELL_RC="$$HOME/.bashrc"; \
+		fi; \
+		if [ -n "$$SHELL_RC" ]; then \
+			if grep -q "JOBBINGTRACK_HELP_READ" "$$SHELL_RC"; then \
+				echo "⚠️  La variable JOBBINGTRACK_HELP_READ existe déjà dans $$SHELL_RC"; \
+				echo "   Elle sera mise à jour..."; \
+				sed -i.bak 's/^export JOBBINGTRACK_HELP_READ=.*/export JOBBINGTRACK_HELP_READ=1/' "$$SHELL_RC" || \
+				sed -i.bak 's/^JOBBINGTRACK_HELP_READ=.*/export JOBBINGTRACK_HELP_READ=1/' "$$SHELL_RC"; \
+			else \
+				echo "" >> "$$SHELL_RC"; \
+				echo "# Désactivation du message d'aide JobbingTrack" >> "$$SHELL_RC"; \
+				echo "export JOBBINGTRACK_HELP_READ=1" >> "$$SHELL_RC"; \
+			fi; \
+			echo ""; \
+			echo "✅ Variable ajoutée dans $$SHELL_RC"; \
+			echo ""; \
+			echo "Pour activer le message d'aide à nouveau, exécutez :"; \
+			echo "  make enable-help"; \
+			echo ""; \
+			echo "Ou modifiez manuellement $$SHELL_RC"; \
+			echo ""; \
+			echo "⚠️  Note : Vous devez redémarrer votre terminal ou exécuter :"; \
+			echo "  source $$SHELL_RC"; \
+		else \
+			echo "❌ Impossible de trouver ~/.bashrc ou ~/.zshrc"; \
+			echo "   Ajoutez manuellement dans votre fichier de configuration shell :"; \
+			echo "   export JOBBINGTRACK_HELP_READ=1"; \
+		fi; \
+	else \
+		echo "❌ Choix invalide. Utilisez 1 ou 2."; \
+		exit 1; \
+	fi
+
+enable-help: ## Réactiver le message d'aide
+	@echo "🔔 Réactivation du message d'aide..."
+	@echo ""
+	@echo "Choisissez une option :"
+	@echo "  1) Cette session uniquement"
+	@echo "  2) Définitivement (retrait de ~/.bashrc ou ~/.zshrc)"
+	@echo ""
+	@read -p "Votre choix (1 ou 2) : " choice; \
+	if [ "$$choice" = "1" ]; then \
+		echo ""; \
+		echo "✅ Message d'aide réactivé pour cette session"; \
+		echo ""; \
+		echo "Pour le désactiver à nouveau, exécutez :"; \
+		echo "  export JOBBINGTRACK_HELP_READ=1"; \
+		echo ""; \
+		echo "Ou utilisez : make disable-help"; \
+		echo ""; \
+		echo "⚠️  Note : Cette activation sera perdue à la fermeture du terminal"; \
+		echo ""; \
+		echo "Pour activer maintenant dans cette session, exécutez :"; \
+		echo "  export JOBBINGTRACK_HELP_READ="; \
+		unset JOBBINGTRACK_HELP_READ; \
+	elif [ "$$choice" = "2" ]; then \
+		echo ""; \
+		echo "✅ Réactivation définitive..."; \
+		SHELL_RC=""; \
+		if [ -f "$$HOME/.zshrc" ]; then \
+			SHELL_RC="$$HOME/.zshrc"; \
+		elif [ -f "$$HOME/.bashrc" ]; then \
+			SHELL_RC="$$HOME/.bashrc"; \
+		fi; \
+		if [ -n "$$SHELL_RC" ]; then \
+			if grep -q "JOBBINGTRACK_HELP_READ" "$$SHELL_RC"; then \
+				echo "✅ Retrait de la variable de $$SHELL_RC..."; \
+				sed -i.bak '/^export JOBBINGTRACK_HELP_READ=.*/d' "$$SHELL_RC"; \
+				sed -i.bak '/^JOBBINGTRACK_HELP_READ=.*/d' "$$SHELL_RC"; \
+				sed -i.bak '/# Désactivation du message d.*aide JobbingTrack/d' "$$SHELL_RC"; \
+				echo "✅ Variable retirée de $$SHELL_RC"; \
+				echo ""; \
+				echo "⚠️  Note : Vous devez redémarrer votre terminal ou exécuter :"; \
+				echo "  source $$SHELL_RC"; \
+			else \
+				echo "⚠️  La variable JOBBINGTRACK_HELP_READ n'existe pas dans $$SHELL_RC"; \
+				echo "   Le message d'aide est déjà actif par défaut."; \
+			fi; \
+		else \
+			echo "❌ Impossible de trouver ~/.bashrc ou ~/.zshrc"; \
+			echo "   Le message d'aide est déjà actif par défaut."; \
+		fi; \
+	else \
+		echo "❌ Choix invalide. Utilisez 1 ou 2."; \
+		exit 1; \
+	fi
+
+help-status-help: ## Afficher le statut actuel du message d'aide
+	@echo "📊 Statut du message d'aide :"
+	@echo ""
+	@if [ -n "$$JOBBINGTRACK_HELP_READ" ]; then \
+		echo "  🔕 DÉSACTIVÉ (session actuelle)"; \
+		echo "     Variable JOBBINGTRACK_HELP_READ=$$JOBBINGTRACK_HELP_READ"; \
+	else \
+		echo "  🔔 ACTIVÉ (session actuelle)"; \
+		echo "     Variable JOBBINGTRACK_HELP_READ non définie"; \
+	fi; \
+	echo ""; \
+	SHELL_RC=""; \
+	if [ -f "$$HOME/.zshrc" ]; then \
+		SHELL_RC="$$HOME/.zshrc"; \
+	elif [ -f "$$HOME/.bashrc" ]; then \
+		SHELL_RC="$$HOME/.bashrc"; \
+	fi; \
+	if [ -n "$$SHELL_RC" ]; then \
+		if grep -q "JOBBINGTRACK_HELP_READ" "$$SHELL_RC"; then \
+			echo "  🔕 DÉSACTIVÉ (définitivement dans $$SHELL_RC)"; \
+		else \
+			echo "  🔔 ACTIVÉ (pas de configuration dans $$SHELL_RC)"; \
+		fi; \
+	fi; \
+	echo ""; \
+	echo "💡 Commandes disponibles :"; \
+	echo "  make disable-help  - Désactiver le message d'aide"; \
+	echo "  make enable-help   - Réactiver le message d'aide"
 
 # ============================================================================
 # AIDE GÉNÉRALE
@@ -45,6 +193,11 @@ help: ## Afficher l'aide complète
 	@echo "  make menu              - Menu interactif CLI avec toutes les commandes"
 	@echo "                          Parfait pour naviguer facilement dans le projet !"
 	@echo "                          Organisé par catégories (Démarrage, Tests, DB, etc.)"
+	@echo ""
+	@echo "🔕 GESTION DU MESSAGE D'AIDE:"
+	@echo "  make disable-help      - Désactiver le message d'aide (temporaire ou définitif)"
+	@echo "  make enable-help       - Réactiver le message d'aide"
+	@echo "  make help-status-help  - Afficher le statut actuel du message d'aide"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -73,6 +226,29 @@ help: ## Afficher l'aide complète
 	@echo "  make tests-reset             - Reset complet pour tests (auto)"
 	@echo "  make tests-user-journey      - Test parcours utilisateur (API)"
 	@echo "  make tests-interface-web     - Interface web de test"
+	@echo "  make test-all                - Exécute TOUS les tests (complet)"
+	@echo ""
+	@echo "📊 TESTS PAR CATÉGORIE (avec rapports) :"
+	@echo "  make test-database          - Tests base de données"
+	@echo "  make test-api               - Tests API complets"
+	@echo "  make test-backend           - Tests services backend"
+	@echo "  make test-frontend          - Tests frontend (Jest)"
+	@echo "  make test-mobile            - Tests mobile Playwright"
+	@echo "  make test-e2e               - Tests E2E Playwright"
+	@echo "  make test-performance       - Tests de performance"
+	@echo "  make test-security          - Tests de sécurité"
+	@echo "  make test-integration       - Tests d'intégration"
+	@echo "  make test-docker            - Tests Docker"
+	@echo "  make test-monitoring        - Tests monitoring"
+	@echo "  make test-unit              - Tests unitaires"
+	@echo "  make test-services          - Tests services détaillés"
+	@echo "  make test-infrastructure    - Tests infrastructure"
+	@echo ""
+	@echo "🎯 TEST COMPLET :"
+	@echo "  make test-all                - Exécute TOUS les tests avec rapports complets"
+	@echo "  make test-relations          - Test relations many-to-many"
+	@echo "  make test-enums              - Validation des enums"
+	@echo "  make test-email-verification - Test vérification email"
 	@echo ""
 	@echo "📱 TESTS MOBILE (Playwright):"
 	@echo "  make test-mobile             - Tous les tests mobile (iPhone 13 Pro)"

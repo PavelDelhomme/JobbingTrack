@@ -9,11 +9,22 @@ const prisma = new PrismaClient({
 
 // Désactiver les logs Prisma via variable d'environnement (si disponible)
 if (process.env.NODE_ENV === 'development') {
-  // Supprimer les logs Prisma de la console en redirigeant stderr pour les erreurs Prisma
+  // Supprimer les logs Prisma de la console en redirigeant stdout et stderr
+  const originalLog = console.log;
   const originalError = console.error;
+  
+  console.log = function(...args) {
+    // Filtrer les logs Prisma (prisma:query, prisma:info)
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('prisma:')) {
+      // Ignorer silencieusement les logs Prisma en développement
+      return;
+    }
+    originalLog.apply(console, args);
+  };
+  
   console.error = function(...args) {
     // Filtrer les logs Prisma (prisma:error, prisma:query)
-    if (args[0] && typeof args[0] === 'string' && (args[0].includes('prisma:error') || args[0].includes('prisma:query'))) {
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('prisma:')) {
       // Ignorer silencieusement les logs Prisma en développement
       return;
     }

@@ -7,7 +7,10 @@
 .PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
         tests-clean test-clean test-relations test-enums test-email-python \
         test-email-python-reset test-email-python-verification test-email-diagnostic \
-        test-email-logs test-email-logs-all test-email-logs-stats
+        test-email-logs test-email-logs-all test-email-logs-stats test-all \
+        test-database test-api test-backend test-frontend test-mobile test-e2e \
+        test-performance test-security test-integration test-docker test-monitoring \
+        test-unit test-services test-infrastructure
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -45,6 +48,25 @@ tests-help:
 	@echo "  make test-email-verification  Test vérification email"
 	@echo "  make test-relations           Test relations many-to-many"
 	@echo "  make test-enums               Validation des enums"
+	@echo ""
+	@echo "📊 TESTS PAR CATÉGORIE (avec rapports) :"
+	@echo "  make test-database            Tests base de données"
+	@echo "  make test-api                 Tests API complets"
+	@echo "  make test-backend             Tests services backend"
+	@echo "  make test-frontend            Tests frontend (Jest)"
+	@echo "  make test-mobile              Tests mobile Playwright"
+	@echo "  make test-e2e                 Tests E2E Playwright"
+	@echo "  make test-performance         Tests de performance"
+	@echo "  make test-security            Tests de sécurité"
+	@echo "  make test-integration         Tests d'intégration"
+	@echo "  make test-docker              Tests Docker"
+	@echo "  make test-monitoring          Tests monitoring"
+	@echo "  make test-unit                Tests unitaires"
+	@echo "  make test-services            Tests services détaillés"
+	@echo "  make test-infrastructure      Tests infrastructure"
+	@echo ""
+	@echo "🎯 TEST COMPLET :"
+	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -260,8 +282,12 @@ test-email-python-reset: ## Test d'envoi d'email de réinitialisation (service P
 
 test-email-logs: ## Afficher les logs d'emails récents
 	@echo "📧 Logs d'emails récents..."
-	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;" 2>/dev/null || \
-		echo "❌ Erreur lors de la récupération des logs. Vérifiez que la table EmailLog existe."
+	@if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1 FROM \"EmailLog\" LIMIT 1;" > /dev/null 2>&1; then \
+		docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;"; \
+	else \
+		echo "⚠️  Table EmailLog non trouvée. La table n'existe peut-être pas encore."; \
+		echo "💡 Essayez: make db-push-all pour créer toutes les tables"; \
+	fi
 
 test-email-logs-all: ## Afficher tous les logs d'emails
 	@echo "📧 Tous les logs d'emails..."
@@ -355,4 +381,52 @@ test-enums: ## Valide tous les enums du schéma Prisma
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║                ✅ TEST TERMINÉ                         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# ================================================================
+# 🎯 TEST ALL - Exécute TOUS les tests de manière complète
+# ================================================================
+
+test-all: ## Exécute TOUS les tests disponibles avec rapports complets
+	$(call check_help_read,test-all)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🧪 TEST COMPLET - Tous les tests JobbingTrack     ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Cette commande exécute TOUS les tests disponibles :"
+	@echo ""
+	@echo "📦 BACKEND / BDD :"
+	@echo "   ✓ Tests User Journey (API)"
+	@echo "   ✓ Tests Relations BDD"
+	@echo "   ✓ Tests Enums"
+	@echo "   ✓ Tests Email Logs"
+	@echo "   ✓ Tests API Complets"
+	@echo "   ✓ Tests Backend Services"
+	@echo ""
+	@echo "🎨 FRONTEND :"
+	@echo "   ✓ Tests Playwright E2E Frontend"
+	@echo "   ✓ Tests Playwright Mobile"
+	@echo "   ✓ Tests Frontend Jest (Unitaires)"
+	@echo ""
+	@echo "⚡ PERFORMANCE & SÉCURITÉ :"
+	@echo "   ✓ Tests Performance"
+	@echo "   ✓ Tests Sécurité"
+	@echo ""
+	@echo "🔗 INTÉGRATION :"
+	@echo "   ✓ Tests d'Intégration Système"
+	@echo ""
+	@echo "⏳ Durée estimée : 10-20 minutes (selon les tests disponibles)"
+	@echo ""
+	@echo "Appuyez sur Entrée pour continuer ou Ctrl+C pour annuler..."
+	@read confirm
+	@echo ""
+	@echo "🚀 Exécution de tous les tests avec génération de rapports..."
+	@echo ""
+	@bash scripts/run-all-tests-with-reports.sh
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           ✅ TOUS LES TESTS TERMINÉS !                  ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "💡 Consultez les rapports dans tests/results/"
 	@echo ""

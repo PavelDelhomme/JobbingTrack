@@ -2,6 +2,9 @@ FROM node:20.18.0
 
 WORKDIR /app
 
+# Mettre à jour npm vers la version 11.6.4
+RUN npm install -g npm@11.6.4
+
 # Copier les fichiers de dépendances
 COPY package*.json ./
 COPY prisma ./prisma/

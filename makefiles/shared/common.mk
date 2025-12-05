@@ -131,11 +131,14 @@ define check_help_read
 		echo "   make tests-help              → Guide complet des tests"; \
 		echo "   make help-$(1)               → Aide détaillée pour cette commande"; \
 		echo ""; \
-		echo "🔕 Pour désactiver ce message (une session) :"; \
-		echo "   export JOBBINGTRACK_HELP_READ=1"; \
+		echo "🔕 Pour désactiver ce message :"; \
+		echo "   make disable-help  → Désactiver (temporaire ou définitif)"; \
 		echo ""; \
-		echo "🔕 Pour désactiver définitivement, ajoutez dans ~/.bashrc ou ~/.zshrc :"; \
-		echo "   export JOBBINGTRACK_HELP_READ=1"; \
+		echo "🔔 Pour réactiver ce message :"; \
+		echo "   make enable-help   → Réactiver le message d'aide"; \
+		echo ""; \
+		echo "📊 Pour voir le statut :"; \
+		echo "   make help-status-help  → Afficher le statut actuel"; \
 		echo ""; \
 		echo "⏱️  Démarrage dans 3 secondes..."; \
 		echo ""; \

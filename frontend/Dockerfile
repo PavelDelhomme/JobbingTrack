@@ -1,5 +1,7 @@
 # frontend/Dockerfile - VERSION FINALE SANS AUTO-INIT
 FROM node:20.18.0-alpine AS base
+# Mettre à jour npm vers la version 11.6.4
+RUN npm install -g npm@11.6.4
 # Installer les dépendances système nécessaires pour Playwright
 RUN apk add --no-cache \
     libc6-compat \
