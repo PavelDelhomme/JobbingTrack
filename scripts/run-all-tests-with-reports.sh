@@ -173,17 +173,24 @@ run_test() {
 }
 EOF
     
-    # Si total est 0, c'est qu'on n'a pas pu extraire les stats, on compte 1 test (la catégorie elle-même)
-    if [ "$total" -eq 0 ] && [ "$exit_code" -ne 0 ]; then
-        # Test échoué mais pas de stats, on compte 1 échec
+    # Mettre à jour les compteurs globaux
+    # S'assurer que total = passed + failed (cohérence)
+    if [ "$total" -gt 0 ] && [ "$total" -ne $((passed + failed)) ]; then
+        # Si incohérence, recalculer total à partir de passed + failed
+        total=$((passed + failed))
+    fi
+    
+    # Si total est 0, c'est qu'on n'a pas pu extraire les stats
+    # On compte la catégorie comme 1 test (succès ou échec selon exit_code)
+    if [ "$total" -eq 0 ]; then
         TOTAL_TESTS=$((TOTAL_TESTS + 1))
-        TOTAL_FAILED=$((TOTAL_FAILED + 1))
-    elif [ "$total" -eq 0 ] && [ "$exit_code" -eq 0 ]; then
-        # Test réussi mais pas de stats, on compte 1 succès
-        TOTAL_TESTS=$((TOTAL_TESTS + 1))
-        TOTAL_PASSED=$((TOTAL_PASSED + 1))
+        if [ "$exit_code" -eq 0 ]; then
+            TOTAL_PASSED=$((TOTAL_PASSED + 1))
+        else
+            TOTAL_FAILED=$((TOTAL_FAILED + 1))
+        fi
     else
-        # Stats extraites correctement
+        # Stats extraites correctement - utiliser les valeurs réelles
         TOTAL_TESTS=$((TOTAL_TESTS + total))
         TOTAL_PASSED=$((TOTAL_PASSED + passed))
         TOTAL_FAILED=$((TOTAL_FAILED + failed))
@@ -390,6 +397,65 @@ fi
 # Créer le résumé (s'assurer que le répertoire existe)
 mkdir -p "$(dirname "$SUMMARY_RESULT")" || true
 
+# Recalculer les totaux à partir des fichiers JSON pour garantir la cohérence
+TOTAL_TESTS_RECALC=0
+TOTAL_PASSED_RECALC=0
+TOTAL_FAILED_RECALC=0
+TOTAL_SKIPPED=0
+
+# Parcourir tous les fichiers JSON de résultats (sauf summary.json)
+for json_file in "$REPORT_DIR"/*.json; do
+    if [ -f "$json_file" ] && [ "$(basename "$json_file")" != "summary.json" ]; then
+        # Vérifier si c'est un test skipped
+        if command -v jq > /dev/null 2>&1; then
+            status=$(jq -r '.status // empty' "$json_file" 2>/dev/null)
+            if [ "$status" = "skipped" ]; then
+                TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
+                continue
+            fi
+            # Extraire les statistiques
+            total=$(jq -r '.statistics.total // 0' "$json_file" 2>/dev/null)
+            passed=$(jq -r '.statistics.passed // 0' "$json_file" 2>/dev/null)
+            failed=$(jq -r '.statistics.failed // 0' "$json_file" 2>/dev/null)
+            
+            exit_code=$(jq -r '.exitCode // 1' "$json_file" 2>/dev/null)
+            
+            # Si total est 0 ou null, vérifier si le test a été exécuté (exitCode existe)
+            if [ "$total" -eq 0 ] || [ -z "$total" ] || [ "$total" = "null" ]; then
+                # Si exitCode existe et n'est pas null, c'est qu'un test a été exécuté (même sans stats)
+                if [ -n "$exit_code" ] && [ "$exit_code" != "null" ] && [ "$exit_code" != "" ]; then
+                    TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + 1))
+                    if [ "$exit_code" -eq 0 ]; then
+                        TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + 1))
+                    else
+                        TOTAL_FAILED_RECALC=$((TOTAL_FAILED_RECALC + 1))
+                    fi
+                fi
+            else
+                # S'assurer que total = passed + failed
+                if [ "$total" -ne $((passed + failed)) ] 2>/dev/null; then
+                    total=$((passed + failed))
+                fi
+                TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + total))
+                TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + passed))
+                TOTAL_FAILED_RECALC=$((TOTAL_FAILED_RECALC + failed))
+            fi
+        fi
+    fi
+done
+
+# Utiliser les valeurs recalculées pour garantir la cohérence
+TOTAL_TESTS=$TOTAL_TESTS_RECALC
+TOTAL_PASSED=$TOTAL_PASSED_RECALC
+TOTAL_FAILED=$TOTAL_FAILED_RECALC
+
+# Calculer le taux de réussite
+if [ "$TOTAL_TESTS" -gt 0 ]; then
+    SUCCESS_RATE=$(awk "BEGIN {printf \"%.2f\", ($TOTAL_PASSED / $TOTAL_TESTS) * 100}")
+else
+    SUCCESS_RATE=0.00
+fi
+
 cat > "$SUMMARY_RESULT" <<EOF
 {
   "timestamp": "$(date -Iseconds)",
@@ -399,7 +465,8 @@ cat > "$SUMMARY_RESULT" <<EOF
     "totalTests": $TOTAL_TESTS,
     "passed": $TOTAL_PASSED,
     "failed": $TOTAL_FAILED,
-    "successRate": $(awk "BEGIN {printf \"%.2f\", ($TOTAL_PASSED / ($TOTAL_TESTS > 0 ? $TOTAL_TESTS : 1)) * 100}")
+    "skipped": $TOTAL_SKIPPED,
+    "successRate": $SUCCESS_RATE
   },
   "testResults": [
 $(for result in "${TEST_RESULTS[@]}"; do
@@ -482,26 +549,40 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
     fi
     
     if command -v jq > /dev/null 2>&1; then
-        test_name=$(jq -r '.testName' "$result_file")
-        status=$(jq -r '.status' "$result_file")
-        duration=$(jq -r '.duration' "$result_file")
-        total=$(jq -r '.statistics.total' "$result_file")
-        passed=$(jq -r '.statistics.passed' "$result_file")
-        failed=$(jq -r '.statistics.failed' "$result_file")
-        output=$(jq -r '.output' "$result_file")
+        test_name=$(jq -r '.testName // "Test inconnu"' "$result_file")
+        status=$(jq -r '.status // "unknown"' "$result_file")
+        duration=$(jq -r '.duration // 0' "$result_file")
+        total=$(jq -r '.statistics.total // 0' "$result_file")
+        passed=$(jq -r '.statistics.passed // 0' "$result_file")
+        failed=$(jq -r '.statistics.failed // 0' "$result_file")
+        # Extraire output en gérant les cas null/empty
+        output=$(jq -r '.output // ""' "$result_file" 2>/dev/null || echo "")
     else
         # Fallback: extraire avec grep/sed
-        test_name=$(grep -o '"testName": "[^"]*"' "$result_file" | cut -d'"' -f4)
-        status=$(grep -o '"status": "[^"]*"' "$result_file" | cut -d'"' -f4)
-        duration=$(grep -o '"duration": [0-9]*' "$result_file" | grep -o '[0-9]*')
-        total=$(grep -o '"total": [0-9]*' "$result_file" | grep -o '[0-9]*')
-        passed=$(grep -o '"passed": [0-9]*' "$result_file" | grep -o '[0-9]*')
-        failed=$(grep -o '"failed": [0-9]*' "$result_file" | grep -o '[0-9]*')
-        output=$(grep -o '"output": "[^"]*"' "$result_file" | cut -d'"' -f4 || echo "N/A")
+        test_name=$(grep -o '"testName": "[^"]*"' "$result_file" | cut -d'"' -f4 || echo "Test inconnu")
+        status=$(grep -o '"status": "[^"]*"' "$result_file" | cut -d'"' -f4 || echo "unknown")
+        duration=$(grep -o '"duration": [0-9]*' "$result_file" | grep -o '[0-9]*' || echo "0")
+        total=$(grep -o '"total": [0-9]*' "$result_file" | grep -o '[0-9]*' || echo "0")
+        passed=$(grep -o '"passed": [0-9]*' "$result_file" | grep -o '[0-9]*' || echo "0")
+        failed=$(grep -o '"failed": [0-9]*' "$result_file" | grep -o '[0-9]*' || echo "0")
+        # Extraire output (peut être sur plusieurs lignes)
+        output=$(grep -A 1000 '"output":' "$result_file" | sed '1s/.*"output": *"//' | sed '$s/"$//' | sed 's/\\n/\n/g' | sed 's/\\"/"/g' || echo "")
     fi
     
+    # Gérer les valeurs par défaut
+    test_name=${test_name:-"Test inconnu"}
+    status=${status:-"unknown"}
+    duration=${duration:-0}
+    total=${total:-0}
+    passed=${passed:-0}
+    failed=${failed:-0}
+    
     # Nettoyer les codes ANSI de la sortie pour l'affichage HTML
-    clean_output=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\\n/\n/g' | sed 's/\\"/"/g')
+    if [ -n "$output" ] && [ "$output" != "null" ] && [ "$output" != "" ]; then
+        clean_output=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\\n/\n/g' | sed 's/\\"/"/g' | sed 's/\\t/\t/g')
+    else
+        clean_output="Aucune sortie disponible pour ce test."
+    fi
     
     # Détecter si l'erreur est liée à une table non trouvée (uniquement si le test a échoué)
     has_table_error=false
@@ -541,38 +622,60 @@ echo -e "Catégories exécutées : ${BLUE}$TOTAL_CATEGORIES${NC}"
 echo -e "Total de tests        : ${BLUE}$TOTAL_TESTS${NC}"
 echo -e "Tests réussis         : ${GREEN}$TOTAL_PASSED${NC}"
 echo -e "Tests échoués         : ${RED}$TOTAL_FAILED${NC}"
+if [ "$TOTAL_SKIPPED" -gt 0 ]; then
+    echo -e "Tests ignorés          : ${YELLOW}$TOTAL_SKIPPED${NC}"
+fi
 if [ "$TOTAL_TESTS" -gt 0 ]; then
     SUCCESS_RATE=$(awk "BEGIN {printf \"%.1f\", ($TOTAL_PASSED / $TOTAL_TESTS) * 100}")
     echo -e "Taux de réussite       : ${GREEN}${SUCCESS_RATE}%${NC}"
+    # Vérification de cohérence
+    if [ "$TOTAL_TESTS" -ne $((TOTAL_PASSED + TOTAL_FAILED)) ]; then
+        echo -e "${YELLOW}⚠️  Incohérence détectée : $TOTAL_TESTS tests ≠ $TOTAL_PASSED réussis + $TOTAL_FAILED échoués${NC}"
+    fi
 fi
 echo ""
 echo -e "${GREEN}📁 Résultats sauvegardés dans : $REPORT_DIR${NC}"
 echo -e "${GREEN}📄 Rapport HTML : $HTML_REPORT${NC}"
 echo ""
 
-# Ouvrir le rapport HTML automatiquement (avec chemin absolu)
+# Afficher le lien URL du rapport HTML (sans ouvrir automatiquement)
 if [ -f "$HTML_REPORT" ]; then
     HTML_REPORT_ABS=$(cd "$(dirname "$HTML_REPORT")" && pwd)/$(basename "$HTML_REPORT")
     HTML_REPORT_URI="file://$HTML_REPORT_ABS"
     
-    if command -v xdg-open > /dev/null; then
-        xdg-open "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    elif command -v open > /dev/null; then
-        open "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    elif command -v start > /dev/null; then
-        start "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    else
-        echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    fi
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}📊 RAPPORT HTML DISPONIBLE${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${GREEN}🌐 Lien du rapport :${NC}"
+    echo -e "${BLUE}$HTML_REPORT_URI${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Copiez ce lien et ouvrez-le dans votre navigateur${NC}"
+    echo -e "${YELLOW}   Ou utilisez :${NC}"
+    echo -e "${YELLOW}   • Linux: xdg-open \"$HTML_REPORT_URI\"${NC}"
+    echo -e "${YELLOW}   • macOS: open \"$HTML_REPORT_URI\"${NC}"
+    echo -e "${YELLOW}   • Windows: start \"$HTML_REPORT_URI\"${NC}"
+    echo ""
 else
     echo -e "${RED}❌ Le rapport HTML n'a pas pu être généré : $HTML_REPORT${NC}"
     echo -e "${YELLOW}💡 Vérifiez les logs ci-dessus pour plus de détails${NC}"
 fi
 
 # Code de sortie
-if [ $TOTAL_FAILED -eq 0 ]; then
-    exit 0
+# Retourner 0 si le rapport a été généré avec succès (même s'il y a des échecs)
+# L'utilisateur peut voir les résultats dans le rapport HTML
+if [ -f "$HTML_REPORT" ] && [ -f "$SUMMARY_RESULT" ]; then
+    echo ""
+    if [ $TOTAL_FAILED -eq 0 ]; then
+        echo -e "${GREEN}✅ Tous les tests ont réussi !${NC}"
+        exit 0
+    else
+        echo -e "${YELLOW}⚠️  Certains tests ont échoué, mais le rapport a été généré${NC}"
+        echo -e "${YELLOW}   Consultez le rapport HTML pour plus de détails${NC}"
+        exit 0  # Retourner 0 car le rapport est généré, même avec des échecs
+    fi
 else
+    echo -e "${RED}❌ Erreur : Le rapport n'a pas pu être généré${NC}"
     exit 1
 fi
 

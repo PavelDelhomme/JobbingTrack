@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-12-05T13:31:36+01:00",
+  "reportDir": "tests/results/20251205-133123",
+  "summary": {
+    "totalCategories": 9,
+    "totalTests": 35,
+    "passed": 7,
+    "failed": 7,
+    "successRate": 20.00
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "failed", "duration": 1},
+    {"name": "Relations BDD", "status": "success", "duration": 1},
+    {"name": "Enums", "status": "failed", "duration": 1},
+    {"name": "Email Logs", "status": "success", "duration": 0},
+    {"name": "Tests API Complets", "status": "failed", "duration": 1},
+    {"name": "Tests Backend Services", "status": "failed", "duration": 0},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 5},
+    {"name": "Playwright Mobile", "status": "failed", "duration": 2},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "failed", "duration": 2}
+  ]
+}

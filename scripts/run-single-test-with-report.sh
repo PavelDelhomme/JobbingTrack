@@ -241,15 +241,23 @@ if [ -f "$HTML_REPORT" ]; then
     HTML_REPORT_ABS=$(cd "$(dirname "$HTML_REPORT")" && pwd)/$(basename "$HTML_REPORT")
     HTML_REPORT_URI="file://$HTML_REPORT_ABS"
     
-    if command -v xdg-open > /dev/null; then
-        xdg-open "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    elif command -v open > /dev/null; then
-        open "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    elif command -v start > /dev/null; then
-        start "$HTML_REPORT_URI" 2>/dev/null || echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    else
-        echo -e "${YELLOW}💡 Ouvrez manuellement le rapport : $HTML_REPORT_URI${NC}"
-    fi
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}📊 RAPPORT HTML DISPONIBLE${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${GREEN}🌐 Lien du rapport :${NC}"
+    echo -e "${BLUE}$HTML_REPORT_URI${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Copiez ce lien et ouvrez-le dans votre navigateur${NC}"
+    echo -e "${YELLOW}   Ou utilisez :${NC}"
+    echo -e "${YELLOW}   • Linux: xdg-open \"$HTML_REPORT_URI\"${NC}"
+    echo -e "${YELLOW}   • macOS: open \"$HTML_REPORT_URI\"${NC}"
+    echo -e "${YELLOW}   • Windows: start \"$HTML_REPORT_URI\"${NC}"
+    echo ""
+else
+    echo -e "${RED}❌ Le rapport HTML n'a pas pu être généré : $HTML_REPORT${NC}"
+    echo -e "${YELLOW}💡 Vérifiez les logs ci-dessus pour plus de détails${NC}"
 fi
 
 # Code de sortie
