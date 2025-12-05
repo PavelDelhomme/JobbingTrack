@@ -2,6 +2,9 @@ FROM node:20.18.0
 
 WORKDIR /app
 
+# Mettre à jour npm vers la version 11.6.4
+RUN npm install -g npm@11.6.4
+
 # Installer Docker CLI pour accéder aux stats des conteneurs
 RUN apt-get update && \
     apt-get install -y ca-certificates curl gnupg && \

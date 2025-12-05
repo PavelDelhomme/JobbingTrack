@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-04T23:47:49+01:00",
+  "reportDir": "tests/results/20251204-234749",
+  "summary": {
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "successRate": 0.00
+  },
+  "testResults": [
+    {"name": "User Journey", "status": "failed", "duration": 0},
+    {"name": "Relations BDD", "status": "success", "duration": 0},
+    {"name": "Enums", "status": "success", "duration": 0}
+  ]
+}

@@ -4,6 +4,9 @@ FROM node:18-alpine
 # Définit le répertoire de travail
 WORKDIR /app
 
+# Mettre à jour npm vers la version 11.6.4
+RUN npm install -g npm@11.6.4
+
 # Installe les dépendances système nécessaires pour React Native
 RUN apk add --no-cache \
     python3 \

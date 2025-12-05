@@ -2,13 +2,14 @@
 
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
-**Dernière MAJ** : 2025-12-04  
-**Version Projet** : v1.0.6 (BETA)  
+**Dernière MAJ** : 2025-12-05  
+**Version Projet** : v1.0.7 (BETA)  
 **Branche** : feat/security-audit-and-database-verification  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (9 emails envoyés, 6 réussis)  
 **Configuration SMTP** : ✅ OVH jobbingtrack.com CONFIGURÉE (noreply@jobbingtrack.test)  
-**Base de Données** : ✅ 27 TABLES CRÉÉES (User, Company, Application, etc. - Tables principales créées)  
+**Base de Données** : ⚠️ Exécutez `make db-push-all` pour créer toutes les tables  
+**Système de Tests** : ✅ COMPLET (13 commandes make test-* avec rapports HTML/JSON)  
 **Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Email Monitor, Logs, Deliverability, Settings fonctionnels)  
 **Système Email Architecture** : ✅ PYTHON SERVICE IMPLÉMENTÉ (Service Python SMTP, Tracking, Logs complets)  
 **Audit Sécurité** : ✅ COMPLÉTÉ (Documentation créée, recommandations prêtes)  
@@ -1737,14 +1738,37 @@ logger.info('Information'); // Ne sera PAS stocké (seuls ERROR/WARN/FATAL sont 
 ```bash
 cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack
 
+# 🎯 TEST COMPLET (tous les tests en une commande)
+make test-all                # Exécute TOUS les tests avec rapports complets
+
+# Tests par catégorie (avec rapports individuels)
+make test-database           # Tests base de données
+make test-api                # Tests API complets
+make test-backend            # Tests services backend
+make test-frontend           # Tests frontend (Jest)
+make test-mobile             # Tests mobile Playwright
+make test-e2e                # Tests E2E Playwright
+make test-performance        # Tests de performance
+make test-security           # Tests de sécurité
+make test-integration        # Tests d'intégration
+make test-docker             # Tests Docker
+make test-monitoring         # Tests monitoring
+make test-unit               # Tests unitaires
+make test-services           # Tests services détaillés
+make test-infrastructure     # Tests infrastructure
+
 # Reset complet (alias: make tests-clean / make test-clean)
 make tests-reset
 
-# Test User Journey (15/15 tests passent ✅)
-make tests-user-journey
+# Tests individuels
+make tests-user-journey     # Test parcours utilisateur (API)
+make test-relations         # Test relations many-to-many
+make test-enums            # Validation des enums
+make test-email-verification # Test vérification email
 
 # Aide complète (voir aussi: make help-tests)
 make tests-help
+make menu                   # Menu interactif avec toutes les commandes
 ```
 
 **Commandes clés (base de données)** :

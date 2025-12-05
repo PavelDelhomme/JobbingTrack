@@ -2,6 +2,9 @@ FROM node:20.18.0-alpine
 
 WORKDIR /app
 
+# Mettre à jour npm vers la version 11.6.4
+RUN npm install -g npm@11.6.4
+
 # Installer les dépendances système nécessaires pour Prisma et DNS
 # Ajouter Python 3 pour le service d'envoi d'emails
 RUN apk add --no-cache openssl bind-tools python3 py3-pip

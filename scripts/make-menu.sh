@@ -85,7 +85,9 @@ print_tests_menu() {
     echo -e "${GREEN}3.${NC} 📋 Tests Enums Prisma"
     echo -e "${GREEN}4.${NC} 🚶 Tests User Journey (API)"
     echo -e "${GREEN}5.${NC} 📧 Tests Email"
-    echo -e "${GREEN}6.${NC} 📊 Suite de tests (User Journey + Relations + Enums)"
+    echo -e "${GREEN}6.${NC} 🎯 TOUS les tests (complet interactif)"
+    echo -e "${GREEN}7.${NC} ⚡ TOUS les tests (rapide sans confirmation)"
+    echo -e "${GREEN}8.${NC} 📊 Suite de tests (User Journey + Relations + Enums)"
     echo -e "${GREEN}0.${NC} ← Retour"
     echo ""
 }
@@ -545,7 +547,7 @@ startup_menu() {
 tests_menu() {
     while true; do
         print_tests_menu
-        read -p "$(echo -e ${CYAN}Votre choix [0-6]: ${NC})" choice
+        read -p "$(echo -e ${CYAN}Votre choix [0-8]: ${NC})" choice
         
         case $choice in
             1) mobile_tests_menu ;;
@@ -553,7 +555,9 @@ tests_menu() {
             3) execute_command "test-enums" "Tests Enums Prisma" ;;
             4) execute_command "tests-user-journey" "Tests User Journey" ;;
             5) execute_command "test-email-verification" "Tests Email" ;;
-            6) 
+            6) execute_command "test-all" "TOUS les tests (complet)" ;;
+            7) execute_command "test-all" "TOUS les tests avec rapports complets" ;;
+            8) 
                 echo -e "${YELLOW}📊 Exécution de plusieurs tests...${NC}"
                 echo ""
                 execute_command "tests-user-journey" "Tests User Journey" || true

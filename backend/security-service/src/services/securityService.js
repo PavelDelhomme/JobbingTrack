@@ -1364,10 +1364,6 @@ class SecurityService {
     try {
       // Vérifier que la table existe
       if (!prisma.securityMetric || typeof prisma.securityMetric.create !== 'function') {
-        if (process.env.NODE_ENV === 'development') {
-          // Mode silencieux en développement
-          return;
-        }
         throw new Error('Table SecurityMetric non disponible');
       }
 
@@ -1390,17 +1386,10 @@ class SecurityService {
         }
       });
     } catch (error) {
-      // Gérer les erreurs P2021/P2010 (table non trouvée) gracieusement - mode silencieux en développement
-      if (error.code === 'P2021' || error.code === 'P2010' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
-        if (process.env.NODE_ENV === 'development') {
-          // Mode silencieux - ne pas logger l'erreur, juste retourner
-          return;
-        }
-      }
-      // En production uniquement, logger l'erreur
-      if (process.env.NODE_ENV === 'production') {
-        logger.error('Erreur lors du stockage des métriques système:', error);
-      }
+      // Logger l'erreur pour résoudre le problème
+      logger.error('Erreur lors du stockage des métriques système:', error);
+      // Ne pas ignorer l'erreur - la propager pour que le problème soit résolu
+      throw error;
     }
   }
 

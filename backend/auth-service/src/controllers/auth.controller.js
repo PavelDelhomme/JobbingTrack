@@ -33,10 +33,20 @@ const register = async (req, res, next) => {
     const clientIP = req.ip;
     const userAgent = req.get('User-Agent');
 
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    });
+    // Vérifier si l'utilisateur existe déjà (avec gestion d'erreur P2021)
+    let existingUser = null;
+    try {
+      existingUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() }
+      });
+    } catch (error) {
+      // Si la table User n'existe pas (P2021), on considère qu'aucun utilisateur n'existe
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        existingUser = null;
+      } else {
+        throw error;
+      }
+    }
 
     if (existingUser) {
       // Log de tentative d'inscription avec email existant
