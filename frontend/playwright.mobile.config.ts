@@ -136,13 +136,16 @@ export default defineConfig({
   // Serveur de développement
   // Note: Le serveur frontend tourne déjà dans Docker sur le port 5003
   // Playwright n'a pas besoin de le démarrer, il utilise le serveur existant
-  webServer: {
+  webServer: process.env.CI ? {
     command: 'npm run dev',
     url: process.env.FRONTEND_URL || 'http://localhost:5003',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120000,
-    // Utiliser le port du conteneur Docker (5003) au lieu de 9323
     port: process.env.FRONTEND_PORT ? parseInt(process.env.FRONTEND_PORT) : 5003,
+  } : {
+    // En développement, on utilise le serveur existant
+    url: process.env.FRONTEND_URL || 'http://localhost:5003',
+    reuseExistingServer: true,
   },
 });
 

@@ -17,13 +17,14 @@
 ## 📂 Documentation par Catégorie
 
 ### 🧪 Tests & User Journey
-**Dossier** : [user-journey/](user-journey/)
+**Dossier** : [user-journey/](user-journey/) | [tests/](tests/)
 
 - **[README.md](user-journey/README.md)** - Index des tests user journey
 - **[RESUME_FINAL.md](user-journey/RESUME_FINAL.md)** - Résumé complet avec toutes les corrections
 - **[LIRE_MOI_URGENT.md](user-journey/LIRE_MOI_URGENT.md)** - Guide de démarrage rapide
 - **[GUIDE_COMPLET.md](user-journey/GUIDE_COMPLET.md)** - Guide détaillé complet
 - **[TOKEN_TEST_PERMANENT.md](user-journey/TOKEN_TEST_PERMANENT.md)** - Système de token permanent pour les tests
+- **[TESTS_MANQUANTS.md](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests manquants à implémenter
 
 **Scripts** :
 - `scripts/verify-user-journey.sh` - Vérification automatique des endpoints

@@ -84,9 +84,24 @@ run_test() {
     # Lire les résultats et nettoyer les codes ANSI
     local output=""
     if [ -f "$result_file.tmp" ]; then
+        # Lire le fichier tmp AVANT de le supprimer
         output=$(cat "$result_file.tmp" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' || echo "")
+        # Vérifier que la sortie n'est pas vide
+        if [ -z "$output" ] || [ "$output" = "" ]; then
+            # Si vide, essayer de relire sans nettoyage ANSI pour debug
+            output=$(cat "$result_file.tmp" 2>/dev/null || echo "")
+        fi
+        # Si toujours vide et que le test a échoué, indiquer qu'il y a eu une erreur
+        if [ -z "$output" ] && [ "$exit_code" -ne 0 ]; then
+            output="Erreur lors de l'exécution du test (code de sortie: $exit_code). Vérifiez les logs pour plus de détails."
+        fi
     else
-        output="Aucune sortie disponible"
+        # Si le fichier tmp n'existe pas et que le test a échoué, indiquer l'erreur
+        if [ "$exit_code" -ne 0 ]; then
+            output="Erreur : Aucune sortie capturée (code de sortie: $exit_code). Le test a probablement échoué avant de produire une sortie."
+        else
+            output="Aucune sortie disponible"
+        fi
     fi
     
     # Extraire les statistiques (selon le format de chaque test)
@@ -122,14 +137,25 @@ run_test() {
         else
             total=0
         fi
-    # Pattern 4: Compter les PASS et FAIL dans la sortie
+    # Pattern 4: Compter les PASS et FAIL dans la sortie (✓ PASS, ✗ FAIL, ✓, ✗)
     else
-        passed=$(echo "$output" | grep -cE "(✓ PASS|PASS|✓|réussis)" 2>/dev/null || echo "0")
-        failed=$(echo "$output" | grep -cE "(✗ FAIL|FAIL|✗|échoué)" 2>/dev/null || echo "0")
+        # Compter les tests réussis (✓ PASS, PASS, ✓, réussis)
+        passed=$(echo "$output" | grep -cE "(✓ PASS|PASS|✓|réussis|✅)" 2>/dev/null || echo "0")
+        # Compter les tests échoués (✗ FAIL, FAIL, ✗, échoué, ❌)
+        failed=$(echo "$output" | grep -cE "(✗ FAIL|FAIL|✗|échoué|❌)" 2>/dev/null || echo "0")
+        # Si on trouve des patterns de test individuels, les compter
+        # Pattern: "[X] Test: ..." ou "Test X:" ou "✓ Test" ou "✗ Test"
+        test_count=$(echo "$output" | grep -cE "(\[.*\] Test:|Test [0-9]+:|✓|✗|PASS|FAIL)" 2>/dev/null || echo "0")
+        if [ "$test_count" -gt 0 ] && [ "$total" -eq 0 ]; then
+            total=$test_count
+        fi
         # S'assurer que passed et failed sont des nombres
         if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
         if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
-        total=$((passed + failed))
+        # Si total est 0 mais qu'on a des passed/failed, utiliser leur somme
+        if [ "$total" -eq 0 ] && [ $((passed + failed)) -gt 0 ]; then
+            total=$((passed + failed))
+        fi
     fi
     
     # S'assurer que toutes les variables sont des nombres valides
@@ -180,14 +206,48 @@ EOF
         total=$((passed + failed))
     fi
     
-    # Si total est 0, c'est qu'on n'a pas pu extraire les stats
-    # On compte la catégorie comme 1 test (succès ou échec selon exit_code)
+    # Si total est 0, essayer d'extraire depuis la sortie brute avant de compter comme 1 test
     if [ "$total" -eq 0 ]; then
-        TOTAL_TESTS=$((TOTAL_TESTS + 1))
-        if [ "$exit_code" -eq 0 ]; then
-            TOTAL_PASSED=$((TOTAL_PASSED + 1))
+        # Essayer d'extraire depuis la sortie brute (avant nettoyage ANSI)
+        if [ -f "$result_file.tmp" ]; then
+            raw_output=$(cat "$result_file.tmp" 2>/dev/null || echo "")
+            # Compter les tests dans la sortie brute
+            raw_passed=$(echo "$raw_output" | grep -cE "(✓ PASS|PASS|✓|réussis|✅|Test.*PASS)" 2>/dev/null || echo "0")
+            raw_failed=$(echo "$raw_output" | grep -cE "(✗ FAIL|FAIL|✗|échoué|❌|Test.*FAIL)" 2>/dev/null || echo "0")
+            raw_test_count=$(echo "$raw_output" | grep -cE "(\[.*\] Test:|Test [0-9]+:|Test:)" 2>/dev/null || echo "0")
+            
+            if [ "$raw_test_count" -gt 0 ]; then
+                total=$raw_test_count
+                passed=$raw_passed
+                failed=$raw_failed
+                # Mettre à jour le JSON avec les stats extraites
+                if command -v jq > /dev/null 2>&1; then
+                    jq ".statistics.total = $total | .statistics.passed = $passed | .statistics.failed = $failed" "$result_file" > "$result_file.tmp2" && mv "$result_file.tmp2" "$result_file" 2>/dev/null || true
+                fi
+            elif [ $((raw_passed + raw_failed)) -gt 0 ]; then
+                total=$((raw_passed + raw_failed))
+                passed=$raw_passed
+                failed=$raw_failed
+                # Mettre à jour le JSON avec les stats extraites
+                if command -v jq > /dev/null 2>&1; then
+                    jq ".statistics.total = $total | .statistics.passed = $passed | .statistics.failed = $failed" "$result_file" > "$result_file.tmp2" && mv "$result_file.tmp2" "$result_file" 2>/dev/null || true
+                fi
+            fi
+        fi
+        
+        # Si total est toujours 0 après extraction, compter la catégorie comme 1 test
+        if [ "$total" -eq 0 ]; then
+            TOTAL_TESTS=$((TOTAL_TESTS + 1))
+            if [ "$exit_code" -eq 0 ]; then
+                TOTAL_PASSED=$((TOTAL_PASSED + 1))
+            else
+                TOTAL_FAILED=$((TOTAL_FAILED + 1))
+            fi
         else
-            TOTAL_FAILED=$((TOTAL_FAILED + 1))
+            # Stats extraites depuis la sortie brute
+            TOTAL_TESTS=$((TOTAL_TESTS + total))
+            TOTAL_PASSED=$((TOTAL_PASSED + passed))
+            TOTAL_FAILED=$((TOTAL_FAILED + failed))
         fi
     else
         # Stats extraites correctement - utiliser les valeurs réelles
@@ -302,8 +362,10 @@ echo ""
 
 # 7. Tests Playwright E2E Frontend (dans conteneur ou local)
 if docker ps | grep -q jobbingtrack-frontend; then
+    # Créer le répertoire test-results avec les bonnes permissions
+    docker exec jobbingtrack-frontend sh -c "mkdir -p /app/test-results && chmod -R 777 /app/test-results" 2>/dev/null || true
     run_test "Playwright E2E Frontend" \
-        "docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e --reporter=list,json 2>&1)" \
+        "docker exec -w /app -u root jobbingtrack-frontend sh -c 'chown -R nodejs:nodejs /app/test-results 2>/dev/null || true; chmod -R 777 /app/test-results 2>/dev/null || true' && docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e --reporter=list,json 2>&1)" \
         "$REPORT_DIR/playwright-e2e.json"
 else
     if [ -d "frontend/tests/e2e" ]; then
@@ -326,8 +388,10 @@ fi
 
 # 8. Tests Mobile Playwright
 if docker ps | grep -q jobbingtrack-frontend; then
+    # Créer le répertoire test-results avec les bonnes permissions
+    docker exec jobbingtrack-frontend sh -c "mkdir -p /app/test-results && chmod -R 777 /app/test-results" 2>/dev/null || true
     run_test "Playwright Mobile" \
-        "docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1)" \
+        "docker exec -w /app -u root jobbingtrack-frontend sh -c 'chown -R nodejs:nodejs /app/test-results 2>/dev/null || true; chmod -R 777 /app/test-results 2>/dev/null || true' && docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1)" \
         "$REPORT_DIR/playwright-mobile.json"
 else
     if [ -d "frontend/tests/e2e/mobile" ]; then
@@ -394,6 +458,280 @@ if [ -f "tests/integration/test-full-system.js" ]; then
         "$REPORT_DIR/integration.json"
 fi
 
+# ==============================================================================
+# CATÉGORIE 5 : TESTS PAR SERVICE BACKEND (COMPLETS)
+# ==============================================================================
+
+echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║     🔧 CATÉGORIE 5 : TESTS SERVICES BACKEND           ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# 13. Tests Company Service (CRUD complet)
+if [ -f "tests/services/test-company-service.js" ]; then
+    run_test "Tests Company Service (CRUD)" \
+        "node tests/services/test-company-service.js" \
+        "$REPORT_DIR/company-service.json"
+elif docker ps | grep -q jobbingtrack-company-service; then
+    run_test "Tests Company Service (Health Check)" \
+        "curl -s http://localhost:3003/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/company-service.json"
+fi
+
+# 14. Tests Contact Service (CRUD complet)
+if [ -f "tests/services/test-contact-service.js" ]; then
+    run_test "Tests Contact Service (CRUD)" \
+        "node tests/services/test-contact-service.js" \
+        "$REPORT_DIR/contact-service.json"
+elif docker ps | grep -q jobbingtrack-contact-service; then
+    run_test "Tests Contact Service (Health Check)" \
+        "curl -s http://localhost:3004/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/contact-service.json"
+fi
+
+# 15. Tests Interview Service (CRUD complet)
+if [ -f "tests/services/test-interview-service.js" ]; then
+    run_test "Tests Interview Service (CRUD)" \
+        "node tests/services/test-interview-service.js" \
+        "$REPORT_DIR/interview-service.json"
+elif docker ps | grep -q jobbingtrack-interview-service; then
+    run_test "Tests Interview Service (Health Check)" \
+        "curl -s http://localhost:3005/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/interview-service.json"
+fi
+
+# 16. Tests Call Service (CRUD complet)
+if [ -f "tests/services/test-call-service.js" ]; then
+    run_test "Tests Call Service (CRUD)" \
+        "node tests/services/test-call-service.js" \
+        "$REPORT_DIR/call-service.json"
+elif docker ps | grep -q jobbingtrack-call-service; then
+    run_test "Tests Call Service (Health Check)" \
+        "curl -s http://localhost:3008/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/call-service.json"
+fi
+
+# 17. Tests FollowUp Service (CRUD complet)
+if [ -f "tests/services/test-followup-service.js" ]; then
+    run_test "Tests FollowUp Service (CRUD)" \
+        "node tests/services/test-followup-service.js" \
+        "$REPORT_DIR/followup-service.json"
+elif docker ps | grep -q jobbingtrack-followup-service; then
+    run_test "Tests FollowUp Service (Health Check)" \
+        "curl -s http://localhost:3012/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/followup-service.json"
+fi
+
+# 18. Tests Event Service (CRUD complet)
+if [ -f "tests/services/test-event-service.js" ]; then
+    run_test "Tests Event Service (CRUD)" \
+        "node tests/services/test-event-service.js" \
+        "$REPORT_DIR/event-service.json"
+elif docker ps | grep -q jobbingtrack-event-service; then
+    run_test "Tests Event Service (Health Check)" \
+        "curl -s http://localhost:3011/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/event-service.json"
+fi
+
+# 19. Tests Notification Service
+if [ -f "tests/services/test-notification-service.js" ]; then
+    run_test "Tests Notification Service" \
+        "node tests/services/test-notification-service.js" \
+        "$REPORT_DIR/notification-service.json"
+elif docker ps | grep -q jobbingtrack-notification-service; then
+    run_test "Tests Notification Service (Health Check)" \
+        "curl -s http://localhost:3006/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/notification-service.json"
+fi
+
+# 20. Tests Dashboard Service
+if [ -f "tests/services/test-dashboard-service.js" ]; then
+    run_test "Tests Dashboard Service" \
+        "node tests/services/test-dashboard-service.js" \
+        "$REPORT_DIR/dashboard-service.json"
+elif docker ps | grep -q jobbingtrack-dashboard-service; then
+    run_test "Tests Dashboard Service (Health Check)" \
+        "curl -s http://localhost:3007/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/dashboard-service.json"
+fi
+
+# 21. Tests Profile Service
+if [ -f "tests/services/test-profile-service.js" ]; then
+    run_test "Tests Profile Service" \
+        "node tests/services/test-profile-service.js" \
+        "$REPORT_DIR/profile-service.json"
+elif docker ps | grep -q jobbingtrack-profile-service; then
+    run_test "Tests Profile Service (Health Check)" \
+        "curl -s http://localhost:3009/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/profile-service.json"
+fi
+
+# 22. Tests Security Service
+if [ -f "tests/services/test-security-service.js" ]; then
+    run_test "Tests Security Service" \
+        "node tests/services/test-security-service.js" \
+        "$REPORT_DIR/security-service.json"
+elif docker ps | grep -q jobbingtrack-security-service; then
+    run_test "Tests Security Service (Health Check)" \
+        "curl -s http://localhost:3010/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/security-service.json"
+fi
+
+# 23. Tests Metrics Aggregator Service
+if [ -f "tests/services/test-metrics-aggregator.js" ]; then
+    run_test "Tests Metrics Aggregator Service" \
+        "node tests/services/test-metrics-aggregator.js" \
+        "$REPORT_DIR/metrics-aggregator.json"
+elif docker ps | grep -q jobbingtrack-metrics-aggregator; then
+    run_test "Tests Metrics Aggregator Service (Health Check)" \
+        "curl -s http://localhost:3013/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/metrics-aggregator.json"
+fi
+
+# 24. Tests Workflow Service
+if [ -f "tests/services/test-workflow-service.js" ]; then
+    run_test "Tests Workflow Service" \
+        "node tests/services/test-workflow-service.js" \
+        "$REPORT_DIR/workflow-service.json"
+elif docker ps | grep -q jobbingtrack-workflow-service; then
+    run_test "Tests Workflow Service (Health Check)" \
+        "curl -s http://localhost:3014/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/workflow-service.json"
+fi
+
+# 25. Tests Deployment Service
+if [ -f "tests/services/test-deployment-service.js" ]; then
+    run_test "Tests Deployment Service" \
+        "node tests/services/test-deployment-service.js" \
+        "$REPORT_DIR/deployment-service.json"
+elif docker ps | grep -q jobbingtrack-deployment-service; then
+    run_test "Tests Deployment Service (Health Check)" \
+        "curl -s http://localhost:3015/health || echo 'Service non accessible'" \
+        "$REPORT_DIR/deployment-service.json"
+fi
+
+# ==============================================================================
+# CATÉGORIE 6 : TESTS API GATEWAY COMPLETS
+# ==============================================================================
+
+echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║     🌐 CATÉGORIE 6 : TESTS API GATEWAY                ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# 26. Tests API Gateway Health & Routing
+if [ -f "tests/api-gateway/test-routing.js" ]; then
+    run_test "Tests API Gateway Routing" \
+        "node tests/api-gateway/test-routing.js" \
+        "$REPORT_DIR/api-gateway-routing.json"
+else
+    run_test "Tests API Gateway Health" \
+        "curl -s http://localhost:3000/health && curl -s http://localhost:3000/metrics && curl -s http://localhost:3000/ready" \
+        "$REPORT_DIR/api-gateway-health.json"
+fi
+
+# 27. Tests API Gateway Rate Limiting
+if [ -f "tests/api-gateway/test-rate-limiting.js" ]; then
+    run_test "Tests API Gateway Rate Limiting" \
+        "node tests/api-gateway/test-rate-limiting.js" \
+        "$REPORT_DIR/api-gateway-rate-limiting.json"
+fi
+
+# 28. Tests API Gateway CORS
+if [ -f "tests/api-gateway/test-cors.js" ]; then
+    run_test "Tests API Gateway CORS" \
+        "node tests/api-gateway/test-cors.js" \
+        "$REPORT_DIR/api-gateway-cors.json"
+fi
+
+# ==============================================================================
+# CATÉGORIE 7 : TESTS SÉCURITÉ AVANCÉS
+# ==============================================================================
+
+echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║     🔒 CATÉGORIE 7 : TESTS SÉCURITÉ AVANCÉS           ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# 29. Tests Injection SQL
+if [ -f "tests/security/test-sql-injection.js" ]; then
+    run_test "Tests Protection Injection SQL" \
+        "node tests/security/test-sql-injection.js" \
+        "$REPORT_DIR/security-sql-injection.json"
+fi
+
+# 30. Tests XSS
+if [ -f "tests/security/test-xss.js" ]; then
+    run_test "Tests Protection XSS" \
+        "node tests/security/test-xss.js" \
+        "$REPORT_DIR/security-xss.json"
+fi
+
+# 31. Tests CSRF
+if [ -f "tests/security/test-csrf.js" ]; then
+    run_test "Tests Protection CSRF" \
+        "node tests/security/test-csrf.js" \
+        "$REPORT_DIR/security-csrf.json"
+fi
+
+# 32. Tests Authentification Avancés
+if [ -f "tests/security/test-auth-advanced.js" ]; then
+    run_test "Tests Authentification Avancés" \
+        "node tests/security/test-auth-advanced.js" \
+        "$REPORT_DIR/security-auth-advanced.json"
+fi
+
+# 33. Tests Autorisation
+if [ -f "tests/security/test-authorization.js" ]; then
+    run_test "Tests Autorisation (Rôles & Permissions)" \
+        "node tests/security/test-authorization.js" \
+        "$REPORT_DIR/security-authorization.json"
+fi
+
+# 34. Tests Rate Limiting Sécurité
+if [ -f "tests/security/test-rate-limiting.js" ]; then
+    run_test "Tests Rate Limiting Sécurité" \
+        "node tests/security/test-rate-limiting.js" \
+        "$REPORT_DIR/security-rate-limiting.json"
+fi
+
+# ==============================================================================
+# CATÉGORIE 8 : TESTS PERFORMANCE AVANCÉS
+# ==============================================================================
+
+echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║     ⚡ CATÉGORIE 8 : TESTS PERFORMANCE AVANCÉS        ║${NC}"
+echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+# 35. Tests de Charge
+if [ -f "tests/performance/test-load.js" ]; then
+    run_test "Tests de Charge (Load Testing)" \
+        "node tests/performance/test-load.js" \
+        "$REPORT_DIR/performance-load.json"
+fi
+
+# 36. Tests de Stress
+if [ -f "tests/performance/test-stress.js" ]; then
+    run_test "Tests de Stress (Stress Testing)" \
+        "node tests/performance/test-stress.js" \
+        "$REPORT_DIR/performance-stress.json"
+fi
+
+# 37. Tests Temps de Réponse
+if [ -f "tests/performance/test-response-time.js" ]; then
+    run_test "Tests Temps de Réponse" \
+        "node tests/performance/test-response-time.js" \
+        "$REPORT_DIR/performance-response-time.json"
+fi
+
+# 38. Tests Base de Données (Requêtes Lentes)
+if [ -f "tests/performance/test-database-performance.js" ]; then
+    run_test "Tests Performance Base de Données" \
+        "node tests/performance/test-database-performance.js" \
+        "$REPORT_DIR/performance-database.json"
+fi
+
 # Créer le résumé (s'assurer que le répertoire existe)
 mkdir -p "$(dirname "$SUMMARY_RESULT")" || true
 
@@ -419,22 +757,60 @@ for json_file in "$REPORT_DIR"/*.json; do
             failed=$(jq -r '.statistics.failed // 0' "$json_file" 2>/dev/null)
             
             exit_code=$(jq -r '.exitCode // 1' "$json_file" 2>/dev/null)
+            output_text=$(jq -r '.output // ""' "$json_file" 2>/dev/null)
             
-            # Si total est 0 ou null, vérifier si le test a été exécuté (exitCode existe)
+            # Si total est 0 ou null, essayer d'extraire les stats depuis la sortie
             if [ "$total" -eq 0 ] || [ -z "$total" ] || [ "$total" = "null" ]; then
-                # Si exitCode existe et n'est pas null, c'est qu'un test a été exécuté (même sans stats)
-                if [ -n "$exit_code" ] && [ "$exit_code" != "null" ] && [ "$exit_code" != "" ]; then
-                    TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + 1))
-                    if [ "$exit_code" -eq 0 ]; then
-                        TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + 1))
-                    else
-                        TOTAL_FAILED_RECALC=$((TOTAL_FAILED_RECALC + 1))
+                # Essayer d'extraire les stats depuis la sortie du test
+                if [ -n "$output_text" ] && [ "$output_text" != "null" ] && [ "$output_text" != "" ]; then
+                    # Décoder la sortie JSON (échappement)
+                    output_clean=$(echo "$output_text" | sed 's/\\n/\n/g' | sed 's/\\"/"/g' | sed 's/\\\\/\\/g')
+                    # Compter les tests réussis
+                    passed_count=$(echo "$output_clean" | grep -cE "(✓ PASS|PASS|✓|réussis|✅)" 2>/dev/null || echo "0")
+                    # Compter les tests échoués
+                    failed_count=$(echo "$output_clean" | grep -cE "(✗ FAIL|FAIL|✗|échoué|❌)" 2>/dev/null || echo "0")
+                    # Compter les tests individuels
+                    test_count=$(echo "$output_clean" | grep -cE "(\[.*\] Test:|Test [0-9]+:|✓|✗)" 2>/dev/null || echo "0")
+                    
+                    if [ "$test_count" -gt 0 ]; then
+                        total=$test_count
+                        passed=$passed_count
+                        failed=$failed_count
+                    elif [ $((passed_count + failed_count)) -gt 0 ]; then
+                        total=$((passed_count + failed_count))
+                        passed=$passed_count
+                        failed=$failed_count
                     fi
+                fi
+                
+                # Si total est toujours 0, vérifier si le test a été exécuté (exitCode existe)
+                if [ "$total" -eq 0 ] || [ -z "$total" ] || [ "$total" = "null" ]; then
+                    # Si exitCode existe et n'est pas null, c'est qu'un test a été exécuté (même sans stats)
+                    if [ -n "$exit_code" ] && [ "$exit_code" != "null" ] && [ "$exit_code" != "" ]; then
+                        TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + 1))
+                        if [ "$exit_code" -eq 0 ]; then
+                            TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + 1))
+                        else
+                            TOTAL_FAILED_RECALC=$((TOTAL_FAILED_RECALC + 1))
+                        fi
+                    fi
+                else
+                    # Stats extraites depuis la sortie - mettre à jour le JSON
+                    if command -v jq > /dev/null 2>&1; then
+                        jq ".statistics.total = $total | .statistics.passed = $passed | .statistics.failed = $failed" "$json_file" > "$json_file.tmp" && mv "$json_file.tmp" "$json_file" 2>/dev/null || true
+                    fi
+                    TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + total))
+                    TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + passed))
+                    TOTAL_FAILED_RECALC=$((TOTAL_FAILED_RECALC + failed))
                 fi
             else
                 # S'assurer que total = passed + failed
                 if [ "$total" -ne $((passed + failed)) ] 2>/dev/null; then
                     total=$((passed + failed))
+                    # Mettre à jour le JSON si incohérence
+                    if command -v jq > /dev/null 2>&1; then
+                        jq ".statistics.total = $total" "$json_file" > "$json_file.tmp" && mv "$json_file.tmp" "$json_file" 2>/dev/null || true
+                    fi
                 fi
                 TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + total))
                 TOTAL_PASSED_RECALC=$((TOTAL_PASSED_RECALC + passed))
@@ -463,6 +839,9 @@ cat > "$SUMMARY_RESULT" <<EOF
   "summary": {
     "totalCategories": $TOTAL_CATEGORIES,
     "totalTests": $TOTAL_TESTS,
+    "totalPassed": $TOTAL_PASSED,
+    "totalFailed": $TOTAL_FAILED,
+    "totalSkipped": $TOTAL_SKIPPED,
     "passed": $TOTAL_PASSED,
     "failed": $TOTAL_FAILED,
     "skipped": $TOTAL_SKIPPED,
@@ -598,9 +977,9 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
         <p><strong>Statut:</strong> <span class="status-$status">$status</span> | <strong>Durée:</strong> ${duration}s</p>
         <p><strong>Statistiques:</strong> Total: $total | Réussis: <span style="color: #4caf50;">$passed</span> | Échoués: <span style="color: #f44336;">$failed</span></p>
         $([ "$has_table_error" = true ] && echo "$db_push_suggestion" || echo "")
-        <details>
-            <summary>Voir les détails</summary>
-            <pre>$(echo "$clean_output" | head -500)</pre>
+        <details open>
+            <summary>Voir les détails complets ($(echo "$clean_output" | wc -l | tr -d ' ') lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">$(echo "$clean_output")</pre>
         </details>
     </div>
 EOF

@@ -129,6 +129,7 @@ function getSectionName(dirName) {
     'administration': '📚 Administration',
     'scripts': '🔧 Scripts',
     'tests': '🧪 Tests',
+    'user-journey': '🧪 Tests',
     'monitoring': '📊 Monitoring',
     'security': '🔐 Sécurité',
     'performance': '⚡ Performance',

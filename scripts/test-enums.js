@@ -71,7 +71,21 @@ const expectedEnums = {
  * Extrait les enums du schéma Prisma
  */
 function extractEnumsFromSchema() {
-  const schemaPath = path.join(__dirname, '../backend/prisma/schema.prisma');
+  // Dans le conteneur Docker, le schéma est dans /app/prisma/schema.prisma
+  // En local, il est dans backend/prisma/schema.prisma
+  let schemaPath;
+  if (fs.existsSync('/app/prisma/schema.prisma')) {
+    // Dans le conteneur Docker
+    schemaPath = '/app/prisma/schema.prisma';
+  } else if (fs.existsSync(path.join(__dirname, '../backend/prisma/schema.prisma'))) {
+    // En local
+    schemaPath = path.join(__dirname, '../backend/prisma/schema.prisma');
+  } else if (fs.existsSync(path.join(process.cwd(), 'prisma/schema.prisma'))) {
+    // Depuis le répertoire du service
+    schemaPath = path.join(process.cwd(), 'prisma/schema.prisma');
+  } else {
+    throw new Error('Impossible de trouver le schéma Prisma. Chemins testés: /app/prisma/schema.prisma, ../backend/prisma/schema.prisma, ./prisma/schema.prisma');
+  }
   const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
   
   const enums = {};

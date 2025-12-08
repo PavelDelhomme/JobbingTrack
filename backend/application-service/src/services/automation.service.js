@@ -15,37 +15,37 @@ const isElementArchived = async (elementType, elementId) => {
       case 'application':
         const application = await prisma.application.findUnique({
           where: { id: elementId },
-          select: { archived: true }
+          select: { isArchived: true }
         });
-        return application?.archived || false;
+        return application?.isArchived || false;
 
       case 'interview':
         const interview = await prisma.interview.findUnique({
           where: { id: elementId },
-          select: { archived: true }
+          select: { isArchived: true }
         });
-        return interview?.archived || false;
+        return interview?.isArchived || false;
 
       case 'followup':
         const followup = await prisma.followUp.findUnique({
           where: { id: elementId },
-          select: { archived: true }
+          select: { isArchived: true }
         });
-        return followup?.archived || false;
+        return followup?.isArchived || false;
 
       case 'contact':
         const contact = await prisma.contact.findUnique({
           where: { id: elementId },
-          select: { archived: true }
+          select: { isArchived: true }
         });
-        return contact?.archived || false;
+        return contact?.isArchived || false;
 
       case 'call':
         const call = await prisma.call.findUnique({
           where: { id: elementId },
-          select: { archived: true }
+          select: { isArchived: true }
         });
-        return call?.archived || false;
+        return call?.isArchived || false;
 
       default:
         return false;
@@ -92,18 +92,18 @@ const getActiveApplications = async (userId) => {
     return await prisma.application.findMany({
       where: {
         userId,
-        archived: false
+        isArchived: false
       },
       include: {
         company: true,
         interviews: {
-          where: { archived: false }
+          where: { isArchived: false }
         },
         followUps: {
-          where: { archived: false }
+          where: { isArchived: false }
         },
         calls: {
-          where: { archived: false }
+          where: { isArchived: false }
         }
       }
     });
@@ -117,7 +117,7 @@ const getActiveApplications = async (userId) => {
 const getActiveFollowUps = async (userId) => {
   try {
     const applications = await prisma.application.findMany({
-      where: { userId, archived: false },
+      where: { userId, isArchived: false },
       select: { id: true }
     });
     const applicationIds = applications.map(app => app.id);
@@ -125,7 +125,7 @@ const getActiveFollowUps = async (userId) => {
     return await prisma.followUp.findMany({
       where: {
         applicationId: { in: applicationIds },
-        archived: false
+        isArchived: false
       },
       include: {
         application: {
@@ -144,7 +144,7 @@ const getActiveFollowUps = async (userId) => {
 const getActiveInterviews = async (userId) => {
   try {
     const applications = await prisma.application.findMany({
-      where: { userId, archived: false },
+      where: { userId, isArchived: false },
       select: { id: true }
     });
     const applicationIds = applications.map(app => app.id);
@@ -152,7 +152,7 @@ const getActiveInterviews = async (userId) => {
     return await prisma.interview.findMany({
       where: {
         applicationId: { in: applicationIds },
-        archived: false
+        isArchived: false
       },
       include: {
         application: {
@@ -170,7 +170,7 @@ const getActiveInterviews = async (userId) => {
 const getActiveCalls = async (userId) => {
   try {
     const applications = await prisma.application.findMany({
-      where: { userId, archived: false },
+      where: { userId, isArchived: false },
       select: { id: true }
     });
     const applicationIds = applications.map(app => app.id);
@@ -178,7 +178,7 @@ const getActiveCalls = async (userId) => {
     return await prisma.call.findMany({
       where: {
         applicationId: { in: applicationIds },
-        archived: false
+        isArchived: false
       },
       include: {
         application: {
@@ -213,7 +213,7 @@ const isContactUsedInActiveApplications = async (contactId) => {
               some: {
                 contactId,
                 application: {
-                  archived: false
+                  isArchived: false
                 }
               }
             }

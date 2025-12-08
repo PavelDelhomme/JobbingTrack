@@ -58,6 +58,7 @@
 - **[📊 Tests Services](tests/TESTS_PAGE_DETAIL_SERVICES.md)** - Tests page détail services
 - **[📋 Rapport Tests Complets](tests/TESTS_COMPLETS_RAPPORT.md)** - ⭐ Rapport détaillé des tests système
 - **[✅ Résumé Tests](tests/RESUME_TESTS_COMPLETS.md)** - ⭐ Résumé exécutif (100% réussis)
+- **[📝 Tests Manquants](tests/TESTS_MANQUANTS.md)** - ⭐ Liste complète des tests à implémenter
 
 ---
 
