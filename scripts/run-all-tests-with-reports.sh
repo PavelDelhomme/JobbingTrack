@@ -960,7 +960,22 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
     if [ -n "$output" ] && [ "$output" != "null" ] && [ "$output" != "" ]; then
         clean_output=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\\n/\n/g' | sed 's/\\"/"/g' | sed 's/\\t/\t/g')
     else
-        clean_output="Aucune sortie disponible pour ce test."
+        # Si pas de sortie mais que le test a échoué, essayer de récupérer depuis le JSON
+        if [ "$status" = "failed" ]; then
+            # Essayer de récupérer depuis le JSON si disponible
+            if [ -f "$result_file" ] && command -v jq > /dev/null 2>&1; then
+                json_output=$(jq -r '.output // ""' "$result_file" 2>/dev/null || echo "")
+                if [ -n "$json_output" ] && [ "$json_output" != "null" ] && [ "$json_output" != "" ]; then
+                    clean_output=$(echo "$json_output" | sed 's/\\n/\n/g' | sed 's/\\"/"/g' | sed 's/\\t/\t/g' | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
+                else
+                    clean_output="Erreur : Le test a échoué mais aucune sortie n'a été capturée dans le JSON. Code de sortie: $exit_code"
+                fi
+            else
+                clean_output="Erreur : Le test a échoué mais aucune sortie n'a été capturée. Code de sortie: $exit_code"
+            fi
+        else
+            clean_output="Aucune sortie disponible pour ce test."
+        fi
     fi
     
     # Détecter si l'erreur est liée à une table non trouvée (uniquement si le test a échoué)
