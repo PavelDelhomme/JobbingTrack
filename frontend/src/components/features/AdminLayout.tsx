@@ -38,6 +38,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false) // ✅ État pour le dropdown du thème
@@ -178,6 +179,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
         { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
         { name: 'Parcours Utilisateur', href: '/backoffice/user-journey', icon: '🚶' },
+        { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
       ]
     },
     {
@@ -244,10 +246,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ></div>
         )}
 
-        {/* Sidebar - Cachée sur mobile, visible sur desktop */}
+        {/* Sidebar - Cachée sur mobile, peut être cachée sur desktop */}
         <div className={`
           fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 flex flex-col shadow-xl border-r border-gray-200 dark:border-gray-800 z-50 transform transition-all duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isSidebarCollapsed ? 'lg:-translate-x-full' : ''}
         `}>
           {/* Logo avec bouton de fermeture sur mobile */}
           <div className="flex h-16 items-center justify-between px-4 lg:justify-center bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
@@ -463,8 +466,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-        {/* Main content - Pas de marge sur mobile, marge sur desktop */}
-        <div className="lg:ml-64">
+        {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
+        <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-64'}`}>
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
@@ -481,6 +484,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+              
+              {/* ✅ Bouton pour cacher/afficher le drawer sur desktop */}
+              <button
+                onClick={() => {
+                  const newState = !isSidebarCollapsed
+                  setIsSidebarCollapsed(newState)
+                  localStorage.setItem('sidebarCollapsed', String(newState))
+                }}
+                className="hidden lg:flex text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
+                aria-label="Toggle sidebar"
+                title={isSidebarCollapsed ? "Afficher le menu" : "Masquer le menu"}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isSidebarCollapsed ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   )}
                 </svg>
               </button>

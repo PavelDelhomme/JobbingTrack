@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Tests - JobbingTrack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f5f5f5; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; }
+        h1 { color: #333; border-bottom: 3px solid #4caf50; padding-bottom: 10px; margin-bottom: 30px; }
+        h2 { color: #555; margin-top: 30px; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-left: 4px solid #2196F3; }
+        .summary { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .stat-card { background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 2em; font-weight: bold; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .passed { color: #4caf50; }
+        .failed { color: #f44336; }
+        .skipped { color: #ff9800; }
+        .test-result { margin: 20px 0; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        .test-result.passed { border-left: 5px solid #4caf50; background: #f1f8f4; }
+        .test-result.failed { border-left: 5px solid #f44336; background: #fff5f5; }
+        .test-result.skipped { border-left: 5px solid #ff9800; background: #fff8e1; }
+        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .status-passed { background: #4caf50; color: white; }
+        .status-failed { background: #f44336; color: white; }
+        .status-skipped { background: #ff9800; color: white; }
+        details { margin-top: 15px; }
+        summary { cursor: pointer; padding: 10px; background: #f5f5f5; border-radius: 4px; font-weight: bold; }
+        summary:hover { background: #eeeeee; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 0.9em; margin-top: 10px; max-height: 500px; overflow-y: auto; }
+        .problem-section { background: #fff3cd; border-left: 4px solid #ff9800; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .problem-section h3 { color: #856404; margin-bottom: 15px; }
+        .problem-item { margin: 15px 0; padding: 15px; background: white; border-radius: 4px; }
+        .problem-item h4 { color: #d32f2f; margin-bottom: 10px; }
+        .solution { background: #e8f5e9; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        .solution code { background: #c8e6c9; padding: 2px 6px; border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f5f5f5; font-weight: bold; }
+        tr:hover { background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Rapport de Tests - JobbingTrack</h1>
+        <p><strong>Date :</strong> 8 Décembre 2025, 09:25:55</p>
+        
+        <div class="summary">
+            <h2>📊 Résumé Global</h2>
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-value failed">15</div>
+                    <div class="stat-label">Tests Échoués</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value passed">1</div>
+                    <div class="stat-label">Tests Réussis</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value skipped">1</div>
+                    <div class="stat-label">Tests Ignorés</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">16</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="problem-section">
+            <h3>🔴 Problèmes Critiques Identifiés</h3>
+            
+            <div class="problem-item">
+                <h4>1. ❌ Modules Node.js manquants (supertest)</h4>
+                <p><strong>Tests affectés :</strong> API Tests, Backend Services</p>
+                <p><strong>Erreur :</strong> <code>Error: Cannot find module 'supertest'</code></p>
+                <div class="solution">
+                    <strong>Solution :</strong><br>
+                    <code>npm install --save-dev supertest</code><br>
+                    ou depuis la racine : <code>cd tests && npm install supertest</code>
+                </div>
+            </div>
+
+            <div class="problem-item">
+                <h4>2. ❌ Tables BDD manquantes (Relations Many-to-Many)</h4>
+                <p><strong>Tests affectés :</strong> Relations BDD, User Journey</p>
+                <p><strong>Tables manquantes :</strong> ContactCompany, ContactApplication, FollowUpContact, InterviewContact</p>
+                <div class="solution">
+                    <strong>Solution :</strong><br>
+                    <code>make db-push-all</code>
+                </div>
+            </div>
+
+            <div class="problem-item">
+                <h4>3. ❌ Chemin Prisma incorrect</h4>
+                <p><strong>Tests affectés :</strong> Enums</p>
+                <p><strong>Erreur :</strong> <code>ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'</code></p>
+                <div class="solution">
+                    <strong>Solution :</strong> Corriger le chemin dans <code>scripts/test-enums.js</code><br>
+                    Le chemin devrait être relatif au conteneur Docker ou utiliser un chemin absolu correct.
+                </div>
+            </div>
+
+            <div class="problem-item">
+                <h4>4. ❌ Permissions Playwright</h4>
+                <p><strong>Tests affectés :</strong> Playwright E2E Frontend</p>
+                <p><strong>Erreur :</strong> <code>EACCES: permission denied, rmdir '/app/test-results'</code></p>
+                <div class="solution">
+                    <strong>Solution :</strong> Corriger les permissions dans le conteneur Docker ou exécuter les tests en dehors du conteneur.
+                </div>
+            </div>
+
+            <div class="problem-item">
+                <h4>5. ❌ Configuration Playwright Mobile</h4>
+                <p><strong>Tests affectés :</strong> Playwright Mobile</p>
+                <p><strong>Erreur :</strong> <code>Error: Either 'port' or 'url' should be specified in config.webServer.</code></p>
+                <div class="solution">
+                    <strong>Solution :</strong> Corriger <code>playwright.mobile.config.ts</code> pour spécifier port ou url dans webServer.
+                </div>
+            </div>
+        </div>
+
+        <h2>📋 Détails des Tests</h2>
+        <div class="test-result failed">
+            <h3>Tests API Complets</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 1s</p>
+            <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">0</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>node:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module 'supertest'
+Require stack:
+- /home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/api/test-api.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+    at Module._load (node:internal/modules/cjs/loader:1226:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.&lt;anonymous&gt; (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/api/test-api.js:6:17)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/api/test-api.js'
+  ]
+}
+
+Node.js v24.8.0</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>Tests Backend Services</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 0s</p>
+            <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">0</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>node:internal/modules/cjs/loader:1423
+  throw err;
+  ^
+
+Error: Cannot find module 'supertest'
+Require stack:
+- /home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/backend/test-services.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+    at Module._load (node:internal/modules/cjs/loader:1226:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.require (node:internal/modules/cjs/loader:1503:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.&lt;anonymous&gt; (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/backend/test-services.js:6:17)
+    at Module._compile (node:internal/modules/cjs/loader:1760:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/tests/backend/test-services.js'
+  ]
+}
+
+Node.js v24.8.0</pre>
+            </details>
+        </div>
+        <div class="test-result skipped">
+            <h3>Email Logs</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-skipped">skipped</span> | <strong>Durée:</strong> 0s</p>
+            <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">0</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>Aucune sortie disponible</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>Enums</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 1s</p>
+            <p><strong>Statistiques:</strong> Total: 10 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">1</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>
+📋 Validation des Enums
+
+ℹ️  Test 1: Vérification définition enum UserRole
+❌ Erreur lors du test de UserRole: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour UserRole
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ApplicationStatus
+❌ Erreur lors du test de ApplicationStatus: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour ApplicationStatus
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ContractType
+❌ Erreur lors du test de ContractType: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour ContractType
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum WorkMode
+❌ Erreur lors du test de WorkMode: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour WorkMode
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ApplicationType
+❌ Erreur lors du test de ApplicationType: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour ApplicationType
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum CompanySize
+❌ Erreur lors du test de CompanySize: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour CompanySize
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum EventType
+❌ Erreur lors du test de EventType: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour EventType
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum NotificationType
+❌ Erreur lors du test de NotificationType: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour NotificationType
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum NotificationPriority
+❌ Erreur lors du test de NotificationPriority: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour NotificationPriority
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification définition enum SyncAction
+❌ Erreur lors du test de SyncAction: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+📋 Résultats pour SyncAction
+
+❌ Test général: ENOENT: no such file or directory, open '/backend/prisma/schema.prisma'
+
+0 tests réussis, 1 tests échoués
+
+
+📋 Résumé Global
+
+Total: 10 tests
+✅ 0 tests réussis
+❌ 10 tests échoués</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>Playwright E2E Frontend</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 5s</p>
+            <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">0</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>Error: EACCES: permission denied, rmdir '/app/test-results'
+
+{
+  &quot;config&quot;: {
+    &quot;configFile&quot;: &quot;/app/playwright.config.ts&quot;,
+    &quot;rootDir&quot;: &quot;/app/tests/e2e&quot;,
+    &quot;forbidOnly&quot;: false,
+    &quot;fullyParallel&quot;: true,
+    &quot;globalSetup&quot;: &quot;/app/tests/e2e/global-setup.ts&quot;,
+    &quot;globalTeardown&quot;: &quot;/app/tests/e2e/global-teardown.ts&quot;,
+    &quot;globalTimeout&quot;: 0,
+    &quot;grep&quot;: {},
+    &quot;grepInvert&quot;: null,
+    &quot;maxFailures&quot;: 0,
+    &quot;metadata&quot;: {},
+    &quot;preserveOutput&quot;: &quot;always&quot;,
+    &quot;reporter&quot;: [
+      [
+        &quot;list&quot;
+      ],
+      [
+        &quot;json&quot;
+      ]
+    ],
+    &quot;reportSlowTests&quot;: {
+      &quot;max&quot;: 5,
+      &quot;threshold&quot;: 300000
+    },
+    &quot;quiet&quot;: false,
+    &quot;projects&quot;: [
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;chromium&quot;,
+        &quot;name&quot;: &quot;chromium&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;firefox&quot;,
+        &quot;name&quot;: &quot;firefox&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;webkit&quot;,
+        &quot;name&quot;: &quot;webkit&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Mobile Chrome&quot;,
+        &quot;name&quot;: &quot;Mobile Chrome&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Mobile Safari&quot;,
+        &quot;name&quot;: &quot;Mobile Safari&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/app/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Flutter Mobile App&quot;,
+        &quot;name&quot;: &quot;Flutter Mobile App&quot;,
+        &quot;testDir&quot;: &quot;/app/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      }
+    ],
+    &quot;shard&quot;: null,
+    &quot;updateSnapshots&quot;: &quot;missing&quot;,
+    &quot;updateSourceMethod&quot;: &quot;patch&quot;,
+    &quot;version&quot;: &quot;1.56.0&quot;,
+    &quot;workers&quot;: 8,
+    &quot;webServer&quot;: null
+  },
+  &quot;suites&quot;: [],
+  &quot;errors&quot;: [
+    {
+      &quot;message&quot;: &quot;Error: EACCES: permission denied, rmdir '/app/test-results'&quot;,
+      &quot;stack&quot;: &quot;Error: EACCES: permission denied, rmdir '/app/test-results'&quot;
+    }
+  ],
+  &quot;stats&quot;: {
+    &quot;startTime&quot;: &quot;2025-12-08T08:25:59.793Z&quot;,
+    &quot;duration&quot;: 5.180000000000064,
+    &quot;expected&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;unexpected&quot;: 0,
+    &quot;flaky&quot;: 0
+  }
+}
+Error in reporter Error: EACCES: permission denied, open '/app/test-results/.last-run.json'
+    at open (node:internal/fs/promises:639:25)
+    at Object.writeFile (node:internal/fs/promises:1212:14)
+    at LastRunReporter.onEnd (/app/node_modules/playwright/lib/runner/lastRun.js:71:5)
+    at wrapAsync (/app/node_modules/playwright/lib/reporters/multiplexer.js:89:12)
+    at Multiplexer.onEnd (/app/node_modules/playwright/lib/reporters/multiplexer.js:57:25)
+    at InternalReporter.onEnd (/app/node_modules/playwright/lib/reporters/internalReporter.js:76:12)
+    at finishTaskRun (/app/node_modules/playwright/lib/runner/tasks.js:94:26)
+    at runTasks (/app/node_modules/playwright/lib/runner/tasks.js:81:10)
+    at runAllTestsWithConfig (/app/node_modules/playwright/lib/runner/testRunner.js:380:18)
+    at runTests (/app/node_modules/playwright/lib/program.js:251:18)
+    at i.&lt;anonymous&gt; (/app/node_modules/playwright/lib/program.js:71:7) {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: '/app/test-results/.last-run.json'
+}
+[WebServer] Error: EACCES: permission denied, open '/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/.next/package.json'
+[WebServer]     at async open (node:internal/fs/promises:642:25)
+[WebServer]     at async Object.writeFile (node:internal/fs/promises:1249:14)
+[WebServer]     at async HotReloaderWebpack.start (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/server/dev/hot-reloader-webpack.js:620:9)
+[WebServer]     at async startWatcher (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:156:5)
+[WebServer]     at async setupDevBundler (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:775:20)
+[WebServer]     at async Span.traceAsyncFn (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/trace/trace.js:154:20)
+[WebServer]     at async initialize (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-server.js:79:30)
+[WebServer]     at async Server.&lt;anonymous&gt; (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/next/dist/server/lib/start-server.js:249:36) {
+[WebServer]   errno: -13,
+[WebServer]   code: 'EACCES',
+[WebServer]   syscall: 'open',
+[WebServer]   path: '/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/.next/package.json'
+[WebServer] }
+Error: Process from config.webServer exited early.
+
+{
+  &quot;config&quot;: {
+    &quot;configFile&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/playwright.config.ts&quot;,
+    &quot;rootDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+    &quot;forbidOnly&quot;: false,
+    &quot;fullyParallel&quot;: true,
+    &quot;globalSetup&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e/global-setup.ts&quot;,
+    &quot;globalTeardown&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e/global-teardown.ts&quot;,
+    &quot;globalTimeout&quot;: 0,
+    &quot;grep&quot;: {},
+    &quot;grepInvert&quot;: null,
+    &quot;maxFailures&quot;: 0,
+    &quot;metadata&quot;: {},
+    &quot;preserveOutput&quot;: &quot;always&quot;,
+    &quot;reporter&quot;: [
+      [
+        &quot;list&quot;
+      ],
+      [
+        &quot;json&quot;
+      ]
+    ],
+    &quot;reportSlowTests&quot;: {
+      &quot;max&quot;: 5,
+      &quot;threshold&quot;: 300000
+    },
+    &quot;quiet&quot;: false,
+    &quot;projects&quot;: [
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;chromium&quot;,
+        &quot;name&quot;: &quot;chromium&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;firefox&quot;,
+        &quot;name&quot;: &quot;firefox&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;webkit&quot;,
+        &quot;name&quot;: &quot;webkit&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Mobile Chrome&quot;,
+        &quot;name&quot;: &quot;Mobile Chrome&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Mobile Safari&quot;,
+        &quot;name&quot;: &quot;Mobile Safari&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      },
+      {
+        &quot;outputDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/test-results&quot;,
+        &quot;repeatEach&quot;: 1,
+        &quot;retries&quot;: 0,
+        &quot;metadata&quot;: {},
+        &quot;id&quot;: &quot;Flutter Mobile App&quot;,
+        &quot;name&quot;: &quot;Flutter Mobile App&quot;,
+        &quot;testDir&quot;: &quot;/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/tests/e2e&quot;,
+        &quot;testIgnore&quot;: [],
+        &quot;testMatch&quot;: [
+          &quot;**/*.@(spec|test).?(c|m)[jt]s?(x)&quot;
+        ],
+        &quot;timeout&quot;: 30000
+      }
+    ],
+    &quot;shard&quot;: null,
+    &quot;updateSnapshots&quot;: &quot;missing&quot;,
+    &quot;updateSourceMethod&quot;: &quot;patch&quot;,
+    &quot;version&quot;: &quot;1.56.0&quot;,
+    &quot;workers&quot;: 8,
+    &quot;webServer&quot;: null
+  },
+  &quot;suites&quot;: [],
+  &quot;errors&quot;: [
+    {
+      &quot;message&quot;: &quot;Error: Process from config.webServer exited early.&quot;,
+      &quot;stack&quot;: &quot;Error: Process from config.webServer exited early.&quot;
+    }
+  ],
+  &quot;stats&quot;: {
+    &quot;startTime&quot;: &quot;2025-12-08T08:26:00.892Z&quot;,
+    &quot;duration&quot;: 1712.0350000000003,
+    &quot;expected&quot;: 0,
+    &quot;skipped&quot;: 0,
+    &quot;unexpected&quot;: 0,
+    &quot;flaky&quot;: 0
+  }
+}</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>Playwright Mobile</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 2s</p>
+            <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">0</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>Error: Either 'port' or 'url' should be specified in config.webServer.
+    at webServerPluginsForConfig (/app/node_modules/playwright/lib/plugins/webServerPlugin.js:183:13)
+    at runAllTestsWithConfig (/app/node_modules/playwright/lib/runner/testRunner.js:365:56)
+    at runTests (/app/node_modules/playwright/lib/program.js:251:68)
+    at i.&lt;anonymous&gt; (/app/node_modules/playwright/lib/program.js:71:7)
+Error: Either 'port' or 'url' should be specified in config.webServer.
+    at webServerPluginsForConfig (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/playwright/lib/plugins/webServerPlugin.js:183:13)
+    at runAllTestsWithConfig (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/playwright/lib/runner/testRunner.js:365:56)
+    at runTests (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/playwright/lib/program.js:251:68)
+    at i.&lt;anonymous&gt; (/home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/frontend/node_modules/playwright/lib/program.js:71:7)</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>Relations BDD</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 0s</p>
+            <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span class="passed">0</span> | Échoués: <span class="failed">1</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>
+📋 Tests des Relations Many-to-Many
+
+ℹ️  Test 1: Vérification existence table ContactCompany
+
+📋 Résultats pour Contact ↔ Company
+
+❌ Table existe: Table ContactCompany n'existe pas: 
+Invalid `prisma[relation.junctionTable].count()` invocation in
+/app/test-relations-temp.js:97:58
+
+  94 // Test 1: Vérifier que la table de jonction existe
+  95 log.info(`Test 1: Vérification existence table ${relation.junctionTable}`);
+  96 try {
+→ 97   const count = await prisma[relation.junctionTable].count(
+The table `public.ContactCompany` does not exist in the current database.
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification existence table ContactApplication
+
+📋 Résultats pour Contact ↔ Application
+
+❌ Table existe: Table ContactApplication n'existe pas: 
+Invalid `prisma[relation.junctionTable].count()` invocation in
+/app/test-relations-temp.js:97:58
+
+  94 // Test 1: Vérifier que la table de jonction existe
+  95 log.info(`Test 1: Vérification existence table ${relation.junctionTable}`);
+  96 try {
+→ 97   const count = await prisma[relation.junctionTable].count(
+The table `public.ContactApplication` does not exist in the current database.
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification existence table FollowUpContact
+
+📋 Résultats pour FollowUp ↔ Contact
+
+❌ Table existe: Table FollowUpContact n'existe pas: 
+Invalid `prisma[relation.junctionTable].count()` invocation in
+/app/test-relations-temp.js:97:58
+
+  94 // Test 1: Vérifier que la table de jonction existe
+  95 log.info(`Test 1: Vérification existence table ${relation.junctionTable}`);
+  96 try {
+→ 97   const count = await prisma[relation.junctionTable].count(
+The table `public.FollowUpContact` does not exist in the current database.
+
+0 tests réussis, 1 tests échoués
+
+ℹ️  Test 1: Vérification existence table InterviewContact
+
+📋 Résultats pour Interview ↔ Contact
+
+❌ Table existe: Table InterviewContact n'existe pas: 
+Invalid `prisma[relation.junctionTable].count()` invocation in
+/app/test-relations-temp.js:97:58
+
+  94 // Test 1: Vérifier que la table de jonction existe
+  95 log.info(`Test 1: Vérification existence table ${relation.junctionTable}`);
+  96 try {
+→ 97   const count = await prisma[relation.junctionTable].count(
+The table `public.InterviewContact` does not exist in the current database.
+
+0 tests réussis, 1 tests échoués
+
+
+📋 Résumé Global
+
+Total: 4 tests
+✅ 0 tests réussis
+❌ 4 tests échoués</pre>
+            </details>
+        </div>
+        <div class="test-result failed">
+            <h3>User Journey (API)</h3>
+            <p><strong>Statut:</strong> <span class="status-badge status-failed">failed</span> | <strong>Durée:</strong> 1s</p>
+            <p><strong>Statistiques:</strong> Total: 2 | Réussis: <span class="passed">1</span> | Échoués: <span class="failed">1</span></p>
+            <details>
+                <summary>Voir les détails</summary>
+                <pre>╔════════════════════════════════════════════════════════╗
+║     Vérification User Journey - JobbingTrack          ║
+╚════════════════════════════════════════════════════════╝
+
+✨ Ce script utilise un token permanent qui n'expire jamais !
+
+═══ 1. Health Checks ═══
+[1] Test: API Health
+   ✓ PASS - Status: 200
+
+═══ 2. Authentification ═══
+[2] Test: Register
+   ✗ FAIL - Status: 500 (attendu: 201)
+   Réponse: {&quot;success&quot;:false,&quot;error&quot;:&quot;
+Invalid `prisma.user.create()` invocation in
+/app/src/controllers/auth.controller.js:83:36
+
+  80 const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 100</pre>
+            </details>
+        </div>
+</div></div></body></html>

@@ -33,27 +33,14 @@ const createApplication = async (req, res, next) => {
       salaryMin,
       salaryMax,
       salaryNegotiable = false,
-      statusId, // ✅ NOUVEAU - ID du statut (relation vers ApplicationStatus)
-      statusCode = 'CANDIDATE_PENDING', // ✅ Code du statut par défaut (pour compatibilité)
+      status = 'CANDIDATE_PENDING', // Statut (enum ApplicationStatus)
       applicationDate,
       jobUrl,
       notes
     } = req.body;
 
-    // ✅ Récupérer l'ID du statut par défaut si statusId n'est pas fourni
-    let finalStatusId = statusId;
-    if (!finalStatusId) {
-      const defaultStatus = await prisma.applicationStatus.findFirst({
-        where: { code: statusCode, isPredefined: true, isActive: true }
-      });
-      if (!defaultStatus) {
-        return res.status(400).json({
-          success: false,
-          error: `Statut par défaut '${statusCode}' non trouvé. Exécutez le script de seed.`
-        });
-      }
-      finalStatusId = defaultStatus.id;
-    }
+    // Utiliser le statut fourni ou le statut par défaut
+    const finalStatus = status || 'CANDIDATE_PENDING';
 
     // ✅ LOGIQUE INTELLIGENTE : Gérer automatiquement l'entreprise
     let finalCompanyId = companyId;
@@ -93,7 +80,7 @@ const createApplication = async (req, res, next) => {
         salaryMin,
         salaryMax,
         salaryNegotiable,
-        statusId: finalStatusId, // ✅ Utiliser statusId au lieu de status
+        status: finalStatus, // Utiliser status (enum ApplicationStatus)
         applicationDate: applicationDate ? new Date(applicationDate) : new Date(), // ✅ NOUVEAU - Date par défaut
         jobUrl,
         notes
@@ -181,8 +168,8 @@ const getApplications = async (req, res, next) => {
     
   const where = {
     userId: req.user.id,
-    ...(includeArchived !== 'true' && { archived: false }), // Exclure les candidatures archivées sauf si demandé
-    ...(status && { statusId: status }), // ✅ Utiliser statusId au lieu de status (relation vers ApplicationStatus)
+    ...(includeArchived !== 'true' && { isArchived: false }), // Exclure les candidatures archivées sauf si demandé
+    ...(status && { status: status }), // Utiliser status (enum ApplicationStatus)
     ...(search && {
       position: { contains: search, mode: 'insensitive' }
     })
@@ -387,33 +374,17 @@ const deleteApplication = async (req, res, next) => {
 const updateApplicationStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { statusId, statusCode, comment } = req.body; // ✅ Accepter statusId ou statusCode
+    const { status: newStatus, comment } = req.body; // Accepter status (enum ApplicationStatus)
 
-    // ✅ Récupérer l'ID du statut
-    let finalStatusId = statusId;
-    if (!finalStatusId && statusCode) {
-      const status = await prisma.applicationStatus.findFirst({
-        where: { code: statusCode, isActive: true }
-      });
-      if (!status) {
-        return res.status(400).json({
-          success: false,
-          error: `Statut '${statusCode}' non trouvé`
-        });
-      }
-      finalStatusId = status.id;
-    }
-
-    if (!finalStatusId) {
+    if (!newStatus) {
       return res.status(400).json({
         success: false,
-        error: 'statusId ou statusCode requis'
+        error: 'status requis'
       });
     }
 
     const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id },
-      include: { status: true } // ✅ Inclure la relation ApplicationStatus
+      where: { id, userId: req.user.id }
     });
 
     if (!existingApplication) {
@@ -423,16 +394,15 @@ const updateApplicationStatus = async (req, res, next) => {
       });
     }
 
-    // ✅ Récupérer les IDs des statuts pour l'historique
-    const previousStatusId = existingApplication.statusId;
+    // Récupérer le statut précédent pour l'historique
     const previousStatus = existingApplication.status;
 
     // Créer l'historique du changement de statut
     const statusHistory = await prisma.applicationStatusHistory.create({
       data: {
         applicationId: id,
-        previousStatusId: previousStatusId, // ✅ Utiliser l'ID du statut précédent
-        newStatusId: finalStatusId, // ✅ Utiliser l'ID du nouveau statut
+        previousStatus: previousStatus, // Utiliser le statut précédent (enum)
+        newStatus: newStatus, // Utiliser le nouveau statut (enum)
         comment: comment || null
       }
     });
@@ -440,11 +410,10 @@ const updateApplicationStatus = async (req, res, next) => {
     // Mettre à jour le statut de la candidature
     const application = await prisma.application.update({
       where: { id },
-      data: { statusId: finalStatusId }, // ✅ Utiliser statusId au lieu de status
+      data: { status: newStatus }, // Utiliser status (enum ApplicationStatus)
       include: {
         company: true,
-        platform: true,
-        status: true // ✅ Inclure la relation ApplicationStatus
+        platform: true
       }
     });
 
@@ -455,7 +424,7 @@ const updateApplicationStatus = async (req, res, next) => {
       statusHistory
     });
 
-    logger.info(`Statut candidature ${id} changé de ${previousStatus?.name || previousStatusId} à ${finalStatusId} par ${req.user.email}`);
+    logger.info(`Statut candidature ${id} changé de ${previousStatus} à ${newStatus} par ${req.user.email}`);
   } catch (error) {
     logger.error('Erreur changement statut candidature:', error);
     next(error);

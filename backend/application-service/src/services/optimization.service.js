@@ -25,7 +25,7 @@ class OptimizationService {
     // Analyser les candidatures avec entreprises et contacts
     try {
       const applications = await prisma.application.findMany({
-        where: { archived: false },
+        where: { isArchived: false },
         include: {
           company: true,
           platform: true,
@@ -55,7 +55,7 @@ class OptimizationService {
 
       // Optimisation suggérée
       const optimizedQuery = await prisma.application.findMany({
-        where: { archived: false },
+        where: { isArchived: false },
         include: {
           company: true,
           platform: true,
@@ -147,7 +147,7 @@ class OptimizationService {
 
     const where = {
       userId,
-      ...(includeArchived ? {} : { archived: false })
+      ...(includeArchived ? {} : { isArchived: false })
     };
 
     // Requête optimisée avec Promise.all pour éviter les N+1
