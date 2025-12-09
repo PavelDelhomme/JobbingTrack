@@ -43,6 +43,9 @@ class UserTracking {
   private enabled: boolean = true;
   private eventQueue: any[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
+  private blockedByClient: boolean = false;
+  private consecutiveFailures: number = 0;
+  private maxConsecutiveFailures: number = 3;
 
   private constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
@@ -81,8 +84,18 @@ class UserTracking {
     // Démarrer une nouvelle session
     await this.startSession();
 
-    // Démarrer le flush périodique
-    this.startFlushInterval();
+    // Démarrer le flush périodique seulement si le tracking n'est pas désactivé
+    // Vérifier aussi si le tracking n'a pas été bloqué précédemment
+    if (this.enabled && !this.blockedByClient) {
+      // Vérifier localStorage pour voir si le tracking a été bloqué précédemment
+      const wasBlocked = typeof window !== 'undefined' && localStorage.getItem('tracking_blocked') === 'true';
+      if (!wasBlocked) {
+        this.startFlushInterval();
+      } else {
+        this.blockedByClient = true;
+        this.enabled = false;
+      }
+    }
 
     // Écouter les erreurs JavaScript
     this.setupErrorTracking();
@@ -186,7 +199,7 @@ class UserTracking {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${this.apiUrl}/api/v1/analytics/device`, {
+      const response = await fetch(`${this.apiUrl}/api/v1/analytics/device`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,8 +207,22 @@ class UserTracking {
         },
         body: JSON.stringify(this.deviceInfo)
       });
-    } catch (error) {
-      console.warn('[TRACKING] Erreur enregistrement appareil:', error);
+      
+      // Si la requête échoue, détecter si c'est un blocage
+      if (!response.ok) {
+        this.consecutiveFailures++;
+      }
+    } catch (error: any) {
+      const isBlockedByClient = error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                               error.message?.includes('Failed to fetch');
+      if (isBlockedByClient) {
+        this.consecutiveFailures++;
+        if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+          this.blockedByClient = true;
+          this.enabled = false;
+        }
+      }
+      // Ne pas logger pour éviter de spammer la console
     }
   }
 
@@ -207,6 +234,15 @@ class UserTracking {
 
     this.sessionId = this.generateId();
     const startTime = new Date();
+
+    // Toujours créer la session info même si l'envoi échoue
+    this.sessionInfo = {
+      sessionId: this.sessionId,
+      startTime,
+      pageViews: 0,
+      actions: 0,
+      errors: 0
+    };
 
     try {
       const token = localStorage.getItem('token');
@@ -225,17 +261,20 @@ class UserTracking {
         })
       });
 
-      if (response.ok) {
-        this.sessionInfo = {
-          sessionId: this.sessionId,
-          startTime,
-          pageViews: 0,
-          actions: 0,
-          errors: 0
-        };
+      if (!response.ok) {
+        this.consecutiveFailures++;
       }
-    } catch (error) {
-      console.warn('[TRACKING] Erreur démarrage session:', error);
+    } catch (error: any) {
+      const isBlockedByClient = error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                               error.message?.includes('Failed to fetch');
+      if (isBlockedByClient) {
+        this.consecutiveFailures++;
+        if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+          this.blockedByClient = true;
+          this.enabled = false;
+        }
+      }
+      // Ne pas logger pour éviter de spammer la console
     }
   }
 
@@ -243,7 +282,7 @@ class UserTracking {
    * Terminer la session
    */
   public async endSession() {
-    if (!this.sessionId || !this.sessionInfo) return;
+    if (!this.sessionId || !this.sessionInfo || this.blockedByClient) return;
 
     const endTime = new Date();
     const duration = Math.floor((endTime.getTime() - this.sessionInfo.startTime.getTime()) / 1000);
@@ -265,7 +304,7 @@ class UserTracking {
         })
       });
     } catch (error) {
-      console.warn('[TRACKING] Erreur fin session:', error);
+      // Ne pas logger pour éviter de spammer la console
     }
   }
 
@@ -278,7 +317,10 @@ class UserTracking {
     category?: string,
     properties?: EventProperties
   ) {
-    if (!this.enabled || !this.sessionId) return;
+    // Vérifier IMMÉDIATEMENT si bloqué ou désactivé
+    if (this.blockedByClient || !this.enabled || !this.sessionId) {
+      return;
+    }
 
     const event = {
       sessionId: this.sessionId,
@@ -331,7 +373,7 @@ class UserTracking {
    * Tracker une vue de page
    */
   public trackPageView(page?: string) {
-    if (!this.enabled || !this.sessionId) return;
+    if (!this.enabled || !this.sessionId || this.blockedByClient) return;
 
     if (this.sessionInfo) {
       this.sessionInfo.pageViews++;
@@ -356,7 +398,10 @@ class UserTracking {
     severity: 'error' | 'warning' | 'critical' = 'error',
     properties?: Record<string, any>
   ) {
-    if (!this.enabled) return;
+    // Vérifier IMMÉDIATEMENT si bloqué ou désactivé
+    if (this.blockedByClient || !this.enabled) {
+      return;
+    }
 
     const errorMessage = typeof error === 'string' ? error : error.message;
     const stackTrace = error instanceof Error ? error.stack : undefined;
@@ -391,7 +436,10 @@ class UserTracking {
     duration?: number,
     additionalData?: Record<string, any>
   ) {
-    if (!this.enabled || !this.sessionId) return;
+    // Vérifier IMMÉDIATEMENT si bloqué ou désactivé
+    if (this.blockedByClient || !this.enabled || !this.sessionId) {
+      return;
+    }
 
     this.sendPerformance({
       sessionId: this.sessionId,
@@ -411,9 +459,14 @@ class UserTracking {
    * Envoyer un événement
    */
   private async sendEvent(event: any) {
+    // Si le tracking est bloqué, ne pas essayer
+    if (this.blockedByClient || !this.enabled) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${this.apiUrl}/api/v1/analytics/events`, {
+      const response = await fetch(`${this.apiUrl}/api/v1/analytics/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -421,8 +474,59 @@ class UserTracking {
         },
         body: JSON.stringify(event)
       });
-    } catch (error) {
-      console.warn('[TRACKING] Erreur envoi événement:', error);
+
+      // Si la requête réussit, réinitialiser le compteur d'échecs
+      if (response.ok) {
+        this.consecutiveFailures = 0;
+        this.blockedByClient = false;
+      } else {
+        this.consecutiveFailures++;
+      }
+    } catch (error: any) {
+      // Détecter si c'est une erreur de blocage par le client (bloqueur de pub)
+      const isBlockedByClient = error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                               error.message?.includes('Failed to fetch') ||
+                               error.name === 'TypeError' && error.message?.includes('fetch');
+
+      if (isBlockedByClient) {
+        // Désactiver IMMÉDIATEMENT dès la première détection
+        this.blockedByClient = true;
+        this.enabled = false;
+        this.consecutiveFailures = this.maxConsecutiveFailures; // Marquer comme complètement bloqué
+        
+        // Sauvegarder dans localStorage pour éviter de réessayer au prochain chargement
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('tracking_blocked', 'true');
+        }
+        
+        // Nettoyer la queue pour éviter d'accumuler des événements
+        this.eventQueue = [];
+        
+        // Arrêter le flush interval IMMÉDIATEMENT
+        if (this.flushInterval) {
+          clearInterval(this.flushInterval);
+          this.flushInterval = null;
+        }
+        
+        // Désactiver définitivement - ne plus jamais essayer
+        // Ne pas logger pour éviter de spammer la console
+        return;
+      } else {
+        // Pour les autres erreurs, incrémenter le compteur mais continuer
+        this.consecutiveFailures++;
+        if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+          // Désactiver temporairement après trop d'échecs
+          this.enabled = false;
+          // Réactiver après 5 minutes
+          setTimeout(() => {
+            this.enabled = true;
+            this.consecutiveFailures = 0;
+          }, 5 * 60 * 1000);
+        }
+      }
+      
+      // Ne jamais logger les erreurs de tracking pour éviter de spammer la console
+      // Les erreurs ERR_BLOCKED_BY_CLIENT sont normales avec les bloqueurs de pub
     }
   }
 
@@ -430,6 +534,11 @@ class UserTracking {
    * Envoyer une erreur
    */
   private async sendError(error: any) {
+    // Si le tracking est bloqué, ne pas essayer
+    if (this.blockedByClient || !this.enabled) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       await fetch(`${this.apiUrl}/api/v1/analytics/errors`, {
@@ -440,8 +549,15 @@ class UserTracking {
         },
         body: JSON.stringify(error)
       });
-    } catch (error) {
-      console.warn('[TRACKING] Erreur envoi erreur:', error);
+    } catch (error: any) {
+      // Ne pas logger les erreurs de tracking pour éviter de spammer la console
+      // Seulement détecter si c'est un blocage
+      const isBlockedByClient = error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                               error.message?.includes('Failed to fetch');
+      if (isBlockedByClient) {
+        this.blockedByClient = true;
+        this.enabled = false;
+      }
     }
   }
 
@@ -449,6 +565,11 @@ class UserTracking {
    * Envoyer une métrique de performance
    */
   private async sendPerformance(performance: any) {
+    // Si le tracking est bloqué, ne pas essayer
+    if (this.blockedByClient || !this.enabled) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       await fetch(`${this.apiUrl}/api/v1/analytics/performance`, {
@@ -459,8 +580,15 @@ class UserTracking {
         },
         body: JSON.stringify(performance)
       });
-    } catch (error) {
-      console.warn('[TRACKING] Erreur envoi performance:', error);
+    } catch (error: any) {
+      // Ne pas logger les erreurs de tracking pour éviter de spammer la console
+      // Seulement détecter si c'est un blocage
+      const isBlockedByClient = error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                               error.message?.includes('Failed to fetch');
+      if (isBlockedByClient) {
+        this.blockedByClient = true;
+        this.enabled = false;
+      }
     }
   }
 
@@ -468,13 +596,30 @@ class UserTracking {
    * Flush les événements en queue
    */
   private async flushEvents() {
-    if (this.eventQueue.length === 0) return;
+    // Vérifier IMMÉDIATEMENT si bloqué ou désactivé
+    if (this.blockedByClient || !this.enabled) {
+      // Nettoyer la queue si bloqué
+      if (this.blockedByClient) {
+        this.eventQueue = [];
+      }
+      return;
+    }
+
+    if (this.eventQueue.length === 0) {
+      return;
+    }
 
     const events = [...this.eventQueue];
     this.eventQueue = [];
 
     // Envoyer les événements en batch
     for (const event of events) {
+      // Vérifier à nouveau avant chaque envoi
+      if (this.blockedByClient || !this.enabled) {
+        // Remettre les événements restants dans la queue si on s'arrête
+        this.eventQueue = [...events.slice(events.indexOf(event)), ...this.eventQueue];
+        return;
+      }
       await this.sendEvent(event);
     }
   }
@@ -483,7 +628,25 @@ class UserTracking {
    * Démarrer le flush périodique
    */
   private startFlushInterval() {
+    // Ne pas démarrer si déjà bloqué ou désactivé
+    if (this.blockedByClient || !this.enabled) {
+      return;
+    }
+    
+    // Arrêter l'interval précédent s'il existe
+    if (this.flushInterval) {
+      clearInterval(this.flushInterval);
+    }
+    
     this.flushInterval = setInterval(() => {
+      // Vérifier avant chaque flush
+      if (this.blockedByClient || !this.enabled) {
+        if (this.flushInterval) {
+          clearInterval(this.flushInterval);
+          this.flushInterval = null;
+        }
+        return;
+      }
       this.flushEvents();
     }, 5000); // Flush toutes les 5 secondes
   }
@@ -494,6 +657,10 @@ class UserTracking {
   private setupErrorTracking() {
     // Erreurs JavaScript globales
     window.addEventListener('error', (event) => {
+      // Ne pas tracker si bloqué
+      if (this.blockedByClient || !this.enabled) {
+        return;
+      }
       this.trackError(event.error || event.message, 'javascript', 'error', {
         filename: event.filename,
         lineno: event.lineno,
@@ -503,6 +670,10 @@ class UserTracking {
 
     // Promesses rejetées non gérées
     window.addEventListener('unhandledrejection', (event) => {
+      // Ne pas tracker si bloqué
+      if (this.blockedByClient || !this.enabled) {
+        return;
+      }
       this.trackError(
         event.reason instanceof Error ? event.reason : String(event.reason),
         'promise',

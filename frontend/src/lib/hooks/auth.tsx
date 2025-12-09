@@ -164,6 +164,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setLoading(false);
     };
+    
+    // Fonction pour détecter les erreurs réseau
+    const isNetworkError = (error: any) => {
+      return error.message?.includes('fetch') || 
+             error.message?.includes('network') ||
+             error.message?.includes('ECONNREFUSED') || 
+             error.message?.includes('timeout') ||
+             error.code === 'NETWORK_ERROR' ||
+             !error.response; // Pas de réponse = erreur réseau
+    };
 
     // Vérifier que l'URL de l'API est définie
     if (!process.env.NEXT_PUBLIC_API_URL) {
@@ -207,39 +217,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: any) {
         console.error(`Erreur lors du chargement du profil (tentative ${retryCount + 1}/${maxRetries}):`, error);
 
-        // Erreurs d'authentification - pas de retry
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.warn('Session expirée ou non autorisée');
-          clearAuthData();
-          return;
+        // Erreurs d'authentification - seulement si c'est vraiment une erreur 401/403
+        // ET que ce n'est pas une erreur réseau
+        if ((error.response?.status === 401 || error.response?.status === 403) && !isNetworkError(error)) {
+          console.warn('Session expirée ou non autorisée (erreur serveur confirmée)');
+          // Nettoyer seulement après toutes les tentatives
+          if (retryCount >= maxRetries - 1) {
+            clearAuthData();
+            return;
+          }
         }
 
-        // Erreurs de validation
-        if (error.response?.status === 400) {
+        // Erreurs de validation - seulement si ce n'est pas une erreur réseau
+        if (error.response?.status === 400 && !isNetworkError(error)) {
           console.error('Erreur de validation des données du profil');
-          clearAuthData();
-          return;
+          // Ne pas nettoyer pour une erreur 400, peut-être juste un problème temporaire
+          if (retryCount >= maxRetries - 1) {
+            setLoading(false);
+            return;
+          }
         }
 
         // Erreurs réseau - retry avec backoff exponentiel
-        const isNetworkError = error.message?.includes('fetch') || 
-                             error.message?.includes('network') ||
-                             error.message?.includes('ECONNREFUSED') || 
-                             error.message?.includes('timeout') ||
-                             error.code === 'NETWORK_ERROR';
-
-        if (isNetworkError && retryCount < maxRetries - 1) {
+        if (isNetworkError(error) && retryCount < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
-          console.log(`⏳ Nouvelle tentative dans ${delay}ms...`);
+          console.log(`⏳ Erreur réseau, nouvelle tentative dans ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           retryCount++;
           continue;
         }
 
-        // Si on arrive ici, toutes les tentatives ont échoué ou ce n'est pas une erreur réseau
-        console.error('Échec du chargement du profil après plusieurs tentatives');
-        clearAuthData();
-        return;
+        // Si on arrive ici, toutes les tentatives ont échoué
+        // Si c'est une erreur réseau, ne pas nettoyer le token (peut être temporaire)
+        if (isNetworkError(error)) {
+          console.warn('⚠️ Erreur réseau persistante, mais on garde le token pour réessayer plus tard');
+          setLoading(false);
+          return;
+        }
+
+        // Pour les autres erreurs, nettoyer seulement après toutes les tentatives
+        if (retryCount >= maxRetries - 1) {
+          console.error('Échec du chargement du profil après plusieurs tentatives');
+          clearAuthData();
+          return;
+        }
+        
+        // Sinon, continuer les tentatives
+        retryCount++;
+        continue;
       }
     }
   };

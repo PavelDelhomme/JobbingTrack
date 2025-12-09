@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
+import { cacheManager } from '@/lib/cache/cacheManager'
 import { 
   Settings, 
   BarChart3, 
@@ -411,8 +412,16 @@ export default function StatisticsPage() {
         setInitialLoadDone(true)
       }
 
-      // 2. Ensuite récupérer les métriques en temps réel
-      const metrics = await centralMetricsService.fetchMetrics()
+      // 2. Récupérer les métriques en temps réel avec cache
+      const cacheKey = `statistics_metrics_${customization.timeRange}`
+      let metrics = await cacheManager.get(cacheKey, { ttl: 10000 }) // Cache 10 secondes
+      
+      if (!metrics) {
+        metrics = await centralMetricsService.fetchMetrics()
+        if (metrics) {
+          await cacheManager.set(cacheKey, metrics, { ttl: 10000 })
+        }
+      }
       
       // Récupérer les stats sur une période
       const timeRangeMs = getTimeRangeMs()
@@ -467,13 +476,23 @@ export default function StatisticsPage() {
         })
       }
 
-      // ✅ Récupérer les vraies statistiques applicatives
+      // ✅ Récupérer les vraies statistiques applicatives avec cache
       let appStats: ApplicationStatistics | null = null
       try {
-        appStats = await statisticsService.getCurrentStatistics()
-        console.log('[STATISTICS] ✅ Statistiques applicatives récupérées:', appStats)
+        const appStatsCacheKey = 'statistics_app_stats'
+        appStats = await cacheManager.get<ApplicationStatistics>(appStatsCacheKey, { ttl: 30000 }) // Cache 30 secondes
+        
+        if (!appStats) {
+          appStats = await statisticsService.getCurrentStatistics()
+          if (appStats) {
+            await cacheManager.set(appStatsCacheKey, appStats, { ttl: 30000 })
+            console.log('[STATISTICS] ✅ Statistiques applicatives récupérées:', appStats)
+          }
+        }
       } catch (error) {
-        console.error('[STATISTICS] ⚠️ Erreur récupération stats applicatives:', error)
+        // Gérer silencieusement et utiliser le cache si disponible
+        const appStatsCacheKey = 'statistics_app_stats'
+        appStats = await cacheManager.get<ApplicationStatistics>(appStatsCacheKey) || null
       }
 
       // Calculer le temps de réponse moyen depuis les services

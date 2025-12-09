@@ -11,6 +11,7 @@ import {
   UserCustomization
 } from '@/lib/interfaces'
 import { formatServiceName, getServiceUrl, getServicePort } from '@/lib/utils/metricsUtils'
+import { cacheManager } from '@/lib/cache/cacheManager'
 
 class CentralMetricsService {
   private apiUrl: string

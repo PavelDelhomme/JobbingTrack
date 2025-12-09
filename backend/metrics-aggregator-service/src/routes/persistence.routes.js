@@ -389,12 +389,13 @@ router.get('/logs', async (req, res) => {
       data: logs || [],
     });
   } catch (error) {
-    console.error('[API] Erreur récupération logs:', error);
-    // Retourner un tableau vide plutôt qu'une erreur 500
-    res.json({
+    // Ne jamais retourner 500, toujours retourner 200 avec un tableau vide
+    console.warn('[API] Erreur récupération logs (retour tableau vide):', error.message);
+    res.status(200).json({
       success: true,
       count: 0,
       data: [],
+      cached: false,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
