@@ -11,7 +11,7 @@ const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://local
 export default function APITesterPage() {
   const { token } = useAuth();
   const [method, setMethod] = useState('GET');
-  const [endpoint, setEndpoint] = useState(`${API_GATEWAY_URL}/api/v1/`);
+  const [endpoint, setEndpoint] = useState(`${API_GATEWAY_URL}/api/v1/health`);
   const [headers, setHeaders] = useState('{\n  "Authorization": "Bearer YOUR_TOKEN",\n  "Content-Type": "application/json"\n}');
   const [body, setBody] = useState('{\n  \n}');
   const [response, setResponse] = useState<any>(null);
@@ -46,16 +46,46 @@ export default function APITesterPage() {
       setLoading(true);
       setResponse(null);
       
+      // Validation de l'endpoint
+      if (!endpoint || endpoint.trim() === '') {
+        setResponse({
+          error: true,
+          message: 'Veuillez saisir un endpoint valide',
+          status: 400,
+        });
+        return;
+      }
+      
+      // Vérifier que l'endpoint ne se termine pas par un slash seul (sauf si c'est la racine)
+      let cleanEndpoint = endpoint.trim();
+      if (cleanEndpoint.endsWith('/api/v1/') || cleanEndpoint.endsWith('/api/v1')) {
+        setResponse({
+          error: true,
+          message: 'Endpoint incomplet. Veuillez spécifier une ressource (ex: /api/v1/health, /api/v1/users)',
+          status: 400,
+        });
+        return;
+      }
+      
       const parsedHeaders = headers ? JSON.parse(headers) : {};
       
       const config: any = {
         method,
-        url: endpoint,
+        url: cleanEndpoint,
         headers: parsedHeaders,
       };
       
       if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
-        config.data = JSON.parse(body);
+        try {
+          config.data = JSON.parse(body);
+        } catch (e) {
+          setResponse({
+            error: true,
+            message: 'Body JSON invalide',
+            status: 400,
+          });
+          return;
+        }
       }
       
       const result = await axios(config);
@@ -85,6 +115,7 @@ export default function APITesterPage() {
   };
 
   const quickEndpoints = [
+    { label: 'Health Check', value: `${API_GATEWAY_URL}/api/v1/health` },
     { label: 'Utilisateurs', value: `${API_GATEWAY_URL}/api/v1/users` },
     { label: 'Applications', value: `${API_GATEWAY_URL}/api/v1/applications` },
     { label: 'Entreprises', value: `${API_GATEWAY_URL}/api/v1/companies` },

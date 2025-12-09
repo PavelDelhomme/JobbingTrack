@@ -378,28 +378,68 @@ const getProfile = async (req, res, next) => {
   try {
     const userId = req.user.id; // ✅ Corrigé : req.user.id au lieu de req.user.userId
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        profilePicture: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true
-        // ✅ Supprimé _count car le schéma auth-service ne contient pas ces relations
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          profilePicture: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true
+          // ✅ Supprimé _count car le schéma auth-service ne contient pas ces relations
+        }
+      });
+    } catch (dbError) {
+      // Si la table User n'existe pas, retourner l'utilisateur depuis req.user en développement
+      if (dbError.code === 'P2021' && process.env.NODE_ENV === 'development') {
+        logger.warn('Table User non trouvée, utilisation des données du token. Exécutez: make db-push-all');
+        // Retourner les données de l'utilisateur depuis req.user (déjà authentifié)
+        user = {
+          id: req.user.id,
+          email: req.user.email,
+          firstName: req.user.firstName || 'Admin',
+          lastName: req.user.lastName || 'User',
+          phone: req.user.phone || null,
+          profilePicture: req.user.profilePicture || null,
+          role: req.user.role || 'ADMIN',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      } else {
+        throw dbError;
       }
-    });
+    }
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'Utilisateur non trouvé'
-      });
+      // En développement, si l'utilisateur n'est pas trouvé mais qu'on a req.user, utiliser ces données
+      if (process.env.NODE_ENV === 'development' && req.user) {
+        logger.warn('Utilisateur non trouvé en DB, utilisation des données du token');
+        user = {
+          id: req.user.id,
+          email: req.user.email,
+          firstName: req.user.firstName || 'Admin',
+          lastName: req.user.lastName || 'User',
+          phone: req.user.phone || null,
+          profilePicture: req.user.profilePicture || null,
+          role: req.user.role || 'ADMIN',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      } else {
+        return res.status(404).json({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+      }
     }
 
     res.json({

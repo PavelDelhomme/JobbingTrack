@@ -8,8 +8,13 @@ export function middleware(request: NextRequest) {
                 request.headers.get('Authorization')?.replace('Bearer ', '')
 
   // Rediriger les utilisateurs connectés depuis la page de login vers le backoffice
+  // Mais seulement si le token est valide (format JWT ou mock en dev)
   if (request.nextUrl.pathname === '/login' && token) {
-    return NextResponse.redirect(new URL('/backoffice', request.url))
+    // Vérifier que le token a un format valide (JWT ou mock)
+    const isValidToken = token.includes('.') || (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token'));
+    if (isValidToken) {
+      return NextResponse.redirect(new URL('/backoffice', request.url))
+    }
   }
 
   // Routes protégées du backoffice

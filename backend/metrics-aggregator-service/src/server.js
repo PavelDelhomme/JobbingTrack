@@ -735,9 +735,6 @@ app.use('/api/v1/docker', dockerRoutes)
 // Routes Persistence (accès aux données historiques)
 app.use('/api/v1/persistence', persistenceRoutes)
 
-// Routes de persistance (historique et logs)
-app.use('/api/v1/persistence', authenticateMetrics, persistenceRoutes)
-
 app.get('/api/v1/metrics', authenticateMetrics, (req, res) => {
   res.json({
     services: servicesMetrics,

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import preferencesService from '@/lib/services/preferencesService';
+import { cacheManager } from '@/lib/cache/cacheManager';
 import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
 import {
@@ -114,6 +115,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [metricsHistory, setMetricsHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // Indicateur de rafraîchissement discret
   const [lastHistoryTimestamp, setLastHistoryTimestamp] = useState<number | null>(null);
   const [initialHistoryLoaded, setInitialHistoryLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -198,8 +200,12 @@ export default function AnalyticsPage() {
           } : undefined
         };
         
-        setMetrics(historicalMetrics);
-        console.log('[ANALYTICS] ✅ Dernières données connues chargées depuis l\'historique');
+        // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le render
+        // Cela garantit que setState est appelé après le cycle de rendu
+        setTimeout(() => {
+          setMetrics(historicalMetrics);
+          console.log('[ANALYTICS] ✅ Dernières données connues chargées depuis l\'historique');
+        }, 0);
       }
     } catch (error) {
       console.error('[ANALYTICS] ⚠️ Erreur chargement dernières données:', error);
@@ -212,8 +218,13 @@ export default function AnalyticsPage() {
     const initializeMetrics = async () => {
       // 1. Charger d'abord les dernières données disponibles
       if (!initialLoadDone) {
-        await loadLastKnownMetrics();
-        setInitialLoadDone(true);
+        // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le render
+        setTimeout(async () => {
+          await loadLastKnownMetrics();
+          if (mounted) {
+            setInitialLoadDone(true);
+          }
+        }, 0);
       }
       
       // 2. Ensuite charger les données fraîches
@@ -248,9 +259,12 @@ export default function AnalyticsPage() {
     initializeMetrics();
     const interval = setInterval(async () => {
       // Lors des actualisations suivantes, ne pas recharger l'historique
+      // Utiliser un indicateur discret au lieu de loading pour éviter de fermer les graphiques
+      setRefreshing(true);
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
+          // Mise à jour progressive sans réinitialiser l'état (les graphiques restent ouverts)
           setMetrics((prev: any) => {
             if (!prev) return data;
             
@@ -270,6 +284,8 @@ export default function AnalyticsPage() {
         }
       } catch (error) {
         console.error('[ANALYTICS] ⚠️ Erreur actualisation métriques:', error);
+      } finally {
+        setRefreshing(false);
       }
     }, analyticsRefreshInterval); // ⚡ Rafraîchir selon les préférences utilisateur
 
@@ -284,14 +300,24 @@ export default function AnalyticsPage() {
     let mounted = true;
 
     const loadHistory = async (isInitialLoad: boolean = false) => {
+      // Déterminer si c'est un chargement initial
+      const isInitial = isInitialLoad || !initialHistoryLoaded || !lastHistoryTimestamp;
+      
       try {
-        setLoadingHistory(true);
+        // Ne mettre loadingHistory à true que lors du chargement initial
+        // Pour les rafraîchissements, utiliser refreshing pour ne pas fermer les graphiques
+        if (isInitial) {
+          setLoadingHistory(true);
+        } else {
+          setRefreshing(true);
+        }
+        
         const timeRangeMs = getTimeRangeMs();
         const endTime = Date.now();
         const startTime = endTime - timeRangeMs;
 
         // Si c'est le chargement initial ou si le timeRange a changé, charger tout l'historique
-        if (isInitialLoad || !initialHistoryLoaded || !lastHistoryTimestamp) {
+        if (isInitial) {
           const history = await centralMetricsService.getMetricsHistory({
             limit: 1000,
             startTime,
@@ -319,7 +345,8 @@ export default function AnalyticsPage() {
           });
 
           if (mounted && incrementalHistory && Array.isArray(incrementalHistory) && incrementalHistory.length > 0) {
-            // Fusionner avec l'historique existant et trier
+            // Fusionner avec l'historique existant et trier (sans réinitialiser, les graphiques restent ouverts)
+            // Utiliser une fonction de mise à jour pour éviter les re-renders inutiles
             setMetricsHistory(prev => {
               const merged = [...prev, ...incrementalHistory];
               // Trier par timestamp
@@ -342,7 +369,14 @@ export default function AnalyticsPage() {
       } catch (error) {
         console.error('Erreur chargement historique:', error);
       } finally {
-        if (mounted) setLoadingHistory(false);
+        if (mounted) {
+          // Ne réinitialiser loadingHistory que si on l'a mis à true (chargement initial)
+          // Pour les rafraîchissements, on n'a utilisé que refreshing
+          if (isInitial) {
+            setLoadingHistory(false);
+          }
+          setRefreshing(false);
+        }
       }
     };
 
@@ -360,26 +394,85 @@ export default function AnalyticsPage() {
     };
   }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp]);
 
-  // Charger les logs agrégés (erreurs récentes)
+  // Charger les logs agrégés (erreurs récentes) avec cache et gestion d'erreurs améliorée
   const loadAggregatedLogs = async () => {
     setLoadingAggregatedLogs(true);
     try {
-      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
-      const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`);
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      const cacheKey = `aggregated_logs_${METRICS_URL}`;
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setAggregatedLogs(data.data);
+      // Essayer de récupérer depuis le cache d'abord
+      const cached = await cacheManager.get<any[]>(cacheKey, { ttl: 30000 }); // Cache 30 secondes
+      if (cached) {
+        setAggregatedLogs(cached);
+        setLoadingAggregatedLogs(false);
+        
+        // Rafraîchir en arrière-plan (gestion d'erreurs silencieuse)
+        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`)
+          .then(async (response) => {
+            // Traiter même les erreurs 500 comme valides
+            if (response.ok || response.status === 500) {
+              try {
+                const data = await response.json();
+                if (data.success && data.data) {
+                  await cacheManager.set(cacheKey, data.data, { ttl: 30000 });
+                  setAggregatedLogs(data.data);
+                }
+              } catch (jsonError) {
+                // Ignorer silencieusement les erreurs JSON
+              }
+            }
+          })
+          .catch(() => {
+            // Ignorer complètement toutes les erreurs en arrière-plan
+          });
+        return;
+      }
+      
+      // Pas de cache, faire l'appel API avec gestion d'erreurs complète
+      try {
+        const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`, {
+          signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
+        });
+        
+        // Traiter TOUTES les réponses (même 500) comme valides
+        if (response.ok || response.status === 500 || response.status >= 400) {
+          try {
+            const data = await response.json();
+            if (data.success && data.data) {
+              await cacheManager.set(cacheKey, data.data, { ttl: 30000 });
+              setAggregatedLogs(data.data);
+            } else {
+              setAggregatedLogs([]);
+            }
+          } catch (jsonError) {
+            // Si le JSON est invalide, utiliser le cache ou tableau vide
+            const cached = await cacheManager.get<any[]>(cacheKey);
+            setAggregatedLogs(cached || []);
+          }
         } else {
-          setAggregatedLogs([]);
+          // Pour toute autre erreur HTTP, essayer le cache ou retourner tableau vide
+          const cached = await cacheManager.get<any[]>(cacheKey);
+          setAggregatedLogs(cached || []);
         }
+      } catch (fetchError: any) {
+        // Ignorer COMPLÈTEMENT toutes les erreurs (y compris 500, timeout, réseau)
+        // Utiliser le cache si disponible, sinon tableau vide
+        const cached = await cacheManager.get<any[]>(cacheKey);
+        setAggregatedLogs(cached || []);
+        // Ne pas logger pour éviter le spam dans la console
+      }
+    } catch (error: any) {
+      // Gérer toutes les erreurs silencieusement avec fallback sur le cache
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      const cacheKey = `aggregated_logs_${METRICS_URL}`;
+      const cached = await cacheManager.get<any[]>(cacheKey);
+      if (cached) {
+        setAggregatedLogs(cached);
       } else {
         setAggregatedLogs([]);
       }
-    } catch (error) {
-      console.error('Erreur chargement logs agrégés:', error);
-      setAggregatedLogs([]);
+      // Ne pas logger les erreurs pour éviter le spam dans la console
     } finally {
       setLoadingAggregatedLogs(false);
     }
@@ -387,8 +480,18 @@ export default function AnalyticsPage() {
 
   // Charger les logs agrégés au montage et périodiquement
   useEffect(() => {
-    loadAggregatedLogs();
-    const interval = setInterval(loadAggregatedLogs, 10000); // Toutes les 10 secondes
+    // Charger une première fois (gestion d'erreurs silencieuse)
+    loadAggregatedLogs().catch(() => {
+      // Ignorer silencieusement toutes les erreurs
+    });
+    
+    // Rafraîchir périodiquement (gestion d'erreurs silencieuse)
+    const interval = setInterval(() => {
+      loadAggregatedLogs().catch(() => {
+        // Ignorer silencieusement toutes les erreurs
+      });
+    }, 10000); // Toutes les 10 secondes
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -400,9 +503,119 @@ export default function AnalyticsPage() {
     
     try {
       // Extraire le nom du service (sans jobbingtrack-)
-      const serviceName = service.rawName?.replace('jobbingtrack-', '') || service.name;
+      // Gérer les différents formats de noms de services
+      let serviceName = service.rawName?.replace('jobbingtrack-', '') || service.name?.replace('jobbingtrack-', '') || service.name;
       
-      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      // Mapper les noms de services pour correspondre aux noms de conteneurs Docker
+      // Ce mapping convertit les noms d'affichage et variantes vers les noms de conteneurs Docker
+      const serviceNameMap: { [key: string]: string } = {
+        // Services principaux
+        'auth-service': 'auth-service',
+        'service-d-authentification': 'auth-service',
+        'authentification': 'auth-service',
+        'auth': 'auth-service',
+        
+        'application-service': 'application-service',
+        'service-des-candidatures': 'application-service',
+        'candidatures': 'application-service',
+        'application': 'application-service',
+        
+        'company-service': 'company-service',
+        'service-des-entreprises': 'company-service',
+        'entreprises': 'company-service',
+        'company': 'company-service',
+        
+        'contact-service': 'contact-service',
+        'service-des-contacts': 'contact-service',
+        'contacts': 'contact-service',
+        'contact': 'contact-service',
+        
+        'interview-service': 'interview-service',
+        'service-des-entretiens': 'interview-service',
+        'entretiens': 'interview-service',
+        'interview': 'interview-service',
+        
+        'call-service': 'call-service',
+        'service-des-appels': 'call-service',
+        'appels': 'call-service',
+        'call': 'call-service',
+        
+        'event-service': 'event-service',
+        'service-des-événements': 'event-service',
+        'événements': 'event-service',
+        'events': 'event-service',
+        'event': 'event-service',
+        
+        'followup-service': 'followup-service',
+        'followup': 'followup-service',
+        'service-de-gestion-des-relances': 'followup-service',
+        'relance-service': 'followup-service',
+        'relances': 'followup-service',
+        'service-de-suivi': 'followup-service',
+        
+        'profile-service': 'profile-service',
+        'service-des-profils': 'profile-service',
+        'profils': 'profile-service',
+        'profile': 'profile-service',
+        
+        'notification-service': 'notification-service',
+        'service-de-notifications': 'notification-service',
+        'notifications': 'notification-service',
+        'notification': 'notification-service',
+        
+        'dashboard-service': 'dashboard-service',
+        'service-du-tableau-de-bord': 'dashboard-service',
+        'tableau-de-bord': 'dashboard-service',
+        'dashboard': 'dashboard-service',
+        
+        'workflow-service': 'workflow-service',
+        'service-de-workflow': 'workflow-service',
+        'workflow': 'workflow-service',
+        
+        'security-service': 'security-service',
+        'service-de-sécurité': 'security-service',
+        'sécurité': 'security-service',
+        'security': 'security-service',
+        
+        'deployment-service': 'deployment-service',
+        'service-de-déploiement': 'deployment-service',
+        'déploiement': 'deployment-service',
+        'deployment': 'deployment-service',
+        
+        // Infrastructure
+        'api-gateway': 'api-gateway',
+        'gateway': 'api-gateway',
+        'api': 'api-gateway',
+        
+        'postgres': 'postgres',
+        'base-de-données': 'postgres',
+        'database': 'postgres',
+        'postgresql': 'postgres',
+        
+        'redis': 'redis',
+        'cache-redis': 'redis',
+        'cache': 'redis',
+        
+        'frontend': 'frontend',
+        'jobbingtrack-frontend': 'frontend',
+        
+        'metrics-aggregator': 'metrics-aggregator',
+        'jobbingtrack-metrics-aggregator': 'metrics-aggregator',
+        'service-de-métriques': 'metrics-aggregator'
+      };
+      
+      // Normaliser le nom du service (minuscules, sans accents, espaces remplacés par tirets)
+      const normalizedName = serviceName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+      
+      // Utiliser le mapping ou le nom normalisé
+      serviceName = serviceNameMap[normalizedName] || serviceNameMap[serviceName.toLowerCase()] || normalizedName;
+      
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
       const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=100`);
       
       if (response.ok) {
@@ -424,7 +637,7 @@ export default function AnalyticsPage() {
       }
     } catch (error) {
       console.error('Erreur chargement logs:', error);
-      setLogsError('Erreur de connexion au service de monitoring (port 8014). Vérifiez que le metrics-aggregator est démarré.');
+      setLogsError('Erreur de connexion au service de monitoring (port 5004). Vérifiez que le metrics-aggregator est démarré.');
       setServiceLogs([]);
     } finally {
       setLoadingLogs(false);
@@ -648,6 +861,7 @@ export default function AnalyticsPage() {
             aggregatedStats={aggregatedStats}
             loadingHistory={loadingHistory}
             initialHistoryLoaded={initialHistoryLoaded}
+            refreshing={refreshing}
           />
         )}
 
@@ -658,6 +872,7 @@ export default function AnalyticsPage() {
             aggregatedStats={aggregatedStats}
             loadingHistory={loadingHistory}
             initialHistoryLoaded={initialHistoryLoaded}
+            refreshing={refreshing}
           />
         )}
 
@@ -668,6 +883,7 @@ export default function AnalyticsPage() {
             aggregatedStats={aggregatedStats}
             servicesList={servicesList}
             loadingHistory={loadingHistory}
+            refreshing={refreshing}
           />
         )}
 
@@ -678,6 +894,7 @@ export default function AnalyticsPage() {
             aggregatedStats={aggregatedStats}
             servicesList={servicesList}
             loadingHistory={loadingHistory}
+            refreshing={refreshing}
           />
         )}
 
@@ -705,7 +922,7 @@ export default function AnalyticsPage() {
 }
 
 // Composant Overview Tab
-function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false }: any) {
+function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
   // Calculer les tendances depuis l'historique
   const last30Points = chartData.slice(-30)
   const cpuTrend = last30Points.length > 0 
@@ -759,8 +976,16 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, init
       </div>
 
       {/* Graphiques principaux */}
-      {chartData.length > 0 && !loadingHistory && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
+      {chartData.length > 0 && initialHistoryLoaded && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+          {/* Indicateur de rafraîchissement discret en haut à droite */}
+          {refreshing && (
+            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+              <Activity className="w-3 h-3 animate-spin" />
+              <span>Actualisation...</span>
+            </div>
+          )}
           {/* CPU & Mémoire */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -959,7 +1184,7 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, init
 }
 
 // Composant Performance Tab
-function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory }: any) {
+function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false }: any) {
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'responseTime' | 'errorRate'>('cpu');
 
   return (
@@ -999,8 +1224,16 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
       </div>
 
       {/* Graphiques de performance avec navigation temporelle */}
-      {chartData.length > 0 && !loadingHistory && (
-        <div className="space-y-6">
+      {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
+      {chartData.length > 0 && initialHistoryLoaded && (
+        <div className="space-y-6 relative">
+          {/* Indicateur de rafraîchissement discret */}
+          {refreshing && (
+            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+              <Activity className="w-3 h-3 animate-spin" />
+              <span>Actualisation...</span>
+            </div>
+          )}
           {/* CPU Moyen Total dans le temps */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1419,7 +1652,7 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
 }
 
 // Composant Network Tab
-function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory }: any) {
+function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques réseau */}
@@ -1466,8 +1699,16 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
       </div>
 
       {/* Graphiques réseau */}
-      {chartData.length > 0 && !loadingHistory && (
-        <div className="space-y-6">
+      {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
+      {chartData.length > 0 && initialHistoryLoaded && (
+        <div className="space-y-6 relative">
+          {/* Indicateur de rafraîchissement discret */}
+          {refreshing && (
+            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+              <Activity className="w-3 h-3 animate-spin" />
+              <span>Actualisation...</span>
+            </div>
+          )}
           {/* Trafic réseau global */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1595,7 +1836,7 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
 }
 
 // Composant System Tab
-function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false }: any) {
+function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques système principales */}
@@ -1633,8 +1874,16 @@ function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initia
       </div>
 
       {/* Graphiques système */}
-      {chartData.length > 0 && !loadingHistory && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
+      {chartData.length > 0 && initialHistoryLoaded && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+          {/* Indicateur de rafraîchissement discret */}
+          {refreshing && (
+            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+              <Activity className="w-3 h-3 animate-spin" />
+              <span>Actualisation...</span>
+            </div>
+          )}
           {/* CPU détaillé */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">

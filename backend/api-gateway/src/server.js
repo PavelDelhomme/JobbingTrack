@@ -17,55 +17,60 @@ const PORT = process.env.PORT || 3000;
 
 // Configuration CORS simple
 app.use(cors({
-  origin: [
-    // Développement local (prioritaires)
-    'http://localhost:5003',  // Frontend (nouveau port)
-    'http://localhost:5002',  // API Gateway (nouveau port)
-    'http://localhost:5005',  // Auth Service (nouveau port)
-    'http://localhost:5000',  // PostgreSQL (nouveau port)
-    'http://localhost:5001',  // Redis (nouveau port)
-    'http://localhost:5004',  // Metrics Aggregator (nouveau port)
-    'http://localhost:8000',  // Frontend (ancien port)
-    'http://localhost:8080',  // Frontend (port Next.js dev)
-    'http://localhost:3000',  // API Gateway (ancien port)
-    'http://localhost:8081',  // cAdvisor
-    'http://localhost:8082',  // Metrics Aggregator (ancien)
-    'http://localhost:8083',  // Grafana
-    'http://localhost:8084',  // Node Exporter
-    'http://localhost:8085',  // Alertmanager
-    'http://localhost:8086',  // Blackbox Exporter
-    'http://127.0.0.1:5003',
-    'http://127.0.0.1:5002',
-    'http://127.0.0.1:5005',
-    'http://127.0.0.1:5000',
-    'http://127.0.0.1:5001',
-    'http://127.0.0.1:5004',
-    'http://127.0.0.1:8000',
-    'http://127.0.0.1:8080',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:8081',
-    'http://127.0.0.1:8082',
-    'http://127.0.0.1:8083',
-    'http://127.0.0.1:8084',
-    'http://127.0.0.1:8085',
-    'http://127.0.0.1:8086',
-    // IPv6 localhost
-    'http://[::1]:5003',
-    'http://[::1]:5002',
-    'http://[::1]:5005',
-    'http://[::1]:5000',
-    'http://[::1]:5001',
-    'http://[::1]:5004',
-    'http://[::1]:8000',
-    'http://[::1]:8080',
-    'http://[::1]:3000',
-    'http://[::1]:8081',
-    'http://[::1]:8082',
-    'http://[::1]:8083',
-    'http://[::1]:8084',
-    'http://[::1]:8085',
-    // Services Docker
-    'http://frontend:3000',
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Liste des origines autorisées
+    const allowedOrigins = [
+      // Développement local (prioritaires)
+      'http://localhost:5003',  // Frontend (nouveau port)
+      'http://localhost:5002',  // API Gateway (nouveau port)
+      'http://localhost:5005',  // Auth Service (nouveau port)
+      'http://localhost:5000',  // PostgreSQL (nouveau port)
+      'http://localhost:5001',  // Redis (nouveau port)
+      'http://localhost:5004',  // Metrics Aggregator (nouveau port)
+      'http://localhost:8000',  // Frontend (ancien port)
+      'http://localhost:8080',  // Frontend (port Next.js dev)
+      'http://localhost:3000',  // API Gateway (ancien port)
+      'http://localhost:8081',  // cAdvisor
+      'http://localhost:8082',  // Metrics Aggregator (ancien)
+      'http://localhost:8083',  // Grafana
+      'http://localhost:8084',  // Node Exporter
+      'http://localhost:8085',  // Alertmanager
+      'http://localhost:8086',  // Blackbox Exporter
+      'http://127.0.0.1:5003',
+      'http://127.0.0.1:5002',
+      'http://127.0.0.1:5005',
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:5001',
+      'http://127.0.0.1:5004',
+      'http://127.0.0.1:8000',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:8081',
+      'http://127.0.0.1:8082',
+      'http://127.0.0.1:8083',
+      'http://127.0.0.1:8084',
+      'http://127.0.0.1:8085',
+      'http://127.0.0.1:8086',
+      // IPv6 localhost
+      'http://[::1]:5003',
+      'http://[::1]:5002',
+      'http://[::1]:5005',
+      'http://[::1]:5000',
+      'http://[::1]:5001',
+      'http://[::1]:5004',
+      'http://[::1]:8000',
+      'http://[::1]:8080',
+      'http://[::1]:3000',
+      'http://[::1]:8081',
+      'http://[::1]:8082',
+      'http://[::1]:8083',
+      'http://[::1]:8084',
+      'http://[::1]:8085',
+      // Services Docker
+      'http://frontend:3000',
     'http://api-gateway:3000',
     'http://cadvisor:8080',
     'http://jobbingtrack-metrics-aggregator:3014',
@@ -82,7 +87,17 @@ app.use(cors({
     'http://event-service:3011',
     'http://followup-service:3012',
     'http://workflow-service:3013'
-  ],
+    ];
+    
+    // Autoriser les IPs locales du réseau (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const localNetworkPattern = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
+    
+    if (allowedOrigins.includes(origin) || localNetworkPattern.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [

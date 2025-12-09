@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuth()
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // ✅ État pour la sidebar mobile
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop (visible par défaut)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false) // ✅ État pour le dropdown du thème
@@ -60,6 +60,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setExpandedSections(JSON.parse(savedSections))
       } catch (error) {
         console.error('Erreur chargement état sections:', error)
+      }
+    }
+  }, [])
+
+  // ✅ Charger l'état du drawer depuis localStorage au démarrage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('sidebarCollapsed')
+      if (savedState !== null) {
+        setIsSidebarCollapsed(savedState === 'true')
+      } else {
+        // Par défaut, le drawer est visible sur desktop (false = visible)
+        setIsSidebarCollapsed(false)
+        localStorage.setItem('sidebarCollapsed', 'false')
       }
     }
   }, [])
@@ -178,7 +192,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
         { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
         { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
-        { name: 'Parcours Utilisateur', href: '/backoffice/user-journey', icon: '🚶' },
+        { 
+          name: 'Parcours Utilisateur', 
+          href: '/backoffice/user-journey', 
+          icon: '🚶',
+          subItems: [
+            { name: 'Parcours Prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
+            { name: 'Parcours Personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
+          ]
+        },
         { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
       ]
     },
@@ -250,10 +272,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className={`
           fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 flex flex-col shadow-xl border-r border-gray-200 dark:border-gray-800 z-50 transform transition-all duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isSidebarCollapsed ? 'lg:-translate-x-full' : ''}
+          ${isSidebarCollapsed ? 'lg:-translate-x-full lg:pointer-events-none lg:opacity-0' : 'lg:pointer-events-auto lg:opacity-100'}
         `}>
           {/* Logo avec bouton de fermeture sur mobile */}
-          <div className="flex h-16 items-center justify-between px-4 lg:justify-center bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex h-16 items-center justify-between px-4 bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
             <Link href="/backoffice" className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
               🎯 JobbingTrack
             </Link>
@@ -488,22 +510,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </svg>
               </button>
               
-              {/* ✅ Bouton pour cacher/afficher le drawer sur desktop */}
+              {/* ✅ Bouton toggle pour afficher/masquer le drawer sur desktop - TOUJOURS VISIBLE */}
               <button
                 onClick={() => {
                   const newState = !isSidebarCollapsed
                   setIsSidebarCollapsed(newState)
                   localStorage.setItem('sidebarCollapsed', String(newState))
                 }}
-                className="hidden lg:flex text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
+                className="hidden lg:flex items-center justify-center w-10 h-10 text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0 border border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 shadow-sm hover:shadow-md"
                 aria-label="Toggle sidebar"
-                title={isSidebarCollapsed ? "Afficher le menu" : "Masquer le menu"}
+                title={isSidebarCollapsed ? "Afficher le menu de navigation" : "Masquer le menu de navigation"}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   {isSidebarCollapsed ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                   ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   )}
                 </svg>
               </button>

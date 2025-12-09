@@ -1,26 +1,39 @@
 import axios, { AxiosResponse } from 'axios';
 import { FRONTEND_URLS } from '@/config/ports.config';
+import { cacheManager } from '@/lib/cache/cacheManager';
 
 const API_BASE_URL = FRONTEND_URLS.api;
 
-// Cache simple pour éviter les requêtes dupliquées
+// Cache simple pour éviter les requêtes dupliquées en cours
 const requestCache = new Map<string, Promise<any>>();
 const cacheTimeout = 3000; // 3 secondes de cache
 
-// Fonction utilitaire pour créer des requêtes avec cache
-const cachedRequest = <T>(key: string, requestFn: () => Promise<T>): Promise<T> => {
-    // Vérifier si une requête identique est déjà en cours
+// Fonction utilitaire pour créer des requêtes avec cache optimisé
+const cachedRequest = async <T>(key: string, requestFn: () => Promise<T>, ttl: number = 60000): Promise<T> => {
+    // 1. Vérifier le cache persistant d'abord
+    const cached = await cacheManager.get<T>(key, { ttl });
+    if (cached !== null) {
+        return cached;
+    }
+
+    // 2. Vérifier si une requête identique est déjà en cours
     if (requestCache.has(key)) {
         return requestCache.get(key)!;
     }
 
-    // Créer la requête et la mettre en cache
-    const promise = requestFn().finally(() => {
-        // Nettoyer le cache après un délai
-        setTimeout(() => {
-            requestCache.delete(key);
-        }, cacheTimeout);
-    });
+    // 3. Créer la requête et la mettre en cache
+    const promise = requestFn()
+        .then(async (data) => {
+            // Mettre en cache persistant
+            await cacheManager.set(key, data, { ttl });
+            return data;
+        })
+        .finally(() => {
+            // Nettoyer le cache de requêtes en cours après un délai
+            setTimeout(() => {
+                requestCache.delete(key);
+            }, cacheTimeout);
+        });
 
     requestCache.set(key, promise);
     return promise;
