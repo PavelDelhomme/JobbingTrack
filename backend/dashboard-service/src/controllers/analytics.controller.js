@@ -84,8 +84,8 @@ class AnalyticsController {
       const { sessionId } = req.params;
       const { endTime, duration, pageViews, actions, errors } = req.body;
 
-      // Vérifier que la table existe
-      if (!prisma.userSession || typeof prisma.userSession.update !== 'function') {
+      // Vérifier que la table existe et que le Prisma Client est disponible
+      if (!prisma || !prisma.userSession || typeof prisma.userSession.update !== 'function') {
         if (process.env.NODE_ENV === 'development') {
           console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
           return res.json({
