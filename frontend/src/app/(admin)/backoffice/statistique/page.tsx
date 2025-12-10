@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo, Suspense, lazy } from 'react'
 import { AdminLayout } from '@/components/features'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useAuth } from '@/lib/hooks/auth'
@@ -273,9 +273,9 @@ export default function StatisticsPage() {
       const endTime = Date.now()
       const startTime = endTime - timeRangeMs
 
-      // Récupérer l'historique des métriques
+      // Récupérer l'historique des métriques (limité à 500 pour performance)
       const history = await centralMetricsService.getMetricsHistory({
-        limit: 1000,
+        limit: 500,
         startTime,
         endTime
       })
@@ -566,14 +566,27 @@ export default function StatisticsPage() {
     }
   }
 
-  // Préparer les données pour les graphiques
-  const prepareChartData = () => {
+  // Préparer les données pour les graphiques (memoizé pour performance)
+  const chartData = useMemo(() => {
+    if (!metricsHistory || metricsHistory.length === 0) return []
+    
     // Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
     const sortedHistory = [...metricsHistory].sort((a, b) => 
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
     
-    return sortedHistory.map(item => ({
+    // Sous-échantillonnage pour les grandes périodes (optimisation)
+    const maxPoints = customization.timeRange === '30d' ? 500 : 
+                      customization.timeRange === '7d' ? 300 : 
+                      customization.timeRange === '24h' ? 200 : 100
+    
+    let dataToUse = sortedHistory
+    if (sortedHistory.length > maxPoints) {
+      const step = Math.ceil(sortedHistory.length / maxPoints)
+      dataToUse = sortedHistory.filter((_, index) => index % step === 0)
+    }
+    
+    return dataToUse.map(item => ({
       time: formatTimestamp(item.timestamp),
       cpu: item.cpu_percent,
       memory: item.memory_percent,
@@ -584,7 +597,7 @@ export default function StatisticsPage() {
       availability: item.availability_percent,
       loadScore: item.load_score
     }))
-  }
+  }, [metricsHistory, customization.timeRange])
 
   // Loader uniquement au tout premier chargement
   if (authLoading || (loading && !stats)) {
@@ -770,8 +783,8 @@ export default function StatisticsPage() {
   )
 }
 
-// Composant Overview Tab
-function OverviewTab({ stats, previousStats, chartData, customization, router }: any) {
+// Composant Overview Tab (memoizé pour performance)
+const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData, customization, router }: any) {
   // Calculer les tendances en comparant avec les stats précédentes
   const usersTrend = previousStats 
     ? stats.users.total - (previousStats.users?.total || 0)
@@ -1113,7 +1126,7 @@ function OverviewTab({ stats, previousStats, chartData, customization, router }:
       )}
     </div>
   )
-}
+})
 
 // Composant System Tab
 function SystemTab({ stats, chartData, customization }: any) {
@@ -1830,7 +1843,7 @@ function NetworkTab({ stats, chartData, customization }: any) {
 }
 
 // Composant Security Tab
-function SecurityTab({ stats, chartData }: any) {
+const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques de sécurité */}
@@ -2022,10 +2035,10 @@ function SecurityTab({ stats, chartData }: any) {
       </div>
     </div>
   )
-}
+})
 
 // Composant Logs Tab
-function LogsTab({ serviceHistory, formatTimestamp }: any) {
+const LogsTab = memo(function LogsTab({ serviceHistory, formatTimestamp }: any) {
   // Statistiques d'erreurs par service
   const errorStatsByService = serviceHistory.reduce((acc: any, item: any) => {
     if (!acc[item.service]) {
