@@ -175,6 +175,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     
+    // Ne pas bloquer l'application si le token est invalide
+    if (!authToken || (!validateJwtToken(authToken) && !authToken.startsWith('mock-jwt-token'))) {
+      console.warn('⚠️ Token invalide dans loadUserProfile, nettoyage sans bloquer l\'application');
+      clearAuthData();
+      return;
+    }
+    
     // Fonction pour détecter les erreurs réseau
     const isNetworkError = (error: any) => {
       return error.message?.includes('fetch') || 
