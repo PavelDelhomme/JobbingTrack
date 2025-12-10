@@ -2,13 +2,13 @@
 
 [🏠 Retour au README principal](README.md) | 📜 [Historique détaillé](HISTORIQUE.md)
 
-**Dernière MAJ** : 2025-12-05  
+**Dernière MAJ** : 2025-12-10  
 **Version Projet** : v1.0.7 (BETA)  
 **Branche** : feat/security-audit-and-database-verification  
 **Tests User Journey** : ✅ 15/15 (100%) 🎉🎉🎉  
 **Vérification Email** : ✅ OPÉRATIONNEL 📧 (9 emails envoyés, 6 réussis)  
 **Configuration SMTP** : ✅ OVH jobbingtrack.com CONFIGURÉE (noreply@jobbingtrack.test)  
-**Base de Données** : ⚠️ Exécutez `make db-push-all` pour créer toutes les tables  
+**Base de Données** : ✅ 28 tables créées (Company, Application, User, Contact, Interview, user_sessions, device_infos, etc.)  
 **Système de Tests** : ✅ COMPLET (13 commandes make test-* avec rapports HTML/JSON)  
 **Système Gestion Emails** : 🟢 OPÉRATIONNEL (Dashboard, Email Monitor, Logs, Deliverability, Settings fonctionnels)  
 **Système Email Architecture** : ✅ PYTHON SERVICE IMPLÉMENTÉ (Service Python SMTP, Tracking, Logs complets)  
@@ -23,6 +23,61 @@
 ## 🎯 À FAIRE - PRIORITÉS
 
 ## ✅ TERMINÉ - ÉLÉMENTS COMPLÉTÉS
+
+### 🗄️🗄️🗄️ CORRECTION BASE DE DONNÉES - TABLES ANALYTICS ET PRINCIPALES (TERMINÉ - 2025-12-10)
+
+**Statut** : ✅ **TERMINÉ** (2025-12-10) - Toutes les tables créées et scripts d'initialisation créés
+
+**✅ Réalisations** :
+- ✅ Tables principales créées (28 tables au total) : Company, Application, User, Contact, Interview, Call, FollowUp, Event, etc.
+- ✅ Tables analytics créées (5 tables) : user_sessions, device_infos, user_events, user_errors, user_performances
+- ✅ Prisma Client généré correctement avec modèles camelCase (userSession, deviceInfo, userEvent, etc.)
+- ✅ Erreurs P2021 résolues pour Company, Application, User, Contact, Interview
+- ✅ Erreur "Cannot read properties of undefined (reading 'update')" corrigée dans analytics.controller.js
+- ✅ Scripts d'initialisation créés pour éviter les problèmes futurs :
+  - `scripts/db/init-all-tables.sh` - Initialise TOUTES les tables
+  - `scripts/db/setup-analytics-tables.sh` - Crée les tables analytics
+  - `scripts/db/fix-all-tables.sh` - Corrige toutes les tables
+- ✅ Service metrics-aggregator vérifié et fonctionnel (port 8014)
+- ✅ Dashboard-service ajouté à db-push-all dans Makefile
+
+**📋 Problèmes Résolus** :
+- ✅ Erreurs P2021 pour tables Company, Application, User, Contact, Interview
+- ✅ Erreurs P2021 pour tables analytics (user_sessions, device_infos, user_events, etc.)
+- ✅ Erreur "Cannot read properties of undefined (reading 'update')" dans updateSession
+- ✅ Prisma Client ne contenait pas les modèles analytics (userSession, deviceInfo, etc.)
+- ✅ Dashboard-service supprimait les tables des autres services lors de db push
+
+**🔧 Solutions Implémentées** :
+- ✅ Création manuelle des tables analytics avec SQL (car Prisma ne les créait pas automatiquement)
+- ✅ Synchronisation du schéma Prisma avec `prisma db pull` puis restauration du schéma original
+- ✅ Ordre de création des tables : tables principales d'abord, puis tables analytics
+- ✅ Gestion robuste des erreurs P2021 dans analytics.controller.js
+- ✅ Vérification de prisma.userSession avant utilisation dans updateSession
+
+**📊 État Final** :
+- ✅ 28 tables créées au total
+- ✅ 8 tables principales (Company, Application, User, Contact, Interview, Call, FollowUp, Event)
+- ✅ 5 tables analytics (user_sessions, device_infos, user_events, user_errors, user_performances)
+- ✅ 15 autres tables (Call, FollowUp, Event, security_logs, etc.)
+
+**📝 Fichiers Modifiés** :
+- `backend/dashboard-service/src/controllers/analytics.controller.js` - Gestion P2021 améliorée
+- `makefiles/database/Makefile` - dashboard-service ajouté à db-push-all
+- `scripts/db/init-all-tables.sh` - Script complet d'initialisation (nouveau)
+- `scripts/db/setup-analytics-tables.sh` - Script création tables analytics (nouveau)
+- `scripts/db/fix-all-tables.sh` - Script de correction (nouveau)
+
+**💡 Utilisation** :
+```bash
+# Pour initialiser toutes les tables
+./scripts/db/init-all-tables.sh
+
+# Pour créer uniquement les tables analytics
+./scripts/db/setup-analytics-tables.sh
+```
+
+---
 
 ### 🔒🔒🔒 AUDIT DE SÉCURITÉ ET VÉRIFICATION BASE DE DONNÉES (TERMINÉ - 2025-12-04)
 
