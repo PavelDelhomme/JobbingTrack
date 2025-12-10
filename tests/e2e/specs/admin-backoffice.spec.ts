@@ -5,18 +5,22 @@
 
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
+const ADMIN_EMAIL = 'admin@jobbingtrack.test';
+const ADMIN_PASSWORD = 'password123';
+
 test.describe('Backoffice Admin', () => {
   test.beforeEach(async ({ page }) => {
     // Aller à la page de login
-    await page.goto('http://localhost:8080/backoffice/login');
+    await page.goto(`${BASE_URL}/backoffice/login`);
 
     // Se connecter en tant qu'admin
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="email"]', ADMIN_EMAIL);
+    await page.fill('input[type="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
 
     // Attendre la redirection vers le dashboard
-    await page.waitForURL('http://localhost:8080/backoffice');
+    await page.waitForURL(`${BASE_URL}/backoffice`, { timeout: 10000 });
   });
 
   test('Dashboard admin accessible', async ({ page }) => {
@@ -42,7 +46,8 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Gestion des utilisateurs', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/users');
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
+    await page.goto(`${BASE_URL}/backoffice/users`);
 
     // Créer un nouvel utilisateur
     await page.click('button:has-text("Créer utilisateur")');
@@ -69,7 +74,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Gestion des entreprises', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/companies');
+    await page.goto('${BASE_URL}/backoffice/companies');
 
     // Créer une entreprise
     await page.click('button:has-text("Créer entreprise")');
@@ -92,7 +97,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Gestion des candidatures', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/applications');
+    await page.goto('${BASE_URL}/backoffice/applications');
 
     // Vérifier que les candidatures sont affichées
     await expect(page.locator('table')).toBeVisible();
@@ -106,7 +111,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Export de données', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/data-management');
+    await page.goto('${BASE_URL}/backoffice/data-management');
 
     // Sélectionner des tables à exporter
     await page.check('input[value="users"]');
@@ -123,7 +128,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Interface de test Playwright', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/playwright-tests');
+    await page.goto('${BASE_URL}/backoffice/playwright-tests');
 
     // Vérifier que l'interface de test est accessible
     await expect(page.locator('h1')).toContainText('Interface de Test');
@@ -139,7 +144,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Métriques système', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/analytics');
+    await page.goto('${BASE_URL}/backoffice/analytics');
 
     // Vérifier les métriques de base
     await expect(page.locator('[data-testid="cpu-usage"]')).toBeVisible();
@@ -155,7 +160,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Recherche globale', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/search');
+    await page.goto('${BASE_URL}/backoffice/search');
 
     // Test de la recherche
     await page.fill('input[placeholder*="Rechercher"]', 'admin');
@@ -167,7 +172,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Paramètres système', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/settings');
+    await page.goto('${BASE_URL}/backoffice/settings');
 
     // Test des paramètres
     await expect(page.locator('input[name="theme"]')).toBeVisible();
@@ -182,7 +187,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Gestion des rôles et permissions', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/users');
+    await page.goto('${BASE_URL}/backoffice/users');
 
     // Créer un utilisateur avec rôle spécifique
     await page.click('button:has-text("Créer utilisateur")');
@@ -196,14 +201,15 @@ test.describe('Backoffice Admin', () => {
     await expect(page.locator('tr:has-text("Manager User")')).toBeVisible();
 
     // Test des permissions
-    await page.goto('http://localhost:8080/backoffice/admin-only');
+    await page.goto('${BASE_URL}/backoffice/admin-only');
     await expect(page.locator('.permission-denied')).toBeVisible();
   });
 
   test('Test de performance', async ({ page }) => {
     const startTime = Date.now();
 
-    await page.goto('http://localhost:8080/backoffice');
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
+    await page.goto(`${BASE_URL}/backoffice`);
     await page.waitForLoadState('networkidle');
 
     const loadTime = Date.now() - startTime;
@@ -216,7 +222,8 @@ test.describe('Backoffice Admin', () => {
   test('Test de responsive design', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
 
-    await page.goto('http://localhost:8080/backoffice');
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
+    await page.goto(`${BASE_URL}/backoffice`);
 
     // Vérifier que le layout s'adapte
     await expect(page.locator('.mobile-menu')).toBeVisible();
@@ -224,7 +231,8 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Test d\'accessibilité', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice');
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003';
+    await page.goto(`${BASE_URL}/backoffice`);
 
     // Test des attributs d'accessibilité
     await expect(page.locator('button[aria-label]')).toBeVisible();
@@ -236,7 +244,7 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Test de sécurité - XSS', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/users');
+    await page.goto('${BASE_URL}/backoffice/users');
 
     // Tenter une injection XSS
     await page.click('button:has-text("Créer utilisateur")');
@@ -248,10 +256,10 @@ test.describe('Backoffice Admin', () => {
   });
 
   test('Test de sécurité - CSRF', async ({ page }) => {
-    await page.goto('http://localhost:8080/backoffice/settings');
+    await page.goto('${BASE_URL}/backoffice/settings');
 
     // Tenter une requête sans token CSRF
-    const response = await page.request.post('http://localhost:8080/api/settings', {
+    const response = await page.request.post('${BASE_URL}/api/settings', {
       data: { theme: 'dark' }
     });
 

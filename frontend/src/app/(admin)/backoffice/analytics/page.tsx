@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense, lazy } from 'react';
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import preferencesService from '@/lib/services/preferencesService';
 import { cacheManager } from '@/lib/cache/cacheManager';
 import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
+import { VirtualizedList } from './components/VirtualizedList';
 import {
   AlertTriangle,
   BarChart3,
@@ -68,6 +69,25 @@ const formatMs = (value?: number | null, decimals = 0) => {
 
 const formatMb = (value?: number | null, decimals = 2) => {
   if (value === undefined || value === null || Number.isNaN(value)) return 'N/A';
+  
+  // Conversion automatique selon la valeur
+  // Si >= 1000, on passe à l'unité supérieure
+  if (value >= 1000) {
+    // Convertir en GB
+    const gb = value / 1000;
+    if (gb >= 1000) {
+      // Convertir en TB
+      const tb = gb / 1000;
+      if (tb >= 1000) {
+        // Convertir en PB
+        const pb = tb / 1000;
+        return `${pb.toFixed(decimals)} PB`;
+      }
+      return `${tb.toFixed(decimals)} TB`;
+    }
+    return `${gb.toFixed(decimals)} GB`;
+  }
+  
   return `${value.toFixed(decimals)} MB`;
 };
 
@@ -185,49 +205,46 @@ export default function AnalyticsPage() {
           services: {},
           timestamp: lastMetric.timestamp || new Date().toISOString(),
           network: lastMetric.network_rx_mb || lastMetric.network_tx_mb ? {
-            totalRxMb: lastMetric.network_rx_mb || 0,
-            totalTxMb: lastMetric.network_tx_mb || 0,
-            totalMb: (lastMetric.network_rx_mb || 0) + (lastMetric.network_tx_mb || 0)
+            total_rx_mb: Number(lastMetric.network_rx_mb) || 0,
+            total_tx_mb: Number(lastMetric.network_tx_mb) || 0
           } : undefined,
           responseTime: lastMetric.response_time_avg ? {
-            avg: lastMetric.response_time_avg
+            average_ms: Number(lastMetric.response_time_avg)
           } : undefined,
           errors: lastMetric.error_rate ? {
-            rate: lastMetric.error_rate
+            rate_per_min: Number(lastMetric.error_rate)
           } : undefined,
           health: lastMetric.availability_percent ? {
-            availability_percent: lastMetric.availability_percent
+            availability_percent: Number(lastMetric.availability_percent)
           } : undefined
         };
         
-        // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le render
-        // Cela garantit que setState est appelé après le cycle de rendu
-        setTimeout(() => {
-          setMetrics(historicalMetrics);
-          console.log('[ANALYTICS] ✅ Dernières données connues chargées depuis l\'historique');
-        }, 0);
+        // ✅ CORRECTION : setState directement dans le useEffect, pas besoin de setTimeout
+        setMetrics(historicalMetrics);
+        console.log('[ANALYTICS] ✅ Dernières données connues chargées depuis l\'historique');
       }
     } catch (error) {
       console.error('[ANALYTICS] ⚠️ Erreur chargement dernières données:', error);
     }
   };
 
+  // ✅ CORRECTION : Charger les dernières données dans un useEffect séparé pour éviter setState pendant le render
+  useEffect(() => {
+    if (!initialLoadDone) {
+      loadLastKnownMetrics().then(() => {
+        setInitialLoadDone(true);
+      }).catch((error) => {
+        console.error('[ANALYTICS] ⚠️ Erreur chargement dernières données:', error);
+        setInitialLoadDone(true); // Marquer comme fait même en cas d'erreur
+      });
+    }
+  }, [initialLoadDone]);
+
   useEffect(() => {
     let mounted = true;
 
     const initializeMetrics = async () => {
-      // 1. Charger d'abord les dernières données disponibles
-      if (!initialLoadDone) {
-        // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le render
-        setTimeout(async () => {
-          await loadLastKnownMetrics();
-          if (mounted) {
-            setInitialLoadDone(true);
-          }
-        }, 0);
-      }
-      
-      // 2. Ensuite charger les données fraîches
+      // 1. Charger les données fraîches
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
@@ -318,45 +335,69 @@ export default function AnalyticsPage() {
 
         // Si c'est le chargement initial ou si le timeRange a changé, charger tout l'historique
         if (isInitial) {
+          // ✅ OPTIMISATION : Réduire la limite de 1000 à 500 pour économiser la mémoire
           const history = await centralMetricsService.getMetricsHistory({
-            limit: 1000,
+            limit: 500,
             startTime,
             endTime
           });
 
           if (mounted && history && Array.isArray(history) && history.length > 0) {
-            // Trier par timestamp et stocker le dernier timestamp
+            // ✅ OPTIMISATION : Trier par timestamp et limiter immédiatement à 500 points
             const sortedHistory = [...history].sort((a, b) => 
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
-            setMetricsHistory(sortedHistory);
+            
+            // ✅ OPTIMISATION : Limiter dès le chargement initial pour économiser la mémoire
+            const limitedHistory = sortedHistory.slice(-500);
+            
+            setMetricsHistory(limitedHistory);
             
             // Stocker le dernier timestamp pour les chargements incrémentaux
-            const lastTimestamp = new Date(sortedHistory[sortedHistory.length - 1].timestamp).getTime();
+            const lastTimestamp = new Date(limitedHistory[limitedHistory.length - 1].timestamp).getTime();
             setLastHistoryTimestamp(lastTimestamp);
             setInitialHistoryLoaded(true);
           }
         } else {
-          // Chargement incrémental : seulement les nouvelles données depuis le dernier timestamp
+          // ✅ OPTIMISATION : Chargement incrémental avec limite réduite
           const incrementalHistory = await centralMetricsService.getMetricsHistory({
-            limit: 100, // Limiter à 100 nouvelles entrées max
+            limit: 50, // ✅ OPTIMISATION : Réduit de 100 à 50 nouvelles entrées max
             startTime: lastHistoryTimestamp! + 1, // +1 pour éviter les doublons
             endTime
           });
 
           if (mounted && incrementalHistory && Array.isArray(incrementalHistory) && incrementalHistory.length > 0) {
-            // Fusionner avec l'historique existant et trier (sans réinitialiser, les graphiques restent ouverts)
-            // Utiliser une fonction de mise à jour pour éviter les re-renders inutiles
+            // ✅ OPTIMISATION : Fusionner avec l'historique existant avec vérifications intelligentes
             setMetricsHistory(prev => {
-              const merged = [...prev, ...incrementalHistory];
-              // Trier par timestamp
-              const sorted = merged.sort((a, b) => 
-                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              );
+              // ✅ OPTIMISATION : Éviter la fusion si prev est déjà à la limite et les nouvelles données sont plus anciennes
+              if (prev.length >= 500 && incrementalHistory.length > 0) {
+                const newestIncremental = new Date(incrementalHistory[incrementalHistory.length - 1].timestamp).getTime();
+                const oldestInPrev = new Date(prev[0].timestamp).getTime();
+                
+                // Si les nouvelles données sont plus anciennes que les plus anciennes en mémoire, ignorer
+                if (newestIncremental <= oldestInPrev) {
+                  return prev;
+                }
+              }
               
-              // Limiter à 1000 points max pour éviter la surcharge mémoire
+              const merged = [...prev, ...incrementalHistory];
+              
+              // ✅ OPTIMISATION : Trier seulement si nécessaire (vérifier si déjà trié)
+              let sorted = merged;
+              if (merged.length > 1) {
+                const first = new Date(merged[0].timestamp).getTime();
+                const last = new Date(merged[merged.length - 1].timestamp).getTime();
+                if (first > last || prev.length === 0) {
+                  // Besoin de trier
+                  sorted = merged.sort((a, b) => 
+                    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                  );
+                }
+              }
+              
+              // ✅ OPTIMISATION : Réduire de 1000 à 500 points max pour économiser la mémoire
               // Garder les points les plus récents
-              const limited = sorted.slice(-1000);
+              const limited = sorted.slice(-500);
               
               // Mettre à jour le dernier timestamp
               const lastTimestamp = new Date(limited[limited.length - 1].timestamp).getTime();
@@ -392,7 +433,7 @@ export default function AnalyticsPage() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp]);
+  }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp]); // ✅ CORRECTION : Utiliser metricsRefreshInterval au lieu de unifiedRefreshInterval
 
   // Charger les logs agrégés (erreurs récentes) avec cache et gestion d'erreurs améliorée
   const loadAggregatedLogs = async () => {
@@ -407,8 +448,8 @@ export default function AnalyticsPage() {
         setAggregatedLogs(cached);
         setLoadingAggregatedLogs(false);
         
-        // Rafraîchir en arrière-plan (gestion d'erreurs silencieuse)
-        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`)
+          // ✅ OPTIMISATION : Rafraîchir en arrière-plan avec limite réduite
+        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`)
           .then(async (response) => {
             // Traiter même les erreurs 500 comme valides
             if (response.ok || response.status === 500) {
@@ -431,7 +472,8 @@ export default function AnalyticsPage() {
       
       // Pas de cache, faire l'appel API avec gestion d'erreurs complète
       try {
-        const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=100&level=ERROR`, {
+        // ✅ OPTIMISATION : Réduire la limite de logs de 100 à 50 pour économiser la mémoire
+        const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`, {
           signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
         });
         
@@ -562,6 +604,7 @@ export default function AnalyticsPage() {
         'service-de-notifications': 'notification-service',
         'notifications': 'notification-service',
         'notification': 'notification-service',
+        'jobbingtrack-notification-service': 'notification-service',
         
         'dashboard-service': 'dashboard-service',
         'service-du-tableau-de-bord': 'dashboard-service',
@@ -595,6 +638,7 @@ export default function AnalyticsPage() {
         'redis': 'redis',
         'cache-redis': 'redis',
         'cache': 'redis',
+        'jobbingtrack-redis': 'redis',
         
         'frontend': 'frontend',
         'jobbingtrack-frontend': 'frontend',
@@ -616,7 +660,8 @@ export default function AnalyticsPage() {
       serviceName = serviceNameMap[normalizedName] || serviceNameMap[serviceName.toLowerCase()] || normalizedName;
       
       const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
-      const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=100`);
+        // ✅ OPTIMISATION : Réduire la limite de logs de 100 à 50 pour économiser la mémoire
+        const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=50`);
       
       if (response.ok) {
         const data = await response.json();
@@ -644,41 +689,80 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Préparer les données pour les graphiques (avec limitation pour éviter la surcharge)
+  // ✅ OPTIMISATION : Préparer les données pour les graphiques avec cache et tri optimisé
   const chartData = useMemo(() => {
     if (!metricsHistory || metricsHistory.length === 0) return [];
     
-    // ✅ Trier par timestamp croissant (plus ancien à gauche, plus récent à droite)
-    const sortedHistory = [...metricsHistory].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    // ✅ OPTIMISATION : Vérifier si metricsHistory est déjà trié (éviter le tri si inutile)
+    // On suppose que l'historique est déjà trié après chargement, donc on évite le tri si possible
+    let sortedHistory = metricsHistory;
     
-    // Limiter le nombre de points selon la plage de temps pour optimiser les performances
-    // Plus la plage est grande, plus on peut avoir de points, mais avec une limite max
-    const maxPoints = timeRange === '1h' ? 60 : 
-                      timeRange === '6h' ? 180 : 
-                      timeRange === '24h' ? 288 : 
-                      timeRange === '7d' ? 336 : 720; // 30d
-    
-    // Si on a trop de points, on les sous-échantillonne intelligemment
-    let dataToUse = sortedHistory;
-    if (sortedHistory.length > maxPoints) {
-      // Prendre un point tous les N points pour garder une représentation équilibrée
-      const step = Math.ceil(sortedHistory.length / maxPoints);
-      dataToUse = sortedHistory.filter((_, index) => index % step === 0 || index === sortedHistory.length - 1);
+    // Vérifier si le tri est nécessaire (vérifier seulement les 2 premiers et derniers éléments)
+    if (metricsHistory.length > 1) {
+      const first = new Date(metricsHistory[0].timestamp).getTime();
+      const last = new Date(metricsHistory[metricsHistory.length - 1].timestamp).getTime();
+      if (first > last) {
+        // Besoin de trier
+        sortedHistory = [...metricsHistory].sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      }
     }
     
-    return dataToUse.map((item: any) => ({
-      time: formatTimestamp(item.timestamp, timeRange),
-      cpu: toNumber(item.cpu_percent, 0),
-      memory: toNumber(item.memory_percent, 0),
-      networkRx: toNumber(item.network_rx_mb, 0),
-      networkTx: toNumber(item.network_tx_mb, 0),
-      responseTime: toNumber(item.response_time_avg, 0),
-      errorRate: toNumber(item.error_rate, 0),
-      availability: toNumber(item.availability_percent, 100),
-      loadScore: toNumber(item.load_score, 0)
-    }));
+    // ✅ OPTIMISATION : Limiter plus agressivement selon la plage de temps
+    const maxPoints = timeRange === '1h' ? 60 : 
+                      timeRange === '6h' ? 120 : 
+                      timeRange === '24h' ? 240 : 
+                      timeRange === '7d' ? 280 : 500; // 30d - réduit de 720 à 500
+    
+    // ✅ OPTIMISATION : Sous-échantillonnage plus efficace avec slice au lieu de filter
+    let dataToUse = sortedHistory;
+    if (sortedHistory.length > maxPoints) {
+      // Prendre un point tous les N points de manière plus efficace
+      const step = Math.ceil(sortedHistory.length / maxPoints);
+      const indices: number[] = [];
+      for (let i = 0; i < sortedHistory.length; i += step) {
+        indices.push(i);
+      }
+      // Toujours inclure le dernier point
+      if (indices[indices.length - 1] !== sortedHistory.length - 1) {
+        indices.push(sortedHistory.length - 1);
+      }
+      dataToUse = indices.map(i => sortedHistory[i]);
+    }
+    
+    // ✅ OPTIMISATION : Utiliser map avec réutilisation des valeurs calculées
+    return dataToUse.map((item: any) => {
+      const timestamp = new Date(item.timestamp);
+      
+      // ✅ CORRECTION : Calculer le trafic réseau global en sommant tous les services
+      // Si network_rx_mb et network_tx_mb ne sont pas disponibles, les calculer depuis les services
+      let networkRx = toNumber(item.network_rx_mb, 0);
+      let networkTx = toNumber(item.network_tx_mb, 0);
+      
+      // Si les valeurs globales sont à 0 ou absentes, essayer de les calculer depuis les services
+      if ((networkRx === 0 && networkTx === 0) && item.services && Array.isArray(item.services)) {
+        networkRx = item.services.reduce((sum: number, s: any) => {
+          return sum + toNumber(s.network_rx_mb || s.network?.rx_mb || (s.network?.rx_bytes ? s.network.rx_bytes / 1024 / 1024 : 0), 0);
+        }, 0);
+        networkTx = item.services.reduce((sum: number, s: any) => {
+          return sum + toNumber(s.network_tx_mb || s.network?.tx_mb || (s.network?.tx_bytes ? s.network.tx_bytes / 1024 / 1024 : 0), 0);
+        }, 0);
+      }
+      
+      return {
+        time: formatTimestamp(item.timestamp, timeRange),
+        timestamp: timestamp.getTime(), // Ajouter pour éviter de recalculer
+        cpu: toNumber(item.cpu_percent, 0),
+        memory: toNumber(item.memory_percent, 0),
+        networkRx: networkRx, // ✅ CORRECTION : Utiliser la valeur calculée (globale ou somme des services)
+        networkTx: networkTx, // ✅ CORRECTION : Utiliser la valeur calculée (globale ou somme des services)
+        responseTime: toNumber(item.response_time_avg, 0),
+        errorRate: toNumber(item.error_rate, 0),
+        availability: toNumber(item.availability_percent, 100),
+        loadScore: toNumber(item.load_score, 0)
+      };
+    });
   }, [metricsHistory, timeRange]);
 
   // Calculer les statistiques agrégées
@@ -701,17 +785,21 @@ export default function AnalyticsPage() {
 
     const servicesList = metrics.servicesList || Object.values(metrics.services || {});
 
-    // ✅ Utiliser les données des conteneurs JobbingTrack (source fiable)
+    // ✅ Utiliser les données des conteneurs (source fiable)
     let avgCpuUsage = null;
     let totalMemoryMb = null;
     
-    // Priorité 1: Données conteneurs JobbingTrack (la plus fiable)
-    if (metrics.jobbingtrack?.containers?.cpu?.averagePercent !== undefined) {
-      avgCpuUsage = metrics.jobbingtrack.containers.cpu.averagePercent;
-    }
-    
-    if (metrics.jobbingtrack?.containers?.memory?.used !== undefined) {
-      totalMemoryMb = metrics.jobbingtrack.containers.memory.used;
+    // Priorité 1: Données conteneurs (si disponibles dans containers)
+    // Note: metrics.containers peut être un objet ou un tableau selon l'interface
+    if (metrics.containers && typeof metrics.containers === 'object' && !Array.isArray(metrics.containers)) {
+      const containers = metrics.containers as any;
+      // Chercher des données agrégées dans les conteneurs
+      if (containers.cpu?.averagePercent !== undefined) {
+        avgCpuUsage = Number(containers.cpu.averagePercent);
+      }
+      if (containers.memory?.used !== undefined) {
+        totalMemoryMb = Number(containers.memory.used);
+      }
     }
 
     // Priorité 2: Données système globales (si conteneurs non disponibles)
@@ -743,12 +831,12 @@ export default function AnalyticsPage() {
         sum + toNumber(s.metrics?.memory?.usageMb, 0), 0);
     }
 
-    const totalNetworkRxMb = metrics.network?.totalRxMb !== undefined 
-      ? metrics.network.totalRxMb
+    const totalNetworkRxMb = metrics.network?.total_rx_mb !== undefined 
+      ? toNumber(metrics.network.total_rx_mb, 0)
       : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.rx_mb, 0), 0);
       
-    const totalNetworkTxMb = metrics.network?.totalTxMb !== undefined
-      ? metrics.network.totalTxMb
+    const totalNetworkTxMb = metrics.network?.total_tx_mb !== undefined
+      ? toNumber(metrics.network.total_tx_mb, 0)
       : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.tx_mb, 0), 0);
       
     const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
@@ -761,7 +849,9 @@ export default function AnalyticsPage() {
     const responseTimes = servicesList
       .map((s: any) => s.responseTimeMs)
       .filter((rt): rt is number => typeof rt === 'number' && rt > 0);
-    let avgResponseTime = metrics.responseTime?.avg || null;
+    let avgResponseTime = metrics.responseTime?.average_ms !== undefined 
+      ? toNumber(metrics.responseTime.average_ms, 0)
+      : null;
     
     if (avgResponseTime === null && responseTimes.length > 0) {
       avgResponseTime = responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length;
@@ -769,8 +859,8 @@ export default function AnalyticsPage() {
 
     const totalErrors = servicesList.reduce((sum, s: any) => 
       sum + toNumber(s.errorCount5m, 0), 0);
-    const avgErrorRate = metrics.errors?.rate !== undefined
-      ? metrics.errors.rate
+    const avgErrorRate = metrics.errors?.rate_per_min !== undefined
+      ? toNumber(metrics.errors.rate_per_min, 0)
       : servicesList.reduce((sum, s: any) => sum + toNumber(s.errorRatePerMin, 0), 0);
 
     return {
@@ -884,6 +974,7 @@ export default function AnalyticsPage() {
             servicesList={servicesList}
             loadingHistory={loadingHistory}
             refreshing={refreshing}
+            initialHistoryLoaded={initialHistoryLoaded}
           />
         )}
 
@@ -895,6 +986,7 @@ export default function AnalyticsPage() {
             servicesList={servicesList}
             loadingHistory={loadingHistory}
             refreshing={refreshing}
+            initialHistoryLoaded={initialHistoryLoaded}
           />
         )}
 
@@ -921,8 +1013,9 @@ export default function AnalyticsPage() {
   );
 }
 
+// ✅ OPTIMISATION : Memoization des composants de graphiques pour éviter les re-renders inutiles
 // Composant Overview Tab
-function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
+const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
   // Calculer les tendances depuis l'historique
   const last30Points = chartData.slice(-30)
   const cpuTrend = last30Points.length > 0 
@@ -1181,10 +1274,10 @@ function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, init
       )}
     </div>
   );
-}
+});
 
 // Composant Performance Tab
-function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false }: any) {
+const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false }: any) {
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'responseTime' | 'errorRate'>('cpu');
 
   return (
@@ -1649,10 +1742,10 @@ function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loa
       )}
     </div>
   );
-}
+});
 
 // Composant Network Tab
-function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false }: any) {
+const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques réseau */}
@@ -1833,10 +1926,10 @@ function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loading
       )}
     </div>
   );
-}
+});
 
 // Composant System Tab
-function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
+const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques système principales */}
@@ -2001,10 +2094,10 @@ function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initia
       )}
     </div>
   );
-}
+});
 
 // Composant Services Tab
-function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, logsError, onSelectService }: any) {
+const ServicesTab = memo(function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, logsError, onSelectService }: any) {
   return (
     <div className="space-y-6">
       {/* Liste des services */}
@@ -2093,12 +2186,16 @@ function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, 
           )}
 
           {!loadingLogs && serviceLogs.length > 0 && (
-            <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <div className="space-y-1 font-mono text-xs">
-                {serviceLogs.map((log: any, index: number) => (
+            <div className="bg-gray-900 rounded-lg p-4">
+              {/* ✅ OPTIMISATION : Virtualisation des logs pour améliorer les performances */}
+              <VirtualizedList
+                items={serviceLogs}
+                itemHeight={30}
+                containerHeight={384}
+                overscan={10}
+                renderItem={(log: any, index: number) => (
                   <div 
-                    key={index}
-                    className={`${
+                    className={`font-mono text-xs ${
                       log.level === 'error' ? 'text-red-400' :
                       log.level === 'warn' ? 'text-yellow-400' :
                       log.level === 'debug' ? 'text-gray-500' :
@@ -2109,18 +2206,19 @@ function ServicesTab({ servicesList, selectedService, serviceLogs, loadingLogs, 
                     <span className="ml-2 font-semibold">[{log.level?.toUpperCase() || 'INFO'}]</span>
                     <span className="ml-2">{log.message}</span>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             </div>
           )}
         </div>
       )}
     </div>
   );
-}
+});
 
+// ✅ OPTIMISATION : Memoization du composant LogsTab
 // Composant Logs Tab
-function LogsTab({ logs, loading, onRefresh }: any) {
+const LogsTab = memo(function LogsTab({ logs, loading, onRefresh }: any) {
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'ERROR':
@@ -2248,11 +2346,11 @@ function LogsTab({ logs, loading, onRefresh }: any) {
       )}
     </div>
   );
-}
+});
 
 // Composant StatCard
-function StatCard({ icon, title, value, subtitle, color, loading, trend, trendType = 'negative-is-bad' }: any) {
-  const colors = {
+const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, loading, trend, trendType = 'negative-is-bad' }: any) {
+  const colors: { [key: string]: string } = {
     blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
@@ -2286,7 +2384,7 @@ function StatCard({ icon, title, value, subtitle, color, loading, trend, trendTy
         </div>
       )}
       <div className="flex items-center justify-between mb-2">
-        <div className={`p-2 rounded-lg ${colors[color]}`}>
+        <div className={`p-2 rounded-lg ${colors[color] || colors.blue}`}>
           {icon}
         </div>
         {trend !== undefined && trend !== null && trend !== 0 && (
@@ -2309,4 +2407,4 @@ function StatCard({ icon, title, value, subtitle, color, loading, trend, trendTy
       )}
     </div>
   );
-}
+});

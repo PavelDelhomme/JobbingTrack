@@ -621,7 +621,7 @@ export default function UserJourneyPage() {
     return data;
   };
 
-  const extractList = <T>(payload: any, primaryKey?: string): T[] => {
+  const extractList = <T,>(payload: any, primaryKey?: string): T[] => {
     if (Array.isArray(payload)) {
       return payload as T[];
     }
