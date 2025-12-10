@@ -121,18 +121,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Si on a un token, on charge le profil
         if (storedToken) {
           console.log('🔑 Token trouvé, chargement du profil...');
-          setToken(storedToken);
           
           // Vérifier rapidement la validité du token avant de charger le profil
           if (!validateJwtToken(storedToken) && !storedToken.startsWith('mock-jwt-token')) {
-            console.warn('Token invalide lors de l\'initialisation');
+            console.warn('⚠️ Token expiré ou invalide, nettoyage...');
+            // Nettoyer le token invalide mais ne pas bloquer l'application
             localStorage.removeItem('token');
+            document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+            setToken(null);
+            setUser(null);
             setLoading(false);
             return;
           }
           
-          // Charger le profil de manière asynchrone
-          await loadUserProfile(storedToken);
+          // Token valide, continuer
+          setToken(storedToken);
+          
+          // Charger le profil de manière asynchrone (ne pas bloquer si ça échoue)
+          loadUserProfile(storedToken).catch((error) => {
+            console.warn('⚠️ Erreur lors du chargement du profil, continuation sans authentification:', error.message);
+            // Ne pas bloquer l'application si le chargement du profil échoue
+            setLoading(false);
+          });
         } else {
           console.log('ℹ️ Aucun token d\'authentification trouvé');
           setLoading(false);
