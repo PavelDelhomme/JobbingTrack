@@ -219,6 +219,16 @@ class AnalyticsController {
         data: event
       });
     } catch (error) {
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserEvent')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table UserEvent non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { message: 'Mode développement - table non disponible' }
+          });
+        }
+      }
       console.error('[ANALYTICS] Erreur tracking événement:', error);
       res.status(500).json({
         success: false,
@@ -305,10 +315,21 @@ class AnalyticsController {
         data: error
       });
     } catch (error) {
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserError')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table UserError non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { message: 'Mode développement - table non disponible' }
+          });
+        }
+      }
       console.error('[ANALYTICS] Erreur tracking erreur:', error);
       res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'enregistrement de l\'erreur'
+        error: 'Erreur lors de l\'enregistrement de l\'erreur',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
