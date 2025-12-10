@@ -316,9 +316,19 @@ class SecurityScheduler {
 
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
-      // Logger l'erreur pour résoudre le problème
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        // Table n'existe pas encore, ignorer silencieusement en développement
+        if (process.env.NODE_ENV === 'development') {
+          // Mode silencieux - ne pas logger
+          return;
+        } else {
+          logger.warn('Table security_metrics non trouvée, métriques système non enregistrées');
+          return;
+        }
+      }
+      // Pour les autres erreurs, logger et propager
       logger.error('Erreur lors de la collecte des métriques système:', error);
-      // Ne pas ignorer l'erreur - la propager pour que le problème soit résolu
       throw error;
     }
   }
