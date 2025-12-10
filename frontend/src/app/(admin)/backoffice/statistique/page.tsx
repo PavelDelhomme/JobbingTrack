@@ -207,7 +207,8 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'security' | 'logs'>('overview')
+  // ✅ SUPPRESSION : Onglet services retiré car déjà présent dans /backoffice/analytics
+  const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'logs'>('overview')
 
   // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false)
@@ -720,7 +721,7 @@ export default function StatisticsPage() {
           <nav className="flex space-x-4 overflow-x-auto">
             {[
               { id: 'overview', label: '📊 Vue d\'ensemble', icon: BarChart3 },
-              { id: 'services', label: '🔧 Services', icon: Server },
+              // ✅ SUPPRESSION : Onglet Services retiré car déjà présent dans /backoffice/analytics > Services & Logs
               { id: 'security', label: '🔒 Sécurité', icon: Shield },
               { id: 'logs', label: '📊 Statistiques Logs', icon: FileText }
             ].map((tab) => (
@@ -750,14 +751,7 @@ export default function StatisticsPage() {
               router={router}
             />
           )}
-          {activeTab === 'services' && (
-            <ServicesTab 
-              stats={stats}
-              serviceHistory={serviceHistory}
-              customization={customization}
-              formatTimestamp={formatTimestamp}
-            />
-          )}
+          {/* ✅ SUPPRESSION : Onglet Services retiré - Disponible dans /backoffice/analytics > Services & Logs */}
           {activeTab === 'security' && (
             <SecurityTab 
               stats={stats}
