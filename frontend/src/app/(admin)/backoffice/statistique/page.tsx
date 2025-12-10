@@ -620,8 +620,6 @@ export default function StatisticsPage() {
     )
   }
 
-  const chartData = prepareChartData()
-
   return (
     <AdminLayout>
       <div>
