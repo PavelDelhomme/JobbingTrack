@@ -496,10 +496,21 @@ class AnalyticsController {
         data: device
       });
     } catch (error) {
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('DeviceInfo')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table DeviceInfo non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { deviceId: req.body.deviceId, message: 'Mode développement - table non disponible' }
+          });
+        }
+      }
       console.error('[ANALYTICS] Erreur enregistrement appareil:', error);
       res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'enregistrement de l\'appareil'
+        error: 'Erreur lors de l\'enregistrement de l\'appareil',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
