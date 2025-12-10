@@ -84,6 +84,18 @@ class AnalyticsController {
       const { sessionId } = req.params;
       const { endTime, duration, pageViews, actions, errors } = req.body;
 
+      // Vérifier que la table existe
+      if (!prisma.userSession || typeof prisma.userSession.update !== 'function') {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { sessionId, message: 'Mode développement - table non disponible' }
+          });
+        }
+        throw new Error('Table UserSession non disponible');
+      }
+
       const session = await prisma.userSession.update({
         where: { sessionId },
         data: {
@@ -101,10 +113,21 @@ class AnalyticsController {
         data: session
       });
     } catch (error) {
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserSession')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { sessionId: req.params.sessionId, message: 'Mode développement - table non disponible' }
+          });
+        }
+      }
       console.error('[ANALYTICS] Erreur mise à jour session:', error);
       res.status(500).json({
         success: false,
-        error: 'Erreur lors de la mise à jour de la session'
+        error: 'Erreur lors de la mise à jour de la session',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -350,10 +373,21 @@ class AnalyticsController {
         data: performance
       });
     } catch (error) {
+      // Gérer l'erreur P2021 (table n'existe pas) gracieusement
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserPerformance')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ANALYTICS] Table UserPerformance non disponible, mode développement');
+          return res.json({
+            success: true,
+            data: { message: 'Mode développement - table non disponible' }
+          });
+        }
+      }
       console.error('[ANALYTICS] Erreur tracking performance:', error);
       res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'enregistrement de la métrique de performance'
+        error: 'Erreur lors de l\'enregistrement de la métrique de performance',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
