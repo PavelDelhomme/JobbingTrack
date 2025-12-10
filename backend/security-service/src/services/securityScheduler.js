@@ -317,7 +317,13 @@ class SecurityScheduler {
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      // Vérifier le code d'erreur Prisma ou le message
+      const isTableNotFound = error.code === 'P2021' || 
+                              error.message?.includes('does not exist') ||
+                              error.message?.includes('security_metrics') ||
+                              (error.meta && error.meta.table === 'public.security_metrics');
+      
+      if (isTableNotFound) {
         // Table n'existe pas encore, ignorer silencieusement en développement
         if (process.env.NODE_ENV === 'development') {
           // Mode silencieux - ne pas logger
