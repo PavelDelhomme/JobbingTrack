@@ -2110,7 +2110,7 @@ const LogsTab = memo(function LogsTab({ serviceHistory, formatTimestamp }: any) 
       </div>
     </div>
   )
-}
+})
 
 // Composant StatCard avec logique de tendance correcte
 function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'negative-is-bad' }: any) {
