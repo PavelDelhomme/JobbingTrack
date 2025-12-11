@@ -8,7 +8,7 @@ import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
-import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Database, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
+import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
 import axios from 'axios'
 import { useTracking } from '@/components/tracking/TrackingProvider'
 
@@ -56,7 +56,6 @@ export default function BackofficePage() {
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
-  const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false)
 
   const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -521,84 +520,6 @@ export default function BackofficePage() {
   return (
     <AdminLayout>
       <div className="space-y-6 md:space-y-8">
-        {/* Header amélioré */}
-        <div className="relative">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 dark:text-blue-100 break-words">
-                Bienvenue, {user?.firstName} ! 👋
-              </h1>
-              <p className="mt-2 text-base md:text-lg text-blue-600 dark:text-blue-400">
-                Vue d'ensemble de votre plateforme JobbingTrack
-              </p>
-            </div>
-
-            {/* Boutons d'action rapide - Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsQuickActionsDropdownOpen(!isQuickActionsDropdownOpen)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-              >
-                <TrendingUp className="h-4 w-4" />
-                <span>Actions Rapides</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {isQuickActionsDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsQuickActionsDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
-                    <button
-                      onClick={() => {
-                        router.push('/backoffice/analytics')
-                        setIsQuickActionsDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-                    >
-                      <TrendingUp className="h-4 w-4 text-blue-600" />
-                      <span>Analytics</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push('/backoffice/statistique')
-                        setIsQuickActionsDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-                    >
-                      <Database className="h-4 w-4 text-purple-600" />
-                      <span>Statistiques</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        router.push('/search')
-                        setIsQuickActionsDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-                    >
-                      <Activity className="h-4 w-4 text-orange-600" />
-                      <span>Recherche</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowServicesPopup(true)
-                        setIsQuickActionsDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
-                    >
-                      <Server className="h-4 w-4 text-green-600" />
-                      <span>Services</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Métriques principales en grille - Version administrative */}
         {/* Sous 1280px : 3 colonnes (2 lignes) | À partir de 1280px : 6 colonnes (1 ligne) */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">

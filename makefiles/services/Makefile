@@ -818,50 +818,155 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 # ============================================================================
 
 # Statut détaillé
+# Statut détaillé
 status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN)
 	@echo "📊 Statut détaillé des services JobbingTrack"
 	@echo "=========================================="
 	@echo ""
-	@echo "🟢 Services essentiels:"
+	@echo "🏗️  Infrastructure:"
 	@echo ""
-	@services="postgres redis api-gateway frontend auth-service dashboard-service"; \
+	@services="postgres redis"; \
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
 			if [ -n "$$ports" ]; then \
-				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://'); \
-				if [ -n "$$port_main" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
 				else \
-					ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
 			fi; \
 		else \
 			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
 		fi; \
 	done
 	@echo ""
-	@echo "🔵 Services optionnels:"
+	@echo "🌐 Frontend & Gateway:"
 	@echo ""
-	@services="application-service company-service contact-service interview-service followup-service call-service metrics-aggregator"; \
+	@services="frontend api-gateway"; \
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
-			ports=$$(docker ps --filter "name=$$container" --format "{{.Ports}}" 2>/dev/null); \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
 			if [ -n "$$ports" ]; then \
-				port_main=$$(echo "$$ports" | grep -oE '0\.0\.0\.0:[0-9]+->[0-9]+/tcp' | head -1 | sed 's/0\.0\.0\.0://'); \
-				if [ -n "$$port_main" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$port_main"; \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
 				else \
-					ports_short=$$(echo "$$ports" | sed 's/\[::\]//g' | tr -s ' ' | cut -c1-40); \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s %s\n" "$$service" "$$ports_short"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+			fi; \
+		else \
+			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
+	@echo ""
+	@echo "🔐 Backend Principaux:"
+	@echo ""
+	@services="auth-service dashboard-service"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+			fi; \
+		else \
+			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
+	@echo ""
+	@echo "📋 Services Métiers:"
+	@echo ""
+	@services="company-service application-service contact-service interview-service call-service followup-service event-service"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+			fi; \
+		else \
+			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
+	@echo ""
+	@echo "📊 Monitoring & Métriques:"
+	@echo ""
+	@services="metrics-aggregator prometheus grafana loki promtail cadvisor node-exporter"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+			fi; \
+		else \
+			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+		fi; \
+	done
+	@echo ""
+	@echo "🔒 Sécurité & Utilitaires:"
+	@echo ""
+	@services="security-service notification-service profile-service workflow-service deployment-service"; \
+	for service in $$services; do \
+		container="jobbingtrack-$$service"; \
+		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			if [ -n "$$ports" ]; then \
+				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
+				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
+				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+				elif [ -n "$$port_ext" ]; then \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+				else \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				fi; \
+			else \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
 			fi; \
 		else \
 			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \

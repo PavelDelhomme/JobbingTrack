@@ -4,7 +4,7 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend
 
 FRONTEND_DIR := frontend
 
@@ -32,6 +32,12 @@ help-frontend: ## Afficher l'aide frontend
 	@echo "  make test-unit-frontend    - Tests unitaires Jest"
 	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
 	@echo "  make test-all-frontend     - Tous les tests"
+	@echo ""
+	@echo "⚡ PERFORMANCE:"
+	@echo "  make test-performance-frontend - Tests de performance et mémoire"
+	@echo "  make analyze-bundle-frontend   - Analyser les bundles webpack"
+	@echo "  make check-memory-frontend     - Vérifier consommation mémoire"
+	@echo "  make optimize-frontend         - Appliquer optimisations"
 	@echo ""
 	@echo "🧹 MAINTENANCE:"
 	@echo "  make clean-frontend        - Nettoyer cache et builds"
@@ -96,6 +102,67 @@ test-e2e-frontend: ## Tests E2E Playwright
 test-all-frontend: ## Tous les tests
 	@echo "🧪 Tous les tests frontend..."
 	@cd $(FRONTEND_DIR) && npm run test:all || true
+
+# ============================================================================
+# PERFORMANCE
+# ============================================================================
+
+test-performance-frontend: ## Tests de performance et analyse mémoire
+	@echo "🔍 Tests de performance frontend..."
+	@cd $(FRONTEND_DIR) && ./scripts/performance-test.sh
+
+analyze-bundle-frontend: ## Analyser les bundles avec webpack-bundle-analyzer
+	@echo "📦 Analyse des bundles..."
+	@echo "Nettoyage complet du dossier .next pour éviter les erreurs de permission..."
+	@cd $(FRONTEND_DIR) && \
+		if [ -d ".next" ]; then \
+			echo "Suppression du dossier .next existant..."; \
+			rm -rf .next 2>/dev/null || (echo "Tentative avec sudo..." && sudo rm -rf .next 2>/dev/null) || true; \
+		fi && \
+		echo "Vérification des permissions du répertoire frontend..."; \
+		chmod -R u+w . 2>/dev/null || sudo chmod -R u+w . 2>/dev/null || true; \
+		echo "Création d'un nouveau dossier .next avec les bonnes permissions..."; \
+		mkdir -p .next && \
+		chmod 755 .next 2>/dev/null || sudo chmod 755 .next 2>/dev/null || true; \
+		echo "Build avec analyse des bundles..."; \
+		ANALYZE=true npm run build || (echo "❌ Erreur lors du build. Vérifiez les permissions." && exit 1)
+	@echo ""
+	@if [ -d "$(FRONTEND_DIR)/.next/analyze" ]; then \
+		echo "✅ Analyse terminée. Rapport disponible dans .next/analyze/"; \
+		ls -lh $(FRONTEND_DIR)/.next/analyze/*.html 2>/dev/null | head -1 || echo "Fichiers d'analyse générés"; \
+		echo ""; \
+		echo "📊 Pour visualiser le rapport:"; \
+		echo "   cd $(FRONTEND_DIR) && python3 -m http.server 8081 -d .next/analyze || echo 'Ouvrez .next/analyze/client.html dans votre navigateur'"; \
+	else \
+		echo "⚠️  Dossier d'analyse non trouvé, mais le build s'est terminé"; \
+		echo "   Vérifiez les logs ci-dessus pour plus d'informations"; \
+	fi
+
+check-memory-frontend: ## Vérifier la consommation mémoire du frontend
+	@echo "💾 Vérification mémoire frontend..."
+	@echo "Recherche des processus Node.js du frontend..."
+	@if pgrep -f "next dev" > /dev/null; then \
+		echo "Processus Next.js trouvés:"; \
+		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{printf "  • PID %s: %s MB\n", $$2, $$6/1024}'; \
+		echo ""; \
+		echo "Mémoire totale:"; \
+		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{sum+=\$$6} END {printf "  • Total: %.0f MB\n", sum/1024}'; \
+	else \
+		echo "Aucun processus frontend trouvé (le serveur dev n'est peut-être pas démarré)"; \
+	fi
+	@echo ""
+	@echo "Pour une analyse complète, utilisez: make test-performance-frontend"
+
+optimize-frontend: ## Appliquer les optimisations de performance
+	@echo "⚡ Optimisation du frontend..."
+	@cd $(FRONTEND_DIR) && \
+		echo "1. Nettoyage du cache..." && \
+		npm run clean && \
+		echo "2. Build optimisé..." && \
+		npm run build && \
+		echo "3. Analyse des bundles..." && \
+		ANALYZE=true npm run build 2>&1 | tail -20 || true
+	@echo "✅ Optimisation terminée"
 
 # ============================================================================
 # NETTOYAGE

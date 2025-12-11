@@ -22,7 +22,12 @@ import {
   Network,
   Cpu,
   MemoryStick,
-  Activity
+  Activity,
+  Download,
+  Camera,
+  FileDown,
+  Trash2,
+  CheckCircle
 } from 'lucide-react';
 import {
   LineChart,
@@ -47,6 +52,7 @@ const TABS = [
   { id: 'network', label: 'Réseau & Fiabilité' },
   { id: 'services', label: 'Services & Logs' },
   { id: 'logs', label: 'Erreurs Récentes' },
+  { id: 'report', label: '📊 Rapport Complet' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -439,7 +445,7 @@ export default function AnalyticsPage() {
   const loadAggregatedLogs = async () => {
     setLoadingAggregatedLogs(true);
     try {
-      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
       const cacheKey = `aggregated_logs_${METRICS_URL}`;
       
       // Essayer de récupérer depuis le cache d'abord
@@ -449,10 +455,12 @@ export default function AnalyticsPage() {
         setLoadingAggregatedLogs(false);
         
           // ✅ OPTIMISATION : Rafraîchir en arrière-plan avec limite réduite
-        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`)
+        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`, {
+          signal: AbortSignal.timeout(5000)
+        })
           .then(async (response) => {
-            // Traiter même les erreurs 500 comme valides
-            if (response.ok || response.status === 500) {
+            // Traiter uniquement les réponses OK
+            if (response.ok) {
               try {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -463,6 +471,7 @@ export default function AnalyticsPage() {
                 // Ignorer silencieusement les erreurs JSON
               }
             }
+            // Ignorer silencieusement les erreurs 500, 404, etc.
           })
           .catch(() => {
             // Ignorer complètement toutes les erreurs en arrière-plan
@@ -477,15 +486,17 @@ export default function AnalyticsPage() {
           signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
         });
         
-        // Traiter TOUTES les réponses (même 500) comme valides
-        if (response.ok || response.status === 500 || response.status >= 400) {
+        // Traiter les réponses OK uniquement
+        if (response.ok) {
           try {
             const data = await response.json();
             if (data.success && data.data) {
               await cacheManager.set(cacheKey, data.data, { ttl: 30000 });
               setAggregatedLogs(data.data);
             } else {
-              setAggregatedLogs([]);
+              // Si pas de données mais réponse OK, utiliser le cache ou tableau vide
+              const cached = await cacheManager.get<any[]>(cacheKey);
+              setAggregatedLogs(cached || []);
             }
           } catch (jsonError) {
             // Si le JSON est invalide, utiliser le cache ou tableau vide
@@ -493,9 +504,10 @@ export default function AnalyticsPage() {
             setAggregatedLogs(cached || []);
           }
         } else {
-          // Pour toute autre erreur HTTP, essayer le cache ou retourner tableau vide
+          // Pour les erreurs HTTP (500, 404, etc.), utiliser le cache ou tableau vide silencieusement
           const cached = await cacheManager.get<any[]>(cacheKey);
           setAggregatedLogs(cached || []);
+          // Ne pas logger les erreurs pour éviter le spam dans la console
         }
       } catch (fetchError: any) {
         // Ignorer COMPLÈTEMENT toutes les erreurs (y compris 500, timeout, réseau)
@@ -506,7 +518,7 @@ export default function AnalyticsPage() {
       }
     } catch (error: any) {
       // Gérer toutes les erreurs silencieusement avec fallback sur le cache
-      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
       const cacheKey = `aggregated_logs_${METRICS_URL}`;
       const cached = await cacheManager.get<any[]>(cacheKey);
       if (cached) {
@@ -659,9 +671,13 @@ export default function AnalyticsPage() {
       // Utiliser le mapping ou le nom normalisé
       serviceName = serviceNameMap[normalizedName] || serviceNameMap[serviceName.toLowerCase()] || normalizedName;
       
-      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
-        // ✅ OPTIMISATION : Réduire la limite de logs de 100 à 50 pour économiser la mémoire
-        const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=50`);
+      const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      // Construire le nom du conteneur Docker
+      const containerName = `jobbingtrack-${serviceName}`;
+      // ✅ OPTIMISATION : Réduire la limite de logs de 100 à 50 pour économiser la mémoire
+      const response = await fetch(`${METRICS_URL}/api/v1/logs/${serviceName}?limit=50`, {
+        signal: AbortSignal.timeout(10000) // Timeout de 10 secondes
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -671,18 +687,45 @@ export default function AnalyticsPage() {
         } else if (data.success && data.logs && data.logs.length === 0) {
           setLogsError(data.message || 'Aucun log disponible pour ce service');
           setServiceLogs([]);
-        } else {
+        } else if (!data.success && data.error) {
           // Service non disponible ou erreur
-          setLogsError(data.error || data.message || 'Service non disponible ou non démarré');
+          setLogsError(data.error || data.message || `Le conteneur ${containerName} n'existe pas ou n'est pas démarré`);
+          setServiceLogs([]);
+        } else {
+          setLogsError('Aucun log disponible pour ce service');
+          setServiceLogs([]);
+        }
+      } else if (response.status === 404) {
+        // En développement, ne pas afficher d'erreur pour les services qui n'existent pas
+        if (process.env.NODE_ENV === 'development') {
+          setLogsError(null);
+          setServiceLogs([]);
+        } else {
+          setLogsError(`Service non trouvé : Le conteneur ${containerName} n'existe pas ou n'est pas démarré. Vérifiez que le service est bien démarré.`);
           setServiceLogs([]);
         }
       } else {
-        setLogsError(`Erreur ${response.status}: Impossible de récupérer les logs`);
+        const errorText = await response.text();
+        let errorMessage = `Erreur ${response.status}: Impossible de récupérer les logs`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // Si ce n'est pas du JSON, utiliser le texte brut
+          if (errorText) errorMessage = errorText;
+        }
+        setLogsError(errorMessage);
         setServiceLogs([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur chargement logs:', error);
-      setLogsError('Erreur de connexion au service de monitoring (port 5004). Vérifiez que le metrics-aggregator est démarré.');
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        setLogsError('Timeout : Le service de monitoring ne répond pas. Vérifiez que le metrics-aggregator est démarré et accessible.');
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        setLogsError('Erreur de connexion : Impossible de joindre le service de monitoring. Vérifiez que le metrics-aggregator est démarré (port 8014).');
+      } else {
+        setLogsError(`Erreur : ${error.message || 'Impossible de récupérer les logs'}`);
+      }
       setServiceLogs([]);
     } finally {
       setLoadingLogs(false);
@@ -1006,6 +1049,18 @@ export default function AnalyticsPage() {
             logs={aggregatedLogs}
             loading={loadingAggregatedLogs}
             onRefresh={loadAggregatedLogs}
+          />
+        )}
+
+        {activeTab === 'report' && (
+          <ReportTab
+            metrics={metrics}
+            chartData={chartData}
+            aggregatedStats={aggregatedStats}
+            servicesList={servicesList}
+            aggregatedLogs={aggregatedLogs}
+            metricsHistory={metricsHistory}
+            timeRange={timeRange}
           />
         )}
       </div>
@@ -2116,15 +2171,31 @@ const ServicesTab = memo(function ServicesTab({ servicesList, selectedService, s
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {service.displayName || service.name}
               </h3>
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                service.status === 'healthy' 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  : service.status === 'degraded'
-                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
-                {service.status}
-              </span>
+              <div className="flex items-center gap-2">
+                {/* Indicateur de démarrage */}
+                {service.status === 'healthy' || service.status === 'running' || service.status === 'degraded' ? (
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Service démarré"></div>
+                ) : (
+                  <div className="w-2 h-2 bg-red-500 rounded-full" title="Service arrêté"></div>
+                )}
+                <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                  service.status === 'healthy' || service.status === 'running'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : service.status === 'degraded'
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    : service.status === 'offline' || service.status === 'stopped'
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                }`}>
+                  {service.status === 'healthy' || service.status === 'running' 
+                    ? '✅ Actif' 
+                    : service.status === 'degraded'
+                    ? '⚠️ Dégradé'
+                    : service.status === 'offline' || service.status === 'stopped'
+                    ? '❌ Arrêté'
+                    : service.status || '❓ Inconnu'}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -2344,6 +2415,673 @@ const LogsTab = memo(function LogsTab({ logs, loading, onRefresh }: any) {
           </div>
         </div>
       )}
+    </div>
+  );
+});
+
+// Composant ReportTab - Rapport Complet avec Snapshots et Export
+const ReportTab = memo(function ReportTab({ 
+  metrics, 
+  chartData, 
+  aggregatedStats, 
+  servicesList, 
+  aggregatedLogs, 
+  metricsHistory,
+  timeRange 
+}: any) {
+  const [snapshots, setSnapshots] = useState<Array<{
+    id: string;
+    timestamp: string;
+    data: any;
+    name?: string;
+  }>>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+
+  // Charger les snapshots depuis localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('analytics_snapshots');
+      if (saved) {
+        setSnapshots(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Erreur chargement snapshots:', error);
+    }
+  }, []);
+
+  // Sauvegarder les snapshots dans localStorage
+  const saveSnapshots = (newSnapshots: typeof snapshots) => {
+    try {
+      localStorage.setItem('analytics_snapshots', JSON.stringify(newSnapshots));
+      setSnapshots(newSnapshots);
+    } catch (error) {
+      console.error('Erreur sauvegarde snapshots:', error);
+    }
+  };
+
+  // Prendre un snapshot
+  const takeSnapshot = () => {
+    const snapshot = {
+      id: `snapshot_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      name: `Snapshot ${new Date().toLocaleString('fr-FR')}`,
+      data: {
+        metrics,
+        chartData: chartData.slice(-100), // Limiter à 100 points pour économiser l'espace
+        aggregatedStats,
+        servicesList: servicesList.map((s: any) => ({
+          name: s.name,
+          status: s.status,
+          responseTime: s.responseTimeMs,
+          cpu: s.metrics?.cpu?.percentage,
+          memory: s.metrics?.memory?.percentage
+        })),
+        aggregatedLogs: aggregatedLogs.slice(0, 50), // Limiter à 50 logs
+        timeRange
+      }
+    };
+    const newSnapshots = [...snapshots, snapshot];
+    saveSnapshots(newSnapshots);
+  };
+
+  // Supprimer un snapshot
+  const deleteSnapshot = (id: string) => {
+    const newSnapshots = snapshots.filter(s => s.id !== id);
+    saveSnapshots(newSnapshots);
+  };
+
+  // Préparer les données pour l'export
+  const prepareExportData = () => {
+    return {
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        timeRange,
+        version: '1.0'
+      },
+      system: {
+        cpu: metrics?.system?.cpu,
+        memory: metrics?.system?.memory,
+        load: metrics?.system?.load,
+        disk: metrics?.system?.disk
+      },
+      performance: {
+        responseTime: metrics?.responseTime,
+        aggregatedStats
+      },
+      network: {
+        network: metrics?.network,
+        reliability: metrics?.health
+      },
+      services: servicesList.map((s: any) => ({
+        name: s.name,
+        status: s.status,
+        responseTime: s.responseTimeMs,
+        cpu: s.metrics?.cpu?.percentage,
+        memory: s.metrics?.memory?.percentage,
+        uptime: s.uptime
+      })),
+      logs: aggregatedLogs,
+      history: metricsHistory.slice(-100), // Limiter l'historique
+      snapshots: snapshots.map(s => ({
+        id: s.id,
+        timestamp: s.timestamp,
+        name: s.name
+      }))
+    };
+  };
+
+  // Export JSON
+  const exportJSON = () => {
+    setIsExporting(true);
+    try {
+      const data = prepareExportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rapport-analytics-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erreur export JSON:', error);
+      alert('❌ Erreur lors de l\'export JSON');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Export CSV
+  const exportCSV = () => {
+    setIsExporting(true);
+    try {
+      const data = prepareExportData();
+      
+      // Créer plusieurs CSV pour différentes sections
+      const csvSections: string[] = [];
+      
+      // Section Services
+      csvSections.push('=== SERVICES ===');
+      csvSections.push('Nom,Statut,Temps de réponse (ms),CPU (%),Mémoire (%)');
+      data.services.forEach((s: any) => {
+        csvSections.push([
+          s.name || '',
+          s.status || '',
+          s.responseTime || '',
+          s.cpu || '',
+          s.memory || ''
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+      });
+      
+      csvSections.push('\n=== LOGS D\'ERREUR ===');
+      csvSections.push('Date,Service,Niveau,Message');
+      data.logs.forEach((log: any) => {
+        csvSections.push([
+          log.timestamp || '',
+          log.serviceName || '',
+          log.level || '',
+          (log.message || '').replace(/"/g, '""')
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+      });
+      
+      csvSections.push('\n=== SNAPSHOTS ===');
+      csvSections.push('ID,Date,Nom');
+      data.snapshots.forEach((s: any) => {
+        csvSections.push([
+          s.id || '',
+          s.timestamp || '',
+          s.name || ''
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+      });
+      
+      const csvContent = csvSections.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rapport-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erreur export CSV:', error);
+      alert('❌ Erreur lors de l\'export CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Export PDF (utilise window.print() pour l'instant)
+  const exportPDF = () => {
+    setIsExporting(true);
+    try {
+      // Créer une nouvelle fenêtre avec le contenu formaté pour l'impression
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('❌ Veuillez autoriser les popups pour l\'export PDF');
+        setIsExporting(false);
+        return;
+      }
+      
+      const data = prepareExportData();
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Rapport Analytics - ${new Date().toLocaleDateString('fr-FR')}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+            h2 { color: #374151; margin-top: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; font-weight: bold; }
+            .section { margin: 20px 0; }
+            .stat { display: inline-block; margin: 10px; padding: 10px; background: #f9fafb; border-radius: 5px; }
+          </style>
+        </head>
+        <body>
+          <h1>📊 Rapport Complet Analytics</h1>
+          <p><strong>Généré le:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+          <p><strong>Période:</strong> ${timeRange}</p>
+          
+          <div class="section">
+            <h2>🖥️ Système</h2>
+            <div class="stat"><strong>CPU:</strong> ${metrics?.system?.cpu?.usage || 'N/A'}</div>
+            <div class="stat"><strong>Mémoire:</strong> ${metrics?.system?.memory?.usage || 'N/A'}</div>
+            <div class="stat"><strong>Charge:</strong> ${metrics?.system?.load?.average || 'N/A'}</div>
+          </div>
+          
+          <div class="section">
+            <h2>⚡ Performances</h2>
+            <div class="stat"><strong>Temps de réponse moyen:</strong> ${data.performance.responseTime?.average_ms || 'N/A'} ms</div>
+            <div class="stat"><strong>Services actifs:</strong> ${data.performance.aggregatedStats?.servicesHealthy || 0} / ${data.performance.aggregatedStats?.servicesTotal || 0}</div>
+          </div>
+          
+          <div class="section">
+            <h2>🌐 Réseau & Fiabilité</h2>
+            <div class="stat"><strong>Réseau RX:</strong> ${formatMb(data.network.network?.total_rx_mb)}</div>
+            <div class="stat"><strong>Réseau TX:</strong> ${formatMb(data.network.network?.total_tx_mb)}</div>
+            <div class="stat"><strong>Disponibilité:</strong> ${data.network.reliability?.availability_percent || 'N/A'}%</div>
+          </div>
+          
+          <div class="section">
+            <h2>🔧 Services & Logs</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Statut</th>
+                  <th>Temps de réponse</th>
+                  <th>CPU</th>
+                  <th>Mémoire</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.services.map((s: any) => `
+                  <tr>
+                    <td>${s.name || ''}</td>
+                    <td>${s.status || ''}</td>
+                    <td>${s.responseTime || 'N/A'} ms</td>
+                    <td>${s.cpu || 'N/A'}%</td>
+                    <td>${s.memory || 'N/A'}%</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="section">
+            <h2>❌ Erreurs Récentes</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Service</th>
+                  <th>Niveau</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.logs.slice(0, 20).map((log: any) => `
+                  <tr>
+                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : ''}</td>
+                    <td>${log.serviceName || ''}</td>
+                    <td>${log.level || ''}</td>
+                    <td>${(log.message || '').substring(0, 100)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="section">
+            <h2>📸 Snapshots</h2>
+            <p>Nombre de snapshots: ${snapshots.length}</p>
+            ${snapshots.length > 0 ? `
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Nom</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${snapshots.map((s: any) => `
+                    <tr>
+                      <td>${s.id}</td>
+                      <td>${new Date(s.timestamp).toLocaleString('fr-FR')}</td>
+                      <td>${s.name || ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : '<p>Aucun snapshot disponible</p>'}
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Attendre que le contenu soit chargé avant d'imprimer
+      setTimeout(() => {
+        printWindow.print();
+        setIsExporting(false);
+      }, 500);
+    } catch (error) {
+      console.error('Erreur export PDF:', error);
+      alert('❌ Erreur lors de l\'export PDF');
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* En-tête avec actions */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <FileText className="h-6 w-6 text-blue-600" />
+              Rapport Complet
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Rapport détaillé de toutes les métriques système, performances, réseau, services et erreurs
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={takeSnapshot}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+            >
+              <Camera className="h-4 w-4" />
+              Prendre un Snapshot
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                disabled={isExporting}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                Exporter {isExporting && '...'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isExportMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsExportMenuOpen(false)}
+                  />
+                  <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 min-w-[150px]">
+                    <button
+                      onClick={() => {
+                        exportJSON();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      JSON
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportCSV();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      CSV
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportPDF();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      PDF
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Snapshots */}
+      {snapshots.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Snapshots ({snapshots.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {snapshots.map((snapshot) => (
+              <div
+                key={snapshot.id}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {snapshot.name}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(snapshot.timestamp).toLocaleString('fr-FR')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteSnapshot(snapshot.id)}
+                    className="text-red-600 hover:text-red-700 p-1"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                  <div>Services: {snapshot.data?.servicesList?.length || 0}</div>
+                  <div>Logs: {snapshot.data?.aggregatedLogs?.length || 0}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Section Système */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <Server className="h-5 w-5" />
+          Système
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">CPU</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {metrics?.system?.cpu?.usage || 'N/A'}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {metrics?.system?.memory?.usage || 'N/A'}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatLoad(metrics?.system?.load?.average)}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {metrics?.system?.disk?.[0]?.usage_percent ? `${metrics.system.disk[0].usage_percent}%` : 'N/A'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Performances */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <Gauge className="h-5 w-5" />
+          Performances
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse moyen</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatMs(metrics?.responseTime?.average_ms)}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Services actifs</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {aggregatedStats?.servicesHealthy || 0} / {aggregatedStats?.servicesTotal || 0}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">CPU Moyen</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {aggregatedStats?.avgCpuUsage !== null ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` : 'N/A'}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire Totale</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatMb(aggregatedStats?.totalMemoryMb)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Réseau & Fiabilité */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <Network className="h-5 w-5" />
+          Réseau & Fiabilité
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Réseau RX</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatMb(metrics?.network?.total_rx_mb)}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Réseau TX</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatMb(metrics?.network?.total_tx_mb)}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Disponibilité</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatPercentage(metrics?.health?.availability_percent)}
+            </div>
+          </div>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {metrics?.errors?.rate_per_min ? `${metrics.errors.rate_per_min.toFixed(2)}/min` : 'N/A'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Services & Logs */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          Services & Logs
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Service</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Statut</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Temps réponse</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">CPU</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Mémoire</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {servicesList.slice(0, 20).map((service: any, index: number) => (
+                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {service.name || service.id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                      service.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      service.status === 'degraded' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {service.status || 'unknown'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {formatMs(service.responseTimeMs)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {formatPercentage(service.metrics?.cpu?.percentage)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {formatPercentage(service.metrics?.memory?.percentage)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Section Erreurs Récentes */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          Erreurs Récentes
+        </h3>
+        {aggregatedLogs.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Service</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Niveau</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Message</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {aggregatedLogs.slice(0, 20).map((log: any, index: number) => (
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {log.serviceName || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                        log.level === 'ERROR' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                        log.level === 'WARN' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                      }`}>
+                        {log.level || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      <div className="max-w-md truncate" title={log.message}>
+                        {log.message || 'N/A'}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+            <p>Aucune erreur récente</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 });

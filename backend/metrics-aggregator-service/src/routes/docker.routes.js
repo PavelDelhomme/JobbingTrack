@@ -818,8 +818,173 @@ router.get('/service/:name/history', async (req, res) => {
 });
 
 /**
+ * Endpoint pour démarrer un service
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
+ */
+router.post('/service/:name/start', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🚀 Démarrage du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Démarrer le conteneur
+    try {
+      await execAsync(`docker start ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} démarré avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} démarré avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur démarrage ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors du démarrage: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint pour arrêter un service
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
+ */
+router.post('/service/:name/stop', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🛑 Arrêt du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Arrêter le conteneur
+    try {
+      await execAsync(`docker stop ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} arrêté avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} arrêté avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur arrêt ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors de l'arrêt: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Endpoint pour redémarrer un service
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée AVANT /service/:name pour éviter les conflits
+ */
+router.post('/service/:name/restart', async (req, res) => {
+  try {
+    const serviceName = req.params.name;
+    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
+    
+    console.log(`[DOCKER ROUTES] 🔄 Redémarrage du service: ${containerName}`);
+    
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    // Vérifier si le conteneur existe
+    try {
+      await execAsync(`docker inspect ${containerName} 2>&1`);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        error: `Le conteneur ${containerName} n'existe pas`
+      });
+    }
+    
+    // Redémarrer le conteneur
+    try {
+      await execAsync(`docker restart ${containerName}`);
+      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} redémarré avec succès`);
+      
+      res.json({
+        success: true,
+        message: `Service ${serviceName} redémarré avec succès`,
+        service: serviceName,
+        container: containerName,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error(`[DOCKER ROUTES] ❌ Erreur redémarrage ${containerName}:`, err.message);
+      res.status(500).json({
+        success: false,
+        error: `Erreur lors du redémarrage: ${err.message}`,
+        service: serviceName,
+        container: containerName
+      });
+    }
+  } catch (error) {
+    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Endpoint pour récupérer les métriques d'un service spécifique
- * ⚠️ IMPORTANT: Cette route DOIT être déclarée APRÈS les routes spécifiques (/logs, /history)
+ * ⚠️ IMPORTANT: Cette route DOIT être déclarée APRÈS les routes spécifiques (/logs, /history, /start, /stop, /restart)
  */
 router.get('/service/:name', async (req, res) => {
   try {
@@ -924,168 +1089,6 @@ router.get('/history', async (req, res) => {
       success: false, 
       error: error.message,
       timestamp: new Date().toISOString()
-    });
-  }
-});
-
-/**
- * Endpoint pour démarrer un service
- */
-router.post('/service/:name/start', async (req, res) => {
-  try {
-    const serviceName = req.params.name;
-    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
-    
-    console.log(`[DOCKER ROUTES] 🚀 Démarrage du service: ${containerName}`);
-    
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-    
-    // Vérifier si le conteneur existe
-    try {
-      await execAsync(`docker inspect ${containerName} 2>&1`);
-    } catch (err) {
-      return res.status(404).json({
-        success: false,
-        error: `Le conteneur ${containerName} n'existe pas`
-      });
-    }
-    
-    // Démarrer le conteneur
-    try {
-      await execAsync(`docker start ${containerName}`);
-      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} démarré avec succès`);
-      
-      res.json({
-        success: true,
-        message: `Service ${serviceName} démarré avec succès`,
-        service: serviceName,
-        container: containerName,
-        timestamp: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error(`[DOCKER ROUTES] ❌ Erreur démarrage ${containerName}:`, err.message);
-      res.status(500).json({
-        success: false,
-        error: `Erreur lors du démarrage: ${err.message}`,
-        service: serviceName,
-        container: containerName
-      });
-    }
-  } catch (error) {
-    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-/**
- * Endpoint pour arrêter un service
- */
-router.post('/service/:name/stop', async (req, res) => {
-  try {
-    const serviceName = req.params.name;
-    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
-    
-    console.log(`[DOCKER ROUTES] 🛑 Arrêt du service: ${containerName}`);
-    
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-    
-    // Vérifier si le conteneur existe
-    try {
-      await execAsync(`docker inspect ${containerName} 2>&1`);
-    } catch (err) {
-      return res.status(404).json({
-        success: false,
-        error: `Le conteneur ${containerName} n'existe pas`
-      });
-    }
-    
-    // Arrêter le conteneur
-    try {
-      await execAsync(`docker stop ${containerName}`);
-      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} arrêté avec succès`);
-      
-      res.json({
-        success: true,
-        message: `Service ${serviceName} arrêté avec succès`,
-        service: serviceName,
-        container: containerName,
-        timestamp: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error(`[DOCKER ROUTES] ❌ Erreur arrêt ${containerName}:`, err.message);
-      res.status(500).json({
-        success: false,
-        error: `Erreur lors de l'arrêt: ${err.message}`,
-        service: serviceName,
-        container: containerName
-      });
-    }
-  } catch (error) {
-    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-/**
- * Endpoint pour redémarrer un service
- */
-router.post('/service/:name/restart', async (req, res) => {
-  try {
-    const serviceName = req.params.name;
-    const containerName = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`;
-    
-    console.log(`[DOCKER ROUTES] 🔄 Redémarrage du service: ${containerName}`);
-    
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-    
-    // Vérifier si le conteneur existe
-    try {
-      await execAsync(`docker inspect ${containerName} 2>&1`);
-    } catch (err) {
-      return res.status(404).json({
-        success: false,
-        error: `Le conteneur ${containerName} n'existe pas`
-      });
-    }
-    
-    // Redémarrer le conteneur
-    try {
-      await execAsync(`docker restart ${containerName}`);
-      console.log(`[DOCKER ROUTES] ✅ Service ${containerName} redémarré avec succès`);
-      
-      res.json({
-        success: true,
-        message: `Service ${serviceName} redémarré avec succès`,
-        service: serviceName,
-        container: containerName,
-        timestamp: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error(`[DOCKER ROUTES] ❌ Erreur redémarrage ${containerName}:`, err.message);
-      res.status(500).json({
-        success: false,
-        error: `Erreur lors du redémarrage: ${err.message}`,
-        service: serviceName,
-        container: containerName
-      });
-    }
-  } catch (error) {
-    console.error('[DOCKER ROUTES] ❌ Erreur:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
     });
   }
 });
