@@ -421,7 +421,11 @@ const getProfile = async (req, res, next) => {
     if (!user) {
       // En développement, si l'utilisateur n'est pas trouvé mais qu'on a req.user, utiliser ces données
       if (process.env.NODE_ENV === 'development' && req.user) {
-        logger.warn('Utilisateur non trouvé en DB, utilisation des données du token');
+        // En développement, c'est normal d'utiliser des données du token
+        // Ne logger qu'en mode debug pour éviter le spam
+        if (process.env.DEBUG === 'true') {
+          logger.info('[DEV] Utilisation des données du token (utilisateur non trouvé en DB)');
+        }
         user = {
           id: req.user.id,
           email: req.user.email,

@@ -73,11 +73,14 @@ const authenticate = async (req, res, next) => {
       }
 
       if (!user) {
-        logger.warn(`Utilisateur non trouvé pour userId: ${decoded.userId}`);
         // En développement, si l'utilisateur n'est pas trouvé mais le token est valide,
         // créer un utilisateur mock pour permettre le développement
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('Mode développement: utilisateur mock créé');
+          // En développement, c'est normal d'utiliser des utilisateurs mock
+          // Ne logger qu'en mode debug pour éviter le spam
+          if (process.env.DEBUG === 'true') {
+            logger.info(`[DEV] Utilisateur mock créé pour userId: ${decoded.userId}`);
+          }
           user = {
             id: decoded.userId,
             email: decoded.email || 'dev@jobbingtrack.com',
@@ -86,6 +89,8 @@ const authenticate = async (req, res, next) => {
             role: decoded.role || 'ADMIN'
           };
         } else {
+          // En production, logger un warning
+          logger.warn(`Utilisateur non trouvé pour userId: ${decoded.userId}`);
           // S'assurer que la réponse est bien envoyée et que la requête est terminée
           if (!res.headersSent) {
             return res.status(401).json({

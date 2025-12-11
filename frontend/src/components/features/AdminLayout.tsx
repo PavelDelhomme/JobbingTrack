@@ -277,7 +277,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Sidebar - Cachée sur mobile, peut être cachée sur desktop */}
         <div className={`
-          fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 flex flex-col shadow-xl border-r border-gray-200 dark:border-gray-800 z-50 transform transition-all duration-300 ease-in-out
+          fixed inset-y-0 left-0 w-72 md:w-80 bg-white dark:bg-gray-900 flex flex-col shadow-xl border-r border-gray-200 dark:border-gray-800 z-50 transform transition-all duration-300 ease-in-out
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isSidebarCollapsed ? 'lg:-translate-x-full lg:pointer-events-none lg:opacity-0' : 'lg:pointer-events-auto lg:opacity-100'}
         `}>
@@ -496,12 +496,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
-        <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-64'}`}>
+        <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-72 md:ml-80'}`}>
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
-          <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+          <div className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? '' : 'lg:pl-12 md:pl-12'}`}>
             {/* Section gauche - Navigation et titre */}
-            <div className="flex items-center gap-2 lg:gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
               {/* ✅ Bouton hamburger pour mobile */}
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -540,12 +540,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {/* Titre retiré - Plus de texte "Backoffice Administrateur" ou "Backoffice" */}
             </div>
 
+            {/* Section centrale - Recherche globale - Prend toute la place disponible */}
+            <div className="hidden sm:flex flex-1 min-w-0 mx-4 lg:mx-6">
+              <GlobalSearch className="w-full" />
+            </div>
+
             {/* Section droite - Actions et contrôles */}
-            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 flex-shrink-0">
-              {/* Recherche globale - Masquée sur très petits écrans */}
-              <div className="hidden sm:block max-w-xs lg:max-w-md flex-1">
-                <GlobalSearch className="w-full" />
-              </div>
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-shrink-0 min-w-0">
 
 
 
@@ -563,26 +564,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </span>
               </button>
 
-              {/* Settings Button - Compact */}
+              {/* Settings Button - Plus d'espace */}
               <button
                 onClick={() => setIsSettingsOpen(true)}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="Paramètres"
               >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
+                <span className="hidden md:inline text-sm font-medium text-gray-700 dark:text-gray-300">Paramètres</span>
               </button>
 
               {/* Quick Actions Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setIsQuickActionsDropdownOpen(!isQuickActionsDropdownOpen)}
-                  className="px-2 sm:px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-1 sm:gap-2 text-sm font-medium"
+                  className="px-3 sm:px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-1.5 sm:gap-2 text-sm font-medium"
                   title="Actions rapides"
                 >
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="hidden sm:inline">Actions</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -644,15 +646,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <div className="relative">
                 <button
                   onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-                  className={`flex items-center gap-1 sm:gap-2 px-2 lg:px-3 py-1.5 rounded-lg transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 lg:px-4 py-2 rounded-lg transition-all ${
                     actualTheme === 'dark'
                       ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                   title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
                 >
-                  <span className="text-lg">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
-                  <span className="hidden sm:inline text-xs font-medium">
+                  <span className="text-lg sm:text-xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
+                  <span className="hidden sm:inline text-sm font-medium">
                     {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
                   </span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -718,8 +720,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-          {/* Page content - Padding adapté pour mobile */}
-          <main className="p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors">
+          {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
+          <main className={`p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? '' : 'lg:pl-12 md:pl-12'}`}>
             {children}
           </main>
         </div>

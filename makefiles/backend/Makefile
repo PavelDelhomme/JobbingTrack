@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator
 
 # ============================================================================
 # AIDE
@@ -33,6 +33,11 @@ help-backend: ## Afficher l'aide backend
 	@echo "  make monitoring-test            - Test health endpoints"
 	@echo "  make monitoring-test-auth TOKEN=xxx - Test avec auth JWT"
 	@echo "  make test-monitoring            - Suite tests complète"
+	@echo ""
+	@echo "⚡ PERFORMANCE:"
+	@echo "  make test-performance-backend   - Tests de performance backend"
+	@echo "  make check-memory-backend        - Vérifier consommation mémoire"
+	@echo "  make analyze-metrics-aggregator - Analyser metrics-aggregator"
 	@echo ""
 	@echo "🌍 ACCÈS:"
 	@echo "  Prometheus:  http://localhost:9090"
@@ -182,6 +187,36 @@ monitoring-stats-watch: ## Surveillance continue (toutes les 60s)
 	@echo "👀 Surveillance en temps réel (Ctrl+C pour arrêter)..."
 	@watch -n 60 'make monitoring-stats'
 
+# ============================================================================
+# PERFORMANCE
+# ============================================================================
+
+test-performance-backend: ## Tests de performance backend
+	@echo "🔍 Tests de performance backend..."
+	@chmod +x scripts/backend-performance-test.sh
+	@./scripts/backend-performance-test.sh
+
+check-memory-backend: ## Vérifier la consommation mémoire des services backend
+	@echo "💾 Vérification mémoire backend..."
+	@echo "Services JobbingTrack:"
+	@docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" | grep -E "NAME|jobbingtrack" || echo "Aucun service trouvé"
+	@echo ""
+	@echo "Pour une analyse complète, utilisez: make test-performance-backend"
+
+analyze-metrics-aggregator: ## Analyser spécifiquement metrics-aggregator
+	@echo "📊 Analyse de metrics-aggregator..."
+	@if docker ps --format "{{.Names}}" | grep -q "^jobbingtrack-metrics-aggregator$$"; then \
+		echo "Stats actuelles:"; \
+		docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" jobbingtrack-metrics-aggregator; \
+		echo ""; \
+		echo "Analyse du code source:"; \
+		grep -r "docker\|exec\|child_process" backend/metrics-aggregator-service/src --include="*.js" 2>/dev/null | wc -l | xargs -I {} echo "  • Appels Docker/exec: {}"; \
+		grep -r "readFile\|readFileSync\|/proc\|/sys" backend/metrics-aggregator-service/src --include="*.js" 2>/dev/null | wc -l | xargs -I {} echo "  • Lectures fichiers système: {}"; \
+		grep -r "prisma\." backend/metrics-aggregator-service/src --include="*.js" 2>/dev/null | wc -l | xargs -I {} echo "  • Appels Prisma: {}"; \
+	else \
+		echo "❌ Conteneur metrics-aggregator non trouvé"; \
+	fi
+
 backend-help: ## Aide complète backend + monitoring
 	@echo "================================================================"
 	@echo "🔧 BACKEND - Commandes monitoring"
@@ -197,6 +232,11 @@ backend-help: ## Aide complète backend + monitoring
 	@echo "  make monitoring-test            - Test health"
 	@echo "  make monitoring-test-auth TOKEN=xxx"
 	@echo "  make test-monitoring            - Suite tests complète"
+	@echo ""
+	@echo "⚡ PERFORMANCE:"
+	@echo "  make test-performance-backend   - Tests de performance"
+	@echo "  make check-memory-backend        - Vérifier mémoire"
+	@echo "  make analyze-metrics-aggregator  - Analyser metrics-aggregator"
 	@echo ""
 	@echo "💡 Les commandes générales sont dans make help"
 	@echo ""
