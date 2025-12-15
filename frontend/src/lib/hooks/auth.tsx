@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Si pas dans localStorage, vérifier les cookies
         if (!storedToken) {
-          console.log('🔍 Aucun token trouvé dans localStorage, vérification des cookies...');
+          console.log('🔍 No token found in localStorage, checking cookies...');
           
           const getCookieValue = (name: string): string | null => {
             try {
@@ -301,7 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     while (retryCount < maxRetries) {
       try {
-        console.log(`🔐 Tentative de connexion (${retryCount + 1}/${maxRetries})...`);
+        console.log(`🔐 Login attempt (${retryCount + 1}/${maxRetries})...`);
         
         // Utiliser directement l'URL du service d'authentification
         const response = await authService.login(email, password);
