@@ -351,25 +351,11 @@ export default function BackofficePage() {
           } catch (error: any) {
             // Ne log que les erreurs autres que 404
             if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
-              // Determine service name from the promise context
-              const serviceName = promise.toString().includes('applications') ? 'application-service' :
-                                 promise.toString().includes('companies') ? 'company-service' :
-                                 'unknown-service';
-              
-              // Import service status utilities dynamically
-              import('@/lib/services/serviceStatus').then(({ shouldLogServiceError, getServiceErrorMessage, isCriticalService }) => {
-                if (shouldLogServiceError(serviceName)) {
-                  const errorMsg = getServiceErrorMessage(serviceName, error);
-                  if (isCriticalService(serviceName)) {
-                    console.error(`❌ ${errorMsg}`);
-                  } else {
-                    console.warn(`ℹ️ ${errorMsg}`);
-                  }
-                }
-              }).catch(() => {
-                // Fallback if import fails
+              // Optional services can fail silently in production
+              // Only log in development or for critical services
+              if (process.env.NODE_ENV === 'development') {
                 console.warn('Error retrieving data:', error.message);
-              });
+              }
             }
             return fallback
           }
