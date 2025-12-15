@@ -17,7 +17,15 @@ class SecurityMiddleware {
   // Middleware principal d'analyse de sécurité
   async analyzeRequest(req, res, next) {
     try {
-      const clientIP = this.getClientIP(req);
+      // Gérer le cas où getClientIP n'est pas disponible
+      const clientIP = this?.getClientIP ? this.getClientIP(req) : (
+        req.headers['x-forwarded-for']?.split(',')[0] ||
+        req.headers['x-real-ip'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        'unknown'
+      );
       const userAgent = req.get('User-Agent') || '';
       const endpoint = req.originalUrl;
       const method = req.method;
@@ -476,9 +484,14 @@ class SecurityMiddleware {
 // Créer une instance du middleware
 const securityMiddleware = new SecurityMiddleware();
 
-// Middleware d'analyse de sécurité
+// Middleware d'analyse de sécurité (avec gestion d'erreur)
 const analyzeRequest = async (req, res, next) => {
-  await securityMiddleware.analyzeRequest(req, res, next);
+  try {
+    await securityMiddleware.analyzeRequest(req, res, next);
+  } catch (error) {
+    console.error('Erreur dans le middleware de sécurité:', error);
+    next(); // Continuer même en cas d'erreur pour ne pas bloquer les requêtes
+  }
 };
 
 // Middleware de capture de réponse

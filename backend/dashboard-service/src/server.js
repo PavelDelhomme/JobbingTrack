@@ -15,6 +15,9 @@ const app = express();
 
 console.log(`🚀 Démarrage du dashboard-service sur le port ${PORT}...`);
 
+// Trust proxy (nécessaire pour express-rate-limit avec API Gateway)
+app.set('trust proxy', true);
+
 // Middlewares globaux
 app.use(helmet());
 app.use(cors({
