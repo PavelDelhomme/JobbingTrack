@@ -293,11 +293,20 @@ class SecurityScheduler {
   async collectSystemMetrics() {
     try {
       // Vérifier que la table existe avant d'essayer de l'utiliser
-      const { checkTableExists, handleTableNotFoundError } = require('../config/database');
-      const tableExists = await checkTableExists('security_metrics');
+      // Force refresh toutes les 10 minutes pour éviter les problèmes de cache
+      const { checkTableExists, handleTableNotFoundError, clearTableExistsCache } = require('../config/database');
+      
+      const cacheKey = 'security_metrics_last_check';
+      const lastCheck = this[cacheKey] || 0;
+      const forceRefresh = (Date.now() - lastCheck) > 10 * 60 * 1000; // 10 minutes
+      
+      const tableExists = await checkTableExists('security_metrics', forceRefresh);
+      this[cacheKey] = Date.now();
       
       if (!tableExists) {
         // Table n'existe pas, ignorer silencieusement
+        // Vider le cache pour forcer une nouvelle vérification la prochaine fois
+        clearTableExistsCache('security_metrics');
         return;
       }
 
