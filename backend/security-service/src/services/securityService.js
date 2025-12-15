@@ -848,13 +848,19 @@ class SecurityService {
         averageRiskScore: totalLogs > 0 ? recentLogs.reduce((sum, log) => sum + (log.riskScore || 0), 0) / totalLogs : 0
       };
 
-      // Stocker les métriques en base de données pour l'historique
-      await this.storeSystemMetrics(metrics);
+      // Stocker les métriques en base de données pour l'historique (ne pas propager les erreurs)
+      try {
+        await this.storeSystemMetrics(metrics);
+      } catch (storeError) {
+        // Ignorer silencieusement les erreurs de stockage (déjà gérées dans storeSystemMetrics)
+        // Ne pas logger ni propager
+      }
 
       return metrics;
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      const { isTableNotFoundError } = require('../config/database');
+      if (isTableNotFoundError(error)) {
         if (process.env.NODE_ENV === 'development') {
           // Mode silencieux - retourner des métriques vides sans logger
           return {
@@ -1391,14 +1397,17 @@ class SecurityService {
       });
     } catch (error) {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
-      const { handleTableNotFoundError } = require('../config/database');
+      const { handleTableNotFoundError, isTableNotFoundError } = require('../config/database');
       
-      if (handleTableNotFoundError(error, 'security_metrics', true)) {
-        // Erreur gérée, ignorer silencieusement
+      // Vérifier si c'est une erreur de table non trouvée
+      if (isTableNotFoundError(error)) {
+        // Mettre à jour le cache et ignorer silencieusement
+        handleTableNotFoundError(error, 'security_metrics', true);
         return;
       }
       
       // Pour les autres erreurs, logger uniquement en production
+      // En développement, ignorer complètement pour éviter le spam
       if (process.env.NODE_ENV === 'production') {
         logger.error('Erreur lors du stockage des métriques système:', error);
       }

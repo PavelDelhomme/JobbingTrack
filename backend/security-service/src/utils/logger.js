@@ -26,10 +26,34 @@ const colors = {
 
 winston.addColors(colors);
 
+// Format personnalisé pour filtrer les erreurs P2021 en développement
+const filterP2021Errors = winston.format((info) => {
+  // En développement, ignorer les erreurs P2021 (table non trouvée)
+  if (process.env.NODE_ENV === 'development') {
+    if (info.message && typeof info.message === 'string') {
+      // Filtrer les messages d'erreur contenant P2021 ou "does not exist"
+      if (info.message.includes('P2021') || 
+          info.message.includes('does not exist') ||
+          info.message.includes('security_metrics') ||
+          (info.meta && info.meta.code === 'P2021')) {
+        return false; // Ne pas logger
+      }
+    }
+    // Filtrer aussi les erreurs dans les métadonnées
+    if (info.code === 'P2021' || 
+        (info.meta && info.meta.code === 'P2021') ||
+        (info.error && info.error.code === 'P2021')) {
+      return false; // Ne pas logger
+    }
+  }
+  return info;
+});
+
 const logger = winston.createLogger({
   levels,
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
+    filterP2021Errors(),
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss'
     }),
