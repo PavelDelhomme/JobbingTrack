@@ -714,7 +714,7 @@ class SecurityService {
         }
       }
 
-      logger.info(`Analyse de vulnérabilités terminée: ${mockVulnerabilities.length} vulnérabilités analysées`);
+      logger.info(`Vulnerability analysis completed: ${mockVulnerabilities.length} vulnerabilities analyzed`);
 
     } catch (error) {
       logger.error('Erreur lors de l\'analyse des vulnérabilités:', error);

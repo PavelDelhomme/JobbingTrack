@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Si on a un token, on charge le profil
         if (storedToken) {
-          console.log('🔑 Token trouvé, chargement du profil...');
+          console.log('🔑 Token found, loading profile...');
           
           // Vérifier rapidement la validité du token avant de charger le profil
           if (!validateJwtToken(storedToken) && !storedToken.startsWith('mock-jwt-token')) {
@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     while (retryCount < maxRetries) {
       try {
-        console.log(`🔄 Chargement du profil (tentative ${retryCount + 1}/${maxRetries})`);
+        console.log(`🔄 Loading profile (attempt ${retryCount + 1}/${maxRetries})`);
         
         // Vérifier si le token existe et n'est pas vide
         if (!authToken || authToken.trim() === '') {
