@@ -30,7 +30,7 @@ class AnalyticsController {
       // Vérifier que la table existe
       if (!prisma.userSession || typeof prisma.userSession.create !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserSession not available, development mode');
           return res.json({
             success: true,
             data: { sessionId: sessionId || randomUUID(), message: 'Development mode - table not available' }
@@ -87,7 +87,7 @@ class AnalyticsController {
       // Vérifier que la table existe et que le Prisma Client est disponible
       if (!prisma || !prisma.userSession || typeof prisma.userSession.update !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserSession not available, development mode');
           return res.json({
             success: true,
             data: { sessionId, message: 'Development mode - table not available' }
@@ -116,7 +116,7 @@ class AnalyticsController {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserSession')) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserSession not available, development mode');
           return res.json({
             success: true,
             data: { sessionId: req.params.sessionId, message: 'Mode développement - table non disponible' }
@@ -141,13 +141,13 @@ class AnalyticsController {
       // Vérifier que les tables existent
       if (!prisma.userEvent || typeof prisma.userEvent.create !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserEvent non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserEvent not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table UserEvent non disponible');
+        throw new Error('Table UserEvent not available');
       }
 
       const userId = req.user?.id;
@@ -222,7 +222,7 @@ class AnalyticsController {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserEvent')) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserEvent non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserEvent not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
@@ -247,13 +247,13 @@ class AnalyticsController {
       // Vérifier que la table existe
       if (!prisma.userError || typeof prisma.userError.create !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserError non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserError not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table UserError non disponible');
+        throw new Error('Table UserError not available');
       }
 
       const userId = req.user?.id;
@@ -318,7 +318,7 @@ class AnalyticsController {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserError')) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserError non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserError not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
@@ -343,13 +343,13 @@ class AnalyticsController {
       // Vérifier que la table existe
       if (!prisma.userPerformance || typeof prisma.userPerformance.create !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserPerformance non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserPerformance not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table UserPerformance non disponible');
+        throw new Error('Table UserPerformance not available');
       }
 
       const userId = req.user?.id;
@@ -397,7 +397,7 @@ class AnalyticsController {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserPerformance')) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table UserPerformance non disponible, mode développement');
+          console.warn('[ANALYTICS] Table UserPerformance not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
@@ -422,7 +422,7 @@ class AnalyticsController {
       // Vérifier que la table existe
       if (!prisma.deviceInfo || typeof prisma.deviceInfo.upsert !== 'function') {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table DeviceInfo non disponible, mode développement');
+          console.warn('[ANALYTICS] Table DeviceInfo not available, development mode');
           return res.json({
             success: true,
             data: { message: 'Development mode - table not available' }
@@ -499,7 +499,7 @@ class AnalyticsController {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
       if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('DeviceInfo')) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[ANALYTICS] Table DeviceInfo non disponible, mode développement');
+          console.warn('[ANALYTICS] Table DeviceInfo not available, development mode');
           return res.json({
             success: true,
             data: { deviceId: req.body.deviceId, message: 'Mode développement - table non disponible' }
