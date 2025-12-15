@@ -596,10 +596,12 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
       // Transmettre le statut et les données
       res.status(response.status).json(response.data);
     } catch (error) {
+      // S'assurer que targetUrl est défini pour le logging
+      const errorTargetUrl = targetUrl || `${target}${req.originalUrl}`;
       logger.error(`Error proxying ${path}:`, {
         message: error.message,
         code: error.code,
-        url: targetUrl,
+        url: errorTargetUrl,
         method: req.method
       });
       
@@ -612,7 +614,7 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
           details: {
             error: error.message,
             code: error.code,
-            targetUrl,
+            targetUrl: errorTargetUrl,
             suggestion: `Vérifiez que le service ${serviceName} est démarré avec "make start-service SERVICE=${serviceName}"`
           }
         });
