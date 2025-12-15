@@ -319,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error('Connection error: Invalid token');
           }
 
-          console.log('✅ Connexion réussie, mise à jour du state...');
+          console.log('✅ Login successful, updating state...');
           setToken(newToken);
           setUser(newUser);
 

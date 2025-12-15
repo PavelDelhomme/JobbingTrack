@@ -18,7 +18,7 @@ export default function LoginPage() {
   // ✅ Si déjà connecté, rediriger automatiquement
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('✅ Déjà connecté, redirection vers /backoffice...');
+      console.log('✅ Already logged in, redirecting to /backoffice...');
       // Forcer la redirection immédiatement
       router.push('/backoffice');
       router.refresh();
@@ -43,7 +43,7 @@ export default function LoginPage() {
       // ✅ UTILISER LA FONCTION login() du contexte d'authentification
       await login(email, password);
 
-      console.log('✅ Login réussi, redirection immédiate...');
+      console.log('✅ Login successful, redirecting immediately...');
 
       // Attendre un court instant pour que le cookie soit bien défini
       await new Promise(resolve => setTimeout(resolve, 100));

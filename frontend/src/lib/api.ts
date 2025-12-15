@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { FRONTEND_URLS } from '@/config/ports.config';
 import { cacheManager } from '@/lib/cache/cacheManager';
+import { isCriticalService, isOptionalService, getServiceErrorMessage, shouldLogServiceError } from './services/serviceStatus';
 
 const API_BASE_URL = FRONTEND_URLS.api;
 
