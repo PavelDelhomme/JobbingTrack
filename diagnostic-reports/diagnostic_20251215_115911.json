@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-12-15T11:59:11+01:00",
+  "reports": {
+  "environment": {
+  "docker": "Docker version 29.1.1, build 0aedba58c2",
+  "docker_compose": "Docker Compose version 2.40.3"
+},
+  "containers": {
+  "postgres": "jobbingtrack-postgres",
+  "postgres_status": "running",
+  "services_running": [
+    "jobbingtrack-security-service",
+    "jobbingtrack-auth-service",
+    "jobbingtrack-company-service",
+    "jobbingtrack-application-service"
+  ]
+},
+  "database": {
+  "accessible": true,
+  "user": "jobbingtrack",
+  "database": "jobbingtrack",
+  "table_count": 24,
+  "missing_tables": [
+    "security_metrics"
+  ],
+  "existing_tables": [
+    "User",
+    "Company",
+    "Application"
+  ],
+  "all_tables": [
+    "Application",
+    "ApplicationStatusHistory",
+    "Call",
+    "CallType",
+    "Company",
+    "Contact",
+    "ContactApplication",
+    "ContactCompany",
+    "ContainerLog",
+    "Document",
+    "Event",
+    "EventType",
+    "FollowUp",
+    "FollowUpContact",
+    "FollowUpMethod",
+    "FollowUpType",
+    "Interview",
+    "InterviewContact",
+    "InterviewStyle",
+    "InterviewType",
+    "Notification",
+    "Platform",
+    "SyncQueue",
+    "User"
+  ]
+},
+  "db_push": {
+  "error": "DB_PUSH_FAILED"
+},
+  "filters": {
+  "shared_filter_exists": true
+},
+  "logs": {
+  "security_service": {
+    "p2021_count": 6
+  }
+},

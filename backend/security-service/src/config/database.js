@@ -14,23 +14,27 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 /**
  * Vérifier si une table existe dans la base de données
  * @param {string} tableName - Nom de la table (ex: 'security_metrics', 'User')
+ * @param {boolean} forceRefresh - Si true, ignore le cache et force la vérification
  * @returns {Promise<boolean>} - true si la table existe, false sinon
  */
-async function checkTableExists(tableName) {
-  // Vérifier le cache d'abord
-  const cached = tableExistsCache.get(tableName);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.exists;
+async function checkTableExists(tableName, forceRefresh = false) {
+  // Vérifier le cache d'abord (sauf si forceRefresh)
+  if (!forceRefresh) {
+    const cached = tableExistsCache.get(tableName);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.exists;
+    }
   }
 
   try {
     // Vérifier l'existence de la table via une requête SQL
+    // Utiliser LOWER pour la casse insensible
     const result = await prisma.$queryRaw`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = ${tableName}
-      );
+        AND LOWER(table_name) = LOWER(${tableName})
+      ) as exists;
     `;
     
     const exists = result[0]?.exists || false;
@@ -48,7 +52,20 @@ async function checkTableExists(tableName) {
     if (process.env.NODE_ENV === 'production') {
       logger.warn(`Erreur lors de la vérification de la table ${tableName}:`, error.message);
     }
+    // Ne pas mettre en cache en cas d'erreur pour permettre une nouvelle tentative
     return false;
+  }
+}
+
+/**
+ * Vider le cache d'existence des tables
+ * @param {string} tableName - Nom de la table (optionnel, vide tout si non fourni)
+ */
+function clearTableExistsCache(tableName = null) {
+  if (tableName) {
+    tableExistsCache.delete(tableName);
+  } else {
+    tableExistsCache.clear();
   }
 }
 
@@ -286,6 +303,7 @@ module.exports = {
   prisma,
   initializeDatabase,
   checkTableExists,
+  clearTableExistsCache,
   isTableNotFoundError,
   handleTableNotFoundError
 };
