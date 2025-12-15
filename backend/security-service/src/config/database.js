@@ -7,6 +7,88 @@ const prisma = new PrismaClient({
   log: [], // Désactiver TOUS les logs Prisma (query, info, warn, error) pour éviter le spam
 });
 
+// Cache pour vérifier l'existence des tables (évite les requêtes répétées)
+const tableExistsCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Vérifier si une table existe dans la base de données
+ * @param {string} tableName - Nom de la table (ex: 'security_metrics', 'User')
+ * @returns {Promise<boolean>} - true si la table existe, false sinon
+ */
+async function checkTableExists(tableName) {
+  // Vérifier le cache d'abord
+  const cached = tableExistsCache.get(tableName);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.exists;
+  }
+
+  try {
+    // Vérifier l'existence de la table via une requête SQL
+    const result = await prisma.$queryRaw`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = ${tableName}
+      );
+    `;
+    
+    const exists = result[0]?.exists || false;
+    
+    // Mettre en cache
+    tableExistsCache.set(tableName, {
+      exists,
+      timestamp: Date.now()
+    });
+    
+    return exists;
+  } catch (error) {
+    // En cas d'erreur, considérer que la table n'existe pas
+    // Ne pas logger en développement pour éviter le spam
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn(`Erreur lors de la vérification de la table ${tableName}:`, error.message);
+    }
+    return false;
+  }
+}
+
+/**
+ * Vérifier si une erreur Prisma est une erreur de table non trouvée
+ * @param {Error} error - L'erreur à vérifier
+ * @returns {boolean} - true si c'est une erreur P2021
+ */
+function isTableNotFoundError(error) {
+  return error.code === 'P2021' || 
+         error.message?.includes('does not exist') ||
+         error.message?.includes('relation') ||
+         (error.meta && error.meta.table);
+}
+
+/**
+ * Gérer gracieusement les erreurs de table non trouvée
+ * @param {Error} error - L'erreur à gérer
+ * @param {string} tableName - Nom de la table concernée
+ * @param {boolean} silent - Si true, ne pas logger en développement
+ * @returns {boolean} - true si l'erreur a été gérée, false sinon
+ */
+function handleTableNotFoundError(error, tableName, silent = true) {
+  if (isTableNotFoundError(error)) {
+    // Mettre à jour le cache pour indiquer que la table n'existe pas
+    tableExistsCache.set(tableName, {
+      exists: false,
+      timestamp: Date.now()
+    });
+    
+    // Ne logger qu'en production ou si silent = false
+    if (!silent || process.env.NODE_ENV === 'production') {
+      logger.warn(`Table ${tableName} non trouvée. Exécutez: make db-push-all`);
+    }
+    
+    return true;
+  }
+  return false;
+}
+
 // Désactiver les logs Prisma via variable d'environnement (si disponible)
 if (process.env.NODE_ENV === 'development') {
   // Supprimer les logs Prisma de la console en redirigeant stdout et stderr
