@@ -546,7 +546,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3016
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=deployment
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - FRONTEND_URL=http://localhost:3000
       - LOG_LEVEL=info
     depends_on:
