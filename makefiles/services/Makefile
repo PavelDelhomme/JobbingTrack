@@ -445,6 +445,20 @@ _up-full-internal:
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
+	# Démarrer les services de monitoring complets
+	@echo "📊 Démarrage des services de monitoring complets (Prometheus, Grafana, Loki, etc.)..."
+	@if [ -f "$(ROOT_DIR)/monitoring/docker-compose.monitoring.yml" ]; then \
+		cd $(ROOT_DIR)/monitoring && \
+		if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
+			docker compose -f docker-compose.monitoring.yml up -d; \
+		else \
+			docker-compose -f docker-compose.monitoring.yml up -d; \
+		fi; \
+		echo "✅ Services de monitoring démarrés"; \
+	else \
+		echo "⚠️  Fichier monitoring/docker-compose.monitoring.yml non trouvé, monitoring non démarré"; \
+	fi
+	
 	# Attendre que les services soient prêts
 	@echo "⏳ Attente que les services soient prêts (5s)..."
 	@sleep 5
@@ -456,24 +470,13 @@ _up-full-internal:
 	@echo "  - Frontend:           http://localhost:5003"
 	@echo "  - API Gateway:        http://localhost:5002"
 	@echo "  - Metrics Aggregator: http://localhost:5004"
+	@echo "  - Prometheus:         http://localhost:9090"
+	@echo "  - Grafana:            http://localhost:3013 (admin/admin123)"
+	@echo "  - Loki:               http://localhost:3100"
+	@echo "  - cAdvisor:           http://localhost:8082"
 	@echo ""
 	
-	# Vérification Prisma migrations
-	@echo "🔍 Vérification des migrations Prisma..."
-	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
-	if [ -n "$$POSTGRES_CONTAINER" ]; then \
-		if docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -c "\dt \"User\"" 2>&1 | grep -q "Did not find any relation"; then \
-			echo "⚠️  ATTENTION: Les migrations Prisma ne sont pas appliquées !"; \
-			echo ""; \
-			echo "💡 Pour appliquer les migrations, lancez:"; \
-			echo "    make db-migrate"; \
-			echo ""; \
-		else \
-			echo "✅ Migrations Prisma appliquées"; \
-		fi; \
-	else \
-		echo "⚠️  Conteneur PostgreSQL non trouvé"; \
-	fi
+	# Note: La vérification Prisma est faite après le démarrage complet dans up-full
 	
 	# Vérification utilisateur admin
 	@echo "🔍 Vérification de l'utilisateur administrateur..."
@@ -501,9 +504,6 @@ _up-full-internal:
 		echo "⚠️  Conteneur PostgreSQL non trouvé"; \
 	fi
 	
-	@echo "📊 Pour démarrer le monitoring complet (Prometheus, Grafana):"
-	@echo "    make monitoring-full"
-	@echo ""
 	@echo "🔍 Pour voir les logs : make logs"
 	@echo "🔍 Pour vérifier l'état : make status"
 
@@ -515,28 +515,30 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	# Vérification Docker
 	$(call check_docker)
 	
-	# Vérifier les tables Prisma après démarrage
+	# Appeler la fonction interne
+	@$(MAKE) _up-full-internal
+	
+	# Vérifier les tables Prisma APRÈS démarrage des services
 	@echo ""
-	@echo "🔍 Vérification des tables Prisma après démarrage..."
-	@echo "⏳ Attente que PostgreSQL soit prêt..."
-	@sleep 5
+	@echo "🔍 Vérification des tables Prisma..."
+	@echo "⏳ Attente que PostgreSQL soit complètement prêt (10s)..."
+	@sleep 10
 	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^jobbingtrack-postgres$$"; then \
 		TABLE_COUNT=$$(docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>/dev/null | tr -d ' \n\r' || echo "0"); \
-		if [ -z "$$TABLE_COUNT" ] || [ "$$TABLE_COUNT" = "0" ] || [ "$$TABLE_COUNT" -lt "5" ] 2>/dev/null; then \
-			echo -e "\033[1;33m⚠️  ATTENTION : Base de données vide ou incomplète ($$TABLE_COUNT tables) !\033[0m"; \
-			echo -e "\033[1;33m💡 Exécution automatique de 'make db-push-all'...\033[0m"; \
+		if [ -z "$$TABLE_COUNT" ] || [ "$$TABLE_COUNT" = "0" ] || [ "$$TABLE_COUNT" = "" ] 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  Base de données vide ($$TABLE_COUNT tables détectées)\033[0m"; \
+			echo -e "\033[1;33m💡 Si vous avez besoin des tables Prisma, exécutez: make db-push-all\033[0m"; \
 			echo ""; \
-			$(MAKE) db-push-all || echo "⚠️  Erreur lors de db-push-all, continuez quand même"; \
+		elif [ "$$TABLE_COUNT" -lt "5" ] 2>/dev/null; then \
+			echo -e "\033[1;33m⚠️  Base de données incomplète ($$TABLE_COUNT tables, minimum 5 attendues)\033[0m"; \
+			echo -e "\033[1;33m💡 Si vous avez besoin de toutes les tables, exécutez: make db-push-all\033[0m"; \
 			echo ""; \
-			echo "⏳ Attente que les tables soient créées (3s)..."; \
-			sleep 3; \
 		else \
 			echo -e "\033[0;32m✅ Base de données OK ($$TABLE_COUNT tables)\033[0m"; \
 		fi; \
+	else \
+		echo "⚠️  Conteneur PostgreSQL non trouvé, vérification impossible"; \
 	fi
-	
-	# Appeler la fonction interne
-	@$(MAKE) _up-full-internal
 
 # Démarrer TOUS les services (SANS vérification Docker - pour MickDevil)
 up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mode MickDevil)
