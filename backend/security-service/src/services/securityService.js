@@ -1041,7 +1041,7 @@ class SecurityService {
         }
       }
 
-      logger.info(`Analyse de sécurité terminée: ${recentLogs.length} logs analysés`);
+      logger.info(`Security analysis completed: ${recentLogs.length} logs analyzed`);
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
