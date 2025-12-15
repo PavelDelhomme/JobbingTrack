@@ -409,29 +409,31 @@ log ""
 RECOMMENDATIONS="[]"
 
 # Vérifier si les tables manquent
-if echo "$DB_CHECK" | grep -q '"missing_tables":\s*\[.*"security_metrics"' 2>/dev/null; then
+MISSING_SECURITY_METRICS=$(echo "$TABLES" | grep -c "security_metrics" || echo "0")
+if [ "$MISSING_SECURITY_METRICS" -eq 0 ]; then
     log "${RED}⚠ PROBLÈME: Table security_metrics manquante${NC}"
     log "${YELLOW}  → Solution: Exécuter 'make db-push-all' ou 'cd backend/security-service && npx prisma db push'${NC}"
-    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Exécuter make db-push-all pour créer les tables manquantes"]' 2>/dev/null || echo "$RECOMMENDATIONS")
+    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Exécuter make db-push-all pour créer les tables manquantes"]' 2>/dev/null || echo '["Exécuter make db-push-all pour créer les tables manquantes"]')
 fi
 
 # Vérifier si les filtres sont appliqués
-if [ "$P2021_COUNT" -gt 0 ]; then
+if [ "${P2021_COUNT:-0}" -gt 0 ]; then
     log "${RED}⚠ PROBLÈME: Des erreurs P2021 sont toujours loggées${NC}"
     log "${YELLOW}  → Solution: Redémarrer les conteneurs avec 'make restart' ou 'docker compose restart'${NC}"
-    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Redémarrer les conteneurs pour appliquer les filtres de logs"]' 2>/dev/null || echo "$RECOMMENDATIONS")
+    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Redémarrer les conteneurs pour appliquer les filtres de logs"]' 2>/dev/null || echo '["Redémarrer les conteneurs pour appliquer les filtres de logs"]')
 fi
 
 # Vérifier si le code utilise les vérifications
-if ! grep -q "checkTableExists" "$SCHEDULER_FILE" 2>/dev/null; then
+if [ -f "$SCHEDULER_FILE" ] && ! grep -q "checkTableExists" "$SCHEDULER_FILE" 2>/dev/null; then
     log "${RED}⚠ PROBLÈME: Le code n'utilise pas checkTableExists${NC}"
     log "${YELLOW}  → Solution: Vérifier que les modifications ont été appliquées${NC}"
-    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Vérifier que le code utilise checkTableExists avant d\'utiliser les tables"]' 2>/dev/null || echo "$RECOMMENDATIONS")
+    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Vérifier que le code utilise checkTableExists avant d utiliser les tables"]' 2>/dev/null || echo '["Vérifier que le code utilise checkTableExists"]')
 fi
 
-if [ "$(echo "$RECOMMENDATIONS" | jq 'length' 2>/dev/null || echo "0")" -eq 0 ]; then
+RECOMMENDATIONS_LENGTH=$(echo "$RECOMMENDATIONS" | jq 'length' 2>/dev/null || echo "0")
+if [ "$RECOMMENDATIONS_LENGTH" -eq 0 ]; then
     log "${GREEN}✓ Aucun problème critique détecté${NC}"
-    RECOMMENDATIONS=$(echo "$RECOMMENDATIONS" | jq '. + ["Aucune action requise"]' 2>/dev/null || echo "$RECOMMENDATIONS")
+    RECOMMENDATIONS='["Aucune action requise"]'
 fi
 
 echo "  \"recommendations\": $RECOMMENDATIONS" >> "$JSON_REPORT"
