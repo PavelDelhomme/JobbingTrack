@@ -37,6 +37,14 @@ include makefiles/documentation/Makefile # génération PDF documentation
 include makefiles/help/Makefile          # système d'aide
 
 # ============================================================================
+# ALIASES GLOBAUX
+# ============================================================================
+
+# Alias pour démarrer tous les services
+start: ## Alias de up-full - Démarrer TOUS les services
+	@$(MAKE) up-full
+
+# ============================================================================
 # COMMANDE PAR DÉFAUT
 # ============================================================================
 
