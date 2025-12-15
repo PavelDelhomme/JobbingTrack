@@ -559,15 +559,17 @@ const services = {
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
   app.all(path + '*', MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
+    // Define targetUrl outside try block to ensure it's always available in catch
+    let targetUrl = `${target}${req.originalUrl}`;
+    
     try {
-      // ✅ Pour les routes auth, garder le path complet car l'Auth Service monte ses routes sur /api/v1/auth
-      // Pour les autres services, utiliser req.originalUrl qui contient déjà le path complet
-      let targetUrl = `${target}${req.originalUrl}`;
+      // ✅ For auth routes, keep the full path as Auth Service mounts routes on /api/v1/auth
+      // For other services, use req.originalUrl which already contains the full path
       
-      // ✅ Pour les routes /api/v1/auth/users, s'assurer que le path est correct
-      // L'auth-service monte les routes users sur /api/v1/users ET /api/v1/auth/users
+      // ✅ For routes /api/v1/auth/users, ensure the path is correct
+      // Auth-service mounts user routes on /api/v1/users AND /api/v1/auth/users
       if (req.originalUrl.startsWith('/api/v1/auth/users') && !req.originalUrl.startsWith('/api/v1/auth/users/api/v1')) {
-        // Le path est déjà correct
+        // Path is already correct
         targetUrl = `${target}${req.originalUrl}`;
       }
 
@@ -583,20 +585,20 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
           'X-Forwarded-Proto': req.protocol,
           'X-Forwarded-Host': req.get('host')
         },
-        timeout: 30000, // Augmenter le timeout à 30 secondes pour les tests DNS
+        timeout: 30000, // Increase timeout to 30 seconds for DNS tests
         validateStatus: () => true
       });
 
-      // Ne pas copier tous les headers (peut causer des problèmes)
-      // Copier seulement les headers nécessaires
+      // Don't copy all headers (can cause issues)
+      // Copy only necessary headers
       if (response.headers['content-type']) {
         res.set('Content-Type', response.headers['content-type']);
       }
 
-      // Transmettre le statut et les données
+      // Transmit status and data
       res.status(response.status).json(response.data);
     } catch (error) {
-      // S'assurer que targetUrl est défini pour le logging
+      // Ensure targetUrl is defined for logging (it's already defined above, but use it for clarity)
       const errorTargetUrl = targetUrl || `${target}${req.originalUrl}`;
       logger.error(`Error proxying ${path}:`, {
         message: error.message,

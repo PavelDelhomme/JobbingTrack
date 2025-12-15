@@ -51,10 +51,10 @@ class CronScheduler {
       // Vérifier si la table existe avant d'essayer de la lire
       if (!prisma.workflowExecution || typeof prisma.workflowExecution.findMany !== 'function') {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowExecution non disponible, traitement ignoré (mode développement)');
+          console.warn('Table WorkflowExecution not available, processing ignored (development mode)');
           return;
         }
-        throw new Error('Table WorkflowExecution non disponible');
+        throw new Error('Table WorkflowExecution not available');
       }
 
       let pendingExecutions;

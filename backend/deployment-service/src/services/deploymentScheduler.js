@@ -225,7 +225,7 @@ class DeploymentScheduler {
           }
         }
 
-        logger.info(`Nettoyage effectué: ${deletedMetrics.count} métriques et ${deletedDeployments.count} déploiements supprimés`);
+        logger.info(`Cleanup completed: ${deletedMetrics.count} metrics and ${deletedDeployments.count} deployments deleted`);
       } catch (error) {
         // Gérer les erreurs P2021 (table non trouvée) gracieusement
         if (error.code === 'P2021' || error.message?.includes('does not exist')) {
