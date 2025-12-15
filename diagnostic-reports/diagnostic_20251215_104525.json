@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-12-15T10:45:25+01:00",
+  "reports": {
+  "environment": {
+  "docker": "Docker version 29.1.1, build 0aedba58c2",
+  "docker_compose": "Docker Compose version 2.40.3"
+},
+  "containers": {
+  "postgres": "budget-web-postgres",
+  "postgres_status": "running",
+  "services_running": [
+    "jobbingtrack-security-service",
+    "jobbingtrack-auth-service",
+    "jobbingtrack-company-service",
+    "jobbingtrack-application-service"
+  ]
+},
+  "database": {
+  "accessible": true,
+  "table_count": 0
+},
+  "db_push": {
+  "error": "DB_PUSH_FAILED"
+},
+  "filters": {
+  "shared_filter_exists": true
+},
+  "logs": {
+  "security_service": {
+    "p2021_count": 6
+  }
+},

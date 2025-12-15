@@ -26,8 +26,15 @@ const colors = {
 
 winston.addColors(colors);
 
-// Format personnalisé pour filtrer les erreurs P2021 en développement
-const filterP2021Errors = winston.format((info) => {
+// Importer le filtre partagé
+let filterP2021Errors, filterP2021InPrintf;
+try {
+  const sharedFilter = require('../../../shared/logger-filter');
+  filterP2021Errors = sharedFilter.filterP2021Errors;
+  filterP2021InPrintf = sharedFilter.filterP2021InPrintf;
+} catch (e) {
+  // Fallback si le filtre partagé n'est pas disponible
+  filterP2021Errors = winston.format((info) => {
   // En développement, ignorer TOUTES les erreurs P2021 (table non trouvée)
   if (process.env.NODE_ENV === 'development') {
     // Vérifier dans le message
