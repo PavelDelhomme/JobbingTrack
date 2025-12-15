@@ -135,6 +135,11 @@ services:
       - LOKI_URL=http://jobbingtrack-loki:3100
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
+      - METRICS_COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-300000}
+      - ENABLE_METRICS_COLLECTION=${ENABLE_METRICS_COLLECTION:-true}
+      - SYSTEM_METRICS_RETENTION_DAYS=${SYSTEM_METRICS_RETENTION_DAYS:-90}
+      - CONTAINER_METRICS_RETENTION_DAYS=${CONTAINER_METRICS_RETENTION_DAYS:-30}
+      - LOGS_RETENTION_DAYS=${LOGS_RETENTION_DAYS:-30}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro

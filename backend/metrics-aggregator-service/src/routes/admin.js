@@ -8,30 +8,56 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Middleware d'authentification (à implémenter selon votre système)
+// Middleware d'authentification
+const { authenticateToken } = require('../middlewares/auth.middleware');
+
 const requireAdmin = (req, res, next) => {
-  // TODO: Vérifier JWT et role ADMIN
-  // Pour l'instant, on passe en mode développement
+  // En mode développement, simuler un utilisateur admin
   if (process.env.NODE_ENV === 'development') {
+    req.user = {
+      role: 'SUPER_ADMIN',
+      email: 'admin@jobbingtrack.test',
+      id: 'dev-admin-123'
+    };
     return next();
   }
   
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // En production, utiliser l'authentification JWT
+  authenticateToken(req, res, () => {
+    const user = req.user;
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Accès refusé. Droits administrateur requis.' 
+      });
+    }
+    next();
+  });
+};
+
+// Middleware pour SUPER_ADMIN uniquement
+const requireSuperAdmin = (req, res, next) => {
+  // En mode développement, simuler un super admin
+  if (process.env.NODE_ENV === 'development') {
+    req.user = {
+      role: 'SUPER_ADMIN',
+      email: 'admin@jobbingtrack.test',
+      id: 'dev-admin-123'
+    };
+    return next();
   }
   
-  // Vérifier le token et extraire le rôle
-  try {
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // if (decoded.role !== 'ADMIN' && decoded.role !== 'SUPER_ADMIN') {
-    //   return res.status(403).json({ error: 'Forbidden' });
-    // }
-    // req.user = decoded;
+  // En production, utiliser l'authentification JWT
+  authenticateToken(req, res, () => {
+    const user = req.user;
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Accès refusé. Droits SUPER_ADMIN requis.' 
+      });
+    }
     next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+  });
 };
 
 // Appliquer le middleware à toutes les routes
@@ -547,6 +573,137 @@ router.get('/dashboard', async (req, res) => {
   } catch (error) {
     console.error('Erreur récupération dashboard:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/admin/metrics/cleanup
+ * Nettoyer les métriques (SUPER_ADMIN uniquement)
+ * Options:
+ * - beforeDate: supprimer avant une date (ISO string)
+ * - daysToKeep: garder les N derniers jours
+ * - all: supprimer tout (nécessite confirmation)
+ */
+router.delete('/metrics/cleanup', requireSuperAdmin, async (req, res) => {
+  try {
+    const { beforeDate, daysToKeep, all, confirm } = req.body;
+
+    // Validation
+    if (all && confirm !== 'DELETE_ALL_METRICS') {
+      return res.status(400).json({
+        success: false,
+        error: 'Confirmation requise pour supprimer toutes les métriques. Envoyez confirm: "DELETE_ALL_METRICS"'
+      });
+    }
+
+    let where = {};
+    let deletedCount = {
+      system: 0,
+      containers: 0,
+      logs: 0,
+      total: 0
+    };
+
+    if (all) {
+      // Supprimer tout
+      deletedCount.system = await prisma.systemMetricsSnapshot.deleteMany({});
+      deletedCount.containers = await prisma.containerMetricsSnapshot.deleteMany({});
+      deletedCount.logs = await prisma.aggregatedLog.deleteMany({});
+    } else if (beforeDate) {
+      // Supprimer avant une date
+      const date = new Date(beforeDate);
+      where.timestamp = { lt: date };
+      
+      deletedCount.system = await prisma.systemMetricsSnapshot.deleteMany({
+        where: { timestamp: { lt: date } }
+      });
+      deletedCount.containers = await prisma.containerMetricsSnapshot.deleteMany({
+        where: { timestamp: { lt: date } }
+      });
+      deletedCount.logs = await prisma.aggregatedLog.deleteMany({
+        where: { timestamp: { lt: date } }
+      });
+    } else if (daysToKeep) {
+      // Garder les N derniers jours
+      const days = parseInt(daysToKeep);
+      if (isNaN(days) || days < 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'daysToKeep doit être un nombre positif'
+        });
+      }
+      
+      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      
+      deletedCount.system = await prisma.systemMetricsSnapshot.deleteMany({
+        where: { timestamp: { lt: cutoffDate } }
+      });
+      deletedCount.containers = await prisma.containerMetricsSnapshot.deleteMany({
+        where: { timestamp: { lt: cutoffDate } }
+      });
+      deletedCount.logs = await prisma.aggregatedLog.deleteMany({
+        where: { timestamp: { lt: cutoffDate } }
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Spécifiez beforeDate, daysToKeep, ou all avec confirm'
+      });
+    }
+
+    deletedCount.total = deletedCount.system.count + deletedCount.containers.count + deletedCount.logs.count;
+
+    res.json({
+      success: true,
+      deleted: deletedCount,
+      message: `${deletedCount.total} enregistrements supprimés (Système: ${deletedCount.system.count}, Conteneurs: ${deletedCount.containers.count}, Logs: ${deletedCount.logs.count})`
+    });
+  } catch (error) {
+    console.error('Erreur nettoyage métriques:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erreur lors du nettoyage des métriques'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/metrics/stats
+ * Statistiques sur les métriques stockées
+ */
+router.get('/metrics/stats', async (req, res) => {
+  try {
+    const [systemCount, containerCount, logsCount, oldestSystem, newestSystem] = await Promise.all([
+      prisma.systemMetricsSnapshot.count(),
+      prisma.containerMetricsSnapshot.count(),
+      prisma.aggregatedLog.count(),
+      prisma.systemMetricsSnapshot.findFirst({
+        orderBy: { timestamp: 'asc' },
+        select: { timestamp: true }
+      }),
+      prisma.systemMetricsSnapshot.findFirst({
+        orderBy: { timestamp: 'desc' },
+        select: { timestamp: true }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        system: systemCount,
+        containers: containerCount,
+        logs: logsCount,
+        total: systemCount + containerCount + logsCount,
+        oldest: oldestSystem?.timestamp || null,
+        newest: newestSystem?.timestamp || null
+      }
+    });
+  } catch (error) {
+    console.error('Erreur récupération stats métriques:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erreur lors de la récupération des statistiques'
+    });
   }
 });
 
