@@ -1,5 +1,5 @@
 const winston = require('winston');
-const { filterP2021Errors, filterP2021InPrintf } = require('../../../shared/logger-filter');
+const { filterP2021Errors, filterP2021InPrintf } = require('./logger-filter');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
