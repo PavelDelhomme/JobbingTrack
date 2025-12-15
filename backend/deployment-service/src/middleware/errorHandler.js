@@ -2,13 +2,13 @@ const { logger } = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
   let statusCode = 500;
-  let message = 'Erreur interne du serveur';
+  let message = 'Internal server error';
   let details = {};
 
-  // Erreurs de validation Joi
+  // Joi validation errors
   if (err.isJoi) {
     statusCode = 400;
-    message = 'Données de requête invalides';
+    message = 'Invalid request data';
     details = {
       validationErrors: err.details.map(detail => ({
         field: detail.path.join('.'),
@@ -17,36 +17,36 @@ const errorHandler = (err, req, res, next) => {
       }))
     };
   }
-  // Erreurs Prisma
+  // Prisma errors
   else if (err.code) {
     switch (err.code) {
       case 'P2002':
         statusCode = 409;
-        message = 'Conflit de données: ressource déjà existante';
+        message = 'Data conflict: resource already exists';
         break;
       case 'P2025':
         statusCode = 404;
-        message = 'Ressource non trouvée';
+        message = 'Resource not found';
         break;
       case 'P2003':
         statusCode = 400;
-        message = 'Erreur de contrainte de clé étrangère';
+        message = 'Foreign key constraint error';
         break;
       default:
         statusCode = 400;
-        message = 'Erreur de base de données';
+        message = 'Database error';
     }
     details = { prismaCode: err.code, meta: err.meta };
   }
-  // Erreurs personnalisées
+  // Custom errors
   else if (err.statusCode) {
     statusCode = err.statusCode;
     message = err.message;
     details = err.details || {};
   }
 
-  // Log de l'erreur
-  logger.error('Erreur HTTP', {
+  // Error log
+  logger.error('HTTP error', {
     statusCode,
     message,
     url: req.url,
@@ -57,7 +57,7 @@ const errorHandler = (err, req, res, next) => {
     details
   });
 
-  // Réponse d'erreur
+  // Error response
   res.status(statusCode).json({
     success: false,
     message,

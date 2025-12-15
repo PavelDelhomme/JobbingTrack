@@ -115,11 +115,11 @@ criticalApiClient.interceptors.response.use((response) => response, (error) => {
         }
     }
 
-    // Gestion des timeouts et erreurs réseau (plus stricte)
+    // Handle timeouts and network errors (stricter)
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') ||
         error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        console.warn('Service critique indisponible:', error.message);
-        return Promise.reject(new Error('Service temporairement indisponible'));
+        console.warn('Critical service unavailable:', error.message);
+        return Promise.reject(new Error('Service temporarily unavailable'));
     }
 
     return Promise.reject(error);

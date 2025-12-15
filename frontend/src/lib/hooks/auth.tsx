@@ -59,7 +59,7 @@ const validateJwtToken = (token: string): boolean => {
 
     return true
   } catch (error) {
-    console.error('Erreur lors de la validation du token:', error)
+    console.error('Error validating token:', error)
     return false
   }
 }
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('🔄 Initialisation de l\'authentification...');
+        console.log('🔄 Initializing authentication...');
         
         // Vérifier d'abord localStorage, puis cookies
         let storedToken = localStorage.getItem('token');
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               return null;
             } catch (error) {
-              console.error('Erreur lors de la lecture des cookies:', error);
+              console.error('Error reading cookies:', error);
               return null;
             }
           };
@@ -112,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               localStorage.setItem('token', storedToken);
             } catch (error) {
-              console.error('Erreur lors de la sauvegarde du token dans localStorage:', error);
-              // Continuer même en cas d'erreur de localStorage
+              console.error('Error saving token to localStorage:', error);
+              // Continue even if localStorage error
             }
           }
         }
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Charger le profil de manière asynchrone (ne pas bloquer si ça échoue)
           loadUserProfile(storedToken).catch((error) => {
-            console.warn('⚠️ Erreur lors du chargement du profil, continuation sans authentification:', error.message);
+            console.warn('⚠️ Error loading profile, continuing without authentication:', error.message);
             // Ne pas bloquer l'application si le chargement du profil échoue
             setLoading(false);
           });
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
+        console.error('Error initializing authentication:', error);
         setLoading(false);
       }
     };
@@ -182,19 +182,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Fonction pour détecter les erreurs réseau
+    // Function to detect network errors
     const isNetworkError = (error: any) => {
       return error.message?.includes('fetch') || 
              error.message?.includes('network') ||
              error.message?.includes('ECONNREFUSED') || 
              error.message?.includes('timeout') ||
              error.code === 'NETWORK_ERROR' ||
-             !error.response; // Pas de réponse = erreur réseau
+             !error.response; // No response = network error
     };
 
     // Vérifier que l'URL de l'API est définie
     if (!process.env.NEXT_PUBLIC_API_URL) {
-      console.error('URL de l\'API non définie');
+      console.error('API URL not defined');
       clearAuthData();
       return;
     }
@@ -228,53 +228,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           return; // Succès, on sort de la boucle
         } else {
-          throw new Error('Réponse du serveur invalide');
+          throw new Error('Invalid server response');
         }
 
       } catch (error: any) {
-        console.error(`Erreur lors du chargement du profil (tentative ${retryCount + 1}/${maxRetries}):`, error);
+        console.error(`Error loading profile (attempt ${retryCount + 1}/${maxRetries}):`, error);
 
-        // Erreurs d'authentification - seulement si c'est vraiment une erreur 401/403
-        // ET que ce n'est pas une erreur réseau
+        // Authentication errors - only if it's really a 401/403 error
+        // AND it's not a network error
         if ((error.response?.status === 401 || error.response?.status === 403) && !isNetworkError(error)) {
-          console.warn('Session expirée ou non autorisée (erreur serveur confirmée)');
-          // Nettoyer seulement après toutes les tentatives
+          console.warn('Session expired or unauthorized (server error confirmed)');
+          // Clear only after all attempts
           if (retryCount >= maxRetries - 1) {
             clearAuthData();
             return;
           }
         }
 
-        // Erreurs de validation - seulement si ce n'est pas une erreur réseau
+        // Validation errors - only if it's not a network error
         if (error.response?.status === 400 && !isNetworkError(error)) {
-          console.error('Erreur de validation des données du profil');
-          // Ne pas nettoyer pour une erreur 400, peut-être juste un problème temporaire
+          console.error('Profile data validation error');
+          // Don't clear for a 400 error, might just be a temporary issue
           if (retryCount >= maxRetries - 1) {
             setLoading(false);
             return;
           }
         }
 
-        // Erreurs réseau - retry avec backoff exponentiel
+        // Network errors - retry with exponential backoff
         if (isNetworkError(error) && retryCount < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
-          console.log(`⏳ Erreur réseau, nouvelle tentative dans ${delay}ms...`);
+          console.log(`⏳ Network error, retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           retryCount++;
           continue;
         }
 
-        // Si on arrive ici, toutes les tentatives ont échoué
-        // Si c'est une erreur réseau, ne pas nettoyer le token (peut être temporaire)
+        // If we get here, all attempts have failed
+        // If it's a network error, don't clear the token (might be temporary)
         if (isNetworkError(error)) {
-          console.warn('⚠️ Erreur réseau persistante, mais on garde le token pour réessayer plus tard');
+          console.warn('⚠️ Persistent network error, but keeping token to retry later');
           setLoading(false);
           return;
         }
 
-        // Pour les autres erreurs, nettoyer seulement après toutes les tentatives
+        // For other errors, clear only after all attempts
         if (retryCount >= maxRetries - 1) {
-          console.error('Échec du chargement du profil après plusieurs tentatives');
+          console.error('Failed to load profile after multiple attempts');
           clearAuthData();
           return;
         }
@@ -316,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ) {
             console.error('Token reçu du serveur invalide');
             clearInvalidTokens();
-            throw new Error('Erreur de connexion: Token invalide');
+            throw new Error('Connection error: Invalid token');
           }
 
           console.log('✅ Connexion réussie, mise à jour du state...');
@@ -358,49 +358,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
       } catch (error: any) {
-        console.error(`❌ Erreur de connexion (tentative ${retryCount + 1}/${maxRetries}):`, error);
+        console.error(`❌ Connection error (attempt ${retryCount + 1}/${maxRetries}):`, error);
         
-        // Nettoyer les tokens potentiellement corrompus
+        // Clear potentially corrupted tokens
         clearInvalidTokens();
 
-        // Extraire le message d'erreur
-        let errorMessage = 'Erreur de connexion';
+        // Extract error message
+        let errorMessage = 'Connection error';
         
         if (error.response) {
-          // Erreur de l'API
-          errorMessage = error.response.data?.error || error.response.statusText || 'Erreur serveur';
+          // API error
+          errorMessage = error.response.data?.error || error.response.statusText || 'Server error';
           
-          // Erreurs d'authentification - pas de retry
+          // Authentication errors - no retry
           if (error.response.status === 401 || error.response.status === 403) {
             setLoading(false);
-            throw new Error('Identifiants incorrects');
+            throw new Error('Invalid credentials');
           }
           
-          // Erreurs de validation
+          // Validation errors
           if (error.response.status === 400) {
             setLoading(false);
-            throw new Error(errorMessage || 'Données de connexion invalides');
+            throw new Error(errorMessage || 'Invalid connection data');
           }
         } else if (error.request) {
-          // La requête a été faite mais aucune réponse n'a été reçue
-          errorMessage = 'Le serveur ne répond pas. Vérifiez votre connexion Internet.';
+          // Request was made but no response received
+          errorMessage = 'Server not responding. Check your Internet connection.';
         } else {
-          // Erreur lors de la configuration de la requête
-          errorMessage = error.message || 'Erreur lors de la connexion';
+          // Error configuring the request
+          errorMessage = error.message || 'Connection error';
         }
 
-        // Erreurs réseau - retry avec backoff exponentiel
+        // Network errors - retry with exponential backoff
         if (retryCount < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-          console.log(`🔄 Nouvelle tentative dans ${delay}ms...`);
+          console.log(`🔄 Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           retryCount++;
           continue;
         }
 
-        // Si on arrive ici, toutes les tentatives ont échoué
+        // If we get here, all attempts have failed
         setLoading(false);
-        throw new Error(errorMessage || 'Impossible de se connecter au serveur. Veuillez réessayer plus tard.');
+        throw new Error(errorMessage || 'Unable to connect to server. Please try again later.');
       }
     }
   }
@@ -414,8 +414,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await authService.logout();
         } catch (error) {
-          console.warn('Erreur lors de la déconnexion côté serveur:', error);
-          // On continue même en cas d'erreur pour nettoyer le frontend
+          console.warn('Error during server-side logout:', error);
+          // Continue even if error to clean up frontend
         }
       }
       
@@ -460,8 +460,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
       }
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      // En cas d'erreur, on force quand même la redirection
+      console.error('Error during logout:', error);
+      // In case of error, force redirect anyway
       if (redirectToLogin) {
         window.location.href = '/login';
       }
