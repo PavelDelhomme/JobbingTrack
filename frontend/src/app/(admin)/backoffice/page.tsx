@@ -351,7 +351,25 @@ export default function BackofficePage() {
           } catch (error: any) {
             // Ne log que les erreurs autres que 404
             if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
-              console.warn('Erreur récupération données:', error.message)
+              // Determine service name from the promise context
+              const serviceName = promise.toString().includes('applications') ? 'application-service' :
+                                 promise.toString().includes('companies') ? 'company-service' :
+                                 'unknown-service';
+              
+              // Import service status utilities dynamically
+              import('@/lib/services/serviceStatus').then(({ shouldLogServiceError, getServiceErrorMessage, isCriticalService }) => {
+                if (shouldLogServiceError(serviceName)) {
+                  const errorMsg = getServiceErrorMessage(serviceName, error);
+                  if (isCriticalService(serviceName)) {
+                    console.error(`❌ ${errorMsg}`);
+                  } else {
+                    console.warn(`ℹ️ ${errorMsg}`);
+                  }
+                }
+              }).catch(() => {
+                // Fallback if import fails
+                console.warn('Error retrieving data:', error.message);
+              });
             }
             return fallback
           }
