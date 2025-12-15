@@ -269,7 +269,7 @@ const login = async (req, res, next) => {
 
       return res.status(401).json({
         success: false,
-        error: 'Email ou mot de passe incorrect'
+        error: 'Invalid email or password'
       });
     }
 
@@ -296,7 +296,7 @@ const login = async (req, res, next) => {
 
         return res.status(401).json({
           success: false,
-          error: 'Email ou mot de passe incorrect'
+          error: 'Invalid email or password'
         });
       }
     }
