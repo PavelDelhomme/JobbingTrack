@@ -95,9 +95,19 @@ const logger = winston.createLogger({
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
+      filterP2021Errors(), // Filtrer aussi dans la console
       winston.format.colorize(),
       winston.format.simple(),
       winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
+        // Filtrer les erreurs P2021 dans le printf aussi
+        if (process.env.NODE_ENV === 'development') {
+          if (message && (message.includes('P2021') || message.includes('does not exist') || message.includes('security_metrics'))) {
+            return ''; // Ne pas afficher
+          }
+          if (meta && (meta.code === 'P2021' || (meta.error && meta.error.code === 'P2021'))) {
+            return ''; // Ne pas afficher
+          }
+        }
         let metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
         return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
       })
