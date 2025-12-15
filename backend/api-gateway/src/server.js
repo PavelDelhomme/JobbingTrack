@@ -605,17 +605,17 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
         method: req.method
       });
       
-      // En développement, retourner une erreur claire au lieu d'un fallback
+      // In development, return a clear error instead of a fallback
       if (process.env.NODE_ENV === 'development') {
         return res.status(503).json({
           success: false,
-          error: `Service ${path} non disponible`,
-          message: `Impossible de joindre le service ${serviceName} à l'adresse ${target}`,
+          error: `Service ${path} unavailable`,
+          message: `Unable to reach service ${serviceName} at address ${target}`,
           details: {
             error: error.message,
             code: error.code,
             targetUrl: errorTargetUrl,
-            suggestion: `Vérifiez que le service ${serviceName} est démarré avec "make start-service SERVICE=${serviceName}"`
+            suggestion: `Check that service ${serviceName} is started with "make start-service SERVICE=${serviceName}"`
           }
         });
       }
