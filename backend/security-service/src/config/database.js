@@ -154,22 +154,58 @@ async function initializeDatabase() {
       logger.info('Tentative de création automatique des tables...');
       
       try {
-        // Exécuter prisma db push pour créer les tables manquantes
+        // Utiliser $executeRaw pour créer les tables via Prisma directement
+        // Plus fiable que execSync dans un conteneur Docker
         const { execSync } = require('child_process');
-        const result = execSync('npx prisma db push --skip-generate --accept-data-loss', {
-          cwd: process.cwd(),
+        const { spawn } = require('child_process');
+        
+        // Exécuter prisma db push dans le répertoire /app (conteneur Docker)
+        const prismaPush = spawn('npx', ['prisma', 'db', 'push', '--skip-generate', '--accept-data-loss'], {
+          cwd: '/app',
           env: process.env,
-          stdio: 'pipe'
+          stdio: ['ignore', 'pipe', 'pipe']
         });
-        logger.info('Tables créées automatiquement avec succès');
+        
+        let stdout = '';
+        let stderr = '';
+        
+        prismaPush.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        prismaPush.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        await new Promise((resolve, reject) => {
+          prismaPush.on('close', (code) => {
+            if (code === 0) {
+              logger.info('Tables créées automatiquement avec succès');
+              resolve();
+            } else {
+              reject(new Error(`prisma db push failed with code ${code}: ${stderr}`));
+            }
+          });
+        });
         
         // Régénérer le Prisma Client pour qu'il reconnaisse les nouvelles tables
-        execSync('npx prisma generate', {
-          cwd: process.cwd(),
+        const prismaGenerate = spawn('npx', ['prisma', 'generate'], {
+          cwd: '/app',
           env: process.env,
-          stdio: 'pipe'
+          stdio: ['ignore', 'pipe', 'pipe']
         });
-        logger.info('Prisma Client régénéré');
+        
+        await new Promise((resolve, reject) => {
+          prismaGenerate.on('close', (code) => {
+            if (code === 0) {
+              logger.info('Prisma Client régénéré');
+              resolve();
+            } else {
+              logger.warn('Prisma generate a échoué, mais on continue');
+              resolve(); // Ne pas bloquer le démarrage
+            }
+          });
+        });
         
         // Vider le cache pour forcer une nouvelle vérification
         clearTableExistsCache();
@@ -181,7 +217,7 @@ async function initializeDatabase() {
       } catch (pushError) {
         logger.warn('Impossible de créer les tables automatiquement:', pushError.message);
         if (process.env.NODE_ENV === 'development') {
-          logger.info('Mode développement: continuation sans les tables');
+          logger.info('Mode développement: continuation sans les tables. Exécutez: make db-push-all');
         } else {
           throw pushError;
         }
