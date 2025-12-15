@@ -115,6 +115,65 @@ const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
   }
 };
 
+// Fonction pour formater les labels de l'axe X en évitant les doublons
+const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRange: string) => {
+  if (!data || data.length === 0) return tickItem;
+  
+  // Pour les petites plages de temps, afficher toutes les heures
+  if (timeRange === '1h') {
+    // Afficher toutes les 10 minutes
+    const date = new Date(data[index]?.timestamp || tickItem);
+    const minutes = date.getMinutes();
+    if (minutes % 10 === 0) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    return '';
+  }
+  
+  // Pour 6h, afficher toutes les heures
+  if (timeRange === '6h') {
+    const date = new Date(data[index]?.timestamp || tickItem);
+    const minutes = date.getMinutes();
+    if (minutes === 0) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    return '';
+  }
+  
+  // Pour 24h, afficher toutes les 2 heures
+  if (timeRange === '24h') {
+    const date = new Date(data[index]?.timestamp || tickItem);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    if (hours % 2 === 0 && minutes === 0) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    return '';
+  }
+  
+  // Pour 7d, afficher le jour et l'heure toutes les 12h
+  if (timeRange === '7d') {
+    const date = new Date(data[index]?.timestamp || tickItem);
+    const hours = date.getHours();
+    if (hours % 12 === 0) {
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit' });
+    }
+    return '';
+  }
+  
+  // Pour 30d, afficher le jour toutes les 2 jours
+  if (timeRange === '30d') {
+    const date = new Date(data[index]?.timestamp || tickItem);
+    const day = date.getDate();
+    if (day % 2 === 0) {
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    }
+    return '';
+  }
+  
+  return tickItem;
+};
+
 const formatLogTimestamp = (nanoString: string) => {
   const milliseconds = Number(nanoString) / 1_000_000;
   if (!Number.isFinite(milliseconds)) return nanoString;
@@ -1146,6 +1205,8 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1193,6 +1254,8 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1241,6 +1304,8 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   yAxisId="left"
@@ -1293,6 +1358,8 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1394,6 +1461,8 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1569,6 +1638,8 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1712,6 +1783,8 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -1869,6 +1942,8 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
                   dataKey="time" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -2046,7 +2121,13 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
+                />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
                 <Tooltip 
                   contentStyle={{ 
@@ -2083,7 +2164,13 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
+                />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
                 <Tooltip 
                   contentStyle={{ 
@@ -2114,7 +2201,13 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
             <ResponsiveContainer width="100%" height={400}>
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
+                />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
                 <Tooltip 
                   contentStyle={{ 
