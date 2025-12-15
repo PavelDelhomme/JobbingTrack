@@ -22,6 +22,9 @@ const securityScheduler = require('./services/securityScheduler');
 const app = express();
 const PORT = process.env.PORT || 3017;
 
+// Trust proxy (nécessaire pour express-rate-limit avec API Gateway)
+app.set('trust proxy', true);
+
 // Configuration de sécurité renforcée
 app.use(helmet({
   contentSecurityPolicy: {
@@ -69,8 +72,13 @@ app.use(morgan('combined', {
   stream: { write: msg => logger.info(msg.trim()) }
 }));
 
-// Middleware de sécurité personnalisé
-app.use(securityMiddleware.analyzeRequest);
+// Middleware de sécurité personnalisé (lier le contexte)
+app.use((req, res, next) => {
+  securityMiddleware.analyzeRequest(req, res, next).catch(err => {
+    logger.error('Erreur dans le middleware de sécurité:', err);
+    next(); // Continuer même en cas d'erreur
+  });
+});
 
 // Body parsing avec limite
 app.use(express.json({ limit: '10mb' }));
