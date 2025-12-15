@@ -292,6 +292,15 @@ class SecurityScheduler {
   // Collecter les métriques système automatiques
   async collectSystemMetrics() {
     try {
+      // Vérifier que la table existe avant d'essayer de l'utiliser
+      const { checkTableExists, handleTableNotFoundError } = require('../config/database');
+      const tableExists = await checkTableExists('security_metrics');
+      
+      if (!tableExists) {
+        // Table n'existe pas, ignorer silencieusement
+        return;
+      }
+
       // Récupérer les métriques système actuelles
       const systemMetrics = await securityService.getSystemMetrics();
 
@@ -317,25 +326,18 @@ class SecurityScheduler {
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
-      // Vérifier le code d'erreur Prisma ou le message
-      const isTableNotFound = error.code === 'P2021' || 
-                              error.message?.includes('does not exist') ||
-                              error.message?.includes('security_metrics') ||
-                              (error.meta && error.meta.table === 'public.security_metrics');
+      const { handleTableNotFoundError } = require('../config/database');
       
-      if (isTableNotFound) {
-        // Table n'existe pas encore, ignorer silencieusement en développement
-        if (process.env.NODE_ENV === 'development') {
-          // Mode silencieux - ne pas logger
-          return;
-        } else {
-          logger.warn('Table security_metrics non trouvée, métriques système non enregistrées');
-          return;
-        }
+      if (handleTableNotFoundError(error, 'security_metrics', true)) {
+        // Erreur gérée, ignorer silencieusement
+        return;
       }
-      // Pour les autres erreurs, logger et propager
-      logger.error('Erreur lors de la collecte des métriques système:', error);
-      throw error;
+      
+      // Pour les autres erreurs, logger uniquement en production
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Erreur lors de la collecte des métriques système:', error);
+      }
+      // Ne pas propager l'erreur pour éviter de casser le service
     }
   }
 
