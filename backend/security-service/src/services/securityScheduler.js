@@ -336,9 +336,12 @@ class SecurityScheduler {
       }
       
       // Pour les autres erreurs, logger uniquement en production
-      // En développement, ignorer complètement pour éviter le spam
+      // En développement, NE JAMAIS logger les erreurs liées aux tables
       if (process.env.NODE_ENV === 'production') {
-        logger.error('Erreur lors de la collecte des métriques système:', error);
+        // Vérifier que ce n'est pas une erreur de table avant de logger
+        if (!isTableNotFoundError(error)) {
+          logger.error('Erreur lors de la collecte des métriques système:', error);
+        }
       }
       // Ne pas propager l'erreur pour éviter de casser le service
     }
