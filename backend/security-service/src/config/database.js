@@ -137,8 +137,56 @@ async function initializeDatabase() {
     await prisma.$connect();
     logger.info('Connexion à la base de données de sécurité établie');
 
-    // Vérifier si les tables existent et les créer si nécessaire
-    await prisma.$executeRaw`SELECT 1`;
+    // Vérifier si les tables critiques existent
+    const criticalTables = ['security_logs', 'security_metrics', 'vulnerabilities'];
+    let missingTables = [];
+    
+    for (const table of criticalTables) {
+      const exists = await checkTableExists(table, true); // Force refresh
+      if (!exists) {
+        missingTables.push(table);
+      }
+    }
+    
+    // Si des tables manquent, essayer de les créer avec prisma db push
+    if (missingTables.length > 0) {
+      logger.warn(`Tables manquantes détectées: ${missingTables.join(', ')}`);
+      logger.info('Tentative de création automatique des tables...');
+      
+      try {
+        // Exécuter prisma db push pour créer les tables manquantes
+        const { execSync } = require('child_process');
+        const result = execSync('npx prisma db push --skip-generate --accept-data-loss', {
+          cwd: process.cwd(),
+          env: process.env,
+          stdio: 'pipe'
+        });
+        logger.info('Tables créées automatiquement avec succès');
+        
+        // Régénérer le Prisma Client pour qu'il reconnaisse les nouvelles tables
+        execSync('npx prisma generate', {
+          cwd: process.cwd(),
+          env: process.env,
+          stdio: 'pipe'
+        });
+        logger.info('Prisma Client régénéré');
+        
+        // Vider le cache pour forcer une nouvelle vérification
+        clearTableExistsCache();
+        
+        // Reconnecter Prisma pour charger le nouveau client
+        await prisma.$disconnect();
+        await prisma.$connect();
+        
+      } catch (pushError) {
+        logger.warn('Impossible de créer les tables automatiquement:', pushError.message);
+        if (process.env.NODE_ENV === 'development') {
+          logger.info('Mode développement: continuation sans les tables');
+        } else {
+          throw pushError;
+        }
+      }
+    }
 
     // Créer des données de développement si en mode développement
     if (process.env.NODE_ENV === 'development') {

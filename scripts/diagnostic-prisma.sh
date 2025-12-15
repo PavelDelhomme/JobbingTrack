@@ -348,8 +348,16 @@ if [ -n "$POSTGRES_CONTAINER" ]; then
         log "Analyse des logs de $SECURITY_CONTAINER..."
         RECENT_LOGS=$(docker logs --tail 50 "$SECURITY_CONTAINER" 2>&1 || echo "")
         
-        P2021_COUNT=$(echo "$RECENT_LOGS" | grep -c "P2021" || echo "0")
-        ERROR_COUNT=$(echo "$RECENT_LOGS" | grep -c "error:" || echo "0")
+        P2021_COUNT=$(echo "$RECENT_LOGS" | grep -c "P2021" 2>/dev/null || echo "0")
+        ERROR_COUNT=$(echo "$RECENT_LOGS" | grep -c "error:" 2>/dev/null || echo "0")
+        
+        # Nettoyer les valeurs (enlever les retours à la ligne)
+        P2021_COUNT=$(echo "$P2021_COUNT" | tr -d '\n\r ' | head -1)
+        ERROR_COUNT=$(echo "$ERROR_COUNT" | tr -d '\n\r ' | head -1)
+        
+        # Valeurs par défaut si vides
+        P2021_COUNT=${P2021_COUNT:-0}
+        ERROR_COUNT=${ERROR_COUNT:-0}
         
         log "  Erreurs P2021 trouvées: $P2021_COUNT"
         log "  Erreurs totales: $ERROR_COUNT"
@@ -357,7 +365,7 @@ if [ -n "$POSTGRES_CONTAINER" ]; then
         LOG_CHECK=$(echo "$LOG_CHECK" | jq ".security_service.p2021_count = $P2021_COUNT" 2>/dev/null || echo "$LOG_CHECK")
         LOG_CHECK=$(echo "$LOG_CHECK" | jq ".security_service.error_count = $ERROR_COUNT" 2>/dev/null || echo "$LOG_CHECK")
         
-        if [ "$P2021_COUNT" -gt 0 ]; then
+        if [ "${P2021_COUNT:-0}" -gt 0 ]; then
             log "${RED}  ⚠ Des erreurs P2021 sont toujours présentes dans les logs${NC}"
             log "${YELLOW}  → Les filtres ne fonctionnent peut-être pas ou le conteneur n'a pas été redémarré${NC}"
         fi
