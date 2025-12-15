@@ -91,9 +91,15 @@ log "${BLUE}[2/10] Vérification des conteneurs Docker...${NC}"
 
 CONTAINERS_CHECK="{}"
 if docker ps >/dev/null 2>&1; then
-    # Conteneur PostgreSQL
-    if docker ps --format "{{.Names}}" | grep -q "postgres\|jobbingtrack-postgres"; then
-        POSTGRES_CONTAINER=$(docker ps --format "{{.Names}}" | grep "postgres\|jobbingtrack-postgres" | head -1)
+    # Conteneur PostgreSQL - Chercher spécifiquement jobbingtrack-postgres
+    POSTGRES_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "^jobbingtrack-postgres$|jobbingtrack.*postgres" | head -1)
+    
+    if [ -z "$POSTGRES_CONTAINER" ]; then
+        # Fallback: chercher n'importe quel postgres
+        POSTGRES_CONTAINER=$(docker ps --format "{{.Names}}" | grep -i "postgres" | grep -v "budget\|vtcbuilder\|streammake" | head -1)
+    fi
+    
+    if [ -n "$POSTGRES_CONTAINER" ]; then
         log "${GREEN}✓ PostgreSQL conteneur: $POSTGRES_CONTAINER${NC}"
         CONTAINERS_CHECK=$(echo "$CONTAINERS_CHECK" | jq ".postgres = \"$POSTGRES_CONTAINER\"" 2>/dev/null || echo "$CONTAINERS_CHECK")
         
@@ -102,16 +108,20 @@ if docker ps >/dev/null 2>&1; then
         log "  Status: $POSTGRES_STATUS"
         CONTAINERS_CHECK=$(echo "$CONTAINERS_CHECK" | jq ".postgres_status = \"$POSTGRES_STATUS\"" 2>/dev/null || echo "$CONTAINERS_CHECK")
     else
-        log "${RED}✗ Conteneur PostgreSQL non trouvé${NC}"
+        log "${RED}✗ Conteneur PostgreSQL jobbingtrack non trouvé${NC}"
+        log "${YELLOW}  Conteneurs PostgreSQL trouvés:${NC}"
+        docker ps --format "{{.Names}}" | grep -i "postgres" | while read name; do
+            log "    - $name"
+        done
         CONTAINERS_CHECK=$(echo "$CONTAINERS_CHECK" | jq ".postgres = \"NOT_FOUND\"" 2>/dev/null || echo "$CONTAINERS_CHECK")
     fi
     
-    # Conteneurs de services
+    # Conteneurs de services - Chercher spécifiquement jobbingtrack-*
     SERVICES=("security-service" "auth-service" "company-service" "application-service")
     SERVICES_RUNNING="[]"
     for service in "${SERVICES[@]}"; do
-        if docker ps --format "{{.Names}}" | grep -q "$service\|jobbingtrack-$service"; then
-            SERVICE_CONTAINER=$(docker ps --format "{{.Names}}" | grep "$service\|jobbingtrack-$service" | head -1)
+        SERVICE_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "^jobbingtrack-$service$|jobbingtrack.*$service" | head -1)
+        if [ -n "$SERVICE_CONTAINER" ]; then
             log "${GREEN}✓ $service: $SERVICE_CONTAINER${NC}"
             SERVICES_RUNNING=$(echo "$SERVICES_RUNNING" | jq ". + [\"$SERVICE_CONTAINER\"]" 2>/dev/null || echo "$SERVICES_RUNNING")
         else
@@ -134,13 +144,30 @@ log "${BLUE}[3/10] Vérification de la base de données...${NC}"
 
 DB_CHECK="{}"
 if [ -n "$POSTGRES_CONTAINER" ]; then
+    # Récupérer les variables d'environnement du conteneur
+    DB_USER=$(docker exec "$POSTGRES_CONTAINER" env | grep "^POSTGRES_USER=" | cut -d= -f2 || echo "jobbingtrack")
+    DB_NAME=$(docker exec "$POSTGRES_CONTAINER" env | grep "^POSTGRES_DB=" | cut -d= -f2 || echo "jobbingtrack")
+    
+    # Si les variables ne sont pas trouvées, utiliser les valeurs par défaut
+    if [ -z "$DB_USER" ]; then
+        DB_USER="jobbingtrack"
+    fi
+    if [ -z "$DB_NAME" ]; then
+        DB_NAME="jobbingtrack"
+    fi
+    
+    log "  Utilisateur DB: $DB_USER"
+    log "  Base de données: $DB_NAME"
+    
     # Tester la connexion
-    if docker exec "$POSTGRES_CONTAINER" pg_isready -U jobbingtrack >/dev/null 2>&1; then
-        log "${GREEN}✓ PostgreSQL est accessible${NC}"
+    if docker exec "$POSTGRES_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+        log "${GREEN}✓ PostgreSQL est accessible (user: $DB_USER, db: $DB_NAME)${NC}"
         DB_CHECK=$(echo "$DB_CHECK" | jq ".accessible = true" 2>/dev/null || echo "$DB_CHECK")
+        DB_CHECK=$(echo "$DB_CHECK" | jq ".user = \"$DB_USER\"" 2>/dev/null || echo "$DB_CHECK")
+        DB_CHECK=$(echo "$DB_CHECK" | jq ".database = \"$DB_NAME\"" 2>/dev/null || echo "$DB_CHECK")
         
         # Lister les tables
-        TABLES=$(docker exec "$POSTGRES_CONTAINER" psql -U jobbingtrack -d jobbingtrack -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" 2>/dev/null | tr -d ' ' | grep -v '^$' || echo "")
+        TABLES=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" 2>/dev/null | tr -d ' ' | grep -v '^$' || echo "")
         
         if [ -n "$TABLES" ]; then
             TABLE_COUNT=$(echo "$TABLES" | wc -l)
@@ -316,7 +343,7 @@ log "${BLUE}[8/10] Analyse des logs récents (dernières 50 lignes)...${NC}"
 LOG_CHECK="{}"
 if [ -n "$POSTGRES_CONTAINER" ]; then
     # Vérifier les logs du security-service
-    SECURITY_CONTAINER=$(docker ps --format "{{.Names}}" | grep "security-service\|jobbingtrack-security" | head -1 || echo "")
+    SECURITY_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "^jobbingtrack-security-service$|jobbingtrack.*security" | head -1 || echo "")
     if [ -n "$SECURITY_CONTAINER" ]; then
         log "Analyse des logs de $SECURITY_CONTAINER..."
         RECENT_LOGS=$(docker logs --tail 50 "$SECURITY_CONTAINER" 2>&1 || echo "")
