@@ -8,6 +8,7 @@ import { cacheManager } from '@/lib/cache/cacheManager';
 import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
 import { VirtualizedList } from './components/VirtualizedList';
+import { useAuth } from '@/lib/hooks/auth';
 import {
   AlertTriangle,
   BarChart3,
@@ -2522,6 +2523,7 @@ const ReportTab = memo(function ReportTab({
   metricsHistory,
   timeRange 
 }: any) {
+  const { user } = useAuth();
   const [snapshots, setSnapshots] = useState<Array<{
     id: string;
     timestamp: string;
@@ -2530,6 +2532,14 @@ const ReportTab = memo(function ReportTab({
   }>>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [metricsStats, setMetricsStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupMode, setCleanupMode] = useState<'days' | 'date' | 'all'>('days');
+  const [daysToKeep, setDaysToKeep] = useState(30);
+  const [beforeDate, setBeforeDate] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState('');
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
 
   // Charger les snapshots depuis localStorage
   useEffect(() => {
