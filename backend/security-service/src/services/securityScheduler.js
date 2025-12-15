@@ -326,14 +326,17 @@ class SecurityScheduler {
       logger.debug(`Métriques système collectées: ${systemMetrics.totalLogs} logs, score risque: ${systemMetrics.averageRiskScore}`);
     } catch (error) {
       // Gérer l'erreur P2021 (table n'existe pas) gracieusement
-      const { handleTableNotFoundError } = require('../config/database');
+      const { handleTableNotFoundError, isTableNotFoundError } = require('../config/database');
       
-      if (handleTableNotFoundError(error, 'security_metrics', true)) {
-        // Erreur gérée, ignorer silencieusement
+      // Vérifier si c'est une erreur de table non trouvée
+      if (isTableNotFoundError(error)) {
+        // Mettre à jour le cache et ignorer silencieusement
+        handleTableNotFoundError(error, 'security_metrics', true);
         return;
       }
       
       // Pour les autres erreurs, logger uniquement en production
+      // En développement, ignorer complètement pour éviter le spam
       if (process.env.NODE_ENV === 'production') {
         logger.error('Erreur lors de la collecte des métriques système:', error);
       }
