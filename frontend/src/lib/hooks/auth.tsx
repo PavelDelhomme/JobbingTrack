@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           });
         } else {
-          console.log('ℹ️ Aucun token d\'authentification trouvé');
+          console.log('ℹ️ No authentication token found');
           setLoading(false);
         }
       } catch (error) {
