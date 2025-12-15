@@ -1,0 +1,82 @@
+[0;34m[1/10] Vérification de l'environnement...[0m
+[0;32m✓ Docker: Docker version 29.1.1, build 0aedba58c2[0m
+[0;32m✓ Docker Compose: Docker Compose version 2.40.3[0m
+[1;33m⚠ psql non installé (utilisera docker exec)[0m
+[0;32m✓ jq installé[0m
+
+[0;34m[2/10] Vérification des conteneurs Docker...[0m
+[0;32m✓ PostgreSQL conteneur: jobbingtrack-postgres[0m
+  Status: running
+[0;32m✓ security-service: jobbingtrack-security-service[0m
+[0;32m✓ auth-service: jobbingtrack-auth-service[0m
+[0;32m✓ company-service: jobbingtrack-company-service[0m
+[0;32m✓ application-service: jobbingtrack-application-service[0m
+
+[0;34m[3/10] Vérification de la base de données...[0m
+  Utilisateur DB: jobbingtrack
+  Base de données: jobbingtrack
+[0;32m✓ PostgreSQL est accessible (user: jobbingtrack, db: jobbingtrack)[0m
+[0;32m✓ Nombre de tables: 2[0m
+[0;31m  ✗ Table security_metrics N'EXISTE PAS[0m
+[0;31m  ✗ Table User N'EXISTE PAS[0m
+[0;31m  ✗ Table Company N'EXISTE PAS[0m
+[0;31m  ✗ Table Application N'EXISTE PAS[0m
+
+[0;34m[4/10] Vérification des schémas Prisma...[0m
+[0;32m✓ auth-service: schema.prisma trouvé[0m
+  ✓ Model User défini
+[0;32m✓ security-service: schema.prisma trouvé[0m
+  ✓ Model SecurityMetric défini
+[0;32m✓ company-service: schema.prisma trouvé[0m
+[0;32m✓ application-service: schema.prisma trouvé[0m
+
+[0;34m[5/10] Vérification des migrations Prisma...[0m
+[0;32m✓ auth-service: 0 migration(s)[0m
+[1;33m⚠ security-service: répertoire migrations non trouvé[0m
+[0;32m✓ company-service: 0 migration(s)[0m
+[0;32m✓ application-service: 0 migration(s)[0m
+
+[0;34m[6/10] Test de db-push pour security-service...[0m
+Exécution de prisma db push --skip-generate (test)...
+[0;31m✗ Erreur lors de db-push:[0m
+  Prisma schema loaded from prisma/schema.prisma
+  Datasource "db": PostgreSQL database
+  
+  Error: Prisma schema validation - (get-config wasm)
+  Error code: P1012
+  error: Environment variable not found: DATABASE_URL.
+  -->  prisma/schema.prisma:10
+  |
+  9 |   provider = "postgresql"
+  10 |   url      = env("DATABASE_URL")
+  |
+  
+  Validation Error Count: 1
+  [Context: getConfig]
+  
+  Prisma CLI Version : 5.22.0
+
+[0;34m[7/10] Vérification des filtres de logs...[0m
+[0;32m✓ Filtre partagé trouvé: /home/pactivisme/Documents/Dev/Perso/JobbingTrackProject/JobbingTrack/backend/shared/logger-filter.js[0m
+  ✓ auth-service utilise le filtre
+  ✓ security-service utilise le filtre
+  ✓ company-service utilise le filtre
+  ✓ application-service utilise le filtre
+
+[0;34m[8/10] Analyse des logs récents (dernières 50 lignes)...[0m
+Analyse des logs de jobbingtrack-security-service...
+  Erreurs P2021 trouvées: 6
+  Erreurs totales: 0
+0
+[0;31m  ⚠ Des erreurs P2021 sont toujours présentes dans les logs[0m
+[1;33m  → Les filtres ne fonctionnent peut-être pas ou le conteneur n'a pas été redémarré[0m
+
+[0;34m[9/10] Vérification du code source...[0m
+[0;32m✓ securityScheduler.js utilise checkTableExists[0m
+[0;32m✓ securityScheduler.js utilise handleTableNotFoundError[0m
+[0;32m✓ securityService.js utilise checkTableExists[0m
+
+[0;34m[10/10] Résumé et recommandations...[0m
+
+[0;31m⚠ PROBLÈME: Des erreurs P2021 sont toujours loggées[0m
+[1;33m  → Solution: Redémarrer les conteneurs avec 'make restart' ou 'docker compose restart'[0m
