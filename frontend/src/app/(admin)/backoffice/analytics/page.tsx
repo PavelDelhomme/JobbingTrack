@@ -2943,6 +2943,210 @@ const ReportTab = memo(function ReportTab({
         </div>
       </div>
 
+      {/* Nettoyage des métriques - SUPER_ADMIN uniquement */}
+      {user?.role === 'SUPER_ADMIN' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 border-red-500">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-600" />
+                Nettoyage des Métriques
+              </h3>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Gérer le stockage des métriques en base de données (SUPER_ADMIN uniquement)
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                setLoadingStats(true);
+                try {
+                  const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+                  const token = localStorage.getItem('token');
+                  const response = await fetch(`${METRICS_URL}/api/admin/metrics/stats`, {
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    setMetricsStats(data.stats);
+                  }
+                } catch (error) {
+                  console.error('Erreur chargement stats:', error);
+                } finally {
+                  setLoadingStats(false);
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+            >
+              {loadingStats ? 'Chargement...' : 'Actualiser Stats'}
+            </button>
+          </div>
+
+          {metricsStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">Système</div>
+                <div className="text-lg font-bold">{metricsStats.system.toLocaleString()}</div>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">Conteneurs</div>
+                <div className="text-lg font-bold">{metricsStats.containers.toLocaleString()}</div>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">Logs</div>
+                <div className="text-lg font-bold">{metricsStats.logs.toLocaleString()}</div>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                <div className="text-lg font-bold">{metricsStats.total.toLocaleString()}</div>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowCleanupDialog(true)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium"
+          >
+            <Trash2 className="h-4 w-4" />
+            Nettoyer les Métriques
+          </button>
+
+          {showCleanupDialog && (
+            <>
+              <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowCleanupDialog(false)} />
+              <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                  <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Nettoyer les Métriques</h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Mode de nettoyage
+                      </label>
+                      <select
+                        value={cleanupMode}
+                        onChange={(e) => setCleanupMode(e.target.value as any)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      >
+                        <option value="days">Garder les N derniers jours</option>
+                        <option value="date">Supprimer avant une date</option>
+                        <option value="all">Supprimer tout</option>
+                      </select>
+                    </div>
+
+                    {cleanupMode === 'days' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Nombre de jours à garder
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={daysToKeep}
+                          onChange={(e) => setDaysToKeep(parseInt(e.target.value) || 30)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    )}
+
+                    {cleanupMode === 'date' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Supprimer avant cette date
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={beforeDate}
+                          onChange={(e) => setBeforeDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    )}
+
+                    {cleanupMode === 'all' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Confirmer en tapant: <span className="font-mono text-red-600">DELETE_ALL_METRICS</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={confirmDelete}
+                          onChange={(e) => setConfirmDelete(e.target.value)}
+                          placeholder="DELETE_ALL_METRICS"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-4">
+                      <button
+                        onClick={async () => {
+                          setCleaning(true);
+                          try {
+                            const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+                            const token = localStorage.getItem('token');
+                            const body: any = {};
+                            
+                            if (cleanupMode === 'days') {
+                              body.daysToKeep = daysToKeep;
+                            } else if (cleanupMode === 'date') {
+                              body.beforeDate = new Date(beforeDate).toISOString();
+                            } else if (cleanupMode === 'all') {
+                              body.all = true;
+                              body.confirm = confirmDelete;
+                            }
+
+                            const response = await fetch(`${METRICS_URL}/api/admin/metrics/cleanup`, {
+                              method: 'DELETE',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify(body)
+                            });
+
+                            const data = await response.json();
+                            if (response.ok) {
+                              alert(`✅ ${data.message}`);
+                              setShowCleanupDialog(false);
+                              setMetricsStats(null);
+                            } else {
+                              alert(`❌ Erreur: ${data.error}`);
+                            }
+                          } catch (error: any) {
+                            alert(`❌ Erreur: ${error.message}`);
+                          } finally {
+                            setCleaning(false);
+                          }
+                        }}
+                        disabled={cleaning || (cleanupMode === 'all' && confirmDelete !== 'DELETE_ALL_METRICS')}
+                        className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50"
+                      >
+                        {cleaning ? 'Nettoyage...' : 'Confirmer'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCleanupDialog(false);
+                          setCleanupMode('days');
+                          setDaysToKeep(30);
+                          setBeforeDate('');
+                          setConfirmDelete('');
+                        }}
+                        className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg font-medium"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Snapshots */}
       {snapshots.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
