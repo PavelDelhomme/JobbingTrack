@@ -33,10 +33,10 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
           return res.json({
             success: true,
-            data: { sessionId: sessionId || randomUUID(), message: 'Mode développement - table non disponible' }
+            data: { sessionId: sessionId || randomUUID(), message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table UserSession non disponible');
+        throw new Error('Table UserSession not available');
       }
 
       const session = await prisma.userSession.create({
@@ -90,10 +90,10 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserSession non disponible, mode développement');
           return res.json({
             success: true,
-            data: { sessionId, message: 'Mode développement - table non disponible' }
+            data: { sessionId, message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table UserSession non disponible');
+        throw new Error('Table UserSession not available');
       }
 
       const session = await prisma.userSession.update({
@@ -144,7 +144,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserEvent non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
         throw new Error('Table UserEvent non disponible');
@@ -225,7 +225,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserEvent non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
       }
@@ -250,7 +250,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserError non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
         throw new Error('Table UserError non disponible');
@@ -321,7 +321,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserError non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
       }
@@ -346,7 +346,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserPerformance non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
         throw new Error('Table UserPerformance non disponible');
@@ -400,7 +400,7 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table UserPerformance non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
       }
@@ -425,10 +425,10 @@ class AnalyticsController {
           console.warn('[ANALYTICS] Table DeviceInfo non disponible, mode développement');
           return res.json({
             success: true,
-            data: { message: 'Mode développement - table non disponible' }
+            data: { message: 'Development mode - table not available' }
           });
         }
-        throw new Error('Table DeviceInfo non disponible');
+        throw new Error('Table DeviceInfo not available');
       }
 
       const userId = req.user?.id;
