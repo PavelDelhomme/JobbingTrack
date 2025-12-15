@@ -93,11 +93,35 @@ apiClient.interceptors.response.use((response) => response, (error) => {
         }
     }
 
-    // Gestion des timeouts et erreurs réseau
+    // Gestion des timeouts et erreurs réseau avec distinction critique/optionnel
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout') ||
-        error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        console.warn('Service temporairement indisponible:', error.message);
-        return Promise.reject(new Error('Service temporairement indisponible'));
+        error.code === 'ECONNREFUSED' || error.message?.includes('Network Error') ||
+        error.response?.status === 503) {
+        // Extraire le nom du service depuis l'URL
+        const serviceName = error.config?.url?.split('/')[1] || 'unknown';
+        const fullServiceName = error.config?.url?.includes('/applications') ? 'application-service' :
+                                error.config?.url?.includes('/companies') ? 'company-service' :
+                                error.config?.url?.includes('/contacts') ? 'contact-service' :
+                                error.config?.url?.includes('/interviews') ? 'interview-service' :
+                                error.config?.url?.includes('/calls') ? 'call-service' :
+                                error.config?.url?.includes('/events') ? 'event-service' :
+                                error.config?.url?.includes('/followups') ? 'followup-service' :
+                                error.config?.url?.includes('/profile') ? 'profile-service' :
+                                error.config?.url?.includes('/notifications') ? 'notification-service' :
+                                error.config?.url?.includes('/workflow') ? 'workflow-service' :
+                                error.config?.url?.includes('/dashboard') ? 'dashboard-service' :
+                                'unknown-service';
+        
+        if (shouldLogServiceError(fullServiceName)) {
+            const errorMsg = getServiceErrorMessage(fullServiceName, error);
+            if (isCriticalService(fullServiceName)) {
+                console.error(errorMsg);
+            } else {
+                console.warn(errorMsg);
+            }
+        }
+        
+        return Promise.reject(new Error('Service temporarily unavailable'));
     }
 
     return Promise.reject(error);
