@@ -284,5 +284,8 @@ async function seedDevelopmentData() {
 
 module.exports = {
   prisma,
-  initializeDatabase
+  initializeDatabase,
+  checkTableExists,
+  isTableNotFoundError,
+  handleTableNotFoundError
 };
