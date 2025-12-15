@@ -23,6 +23,9 @@ COPY prisma ./prisma/
 # Générer le client Prisma
 RUN npx prisma generate
 
+# Copier le répertoire shared (pour logger-filter.js)
+COPY ../shared ./shared/
+
 # Copier le code source
 COPY . .
 
