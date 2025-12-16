@@ -39,7 +39,7 @@ interface SystemMetricsWidgetProps {
 
 export default function SystemMetricsWidget({ metrics, className = '' }: SystemMetricsWidgetProps) {
   // Générer des données de tendance basées sur les vraies métriques
-  const baseCpu = typeof metrics.cpuUsage === 'number' ? metrics.cpuUsage : (typeof metrics.cpu?.usage === 'number' ? metrics.cpu.usage : 0)
+  const baseCpu = typeof metrics.cpuUsage === 'number&apos; ? metrics.cpuUsage : (typeof metrics.cpu?.usage === 'number' ? metrics.cpu.usage : 0)
   const cpuTrendData = [
     { label: '00:00', value: Math.max(0, baseCpu - 20) },
     { label: '04:00', value: Math.max(0, baseCpu - 15) },
@@ -55,34 +55,34 @@ export default function SystemMetricsWidget({ metrics, className = '' }: SystemM
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="CPU"
-          value={typeof metrics.cpu?.usage === 'number' ? `${metrics.cpu.usage.toFixed(1)}%` : typeof metrics.cpuUsage === 'number' ? `${metrics.cpuUsage}%` : 'N/A'}
+          value={typeof metrics.cpu?.usage === 'number&apos; ? `${metrics.cpu.usage.toFixed(1)}%` : typeof metrics.cpuUsage === 'number' ? `${metrics.cpuUsage}%` : &apos;N/A'}
           change={{
             value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={typeof metrics.cpu?.usage === 'number' ? (metrics.cpu.usage > 80 ? 'up' : metrics.cpu.usage > 60 ? 'neutral' : 'down') : 'neutral'}
+          trend={typeof metrics.cpu?.usage === 'number&apos; ? (metrics.cpu.usage > 80 ? 'up' : metrics.cpu.usage > 60 ? &apos;neutral' : 'down&apos;) : 'neutral'}
           icon={<span className="text-blue-500">⚡</span>}
         />
 
         <MetricCard
           title="Mémoire"
-          value={typeof metrics.memory?.usage === 'number' ? `${metrics.memory.usage.toFixed(1)}%` : typeof metrics.memoryUsage === 'number' ? `${metrics.memoryUsage}%` : 'N/A'}
+          value={typeof metrics.memory?.usage === 'number&apos; ? `${metrics.memory.usage.toFixed(1)}%` : typeof metrics.memoryUsage === 'number' ? `${metrics.memoryUsage}%` : &apos;N/A'}
           change={{
             value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={typeof metrics.memory?.usage === 'number' ? (metrics.memory.usage > 85 ? 'up' : metrics.memory.usage > 70 ? 'neutral' : 'down') : 'neutral'}
+          trend={typeof metrics.memory?.usage === 'number&apos; ? (metrics.memory.usage > 85 ? 'up' : metrics.memory.usage > 70 ? &apos;neutral' : 'down&apos;) : 'neutral'}
           icon={<span className="text-green-500">🧠</span>}
         />
 
         <MetricCard
           title="Disque"
-          value={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? `${metrics.disk[0].usage}%` : 'N/A') : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
+          value={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number&apos; ? `${metrics.disk[0].usage}%` : 'N/A') : typeof metrics.diskUsage === &apos;number' ? `${metrics.diskUsage}%` : 'N/A'}
           change={{
             value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : 'neutral') : 'neutral'}
+          trend={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number&apos; ? (metrics.disk[0].usage > 90 ? 'up' : &apos;neutral') : 'neutral&apos;) : 'neutral'}
           icon={<span className="text-purple-500">💾</span>}
         />
 

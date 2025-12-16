@@ -64,20 +64,20 @@ export default function SecurityVulnerabilitiesPage() {
         id: `vuln-${i}`,
         title: `Vulnérabilité ${i + 1}`,
         description: `Description de la vulnérabilité ${i + 1}. Cette vulnérabilité présente un risque de sécurité qui nécessite une attention immédiate.`,
-        severity: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)],
+        severity: ['low&apos;, 'medium', &apos;high', 'critical'][Math.floor(Math.random() * 4)],
         cveId: Math.random() > 0.5 ? `CVE-2023-${10000 + Math.floor(Math.random() * 9000)}` : undefined,
         cvssScore: Math.random() * 10,
-        affectedComponent: ['api-gateway', 'auth-service', 'database', 'frontend', 'application-service', 'company-service'][Math.floor(Math.random() * 6)],
-        status: ['open', 'in_progress', 'resolved', 'accepted_risk'][Math.floor(Math.random() * 4)],
+        affectedComponent: ['api-gateway&apos;, 'auth-service', &apos;database', 'frontend&apos;, 'application-service', &apos;company-service'][Math.floor(Math.random() * 6)],
+        status: ['open&apos;, 'in_progress', &apos;resolved', 'accepted_risk'][Math.floor(Math.random() * 4)],
         discoveredAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         resolvedAt: Math.random() > 0.6 ? new Date(Date.now() - Math.random() * 20 * 24 * 60 * 60 * 1000).toISOString() : undefined,
         assignedTo: Math.random() > 0.4 ? `admin${Math.floor(Math.random() * 5) + 1}` : undefined,
         remediation: Math.random() > 0.5 ? `Mettre à jour vers la version ${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}` : undefined,
-        tags: [['web', 'server', 'database', 'authentication', 'authorization'][Math.floor(Math.random() * 5)]],
+        tags: [['web&apos;, 'server', &apos;database', 'authentication&apos;, 'authorization'][Math.floor(Math.random() * 5)]],
         metadata: {
           exploitability: Math.random(),
           impact: Math.random(),
-          complexity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
+          complexity: ['low&apos;, 'medium', &apos;high'][Math.floor(Math.random() * 3)]
         }
       }))
 
@@ -173,20 +173,20 @@ export default function SecurityVulnerabilitiesPage() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case 'critical&apos;: return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      case 'high&apos;: return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      case 'medium&apos;: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'low&apos;: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-      case 'accepted_risk': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+      case 'open&apos;: return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      case 'in_progress&apos;: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'resolved&apos;: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case 'accepted_risk&apos;: return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
@@ -347,7 +347,7 @@ export default function SecurityVulnerabilitiesPage() {
                     {vulnerability.severity.toUpperCase()}
                   </span>
                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(vulnerability.status)}`}>
-                    {vulnerability.status.replace('_', ' ')}
+                    {vulnerability.status.replace('_&apos;, ' ')}
                   </span>
                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${getComponentColor(vulnerability.affectedComponent)}`}>
                     {vulnerability.affectedComponent}
@@ -388,7 +388,7 @@ export default function SecurityVulnerabilitiesPage() {
                   <strong className="text-gray-900 dark:text-gray-100">Statut:</strong>
                   <div className="mt-1">
                     <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(vulnerability.status)}`}>
-                      {vulnerability.status.replace('_', ' ')}
+                      {vulnerability.status.replace('_&apos;, ' ')}
                     </span>
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function SecurityVulnerabilitiesPage() {
                 </div>
               )}
 
-              {vulnerability.status !== 'resolved' && vulnerability.status !== 'accepted_risk' && (
+              {vulnerability.status !== 'resolved&apos; && vulnerability.status !== 'accepted_risk' && (
                 <div className="flex items-center gap-2">
                   {vulnerability.status === 'open' && (
                     <button

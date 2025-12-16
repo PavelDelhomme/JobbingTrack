@@ -440,7 +440,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...' : 'Créer la candidature'}
+              {loading ? 'Création...&apos; : 'Créer la candidature'}
             </button>
           </div>
         </form>

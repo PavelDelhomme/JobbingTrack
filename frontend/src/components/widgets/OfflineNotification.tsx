@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui';
 
 interface OfflineNotificationProps {
   className?: string;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  position?: 'top-right&apos; | 'top-left' | &apos;bottom-right' | 'bottom-left';
   autoHide?: boolean;
   autoHideDelay?: number;
 }
@@ -27,10 +27,10 @@ export function OfflineNotification({
 
   // Positionnement CSS
   const positionClasses = {
-    'top-right': 'fixed top-4 right-4 z-50',
-    'top-left': 'fixed top-4 left-4 z-50',
-    'bottom-right': 'fixed bottom-4 right-4 z-50',
-    'bottom-left': 'fixed bottom-4 left-4 z-50'
+    'top-right&apos;: 'fixed top-4 right-4 z-50',
+    'top-left&apos;: 'fixed top-4 left-4 z-50',
+    'bottom-right&apos;: 'fixed bottom-4 right-4 z-50',
+    'bottom-left&apos;: 'fixed bottom-4 left-4 z-50'
   };
 
   // Déterminer quand afficher la notification
@@ -76,7 +76,7 @@ export function OfflineNotification({
 
   return (
     <Card className={`${positionClasses[position]} ${className} shadow-lg border-2 ${
-      !isOnline ? 'border-orange-300 bg-orange-50' : 'border-blue-300 bg-blue-50'
+      !isOnline ? 'border-orange-300 bg-orange-50&apos; : 'border-blue-300 bg-blue-50'
     }`}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
@@ -98,9 +98,9 @@ export function OfflineNotification({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h4 className={`font-medium text-sm ${
-                !isOnline ? 'text-orange-900' : 'text-blue-900'
+                !isOnline ? 'text-orange-900&apos; : 'text-blue-900'
               }`}>
-                {!isOnline ? 'Mode hors ligne' : 'Synchronisation disponible'}
+                {!isOnline ? 'Mode hors ligne&apos; : 'Synchronisation disponible'}
               </h4>
               <Badge variant={!isOnline ? "destructive" : "default"} className="text-xs">
                 {!isOnline ? 'Hors ligne' : `${pendingOperations.length} en attente`}
@@ -108,11 +108,11 @@ export function OfflineNotification({
             </div>
 
             <p className={`text-sm ${
-              !isOnline ? 'text-orange-700' : 'text-blue-700'
+              !isOnline ? 'text-orange-700&apos; : 'text-blue-700'
             }`}>
               {!isOnline
                 ? 'Vos modifications sont sauvegardées localement et seront synchronisées au retour de la connexion.'
-                : `${pendingOperations.length} modification${pendingOperations.length > 1 ? 's' : ''} en attente de synchronisation.`
+                : `${pendingOperations.length} modification${pendingOperations.length > 1 ? 's&apos; : ''} en attente de synchronisation.`
               }
             </p>
 
@@ -136,7 +136,7 @@ export function OfflineNotification({
                 disabled={isSyncing}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <RefreshCw className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3 w-3 mr-1 ${isSyncing ? 'animate-spin&apos; : ''}`} />
                 Sync
               </Button>
             )}

@@ -14,7 +14,7 @@ interface AdvancedEditModalProps {
 interface FieldConfig {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'email' | 'date' | 'boolean' | 'textarea' | 'select' | 'switch';
+  type: 'text&apos; | 'number' | &apos;email' | 'date&apos; | 'boolean' | &apos;textarea' | 'select&apos; | 'switch';
   options?: string[];
   required?: boolean;
   readOnly?: boolean;
@@ -24,7 +24,7 @@ interface FieldConfig {
 export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave }: AdvancedEditModalProps) {
   const [formData, setFormData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'status' | 'advanced'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic&apos; | 'status' | &apos;advanced'>('basic');
 
   useEffect(() => {
     if (rowData && isOpen) {
@@ -34,71 +34,71 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
 
   const getFieldConfig = (tableName: string, key: string): FieldConfig => {
     const commonFields: Record<string, FieldConfig> = {
-      id: { key, label: 'ID', type: 'text', readOnly: true },
-      createdAt: { key, label: 'Créé le', type: 'date', readOnly: true },
-      updatedAt: { key, label: 'Modifié le', type: 'date', readOnly: true },
-      is_active: { key, label: 'Actif', type: 'switch' },
-      is_deleted: { key, label: 'Supprimé', type: 'switch' },
-      is_archived: { key, label: 'Archivé', type: 'switch' },
-      is_verified: { key, label: 'Vérifié', type: 'switch' },
-      is_public: { key, label: 'Public', type: 'switch' },
+      id: { key, label: 'ID&apos;, type: 'text', readOnly: true },
+      createdAt: { key, label: 'Créé le&apos;, type: 'date', readOnly: true },
+      updatedAt: { key, label: 'Modifié le&apos;, type: 'date', readOnly: true },
+      is_active: { key, label: 'Actif&apos;, type: 'switch' },
+      is_deleted: { key, label: 'Supprimé&apos;, type: 'switch' },
+      is_archived: { key, label: 'Archivé&apos;, type: 'switch' },
+      is_verified: { key, label: 'Vérifié&apos;, type: 'switch' },
+      is_public: { key, label: 'Public&apos;, type: 'switch' },
       status: {
         key,
         label: 'Statut',
         type: 'select',
-        options: ['active', 'inactive', 'pending', 'suspended', 'archived', 'deleted']
+        options: ['active&apos;, 'inactive', &apos;pending', 'suspended&apos;, 'archived', &apos;deleted']
       },
       priority: {
         key,
         label: 'Priorité',
         type: 'select',
-        options: ['low', 'medium', 'high', 'urgent']
+        options: ['low&apos;, 'medium', &apos;high', 'urgent']
       }
     };
 
     // Configuration spécifique par table
     const tableSpecificFields: Record<string, Record<string, FieldConfig>> = {
       User: {
-        email: { key, label: 'Email', type: 'email', required: true },
-        firstName: { key, label: 'Prénom', type: 'text' },
-        lastName: { key, label: 'Nom', type: 'text' },
+        email: { key, label: 'Email&apos;, type: 'email', required: true },
+        firstName: { key, label: 'Prénom&apos;, type: 'text' },
+        lastName: { key, label: 'Nom&apos;, type: 'text' },
         role: {
           key,
           label: 'Rôle',
           type: 'select',
-          options: ['USER', 'ADMIN', 'SUPER_ADMIN']
+          options: ['USER&apos;, 'ADMIN', &apos;SUPER_ADMIN']
         },
-        is_verified: { key, label: 'Vérifié', type: 'switch' },
-        is_active: { key, label: 'Actif', type: 'switch' },
-        lastLoginAt: { key, label: 'Dernière connexion', type: 'date', readOnly: true }
+        is_verified: { key, label: 'Vérifié&apos;, type: 'switch' },
+        is_active: { key, label: 'Actif&apos;, type: 'switch' },
+        lastLoginAt: { key, label: 'Dernière connexion&apos;, type: 'date', readOnly: true }
       },
       Company: {
-        name: { key, label: 'Nom', type: 'text', required: true },
-        sector: { key, label: 'Secteur', type: 'text' },
+        name: { key, label: 'Nom&apos;, type: 'text', required: true },
+        sector: { key, label: 'Secteur&apos;, type: 'text' },
         size: {
           key,
           label: 'Taille',
           type: 'select',
-          options: ['startup', 'pme', 'entreprise', 'grand_compte']
+          options: ['startup&apos;, 'pme', &apos;entreprise', 'grand_compte']
         },
-        website: { key, label: 'Site web', type: 'text' },
-        is_active: { key, label: 'Actif', type: 'switch' }
+        website: { key, label: 'Site web&apos;, type: 'text' },
+        is_active: { key, label: 'Actif&apos;, type: 'switch' }
       },
       Application: {
-        title: { key, label: 'Titre', type: 'text', required: true },
+        title: { key, label: 'Titre&apos;, type: 'text', required: true },
         status: {
           key,
           label: 'Statut',
           type: 'select',
-          options: ['draft', 'submitted', 'in_review', 'accepted', 'rejected', 'archived']
+          options: ['draft&apos;, 'submitted', &apos;in_review', 'accepted&apos;, 'rejected', &apos;archived']
         },
         priority: {
           key,
           label: 'Priorité',
           type: 'select',
-          options: ['low', 'medium', 'high']
+          options: ['low&apos;, 'medium', &apos;high']
         },
-        is_active: { key, label: 'Actif', type: 'switch' }
+        is_active: { key, label: 'Actif&apos;, type: 'switch' }
       }
     };
 
@@ -112,18 +112,18 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
     return commonFields[key] || {
       key,
       label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-      type: typeof rowData?.[key] === 'boolean' ? 'switch' :
-            typeof rowData?.[key] === 'number' ? 'number' :
-            key.includes('email') ? 'email' :
-            key.includes('date') || key.includes('At') ? 'date' :
-            key.includes('description') || key.includes('notes') ? 'textarea' :
+      type: typeof rowData?.[key] === 'boolean&apos; ? 'switch' :
+            typeof rowData?.[key] === 'number&apos; ? 'number' :
+            key.includes('email&apos;) ? 'email' :
+            key.includes('date&apos;) || key.includes('At') ? &apos;date' :
+            key.includes('description&apos;) || key.includes('notes') ? &apos;textarea' :
             'text'
     };
   };
 
   const getFieldValue = (key: string, value: any): string | number | readonly string[] | undefined => {
     if (value === null || value === undefined) return '';
-    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (typeof value === 'boolean&apos;) return value ? 'true' : &apos;false';
     if (typeof value === 'number') return value;
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
@@ -170,7 +170,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                value ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                value ? 'bg-green-500&apos; : 'bg-gray-300 dark:bg-gray-600'
               }`}>
                 {value ? (
                   <CheckCircle className="h-4 w-4 text-white" />
@@ -183,19 +183,19 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
                   {config.label}
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {value ? 'Activé' : 'Désactivé'}
+                  {value ? 'Activé&apos; : 'Désactivé'}
                 </p>
               </div>
             </div>
             <button
               onClick={() => handleInputChange(key, !value)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                value ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                value ? 'bg-blue-600&apos; : 'bg-gray-200 dark:bg-gray-600'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  value ? 'translate-x-6' : 'translate-x-1'
+                  value ? 'translate-x-6&apos; : 'translate-x-1'
                 }`}
               />
             </button>
@@ -335,7 +335,7 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
   };
 
   const getAdvancedFields = () => {
-    return ['id', 'createdAt', 'updatedAt'];
+    return ['id&apos;, 'createdAt', &apos;updatedAt'];
   };
 
   if (!isOpen || !rowData) return null;
@@ -363,9 +363,9 @@ export function AdvancedEditModal({ isOpen, onClose, rowData, tableName, onSave 
           {/* Tabs */}
           <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             {[
-              { id: 'basic', label: 'Informations', icon: '📝' },
-              { id: 'status', label: 'Statut', icon: '⚙️' },
-              { id: 'advanced', label: 'Avancé', icon: '🔧' }
+              { id: 'basic&apos;, label: 'Informations', icon: &apos;📝' },
+              { id: 'status&apos;, label: 'Statut', icon: &apos;⚙️' },
+              { id: 'advanced&apos;, label: 'Avancé', icon: &apos;🔧' }
             ].map(tab => (
               <button
                 key={tab.id}

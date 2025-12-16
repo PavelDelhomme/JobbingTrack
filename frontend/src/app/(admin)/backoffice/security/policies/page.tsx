@@ -9,7 +9,7 @@ interface SecurityPolicy {
   name: string
   description: string
   enabled: boolean
-  type: 'ip_blocking' | 'rate_limiting' | 'waf' | 'authentication'
+  type: 'ip_blocking&apos; | 'rate_limiting' | &apos;waf' | 'authentication'
   config: any
 }
 
@@ -98,7 +98,7 @@ export default function SecurityPoliciesPage() {
       fetchBlockedIPs()
     } catch (error) {
       console.error('Erreur blocage IP:', error)
-      alert('Erreur lors du blocage de l\'IP')
+      alert('Erreur lors du blocage de l\&apos;IP')
     }
   }
 
@@ -111,7 +111,7 @@ export default function SecurityPoliciesPage() {
       fetchBlockedIPs()
     } catch (error) {
       console.error('Erreur déblocage IP:', error)
-      alert('Erreur lors du déblocage de l\'IP')
+      alert('Erreur lors du déblocage de l\&apos;IP')
     }
   }
 

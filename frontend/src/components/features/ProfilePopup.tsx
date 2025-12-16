@@ -91,12 +91,12 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       // Ici on pourrait faire un appel API pour sauvegarder les modifications du profil
       console.log('Sauvegarde des données:', formData)
       
-      setMessage({ type: 'success', text: 'Paramètres sauvegardés avec succès' })
+      setMessage({ type: 'success&apos;, text: 'Paramètres sauvegardés avec succès' })
       setTimeout(() => setMessage(null), 3000)
       setIsEditing(false)
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de la sauvegarde' })
+      setMessage({ type: 'error&apos;, text: 'Erreur lors de la sauvegarde' })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setSaving(false)
@@ -169,7 +169,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
               ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' 
               : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
           }`}>
-            {message.type === 'success' ? '✓' : '✗'}
+            {message.type === 'success&apos; ? '✓' : &apos;✗'}
             <span className="text-sm font-medium">{message.text}</span>
           </div>
         )}
@@ -237,7 +237,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? 'text&apos; : 'password'}
                   value={formData.currentPassword}
                   onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
                   placeholder="••••••••"

@@ -25,8 +25,8 @@ type EmailLog = {
   to: string;
   from: string;
   subject: string;
-  type: 'WELCOME' | 'VERIFICATION' | 'RESET_PASSWORD' | 'CONFIRMATION' | 'NOTIFICATION' | 'TEST';
-  status: 'PENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'BOUNCED';
+  type: 'WELCOME&apos; | 'VERIFICATION' | &apos;RESET_PASSWORD' | 'CONFIRMATION&apos; | 'NOTIFICATION' | &apos;TEST';
+  status: 'PENDING&apos; | 'SENT' | &apos;DELIVERED' | 'READ&apos; | 'FAILED' | &apos;BOUNCED';
   sentAt?: string;
   deliveredAt?: string;
   openedAt?: string;
@@ -51,8 +51,8 @@ export default function EmailMonitorPage() {
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [filteredEmails, setFilteredEmails] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'SENT' | 'FAILED' | 'PENDING' | 'DELIVERED' | 'BOUNCED'>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'WELCOME' | 'VERIFICATION' | 'RESET_PASSWORD' | 'TEST'>('all');
+  const [filter, setFilter] = useState<'all&apos; | 'SENT' | &apos;FAILED' | 'PENDING&apos; | 'DELIVERED' | &apos;BOUNCED'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all&apos; | 'WELCOME' | &apos;VERIFICATION' | 'RESET_PASSWORD&apos; | 'TEST'>(&apos;all');
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -106,7 +106,7 @@ export default function EmailMonitorPage() {
       const response = await fetch(`${API_URL}/api/v1/emails/logs?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type&apos;: 'application/json'
         }
       });
 
@@ -136,14 +136,14 @@ export default function EmailMonitorPage() {
   };
 
   const clearLogs = async () => {
-    if (confirm('Voulez-vous effacer tous les logs d\'emails ? Cette action est irréversible.')) {
+    if (confirm('Voulez-vous effacer tous les logs d\&apos;emails ? Cette action est irréversible.')) {
       try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/v1/emails/logs`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type&apos;: 'application/json'
           }
         });
         
@@ -169,7 +169,7 @@ export default function EmailMonitorPage() {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type&apos;: 'application/json'
           }
         });
         
@@ -198,36 +198,36 @@ export default function EmailMonitorPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'WELCOME': return '👋';
-      case 'VERIFICATION': return '✅';
-      case 'RESET_PASSWORD': return '🔐';
-      case 'CONFIRMATION': return '✔️';
-      case 'NOTIFICATION': return '🔔';
-      case 'TEST': return '🧪';
+      case 'WELCOME&apos;: return '👋';
+      case 'VERIFICATION&apos;: return '✅';
+      case 'RESET_PASSWORD&apos;: return '🔐';
+      case 'CONFIRMATION&apos;: return '✔️';
+      case 'NOTIFICATION&apos;: return '🔔';
+      case 'TEST&apos;: return '🧪';
       default: return '📧';
     }
   };
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'WELCOME': return 'Bienvenue';
-      case 'VERIFICATION': return 'Vérification';
-      case 'RESET_PASSWORD': return 'Reset Password';
-      case 'CONFIRMATION': return 'Confirmation';
-      case 'NOTIFICATION': return 'Notification';
-      case 'TEST': return 'Test';
+      case 'WELCOME&apos;: return 'Bienvenue';
+      case 'VERIFICATION&apos;: return 'Vérification';
+      case 'RESET_PASSWORD&apos;: return 'Reset Password';
+      case 'CONFIRMATION&apos;: return 'Confirmation';
+      case 'NOTIFICATION&apos;: return 'Notification';
+      case 'TEST&apos;: return 'Test';
       default: return 'Autre';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'En attente';
-      case 'SENT': return 'Envoyé';
-      case 'DELIVERED': return 'Livré';
-      case 'READ': return 'Lu';
-      case 'FAILED': return 'Échoué';
-      case 'BOUNCED': return 'Rejeté';
+      case 'PENDING&apos;: return 'En attente';
+      case 'SENT&apos;: return 'Envoyé';
+      case 'DELIVERED&apos;: return 'Livré';
+      case 'READ&apos;: return 'Lu';
+      case 'FAILED&apos;: return 'Échoué';
+      case 'BOUNCED&apos;: return 'Rejeté';
       default: return status;
     }
   };
@@ -263,7 +263,7 @@ export default function EmailMonitorPage() {
               disabled={isLoading}
               variant="outline"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin&apos; : ''}`} />
               Actualiser
             </Button>
             <Button onClick={exportLogs} variant="outline">
@@ -342,7 +342,7 @@ export default function EmailMonitorPage() {
               <div>
                 <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Statut</label>
                 <div className="flex gap-2 flex-wrap">
-                  {['all', 'SENT', 'DELIVERED', 'READ', 'FAILED', 'PENDING', 'BOUNCED'].map((f) => (
+                  {['all&apos;, 'SENT', &apos;DELIVERED', 'READ&apos;, 'FAILED', &apos;PENDING', 'BOUNCED'].map((f) => (
                     <button
                       key={f}
                       onClick={() => setFilter(f as any)}
@@ -354,7 +354,7 @@ export default function EmailMonitorPage() {
                         }
                       `}
                     >
-                      {f === 'all' ? 'Tous' : getStatusLabel(f)}
+                      {f === 'all&apos; ? 'Tous' : getStatusLabel(f)}
                     </button>
                   ))}
                 </div>
@@ -362,9 +362,9 @@ export default function EmailMonitorPage() {
 
               {/* Filtre Type */}
               <div>
-                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Type d'Email</label>
+                <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Type d&apos;Email</label>
                 <div className="flex gap-2 flex-wrap">
-                  {['all', 'WELCOME', 'VERIFICATION', 'RESET_PASSWORD', 'TEST'].map((t) => (
+                  {['all&apos;, 'WELCOME', &apos;VERIFICATION', 'RESET_PASSWORD&apos;, 'TEST'].map((t) => (
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t as any)}
@@ -376,7 +376,7 @@ export default function EmailMonitorPage() {
                         }
                       `}
                     >
-                      {t === 'all' ? 'Tous' : getTypeLabel(t)}
+                      {t === 'all&apos; ? 'Tous' : getTypeLabel(t)}
                     </button>
                   ))}
                 </div>
@@ -418,12 +418,12 @@ export default function EmailMonitorPage() {
                       {/* Icône Statut */}
                       <div className={`
                         flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                        ${email.status === 'SENT' ? 'bg-green-100 dark:bg-green-900/30' : ''}
-                        ${email.status === 'DELIVERED' ? 'bg-blue-100 dark:bg-blue-900/30' : ''}
-                        ${email.status === 'READ' ? 'bg-purple-100 dark:bg-purple-900/30' : ''}
-                        ${email.status === 'FAILED' ? 'bg-red-100 dark:bg-red-900/30' : ''}
-                        ${email.status === 'PENDING' ? 'bg-orange-100 dark:bg-orange-900/30' : ''}
-                        ${email.status === 'BOUNCED' ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}
+                        ${email.status === 'SENT&apos; ? 'bg-green-100 dark:bg-green-900/30' : &apos;'}
+                        ${email.status === 'DELIVERED&apos; ? 'bg-blue-100 dark:bg-blue-900/30' : &apos;'}
+                        ${email.status === 'READ&apos; ? 'bg-purple-100 dark:bg-purple-900/30' : &apos;'}
+                        ${email.status === 'FAILED&apos; ? 'bg-red-100 dark:bg-red-900/30' : &apos;'}
+                        ${email.status === 'PENDING&apos; ? 'bg-orange-100 dark:bg-orange-900/30' : &apos;'}
+                        ${email.status === 'BOUNCED&apos; ? 'bg-yellow-100 dark:bg-yellow-900/30' : &apos;'}
                       `}>
                         {email.status === 'SENT' && <CheckCircle className="h-6 w-6 text-green-500" />}
                         {email.status === 'DELIVERED' && <CheckCircle className="h-6 w-6 text-blue-500" />}
@@ -439,11 +439,11 @@ export default function EmailMonitorPage() {
                           <span className="text-2xl">{getTypeIcon(email.type)}</span>
                           <h3 className="font-semibold text-gray-900 dark:text-gray-100">{email.subject}</h3>
                           <Badge variant={
-                            email.status === 'SENT' ? 'default' :
-                            email.status === 'DELIVERED' ? 'default' :
-                            email.status === 'READ' ? 'default' :
-                            email.status === 'FAILED' ? 'destructive' :
-                            email.status === 'BOUNCED' ? 'destructive' :
+                            email.status === 'SENT&apos; ? 'default' :
+                            email.status === 'DELIVERED&apos; ? 'default' :
+                            email.status === 'READ&apos; ? 'default' :
+                            email.status === 'FAILED&apos; ? 'destructive' :
+                            email.status === 'BOUNCED&apos; ? 'destructive' :
                             'secondary'
                           }>
                             {getStatusLabel(email.status)}
@@ -463,9 +463,9 @@ export default function EmailMonitorPage() {
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
                             {email.status === 'FAILED' ? (
-                              <span className="text-red-600 dark:text-red-400">Échoué : {email.error || 'Erreur inconnue'}</span>
+                              <span className="text-red-600 dark:text-red-400">Échoué : {email.error || 'Erreur inconnue&apos;}</span>
                             ) : email.sentAt ? (
-                              <span>Envoyé : {new Date(email.sentAt).toLocaleString('fr-FR')}</span>
+                              <span>Envoyé : {new Date(email.sentAt).toLocaleString('fr-FR&apos;)}</span>
                             ) : (
                               <span className="text-gray-500 dark:text-gray-400">En attente...</span>
                             )}
@@ -473,13 +473,13 @@ export default function EmailMonitorPage() {
                           {email.openedAt && (
                             <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                               <Eye className="h-4 w-4" />
-                              <span>Ouvert : {new Date(email.openedAt).toLocaleString('fr-FR')} ({email.openCount || 0}x)</span>
+                              <span>Ouvert : {new Date(email.openedAt).toLocaleString('fr-FR&apos;)} ({email.openCount || 0}x)</span>
                             </div>
                           )}
                           {email.clickedAt && (
                             <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                               <Send className="h-4 w-4" />
-                              <span>Cliqué : {new Date(email.clickedAt).toLocaleString('fr-FR')} ({email.clickCount || 0}x)</span>
+                              <span>Cliqué : {new Date(email.clickedAt).toLocaleString('fr-FR&apos;)} ({email.clickCount || 0}x)</span>
                             </div>
                           )}
                         </div>

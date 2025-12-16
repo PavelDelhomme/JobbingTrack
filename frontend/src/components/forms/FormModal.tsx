@@ -11,7 +11,7 @@ interface FormModalProps {
   children: ReactNode
   onSubmit?: () => void
   loading?: boolean
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'sm&apos; | 'md' | &apos;lg' | 'xl'
 }
 
 export default function FormModal({
@@ -25,9 +25,9 @@ export default function FormModal({
 }: FormModalProps) {
   const getSizeClasses = () => {
     switch (size) {
-      case 'sm': return 'max-w-md'
-      case 'lg': return 'max-w-2xl'
-      case 'xl': return 'max-w-4xl'
+      case 'sm&apos;: return 'max-w-md'
+      case 'lg&apos;: return 'max-w-2xl'
+      case 'xl&apos;: return 'max-w-4xl'
       default: return 'max-w-lg'
     }
   }
@@ -74,7 +74,7 @@ export default function FormModal({
                 onClick={onSubmit}
                 disabled={loading}
               >
-                {loading ? 'Sauvegarde...' : 'Sauvegarder'}
+                {loading ? 'Sauvegarde...&apos; : 'Sauvegarder'}
               </Button>
             </div>
           )}

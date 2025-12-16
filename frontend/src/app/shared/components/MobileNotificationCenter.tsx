@@ -8,7 +8,7 @@ interface Notification {
   id: string
   title: string
   body: string
-  type: 'interview' | 'followup' | 'application' | 'system'
+  type: 'interview&apos; | 'followup' | &apos;application' | 'system'
   timestamp: Date
   read: boolean
 }
@@ -48,7 +48,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
       {
         id: '2',
         title: 'Relance en attente',
-        body: 'N\'oubliez pas de relancer Pierre Martin chez StartupInc',
+        body: 'N\&apos;oubliez pas de relancer Pierre Martin chez StartupInc',
         type: 'followup',
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2 heures
         read: true,
@@ -67,7 +67,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
   }
 
   const addRandomNotification = () => {
-    const types: Notification['type'][] = ['interview', 'followup', 'application', 'system']
+    const types: Notification['type&apos;][] = ['interview', &apos;followup', 'application&apos;, 'system']
     const randomType = types[Math.floor(Math.random() * types.length)]
     
     const titles = {
@@ -119,7 +119,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
       const hours = Math.floor(diff / 3600000)
       const days = Math.floor(diff / 86400000)
 
-      if (minutes < 1) return 'À l\'instant'
+      if (minutes < 1) return 'À l\&apos;instant'
       if (minutes < 60) return `Il y a ${minutes} min`
       if (hours < 24) return `Il y a ${hours}h`
       return `Il y a ${days}j`
@@ -190,12 +190,12 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
                   key={notification.id}
                   onClick={() => markAsRead(notification.id)}
                   className={`p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20&apos; : ''
                   }`}
                 >
                   <div className="flex items-start gap-2 sm:gap-3">
                     <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
-                      !notification.read ? 'bg-blue-500' : 'bg-transparent'
+                      !notification.read ? 'bg-blue-500&apos; : 'bg-transparent'
                     }`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

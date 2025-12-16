@@ -37,7 +37,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
     const diffMs = now.getTime() - lastSync.getTime();
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
-    if (diffMinutes < 1) return 'À l\'instant';
+    if (diffMinutes < 1) return 'À l\&apos;instant';
     if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
 
     const diffHours = Math.floor(diffMinutes / 60);
@@ -55,7 +55,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
   };
 
   return (
-    <Card className={`${className} ${!isOnline ? 'border-orange-300 bg-orange-50' : ''}`}>
+    <Card className={`${className} ${!isOnline ? 'border-orange-300 bg-orange-50&apos; : ''}`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           {isOnline ? (
@@ -66,7 +66,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
           État de connexion
           <div className="flex gap-2 ml-auto">
             <Badge variant={isOnline ? "default" : "destructive"} className="text-xs">
-              {isOnline ? 'En ligne' : 'Hors ligne'}
+              {isOnline ? 'En ligne&apos; : 'Hors ligne'}
             </Badge>
             {pendingOperations.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -120,7 +120,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
             size="sm"
             onClick={() => setShowDetailsPanel(!showDetailsPanel)}
           >
-            {showDetailsPanel ? 'Masquer détails' : 'Voir détails'}
+            {showDetailsPanel ? 'Masquer détails&apos; : 'Voir détails'}
           </Button>
 
           {isOnline && pendingOperations.length > 0 && (
@@ -131,8 +131,8 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
               disabled={isSyncing}
               className="text-blue-600 border-blue-300 hover:bg-blue-50"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin&apos; : ''}`} />
+              {isSyncing ? 'Synchronisation...&apos; : 'Synchroniser'}
             </Button>
           )}
 
@@ -231,7 +231,7 @@ export function OfflineStatus({ className = '', showDetails = false }: OfflineSt
                 onClick={syncPendingOperations}
                 disabled={!isOnline || isSyncing || pendingOperations.length === 0}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin&apos; : ''}`} />
                 Forcer la synchronisation
               </Button>
 

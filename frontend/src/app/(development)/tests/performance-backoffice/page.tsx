@@ -122,12 +122,12 @@ const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:300
 interface PerformanceTest {
   id: string;
   name: string;
-  type: 'api' | 'load' | 'database' | 'frontend' | 'memory' | 'stress' | 'full';
+  type: 'api&apos; | 'load' | &apos;database' | 'frontend&apos; | 'memory' | &apos;stress' | 'full';
   description: string;
   duration: number;
   concurrentUsers: number;
   services: string[];
-  status: 'idle' | 'running' | 'completed' | 'failed';
+  status: 'idle&apos; | 'running' | &apos;completed' | 'failed';
   progress: number;
   results?: any;
   timestamp: string;
@@ -143,7 +143,7 @@ interface PerformanceHistory {
 
 interface ServiceStatus {
   name: string;
-  status: 'available' | 'unavailable' | 'starting';
+  status: 'available&apos; | 'unavailable' | &apos;starting';
   url: string;
   responseTime?: number;
 }
@@ -152,7 +152,7 @@ export default function PerformanceTestsPage() {
   const { user, token } = useAuth();
 
   // État principal de l'interface
-  const [activeTab, setActiveTab] = useState<'run' | 'history' | 'settings'>('run');
+  const [activeTab, setActiveTab] = useState<'run&apos; | 'history' | &apos;settings'>('run');
   const [terminalVisible, setTerminalVisible] = useState(true);
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -203,7 +203,7 @@ export default function PerformanceTestsPage() {
       const response = await fetch(`${API_GATEWAY_URL}/api/v1/services`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
+          'X-Test-Mode&apos;: 'true'
         }
       });
 
@@ -212,7 +212,7 @@ export default function PerformanceTestsPage() {
         if (data.success && data.services) {
           const services: ServiceStatus[] = data.services.map((service: any) => ({
             name: service.name,
-            status: service.status === 'running' || service.health?.status === 'online' ? 'available' : 'unavailable',
+            status: service.status === 'running&apos; || service.health?.status === 'online' ? &apos;available' : 'unavailable',
             url: service.url || `http://localhost:${service.port}`,
             responseTime: service.health?.responseTime
           }));
@@ -230,7 +230,7 @@ export default function PerformanceTestsPage() {
       const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/history`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
+          'X-Test-Mode&apos;: 'true'
         }
       });
 
@@ -259,7 +259,7 @@ export default function PerformanceTestsPage() {
     setTestResults(null);
 
     addLog(`🚀 Démarrage des tests de performance: ${testConfig.type}`);
-    addLog(`📋 Services: ${testConfig.services.length > 0 ? testConfig.services.join(', ') : 'Tous disponibles'}`);
+    addLog(`📋 Services: ${testConfig.services.length > 0 ? testConfig.services.join(', &apos;) : 'Tous disponibles'}`);
     addLog(`⏱️ Durée: ${testConfig.duration} secondes`);
     addLog(`👥 Utilisateurs concurrents: ${testConfig.concurrentUsers}`);
 
@@ -267,9 +267,9 @@ export default function PerformanceTestsPage() {
       const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/run`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type&apos;: 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
+          'X-Test-Mode&apos;: 'true'
         },
         body: JSON.stringify({
           testType: testConfig.type,
@@ -295,7 +295,7 @@ export default function PerformanceTestsPage() {
           const statusResponse = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/status/${executionId}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
-              'X-Test-Mode': 'true'
+              'X-Test-Mode&apos;: 'true'
             }
           });
 
@@ -338,7 +338,7 @@ export default function PerformanceTestsPage() {
   const stopPerformanceTests = async () => {
     setIsRunning(false);
     setProgress(0);
-    addLog('🛑 Tests arrêtés par l\'utilisateur');
+    addLog('🛑 Tests arrêtés par l\&apos;utilisateur');
   };
 
   // Télécharger le rapport
@@ -349,7 +349,7 @@ export default function PerformanceTestsPage() {
       const response = await fetch(`${API_GATEWAY_URL}/api/v1/admin/performance/report`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Test-Mode': 'true'
+          'X-Test-Mode&apos;: 'true'
         }
       });
 
@@ -385,7 +385,7 @@ export default function PerformanceTestsPage() {
       type: 'api',
       duration: 60,
       concurrentUsers: 15,
-      services: ['apiGateway', 'auth', 'companies', 'applications'],
+      services: ['apiGateway&apos;, 'auth', &apos;companies', 'applications'],
       description: 'Tests des performances API uniquement'
     },
     {
@@ -401,7 +401,7 @@ export default function PerformanceTestsPage() {
       type: 'load',
       duration: 180,
       concurrentUsers: 50,
-      services: ['apiGateway', 'auth'],
+      services: ['apiGateway&apos;, 'auth'],
       description: 'Tests de charge intensive'
     },
     {
@@ -410,7 +410,7 @@ export default function PerformanceTestsPage() {
       duration: 30,
       concurrentUsers: 1,
       services: [],
-      description: 'Tests d\'utilisation mémoire'
+      description: 'Tests d\&apos;utilisation mémoire'
     }
   ];
 
@@ -444,7 +444,7 @@ export default function PerformanceTestsPage() {
             >
               {/* Terminal icon non importé ici; remplacé par un fallback */}
               <span className="h-4 w-4">🖥️</span>
-              {terminalVisible ? 'Masquer' : 'Terminal'}
+              {terminalVisible ? 'Masquer&apos; : 'Terminal'}
             </Button>
           </div>
         </div>
@@ -533,7 +533,7 @@ export default function PerformanceTestsPage() {
                             className="text-sm font-normal flex items-center gap-2"
                           >
                             <div className={`w-2 h-2 rounded-full ${
-                              service.status === 'available' ? 'bg-green-500' : 'bg-red-500'
+                              service.status === 'available&apos; ? 'bg-green-500' : &apos;bg-red-500'
                             }`} />
                             {service.name}
                           </Label>
@@ -652,10 +652,10 @@ export default function PerformanceTestsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-green-600" />
-                    {isRunning ? 'Tests en Cours' : testResults ? 'Résultats' : 'État des Tests'}
+                    {isRunning ? 'Tests en Cours&apos; : testResults ? 'Résultats' : &apos;État des Tests'}
                   </CardTitle>
                   <CardDescription>
-                    {isRunning ? 'Exécution des tests de performance' : 'Résultats des derniers tests'}
+                    {isRunning ? 'Exécution des tests de performance&apos; : 'Résultats des derniers tests'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -775,7 +775,7 @@ export default function PerformanceTestsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${
-                          service.status === 'available' ? 'bg-green-500' : 'bg-red-500'
+                          service.status === 'available&apos; ? 'bg-green-500' : &apos;bg-red-500'
                         }`} />
                         <span className="font-medium text-sm">{service.name}</span>
                       </div>
@@ -807,7 +807,7 @@ export default function PerformanceTestsPage() {
                 {testHistory.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-500">Aucun test dans l'historique</p>
+                    <p className="text-gray-500">Aucun test dans l&apos;historique</p>
                     <p className="text-sm text-gray-400 mt-1">
                       Lancez des tests pour voir l'historique
                     </p>

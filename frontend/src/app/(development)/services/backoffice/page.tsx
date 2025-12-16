@@ -19,7 +19,7 @@ export default function ServicesManagementPage() {
   const services = [
     {
       id: 'auth-service',
-      name: 'Service d\'Authentification',
+      name: 'Service d\&apos;Authentification',
       description: 'Gestion des utilisateurs et authentification',
       icon: '🔐',
       route: '/backoffice/services/auth-service'
@@ -168,9 +168,9 @@ export default function ServicesManagementPage() {
             );
             return {
               ...service,
-              status: metricsData?.status === 'running' ? 'running' : 'stopped',
+              status: metricsData?.status === 'running&apos; ? 'running' : &apos;stopped',
               metrics: metricsData,
-              uptime: metricsData?.status === 'running' ? 'En ligne' : 'Hors ligne'
+              uptime: metricsData?.status === 'running&apos; ? 'En ligne' : &apos;Hors ligne'
             };
           });
           setServicesWithMetrics(updatedServices);
@@ -210,9 +210,9 @@ export default function ServicesManagementPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Activity className={`h-5 w-5 ${loading ? 'animate-pulse text-blue-500' : 'text-green-500'}`} />
+            <Activity className={`h-5 w-5 ${loading ? 'animate-pulse text-blue-500&apos; : 'text-green-500'}`} />
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {loading ? 'Chargement...' : 'En ligne'}
+              {loading ? 'Chargement...&apos; : 'En ligne'}
             </span>
           </div>
         </div>
@@ -241,12 +241,12 @@ export default function ServicesManagementPage() {
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`inline-block w-2 h-2 rounded-full ${
-                          service.status === 'running' ? 'bg-green-500' :
-                          service.status === 'stopped' ? 'bg-red-500' : 'bg-yellow-500'
+                          service.status === 'running&apos; ? 'bg-green-500' :
+                          service.status === 'stopped&apos; ? 'bg-red-500' : &apos;bg-yellow-500'
                         }`}></span>
                         <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                          {service.status === 'running' ? 'En ligne' :
-                           service.status === 'stopped' ? 'Hors ligne' : 'Test...'}
+                          {service.status === 'running&apos; ? 'En ligne' :
+                           service.status === 'stopped&apos; ? 'Hors ligne' : &apos;Test...'}
                         </span>
                         {maintenance?.isActive && (
                           <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 text-xs font-medium rounded-full">

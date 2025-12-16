@@ -52,7 +52,7 @@ export function useTracking() {
   const trackError = (
     error: Error | string,
     errorType: string = 'javascript',
-    severity: 'error' | 'warning' | 'critical' = 'error'
+    severity: 'error&apos; | 'warning' | &apos;critical' = 'error'
   ) => {
     userTracking.trackError(error, errorType, severity)
   }

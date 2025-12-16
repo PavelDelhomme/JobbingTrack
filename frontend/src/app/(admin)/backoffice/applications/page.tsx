@@ -12,7 +12,7 @@ interface ServiceStatus {
   name: string
   url: string
   port: number
-  status: 'online' | 'offline' | 'testing'
+  status: 'online&apos; | 'offline' | &apos;testing'
   responseTime?: number | string
   version?: string
   error?: string
@@ -25,27 +25,27 @@ export default function ServicesPage() {
   const { token, user } = useAuth()
   const router = useRouter()
   const { metrics, isConnected, error: metricsError, isLoading: metricsLoading } = useMetrics()
-  const [activeTab, setActiveTab] = useState<'services' | 'logs'>('services')
+  const [activeTab, setActiveTab] = useState<'services&apos; | 'logs'>(&apos;services')
   // Configuration des vraies URLs des services (corrigées)
   const REAL_SERVICES = [
-    { name: 'API Gateway', url: `${API_GATEWAY_URL}`, port: 3000, serviceType: 'gateway' },
-    { name: 'Auth Service', url: 'http://localhost:3001/api/v1/auth/health', port: 3001, serviceType: 'auth' },
-    { name: 'Application Service', url: 'http://localhost:3002/api/v1/applications/health', port: 3002, serviceType: 'application' },
-    { name: 'Company Service', url: 'http://localhost:3003/api/v1/companies/health', port: 3003, serviceType: 'company' },
-    { name: 'Contact Service', url: 'http://localhost:3004/api/v1/contacts/health', port: 3004, serviceType: 'contact' },
-    { name: 'Interview Service', url: 'http://localhost:3005/api/v1/interviews/health', port: 3005, serviceType: 'interview' },
-    { name: 'Notification Service', url: 'http://localhost:3006/api/v1/notifications/health', port: 3006, serviceType: 'notification' },
-    { name: 'Dashboard Service', url: 'http://localhost:3007/api/v1/dashboard/health', port: 3007, serviceType: 'dashboard' },
-    { name: 'Call Service', url: 'http://localhost:3008/api/v1/calls/health', port: 3008, serviceType: 'call' },
-    { name: 'Event Service', url: 'http://localhost:3009/api/v1/events/health', port: 3009, serviceType: 'event' },
-    { name: 'FollowUp Service', url: 'http://localhost:3010/api/v1/followups/health', port: 3010, serviceType: 'followup' },
-    { name: 'Profile Service', url: 'http://localhost:3011/api/v1/profile/health', port: 3011, serviceType: 'profile' },
-    { name: 'Workflow Service', url: 'http://localhost:3013/api/v1/workflow/health', port: 3013, serviceType: 'workflow' },
-    { name: 'Metrics Aggregator', url: 'http://localhost:8014/api/v1/health', port: 8014, serviceType: 'metrics' },
-    { name: 'Frontend', url: 'http://localhost:3000', port: 3000, serviceType: 'frontend' },
-    { name: 'Base de données', url: 'http://localhost:5432', port: 5432, serviceType: 'database' },
-    { name: 'Redis', url: 'http://localhost:6379', port: 6379, serviceType: 'cache' },
-    { name: 'Prometheus', url: 'http://localhost:9090/-/healthy', port: 9090, serviceType: 'monitoring' }
+    { name: 'API Gateway&apos;, url: `${API_GATEWAY_URL}`, port: 3000, serviceType: 'gateway' },
+    { name: 'Auth Service&apos;, url: 'http://localhost:3001/api/v1/auth/health', port: 3001, serviceType: &apos;auth' },
+    { name: 'Application Service&apos;, url: 'http://localhost:3002/api/v1/applications/health', port: 3002, serviceType: &apos;application' },
+    { name: 'Company Service&apos;, url: 'http://localhost:3003/api/v1/companies/health', port: 3003, serviceType: &apos;company' },
+    { name: 'Contact Service&apos;, url: 'http://localhost:3004/api/v1/contacts/health', port: 3004, serviceType: &apos;contact' },
+    { name: 'Interview Service&apos;, url: 'http://localhost:3005/api/v1/interviews/health', port: 3005, serviceType: &apos;interview' },
+    { name: 'Notification Service&apos;, url: 'http://localhost:3006/api/v1/notifications/health', port: 3006, serviceType: &apos;notification' },
+    { name: 'Dashboard Service&apos;, url: 'http://localhost:3007/api/v1/dashboard/health', port: 3007, serviceType: &apos;dashboard' },
+    { name: 'Call Service&apos;, url: 'http://localhost:3008/api/v1/calls/health', port: 3008, serviceType: &apos;call' },
+    { name: 'Event Service&apos;, url: 'http://localhost:3009/api/v1/events/health', port: 3009, serviceType: &apos;event' },
+    { name: 'FollowUp Service&apos;, url: 'http://localhost:3010/api/v1/followups/health', port: 3010, serviceType: &apos;followup' },
+    { name: 'Profile Service&apos;, url: 'http://localhost:3011/api/v1/profile/health', port: 3011, serviceType: &apos;profile' },
+    { name: 'Workflow Service&apos;, url: 'http://localhost:3013/api/v1/workflow/health', port: 3013, serviceType: &apos;workflow' },
+    { name: 'Metrics Aggregator&apos;, url: 'http://localhost:8014/api/v1/health', port: 8014, serviceType: &apos;metrics' },
+    { name: 'Frontend&apos;, url: 'http://localhost:3000', port: 3000, serviceType: &apos;frontend' },
+    { name: 'Base de données&apos;, url: 'http://localhost:5432', port: 5432, serviceType: &apos;database' },
+    { name: 'Redis&apos;, url: 'http://localhost:6379', port: 6379, serviceType: &apos;cache' },
+    { name: 'Prometheus&apos;, url: 'http://localhost:9090/-/healthy', port: 9090, serviceType: &apos;monitoring' }
   ]
 
   const [services, setServices] = useState<ServiceStatus[]>([])
@@ -104,8 +104,8 @@ export default function ServicesPage() {
             url: service.url,
             port: service.port,
             serviceType: service.serviceType,
-            status: serviceMetrics.health.status === 'online' ? 'online' as const :
-                   serviceMetrics.health.status === 'offline' ? 'offline' as const : 'online' as const, // Assume online si status non défini
+            status: serviceMetrics.health.status === 'online&apos; ? 'online' as const :
+                   serviceMetrics.health.status === 'offline&apos; ? 'offline' as const : &apos;online' as const, // Assume online si status non défini
             responseTime: serviceMetrics.health.responseTime || 'N/A',
             version: serviceMetrics.health.version || serviceMetrics.version || '1.0.0',
             error: serviceMetrics.health.error
@@ -274,7 +274,7 @@ export default function ServicesPage() {
             const updated = [...prev]
             updated[index] = {
               ...updated[index],
-              status: response.status >= 200 && response.status < 400 ? 'online' : 'offline',
+              status: response.status >= 200 && response.status < 400 ? 'online&apos; : 'offline',
               responseTime,
               version: response.data?.version || response.data?.serviceVersion || '1.0.0',
               error: response.status >= 400 ? `HTTP ${response.status}: ${response.statusText}` : undefined
@@ -353,7 +353,7 @@ export default function ServicesPage() {
       if (metrics && metrics.services) {
         // Chercher le service dans les métriques
         const serviceKey = Object.keys(metrics.services || {}).find((key: string) =>
-          key.includes(service.name.toLowerCase().replace(' ', '-')) ||
+          key.includes(service.name.toLowerCase().replace(' &apos;, '-')) ||
           key === service.serviceType
         )
 
@@ -373,7 +373,7 @@ export default function ServicesPage() {
 
           if (serviceData.metrics?.memory) {
             const mem = serviceData.metrics.memory
-            logs.push(`[${new Date().toISOString()}] INFO: Mémoire utilisée: ${mem.percentage}% (${typeof mem.usage === 'number' ? Math.round(mem.usage / 1024 / 1024) : 'N/A'}MB)`)
+            logs.push(`[${new Date().toISOString()}] INFO: Mémoire utilisée: ${mem.percentage}% (${typeof mem.usage === 'number&apos; ? Math.round(mem.usage / 1024 / 1024) : 'N/A'}MB)`)
           }
 
           if (serviceData.metrics?.cpu) {
@@ -529,8 +529,8 @@ export default function ServicesPage() {
 
       const response = await fetch(`${apiUrl}/api/v1/metrics/prometheus/query?query=${encodeURIComponent(query)}`, {
         headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Accept&apos;: 'application/json',
+          'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`,
         },
       })
 
@@ -544,7 +544,7 @@ export default function ServicesPage() {
           setPrometheusMetrics(prev => ({
             ...prev,
             [serviceName]: {
-              status: value === 1 ? 'online' : 'offline',
+              status: value === 1 ? 'online&apos; : 'offline',
               lastCheck: new Date().toISOString(),
               source: 'prometheus'
             }
@@ -567,8 +567,8 @@ export default function ServicesPage() {
 
       // Toutes les métriques détaillées sont maintenant N/A
       const metrics = {
-        cpu: { usage: 'N/A', percentage: 'N/A' },
-        memory: { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
+        cpu: { usage: 'N/A&apos;, percentage: 'N/A' },
+        memory: { usage: 'N/A&apos;, limit: 'N/A', percentage: &apos;N/A' },
         source: 'N/A'
       }
 
@@ -620,8 +620,8 @@ export default function ServicesPage() {
         return {
           type: 'service',
           data: {
-            memory: serviceMetrics.metrics.memory || { usage: 'N/A', limit: 'N/A', percentage: 'N/A' },
-            cpu: serviceMetrics.metrics.cpu || { usage: 'N/A', system: 'N/A', percentage: 'N/A' },
+            memory: serviceMetrics.metrics.memory || { usage: 'N/A&apos;, limit: 'N/A', percentage: &apos;N/A' },
+            cpu: serviceMetrics.metrics.cpu || { usage: 'N/A&apos;, system: 'N/A', percentage: &apos;N/A' },
             status: serviceMetrics.status || 'N/A'
           }
         }
@@ -676,7 +676,7 @@ export default function ServicesPage() {
                 disabled={loading}
                 className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >
-                {loading ? '🔄 Test...' : '🔄 Tester Tout'}
+                {loading ? '🔄 Test...&apos; : '🔄 Tester Tout'}
               </button>
 
               <button
@@ -825,8 +825,8 @@ export default function ServicesPage() {
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
-                          {service.status === 'online' ? '✅ En ligne' :
-                           service.status === 'testing' ? '🔄 Test...' :
+                          {service.status === 'online&apos; ? '✅ En ligne' :
+                           service.status === 'testing&apos; ? '🔄 Test...' :
                            '❌ Hors ligne'}
                         </span>
                         {getServiceMaintenance(service)?.isActive && (
@@ -841,7 +841,7 @@ export default function ServicesPage() {
                       <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Temps de réponse:</span>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {service.responseTime && service.responseTime !== 'N/A' ? `${service.responseTime}ms` : 'N/A'}
+                          {service.responseTime && service.responseTime !== 'N/A&apos; ? `${service.responseTime}ms` : 'N/A'}
                         </span>
                       </div>
 
@@ -921,7 +921,7 @@ export default function ServicesPage() {
                             disabled={loading || service.status === 'testing'}
                             className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
-                            {service.status === 'testing' ? '🔄' : '🧪'}
+                            {service.status === 'testing&apos; ? '🔄' : &apos;🧪'}
                           </button>
                           <span>👁️</span>
                         </div>
@@ -939,7 +939,7 @@ export default function ServicesPage() {
                 📋 Logs Système
               </h3>
               <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
-                <p>Logs système en cours d'implémentation...</p>
+                <p>Logs système en cours d&apos;implémentation...</p>
               </div>
             </div>
           )}
@@ -957,25 +957,25 @@ export default function ServicesPage() {
             >
               {/* Header */}
               <div className={`p-6 ${
-                selectedService.status === 'online' ? 'bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700' :
-                selectedService.status === 'testing' ? 'bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700' :
+                selectedService.status === 'online&apos; ? 'bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700' :
+                selectedService.status === 'testing&apos; ? 'bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700' :
                 'bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700'
               } text-white`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      selectedService.status === 'online' ? 'bg-white/20' :
-                      selectedService.status === 'testing' ? 'bg-white/20' : 'bg-white/20'
+                      selectedService.status === 'online&apos; ? 'bg-white/20' :
+                      selectedService.status === 'testing&apos; ? 'bg-white/20' : &apos;bg-white/20'
                     }`}>
                       <span className="text-2xl">
-                        {selectedService.status === 'online' ? '🔧' :
-                         selectedService.status === 'testing' ? '⚙️' : '❌'}
+                        {selectedService.status === 'online&apos; ? '🔧' :
+                         selectedService.status === 'testing&apos; ? '⚙️' : &apos;❌'}
                       </span>
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold">{selectedService.name}</h2>
                       <p className="text-sm opacity-90">
-                        Service • Port {selectedService.port} • {selectedService.status === 'online' ? 'En ligne' : selectedService.status === 'testing' ? 'Test en cours' : 'Hors ligne'}
+                        Service • Port {selectedService.port} • {selectedService.status === 'online&apos; ? 'En ligne' : selectedService.status === &apos;testing' ? 'Test en cours&apos; : 'Hors ligne'}
                       </p>
                     </div>
                   </div>
@@ -1004,16 +1004,16 @@ export default function ServicesPage() {
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
                     <div className="text-sm text-gray-600 dark:text-gray-400">Version</div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedService.version || 'N/A'}</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedService.version || 'N/A&apos;}</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center">
                     <div className="text-sm text-gray-600 dark:text-gray-400">Statut</div>
                     <div className={`text-sm font-bold ${
-                      selectedService.status === 'online' ? 'text-green-600' :
-                      selectedService.status === 'testing' ? 'text-blue-600' : 'text-red-600'
+                      selectedService.status === 'online&apos; ? 'text-green-600' :
+                      selectedService.status === 'testing&apos; ? 'text-blue-600' : &apos;text-red-600'
                     }`}>
-                      {selectedService.status === 'online' ? '🟢 En ligne' :
-                       selectedService.status === 'testing' ? '🔄 Test' : '🔴 Hors ligne'}
+                      {selectedService.status === 'online&apos; ? '🟢 En ligne' :
+                       selectedService.status === 'testing&apos; ? '🔄 Test' : &apos;🔴 Hors ligne'}
                     </div>
                   </div>
                 </div>
@@ -1038,7 +1038,7 @@ export default function ServicesPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Dernière vérification</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{new Date().toLocaleString('fr-FR')}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{new Date().toLocaleString('fr-FR&apos;)}</span>
                         </div>
                       </div>
                     </div>
@@ -1127,11 +1127,11 @@ export default function ServicesPage() {
                               <div>
                                 <div className="flex justify-between text-sm mb-1">
                                   <span className="text-gray-600 dark:text-gray-400">
-                                    {serviceMetrics.type === 'service' ? 'Mémoire utilisée' :
-                                     serviceMetrics.type === 'prometheus' ? 'Mémoire consommée' : 'Mémoire allouée'}
+                                    {serviceMetrics.type === 'service&apos; ? 'Mémoire utilisée' :
+                                     serviceMetrics.type === 'prometheus&apos; ? 'Mémoire consommée' : &apos;Mémoire allouée'}
                                   </span>
                                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                                    {metrics.memory.usage !== 'N/A' && metrics.memory.limit !== 'N/A'
+                                    {metrics.memory.usage !== 'N/A&apos; && metrics.memory.limit !== 'N/A'
                                       ? `${metrics.memory.usage}MB / ${metrics.memory.limit}MB (${metrics.memory.percentage}%)`
                                       : metrics.memory.usage !== 'N/A'
                                       ? `${metrics.memory.usage}MB`
@@ -1142,8 +1142,8 @@ export default function ServicesPage() {
                                 {metrics.memory.percentage !== 'N/A' && (
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div className={`h-2 rounded-full transition-all ${
-                                      serviceMetrics.type === 'prometheus' ? 'bg-purple-500' :
-                                      serviceMetrics.type === 'service' ? 'bg-blue-500' : 'bg-green-500'
+                                      serviceMetrics.type === 'prometheus&apos; ? 'bg-purple-500' :
+                                      serviceMetrics.type === 'service&apos; ? 'bg-blue-500' : &apos;bg-green-500'
                                     }`} style={{ width: `${metrics.memory.percentage}%` }}></div>
                                   </div>
                                 )}
@@ -1161,8 +1161,8 @@ export default function ServicesPage() {
                                 {metrics.cpu.percentage !== 'N/A' && (
                                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div className={`h-2 rounded-full transition-all ${
-                                      serviceMetrics.type === 'prometheus' ? 'bg-purple-500' :
-                                      serviceMetrics.type === 'service' ? 'bg-blue-500' : 'bg-green-500'
+                                      serviceMetrics.type === 'prometheus&apos; ? 'bg-purple-500' :
+                                      serviceMetrics.type === 'service&apos; ? 'bg-blue-500' : &apos;bg-green-500'
                                     }`} style={{ width: `${metrics.cpu.percentage}%` }}></div>
                                   </div>
                                 )}
@@ -1172,22 +1172,22 @@ export default function ServicesPage() {
                                   <div className="flex justify-between text-sm mb-1">
                                     <span className="text-gray-600 dark:text-gray-400">Statut conteneur</span>
                                     <span className={`font-medium ${
-                                      metrics.status === 'running' ? 'text-green-600' :
-                                      metrics.status === 'exited' ? 'text-red-600' : 'text-gray-600'
+                                      metrics.status === 'running&apos; ? 'text-green-600' :
+                                      metrics.status === 'exited&apos; ? 'text-red-600' : &apos;text-gray-600'
                                     }`}>
-                                      {metrics.status !== 'N/A' ? metrics.status : 'N/A'}
+                                      {metrics.status !== 'N/A&apos; ? metrics.status : 'N/A'}
                                     </span>
                                   </div>
                                 </div>
                               )}
 
                               {/* Métriques réseau si disponibles */}
-                              {metrics.network && (metrics.network.rx_bytes !== 'N/A' || metrics.network.tx_bytes !== 'N/A') && (
+                              {metrics.network && (metrics.network.rx_bytes !== 'N/A&apos; || metrics.network.tx_bytes !== 'N/A') && (
                                 <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                                   <div className="flex justify-between text-sm mb-1">
                                     <span className="text-gray-600 dark:text-gray-400">Trafic réseau</span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                                      {metrics.network.rx_bytes !== 'N/A' && metrics.network.tx_bytes !== 'N/A'
+                                      {metrics.network.rx_bytes !== 'N/A&apos; && metrics.network.tx_bytes !== 'N/A'
                                         ? `↓ ${Math.round(metrics.network.rx_bytes / 1024)}KB/s ↑ ${Math.round(metrics.network.tx_bytes / 1024)}KB/s`
                                         : 'N/A'
                                       }
@@ -1199,8 +1199,8 @@ export default function ServicesPage() {
                               {/* Information sur la source */}
                               <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  Source: {serviceMetrics.type === 'prometheus' ? 'Prometheus (métriques temps réel)' :
-                                          serviceMetrics.type === 'service' ? 'Service interne' : 'cAdvisor (conteneur)'}
+                                  Source: {serviceMetrics.type === 'prometheus&apos; ? 'Prometheus (métriques temps réel)' :
+                                          serviceMetrics.type === 'service&apos; ? 'Service interne' : &apos;cAdvisor (conteneur)'}
                                 </div>
                               </div>
                             </div>
@@ -1240,8 +1240,8 @@ export default function ServicesPage() {
                               key={index}
                               className="p-2 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
                             >
-                              <span className="text-gray-500 dark:text-gray-400 text-xs">{log.split(']')[0]}]</span>
-                              <span className="ml-2 text-gray-900 dark:text-gray-100">{log.split(']').slice(1).join(']')}</span>
+                              <span className="text-gray-500 dark:text-gray-400 text-xs">{log.split(']&apos;)[0]}]</span>
+                              <span className="ml-2 text-gray-900 dark:text-gray-100">{log.split(']&apos;).slice(1).join(']&apos;)}</span>
                             </div>
                           ))}
                         </div>

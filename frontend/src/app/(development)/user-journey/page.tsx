@@ -29,7 +29,7 @@ type JourneyStep = {
   name: string;
   description: string;
   icon: any;
-  status: 'pending' | 'running' | 'success' | 'error';
+  status: 'pending&apos; | 'running' | &apos;success' | 'error';
   duration?: number;
   result?: any;
   error?: string;
@@ -39,7 +39,7 @@ type JourneyStep = {
 const SCENARIOS = {
   complete: {
     name: 'Parcours Complet',
-    description: 'De l\'inscription à la statistique complète',
+    description: 'De l\&apos;inscription à la statistique complète',
     steps: [
       'register',
       'login',
@@ -54,10 +54,10 @@ const SCENARIOS = {
   quick: {
     name: 'Parcours Rapide',
     description: 'Actions principales uniquement',
-    steps: ['login', 'create_applications', 'view_statistics']
+    steps: ['login&apos;, 'create_applications', &apos;view_statistics']
   },
   job_seeker: {
-    name: 'Chercheur d\'Emploi Actif',
+    name: 'Chercheur d\&apos;Emploi Actif',
     description: 'Candidature intensive avec suivi',
     steps: [
       'login',
@@ -70,7 +70,7 @@ const SCENARIOS = {
   beginner: {
     name: 'Nouvel Utilisateur',
     description: 'Première connexion et découverte',
-    steps: ['register', 'login', 'create_applications', 'view_statistics']
+    steps: ['register&apos;, 'login', &apos;create_applications', 'view_statistics']
   }
 };
 
@@ -85,7 +85,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   login: {
     id: 'login',
     name: 'Connexion',
-    description: 'Se connecter à l\'application',
+    description: 'Se connecter à l\&apos;application',
     icon: LogIn
   },
   create_applications: {
@@ -166,7 +166,7 @@ export default function UserJourneyPage() {
         case 'register':
           result = await fetch('/api/v1/auth/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type&apos;: 'application/json' },
             body: JSON.stringify({
               email: `test-${Date.now()}@example.com`,
               password: 'Test123!',
@@ -179,7 +179,7 @@ export default function UserJourneyPage() {
         case 'login':
           result = await fetch('/api/v1/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type&apos;: 'application/json' },
             body: JSON.stringify({
               email: 'admin@example.com',
               password: 'admin123'
@@ -193,13 +193,13 @@ export default function UserJourneyPage() {
             const res = await fetch('/api/v1/applications', {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type&apos;: 'application/json',
+                'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
                 position: `Poste ${i + 1}`,
-                status: ['pending', 'applied', 'interview'][i % 3],
+                status: ['pending&apos;, 'applied', &apos;interview'][i % 3],
                 appliedAt: new Date().toISOString()
               })
             });
@@ -214,8 +214,8 @@ export default function UserJourneyPage() {
             const res = await fetch('/api/v1/contacts', {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type&apos;: 'application/json',
+                'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
                 firstName: `Contact${i + 1}`,
@@ -235,13 +235,13 @@ export default function UserJourneyPage() {
             const res = await fetch('/api/v1/interviews', {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type&apos;: 'application/json',
+                'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
                 title: `Entretien Test ${i + 1}`,
                 date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
-                type: ['phone', 'video', 'onsite'][i % 3]
+                type: ['phone&apos;, 'video', &apos;onsite'][i % 3]
               })
             });
             interviews.push(await res.json());
@@ -255,11 +255,11 @@ export default function UserJourneyPage() {
             const res = await fetch('/api/v1/followups', {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type&apos;: 'application/json',
+                'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
-                type: ['email', 'phone', 'linkedin'][i],
+                type: ['email&apos;, 'phone', &apos;linkedin'][i],
                 scheduledFor: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000).toISOString(),
                 notes: `Relance automatique ${i + 1}`
               })
@@ -275,13 +275,13 @@ export default function UserJourneyPage() {
             const res = await fetch('/api/v1/calls', {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type&apos;: 'application/json',
+                'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
               },
               body: JSON.stringify({
                 duration: Math.floor(Math.random() * 600) + 60,
                 notes: `Appel test ${i + 1}`,
-                outcome: ['positive', 'neutral', 'negative'][i % 3]
+                outcome: ['positive&apos;, 'neutral', &apos;negative'][i % 3]
               })
             });
             calls.push(await res.json());
@@ -292,7 +292,7 @@ export default function UserJourneyPage() {
         case 'view_statistics':
           result = await fetch('/api/v1/dashboard/statistics', {
             headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization&apos;: `Bearer ${localStorage.getItem('token')}`
             }
           });
           break;
@@ -312,7 +312,7 @@ export default function UserJourneyPage() {
       } else {
         return { 
           success: false, 
-          error: 'Erreur lors de l\'exécution', 
+          error: 'Erreur lors de l\&apos;exécution', 
           duration 
         };
       }
@@ -350,7 +350,7 @@ export default function UserJourneyPage() {
       setSteps(prev => prev.map((s, idx) => 
         idx === i ? { 
           ...s, 
-          status: success ? 'success' : 'error',
+          status: success ? 'success&apos; : 'error',
           duration,
           result,
           error
@@ -434,7 +434,7 @@ export default function UserJourneyPage() {
             variant="default"
           >
             <Play className="h-4 w-4 mr-2" />
-            {isRunning ? 'En cours...' : 'Lancer le parcours'}
+            {isRunning ? 'En cours...&apos; : 'Lancer le parcours'}
           </Button>
           <Button
             onClick={resetJourney}
@@ -482,7 +482,7 @@ export default function UserJourneyPage() {
                         ? 'border-blue-500 bg-blue-50' 
                         : 'border-gray-200 hover:border-blue-300'
                       }
-                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      ${isRunning ? 'opacity-50 cursor-not-allowed&apos; : 'cursor-pointer'}
                     `}
                   >
                     <h3 className="font-semibold mb-1">{scenario.name}</h3>
@@ -512,16 +512,16 @@ export default function UserJourneyPage() {
                       key={step.id}
                       className={`
                         flex items-start gap-4 p-4 rounded-lg border-2 transition-all
-                        ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200'}
+                        ${isActive ? 'border-blue-500 bg-blue-50 shadow-md&apos; : 'border-gray-200'}
                       `}
                     >
                       {/* Icône de statut */}
                       <div className={`
                         flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                        ${step.status === 'pending' ? 'bg-gray-100' : ''}
-                        ${step.status === 'running' ? 'bg-blue-100 animate-pulse' : ''}
-                        ${step.status === 'success' ? 'bg-green-100' : ''}
-                        ${step.status === 'error' ? 'bg-red-100' : ''}
+                        ${step.status === 'pending&apos; ? 'bg-gray-100' : &apos;'}
+                        ${step.status === 'running&apos; ? 'bg-blue-100 animate-pulse' : &apos;'}
+                        ${step.status === 'success&apos; ? 'bg-green-100' : &apos;'}
+                        ${step.status === 'error&apos; ? 'bg-red-100' : &apos;'}
                       `}>
                         {step.status === 'pending' && <Icon className="h-6 w-6 text-gray-400" />}
                         {step.status === 'running' && <Icon className="h-6 w-6 text-blue-500 animate-pulse" />}
@@ -534,14 +534,14 @@ export default function UserJourneyPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold">{step.name}</h3>
                           <Badge variant={
-                            step.status === 'pending' ? 'secondary' :
-                            step.status === 'running' ? 'default' :
-                            step.status === 'success' ? 'default' :
+                            step.status === 'pending&apos; ? 'secondary' :
+                            step.status === 'running&apos; ? 'default' :
+                            step.status === 'success&apos; ? 'default' :
                             'destructive'
                           }>
-                            {step.status === 'pending' ? 'En attente' :
-                             step.status === 'running' ? 'En cours...' :
-                             step.status === 'success' ? 'Réussi' :
+                            {step.status === 'pending&apos; ? 'En attente' :
+                             step.status === 'running&apos; ? 'En cours...' :
+                             step.status === 'success&apos; ? 'Réussi' :
                              'Échoué'}
                           </Badge>
                           {step.duration && (
@@ -656,7 +656,7 @@ export default function UserJourneyPage() {
                     <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          step.status === 'success' ? 'bg-green-500' : 'bg-red-500'
+                          step.status === 'success&apos; ? 'bg-green-500' : &apos;bg-red-500'
                         }`}
                         style={{
                           width: `${Math.min(100, ((step.duration || 0) / Math.max(...steps.map(s => s.duration || 0))) * 100)}%`
@@ -697,7 +697,7 @@ export default function UserJourneyPage() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <div><strong>Scénario :</strong> {SCENARIOS[selectedScenario].name}</div>
-                  <div><strong>Complété le :</strong> {analytics.completedAt.toLocaleString('fr-FR')}</div>
+                  <div><strong>Complété le :</strong> {analytics.completedAt.toLocaleString('fr-FR&apos;)}</div>
                   <div><strong>Durée totale :</strong> {(analytics.totalDuration / 1000).toFixed(2)}s</div>
                   <div><strong>Taux de réussite :</strong> {analytics.successRate.toFixed(1)}%</div>
                 </div>

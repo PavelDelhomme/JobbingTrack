@@ -21,20 +21,20 @@ export default function DevelopmentLayout({
     
     if (!loading && !user) {
       router.push('/login')
-    } else if (!loading && user && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    } else if (!loading && user && !['ADMIN&apos;, 'SUPER_ADMIN'].includes(user.role)) {
       router.push('/access-denied')
     }
   }, [user, loading, router, isDev])
 
   if (!isDev) {
-    return <div>Ces outils ne sont disponibles qu'en mode développement</div>
+    return <div>Ces outils ne sont disponibles qu&apos;en mode développement</div>
   }
 
   if (loading) {
     return <div>Chargement...</div>
   }
 
-  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+  if (!user || !['ADMIN&apos;, 'SUPER_ADMIN'].includes(user.role)) {
     return null
   }
 

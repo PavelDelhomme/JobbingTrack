@@ -125,7 +125,7 @@ export default function NotificationsPage() {
                 {filteredNotifications.map((notification) => (
                   <tr key={notification.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{notification.message || 'N/A'}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{notification.message || 'N/A&apos;}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
@@ -139,7 +139,7 @@ export default function NotificationsPage() {
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                       }`}>
-                        {notification.isRead ? 'Lue' : 'Non lue'}
+                        {notification.isRead ? 'Lue&apos; : 'Non lue'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">

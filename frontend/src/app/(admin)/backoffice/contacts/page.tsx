@@ -211,7 +211,7 @@ export default function ContactsPage() {
                 {filteredContacts.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {contacts.length === 0 ? 'Aucun contact trouvé' : 'Aucun résultat pour votre recherche'}
+                      {contacts.length === 0 ? 'Aucun contact trouvé&apos; : 'Aucun résultat pour votre recherche'}
                     </td>
                   </tr>
                 )}
@@ -298,7 +298,7 @@ function ContactFormModal({
     }
 
     if (!formData.companyName) {
-      alert('L\'entreprise est obligatoire');
+      alert('L\&apos;entreprise est obligatoire');
       return;
     }
 
@@ -326,7 +326,7 @@ function ContactFormModal({
         }
       } catch (error) {
         console.error('Erreur gestion entreprise:', error);
-        alert('Erreur lors de la création/récupération de l\'entreprise');
+        alert('Erreur lors de la création/récupération de l\&apos;entreprise');
         setLoading(false);
         return;
       }
@@ -361,7 +361,7 @@ function ContactFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {contact ? 'Modifier le contact' : 'Nouveau contact'}
+            {contact ? 'Modifier le contact&apos; : 'Nouveau contact'}
           </h2>
           <button
             onClick={onClose}
@@ -466,7 +466,7 @@ function ContactFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : contact ? 'Modifier' : 'Créer'}
+              {loading ? 'Enregistrement...&apos; : contact ? 'Modifier' : &apos;Créer'}
             </button>
           </div>
         </form>

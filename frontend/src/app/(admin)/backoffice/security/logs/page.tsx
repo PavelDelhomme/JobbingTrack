@@ -6,7 +6,7 @@ import axios from 'axios'
 
 interface SecurityLog {
   id: string
-  level: 'info' | 'warning' | 'error' | 'critical'
+  level: 'info&apos; | 'warning' | &apos;error' | 'critical'
   category: string
   message: string
   sourceIP?: string

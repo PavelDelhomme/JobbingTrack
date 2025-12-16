@@ -9,7 +9,7 @@ interface MetricCardProps {
   }
   icon?: React.ReactNode
   className?: string
-  trend?: 'up' | 'down' | 'neutral'
+  trend?: 'up&apos; | 'down' | &apos;neutral'
 }
 
 export default function MetricCard({
@@ -22,16 +22,16 @@ export default function MetricCard({
 }: MetricCardProps) {
   const getTrendColor = () => {
     switch (trend) {
-      case 'up': return 'text-green-600 dark:text-green-400'
-      case 'down': return 'text-red-600 dark:text-red-400'
+      case 'up&apos;: return 'text-green-600 dark:text-green-400'
+      case 'down&apos;: return 'text-red-600 dark:text-red-400'
       default: return 'text-gray-600 dark:text-gray-400'
     }
   }
 
   const getTrendIcon = () => {
     switch (trend) {
-      case 'up': return '↗'
-      case 'down': return '↘'
+      case 'up&apos;: return '↗'
+      case 'down&apos;: return '↘'
       default: return '→'
     }
   }

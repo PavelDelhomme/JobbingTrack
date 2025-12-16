@@ -22,7 +22,7 @@ try {
 
 export default function DocsPage() {
   const params = useParams();
-  const filePath = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
+  const filePath = Array.isArray(params.path) ? params.path.join('/&apos;) : params.path || '';
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function DocsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filePath.split('/').pop() || 'document'}.md`;
+    a.download = `${filePath.split('/&apos;).pop() || 'document'}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };

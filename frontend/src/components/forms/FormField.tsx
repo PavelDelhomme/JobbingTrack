@@ -16,7 +16,7 @@ interface BaseFieldProps {
 }
 
 interface TextFieldProps extends BaseFieldProps {
-  type: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'
+  type: 'text&apos; | 'email' | &apos;password' | 'number&apos; | 'tel' | &apos;url'
   value: string
   onChange: (value: string) => void
   placeholder?: string
@@ -113,7 +113,7 @@ export default function FormField(props: FormFieldProps) {
               disabled={props.disabled}
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {props.value ? 'Activé' : 'Désactivé'}
+              {props.value ? 'Activé&apos; : 'Désactivé'}
             </span>
           </div>
         )

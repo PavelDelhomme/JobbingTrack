@@ -95,8 +95,8 @@ interface CustomizationSettings {
   showTimeline: boolean
   showDeveloper: boolean
   showSecurity: boolean
-  viewType: 'cards' | 'charts' | 'table'
-  chartType: 'bar' | 'pie' | 'line'
+  viewType: 'cards&apos; | 'charts' | &apos;table'
+  chartType: 'bar&apos; | 'pie' | &apos;line'
 }
 
 const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
@@ -115,8 +115,8 @@ function AnalyticsContent() {
   const searchParams = useSearchParams()
   const { metrics, isConnected, error, isLoading, refreshMetrics } = useMetrics()
 
-  const [activeTab, setActiveTab] = useState<'performance' | 'errors' | 'timeline' | 'developer' | 'security'>('performance')
-  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h')
+  const [activeTab, setActiveTab] = useState<'performance&apos; | 'errors' | &apos;timeline' | 'developer&apos; | 'security'>(&apos;performance')
+  const [timeRange, setTimeRange] = useState<'1h&apos; | '24h' | &apos;7d' | '30d&apos;>('24h')
 
   // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false)
@@ -131,7 +131,7 @@ function AnalyticsContent() {
   // ✅ Gérer l'onglet depuis l'URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab')
-    if (tabFromUrl && ['performance', 'errors', 'timeline', 'developer', 'security'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['performance&apos;, 'errors', &apos;timeline', 'developer&apos;, 'security'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl as any)
     }
   }, [searchParams])
@@ -267,7 +267,7 @@ function AnalyticsContent() {
 
       // Calculer les métriques de performance à partir des vraies données
       const totalServices = serviceMetrics ? Object.keys(serviceMetrics).length : 0
-      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up' || s.status === 'healthy').length : 0
+      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up&apos; || s.status === 'healthy').length : 0
       const uptime = totalServices > 0 ? (healthyServices / totalServices * 100) : 0
 
       // Utiliser les stats de l'historique si disponibles, sinon les métriques en temps réel
@@ -280,12 +280,12 @@ function AnalyticsContent() {
         totalRequests: maintenanceMetrics?.requests?.total || 'N/A',
         successfulRequests: maintenanceMetrics?.requests?.successful || 'N/A',
         failedRequests: maintenanceMetrics?.requests?.failed || 'N/A',
-        averageResponseTime: typeof avgResponseTime === 'number' ? `${avgResponseTime.toFixed(0)}ms` : 'N/A',
+        averageResponseTime: typeof avgResponseTime === 'number&apos; ? `${avgResponseTime.toFixed(0)}ms` : 'N/A',
         errorRate: errorCount > 0 ? `${((errorCount / (errorCount + 100)) * 100).toFixed(2)}%` : '0%',
         successRate: uptime > 0 ? `${uptime.toFixed(2)}%` : '100%',
         uptime: `${uptime.toFixed(2)}%`,
-        memoryUsage: typeof systemMetrics?.memory?.usage === 'number' ? systemMetrics.memory.usage : 'N/A',
-        cpuUsage: typeof systemMetrics?.cpu?.usage === 'number' ? systemMetrics.cpu.usage : 'N/A'
+        memoryUsage: typeof systemMetrics?.memory?.usage === 'number&apos; ? systemMetrics.memory.usage : 'N/A',
+        cpuUsage: typeof systemMetrics?.cpu?.usage === 'number&apos; ? systemMetrics.cpu.usage : 'N/A'
       }))
     } catch (error) {
       console.error('Erreur chargement métriques performance:', error)
@@ -301,8 +301,8 @@ function AnalyticsContent() {
           errorRate: 'N/A',
           successRate: 'N/A',
           uptime: 'N/A',
-          memoryUsage: typeof systemMetrics.memory?.usage === 'number' ? systemMetrics.memory.usage : 'N/A',
-          cpuUsage: typeof systemMetrics.cpu?.usage === 'number' ? systemMetrics.cpu.usage : 'N/A'
+          memoryUsage: typeof systemMetrics.memory?.usage === 'number&apos; ? systemMetrics.memory.usage : 'N/A',
+          cpuUsage: typeof systemMetrics.cpu?.usage === 'number&apos; ? systemMetrics.cpu.usage : 'N/A'
         }))
       }
     }
@@ -349,7 +349,7 @@ function AnalyticsContent() {
       const cpuUsage = systemMetrics?.cpu?.usage || 0
       const memoryUsage = systemMetrics?.memory?.usage || 0
       const totalServices = serviceMetrics ? Object.keys(serviceMetrics).length : 0
-      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up' || s.status === 'healthy').length : 0
+      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up&apos; || s.status === 'healthy').length : 0
       const uptime = totalServices > 0 ? (healthyServices / totalServices * 100) : 100
 
       // Calculer le score de performance basé sur les métriques réelles
@@ -371,7 +371,7 @@ function AnalyticsContent() {
       // Recommandations basées sur les vraies données
       const recommendations = []
       if (typeof cpuUsage === 'number' && cpuUsage > 80) {
-        recommendations.push("⚠️ Utilisation CPU élevée détectée, considérez l'optimisation des processus")
+        recommendations.push("⚠️ Utilisation CPU élevée détectée, considérez l&apos;optimisation des processus")
       }
       if (typeof memoryUsage === 'number' && memoryUsage > 85) {
         recommendations.push("⚠️ Utilisation mémoire élevée, vérifiez les fuites mémoire potentielles")
@@ -384,18 +384,18 @@ function AnalyticsContent() {
       }
 
       setDevMetrics({
-        memoryUsage: typeof memoryUsage === 'number' ? `${memoryUsage.toFixed(1)}%` : 'N/A',
-        cpuUsage: typeof cpuUsage === 'number' ? `${cpuUsage.toFixed(1)}%` : 'N/A',
+        memoryUsage: typeof memoryUsage === 'number&apos; ? `${memoryUsage.toFixed(1)}%` : 'N/A',
+        cpuUsage: typeof cpuUsage === 'number&apos; ? `${cpuUsage.toFixed(1)}%` : 'N/A',
         databaseConnections: systemMetrics?.load?.average || 'N/A',
         cacheHitRate: 'N/A', // TODO: Récupérer depuis Redis
         apiCallsPerSecond: 'N/A', // TODO: Récupérer depuis les logs
         slowestEndpoint: 'N/A', // TODO: Récupérer depuis les logs de performance
-        mostUsedEndpoint: 'N/A', // TODO: Récupérer depuis les logs d'accès
+        mostUsedEndpoint: 'N/A&apos;, // TODO: Récupérer depuis les logs d'accès
         errorDistribution: {}, // TODO: Analyser les logs d'erreurs
         p95ResponseTime: 'N/A', // TODO: Calculer depuis les logs
         p99ResponseTime: 'N/A', // TODO: Calculer depuis les logs
         memoryLeakSuspected: typeof memoryUsage === 'number' && memoryUsage > 90,
-        highCpuProcesses: typeof cpuUsage === 'number' && cpuUsage > 85 ? ['system'] : [],
+        highCpuProcesses: typeof cpuUsage === 'number&apos; && cpuUsage > 85 ? ['system'] : [],
         databaseSlowQueries: 'N/A', // TODO: Récupérer depuis les logs DB
         cacheEvictions: 'N/A', // TODO: Récupérer depuis Redis
         apiRateLimitHits: 'N/A', // TODO: Récupérer depuis les logs de rate limiting
@@ -404,8 +404,8 @@ function AnalyticsContent() {
         errorTrends,
         performanceScore: `${Math.max(0, Math.min(100, performanceScore))}`,
         recommendations,
-        intrusionAttempts: securityLogs?.logs?.filter((log: any) => log.message?.includes('intrusion') || log.message?.includes('attack')).length || 'N/A',
-        ddosAttacks: securityLogs?.logs?.filter((log: any) => log.message?.includes('ddos') || log.message?.includes('flood')).length || 'N/A',
+        intrusionAttempts: securityLogs?.logs?.filter((log: any) => log.message?.includes('intrusion&apos;) || log.message?.includes('attack')).length || &apos;N/A',
+        ddosAttacks: securityLogs?.logs?.filter((log: any) => log.message?.includes('ddos&apos;) || log.message?.includes('flood')).length || &apos;N/A',
         securityScore: 'N/A', // TODO: Calculer depuis les vulnérabilités
         vulnerabilities: 'N/A', // TODO: Scanner de sécurité
         successfulBuilds: 'N/A', // TODO: CI/CD integration
@@ -415,10 +415,10 @@ function AnalyticsContent() {
         technicalDebt: 'N/A', // TODO: SonarQube integration
         mttr: 'N/A', // TODO: Calculer depuis les incidents
         mttd: 'N/A', // TODO: Calculer depuis les incidents
-        majorIncidents: securityLogs?.logs?.filter((log: any) => log.level === 'critical').length || 'N/A',
+        majorIncidents: securityLogs?.logs?.filter((log: any) => log.level === 'critical&apos;).length || 'N/A',
         activeUsers: 'N/A', // TODO: Récupérer depuis les sessions
         uptime: `${typeof uptime === 'number' ? uptime.toFixed(2) : 0}%`,
-        averageResponseTime: systemMetrics?.load?.average ? `${typeof systemMetrics.load.average === 'number' ? systemMetrics.load.average.toFixed(0) : systemMetrics.load.average}ms` : 'N/A',
+        averageResponseTime: systemMetrics?.load?.average ? `${typeof systemMetrics.load.average === 'number&apos; ? systemMetrics.load.average.toFixed(0) : systemMetrics.load.average}ms` : 'N/A',
         errorRate: 'N/A', // Calculé dans loadPerformanceMetrics
         avgDeploymentTime: 'N/A', // TODO: CI/CD integration
         rolledBackDeployments: 'N/A', // TODO: CI/CD integration
@@ -466,7 +466,7 @@ function AnalyticsContent() {
       if (metricsHistory.length > 0) {
         const last7Days = metricsHistory.slice(0, 7).reverse()
         const timeline: TimelineData[] = last7Days.map((snapshot, i) => ({
-          period: new Date(snapshot.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+          period: new Date(snapshot.timestamp).toLocaleDateString('fr-FR&apos;, { day: '2-digit', month: &apos;short' }),
           applications: 'N/A',
           companies: 'N/A',
           users: 'N/A',
@@ -490,7 +490,7 @@ function AnalyticsContent() {
 
       for (let i = 6; i >= 0; i--) {
         const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-        const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+        const dateStr = date.toLocaleDateString('fr-FR&apos;, { day: '2-digit', month: &apos;short' })
 
         // Simulation basée sur les données récupérées
         const baseApplications = applicationsRes.status === 'fulfilled' ? applicationsRes.value.data?.length || 0 : 0
@@ -506,7 +506,7 @@ function AnalyticsContent() {
           period: i === 0 ? "Auj." : i === 1 ? "Hier" : dateStr,
           applications: dailyApplications,
           companies: dailyCompanies,
-          users: 'N/A', // TODO: Récupérer depuis les logs d'authentification
+          users: 'N/A&apos;, // TODO: Récupérer depuis les logs d'authentification
           interviews: dailyInterviews,
           successRate: dailyInterviews > 0 ? `${Math.floor(Math.random() * 30 + 70)}%` : 'N/A',
           avgResponseTime: 'N/A' // TODO: Récupérer depuis les logs de performance
@@ -525,7 +525,7 @@ function AnalyticsContent() {
         const timeline: TimelineData[] = []
         for (let i = 6; i >= 0; i--) {
           const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-          const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+          const dateStr = date.toLocaleDateString('fr-FR&apos;, { day: '2-digit', month: &apos;short' })
 
           timeline.push({
             period: i === 0 ? "Auj." : i === 1 ? "Hier" : dateStr,
@@ -541,14 +541,14 @@ function AnalyticsContent() {
       } catch (fallbackError) {
         // Dernier fallback avec données minimales
         setTimelineData([
-          { period: '7j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '6j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '5j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '4j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '3j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '2j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: '1j', applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' },
-          { period: "Auj.", applications: 'N/A', companies: 'N/A', users: 'N/A', interviews: 'N/A', successRate: 'N/A', avgResponseTime: 'N/A' }
+          { period: '7j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '6j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '5j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '4j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '3j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '2j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: '1j&apos;, applications: 'N/A', companies: &apos;N/A', users: 'N/A&apos;, interviews: 'N/A', successRate: &apos;N/A', avgResponseTime: 'N/A' },
+          { period: "Auj.", applications: 'N/A&apos;, companies: 'N/A', users: &apos;N/A', interviews: 'N/A&apos;, successRate: 'N/A', avgResponseTime: &apos;N/A' }
         ])
       }
     }
@@ -611,11 +611,11 @@ function AnalyticsContent() {
           <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
               {[
-                { id: 'performance', label: '📈 Performances', count: null },
-                { id: 'errors', label: '❌ Erreurs', count: errorLogs.length },
-                { id: 'timeline', label: '📅 Timeline', count: null },
-                { id: 'security', label: '🛡️ Sécurité', count: (typeof devMetrics.apiRateLimitHits === 'number' && devMetrics.apiRateLimitHits > 0) ? devMetrics.apiRateLimitHits : null },
-                { id: 'developer', label: '🔧 Développeur', count: null }
+                { id: 'performance&apos;, label: '📈 Performances', count: null },
+                { id: 'errors&apos;, label: '❌ Erreurs', count: errorLogs.length },
+                { id: 'timeline&apos;, label: '📅 Timeline', count: null },
+                { id: 'security&apos;, label: '🛡️ Sécurité', count: (typeof devMetrics.apiRateLimitHits === &apos;number' && devMetrics.apiRateLimitHits > 0) ? devMetrics.apiRateLimitHits : null },
+                { id: 'developer&apos;, label: '🔧 Développeur', count: null }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -681,7 +681,7 @@ function AnalyticsContent() {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Requêtes/minute</p>
                       <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                        {typeof devMetrics.apiCallsPerSecond === 'number' ? Math.floor(devMetrics.apiCallsPerSecond * 60) : 'N/A'}
+                        {typeof devMetrics.apiCallsPerSecond === 'number&apos; ? Math.floor(devMetrics.apiCallsPerSecond * 60) : 'N/A'}
                       </p>
                     </div>
                     <div className="text-purple-500">
@@ -697,11 +697,11 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score Performance</p>
-                      <p className={`text-3xl font-bold ${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-600 dark:text-green-400' : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                      <p className={`text-3xl font-bold ${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-600 dark:text-green-400&apos; : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-600 dark:text-yellow-400' : &apos;text-red-600 dark:text-red-400'}`}>
                         {typeof devMetrics.performanceScore === 'number' ? devMetrics.performanceScore : devMetrics.performanceScore}
                       </p>
                     </div>
-                    <div className={`${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-500' : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className={`${(Number(devMetrics.performanceScore) >= 80) ? 'text-green-500&apos; : (Number(devMetrics.performanceScore) >= 60) ? 'text-yellow-500' : &apos;text-red-500'}`}>
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                       </svg>
@@ -743,7 +743,7 @@ function AnalyticsContent() {
                     💻 Métriques Système
                   </h3>
                   <div className="space-y-4">
-                    <MetricWithSource label="Utilisation CPU" value={(typeof devMetrics.cpuUsage === 'number' && devMetrics.cpuUsage > 0) ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'} source="REAL" />
+                    <MetricWithSource label="Utilisation CPU" value={(typeof devMetrics.cpuUsage === 'number&apos; && devMetrics.cpuUsage > 0) ? `${devMetrics.cpuUsage.toFixed(1)}%` : 'N/A'} source="REAL" />
                     <MetricWithSource label="Utilisation Mémoire" value="N/A" source="REAL" />
                   </div>
                 </div>
@@ -809,7 +809,7 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d'Erreur</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d&apos;Erreur</p>
                       <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                         {typeof devMetrics.errorRate === 'number' ? `${devMetrics.errorRate.toFixed(2)}%` : devMetrics.errorRate}
                       </p>
@@ -994,7 +994,7 @@ function AnalyticsContent() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tentatives d'intrusion</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tentatives d&apos;intrusion</p>
                       <p className="text-3xl font-bold text-red-600 dark:text-red-400">{devMetrics.intrusionAttempts}</p>
                     </div>
                     <div className="text-red-500">
@@ -1011,7 +1011,7 @@ function AnalyticsContent() {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Attaques DDoS</p>
                       <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                        {typeof devMetrics.ddosAttacks === 'number' ? devMetrics.ddosAttacks : 'N/A'}
+                        {typeof devMetrics.ddosAttacks === 'number&apos; ? devMetrics.ddosAttacks : 'N/A'}
                       </p>
                     </div>
                     <div className="text-orange-500">
@@ -1027,11 +1027,11 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score Sécurité</p>
-                      <p className={`text-3xl font-bold ${Number(devMetrics.securityScore) >= 90 ? 'text-green-600 dark:text-green-400' : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                      <p className={`text-3xl font-bold ${Number(devMetrics.securityScore) >= 90 ? 'text-green-600 dark:text-green-400&apos; : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-600 dark:text-yellow-400' : &apos;text-red-600 dark:text-red-400'}`}>
                         {devMetrics.securityScore}
                       </p>
                     </div>
-                    <div className={`${Number(devMetrics.securityScore) >= 90 ? 'text-green-500' : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className={`${Number(devMetrics.securityScore) >= 90 ? 'text-green-500&apos; : Number(devMetrics.securityScore) >= 70 ? 'text-yellow-500' : &apos;text-red-500'}`}>
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                       </svg>
@@ -1097,11 +1097,11 @@ function AnalyticsContent() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-red-600 dark:text-red-400">Critiques</p>
-                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.1) : 'N/A'}</p>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.1) : 'N/A&apos;}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Élevées</p>
-                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.3) : 'N/A'}</p>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{Number.isFinite(Number(devMetrics.vulnerabilities)) ? Math.floor(Number(devMetrics.vulnerabilities) * 0.3) : 'N/A&apos;}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">CVSS Moyen</p>
@@ -1122,28 +1122,28 @@ function AnalyticsContent() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Logs de sécurité</span>
                       <span className="font-bold text-orange-600 dark:text-orange-400">
-                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 10) : 'N/A'}
+                        {typeof devMetrics.intrusionAttempts === 'number&apos; ? Math.floor(devMetrics.intrusionAttempts * 10) : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Événements suspects</span>
                       <span className="font-bold text-red-600 dark:text-red-400">
-                        {typeof devMetrics.intrusionAttempts === 'number' ? devMetrics.intrusionAttempts : 'N/A'}
+                        {typeof devMetrics.intrusionAttempts === 'number&apos; ? devMetrics.intrusionAttempts : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Authentifications échouées</span>
                       <span className="font-bold text-yellow-600 dark:text-yellow-400">
-                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 2) : 'N/A'}
+                        {typeof devMetrics.intrusionAttempts === 'number&apos; ? Math.floor(devMetrics.intrusionAttempts * 2) : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Menaces détectées</span>
                       <span className="font-bold text-green-600 dark:text-green-400">
-                        {typeof devMetrics.ddosAttacks === 'number' ? Math.floor(devMetrics.ddosAttacks * 3) : 'N/A'}
+                        {typeof devMetrics.ddosAttacks === 'number&apos; ? Math.floor(devMetrics.ddosAttacks * 3) : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -1152,28 +1152,28 @@ function AnalyticsContent() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Traces actives</span>
                       <span className="font-bold text-purple-600 dark:text-purple-400">
-                        {typeof devMetrics.intrusionAttempts === 'number' ? Math.floor(devMetrics.intrusionAttempts * 20) : 'N/A'}
+                        {typeof devMetrics.intrusionAttempts === 'number&apos; ? Math.floor(devMetrics.intrusionAttempts * 20) : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse moyen</span>
                       <span className="font-bold text-green-600 dark:text-green-400">
-                        {typeof devMetrics.averageResponseTime === 'number' ? `${Math.floor(devMetrics.averageResponseTime * 1.2)}ms` : 'N/A'}
+                        {typeof devMetrics.averageResponseTime === 'number&apos; ? `${Math.floor(devMetrics.averageResponseTime * 1.2)}ms` : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Requêtes par minute</span>
                       <span className="font-bold text-blue-600 dark:text-blue-400">
-                        {typeof devMetrics.apiCallsPerSecond === 'number' ? Math.floor(devMetrics.apiCallsPerSecond * 60 * 1.5) : 'N/A'}
+                        {typeof devMetrics.apiCallsPerSecond === 'number&apos; ? Math.floor(devMetrics.apiCallsPerSecond * 60 * 1.5) : 'N/A'}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur APM</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Taux d&apos;erreur APM</span>
                       <span className="font-bold text-red-600 dark:text-red-400">
-                        {typeof devMetrics.errorRate === 'number' ? `${(devMetrics.errorRate * 1.2).toFixed(2)}%` : 'N/A'}
+                        {typeof devMetrics.errorRate === 'number&apos; ? `${(devMetrics.errorRate * 1.2).toFixed(2)}%` : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -1189,7 +1189,7 @@ function AnalyticsContent() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Temps de déploiement</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">{typeof devMetrics.avgDeploymentTime === 'number' ? Math.round(devMetrics.avgDeploymentTime / 60) + 'min' : 'N/A'}</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">{typeof devMetrics.avgDeploymentTime === 'number&apos; ? Math.round(devMetrics.avgDeploymentTime / 60) + 'min' : &apos;N/A&apos;}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Rollbacks ce mois</span>
@@ -1225,7 +1225,7 @@ function AnalyticsContent() {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dette Technique</p>
                       <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                        {devMetrics.technicalDebt !== 'N/A' ? `${devMetrics.technicalDebt}h` : 'N/A'}
+                        {devMetrics.technicalDebt !== 'N/A&apos; ? `${devMetrics.technicalDebt}h` : 'N/A'}
                       </p>
                     </div>
                     <div className="text-orange-500">
@@ -1242,7 +1242,7 @@ function AnalyticsContent() {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">MTTR</p>
                       <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                        {devMetrics.mttr !== 'N/A' ? `${devMetrics.mttr}min` : 'N/A'}
+                        {devMetrics.mttr !== 'N/A&apos; ? `${devMetrics.mttr}min` : 'N/A'}
                       </p>
                     </div>
                     <div className="text-blue-500">
@@ -1259,7 +1259,7 @@ function AnalyticsContent() {
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">MTTD</p>
                       <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                        {devMetrics.mttd !== 'N/A' ? `${devMetrics.mttd}min` : 'N/A'}
+                        {devMetrics.mttd !== 'N/A&apos; ? `${devMetrics.mttd}min` : 'N/A'}
                       </p>
                     </div>
                     <div className="text-purple-500">
@@ -1282,19 +1282,19 @@ function AnalyticsContent() {
                   <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                     <span className="text-sm text-gray-600 dark:text-gray-400">MTTR (Mean Time To Recovery)</span>
                     <span className="font-bold text-green-700 dark:text-green-300">
-                      {devMetrics.mttr !== 'N/A' ? `${devMetrics.mttr}min` : 'N/A'}
+                      {devMetrics.mttr !== 'N/A&apos; ? `${devMetrics.mttr}min` : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <span className="text-sm text-gray-600 dark:text-gray-400">MTTD (Mean Time To Detection)</span>
                     <span className="font-bold text-blue-700 dark:text-blue-300">
-                      {devMetrics.mttd !== 'N/A' ? `${devMetrics.mttd}min` : 'N/A'}
+                      {devMetrics.mttd !== 'N/A&apos; ? `${devMetrics.mttd}min` : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Disponibilité ce mois</span>
                     <span className="font-bold text-purple-700 dark:text-purple-300">
-                      {typeof devMetrics.deploymentSuccessRate === 'number' ? `${devMetrics.deploymentSuccessRate.toFixed(2)}%` : 'N/A'}
+                      {typeof devMetrics.deploymentSuccessRate === 'number&apos; ? `${devMetrics.deploymentSuccessRate.toFixed(2)}%` : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
@@ -1312,7 +1312,7 @@ function AnalyticsContent() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Détails de l'Erreur</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Détails de l&apos;Erreur</h3>
                     <button
                       onClick={() => setShowErrorModal(false)}
                       className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
@@ -1334,18 +1334,18 @@ function AnalyticsContent() {
                       <p className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded font-mono">{selectedError.method} {selectedError.endpoint}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code d'Erreur</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code d&apos;Erreur</label>
                       <p className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded">{selectedError.statusCode}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message d'Erreur</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message d&apos;Erreur</label>
                       <p className="text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400">
                         {selectedError.errorMessage}
                       </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timestamp</label>
-                      <p className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded">{new Date(selectedError.timestamp).toLocaleString('fr-FR')}</p>
+                      <p className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded">{new Date(selectedError.timestamp).toLocaleString('fr-FR&apos;)}</p>
                     </div>
                   </div>
                 </div>

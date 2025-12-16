@@ -17,13 +17,13 @@ interface PerformanceMetric {
   value: number | string;
   unit: string;
   description: string;
-  status: 'good' | 'warning' | 'error';
+  status: 'good&apos; | 'warning' | &apos;error';
   icon: any;
 }
 
 interface TestStatus {
   name: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
+  status: 'pending&apos; | 'running' | &apos;completed' | 'error';
   progress: number;
   message?: string;
   duration?: number;
@@ -53,7 +53,7 @@ export default function PerformanceTestsPage() {
       name: 'TTFB',
       value: 0.3,
       unit: 's',
-      description: 'Time To First Byte - Temps jusqu\'au premier octet',
+      description: 'Time To First Byte - Temps jusqu\&apos;au premier octet',
       status: 'good',
       icon: Activity
     },
@@ -117,7 +117,7 @@ export default function PerformanceTestsPage() {
       name: 'Error Rate',
       value: 0.2,
       unit: '%',
-      description: 'Taux d\'erreurs HTTP',
+      description: 'Taux d\&apos;erreurs HTTP',
       status: 'good',
       icon: AlertCircle
     },
@@ -143,49 +143,49 @@ export default function PerformanceTestsPage() {
     {
       name: 'Tests Complets',
       description: 'Tests de performance complets sur tous les services (API, Frontend, Base de données)',
-      metrics: ['Load Time', 'TTFB', 'FCP', 'LCP', 'FID', 'CLS', 'CPU', 'Memory', 'Network'],
+      metrics: ['Load Time&apos;, 'TTFB', &apos;FCP', 'LCP&apos;, 'FID', &apos;CLS', 'CPU&apos;, 'Memory', &apos;Network'],
       duration: '2-5 minutes'
     },
     {
       name: 'Tests API',
       description: 'Tests des performances des endpoints API uniquement (temps de réponse, débit, erreurs)',
-      metrics: ['Response Time', 'Requests/s', 'Error Rate', 'Network Latency'],
+      metrics: ['Response Time&apos;, 'Requests/s', &apos;Error Rate', 'Network Latency'],
       duration: '1-3 minutes'
     },
     {
       name: 'Tests Frontend',
       description: 'Tests des performances du frontend (rendu, interactions, chargement des ressources)',
-      metrics: ['Load Time', 'FCP', 'LCP', 'FID', 'CLS', 'CPU', 'Memory'],
+      metrics: ['Load Time&apos;, 'FCP', &apos;LCP', 'FID&apos;, 'CLS', &apos;CPU', 'Memory'],
       duration: '1-2 minutes'
     },
     {
       name: 'Tests de Charge',
       description: 'Tests de charge intensive avec plusieurs utilisateurs simultanés',
-      metrics: ['Response Time', 'Requests/s', 'CPU', 'Memory', 'Error Rate'],
+      metrics: ['Response Time&apos;, 'Requests/s', &apos;CPU', 'Memory&apos;, 'Error Rate'],
       duration: '3-10 minutes'
     },
     {
       name: 'Tests Mémoire',
-      description: 'Tests d\'utilisation mémoire et détection de fuites mémoire',
-      metrics: ['Memory Usage', 'CPU', 'Response Time'],
+      description: 'Tests d\&apos;utilisation mémoire et détection de fuites mémoire',
+      metrics: ['Memory Usage&apos;, 'CPU', &apos;Response Time'],
       duration: '1-2 minutes'
     }
   ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'good': return 'text-green-600 dark:text-green-400';
-      case 'warning': return 'text-orange-600 dark:text-orange-400';
-      case 'error': return 'text-red-600 dark:text-red-400';
+      case 'good&apos;: return 'text-green-600 dark:text-green-400';
+      case 'warning&apos;: return 'text-orange-600 dark:text-orange-400';
+      case 'error&apos;: return 'text-red-600 dark:text-red-400';
       default: return 'text-gray-600 dark:text-gray-400';
     }
   };
 
   const getStatusBgColor = (status: string) => {
     switch (status) {
-      case 'good': return 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-700';
-      case 'warning': return 'bg-orange-100 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700';
-      case 'error': return 'bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-700';
+      case 'good&apos;: return 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-700';
+      case 'warning&apos;: return 'bg-orange-100 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700';
+      case 'error&apos;: return 'bg-red-100 dark:bg-red-900/20 border-red-300 dark:border-red-700';
       default: return 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700';
     }
   };
@@ -210,7 +210,7 @@ export default function PerformanceTestsPage() {
       }
       setIsRunning(false);
       setProgress(0);
-      addLog('⏹️ Tests arrêtés par l\'utilisateur');
+      addLog('⏹️ Tests arrêtés par l\&apos;utilisateur');
       return;
     }
 
@@ -219,11 +219,11 @@ export default function PerformanceTestsPage() {
     setLogs([]);
     setCurrentTest('');
     setTestStatuses([
-      { name: 'Tests API', status: 'pending', progress: 0 },
-      { name: 'Tests Frontend', status: 'pending', progress: 0 },
-      { name: 'Tests de Charge', status: 'pending', progress: 0 },
-      { name: 'Tests Mémoire', status: 'pending', progress: 0 },
-      { name: 'Analyse des Métriques', status: 'pending', progress: 0 }
+      { name: 'Tests API&apos;, status: 'pending', progress: 0 },
+      { name: 'Tests Frontend&apos;, status: 'pending', progress: 0 },
+      { name: 'Tests de Charge&apos;, status: 'pending', progress: 0 },
+      { name: 'Tests Mémoire&apos;, status: 'pending', progress: 0 },
+      { name: 'Analyse des Métriques&apos;, status: 'pending', progress: 0 }
     ]);
 
     addLog('🚀 Démarrage des tests de performance...');
@@ -526,7 +526,7 @@ export default function PerformanceTestsPage() {
                     {metric.status === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
                   </div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                    {typeof metric.value === 'number' ? metric.value.toFixed(metric.unit === '%' ? 1 : 2) : metric.value}
+                    {typeof metric.value === 'number&apos; ? metric.value.toFixed(metric.unit === '%' ? 1 : 2) : metric.value}
                     <span className="text-sm font-normal text-gray-600 dark:text-gray-400 ml-1">{metric.unit}</span>
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{metric.description}</p>
@@ -610,7 +610,7 @@ export default function PerformanceTestsPage() {
               <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-gray-900 dark:text-gray-100">Lazy loading des ressources</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Chargez les images et composants uniquement lorsqu'ils sont nécessaires</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Chargez les images et composants uniquement lorsqu&apos;ils sont nécessaires</p>
               </div>
             </div>
           </div>
