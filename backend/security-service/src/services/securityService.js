@@ -1041,7 +1041,11 @@ class SecurityService {
         }
       }
 
-      logger.info(`Security analysis completed: ${recentLogs.length} logs analyzed`);
+      // Ne logger que si des logs ont été analysés, ou si c'est en production
+      if (recentLogs.length > 0 || process.env.NODE_ENV === 'production') {
+        logger.info(`Security analysis completed: ${recentLogs.length} logs analyzed`);
+      }
+      // En développement, ne pas logger si 0 logs (pour éviter le spam)
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement - mode silencieux en développement
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
