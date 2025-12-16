@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 interface Notification {
   id: string
@@ -109,7 +111,21 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
   const unreadCount = notifications.filter(n => !n.read).length
 
   const formatTime = (date: Date) => {
-    return format(date, 'HH:mm', { locale: fr })
+    try {
+      return format(date, 'HH:mm', { locale: fr })
+    } catch {
+      // Fallback si date-fns n'est pas disponible
+      const now = new Date()
+      const diff = now.getTime() - date.getTime()
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      const days = Math.floor(diff / 86400000)
+
+      if (minutes < 1) return 'À l\'instant'
+      if (minutes < 60) return `Il y a ${minutes} min`
+      if (hours < 24) return `Il y a ${hours}h`
+      return `Il y a ${days}j`
+    }
   }
 
   return (
