@@ -151,9 +151,9 @@ interface CustomizationSettings {
   showNetwork: boolean
   showSecurity: boolean
   showTimeline: boolean
-  timeRange: '1h&apos; | '6h' | &apos;24h' | '7d&apos; | '30d'
-  viewType: 'cards&apos; | 'charts' | &apos;table'
-  chartType: 'line&apos; | 'bar' | &apos;area'
+  timeRange: '1h' | '6h' | '24h' | '7d' | '30d'
+  viewType: 'cards' | 'charts' | 'table'
+  chartType: 'line' | 'bar' | 'area'
 }
 
 const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
@@ -208,7 +208,7 @@ export default function StatisticsPage() {
   const [refreshing, setRefreshing] = useState(false) // Nouveau state pour le rafraîchissement
   const [initialLoadDone, setInitialLoadDone] = useState(false)
   // ✅ SUPPRESSION : Onglet services retiré car déjà présent dans /backoffice/analytics
-  const [activeTab, setActiveTab] = useState<'overview&apos; | 'security' | &apos;logs'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'logs'>('overview')
 
   // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false)
@@ -391,7 +391,7 @@ export default function StatisticsPage() {
         }
         
         setStats(historicalStats)
-        console.log('[STATISTICS] ✅ Dernières données connues chargées depuis l\&apos;historique')
+        console.log('[STATISTICS] ✅ Dernières données connues chargées depuis l\'historique')
       }
     } catch (error) {
       console.error('[STATISTICS] ⚠️ Erreur chargement dernières données:', error)
@@ -472,7 +472,7 @@ export default function StatisticsPage() {
             responseTime: typeof service.responseTimeMs === 'number' ? service.responseTimeMs : 0,
             errorRate: parseFloat(service.errorRatePerMin || '0'),
             requests: 0, // TODO: ajouter si disponible
-            availability: service.status === 'healthy&apos; ? 100 : service.status === 'degraded' ? 50 : 0
+            availability: service.status === 'healthy' ? 100 : service.status === 'degraded' ? 50 : 0
           })
         })
       }
@@ -557,12 +557,12 @@ export default function StatisticsPage() {
     const timeRange = customization.timeRange
 
     // Utiliser l'heure locale de l'utilisateur
-    if (timeRange === '1h&apos; || timeRange === '6h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit&apos;, minute: '2-digit' })
+    if (timeRange === '1h' || timeRange === '6h') {
+      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     } else if (timeRange === '24h') {
-      return date.toLocaleTimeString(undefined, { hour: '2-digit&apos;, minute: '2-digit' })
+      return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     } else {
-      return date.toLocaleDateString(undefined, { month: 'short&apos;, day: 'numeric', hour: &apos;2-digit' })
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' })
     }
   }
 
@@ -731,10 +731,10 @@ export default function StatisticsPage() {
         <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-4 overflow-x-auto">
             {[
-              { id: 'overview&apos;, label: '📊 Vue d\'ensemble', icon: BarChart3 },
+              { id: 'overview', label: '📊 Vue d\'ensemble', icon: BarChart3 },
               // ✅ SUPPRESSION : Onglet Services retiré car déjà présent dans /backoffice/analytics > Services & Logs
-              { id: 'security&apos;, label: '🔒 Sécurité', icon: Shield },
-              { id: 'logs&apos;, label: '📊 Statistiques Logs', icon: FileText }
+              { id: 'security', label: '🔒 Sécurité', icon: Shield },
+              { id: 'logs', label: '📊 Statistiques Logs', icon: FileText }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1407,7 +1407,7 @@ function ServicesTab({ stats, serviceHistory, customization, formatTimestamp }: 
 
               {service.errorRate > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">Taux d&apos;erreur</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Taux d'erreur</span>
                   <span className="text-sm font-semibold text-red-600 dark:text-red-400">
                     {service.errorRate.toFixed(2)}/min
                   </span>
@@ -1878,7 +1878,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d&apos;erreur</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d'erreur</span>
             <AlertTriangle className="w-5 h-5 text-orange-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -1965,7 +1965,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
                   stroke={COLORS.danger}
                   fillOpacity={1} 
                   fill="url(#colorError)"
-                  name="Taux d&apos;erreur (%)"
+                  name="Taux d'erreur (%)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -1999,7 +1999,7 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Services Hors ligne</span>
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {stats.services.filter((s: any) => s.status === 'offline&apos; || s.status === 'unknown').length}
+                {stats.services.filter((s: any) => s.status === 'offline' || s.status === 'unknown').length}
               </span>
             </div>
           </div>
@@ -2011,9 +2011,9 @@ const SecurityTab = memo(function SecurityTab({ stats, chartData }: any) {
             <RechartsPieChart>
               <Pie
                 data={[
-                  { name: 'Sains&apos;, value: stats.services.filter((s: any) => s.status === 'healthy').length },
-                  { name: 'Dégradés&apos;, value: stats.services.filter((s: any) => s.status === 'degraded').length },
-                  { name: 'Hors ligne&apos;, value: stats.services.filter((s: any) => s.status === 'offline' || s.status === &apos;unknown').length }
+                  { name: 'Sains', value: stats.services.filter((s: any) => s.status === 'healthy').length },
+                  { name: 'Dégradés', value: stats.services.filter((s: any) => s.status === 'degraded').length },
+                  { name: 'Hors ligne', value: stats.services.filter((s: any) => s.status === 'offline' || s.status === 'unknown').length }
                 ]}
                 dataKey="value"
                 nameKey="name"
@@ -2125,13 +2125,13 @@ function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'neg
     
     if (trendType === 'positive-is-bad') {
       // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
-      return trend > 0 ? 'text-red-600 dark:text-red-400&apos; : 'text-green-600 dark:text-green-400'
+      return trend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
     } else if (trendType === 'positive-is-good') {
       // Pour statistiques métier : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? 'text-green-600 dark:text-green-400&apos; : 'text-red-600 dark:text-red-400'
+      return trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
     } else {
       // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? 'text-green-600 dark:text-green-400&apos; : 'text-red-600 dark:text-red-400'
+      return trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
     }
   }
 
@@ -2143,7 +2143,7 @@ function StatCard({ icon, title, value, trend, color, subtitle, trendType = 'neg
         </div>
         {trend !== undefined && trend !== null && trend !== 0 && (
           <span className={`text-xs font-medium ${getTrendColor()}`}>
-            {trend > 0 ? '↗&apos; : '↘'} {Math.abs(trend).toLocaleString()}
+            {trend > 0 ? '↗' : '↘'} {Math.abs(trend).toLocaleString()}
           </span>
         )}
       </div>

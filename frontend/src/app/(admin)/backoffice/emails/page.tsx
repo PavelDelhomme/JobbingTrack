@@ -63,7 +63,7 @@ export default function EmailsPage() {
   const [stats, setStats] = useState<EmailStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [testEmail, setTestEmail] = useState({ to: '&apos;, subject: 'Test Email - JobbingTrack', content: &apos;' })
+  const [testEmail, setTestEmail] = useState({ to: '', subject: 'Test Email - JobbingTrack', content: '' })
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const fetchStats = async () => {
@@ -129,16 +129,16 @@ export default function EmailsPage() {
 
       if (response.data.success) {
         setSendResult({ success: true, message: `Email de test envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
-        setTestEmail({ to: '&apos;, subject: 'Test Email - JobbingTrack', content: &apos;' })
+        setTestEmail({ to: '', subject: 'Test Email - JobbingTrack', content: '' })
         // Rafraîchir les stats
         setTimeout(fetchStats, 1000)
       } else {
-        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\&apos;envoi' })
+        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de l\&apos;envoi de l\'email de test'
+        message: error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email de test'
       })
     } finally {
       setSending(false)
@@ -169,12 +169,12 @@ export default function EmailsPage() {
         setSendResult({ success: true, message: `Email de réinitialisation de mot de passe envoyé à l'adresse ${testEmail.to} ! Vérifiez votre boîte mail (et les spams).` })
         setTimeout(fetchStats, 1000)
       } else {
-        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\&apos;envoi' })
+        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de l\&apos;envoi de l\'email de réinitialisation'
+        message: error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email de réinitialisation'
       })
     } finally {
       setSending(false)
@@ -287,7 +287,7 @@ export default function EmailsPage() {
                 Statistiques des {stats.recent.days} derniers jours
                 {stats.recent.evolution !== undefined && (
                   <Badge variant={stats.recent.evolution >= 0 ? "default" : "destructive"} className="ml-2">
-                    {stats.recent.evolution >= 0 ? '+&apos; : ''}{stats.recent.evolution}%
+                    {stats.recent.evolution >= 0 ? '+' : ''}{stats.recent.evolution}%
                   </Badge>
                 )}
               </CardTitle>
@@ -350,7 +350,7 @@ export default function EmailsPage() {
                       <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
                       <span className="text-sm">{recipient.email}</span>
                     </div>
-                    <Badge variant="outline">{recipient.count} email{recipient.count > 1 ? 's&apos; : '&apos;}</Badge>
+                    <Badge variant="outline">{recipient.count} email{recipient.count > 1 ? 's' : ''}</Badge>
                   </div>
                 ))}
               </div>
@@ -398,7 +398,7 @@ export default function EmailsPage() {
                     <textarea
                       id="test-content"
                       className="w-full min-h-[100px] p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Contenu HTML de l&apos;email (optionnel)"
+                      placeholder="Contenu HTML de l'email (optionnel)"
                       value={testEmail.content}
                       onChange={(e) => setTestEmail({ ...testEmail, content: e.target.value })}
                     />
@@ -476,7 +476,7 @@ export default function EmailsPage() {
                   ) : (
                     <XCircle className="w-5 h-5 text-red-600" />
                   )}
-                  <p className={sendResult.success ? 'text-green-800 dark:text-green-200&apos; : 'text-red-800 dark:text-red-200'}>
+                  <p className={sendResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}>
                     {sendResult.message}
                   </p>
                 </div>

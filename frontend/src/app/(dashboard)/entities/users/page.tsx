@@ -11,7 +11,7 @@ interface User {
   firstName: string
   lastName: string
   phone?: string
-  role: 'USER&apos; | 'ADMIN' | &apos;SUPER_ADMIN'
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -27,9 +27,9 @@ interface EmailLog {
 }
 
 const ROLES = {
-  USER: { label: 'Utilisateur&apos;, color: 'gray', icon: &apos;👤', description: 'Accès standard sans backoffice' },
-  ADMIN: { label: 'Administrateur&apos;, color: 'blue', icon: &apos;👨‍💼', description: 'Accès complet au backoffice' },
-  SUPER_ADMIN: { label: 'Super Admin&apos;, color: 'purple', icon: &apos;👑', description: 'Tous les droits' },
+  USER: { label: 'Utilisateur', color: 'gray', icon: '👤', description: 'Accès standard sans backoffice' },
+  ADMIN: { label: 'Administrateur', color: 'blue', icon: '👨‍💼', description: 'Accès complet au backoffice' },
+  SUPER_ADMIN: { label: 'Super Admin', color: 'purple', icon: '👑', description: 'Tous les droits' },
 }
 
 export default function UsersPage() {
@@ -44,7 +44,7 @@ export default function UsersPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [detailTab, setDetailTab] = useState<'info&apos; | 'logs' | &apos;reports' | 'actions&apos;>('info')
+  const [detailTab, setDetailTab] = useState<'info' | 'logs' | 'reports' | 'actions'>('info')
   
   // Email logs
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
@@ -57,7 +57,7 @@ export default function UsersPage() {
     lastName: '',
     email: '',
     phone: '',
-    role: 'USER&apos; as 'USER' | &apos;ADMIN' | 'SUPER_ADMIN',
+    role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN',
     isActive: true
   })
   const [savingUser, setSavingUser] = useState(false)
@@ -70,10 +70,10 @@ export default function UsersPage() {
     firstName: '',
     lastName: '',
     phone: '',
-    role: 'USER&apos; as 'USER' | &apos;ADMIN' | 'SUPER_ADMIN'
+    role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN'
   })
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<'USER&apos; | 'ADMIN'>(&apos;USER')
+  const [inviteRole, setInviteRole] = useState<'USER' | 'ADMIN'>('USER')
 
   useEffect(() => {
     if (token) {
@@ -87,7 +87,7 @@ export default function UsersPage() {
       const response = await fetch('http://localhost:3000/api/v1/auth/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -110,7 +110,7 @@ export default function UsersPage() {
       const response = await fetch(`http://localhost:3000/api/v1/notifications/emails/logs?userId=${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -141,7 +141,7 @@ export default function UsersPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           email: createForm.email,
@@ -184,7 +184,7 @@ export default function UsersPage() {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ role: newRole })
       })
@@ -203,7 +203,7 @@ export default function UsersPage() {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isActive })
       })
@@ -224,7 +224,7 @@ export default function UsersPage() {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -244,7 +244,7 @@ export default function UsersPage() {
       const response = await fetch('http://localhost:3000/api/v1/auth/forgot-password', {
         method: 'POST',
         headers: {
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ email })
       })
@@ -255,7 +255,7 @@ export default function UsersPage() {
         throw new Error('Erreur')
       }
     } catch (err) {
-      alert('❌ Erreur lors de l\&apos;envoi')
+      alert('❌ Erreur lors de l\'envoi')
     }
   }
 
@@ -275,7 +275,7 @@ export default function UsersPage() {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           firstName: editUserForm.firstName,
@@ -403,7 +403,7 @@ export default function UsersPage() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
             <div className="text-gray-600 dark:text-gray-400 text-sm">Administrateurs</div>
             <div className="text-3xl font-bold text-blue-600">
-              {users.filter(u => u.role === 'ADMIN&apos; || u.role === 'SUPER_ADMIN').length}
+              {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length}
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -502,7 +502,7 @@ export default function UsersPage() {
                               : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                           } disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80`}
                         >
-                          {user.isActive ? '✓ Actif&apos; : '✕ Inactif'}
+                          {user.isActive ? '✓ Actif' : '✕ Inactif'}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -682,7 +682,7 @@ export default function UsersPage() {
                 </label>
                 <select
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as 'USER&apos; | 'ADMIN')}
+                  onChange={(e) => setInviteRole(e.target.value as 'USER' | 'ADMIN')}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="USER">👤 Utilisateur</option>
@@ -705,7 +705,7 @@ export default function UsersPage() {
                 Annuler
               </button>
               <button
-                onClick={() => alert('Fonctionnalité d\&apos;invitation à implémenter côté backend')}
+                onClick={() => alert('Fonctionnalité d\'invitation à implémenter côté backend')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Envoyer l'invitation
@@ -747,7 +747,7 @@ export default function UsersPage() {
                         disabled={savingUser}
                         className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
                       >
-                        {savingUser ? 'Sauvegarde...&apos; : '💾 Sauvegarder'}
+                        {savingUser ? 'Sauvegarde...' : '💾 Sauvegarder'}
                       </button>
                     </>
                   ) : (
@@ -769,7 +769,7 @@ export default function UsersPage() {
 
               {/* Onglets */}
               <div className="flex gap-4 mt-4 border-b border-gray-200 dark:border-gray-700">
-                {['info&apos;, 'logs', &apos;reports', 'actions'].map(tab => (
+                {['info', 'logs', 'reports', 'actions'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setDetailTab(tab as any)}
@@ -779,10 +779,10 @@ export default function UsersPage() {
                         : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
-                    {tab === 'info&apos; && 'ℹ️ Informations'}
-                    {tab === 'logs&apos; && '📋 Logs Emails'}
-                    {tab === 'reports&apos; && '📊 Rapports'}
-                    {tab === 'actions&apos; && '⚙️ Actions'}
+                    {tab === 'info' && 'ℹ️ Informations'}
+                    {tab === 'logs' && '📋 Logs Emails'}
+                    {tab === 'reports' && '📊 Rapports'}
+                    {tab === 'actions' && '⚙️ Actions'}
                   </button>
                 ))}
               </div>
@@ -842,7 +842,7 @@ export default function UsersPage() {
                           className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                         />
                       ) : (
-                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.phone || '-&apos;}</div>
+                        <div className="text-gray-900 dark:text-gray-100 mt-1">{selectedUser.phone || '-'}</div>
                       )}
                     </div>
                     <div>
@@ -877,13 +877,13 @@ export default function UsersPage() {
                               className="mr-2"
                             />
                             <span className="text-sm text-gray-900 dark:text-gray-100">
-                              {editUserForm.isActive ? '✓ Actif&apos; : '✕ Inactif'}
+                              {editUserForm.isActive ? '✓ Actif' : '✕ Inactif'}
                             </span>
                           </label>
                         </div>
                       ) : (
                         <div className="text-gray-900 dark:text-gray-100 mt-1">
-                          {selectedUser.isActive ? '✓ Actif&apos; : '✕ Inactif'}
+                          {selectedUser.isActive ? '✓ Actif' : '✕ Inactif'}
                         </div>
                       )}
                     </div>
@@ -947,7 +947,7 @@ export default function UsersPage() {
                     onClick={() => toggleUserStatus(selectedUser.id, !selectedUser.isActive)}
                     className="w-full px-4 py-3 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg text-left"
                   >
-                    {selectedUser.isActive ? '🔒 Désactiver le compte&apos; : '✅ Activer le compte'}
+                    {selectedUser.isActive ? '🔒 Désactiver le compte' : '✅ Activer le compte'}
                   </button>
                   <button
                     onClick={() => deleteUser(selectedUser.id)}

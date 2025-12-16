@@ -136,7 +136,7 @@ export function AutocompleteInput({
                   key={index}
                   onClick={() => handleSelect(suggestion)}
                   className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                    index === highlightedIndex ? 'bg-gray-100 dark:bg-gray-700&apos; : ''
+                    index === highlightedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
                   }`}
                 >
                   <div className="text-sm text-gray-900 dark:text-gray-100">

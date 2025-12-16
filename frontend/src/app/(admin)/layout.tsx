@@ -15,7 +15,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
-    } else if (!loading && user && !['ADMIN&apos;, 'SUPER_ADMIN'].includes(user.role)) {
+    } else if (!loading && user && !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       router.push('/access-denied')
     }
   }, [user, loading, router])
@@ -24,7 +24,7 @@ export default function AdminLayout({
     return <div>Chargement...</div>
   }
 
-  if (!user || !['ADMIN&apos;, 'SUPER_ADMIN'].includes(user.role)) {
+  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
     return null
   }
 

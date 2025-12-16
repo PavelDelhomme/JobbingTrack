@@ -156,7 +156,7 @@ export function useMetrics() {
         try {
           const data = JSON.parse(event.data)
 
-          if (data.type === 'initial&apos; || data.type === 'update') {
+          if (data.type === 'initial' || data.type === 'update') {
             console.log('[METRICS] 📊 Données reçues')
             setMetrics(data.data)
             setError(null)
@@ -175,7 +175,7 @@ export function useMetrics() {
         setIsLoading(false)
 
         // Ne pas retry sur les erreurs de sécurité ou de protocole
-        if (err && typeof err === 'object&apos; && 'target' in err) {
+        if (err && typeof err === 'object' && 'target' in err) {
           const target = err.target as WebSocket
           if (target && target.readyState === WebSocket.CLOSED) {
             return
@@ -261,7 +261,7 @@ export function useMetrics() {
       console.error('[METRICS] Erreur refresh:', errorMessage)
 
       // Ne pas afficher d'erreur si c'est juste un service indisponible
-      if (!errorMessage.includes('fetch&apos;) && !errorMessage.includes('ECONNREFUSED') && !errorMessage.includes(&apos;AbortError')) {
+      if (!errorMessage.includes('fetch') && !errorMessage.includes('ECONNREFUSED') && !errorMessage.includes('AbortError')) {
         setError('Service de métriques temporairement indisponible')
       }
 

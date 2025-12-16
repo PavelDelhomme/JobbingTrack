@@ -65,14 +65,14 @@ const COLORS = {
 }
 
 const AVAILABLE_METRICS = [
-  { key: 'cpu_percent&apos;, label: 'CPU (%)', color: COLORS.primary, icon: Cpu },
-  { key: 'memory_percent&apos;, label: 'Mémoire (%)', color: COLORS.secondary, icon: MemoryStick },
-  { key: 'network_rx_mb&apos;, label: 'Réseau RX (MB)', color: COLORS.info, icon: Network },
-  { key: 'network_tx_mb&apos;, label: 'Réseau TX (MB)', color: COLORS.warning, icon: Network },
-  { key: 'response_time_avg&apos;, label: 'Temps de réponse (ms)', color: COLORS.purple, icon: Clock },
-  { key: 'error_rate&apos;, label: 'Taux d\'erreur (%)', color: COLORS.danger, icon: Activity },
-  { key: 'availability_percent&apos;, label: 'Disponibilité (%)', color: COLORS.success, icon: TrendingUp },
-  { key: 'load_score&apos;, label: 'Score de charge', color: COLORS.cyan, icon: Zap }
+  { key: 'cpu_percent', label: 'CPU (%)', color: COLORS.primary, icon: Cpu },
+  { key: 'memory_percent', label: 'Mémoire (%)', color: COLORS.secondary, icon: MemoryStick },
+  { key: 'network_rx_mb', label: 'Réseau RX (MB)', color: COLORS.info, icon: Network },
+  { key: 'network_tx_mb', label: 'Réseau TX (MB)', color: COLORS.warning, icon: Network },
+  { key: 'response_time_avg', label: 'Temps de réponse (ms)', color: COLORS.purple, icon: Clock },
+  { key: 'error_rate', label: 'Taux d\'erreur (%)', color: COLORS.danger, icon: Activity },
+  { key: 'availability_percent', label: 'Disponibilité (%)', color: COLORS.success, icon: TrendingUp },
+  { key: 'load_score', label: 'Score de charge', color: COLORS.cyan, icon: Zap }
 ]
 
 export default function TestsPerformancePage() {
@@ -81,7 +81,7 @@ export default function TestsPerformancePage() {
   
   // États
   const [metricsData, setMetricsData] = useState<MetricPoint[]>([])
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['cpu_percent&apos;, 'memory_percent', &apos;response_time_avg'])
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['cpu_percent', 'memory_percent', 'response_time_avg'])
   const [isRunning, setIsRunning] = useState(false)
   const [testConfig, setTestConfig] = useState<TestConfig>({
     duration: 60,

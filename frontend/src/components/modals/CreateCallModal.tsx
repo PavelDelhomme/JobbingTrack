@@ -101,7 +101,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
       handleClose();
     } catch (error) {
       console.error('Erreur création appel:', error);
-      alert('Erreur lors de la création de l\&apos;appel');
+      alert('Erreur lors de la création de l\'appel');
     } finally {
       setSaving(false);
     }
@@ -180,7 +180,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
             {/* Informations de l'appel */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Type d&apos;appel</Label>
+                <Label htmlFor="type">Type d'appel</Label>
                 <Select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -188,7 +188,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                   <option value="OUTGOING">📞 Appel sortant</option>
                   <option value="INCOMING">📱 Appel entrant</option>
                   <option value="FOLLOWUP">🔄 Relance</option>
-                  <option value="INQUIRY">❓ Demande d&apos;information</option>
+                  <option value="INQUIRY">❓ Demande d'information</option>
                   <option value="SCHEDULED">📅 Rendez-vous téléphonique</option>
                   <option value="COLD_CALL">🥶 Appel à froid</option>
                 </Select>
@@ -260,7 +260,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
-                placeholder="Notes de l&apos;appel, points discutés, prochaines étapes..."
+                placeholder="Notes de l'appel, points discutés, prochaines étapes..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
@@ -290,7 +290,7 @@ export default function CreateCallModal({ isOpen, onClose, onCallCreated }: Crea
                 Annuler
               </Button>
               <Button type="submit" disabled={saving || !formData.applicationId}>
-                {saving ? 'Création...&apos; : 'Créer l\'appel'}
+                {saving ? 'Création...' : 'Créer l\'appel'}
               </Button>
             </div>
           </form>

@@ -8,7 +8,7 @@ interface Notification {
   id: string;
   title: string;
   body: string;
-  type: 'interview&apos; | 'followup' | &apos;application' | 'system';
+  type: 'interview' | 'followup' | 'application' | 'system';
   timestamp: Date;
   read: boolean;
   data?: any;
@@ -49,7 +49,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
       {
         id: '2',
         title: 'Relance en attente',
-        body: 'N\&apos;oubliez pas de relancer Pierre Martin chez StartupInc',
+        body: 'N\'oubliez pas de relancer Pierre Martin chez StartupInc',
         type: 'followup',
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2 heures
         read: true,
@@ -68,7 +68,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
   };
 
   const addRandomNotification = () => {
-    const types: Notification['type&apos;][] = ['interview', &apos;followup', 'application&apos;, 'system'];
+    const types: Notification['type'][] = ['interview', 'followup', 'application', 'system'];
     const titles = {
       interview: 'Entretien programmé',
       followup: 'Relance nécessaire',
@@ -111,20 +111,20 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'interview&apos;: return '🎤';
-      case 'followup&apos;: return '🔄';
-      case 'application&apos;: return '📝';
-      case 'system&apos;: return '⚙️';
+      case 'interview': return '🎤';
+      case 'followup': return '🔄';
+      case 'application': return '📝';
+      case 'system': return '⚙️';
       default: return '📱';
     }
   };
 
   const getNotificationColor = (type: Notification['type']) => {
     switch (type) {
-      case 'interview&apos;: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'followup&apos;: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-      case 'application&apos;: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'system&apos;: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      case 'interview': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'followup': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'application': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'system': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -182,7 +182,7 @@ const MobileNotificationCenter: React.FC<MobileNotificationCenterProps> = ({ cla
                 <div
                   key={notification.id}
                   className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20&apos; : ''
+                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >

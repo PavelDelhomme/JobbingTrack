@@ -22,7 +22,7 @@ try {
 
 export default function DocsPage() {
   const params = useParams();
-  const filePath = Array.isArray(params.path) ? params.path.join('/&apos;) : params.path || '';
+  const filePath = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function DocsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filePath.split('/&apos;).pop() || 'document'}.md`;
+    a.download = `${filePath.split('/').pop() || 'document'}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -124,7 +124,7 @@ export default function DocsPage() {
             {error && (
               <div className="text-center py-12">
                 <div className="text-red-600 text-xl mb-2">❌ {error}</div>
-                <p className="text-gray-600">Le fichier demandé n&apos;a pas pu être chargé.</p>
+                <p className="text-gray-600">Le fichier demandé n'a pas pu être chargé.</p>
               </div>
             )}
 

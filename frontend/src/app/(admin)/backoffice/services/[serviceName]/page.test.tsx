@@ -279,7 +279,7 @@ describe('ServiceDetailPage', () => {
       })
     })
 
-    it('devrait afficher un message quand pas d\&apos;historique', async () => {
+    it('devrait afficher un message quand pas d\'historique', async () => {
       // Mock sans historique
       global.fetch = jest.fn((url) => {
         if (url.includes('/history')) {
@@ -319,7 +319,7 @@ describe('ServiceDetailPage', () => {
       })
     })
 
-    it('devrait afficher le nombre d\&apos;erreurs', async () => {
+    it('devrait afficher le nombre d\'erreurs', async () => {
       render(<ServiceDetailPage />)
       
       await waitFor(() => {

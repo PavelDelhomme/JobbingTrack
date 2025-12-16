@@ -5,7 +5,7 @@ import { AdminLayout } from '@/components/features'
 import axios from 'axios'
 
 interface APITest {
-  method: 'GET&apos; | 'POST' | &apos;PUT' | 'DELETE&apos; | 'PATCH' | &apos;HEAD' | 'OPTIONS'
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'
   url: string
   body?: string
   headers?: Record<string, string>
@@ -41,7 +41,7 @@ interface EnvironmentVariable {
 interface TestScript {
   id: string
   name: string
-  type: 'pre-request&apos; | 'test'
+  type: 'pre-request' | 'test'
   script: string
   enabled: boolean
 }
@@ -78,7 +78,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export default function APITesterPage() {
   const [service, setService] = useState('applications')
-  const [method, setMethod] = useState<'GET&apos; | 'POST' | &apos;PUT' | 'DELETE&apos; | 'PATCH' | &apos;HEAD' | 'OPTIONS&apos;>('GET')
+  const [method, setMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS'>('GET')
   const [endpoint, setEndpoint] = useState('')
   const [requestBody, setRequestBody] = useState('{}')
   const [response, setResponse] = useState<any>(null)
@@ -91,16 +91,16 @@ export default function APITesterPage() {
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({})
   const [environmentVariables, setEnvironmentVariables] = useState<EnvironmentVariable[]>([
     { key: 'API_URL', value: API_URL, enabled: true },
-    { key: 'USER_ID&apos;, value: '', enabled: false },
+    { key: 'USER_ID', value: '', enabled: false },
     { key: 'BASE_URL', value: `${API_URL}/api/v1`, enabled: true },
     { key: 'CURRENT_TIMESTAMP', value: Date.now().toString(), enabled: false },
     { key: 'RANDOM_ID', value: Math.random().toString(36).substr(2, 9), enabled: false }
   ])
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [collections, setCollections] = useState<Collection[]>([])
-  const [activeTab, setActiveTab] = useState<'request&apos; | 'history' | &apos;collections' | 'environment&apos; | 'cookies' | &apos;tests'>('request')
+  const [activeTab, setActiveTab] = useState<'request' | 'history' | 'collections' | 'environment' | 'cookies' | 'tests'>('request')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [authMethod, setAuthMethod] = useState<'none&apos; | 'bearer' | &apos;basic' | 'apikey&apos; | 'oauth2'>(&apos;bearer')
+  const [authMethod, setAuthMethod] = useState<'none' | 'bearer' | 'basic' | 'apikey' | 'oauth2'>('bearer')
 
   // Configuration OAuth2
   const [oauth2Config, setOauth2Config] = useState({
@@ -116,11 +116,11 @@ export default function APITesterPage() {
   // Nouvelles fonctionnalités avancées
   const [cookies, setCookies] = useState<Cookie[]>([])
   const [testScripts, setTestScripts] = useState<TestScript[]>([
-    { id: '1&apos;, name: 'Status Code Test', type: &apos;test', script: 'pm.test("Status code is 200", function () {\n    pm.response.to.have.status(200);\n});', enabled: true },
-    { id: '2&apos;, name: 'Response Time Test', type: &apos;test', script: 'pm.test("Response time is less than 500ms", function () {\n    pm.expect(pm.response.responseTime).to.be.below(500);\n});', enabled: true }
+    { id: '1', name: 'Status Code Test', type: 'test', script: 'pm.test("Status code is 200", function () {\n    pm.response.to.have.status(200);\n});', enabled: true },
+    { id: '2', name: 'Response Time Test', type: 'test', script: 'pm.test("Response time is less than 500ms", function () {\n    pm.expect(pm.response.responseTime).to.be.below(500);\n});', enabled: true }
   ])
   const [preRequestScript, setPreRequestScript] = useState('')
-  const [responseFormat, setResponseFormat] = useState<'json&apos; | 'xml' | &apos;html' | 'text&apos;>('json')
+  const [responseFormat, setResponseFormat] = useState<'json' | 'xml' | 'html' | 'text'>('json')
   const [selectedCollection, setSelectedCollection] = useState<string>('')
   const [selectedRequest, setSelectedRequest] = useState<string>('')
   const [environments, setEnvironments] = useState<{[key: string]: EnvironmentVariable[]}>({
@@ -129,8 +129,8 @@ export default function APITesterPage() {
       { key: 'BASE_URL', value: `${API_URL}/api/v1`, enabled: true },
     ],
     'production': [
-      { key: 'API_URL&apos;, value: 'https://api.yourapp.com', enabled: true },
-      { key: 'BASE_URL&apos;, value: 'https://api.yourapp.com/api/v1', enabled: true },
+      { key: 'API_URL', value: 'https://api.yourapp.com', enabled: true },
+      { key: 'BASE_URL', value: 'https://api.yourapp.com/api/v1', enabled: true },
     ]
   })
   const [currentEnvironment, setCurrentEnvironment] = useState<string>('development')
@@ -359,34 +359,34 @@ export default function APITesterPage() {
   }
 
   const services = [
-    { value: 'auth&apos;, label: 'Auth Service', port: 3001 },
-    { value: 'applications&apos;, label: 'Applications', port: 3002 },
-    { value: 'companies&apos;, label: 'Companies', port: 3003 },
-    { value: 'contacts&apos;, label: 'Contacts', port: 3004 },
-    { value: 'interviews&apos;, label: 'Interviews', port: 3005 },
-    { value: 'notifications&apos;, label: 'Notifications', port: 3006 },
-    { value: 'dashboard&apos;, label: 'Dashboard', port: 3007 },
-    { value: 'calls&apos;, label: 'Calls', port: 3008 },
-    { value: 'profile&apos;, label: 'Profile', port: 3009 },
-    { value: 'events&apos;, label: 'Events', port: 3011 },
-    { value: 'followups&apos;, label: 'FollowUps', port: 3012 },
+    { value: 'auth', label: 'Auth Service', port: 3001 },
+    { value: 'applications', label: 'Applications', port: 3002 },
+    { value: 'companies', label: 'Companies', port: 3003 },
+    { value: 'contacts', label: 'Contacts', port: 3004 },
+    { value: 'interviews', label: 'Interviews', port: 3005 },
+    { value: 'notifications', label: 'Notifications', port: 3006 },
+    { value: 'dashboard', label: 'Dashboard', port: 3007 },
+    { value: 'calls', label: 'Calls', port: 3008 },
+    { value: 'profile', label: 'Profile', port: 3009 },
+    { value: 'events', label: 'Events', port: 3011 },
+    { value: 'followups', label: 'FollowUps', port: 3012 },
   ]
 
   const quickTests = {
     applications: [
-      { name: 'Liste candidatures&apos;, method: 'GET', endpoint: &apos;' },
-      { name: 'Créer candidature&apos;, method: 'POST', endpoint: &apos;', body: JSON.stringify({ position: 'Test&apos;, companyName: 'Test Company' }, null, 2) },
-      { name: 'Health check&apos;, method: 'GET', endpoint: &apos;/health' },
+      { name: 'Liste candidatures', method: 'GET', endpoint: '' },
+      { name: 'Créer candidature', method: 'POST', endpoint: '', body: JSON.stringify({ position: 'Test', companyName: 'Test Company' }, null, 2) },
+      { name: 'Health check', method: 'GET', endpoint: '/health' },
     ],
     auth: [
-      { name: 'Tous les users&apos;, method: 'GET', endpoint: &apos;/users' },
-      { name: 'Mon profil&apos;, method: 'GET', endpoint: &apos;/profile' },
-      { name: 'Health check&apos;, method: 'GET', endpoint: &apos;/health' },
+      { name: 'Tous les users', method: 'GET', endpoint: '/users' },
+      { name: 'Mon profil', method: 'GET', endpoint: '/profile' },
+      { name: 'Health check', method: 'GET', endpoint: '/health' },
     ],
     companies: [
-      { name: 'Liste entreprises&apos;, method: 'GET', endpoint: &apos;' },
-      { name: 'Créer entreprise&apos;, method: 'POST', endpoint: &apos;', body: JSON.stringify({ name: 'Test Company&apos;, industry: 'Technology' }, null, 2) },
-      { name: 'Health check&apos;, method: 'GET', endpoint: &apos;/health' },
+      { name: 'Liste entreprises', method: 'GET', endpoint: '' },
+      { name: 'Créer entreprise', method: 'POST', endpoint: '', body: JSON.stringify({ name: 'Test Company', industry: 'Technology' }, null, 2) },
+      { name: 'Health check', method: 'GET', endpoint: '/health' },
     ],
   }
 
@@ -431,7 +431,7 @@ export default function APITesterPage() {
     if (authMethod === 'bearer') {
       // Utiliser le token de l'utilisateur sélectionné ou le token actuel
       const selectedUserData = users.find(u => u.id === selectedUser)
-      const tokenToUse = selectedUser && selectedUserData ? selectedUserData.token || localStorage.getItem('token&apos;) : localStorage.getItem('token')
+      const tokenToUse = selectedUser && selectedUserData ? selectedUserData.token || localStorage.getItem('token') : localStorage.getItem('token')
       if (tokenToUse) {
         authHeaders['Authorization'] = `Bearer ${tokenToUse}`
       }
@@ -439,7 +439,7 @@ export default function APITesterPage() {
       const basicAuth = btoa('user:password') // À remplacer par de vraies credentials
       authHeaders['Authorization'] = `Basic ${basicAuth}`
     } else if (authMethod === 'apikey') {
-      authHeaders['X-API-Key&apos;] = 'your-api-key' // À remplacer par une vraie clé
+      authHeaders['X-API-Key'] = 'your-api-key' // À remplacer par une vraie clé
     } else if (authMethod === 'oauth2') {
       if (oauth2Config.accessToken) {
         authHeaders['Authorization'] = `Bearer ${oauth2Config.accessToken}`
@@ -448,7 +448,7 @@ export default function APITesterPage() {
 
     // Fusionner avec les headers personnalisés
     const allHeaders = {
-      'Content-Type&apos;: 'application/json',
+      'Content-Type': 'application/json',
       ...authHeaders,
       ...customHeaders
     }
@@ -458,7 +458,7 @@ export default function APITesterPage() {
         method,
         url,
         headers: allHeaders,
-        data: ['POST&apos;, 'PUT', &apos;PATCH'].includes(method) ? JSON.parse(processedBody) : undefined,
+        data: ['POST', 'PUT', 'PATCH'].includes(method) ? JSON.parse(processedBody) : undefined,
         timeout: 15000
       }
 
@@ -551,12 +551,12 @@ export default function APITesterPage() {
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
               {[
-                { id: 'request&apos;, label: '📡 Requête', icon: &apos;Send' },
-                { id: 'history&apos;, label: '📋 Historique', icon: &apos;History' },
-                { id: 'collections&apos;, label: '📁 Collections', icon: &apos;Folder' },
-                { id: 'environment&apos;, label: '⚙️ Environnements', icon: &apos;Settings' },
-                { id: 'cookies&apos;, label: '🍪 Cookies', icon: &apos;Cookie' },
-                { id: 'tests&apos;, label: '🧪 Tests', icon: &apos;TestTube' }
+                { id: 'request', label: '📡 Requête', icon: 'Send' },
+                { id: 'history', label: '📋 Historique', icon: 'History' },
+                { id: 'collections', label: '📁 Collections', icon: 'Folder' },
+                { id: 'environment', label: '⚙️ Environnements', icon: 'Settings' },
+                { id: 'cookies', label: '🍪 Cookies', icon: 'Cookie' },
+                { id: 'tests', label: '🧪 Tests', icon: 'TestTube' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -762,7 +762,7 @@ export default function APITesterPage() {
                     onClick={() => setShowAdvanced(!showAdvanced)}
                     className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                   >
-                    {showAdvanced ? 'Masquer&apos; : 'Afficher'} avancées
+                    {showAdvanced ? 'Masquer' : 'Afficher'} avancées
                   </button>
                 </div>
 
@@ -822,7 +822,7 @@ export default function APITesterPage() {
               </div>
 
               {/* Request Body */}
-              {['POST&apos;, 'PUT', &apos;PATCH'].includes(method) && (
+              {['POST', 'PUT', 'PATCH'].includes(method) && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Corps de la requête (JSON)
@@ -843,7 +843,7 @@ export default function APITesterPage() {
                 disabled={loading}
                 className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? '⏳ Exécution...&apos; : '🚀 Exécuter la requête'}
+                {loading ? '⏳ Exécution...' : '🚀 Exécuter la requête'}
               </button>
             </div>
 
@@ -904,7 +904,7 @@ export default function APITesterPage() {
                     <div className="text-sm text-orange-400 dark:text-orange-300 font-mono">
                       {typeof (response.data || response.error) === 'string'
                         ? (response.data || response.error)
-                        : '<pre>&apos; + JSON.stringify(response.data || response.error, null, 2) + &apos;</pre>'}
+                        : '<pre>' + JSON.stringify(response.data || response.error, null, 2) + '</pre>'}
                     </div>
                   )}
                   {responseFormat === 'text' && (
@@ -1021,7 +1021,7 @@ export default function APITesterPage() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {filteredHistory.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                    {historySearch ? 'Aucune requête trouvée&apos; : 'Aucune requête dans l\'historique'}
+                    {historySearch ? 'Aucune requête trouvée' : 'Aucune requête dans l\'historique'}
                   </p>
                 ) : (
                   filteredHistory.map((item) => (
@@ -1030,17 +1030,17 @@ export default function APITesterPage() {
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                       onClick={() => {
                         setMethod(item.method as any)
-                        setService(item.url.split('/api/v1/&apos;)[1]?.split('/')[0] || &apos;applications')
-                        setEndpoint(item.url.split('/api/v1/&apos;)[1]?.replace(/^[^/]+\//, '') || &apos;')
+                        setService(item.url.split('/api/v1/')[1]?.split('/')[0] || 'applications')
+                        setEndpoint(item.url.split('/api/v1/')[1]?.replace(/^[^/]+\//, '') || '')
                         setActiveTab('request')
                       }}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          item.method === 'GET&apos; ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                          item.method === 'POST&apos; ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                          item.method === 'PUT&apos; ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                          item.method === 'DELETE&apos; ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                          item.method === 'GET' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                          item.method === 'POST' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                          item.method === 'PUT' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                          item.method === 'DELETE' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
                           'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
                         }`}>
                           {item.method}
@@ -1325,9 +1325,9 @@ export default function APITesterPage() {
                         />
                         <span className="font-medium text-gray-900 dark:text-gray-100">{script.name}</span>
                         <span className={`px-2 py-1 text-xs rounded ${
-                          script.type === 'test&apos; ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : &apos;bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          script.type === 'test' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                         }`}>
-                          {script.type === 'test&apos; ? 'Test' : &apos;Pré-requête'}
+                          {script.type === 'test' ? 'Test' : 'Pré-requête'}
                         </span>
                       </div>
                       <button

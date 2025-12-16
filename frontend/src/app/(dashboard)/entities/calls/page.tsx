@@ -10,11 +10,11 @@ interface Call {
   userId: string
   applicationId: string
   contactId?: string
-  type: 'OUTGOING&apos; | 'INCOMING' | &apos;MISSED'
+  type: 'OUTGOING' | 'INCOMING' | 'MISSED'
   scheduledDate?: string
   callDate?: string
   duration?: number
-  status: 'SCHEDULED&apos; | 'COMPLETED' | &apos;CANCELLED' | 'NO_ANSWER&apos; | 'VOICEMAIL' | &apos;RESCHEDULED'
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_ANSWER' | 'VOICEMAIL' | 'RESCHEDULED'
   notes?: string
   outcome?: string
   followUpNeeded: boolean
@@ -51,18 +51,18 @@ interface Stats {
 }
 
 const CALL_TYPES = {
-  OUTGOING: { label: 'Sortant&apos;, icon: '📞', color: &apos;blue' },
-  INCOMING: { label: 'Entrant&apos;, icon: '📱', color: &apos;green' },
-  MISSED: { label: 'Manqué&apos;, icon: '❌', color: &apos;red' },
+  OUTGOING: { label: 'Sortant', icon: '📞', color: 'blue' },
+  INCOMING: { label: 'Entrant', icon: '📱', color: 'green' },
+  MISSED: { label: 'Manqué', icon: '❌', color: 'red' },
 }
 
 const CALL_STATUS = {
-  SCHEDULED: { label: 'Planifié&apos;, color: 'yellow' },
-  COMPLETED: { label: 'Terminé&apos;, color: 'green' },
-  CANCELLED: { label: 'Annulé&apos;, color: 'gray' },
-  NO_ANSWER: { label: 'Pas de réponse&apos;, color: 'orange' },
-  VOICEMAIL: { label: 'Message vocal&apos;, color: 'purple' },
-  RESCHEDULED: { label: 'Replanifié&apos;, color: 'blue' },
+  SCHEDULED: { label: 'Planifié', color: 'yellow' },
+  COMPLETED: { label: 'Terminé', color: 'green' },
+  CANCELLED: { label: 'Annulé', color: 'gray' },
+  NO_ANSWER: { label: 'Pas de réponse', color: 'orange' },
+  VOICEMAIL: { label: 'Message vocal', color: 'purple' },
+  RESCHEDULED: { label: 'Replanifié', color: 'blue' },
 }
 
 export default function CallsPage() {
@@ -104,7 +104,7 @@ export default function CallsPage() {
       const response = await fetch(`http://localhost:8080/api/v1/calls?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -127,7 +127,7 @@ export default function CallsPage() {
       const response = await fetch('http://localhost:8080/api/v1/calls/stats/overview', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -146,7 +146,7 @@ export default function CallsPage() {
         },
         completed: calls.filter(c => c.status === 'COMPLETED').length,
         scheduled: calls.filter(c => c.status === 'SCHEDULED').length,
-        completionRate: calls.length > 0 ? ((calls.filter(c => c.status === 'COMPLETED&apos;).length / calls.length) * 100).toFixed(1) : '0',
+        completionRate: calls.length > 0 ? ((calls.filter(c => c.status === 'COMPLETED').length / calls.length) * 100).toFixed(1) : '0',
         averageDuration: 0,
         byOutcome: {},
         monthlyTrend: []
@@ -162,7 +162,7 @@ export default function CallsPage() {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -176,15 +176,15 @@ export default function CallsPage() {
   }
 
   const completeCall = async (id: string) => {
-    const duration = prompt('Durée de l\&apos;appel (en secondes) :')
-    const outcome = prompt('Résultat de l\&apos;appel :')
+    const duration = prompt('Durée de l\'appel (en secondes) :')
+    const outcome = prompt('Résultat de l\'appel :')
 
     try {
       const response = await fetch(`http://localhost:8080/api/v1/calls/${id}/complete`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           duration: duration ? parseInt(duration) : null,
@@ -404,7 +404,7 @@ export default function CallsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                          <div className="max-w-xs truncate">{call.outcome || '-&apos;}</div>
+                          <div className="max-w-xs truncate">{call.outcome || '-'}</div>
                           {call.followUpNeeded && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mt-1">
                               ⚠️ Relance requise

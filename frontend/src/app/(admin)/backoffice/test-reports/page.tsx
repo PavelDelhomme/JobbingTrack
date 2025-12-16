@@ -20,7 +20,7 @@ interface TestReport {
   passed?: number
   failed?: number
   skipped?: number
-  status?: 'success&apos; | 'failed' | &apos;partial'
+  status?: 'success' | 'failed' | 'partial'
 }
 
 export default function TestReportsPage() {
@@ -33,7 +33,7 @@ export default function TestReportsPage() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'date&apos; | 'tests' | &apos;passed' | 'failed&apos;>('date')
+  const [sortBy, setSortBy] = useState<'date' | 'tests' | 'passed' | 'failed'>('date')
   const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
@@ -308,7 +308,7 @@ export default function TestReportsPage() {
                   className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span className="sm:inline">{deleting === 'all&apos; ? 'Suppression...' : &apos;Tout supprimer&apos;}</span>
+                  <span className="sm:inline">{deleting === 'all' ? 'Suppression...' : 'Tout supprimer'}</span>
                 </button>
               )}
             </div>
@@ -380,7 +380,7 @@ export default function TestReportsPage() {
             </p>
           </div>
         ) : (
-          <div className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? 'grid-cols-1&apos; : 'grid-cols-1 lg:grid-cols-2'}`} style={{ minHeight: &apos;calc(100vh - 250px)' }}>
+          <div className={`grid gap-3 sm:gap-4 lg:gap-6 transition-all ${isFullscreen ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`} style={{ minHeight: 'calc(100vh - 250px)' }}>
             {/* Liste des rapports */}
             {!isFullscreen && (
               <div className="space-y-4 flex flex-col" style={{ minHeight: 'calc(100vh - 250px)' }}>
@@ -475,7 +475,7 @@ export default function TestReportsPage() {
                         className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial min-w-[80px] justify-center"
                       >
                         <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">{deleting === report.id ? '...&apos; : 'Supprimer&apos;}</span>
+                        <span className="hidden xs:inline">{deleting === report.id ? '...' : 'Supprimer'}</span>
                       </button>
                     </div>
                   </div>
@@ -493,7 +493,7 @@ export default function TestReportsPage() {
                   <p className="text-gray-600 dark:text-gray-400">Chargement du rapport...</p>
                 </div>
               ) : selectedReport && reportContent ? (
-                <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? 'fixed inset-2 sm:inset-4 z-50&apos; : ''}`}>
+                <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${isFullscreen ? 'fixed inset-2 sm:inset-4 z-50' : ''}`}>
                   <div className="p-2 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
@@ -532,7 +532,7 @@ export default function TestReportsPage() {
                               setIsFullscreen(false)
                             }}
                             className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                            title="Fermer l&apos;aperçu"
+                            title="Fermer l'aperçu"
                           >
                             <X className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span className="hidden sm:inline">Fermer</span>
@@ -557,10 +557,10 @@ export default function TestReportsPage() {
                       </a>
                     </div>
                   </div>
-                  <div className={`p-2 sm:p-4 ${isFullscreen ? 'h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]&apos; : ''}`}>
+                  <div className={`p-2 sm:p-4 ${isFullscreen ? 'h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]' : ''}`}>
                     <iframe
                       srcDoc={reportContent}
-                      className={`w-full border border-gray-200 dark:border-gray-700 rounded ${isFullscreen ? 'h-full&apos; : 'h-[400px] sm:h-[500px] lg:h-[600px]'}`}
+                      className={`w-full border border-gray-200 dark:border-gray-700 rounded ${isFullscreen ? 'h-full' : 'h-[400px] sm:h-[500px] lg:h-[600px]'}`}
                       title="Rapport de test"
                       style={{
                         maxWidth: '100%',

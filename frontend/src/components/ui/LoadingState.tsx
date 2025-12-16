@@ -17,7 +17,7 @@ interface LoadingStateProps {
    * Taille du spinner
    * Par défaut: 'md'
    */
-  size?: 'sm&apos; | 'md' | &apos;lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   
   /**
    * Afficher en mode plein écran
@@ -75,7 +75,7 @@ export function LoadingState({
 /**
  * LoadingSpinner - Variante minimale (juste le spinner)
  */
-export function LoadingSpinner({ size = 'md&apos;, className = '' }: Omit<LoadingStateProps, &apos;message' | 'fullScreen'>) {
+export function LoadingSpinner({ size = 'md', className = '' }: Omit<LoadingStateProps, 'message' | 'fullScreen'>) {
   return (
     <Loader2 
       className={`${sizeClasses[size]} animate-spin text-blue-600 dark:text-blue-400 ${className}`}
@@ -86,7 +86,7 @@ export function LoadingSpinner({ size = 'md&apos;, className = '' }: Omit<Loadin
 /**
  * LoadingOverlay - Overlay de chargement pour modals/cartes
  */
-export function LoadingOverlay({ message = 'Chargement...&apos;, size = 'md' }: Omit<LoadingStateProps, &apos;fullScreen' | 'className'>) {
+export function LoadingOverlay({ message = 'Chargement...', size = 'md' }: Omit<LoadingStateProps, 'fullScreen' | 'className'>) {
   return (
     <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
       <div className="text-center">

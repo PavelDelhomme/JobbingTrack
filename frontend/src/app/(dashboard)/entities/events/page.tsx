@@ -142,7 +142,7 @@ export default function EventsPage() {
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {event.applicationId ? 'Candidature' :
                        event.companyId ? 'Entreprise' :
-                       event.contactId ? 'Contact&apos; : '-'}
+                       event.contactId ? 'Contact' : '-'}
                     </td>
                   </tr>
                 ))}
@@ -176,10 +176,10 @@ export default function EventsPage() {
                 </div>
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  <p>🕒 {new Date(event.occurredAt).toLocaleString('fr-FR&apos;)}</p>
+                  <p>🕒 {new Date(event.occurredAt).toLocaleString('fr-FR')}</p>
                   <p>🔗 {event.applicationId ? 'Candidature' :
                          event.companyId ? 'Entreprise' :
-                         event.contactId ? 'Contact&apos; : 'Aucune'}</p>
+                         event.contactId ? 'Contact' : 'Aucune'}</p>
                 </div>
               </div>
             ))}

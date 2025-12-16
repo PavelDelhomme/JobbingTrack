@@ -52,14 +52,14 @@ export default function EmailSettingsPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Configuration Actuelle</CardTitle>
             <Button onClick={checkSMTPStatus} disabled={checking} variant="outline" size="sm">
-              <RefreshCw className={`w-4 h-4 mr-2 ${checking ? 'animate-spin&apos; : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
               Vérifier
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {smtpStatus ? (
               <>
-                <div className={`flex items-center gap-2 ${smtpStatus.success ? 'text-green-600&apos; : 'text-red-600'}`}>
+                <div className={`flex items-center gap-2 ${smtpStatus.success ? 'text-green-600' : 'text-red-600'}`}>
                   {smtpStatus.success ? (
                     <CheckCircle className="w-5 h-5" />
                   ) : (
@@ -71,19 +71,19 @@ export default function EmailSettingsPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm mt-4">
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Host</p>
-                      <p className="font-medium">{smtpStatus.data.host || 'Non configuré&apos;}</p>
+                      <p className="font-medium">{smtpStatus.data.host || 'Non configuré'}</p>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Port</p>
-                      <p className="font-medium">{smtpStatus.data.port || 'Non configuré&apos;}</p>
+                      <p className="font-medium">{smtpStatus.data.port || 'Non configuré'}</p>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">From</p>
-                      <p className="font-medium">{smtpStatus.data.from || 'Non configuré&apos;}</p>
+                      <p className="font-medium">{smtpStatus.data.from || 'Non configuré'}</p>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Secure</p>
-                      <p className="font-medium">{smtpStatus.data.secure ? 'Oui (SSL/TLS)&apos; : 'Non&apos;}</p>
+                      <p className="font-medium">{smtpStatus.data.secure ? 'Oui (SSL/TLS)' : 'Non'}</p>
                     </div>
                   </div>
                 )}

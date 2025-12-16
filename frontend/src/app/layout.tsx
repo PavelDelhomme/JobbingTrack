@@ -24,14 +24,14 @@ function HydrationFix() {
 function ThemeScript() {
   useEffect(() => {
     try {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)&apos;).matches ? 'dark' : &apos;light'
-      const storedTheme = localStorage.getItem('theme&apos;) || 'system'
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      const storedTheme = localStorage.getItem('theme') || 'system'
       const actualTheme = storedTheme === 'system' ? systemTheme : storedTheme
       document.documentElement.classList.add(actualTheme)
       document.body.classList.add(actualTheme)
       const metaThemeColor = document.querySelector('meta[name="theme-color"]')
       if (metaThemeColor) {
-        metaThemeColor.setAttribute('content&apos;, actualTheme === 'dark' ? &apos;#111827' : '#ffffff')
+        metaThemeColor.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#ffffff')
       }
     } catch (e) {
       console.error('Theme initialization error:', e)

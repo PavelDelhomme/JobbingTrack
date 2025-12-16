@@ -81,7 +81,7 @@ describe('Tab Components - Validation indirecte via la page', () => {
     );
     
     // Vérifier que timeRange a une valeur par défaut dans chaque Tab
-    expect(pageContent).toMatch(/timeRange\s*=\s*['"]24h[&apos;"]/);
+    expect(pageContent).toMatch(/timeRange\s*=\s*['"]24h['"]/);
   });
 });
 

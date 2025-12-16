@@ -130,19 +130,19 @@ export default function InterviewsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Planifiés</p>
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-              {interviews.filter(i => i.status === 'SCHEDULED&apos; || i.status === 'scheduled').length}
+              {interviews.filter(i => i.status === 'SCHEDULED' || i.status === 'scheduled').length}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Terminés</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-              {interviews.filter(i => i.status === 'COMPLETED&apos; || i.status === 'completed').length}
+              {interviews.filter(i => i.status === 'COMPLETED' || i.status === 'completed').length}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">Annulés</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-              {interviews.filter(i => i.status === 'CANCELLED&apos; || i.status === 'cancelled').length}
+              {interviews.filter(i => i.status === 'CANCELLED' || i.status === 'cancelled').length}
             </p>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function InterviewsPage() {
                 {filteredInterviews.map((interview) => (
                   <tr key={interview.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{interview.title || 'Entretien&apos;}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{interview.title || 'Entretien'}</div>
                       {interview.companyName && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">{interview.companyName}</div>
                       )}
@@ -201,7 +201,7 @@ export default function InterviewsPage() {
                         {new Date(interview.scheduledAt || interview.createdAt).toLocaleDateString()}
                         {interview.scheduledAt && (
                           <span className="ml-2 text-xs text-gray-500">
-                            {new Date(interview.scheduledAt).toLocaleTimeString('fr-FR&apos;, { hour: '2-digit', minute: &apos;2-digit' })}
+                            {new Date(interview.scheduledAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         )}
                       </div>
@@ -216,8 +216,8 @@ export default function InterviewsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        interview.status === 'SCHEDULED&apos; || interview.status === 'scheduled' ? &apos;bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        interview.status === 'COMPLETED&apos; || interview.status === 'completed' ? &apos;bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        interview.status === 'SCHEDULED' || interview.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        interview.status === 'COMPLETED' || interview.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                         'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                       }`}>
                         {interview.status || 'N/A'}
@@ -247,7 +247,7 @@ export default function InterviewsPage() {
                 {filteredInterviews.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {interviews.length === 0 ? 'Aucun entretien trouvé&apos; : 'Aucun résultat pour votre recherche'}
+                      {interviews.length === 0 ? 'Aucun entretien trouvé' : 'Aucun résultat pour votre recherche'}
                     </td>
                   </tr>
                 )}
@@ -380,7 +380,7 @@ function InterviewFormModal({
     }
 
     if (!formData.scheduledAt) {
-      alert('La date et l\&apos;heure sont obligatoires');
+      alert('La date et l\'heure sont obligatoires');
       return;
     }
 
@@ -405,7 +405,7 @@ function InterviewFormModal({
       onSuccess();
     } catch (error: any) {
       console.error('Erreur création/modification entretien:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\&apos;entretien');
+      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'entretien');
     } finally {
       setLoading(false);
     }
@@ -416,7 +416,7 @@ function InterviewFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {interview ? 'Modifier l\&apos;entretien' : 'Nouvel entretien'}
+            {interview ? 'Modifier l\'entretien' : 'Nouvel entretien'}
           </h2>
           <button
             onClick={onClose}
@@ -545,7 +545,7 @@ function InterviewFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...&apos; : interview ? 'Modifier' : &apos;Créer'}
+              {loading ? 'Enregistrement...' : interview ? 'Modifier' : 'Créer'}
             </button>
           </div>
         </form>

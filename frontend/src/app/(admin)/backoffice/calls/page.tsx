@@ -147,7 +147,7 @@ export default function CallsPage() {
                 {filteredCalls.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{call.subject || 'Appel&apos;}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{call.subject || 'Appel'}</div>
                     </td>
                     <td className="px-6 py-4">
                       {call.contactName && (
@@ -206,7 +206,7 @@ export default function CallsPage() {
                 {filteredCalls.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {calls.length === 0 ? 'Aucun appel trouvé&apos; : 'Aucun résultat pour votre recherche'}
+                      {calls.length === 0 ? 'Aucun appel trouvé' : 'Aucun résultat pour votre recherche'}
                     </td>
                   </tr>
                 )}
@@ -346,7 +346,7 @@ function CallFormModal({
       onSuccess();
     } catch (error: any) {
       console.error('Erreur création/modification appel:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\&apos;appel');
+      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'appel');
     } finally {
       setLoading(false);
     }
@@ -357,7 +357,7 @@ function CallFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {call ? 'Modifier l\&apos;appel' : 'Nouvel appel'}
+            {call ? 'Modifier l\'appel' : 'Nouvel appel'}
           </h2>
           <button
             onClick={onClose}
@@ -394,7 +394,7 @@ function CallFormModal({
             >
               <option value="spontaneous">Candidature spontanée</option>
               <option value="followup">Suivi</option>
-              <option value="information">Demande d&apos;information</option>
+              <option value="information">Demande d'information</option>
               <option value="callback">Rappel</option>
               <option value="other">Autre</option>
             </select>
@@ -407,7 +407,7 @@ function CallFormModal({
               </label>
               <select
                 value={formData.contactId}
-                onChange={(e) => setFormData({ ...formData, contactId: e.target.value, companyId: '&apos;, applicationId: '' })}
+                onChange={(e) => setFormData({ ...formData, contactId: e.target.value, companyId: '', applicationId: '' })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Aucun</option>
@@ -452,7 +452,7 @@ function CallFormModal({
               </label>
               <select
                 value={formData.applicationId}
-                onChange={(e) => setFormData({ ...formData, applicationId: e.target.value, contactId: '&apos;, companyId: '' })}
+                onChange={(e) => setFormData({ ...formData, applicationId: e.target.value, contactId: '', companyId: '' })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Aucune</option>
@@ -508,7 +508,7 @@ function CallFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...&apos; : call ? 'Modifier' : &apos;Créer'}
+              {loading ? 'Enregistrement...' : call ? 'Modifier' : 'Créer'}
             </button>
           </div>
         </form>
