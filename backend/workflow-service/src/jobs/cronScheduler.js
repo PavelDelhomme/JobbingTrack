@@ -49,17 +49,17 @@ class CronScheduler {
   async processPendingExecutions() {
     try {
       // Vérifier si la table existe avant d'essayer de la lire
-      if (!prisma.workflowExecution || typeof prisma.workflowExecution.findMany !== 'function') {
+      if (!prisma.workflowRun || typeof prisma.workflowRun.findMany !== 'function') {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowExecution not available, processing ignored (development mode)');
+          console.warn('Table WorkflowRun not available, processing ignored (development mode)');
           return;
         }
-        throw new Error('Table WorkflowExecution not available');
+        throw new Error('Table WorkflowRun not available');
       }
 
       let pendingExecutions;
       try {
-        pendingExecutions = await prisma.workflowExecution.findMany({
+        pendingExecutions = await prisma.workflowRun.findMany({
           where: {
             status: 'PENDING',
             scheduledAt: {
@@ -70,7 +70,7 @@ class CronScheduler {
       } catch (error) {
         // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
         if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowExecution non trouvée, traitement ignoré (mode développement)');
+          console.warn('Table WorkflowRun non trouvée, traitement ignoré (mode développement)');
           return;
         }
         throw error;
@@ -85,8 +85,8 @@ class CronScheduler {
           
           // Essayer de mettre à jour le statut, ignorer si la table n'existe pas
           try {
-            if (prisma.workflowExecution && typeof prisma.workflowExecution.update === 'function') {
-              await prisma.workflowExecution.update({
+            if (prisma.workflowRun && typeof prisma.workflowRun.update === 'function') {
+              await prisma.workflowRun.update({
                 where: { id: execution.id },
                 data: {
                   status: 'FAILED',
@@ -96,7 +96,7 @@ class CronScheduler {
             }
           } catch (updateError) {
             if ((updateError.code === 'P2021' || updateError.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-              console.warn('Table WorkflowExecution non trouvée, mise à jour ignorée (mode développement)');
+              console.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
             } else {
               console.error('Erreur lors de la mise à jour du statut:', updateError);
             }
