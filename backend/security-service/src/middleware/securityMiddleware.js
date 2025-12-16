@@ -59,7 +59,7 @@ class SecurityMiddleware {
 
       // Vérifier si l'IP est bloquée
       if (this.blockedIPs.has(clientIP)) {
-        await this.logSecurityEvent('critical', 'intrusion', 'blocked_ip_access', `Accès refusé à IP bloquée: ${clientIP}`, {
+        await logSecurityEvent('critical', 'intrusion', 'blocked_ip_access', `Accès refusé à IP bloquée: ${clientIP}`, {
           ip: clientIP,
           endpoint,
           method,
@@ -194,7 +194,7 @@ class SecurityMiddleware {
         if (pattern.test(fullPayload) || pattern.test(endpoint)) {
           riskScore += 25;
 
-          await this.logSecurityEvent('error', 'intrusion', attackType, `Tentative d'intrusion détectée: ${attackType}`, {
+          await logSecurityEvent('error', 'intrusion', attackType, `Tentative d'intrusion détectée: ${attackType}`, {
             ip: clientIP,
             endpoint,
             method,
@@ -217,7 +217,7 @@ class SecurityMiddleware {
       const value = req.get(header);
       if (value && !validator.isIP(value) && value.length > 100) {
         riskScore += 15;
-        await this.logSecurityEvent('warning', 'intrusion', 'suspicious_header', `Header suspect détecté: ${header}`, {
+        await logSecurityEvent('warning', 'intrusion', 'suspicious_header', `Header suspect détecté: ${header}`, {
           ip: clientIP,
           header,
           value: value.substring(0, 200)
@@ -242,7 +242,7 @@ class SecurityMiddleware {
     // Vérifier les tailles de payload anormales
     if (contentLength > 10 * 1024 * 1024) { // 10MB
       riskScore += 30;
-      await this.logSecurityEvent('warning', 'intrusion', 'large_payload', `Payload anormalement volumineux: ${contentLength} bytes`, {
+      await logSecurityEvent('warning', 'intrusion', 'large_payload', `Payload anormalement volumineux: ${contentLength} bytes`, {
         ip: clientIP,
         endpoint,
         method,
@@ -278,7 +278,7 @@ class SecurityMiddleware {
       const value = req.get(header);
       if (value && !validator.isIP(value) && value.length > 100) {
         riskScore += 15;
-        await this.logSecurityEvent('warning', 'intrusion', 'suspicious_header', `Header suspect détecté: ${header}`, {
+        await logSecurityEvent('warning', 'intrusion', 'suspicious_header', `Header suspect détecté: ${header}`, {
           ip: clientIP,
           header,
           value: value.substring(0, 200)
@@ -327,7 +327,7 @@ class SecurityMiddleware {
 
       // Créer une alerte DDoS si nécessaire
       if (tracker.count > 200) {
-        await this.logSecurityEvent('critical', 'ddos', 'high_traffic', `Trafic anormalement élevé détecté depuis ${clientIP}`, {
+        await logSecurityEvent('critical', 'ddos', 'high_traffic', `Trafic anormalement élevé détecté depuis ${clientIP}`, {
           ip: clientIP,
           requestCount: tracker.count,
           totalBytes: tracker.totalBytes,
