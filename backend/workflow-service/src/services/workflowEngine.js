@@ -127,7 +127,7 @@ class WorkflowEngine {
       } catch (error) {
         // Fallback si table WorkflowExecution n'existe pas (P2021) - Mode développement
         if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-          console.warn('Table WorkflowExecution non trouvée, mise à jour ignorée (mode développement)');
+          console.warn('Table WorkflowRun non trouvée, mise à jour ignorée (mode développement)');
         } else {
           throw error;
         }
