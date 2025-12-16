@@ -4,7 +4,7 @@
 # Commandes SPÉCIFIQUES au frontend Next.js
 # ============================================================================
 
-.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend
+.PHONY: dev-frontend build-frontend install-frontend type-check-frontend clean-frontend lint-frontend format-frontend frontend-help help-frontend test-performance-frontend analyze-bundle-frontend check-memory-frontend optimize-frontend test-analytics test-analytics-validate test-analytics-complete
 
 FRONTEND_DIR := frontend
 
@@ -44,6 +44,9 @@ help-frontend: ## Afficher l'aide frontend
 	@echo "  make test-unit-frontend    - Tests unitaires Jest"
 	@echo "  make test-e2e-frontend     - Tests E2E Playwright"
 	@echo "  make test-all-frontend     - Tous les tests"
+	@echo "  make test-analytics        - Tests de la page Analytics"
+	@echo "  make test-analytics-validate - Validation automatique Analytics"
+	@echo "  make test-analytics-complete - Suite complète Analytics"
 	@echo ""
 	@echo "⚡ PERFORMANCE:"
 	@echo "  make test-performance-frontend - Tests de performance et mémoire"
@@ -216,4 +219,6 @@ frontend-help: ## Aide frontend
 	@echo "🧪 TESTS:"
 	@echo "  make test-unit-frontend    - Tests unitaires"
 	@echo "  make test-e2e-frontend     - Tests E2E"
+	@echo "  make test-analytics        - Tests Analytics"
+	@echo "  make test-analytics-validate - Validation Analytics"
 	@echo ""
