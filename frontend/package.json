@@ -100,6 +100,7 @@
         "jest-environment-jsdom": "^29.7.0",
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.6.8",
-        "webpack-bundle-analyzer": "^4.10.1"
+        "webpack-bundle-analyzer": "^4.10.1",
+        "baseline-browser-mapping": "^1.0.0"
     }
 }
