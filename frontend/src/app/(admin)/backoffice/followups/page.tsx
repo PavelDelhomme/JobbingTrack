@@ -166,7 +166,7 @@ export default function FollowupsPage() {
                 {filteredFollowups.map((followup) => (
                   <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{followup.subject || 'Relance&apos;}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{followup.subject || 'Relance'}</div>
                       {followup.companyName && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">{followup.companyName}</div>
                       )}
@@ -214,7 +214,7 @@ export default function FollowupsPage() {
                 {filteredFollowups.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      {followups.length === 0 ? 'Aucune relance trouvée&apos; : 'Aucun résultat pour votre recherche'}
+                      {followups.length === 0 ? 'Aucune relance trouvée' : 'Aucun résultat pour votre recherche'}
                     </td>
                   </tr>
                 )}
@@ -378,7 +378,7 @@ function FollowupFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {followup ? 'Modifier la relance&apos; : 'Nouvelle relance'}
+            {followup ? 'Modifier la relance' : 'Nouvelle relance'}
           </h2>
           <button
             onClick={onClose}
@@ -508,7 +508,7 @@ function FollowupFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...&apos; : followup ? 'Modifier' : &apos;Créer'}
+              {loading ? 'Enregistrement...' : followup ? 'Modifier' : 'Créer'}
             </button>
           </div>
         </form>

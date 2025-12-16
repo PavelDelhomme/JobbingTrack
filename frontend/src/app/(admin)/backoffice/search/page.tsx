@@ -37,35 +37,35 @@ const MODULE_CONFIG = {
     icon: FileText,
     label: 'Candidatures',
     color: 'blue',
-    fields: ['title&apos;, 'companyName', &apos;status'],
+    fields: ['title', 'companyName', 'status'],
     link: (id: string) => `/backoffice/applications`
   },
   companies: {
     icon: Building2,
     label: 'Entreprises',
     color: 'purple',
-    fields: ['name&apos;, 'sector', &apos;location'],
+    fields: ['name', 'sector', 'location'],
     link: (id: string) => `/backoffice/companies`
   },
   contacts: {
     icon: Users,
     label: 'Contacts',
     color: 'green',
-    fields: ['firstName&apos;, 'lastName', &apos;email', 'position'],
+    fields: ['firstName', 'lastName', 'email', 'position'],
     link: (id: string) => `/backoffice/contacts`
   },
   interviews: {
     icon: Calendar,
     label: 'Entretiens',
     color: 'orange',
-    fields: ['type&apos;, 'status', &apos;scheduledAt'],
+    fields: ['type', 'status', 'scheduledAt'],
     link: (id: string) => `/backoffice/interviews`
   },
   calls: {
     icon: Phone,
     label: 'Appels',
     color: 'pink',
-    fields: ['title&apos;, 'status', &apos;scheduledAt'],
+    fields: ['title', 'status', 'scheduledAt'],
     link: (id: string) => `/backoffice/calls`
   }
 };
@@ -159,11 +159,11 @@ export default function OptimizedSearchPage() {
     );
 
     const csvContent = [
-      ['Module&apos;, 'ID', &apos;Données'].join(','),
+      ['Module', 'ID', 'Données'].join(','),
       ...allResults.map(result => [
         result.module,
         result.id || '',
-        JSON.stringify(result).replace(/"/g, &apos;""')
+        JSON.stringify(result).replace(/"/g, '""')
       ].map(field => `"${field}"`).join(','))
     ].join('\n');
 
@@ -308,7 +308,7 @@ export default function OptimizedSearchPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {totalResults} résultat{totalResults > 1 ? 's&apos; : ''} trouvé{totalResults > 1 ? &apos;s' : ''}
+                {totalResults} résultat{totalResults > 1 ? 's' : ''} trouvé{totalResults > 1 ? 's' : ''}
               </h2>
             </div>
 
@@ -342,7 +342,7 @@ export default function OptimizedSearchPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                {result.title || result.name || `${result.firstName || '&apos;} ${result.lastName || ''}`.trim() || &apos;Sans titre'}
+                                {result.title || result.name || `${result.firstName || ''} ${result.lastName || ''}`.trim() || 'Sans titre'}
                               </p>
                               {result.status && (
                                 <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">

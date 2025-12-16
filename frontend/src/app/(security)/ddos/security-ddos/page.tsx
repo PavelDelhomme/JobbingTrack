@@ -63,9 +63,9 @@ export default function SecurityDDoSPage() {
         sourceIPs: Array.from({ length: Math.floor(Math.random() * 20) + 1 }, () =>
           `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`
         ),
-        countries: [['CN&apos;, 'RU', &apos;US', 'BR&apos;, 'IN', &apos;KR'][Math.floor(Math.random() * 6)]],
-        attackType: ['VOLUMETRIC&apos;, 'PROTOCOL', &apos;APPLICATION'][Math.floor(Math.random() * 3)],
-        targetEndpoint: `/api/v1/${['auth&apos;, 'dashboard', &apos;applications', 'companies'][Math.floor(Math.random() * 4)]}`,
+        countries: [['CN', 'RU', 'US', 'BR', 'IN', 'KR'][Math.floor(Math.random() * 6)]],
+        attackType: ['VOLUMETRIC', 'PROTOCOL', 'APPLICATION'][Math.floor(Math.random() * 3)],
+        targetEndpoint: `/api/v1/${['auth', 'dashboard', 'applications', 'companies'][Math.floor(Math.random() * 4)]}`,
         duration: Math.floor(Math.random() * 3600) + 60, // 1 minute à 1 heure
         totalRequests: Math.floor(Math.random() * 100000) + 1000,
         requestsPerSecond: Math.floor(Math.random() * 1000) + 100,
@@ -74,7 +74,7 @@ export default function SecurityDDoSPage() {
         metadata: {
           bandwidth: `${Math.floor(Math.random() * 100) + 10}Gbps`,
           packetsPerSecond: Math.floor(Math.random() * 1000000) + 100000,
-          attackVector: ['SYN Flood&apos;, 'UDP Flood', &apos;HTTP Flood', 'Slowloris'][Math.floor(Math.random() * 4)]
+          attackVector: ['SYN Flood', 'UDP Flood', 'HTTP Flood', 'Slowloris'][Math.floor(Math.random() * 4)]
         }
       }))
 
@@ -146,25 +146,25 @@ export default function SecurityDDoSPage() {
 
   const getAttackTypeColor = (attackType: string) => {
     switch (attackType) {
-      case 'VOLUMETRIC&apos;: return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'PROTOCOL&apos;: return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      case 'APPLICATION&apos;: return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+      case 'VOLUMETRIC': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      case 'PROTOCOL': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      case 'APPLICATION': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
 
   const getCountryFlag = (country: string) => {
     const flags: { [key: string]: string } = {
-      'US&apos;: '🇺🇸',
-      'CN&apos;: '🇨🇳',
-      'RU&apos;: '🇷🇺',
-      'FR&apos;: '🇫🇷',
-      'DE&apos;: '🇩🇪',
-      'BR&apos;: '🇧🇷',
-      'JP&apos;: '🇯🇵',
-      'KR&apos;: '🇰🇷',
-      'IN&apos;: '🇮🇳',
-      'GB&apos;: '🇬🇧'
+      'US': '🇺🇸',
+      'CN': '🇨🇳',
+      'RU': '🇷🇺',
+      'FR': '🇫🇷',
+      'DE': '🇩🇪',
+      'BR': '🇧🇷',
+      'JP': '🇯🇵',
+      'KR': '🇰🇷',
+      'IN': '🇮🇳',
+      'GB': '🇬🇧'
     }
     return flags[country] || '🌍'
   }

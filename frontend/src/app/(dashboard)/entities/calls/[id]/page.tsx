@@ -12,11 +12,11 @@ interface Call {
   userId: string
   applicationId: string
   contactId?: string
-  type: 'OUTGOING&apos; | 'INCOMING' | &apos;MISSED'
+  type: 'OUTGOING' | 'INCOMING' | 'MISSED'
   scheduledDate?: string
   callDate?: string
   duration?: number
-  status: 'SCHEDULED&apos; | 'COMPLETED' | &apos;CANCELLED' | 'NO_ANSWER&apos; | 'VOICEMAIL' | &apos;RESCHEDULED'
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_ANSWER' | 'VOICEMAIL' | 'RESCHEDULED'
   notes?: string
   outcome?: string
   followUpNeeded: boolean
@@ -44,18 +44,18 @@ interface Call {
 }
 
 const CALL_TYPES = {
-  OUTGOING: { label: 'Sortant&apos;, icon: '📞', color: &apos;blue' },
-  INCOMING: { label: 'Entrant&apos;, icon: '📱', color: &apos;green' },
-  MISSED: { label: 'Manqué&apos;, icon: '❌', color: &apos;red' },
+  OUTGOING: { label: 'Sortant', icon: '📞', color: 'blue' },
+  INCOMING: { label: 'Entrant', icon: '📱', color: 'green' },
+  MISSED: { label: 'Manqué', icon: '❌', color: 'red' },
 }
 
 const CALL_STATUS = {
-  SCHEDULED: { label: 'Planifié&apos;, color: 'yellow' },
-  COMPLETED: { label: 'Terminé&apos;, color: 'green' },
-  CANCELLED: { label: 'Annulé&apos;, color: 'gray' },
-  NO_ANSWER: { label: 'Pas de réponse&apos;, color: 'orange' },
-  VOICEMAIL: { label: 'Message vocal&apos;, color: 'purple' },
-  RESCHEDULED: { label: 'Replanifié&apos;, color: 'blue' },
+  SCHEDULED: { label: 'Planifié', color: 'yellow' },
+  COMPLETED: { label: 'Terminé', color: 'green' },
+  CANCELLED: { label: 'Annulé', color: 'gray' },
+  NO_ANSWER: { label: 'Pas de réponse', color: 'orange' },
+  VOICEMAIL: { label: 'Message vocal', color: 'purple' },
+  RESCHEDULED: { label: 'Replanifié', color: 'blue' },
 }
 
 export default function CallDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -80,11 +80,11 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
       const response = await fetch(`http://localhost:8080/api/v1/calls/${resolvedParams.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
-      if (!response.ok) throw new Error('Erreur lors du chargement de l\&apos;appel')
+      if (!response.ok) throw new Error('Erreur lors du chargement de l\'appel')
 
       const data = await response.json()
       setCall(data.call)
@@ -104,7 +104,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       })
@@ -126,7 +126,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -144,7 +144,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           duration: formData.duration,
@@ -194,7 +194,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
     return (
       <AdminLayout>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200">{error || 'Appel non trouvé&apos;}</p>
+          <p className="text-red-800 dark:text-red-200">{error || 'Appel non trouvé'}</p>
           <Link href="/backoffice/calls" className="text-blue-600 hover:underline mt-2 inline-block">
             Retour à la liste
           </Link>
@@ -386,7 +386,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   ) : (
-                    <div className="text-gray-900 dark:text-gray-100">{call.phoneNumber || '-&apos;}</div>
+                    <div className="text-gray-900 dark:text-gray-100">{call.phoneNumber || '-'}</div>
                   )}
                 </div>
               </div>
@@ -404,7 +404,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 ) : (
-                  <div className="text-gray-900 dark:text-gray-100">{call.outcome || '-&apos;}</div>
+                  <div className="text-gray-900 dark:text-gray-100">{call.outcome || '-'}</div>
                 )}
               </div>
 

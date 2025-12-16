@@ -48,7 +48,7 @@ export default function BackofficePage() {
     deploymentStatus: 'success'
   })
   const [loadingStats, setLoadingStats] = useState(true)
-  const [systemStatus, setSystemStatus] = useState<'healthy&apos; | 'degraded' | &apos;down'>('healthy')
+  const [systemStatus, setSystemStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
   const [showServicesPopup, setShowServicesPopup] = useState(false)
   const [systemMetrics, setSystemMetrics] = useState<any>(null)
   const [containerMetrics, setContainerMetrics] = useState<any>(null)
@@ -107,7 +107,7 @@ export default function BackofficePage() {
   const services = [
     {
       id: 'auth-service',
-      name: 'Service d\&apos;Authentification',
+      name: 'Service d\'Authentification',
       description: 'Gestion des utilisateurs et authentification',
       icon: '🔐',
       status: 'running',
@@ -256,7 +256,7 @@ export default function BackofficePage() {
               const prevService = prevServices.find(s => s.id === service.id)
               
               // Chercher les métriques du conteneur correspondant au service
-              const serviceKey = service.id.replace('-service&apos;, '')
+              const serviceKey = service.id.replace('-service', '')
               let containerMetrics = null
               
               // Chercher dans containers si disponible
@@ -450,7 +450,7 @@ export default function BackofficePage() {
               if (dockerService) {
                 return {
                   ...service,
-                  status: dockerService.is_running ? 'running&apos; : 'stopped',
+                  status: dockerService.is_running ? 'running' : 'stopped',
                   metrics: dockerService.metrics ? {
                     cpu: dockerService.metrics.cpu_percent,
                     memory: {
@@ -459,7 +459,7 @@ export default function BackofficePage() {
                     },
                     pids: dockerService.metrics.pids
                   } : prevService?.metrics,
-                  uptime: dockerService.is_running ? 'En ligne&apos; : 'Hors ligne'
+                  uptime: dockerService.is_running ? 'En ligne' : 'Hors ligne'
                 }
               }
               
@@ -490,17 +490,17 @@ export default function BackofficePage() {
   // Fonction pour générer le statut des services (simulé pour l'instant)
   const generateServiceStatus = () => {
     const services = [
-      { name: 'Auth Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Application Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Company Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Contact Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Interview Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Notification Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Dashboard Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Call Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Profile Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Event Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' },
-      { name: 'Followup Service&apos;, status: 'running', uptime: &apos;15j 4h 23m' }
+      { name: 'Auth Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Application Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Company Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Contact Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Interview Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Notification Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Dashboard Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Call Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Profile Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Event Service', status: 'running', uptime: '15j 4h 23m' },
+      { name: 'Followup Service', status: 'running', uptime: '15j 4h 23m' }
     ]
 
     return services
@@ -625,9 +625,9 @@ export default function BackofficePage() {
               <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded">📊 Prometheus</span>
             </h2>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${systemMetrics ? 'bg-green-500&apos; : 'bg-red-500'}`}></div>
-              <span className={`text-sm ${systemMetrics ? 'text-green-600&apos; : 'text-red-600'}`}>
-                {systemMetrics ? 'Connecté&apos; : 'Déconnecté'}
+              <div className={`w-3 h-3 rounded-full ${systemMetrics ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className={`text-sm ${systemMetrics ? 'text-green-600' : 'text-red-600'}`}>
+                {systemMetrics ? 'Connecté' : 'Déconnecté'}
               </span>
             </div>
           </div>
@@ -694,7 +694,7 @@ export default function BackofficePage() {
                 {(systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0) || 
                  (containerMetrics && Object.keys(containerMetrics).length > 0)
                   ? '✅ Actifs' 
-                  : systemMetrics ? 'Aucun conteneur détecté&apos; : '...'}
+                  : systemMetrics ? 'Aucun conteneur détecté' : '...'}
               </div>
             </div>
 
@@ -704,7 +704,7 @@ export default function BackofficePage() {
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Services</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {services && services.length > 0 ? '🟢 OK&apos; : '...'}
+                {services && services.length > 0 ? '🟢 OK' : '...'}
               </div>
             </div>
 
@@ -712,7 +712,7 @@ export default function BackofficePage() {
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent !== null
                   ? `${systemMetrics.disk[0].usage_percent}%` 
-                  : loadingSystemMetrics ? '...&apos; : 'N/A'}
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -721,8 +721,8 @@ export default function BackofficePage() {
                   systemMetrics?.disk?.[0]?.used !== undefined && systemMetrics?.disk?.[0]?.total !== undefined ?
                   `${systemMetrics.disk[0].used} GB / ${systemMetrics.disk[0].total} GB` :
                   systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent > 0
-                  ? (systemMetrics.disk[0].usage_percent > 80 ? '⚠️ Plein&apos; : '✅ OK')
-                  : loadingSystemMetrics ? '...&apos; : 'N/A'}
+                  ? (systemMetrics.disk[0].usage_percent > 80 ? '⚠️ Plein' : '✅ OK')
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
             </div>
           </div>
@@ -809,7 +809,7 @@ export default function BackofficePage() {
               {generateServiceStatus().slice(0, 5).map((service, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${service.status === 'running&apos; ? 'bg-green-500' : &apos;bg-red-500'}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     <span className="font-medium text-gray-900 dark:text-gray-100">{service.name}</span>
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">{service.uptime}</span>
@@ -830,7 +830,7 @@ export default function BackofficePage() {
                 <span className="font-bold text-blue-600 dark:text-blue-400">{stats.averageResponseTime}ms</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Taux d&apos;erreur</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</span>
                 <span className="font-bold text-red-600 dark:text-red-400">{stats.errorRate}%</span>
               </div>
               <div className="flex justify-between items-center">
@@ -883,12 +883,12 @@ export default function BackofficePage() {
                               </h3>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className={`inline-block w-2 h-2 rounded-full ${
-                                  service.status === 'running&apos; ? 'bg-green-500' :
-                                  service.status === 'stopped&apos; ? 'bg-red-500' : &apos;bg-yellow-500'
+                                  service.status === 'running' ? 'bg-green-500' :
+                                  service.status === 'stopped' ? 'bg-red-500' : 'bg-yellow-500'
                                 }`}></span>
                                 <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                                  {service.status === 'running&apos; ? 'En ligne' :
-                                   service.status === 'stopped&apos; ? 'Hors ligne' : &apos;Test...'}
+                                  {service.status === 'running' ? 'En ligne' :
+                                   service.status === 'stopped' ? 'Hors ligne' : 'Test...'}
                                 </span>
                                 {maintenance?.isActive && (
                                   <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 text-xs font-medium rounded-full">
@@ -937,12 +937,12 @@ export default function BackofficePage() {
                             <div className="flex justify-between items-center">
                               <span className="text-gray-600 dark:text-gray-400">État:</span>
                               <span className={`font-semibold ${
-                                service.health.status === 'healthy&apos; ? 'text-green-600 dark:text-green-400' :
-                                service.health.status === 'unhealthy&apos; ? 'text-red-600 dark:text-red-400' :
+                                service.health.status === 'healthy' ? 'text-green-600 dark:text-green-400' :
+                                service.health.status === 'unhealthy' ? 'text-red-600 dark:text-red-400' :
                                 'text-yellow-600 dark:text-yellow-400'
                               }`}>
-                                {service.health.status === 'healthy&apos; ? '✅ Disponible' :
-                                 service.health.status === 'unhealthy&apos; ? '❌ Indisponible' :
+                                {service.health.status === 'healthy' ? '✅ Disponible' :
+                                 service.health.status === 'unhealthy' ? '❌ Indisponible' :
                                  '⚠️ En cours de test'}
                               </span>
                             </div>
@@ -1116,10 +1116,10 @@ function MetricCard({ title, value, subtitle, icon, color, href, trend, trendTyp
   value: number | string
   subtitle: string
   icon: React.ReactNode
-  color: 'blue&apos; | 'green' | &apos;purple' | 'orange&apos; | 'yellow' | &apos;pink' | 'red'
+  color: 'blue' | 'green' | 'purple' | 'orange' | 'yellow' | 'pink' | 'red'
   href?: string
   trend?: number  // Pourcentage de changement (positif = augmentation, négatif = diminution)
-  trendType?: 'negative-is-bad&apos; | 'positive-is-bad'  
+  trendType?: 'negative-is-bad' | 'positive-is-bad'  
   // 'negative-is-bad' pour Disponibilité (plus = mieux)
   // 'positive-is-bad' pour CPU, Mémoire, Temps de réponse (moins = mieux)
 }) {
@@ -1133,7 +1133,7 @@ function MetricCard({ title, value, subtitle, icon, color, href, trend, trendTyp
     red: 'bg-red-500 hover:bg-red-600'
   }
 
-  const CardComponent = href ? 'a&apos; : 'div'
+  const CardComponent = href ? 'a' : 'div'
 
   // Déterminer la couleur de la tendance
   const getTrendColor = () => {
@@ -1141,22 +1141,22 @@ function MetricCard({ title, value, subtitle, icon, color, href, trend, trendTyp
     
     if (trendType === 'positive-is-bad') {
       // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
-      return trend > 0 ? 'text-red-200&apos; : 'text-green-200'
+      return trend > 0 ? 'text-red-200' : 'text-green-200'
     } else {
       // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? 'text-green-200&apos; : 'text-red-200'
+      return trend > 0 ? 'text-green-200' : 'text-red-200'
     }
   }
 
   const getTrendIcon = () => {
     if (trend === undefined || trend === null || trend === 0) return null
-    return trend > 0 ? '↑&apos; : '↓'
+    return trend > 0 ? '↑' : '↓'
   }
 
   return (
     <CardComponent
       href={href}
-      className={`relative overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? 'cursor-pointer hover:scale-105&apos; : ''} ${color === &apos;blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600&apos; : color === 'green' ? &apos;bg-gradient-to-br from-green-500 to-green-600' : color === 'purple&apos; ? 'bg-gradient-to-br from-purple-500 to-purple-600' : color === &apos;orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600&apos; : color === 'yellow' ? &apos;bg-gradient-to-br from-yellow-500 to-yellow-600' : color === 'pink&apos; ? 'bg-gradient-to-br from-pink-500 to-pink-600' : &apos;bg-gradient-to-br from-red-500 to-red-600'} text-white`}
+      className={`relative overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? 'cursor-pointer hover:scale-105' : ''} ${color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' : color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' : color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' : color === 'pink' ? 'bg-gradient-to-br from-pink-500 to-pink-600' : 'bg-gradient-to-br from-red-500 to-red-600'} text-white`}
     >
       <div className="p-4 md:p-6">
         <div className="flex items-center justify-between mb-2">

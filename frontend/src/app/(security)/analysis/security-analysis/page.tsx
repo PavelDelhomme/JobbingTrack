@@ -102,16 +102,16 @@ export default function SecurityAnalysisPage() {
             total: 'N/A'
           })),
           byType: {
-            'Brute Force&apos;: 'N/A',
-            'SQL Injection&apos;: 'N/A',
-            'XSS&apos;: 'N/A',
-            'DDoS&apos;: 'N/A'
+            'Brute Force': 'N/A',
+            'SQL Injection': 'N/A',
+            'XSS': 'N/A',
+            'DDoS': 'N/A'
           },
           byCountry: {
-            'US&apos;: 'N/A',
-            'CN&apos;: 'N/A',
-            'RU&apos;: 'N/A',
-            'FR&apos;: 'N/A'
+            'US': 'N/A',
+            'CN': 'N/A',
+            'RU': 'N/A',
+            'FR': 'N/A'
           }
         },
         vulnerabilityAssessment: {
@@ -123,10 +123,10 @@ export default function SecurityAnalysisPage() {
             low: 'N/A'
           },
           byComponent: {
-            'API Gateway&apos;: 'N/A',
-            'Auth Service&apos;: 'N/A',
-            'Database&apos;: 'N/A',
-            'Frontend&apos;: 'N/A'
+            'API Gateway': 'N/A',
+            'Auth Service': 'N/A',
+            'Database': 'N/A',
+            'Frontend': 'N/A'
           },
           critical: 'N/A',
           high: 'N/A',
@@ -135,9 +135,9 @@ export default function SecurityAnalysisPage() {
           averageCVSS: 'N/A'
         },
         ipReputation: {
-          '192.168.1.100&apos;: { score: 'N/A', risk: &apos;N/A' },
-          '10.0.0.50&apos;: { score: 'N/A', risk: &apos;N/A' },
-          '203.0.113.1&apos;: { score: 'N/A', risk: &apos;N/A' }
+          '192.168.1.100': { score: 'N/A', risk: 'N/A' },
+          '10.0.0.50': { score: 'N/A', risk: 'N/A' },
+          '203.0.113.1': { score: 'N/A', risk: 'N/A' }
         },
         recommendations: [
           {
@@ -146,8 +146,8 @@ export default function SecurityAnalysisPage() {
             priority: 'high'
           },
           {
-            title: 'Renforcer l\&apos;authentification',
-            description: 'Implémenter l\&apos;authentification à deux facteurs',
+            title: 'Renforcer l\'authentification',
+            description: 'Implémenter l\'authentification à deux facteurs',
             priority: 'medium'
           },
           {
@@ -188,10 +188,10 @@ export default function SecurityAnalysisPage() {
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'critical&apos;: return 'text-red-600 bg-red-100 dark:bg-red-900/30'
-      case 'high&apos;: return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30'
-      case 'medium&apos;: return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30'
-      case 'low&apos;: return 'text-green-600 bg-green-100 dark:bg-green-900/30'
+      case 'critical': return 'text-red-600 bg-red-100 dark:bg-red-900/30'
+      case 'high': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30'
+      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30'
+      case 'low': return 'text-green-600 bg-green-100 dark:bg-green-900/30'
       default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/30'
     }
   }
@@ -227,7 +227,7 @@ export default function SecurityAnalysisPage() {
               </svg>
               <div>
                 <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Service de sécurité non disponible</h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">Affichage des données de démonstration. Le service de sécurité n&apos;est pas encore connecté.</p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">Affichage des données de démonstration. Le service de sécurité n'est pas encore connecté.</p>
               </div>
             </div>
           </div>
@@ -241,11 +241,11 @@ export default function SecurityAnalysisPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Score de Sécurité</p>
-                    <p className={`text-3xl font-bold ${riskAnalysis.overallRisk === 'critical&apos; || riskAnalysis.overallRisk === 'high' ? &apos;text-red-600 dark:text-red-400' : riskAnalysis.overallRisk === 'medium&apos; ? 'text-yellow-600 dark:text-yellow-400' : &apos;text-green-600 dark:text-green-400'}`}>
+                    <p className={`text-3xl font-bold ${riskAnalysis.overallRisk === 'critical' || riskAnalysis.overallRisk === 'high' ? 'text-red-600 dark:text-red-400' : riskAnalysis.overallRisk === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
                       {Number(systemMetrics.averageRiskScore).toFixed(1)}
                     </p>
                   </div>
-                  <div className={`${riskAnalysis.overallRisk === 'critical&apos; || riskAnalysis.overallRisk === 'high' ? &apos;text-red-500' : riskAnalysis.overallRisk === 'medium&apos; ? 'text-yellow-500' : &apos;text-green-500'}`}>
+                  <div className={`${riskAnalysis.overallRisk === 'critical' || riskAnalysis.overallRisk === 'high' ? 'text-red-500' : riskAnalysis.overallRisk === 'medium' ? 'text-yellow-500' : 'text-green-500'}`}>
                     <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                     </svg>
@@ -261,7 +261,7 @@ export default function SecurityAnalysisPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tentatives d&apos;intrusion</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tentatives d'intrusion</p>
                     <p className="text-3xl font-bold text-red-600 dark:text-red-400">{systemMetrics.intrusionAttempts}</p>
                   </div>
                   <div className="text-red-500">
@@ -433,23 +433,23 @@ export default function SecurityAnalysisPage() {
                   const time = formatDate(log.timestamp)
                   return (
                     <div key={index} className={`p-3 rounded-lg border ${
-                      log.level === 'critical&apos; || log.level === 'error' ? &apos;bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
-                      log.level === 'warning&apos; ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+                      log.level === 'critical' || log.level === 'error' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                      log.level === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
                       'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                     }`}>
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{time}</span>
                         <span className={`px-2 py-1 text-xs rounded-full ${
-                          log.level === 'critical&apos; || log.level === 'error' ? &apos;bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                          log.level === 'warning&apos; ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          log.level === 'critical' || log.level === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                          log.level === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                           'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
-                          {log.level === 'critical&apos; ? 'Critique' : log.level === &apos;error' ? 'Erreur&apos; : log.level === 'warning' ? &apos;Avertissement' : 'Info'}
+                          {log.level === 'critical' ? 'Critique' : log.level === 'error' ? 'Erreur' : log.level === 'warning' ? 'Avertissement' : 'Info'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{log.message}</p>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {log.category} • {log.sourceIP ? `IP: ${log.sourceIP}` : '&apos;} {log.country ? `(${log.country})` : ''}
+                        {log.category} • {log.sourceIP ? `IP: ${log.sourceIP}` : ''} {log.country ? `(${log.country})` : ''}
                       </div>
                     </div>
                   )

@@ -283,7 +283,7 @@ function StatusBadge({ status, large }: { status: string, large?: boolean }) {
   }
 
   return (
-    <span className={`px-3 inline-flex leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300&apos;} ${large ? 'text-base py-2' : &apos;text-xs'}`}>
+    <span className={`px-3 inline-flex leading-5 font-semibold rounded-full ${statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'} ${large ? 'text-base py-2' : 'text-xs'}`}>
       {status}
     </span>
   )

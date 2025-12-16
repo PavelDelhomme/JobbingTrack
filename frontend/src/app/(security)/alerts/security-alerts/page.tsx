@@ -61,10 +61,10 @@ export default function SecurityAlertsPage() {
       const mockAlerts = Array.from({ length: 20 }, (_, i) => ({
         id: `alert-${i}`,
         timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        level: ['low&apos;, 'medium', &apos;high', 'critical'][Math.floor(Math.random() * 4)],
+        level: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)],
         title: `Alerte de sécurité ${i + 1}`,
         description: `Description de l'alerte de sécurité ${i + 1}. Cette alerte indique une activité potentiellement malveillante qui nécessite une attention.`,
-        category: ['intrusion&apos;, 'vulnerability', &apos;ddos', 'authentication'][Math.floor(Math.random() * 4)],
+        category: ['intrusion', 'vulnerability', 'ddos', 'authentication'][Math.floor(Math.random() * 4)],
         source: `192.168.1.${Math.floor(Math.random() * 255)}`,
         isAcknowledged: Math.random() > 0.5,
         acknowledgedBy: Math.random() > 0.5 ? `admin${Math.floor(Math.random() * 5) + 1}` : undefined,
@@ -72,8 +72,8 @@ export default function SecurityAlertsPage() {
         resolvedAt: Math.random() > 0.7 ? new Date(Date.now() - Math.random() * 48 * 60 * 60 * 1000).toISOString() : undefined,
         metadata: {
           riskScore: Math.floor(Math.random() * 100),
-          affectedSystems: ['api-gateway&apos;, 'auth-service', &apos;database'][Math.floor(Math.random() * 3)],
-          attackVector: ['SQL Injection&apos;, 'XSS', &apos;Brute Force', 'DDoS'][Math.floor(Math.random() * 4)]
+          affectedSystems: ['api-gateway', 'auth-service', 'database'][Math.floor(Math.random() * 3)],
+          attackVector: ['SQL Injection', 'XSS', 'Brute Force', 'DDoS'][Math.floor(Math.random() * 4)]
         }
       }))
 
@@ -138,7 +138,7 @@ export default function SecurityAlertsPage() {
           : alert
       ))
     } catch (error) {
-      console.error('Erreur lors de l\&apos;acquittement de l\'alerte:', error)
+      console.error('Erreur lors de l\'acquittement de l\'alerte:', error)
       // Simulation pour les données mockées
       setAlerts(prev => prev.map(alert =>
         alert.id === alertId
@@ -160,7 +160,7 @@ export default function SecurityAlertsPage() {
           : alert
       ))
     } catch (error) {
-      console.error('Erreur lors de la résolution de l\&apos;alerte:', error)
+      console.error('Erreur lors de la résolution de l\'alerte:', error)
       // Simulation pour les données mockées
       setAlerts(prev => prev.map(alert =>
         alert.id === alertId
@@ -182,20 +182,20 @@ export default function SecurityAlertsPage() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'critical&apos;: return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'high&apos;: return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      case 'medium&apos;: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'low&apos;: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'intrusion&apos;: return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-      case 'ddos&apos;: return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      case 'authentication&apos;: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-      case 'vulnerability&apos;: return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
+      case 'intrusion': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+      case 'ddos': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      case 'authentication': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case 'vulnerability': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }

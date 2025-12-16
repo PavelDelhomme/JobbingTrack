@@ -74,8 +74,8 @@ export default function SecurityDataGeneratorPage() {
         await loadGenerationStatus()
       }
     } catch (error) {
-      console.error('Erreur lors de l\&apos;arrêt de la génération:', error)
-      setMessage('❌ Erreur lors de l\&apos;arrêt de la génération')
+      console.error('Erreur lors de l\'arrêt de la génération:', error)
+      setMessage('❌ Erreur lors de l\'arrêt de la génération')
     } finally {
       setLoading(false)
       setTimeout(() => setMessage(''), 5000)
@@ -157,7 +157,7 @@ export default function SecurityDataGeneratorPage() {
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                   }`}>
-                    {generationStatus.isGenerating ? '🟢 Active&apos; : '🔴 Inactive'}
+                    {generationStatus.isGenerating ? '🟢 Active' : '🔴 Inactive'}
                   </span>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -173,7 +173,7 @@ export default function SecurityDataGeneratorPage() {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <p>Impossible de récupérer l&apos;état de la génération</p>
+              <p>Impossible de récupérer l'état de la génération</p>
             </div>
           )}
         </div>
@@ -254,10 +254,10 @@ export default function SecurityDataGeneratorPage() {
 
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">📋 Types d&apos;événements générés:</h4>
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">📋 Types d'événements générés:</h4>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Connexions réussies et échouées</li>
-                <li>Tentatives d&apos;intrusion (SQL Injection, XSS, Brute Force)</li>
+                <li>Tentatives d'intrusion (SQL Injection, XSS, Brute Force)</li>
                 <li>Attaques DDoS simulées</li>
                 <li>Activité suspecte et patterns inhabituels</li>
                 <li>Alertes de sécurité automatiques</li>
@@ -270,8 +270,8 @@ export default function SecurityDataGeneratorPage() {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">⚠️ Système d&apos;alertes:</h4>
-              <p>Les événements à haut risque génèrent automatiquement des alertes de sécurité et des tentatives d&apos;intrusion</p>
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">⚠️ Système d'alertes:</h4>
+              <p>Les événements à haut risque génèrent automatiquement des alertes de sécurité et des tentatives d'intrusion</p>
             </div>
 
             <div>

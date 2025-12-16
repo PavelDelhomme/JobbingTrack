@@ -38,7 +38,7 @@ type JourneyStep = {
   name: string;
   description: string;
   icon: any;
-  status: 'pending&apos; | 'running' | &apos;success' | 'error';
+  status: 'pending' | 'running' | 'success' | 'error';
   duration?: number;
   result?: any;
   error?: string;
@@ -48,7 +48,7 @@ type JourneyStep = {
 const SCENARIOS = {
   complete: {
     name: 'Parcours Complet',
-    description: 'De l\&apos;inscription à la statistique complète avec toutes les fonctionnalités',
+    description: 'De l\'inscription à la statistique complète avec toutes les fonctionnalités',
     steps: [
       'register',
       'login',
@@ -69,10 +69,10 @@ const SCENARIOS = {
   quick: {
     name: 'Parcours Rapide',
     description: 'Actions principales uniquement',
-    steps: ['login&apos;, 'create_applications', &apos;view_statistics']
+    steps: ['login', 'create_applications', 'view_statistics']
   },
   job_seeker: {
-    name: 'Chercheur d\&apos;Emploi Actif',
+    name: 'Chercheur d\'Emploi Actif',
     description: 'Candidature intensive avec suivi complet',
     steps: [
       'login',
@@ -88,7 +88,7 @@ const SCENARIOS = {
   beginner: {
     name: 'Nouvel Utilisateur',
     description: 'Première connexion et découverte',
-    steps: ['register&apos;, 'login', &apos;create_applications', 'create_contacts&apos;, 'view_statistics']
+    steps: ['register', 'login', 'create_applications', 'create_contacts', 'view_statistics']
   },
   mobile_test: {
     name: 'Test Mobile Complet',
@@ -138,7 +138,7 @@ const SCENARIOS = {
   },
   interview_workflow: {
     name: 'Workflow Entretiens',
-    description: 'Parcours complet de planification et suivi d\&apos;entretiens',
+    description: 'Parcours complet de planification et suivi d\'entretiens',
     steps: [
       'login',
       'create_applications',
@@ -162,8 +162,8 @@ const SCENARIOS = {
     ]
   },
   event_scheduling: {
-    name: 'Planification d\&apos;Événements',
-    description: 'Test de création et gestion d\&apos;événements au calendrier',
+    name: 'Planification d\'Événements',
+    description: 'Test de création et gestion d\'événements au calendrier',
     steps: [
       'login',
       'create_events',
@@ -187,7 +187,7 @@ const SCENARIOS = {
   },
   application_lifecycle: {
     name: 'Cycle de Vie Candidature',
-    description: 'Suivi complet d\&apos;une candidature de A à Z',
+    description: 'Suivi complet d\'une candidature de A à Z',
     steps: [
       'login',
       'create_applications',
@@ -202,7 +202,7 @@ const SCENARIOS = {
   },
   daily_activity: {
     name: 'Activité Quotidienne',
-    description: 'Simulation d\&apos;une journée type de recherche d\'emploi',
+    description: 'Simulation d\'une journée type de recherche d\'emploi',
     steps: [
       'login',
       'view_statistics',
@@ -263,7 +263,7 @@ const SCENARIOS = {
   },
   email_verification_workflow: {
     name: 'Vérification Email et Reset Password',
-    description: 'Test complet du système d\&apos;emails : inscription, vérification, reset password',
+    description: 'Test complet du système d\'emails : inscription, vérification, reset password',
     steps: [
       'register',
       'verify_email',
@@ -275,8 +275,8 @@ const SCENARIOS = {
     ]
   },
   email_testing: {
-    name: 'Tests d\&apos;Emails Complets',
-    description: 'Test de tous les types d\&apos;emails : test générique, reset password, vérification',
+    name: 'Tests d\'Emails Complets',
+    description: 'Test de tous les types d\'emails : test générique, reset password, vérification',
     steps: [
       'test_email_generic',
       'test_email_reset_password',
@@ -312,7 +312,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   login: {
     id: 'login',
     name: 'Connexion',
-    description: 'Se connecter à l\&apos;application',
+    description: 'Se connecter à l\'application',
     icon: LogIn
   },
   create_companies: {
@@ -384,7 +384,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   test_mobile_calendar: {
     id: 'test_mobile_calendar',
     name: 'Calendrier Mobile',
-    description: 'Tester le calendrier dans l\&apos;app mobile',
+    description: 'Tester le calendrier dans l\'app mobile',
     icon: Calendar
   },
   // Nouvelles étapes granulaires
@@ -397,7 +397,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   view_contact_details: {
     id: 'view_contact_details',
     name: 'Voir Détails Contact',
-    description: 'Consulter les informations d\&apos;un contact',
+    description: 'Consulter les informations d\'un contact',
     icon: Users
   },
   delete_contact: {
@@ -409,7 +409,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   update_interview_status: {
     id: 'update_interview_status',
     name: 'Mettre à Jour Statut Entretien',
-    description: 'Modifier le statut d\&apos;un entretien',
+    description: 'Modifier le statut d\'un entretien',
     icon: Calendar
   },
   add_interview_notes: {
@@ -421,7 +421,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   update_followup_status: {
     id: 'update_followup_status',
     name: 'Mettre à Jour Relance',
-    description: 'Modifier le statut d\&apos;une relance',
+    description: 'Modifier le statut d\'une relance',
     icon: Clock
   },
   mark_followup_completed: {
@@ -463,7 +463,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   update_application_status: {
     id: 'update_application_status',
     name: 'Mettre à Jour Statut Candidature',
-    description: 'Changer le statut d\&apos;une candidature',
+    description: 'Changer le statut d\'une candidature',
     icon: TrendingUp
   },
   check_interviews: {
@@ -493,7 +493,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
   verify_email: {
     id: 'verify_email',
     name: 'Vérifier Email',
-    description: 'Vérifier l\&apos;adresse email avec le token reçu',
+    description: 'Vérifier l\'adresse email avec le token reçu',
     icon: CheckCircle
   },
   request_password_reset: {
@@ -518,7 +518,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
 
 export default function UserJourneyPage() {
   const [selectedScenario, setSelectedScenario] = useState<keyof typeof SCENARIOS>('complete');
-  const [userMode, setUserMode] = useState<'admin&apos; | 'user'>(&apos;admin'); // Mode Admin ou Utilisateur de test
+  const [userMode, setUserMode] = useState<'admin' | 'user'>('admin'); // Mode Admin ou Utilisateur de test
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
@@ -559,7 +559,7 @@ export default function UserJourneyPage() {
         console.log('✅ Token de test permanent chargé');
       }
     } catch (error) {
-      console.error('Erreur lors du chargement de l\&apos;état:', error);
+      console.error('Erreur lors du chargement de l\'état:', error);
     }
   }, []);
 
@@ -574,7 +574,7 @@ export default function UserJourneyPage() {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\&apos;état:', error);
+      console.error('Erreur lors de la sauvegarde de l\'état:', error);
     }
   }, [selectedScenario, steps, analytics]);
 
@@ -654,7 +654,7 @@ export default function UserJourneyPage() {
         case 'register':
           const registerRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
             method: 'POST',
-            headers: { 'Content-Type&apos;: 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: `test-${Date.now()}@example.com`,
               password: 'Test123!',
@@ -673,14 +673,14 @@ export default function UserJourneyPage() {
         case 'login':
           // Utiliser différents credentials selon le mode
           const loginCredentials = userMode === 'admin' 
-            ? { email: 'admin@jobbingtrack.test&apos;, password: 'password123' }
+            ? { email: 'admin@jobbingtrack.test', password: 'password123' }
             : { email: `testuser-${Date.now()}@test.com`, password: 'Test123!' };
           
           // Si mode user, créer d'abord l'utilisateur
           if (userMode === 'user') {
             const registerUserRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
               method: 'POST',
-              headers: { 'Content-Type&apos;: 'application/json' },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 ...loginCredentials,
                 firstName: 'Utilisateur',
@@ -692,7 +692,7 @@ export default function UserJourneyPage() {
           
           const loginRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type&apos;: 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(loginCredentials)
           });
           result = await handleFetchResponse(loginRes);
@@ -709,13 +709,13 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 name: `Entreprise Test ${i + 1}`,
-                industry: ['tech&apos;, 'finance', &apos;healthcare'][i % 3],
-                size: ['STARTUP&apos;, 'MEDIUM', &apos;LARGE'][i % 3],
+                industry: ['tech', 'finance', 'healthcare'][i % 3],
+                size: ['STARTUP', 'MEDIUM', 'LARGE'][i % 3],
                 website: `https://company${i + 1}.example.com`
               })
             });
@@ -736,12 +736,12 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/companies/${companiesToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
-                industry: ['retail&apos;, 'manufacturing', &apos;services'][i % 3],
-                size: ['ENTERPRISE&apos;, 'STARTUP', &apos;MEDIUM'][i % 3],
+                industry: ['retail', 'manufacturing', 'services'][i % 3],
+                size: ['ENTERPRISE', 'STARTUP', 'MEDIUM'][i % 3],
                 description: `Entreprise mise à jour - Test ${i + 1}`
               })
             });
@@ -757,13 +757,13 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
                 position: `Poste ${i + 1}`,
-                status: ['CANDIDATE_PENDING&apos;, 'NO_RESPONSE', &apos;FIRST_INTERVIEW_PENDING'][i % 3],
+                status: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING'][i % 3],
                 appliedAt: new Date().toISOString()
               })
             });
@@ -784,11 +784,11 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
-                status: ['FIRST_INTERVIEW_PENDING&apos;, 'OFFER_RECEIVED', &apos;ACCEPTED_AFTER_INTERVIEW'][i % 3],
+                status: ['FIRST_INTERVIEW_PENDING', 'OFFER_RECEIVED', 'ACCEPTED_AFTER_INTERVIEW'][i % 3],
                 notes: `Mise à jour automatique - Test ${i + 1}`
               })
             });
@@ -804,7 +804,7 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -831,7 +831,7 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsToUpdate[i].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -861,14 +861,14 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 applicationId: appsForInterviews[i].id,
                 interviewDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString(),
                 estimatedDuration: 45,
-                location: i % 2 === 0 ? 'Visio&apos; : 'Bureaux JobbingTrack',
+                location: i % 2 === 0 ? 'Visio' : 'Bureaux JobbingTrack',
                 notes: `Entretien automatique - Série ${i + 1}`
               })
             });
@@ -896,7 +896,7 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -938,7 +938,7 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -979,7 +979,7 @@ export default function UserJourneyPage() {
             const res = await fetch(`${API_GATEWAY_URL}/api/v1/calls`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -989,7 +989,7 @@ export default function UserJourneyPage() {
                 notes: `Appel automatique ${i + 1}`,
                 callDate: new Date(Date.now() + i * 60 * 60 * 1000).toISOString(),
                 duration: Math.floor(Math.random() * 600) + 120,
-                status: i % 2 === 0 ? 'COMPLETED&apos; : 'SCHEDULED'
+                status: i % 2 === 0 ? 'COMPLETED' : 'SCHEDULED'
               })
             });
             const call = await handleFetchResponse(res);
@@ -1040,7 +1040,7 @@ export default function UserJourneyPage() {
             const linkRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsArray[0].id}/contacts`, {
               method: 'POST',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1099,7 +1099,7 @@ export default function UserJourneyPage() {
             const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews/${interviewsArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1123,7 +1123,7 @@ export default function UserJourneyPage() {
             const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews/${interviewsForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1147,7 +1147,7 @@ export default function UserJourneyPage() {
             const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups/${followupsArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1172,7 +1172,7 @@ export default function UserJourneyPage() {
             const completeRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups/${followupsToCompleteArray[0].id}/complete`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1197,7 +1197,7 @@ export default function UserJourneyPage() {
             const updateRes = await fetch(`${API_GATEWAY_URL}/api/v1/events/${eventsToUpdateArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1255,12 +1255,12 @@ export default function UserJourneyPage() {
             const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies/${companiesForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
                 description: 'Notes ajoutées automatiquement - Entreprise très intéressante',
-                notes: 'Culture d\&apos;entreprise excellente'
+                notes: 'Culture d\'entreprise excellente'
               })
             });
             result = await handleFetchResponse(notesRes);
@@ -1280,7 +1280,7 @@ export default function UserJourneyPage() {
             const notesRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsForNotesArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1305,7 +1305,7 @@ export default function UserJourneyPage() {
             const statusRes = await fetch(`/api/v1/applications/${appsForStatusArray[0].id}`, {
               method: 'PUT',
               headers: { 
-                'Content-Type&apos;: 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${testToken || token}`
               },
               body: JSON.stringify({
@@ -1337,7 +1337,7 @@ export default function UserJourneyPage() {
           const genericEmailRes = await fetch('/api/v1/emails/test', {
             method: 'POST',
             headers: {
-              'Content-Type&apos;: 'application/json',
+              'Content-Type': 'application/json',
               'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
@@ -1356,7 +1356,7 @@ export default function UserJourneyPage() {
           const resetEmailRes = await fetch('/api/v1/emails/test', {
             method: 'POST',
             headers: {
-              'Content-Type&apos;: 'application/json',
+              'Content-Type': 'application/json',
               'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
@@ -1374,7 +1374,7 @@ export default function UserJourneyPage() {
           const verifyEmailRes = await fetch('/api/v1/emails/test', {
             method: 'POST',
             headers: {
-              'Content-Type&apos;: 'application/json',
+              'Content-Type': 'application/json',
               'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
@@ -1399,7 +1399,7 @@ export default function UserJourneyPage() {
           } catch (error) {
             result = { 
               message: 'Simulation vérification email (token non valide dans test automatisé)', 
-              note: 'En production, l\&apos;utilisateur clique sur le lien dans son email'
+              note: 'En production, l\'utilisateur clique sur le lien dans son email'
             };
           }
           break;
@@ -1411,7 +1411,7 @@ export default function UserJourneyPage() {
           // D'abord créer un compte pour pouvoir reset le password
           const createForResetRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
             method: 'POST',
-            headers: { 'Content-Type&apos;: 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: resetRequestEmail,
               password: 'OldPassword123!',
@@ -1424,7 +1424,7 @@ export default function UserJourneyPage() {
           // Maintenant demander le reset
           const requestResetRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/forgot-password`, {
             method: 'POST',
-            headers: { 'Content-Type&apos;: 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: resetRequestEmail })
           });
           result = await handleFetchResponse(requestResetRes);
@@ -1436,7 +1436,7 @@ export default function UserJourneyPage() {
         case 'reset_password':
           // Simuler le reset de password
           // En production, l'utilisateur clique sur le lien dans l'email
-          const storedResetEmail = localStorage.getItem('resetTestEmail&apos;) || 'redacted@example.invalid';
+          const storedResetEmail = localStorage.getItem('resetTestEmail') || 'redacted@example.invalid';
           
           result = {
             message: 'Simulation reset password',
@@ -1445,7 +1445,7 @@ export default function UserJourneyPage() {
             workflow: [
               '1. Utilisateur reçoit email avec lien',
               '2. Clique sur le lien (contient token)',
-              '3. Page /reset-password s\&apos;affiche',
+              '3. Page /reset-password s\'affiche',
               '4. Entre nouveau mot de passe',
               '5. Mot de passe mis à jour ✅'
             ]
@@ -1456,7 +1456,7 @@ export default function UserJourneyPage() {
           const cleanupRes = await fetch(`${API_GATEWAY_URL}/api/v1/admin/clear-test-data`, {
             method: 'POST',
             headers: { 
-              'Content-Type&apos;: 'application/json',
+              'Content-Type': 'application/json',
               'Authorization': `Bearer ${testToken || token}`
             },
             body: JSON.stringify({
@@ -1500,12 +1500,12 @@ export default function UserJourneyPage() {
     for (let i = 0; i < steps.length; i++) {
       // Vérifier si l'utilisateur a annulé
       if (isCancelled) {
-        console.log('🛑 Parcours annulé par l\&apos;utilisateur');
+        console.log('🛑 Parcours annulé par l\'utilisateur');
         wasCancelled = true;
         
         // Marquer les étapes restantes comme annulées
         setSteps(prev => prev.map((s, idx) => 
-          idx >= i && s.status === 'pending&apos; ? { ...s, status: 'error', error: &apos;Annulé par l\'utilisateur' } : s
+          idx >= i && s.status === 'pending' ? { ...s, status: 'error', error: 'Annulé par l\'utilisateur' } : s
         ));
         
         break;
@@ -1528,7 +1528,7 @@ export default function UserJourneyPage() {
       setSteps(prev => prev.map((s, idx) => 
         idx === i ? { 
           ...s, 
-          status: success ? 'success&apos; : 'error',
+          status: success ? 'success' : 'error',
           duration,
           result,
           error
@@ -1561,13 +1561,13 @@ export default function UserJourneyPage() {
   const cancelJourney = () => {
     if (isRunning) {
       setIsCancelled(true);
-      console.log('🛑 Demande d\&apos;annulation du parcours...');
+      console.log('🛑 Demande d\'annulation du parcours...');
     }
   };
 
   // Effacer l'historique sauvegardé
   const clearHistory = () => {
-    if (confirm('Voulez-vous effacer tout l\&apos;historique des tests sauvegardés ?')) {
+    if (confirm('Voulez-vous effacer tout l\'historique des tests sauvegardés ?')) {
       localStorage.removeItem(STORAGE_KEY);
       console.log('🗑️ Historique effacé');
       
@@ -1672,7 +1672,7 @@ export default function UserJourneyPage() {
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Date de Test</td>
-              <td style="padding: 10px; border: 1px solid #e5e7eb;">${analytics.completedAt ? analytics.completedAt.toLocaleString('fr-FR&apos;) : new Date().toLocaleString('fr-FR&apos;)}</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${analytics.completedAt ? analytics.completedAt.toLocaleString('fr-FR') : new Date().toLocaleString('fr-FR')}</td>
             </tr>
             <tr style="background-color: #f9fafb;">
               <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Durée Totale</td>
@@ -1680,13 +1680,13 @@ export default function UserJourneyPage() {
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Taux de Réussite</td>
-              <td style="padding: 10px; border: 1px solid #e5e7eb; color: ${analytics.successRate >= 80 ? '#10b981&apos; : analytics.successRate >= 50 ? '#f59e0b' : &apos;#ef4444'}; font-weight: bold;">
+              <td style="padding: 10px; border: 1px solid #e5e7eb; color: ${analytics.successRate >= 80 ? '#10b981' : analytics.successRate >= 50 ? '#f59e0b' : '#ef4444'}; font-weight: bold;">
                 ${analytics.successRate.toFixed(1)}%
               </td>
             </tr>
             <tr style="background-color: #f9fafb;">
               <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Étapes Réussies</td>
-              <td style="padding: 10px; border: 1px solid #e5e7eb;">${steps.filter(s => s.status === 'success&apos;).length} / ${steps.length}</td>
+              <td style="padding: 10px; border: 1px solid #e5e7eb;">${steps.filter(s => s.status === 'success').length} / ${steps.length}</td>
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Étapes Échouées</td>
@@ -1707,16 +1707,16 @@ export default function UserJourneyPage() {
             </thead>
             <tbody>
               ${steps.map((step, index) => `
-                <tr style="${index % 2 === 0 ? 'background-color: #f9fafb;&apos; : ''}">
+                <tr style="${index % 2 === 0 ? 'background-color: #f9fafb;' : ''}">
                   <td style="padding: 10px; border: 1px solid #e5e7eb;">${step.name}</td>
-                  <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: right;">${step.duration ? step.duration + 'ms&apos; : 'N/A&apos;}</td>
+                  <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: right;">${step.duration ? step.duration + 'ms' : 'N/A'}</td>
                   <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">
                     <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; 
-                      ${step.status === 'success&apos; ? 'background-color: #d1fae5; color: #065f46;' : &apos;'}
-                      ${step.status === 'error&apos; ? 'background-color: #fee2e2; color: #991b1b;' : &apos;'}
-                      ${step.status === 'running&apos; ? 'background-color: #dbeafe; color: #1e40af;' : &apos;'}
-                      ${step.status === 'pending&apos; ? 'background-color: #f3f4f6; color: #6b7280;' : &apos;'}">
-                      ${step.status === 'success&apos; ? '✅ Réussi' : step.status === &apos;error' ? '❌ Échoué&apos; : step.status === 'running' ? &apos;⏳ En cours' : '⏸️ En attente'}
+                      ${step.status === 'success' ? 'background-color: #d1fae5; color: #065f46;' : ''}
+                      ${step.status === 'error' ? 'background-color: #fee2e2; color: #991b1b;' : ''}
+                      ${step.status === 'running' ? 'background-color: #dbeafe; color: #1e40af;' : ''}
+                      ${step.status === 'pending' ? 'background-color: #f3f4f6; color: #6b7280;' : ''}">
+                      ${step.status === 'success' ? '✅ Réussi' : step.status === 'error' ? '❌ Échoué' : step.status === 'running' ? '⏳ En cours' : '⏸️ En attente'}
                     </span>
                   </td>
                 </tr>
@@ -1746,14 +1746,14 @@ export default function UserJourneyPage() {
         <div style="margin-bottom: 30px;">
           <h2 style="color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; font-size: 20px;">📝 Détails des Étapes</h2>
           ${steps.map((step, index) => `
-            <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: ${step.status === 'success&apos; ? '#f0fdf4' : step.status === &apos;error' ? '#fef2f2&apos; : '#f9fafb'};">
+            <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: ${step.status === 'success' ? '#f0fdf4' : step.status === 'error' ? '#fef2f2' : '#f9fafb'};">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h3 style="margin: 0; color: #1f2937; font-size: 16px;">${index + 1}. ${step.name}</h3>
                 <span style="padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;
-                  ${step.status === 'success&apos; ? 'background-color: #10b981; color: white;' : &apos;'}
-                  ${step.status === 'error&apos; ? 'background-color: #ef4444; color: white;' : &apos;'}
-                  ${step.status === 'running&apos; ? 'background-color: #3b82f6; color: white;' : &apos;background-color: #6b7280; color: white;'}">
-                  ${step.status === 'success&apos; ? '✅ Réussi' : step.status === &apos;error' ? '❌ Échoué&apos; : step.status === 'running' ? &apos;⏳ En cours' : '⏸️ En attente'}
+                  ${step.status === 'success' ? 'background-color: #10b981; color: white;' : ''}
+                  ${step.status === 'error' ? 'background-color: #ef4444; color: white;' : ''}
+                  ${step.status === 'running' ? 'background-color: #3b82f6; color: white;' : 'background-color: #6b7280; color: white;'}">
+                  ${step.status === 'success' ? '✅ Réussi' : step.status === 'error' ? '❌ Échoué' : step.status === 'running' ? '⏳ En cours' : '⏸️ En attente'}
                 </span>
               </div>
               <p style="color: #6b7280; margin: 5px 0; font-size: 14px;">${step.description}</p>
@@ -1774,7 +1774,7 @@ export default function UserJourneyPage() {
         </div>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-          <p>Rapport généré le ${new Date().toLocaleString('fr-FR&apos;)} par JobbingTrack</p>
+          <p>Rapport généré le ${new Date().toLocaleString('fr-FR')} par JobbingTrack</p>
           <p>Version 4.1 - Système de Test Automatisé</p>
         </div>
       `;
@@ -1793,7 +1793,7 @@ export default function UserJourneyPage() {
       });
 
       // Créer le PDF
-      const pdf = new jsPDF('p&apos;, 'mm', &apos;a4');
+      const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = 210;
       const pageHeight = 297;
@@ -1831,7 +1831,7 @@ export default function UserJourneyPage() {
       const normalToken = testToken || token;
       
       if (!normalToken) {
-        alert('❌ Vous devez être connecté pour générer un token de test.\n\nConnectez-vous d\&apos;abord, puis réessayez.');
+        alert('❌ Vous devez être connecté pour générer un token de test.\n\nConnectez-vous d\'abord, puis réessayez.');
         return;
       }
 
@@ -1882,7 +1882,7 @@ export default function UserJourneyPage() {
             variant="default"
           >
             <Play className="h-4 w-4 mr-2" />
-            {isRunning ? 'En cours...&apos; : 'Lancer le parcours'}
+            {isRunning ? 'En cours...' : 'Lancer le parcours'}
           </Button>
           
           {isRunning && (
@@ -1904,7 +1904,7 @@ export default function UserJourneyPage() {
             title="Générer un token permanent pour éviter les erreurs 403"
           >
             <Key className="h-4 w-4 mr-2" />
-            {isGeneratingToken ? 'Génération...&apos; : testToken ? '✅ Token Actif' : &apos;Générer Token de Test'}
+            {isGeneratingToken ? 'Génération...' : testToken ? '✅ Token Actif' : 'Générer Token de Test'}
           </Button>
           
           <Button
@@ -1941,7 +1941,7 @@ export default function UserJourneyPage() {
             variant="outline"
             disabled={isRunning}
             className="text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
-            title="Effacer l&apos;historique sauvegardé"
+            title="Effacer l'historique sauvegardé"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -1978,7 +1978,7 @@ export default function UserJourneyPage() {
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                           : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
                         }
-                        ${isRunning ? 'opacity-50 cursor-not-allowed&apos; : 'cursor-pointer'}
+                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                       `}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -1999,7 +1999,7 @@ export default function UserJourneyPage() {
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                           : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
                         }
-                        ${isRunning ? 'opacity-50 cursor-not-allowed&apos; : 'cursor-pointer'}
+                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                       `}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -2015,8 +2015,8 @@ export default function UserJourneyPage() {
                 
                 {/* Badge du mode actif */}
                 <div className="text-right">
-                  <Badge variant={userMode === 'admin&apos; ? 'default' : &apos;secondary'} className="text-sm">
-                    {userMode === 'admin&apos; ? '🛡️ Admin' : &apos;👤 Utilisateur'}
+                  <Badge variant={userMode === 'admin' ? 'default' : 'secondary'} className="text-sm">
+                    {userMode === 'admin' ? '🛡️ Admin' : '👤 Utilisateur'}
                   </Badge>
                 </div>
               </div>
@@ -2044,13 +2044,13 @@ export default function UserJourneyPage() {
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md' 
                         : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                       }
-                      ${isRunning ? 'opacity-50 cursor-not-allowed&apos; : 'cursor-pointer hover:shadow-sm'}
+                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
                     `}
                   >
                     <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{scenario.name}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{scenario.description}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                      📋 {scenario.steps.length} étape{scenario.steps.length > 1 ? 's&apos; : ''}
+                      📋 {scenario.steps.length} étape{scenario.steps.length > 1 ? 's' : ''}
                     </p>
                   </button>
                 ))}
@@ -2074,16 +2074,16 @@ export default function UserJourneyPage() {
                       key={`${step.id}-${index}`}
                       className={`
                         flex items-start gap-4 p-4 rounded-lg border-2 transition-all
-                        ${isActive ? 'border-blue-500 bg-blue-50 shadow-md&apos; : 'border-gray-200'}
+                        ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200'}
                       `}
                     >
                       {/* Icône de statut */}
                       <div className={`
                         flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                        ${step.status === 'pending&apos; ? 'bg-gray-100' : &apos;'}
-                        ${step.status === 'running&apos; ? 'bg-blue-100 animate-pulse' : &apos;'}
-                        ${step.status === 'success&apos; ? 'bg-green-100' : &apos;'}
-                        ${step.status === 'error&apos; ? 'bg-red-100' : &apos;'}
+                        ${step.status === 'pending' ? 'bg-gray-100' : ''}
+                        ${step.status === 'running' ? 'bg-blue-100 animate-pulse' : ''}
+                        ${step.status === 'success' ? 'bg-green-100' : ''}
+                        ${step.status === 'error' ? 'bg-red-100' : ''}
                       `}>
                         {step.status === 'pending' && <Icon className="h-6 w-6 text-gray-400" />}
                         {step.status === 'running' && <Icon className="h-6 w-6 text-blue-500 animate-pulse" />}
@@ -2096,14 +2096,14 @@ export default function UserJourneyPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold">{step.name}</h3>
                           <Badge variant={
-                            step.status === 'pending&apos; ? 'secondary' :
-                            step.status === 'running&apos; ? 'default' :
-                            step.status === 'success&apos; ? 'default' :
+                            step.status === 'pending' ? 'secondary' :
+                            step.status === 'running' ? 'default' :
+                            step.status === 'success' ? 'default' :
                             'destructive'
                           }>
-                            {step.status === 'pending&apos; ? 'En attente' :
-                             step.status === 'running&apos; ? 'En cours...' :
-                             step.status === 'success&apos; ? 'Réussi' :
+                            {step.status === 'pending' ? 'En attente' :
+                             step.status === 'running' ? 'En cours...' :
+                             step.status === 'success' ? 'Réussi' :
                              'Échoué'}
                           </Badge>
                           {step.duration && (
@@ -2214,7 +2214,7 @@ export default function UserJourneyPage() {
                   <div>
                     <h3 className="font-semibold text-orange-900">Test Annulé</h3>
                     <p className="text-sm text-orange-700">
-                      Le parcours a été interrompu par l&apos;utilisateur. 
+                      Le parcours a été interrompu par l'utilisateur. 
                       Les résultats affichés sont partiels.
                     </p>
                   </div>
@@ -2236,7 +2236,7 @@ export default function UserJourneyPage() {
                     <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          step.status === 'success&apos; ? 'bg-green-500' : &apos;bg-red-500'
+                          step.status === 'success' ? 'bg-green-500' : 'bg-red-500'
                         }`}
                         style={{
                           width: `${Math.min(100, ((step.duration || 0) / Math.max(...steps.map(s => s.duration || 0))) * 100)}%`
@@ -2277,12 +2277,12 @@ export default function UserJourneyPage() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <div><strong>Scénario :</strong> {SCENARIOS[selectedScenario].name}</div>
-                  <div><strong>Complété le :</strong> {analytics.completedAt.toLocaleString('fr-FR&apos;)}</div>
+                  <div><strong>Complété le :</strong> {analytics.completedAt.toLocaleString('fr-FR')}</div>
                   <div><strong>Durée totale :</strong> {(analytics.totalDuration / 1000).toFixed(2)}s</div>
                   <div><strong>Taux de réussite :</strong> {analytics.successRate.toFixed(1)}%</div>
                   {analytics.wasCancelled && (
                     <div className="text-orange-600 font-semibold">
-                      <strong>⚠️ Statut :</strong> Test annulé par l&apos;utilisateur
+                      <strong>⚠️ Statut :</strong> Test annulé par l'utilisateur
                     </div>
                   )}
                 </div>
@@ -2297,7 +2297,7 @@ export default function UserJourneyPage() {
             <CardHeader>
               <CardTitle>Scénarios Disponibles ({Object.keys(SCENARIOS).length})</CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Parcours de test organisés par catégorie pour couvrir tous les cas d&apos;usage
+                Parcours de test organisés par catégorie pour couvrir tous les cas d'usage
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -2308,7 +2308,7 @@ export default function UserJourneyPage() {
                   Parcours Complets
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['complete&apos;, 'quick', &apos;beginner', 'job_seeker&apos;, 'mobile_test'].map(key => {
+                  {['complete', 'quick', 'beginner', 'job_seeker', 'mobile_test'].map(key => {
                     const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
                     return (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
@@ -2330,7 +2330,7 @@ export default function UserJourneyPage() {
                   Gestion Contacts & Relations
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['add_contact_to_application&apos;, 'contact_management', &apos;networking_session'].map(key => {
+                  {['add_contact_to_application', 'contact_management', 'networking_session'].map(key => {
                     const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
                     return (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-green-300 dark:hover:border-green-600 transition-colors">
@@ -2359,7 +2359,7 @@ export default function UserJourneyPage() {
                   Gestion Candidatures
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['application_lifecycle&apos;, 'rapid_application', &apos;company_workflow', 'add_call_to_application'].map(key => {
+                  {['application_lifecycle', 'rapid_application', 'company_workflow', 'add_call_to_application'].map(key => {
                     const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
                     return (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
@@ -2388,7 +2388,7 @@ export default function UserJourneyPage() {
                   Entretiens, Relances & Événements
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['interview_workflow&apos;, 'interview_preparation', &apos;followup_management', 'event_scheduling'].map(key => {
+                  {['interview_workflow', 'interview_preparation', 'followup_management', 'event_scheduling'].map(key => {
                     const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
                     return (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-orange-300 dark:hover:border-orange-600 transition-colors">
@@ -2417,7 +2417,7 @@ export default function UserJourneyPage() {
                   Activités Régulières
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['daily_activity&apos;, 'weekly_review'].map(key => {
+                  {['daily_activity', 'weekly_review'].map(key => {
                     const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
                     return (
                       <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-teal-300 dark:hover:border-teal-600 transition-colors">
@@ -2446,7 +2446,7 @@ export default function UserJourneyPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
-                Système d&apos;Analytics Mobile
+                Système d'Analytics Mobile
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -2468,7 +2468,7 @@ export default function UserJourneyPage() {
                   rel="noopener noreferrer"
                   className="block text-blue-600 hover:underline dark:text-blue-400"
                 >
-                  🔧 Guide d&apos;intégration →
+                  🔧 Guide d'intégration →
                 </a>
                 <a 
                   href="/docs/mobile/analytics/README" 

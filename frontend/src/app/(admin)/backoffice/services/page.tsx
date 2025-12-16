@@ -43,7 +43,7 @@ export default function ServicesPage() {
   const [filterCpu, setFilterCpu] = useState<string>('all')
   const [filterMemory, setFilterMemory] = useState<string>('all')
   const [sortColumn, setSortColumn] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<'asc&apos; | 'desc'>(&apos;asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const loadServices = async (isInitial = false) => {
     try {
@@ -119,7 +119,7 @@ export default function ServicesPage() {
       }
     } catch (error: any) {
       // Gérer les erreurs de timeout et réseau
-      if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
         // Timeout : essayer de récupérer les services déjà chargés
         if (isInitial) {
           // Si on a déjà des services, les garder
@@ -168,7 +168,7 @@ export default function ServicesPage() {
   const handleSort = (column: string) => {
     if (sortColumn === column) {
       // Inverser la direction si on clique sur la même colonne
-      setSortDirection(sortDirection === 'asc&apos; ? 'desc' : &apos;asc')
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       // Nouvelle colonne, trier par ordre croissant
       setSortColumn(column)
@@ -221,8 +221,8 @@ export default function ServicesPage() {
 
     switch (sortColumn) {
       case 'service':
-        aValue = a.name.replace('jobbingtrack-&apos;, '').toLowerCase()
-        bValue = b.name.replace('jobbingtrack-&apos;, '').toLowerCase()
+        aValue = a.name.replace('jobbingtrack-', '').toLowerCase()
+        bValue = b.name.replace('jobbingtrack-', '').toLowerCase()
         break
       case 'cpu':
         aValue = a.metrics?.cpu_percent ?? 0
@@ -388,7 +388,7 @@ export default function ServicesPage() {
               <option value="medium">Mémoire moyenne (40-80%)</option>
               <option value="low">Mémoire faible (&lt; 40%)</option>
             </select>
-            {(filterStatus !== 'all&apos; || filterCpu !== 'all' || filterMemory !== &apos;all') && (
+            {(filterStatus !== 'all' || filterCpu !== 'all' || filterMemory !== 'all') && (
               <button
                 onClick={() => {
                   setFilterStatus('all')
@@ -480,13 +480,13 @@ export default function ServicesPage() {
                   <tr 
                     key={service.name} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/backoffice/services/${service.name.replace('jobbingtrack-&apos;, '')}`)}
+                    onClick={() => router.push(`/backoffice/services/${service.name.replace('jobbingtrack-', '')}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Server className="h-5 w-5 text-blue-500 mr-2" />
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {service.name.replace('jobbingtrack-&apos;, '')}
+                          {service.name.replace('jobbingtrack-', '')}
                         </div>
                       </div>
                     </td>
@@ -542,7 +542,7 @@ export default function ServicesPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const serviceName = service.name.replace('jobbingtrack-&apos;, '');
+                          const serviceName = service.name.replace('jobbingtrack-', '');
                           const isCritical = CRITICAL_SERVICES.includes(serviceName);
                           
                           if (!service.is_running) {
@@ -560,7 +560,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/start`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(10000)
                                     });
                                     
@@ -587,7 +587,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert('Timeout: Le service met trop de temps à répondre');
                                     } else if (
                                       error.message === 'Failed to fetch' || 
@@ -595,7 +595,7 @@ export default function ServicesPage() {
                                       error.message?.includes('net::ERR_') ||
                                       error.name === 'TypeError'
                                     ) {
-                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\&apos;il est démarré.');
+                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\'il est démarré.');
                                     } else {
                                       console.error('Erreur démarrage service:', error);
                                       alert(`Erreur lors du démarrage du service: ${error.message || 'Erreur inconnue'}`);
@@ -629,7 +629,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/restart`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(15000) // 15 secondes pour le redémarrage
                                     });
                                     
@@ -656,7 +656,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert(`⏳ Le redémarrage prend plus de temps que prévu.\n\nLe service ${serviceName} est peut-être en cours de redémarrage. La liste sera rafraîchie automatiquement.`);
                                       setTimeout(() => loadServices(false), 3000);
                                     } else if (
@@ -695,7 +695,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/stop`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(10000)
                                     });
                                     
@@ -722,7 +722,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert('Timeout: Le service met trop de temps à répondre');
                                     } else if (
                                       error.message === 'Failed to fetch' || 
@@ -730,10 +730,10 @@ export default function ServicesPage() {
                                       error.message?.includes('net::ERR_') ||
                                       error.name === 'TypeError'
                                     ) {
-                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\&apos;il est démarré.');
+                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\'il est démarré.');
                                     } else {
                                       console.error('Erreur arrêt service:', error);
-                                      alert(`Erreur lors de l'arrêt du service: ${error.message || &apos;Erreur inconnue'}`);
+                                      alert(`Erreur lors de l'arrêt du service: ${error.message || 'Erreur inconnue'}`);
                                     }
                                   }
                                 }}
@@ -791,7 +791,7 @@ export default function ServicesPage() {
                         <div className="flex items-center">
                           <Server className="h-5 w-5 text-gray-400 mr-2" />
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {service.name.replace('jobbingtrack-&apos;, '')}
+                            {service.name.replace('jobbingtrack-', '')}
                           </div>
                         </div>
                       </td>
@@ -808,7 +808,7 @@ export default function ServicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {(() => {
-                          const serviceName = service.name.replace('jobbingtrack-&apos;, '');
+                          const serviceName = service.name.replace('jobbingtrack-', '');
                           const isCritical = CRITICAL_SERVICES.includes(serviceName);
                           
                           if (!service.is_running) {
@@ -826,7 +826,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/start`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(10000)
                                     });
                                     
@@ -853,7 +853,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert('Timeout: Le service met trop de temps à répondre');
                                     } else if (
                                       error.message === 'Failed to fetch' || 
@@ -861,7 +861,7 @@ export default function ServicesPage() {
                                       error.message?.includes('net::ERR_') ||
                                       error.name === 'TypeError'
                                     ) {
-                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\&apos;il est démarré.');
+                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\'il est démarré.');
                                     } else {
                                       console.error('Erreur démarrage service:', error);
                                       alert(`Erreur lors du démarrage du service: ${error.message || 'Erreur inconnue'}`);
@@ -895,7 +895,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/restart`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(15000)
                                     });
                                     
@@ -922,7 +922,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert(`⏳ Le redémarrage prend plus de temps que prévu.\n\nLe service ${serviceName} est peut-être en cours de redémarrage. La liste sera rafraîchie automatiquement.`);
                                       setTimeout(() => loadServices(false), 3000);
                                     } else if (
@@ -961,7 +961,7 @@ export default function ServicesPage() {
                                   try {
                                     const response = await fetch(`${METRICS_URL}/api/v1/docker/service/${serviceName}/stop`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type&apos;: 'application/json' },
+                                      headers: { 'Content-Type': 'application/json' },
                                       signal: AbortSignal.timeout(10000)
                                     });
                                     
@@ -988,7 +988,7 @@ export default function ServicesPage() {
                                       alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
                                     }
                                   } catch (error: any) {
-                                    if (error.name === 'AbortError&apos; || error.name === 'TimeoutError') {
+                                    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
                                       alert('Timeout: Le service met trop de temps à répondre');
                                     } else if (
                                       error.message === 'Failed to fetch' || 
@@ -996,10 +996,10 @@ export default function ServicesPage() {
                                       error.message?.includes('net::ERR_') ||
                                       error.name === 'TypeError'
                                     ) {
-                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\&apos;il est démarré.');
+                                      alert('Erreur de connexion : Le service metrics-aggregator pourrait être indisponible. Vérifiez qu\'il est démarré.');
                                     } else {
                                       console.error('Erreur arrêt service:', error);
-                                      alert(`Erreur lors de l'arrêt du service: ${error.message || &apos;Erreur inconnue'}`);
+                                      alert(`Erreur lors de l'arrêt du service: ${error.message || 'Erreur inconnue'}`);
                                     }
                                   }
                                 }}

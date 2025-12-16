@@ -78,9 +78,9 @@ export default function LoginPage() {
                     ? 'bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-700'
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
-                title={actualTheme === 'dark&apos; ? 'Passer en mode clair' : &apos;Passer en mode sombre'}
+                title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
               >
-                <span className="text-lg sm:text-xl">{actualTheme === 'dark&apos; ? '🌙' : &apos;☀️&apos;}</span>
+                <span className="text-lg sm:text-xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
               </button>
             </div>
 
@@ -165,7 +165,7 @@ export default function LoginPage() {
                   className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-2xl sm:text-3xl hover:scale-110 transition-transform touch-manipulation"
                   title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                 >
-                  {showPassword ? '🙈&apos; : '👁️'}
+                  {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
             </div>

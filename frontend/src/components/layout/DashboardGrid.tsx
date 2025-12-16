@@ -3,7 +3,7 @@ import React from 'react'
 interface DashboardGridProps {
   children: React.ReactNode
   columns?: 1 | 2 | 3 | 4 | 6
-  gap?: 'sm&apos; | 'md' | &apos;lg'
+  gap?: 'sm' | 'md' | 'lg'
   className?: string
 }
 
@@ -26,9 +26,9 @@ export default function DashboardGrid({
 
   const getGapSize = () => {
     switch (gap) {
-      case 'sm&apos;: return 'gap-4'
-      case 'md&apos;: return 'gap-6'
-      case 'lg&apos;: return 'gap-8'
+      case 'sm': return 'gap-4'
+      case 'md': return 'gap-6'
+      case 'lg': return 'gap-8'
       default: return 'gap-6'
     }
   }

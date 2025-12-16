@@ -123,19 +123,19 @@ export default function NotificationsPage() {
         <div className="mb-6 flex space-x-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'all&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Toutes
           </button>
           <button
             onClick={() => setFilterStatus('unread')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'unread&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'unread' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Non lues ({notifications.filter(n => !n.readAt).length})
           </button>
           <button
             onClick={() => setFilterStatus('read')}
-            className={`px-4 py-2 rounded-lg ${filterStatus === 'read&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg ${filterStatus === 'read' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Lues
           </button>
@@ -183,7 +183,7 @@ function NotificationCard({ notification, onMarkAsRead, onDelete }: {
 
   return (
     <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
-      isUnread ? 'border-blue-600 bg-blue-50&apos; : 'border-gray-300'
+      isUnread ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
     }`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
@@ -247,7 +247,7 @@ function StatCard({ title, value, icon, color }: {
   title: string
   value: number
   icon: string
-  color: 'blue&apos; | 'red' | &apos;green'
+  color: 'blue' | 'red' | 'green'
 }) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-900',

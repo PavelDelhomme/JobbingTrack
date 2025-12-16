@@ -52,7 +52,7 @@ export default function UsersManagementPage() {
         });
       } catch (error: any) {
         // Si erreur réseau, essayer le fallback
-        if (error.code === 'ECONNREFUSED&apos; || error.code === 'ETIMEDOUT') {
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
           console.warn('[USERS] Tentative avec /api/v1/users...');
           try {
             response = await axios.get(`${API_URL}/api/v1/users`, {
@@ -168,11 +168,11 @@ export default function UsersManagementPage() {
       if (response.data.success) {
         alert(`✅ ${response.data.message || 'Email de réinitialisation envoyé avec succès'}`);
       } else {
-        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\&apos;envoi de l\'email'}`);
+        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
       }
     } catch (error: any) {
       console.error('Erreur envoi email reset password:', error);
-      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\&apos;envoi de l\'email'}`);
+      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
     }
   };
 
@@ -189,11 +189,11 @@ export default function UsersManagementPage() {
       if (response.data.success) {
         alert(`✅ ${response.data.message || 'Email de vérification envoyé avec succès'}`);
       } else {
-        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\&apos;envoi de l\'email'}`);
+        alert(`❌ Erreur: ${response.data.error || 'Erreur lors de l\'envoi de l\'email'}`);
       }
     } catch (error: any) {
       console.error('Erreur envoi email vérification:', error);
-      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\&apos;envoi de l\'email'}`);
+      alert(`❌ Erreur: ${error.response?.data?.error || error.message || 'Erreur lors de l\'envoi de l\'email'}`);
     }
   };
 
@@ -272,7 +272,7 @@ export default function UsersManagementPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Admins</p>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                  {users.filter(u => u.role === 'ADMIN&apos; || u.role === 'SUPER_ADMIN').length}
+                  {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length}
                 </p>
               </div>
               <Shield className="h-10 w-10 text-purple-500" />
@@ -382,7 +382,7 @@ export default function UsersManagementPage() {
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
-                        {user.role === 'SUPER_ADMIN&apos; ? 'SUPER ADMIN' : user.role}
+                        {user.role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : user.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -394,7 +394,7 @@ export default function UsersManagementPage() {
                             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         } hover:opacity-75 transition-opacity cursor-pointer`}
                       >
-                        {user.isActive ? 'Actif&apos; : 'Inactif'}
+                        {user.isActive ? 'Actif' : 'Inactif'}
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

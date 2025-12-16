@@ -162,9 +162,9 @@ export default function TestDataGeneratorPage() {
       console.error('Erreur récupération utilisateurs:', error)
       // Fallback sur des utilisateurs par défaut en cas d'erreur
       setAvailableUsers([
-        { id: '1&apos;, email: 'user1@jobbingtrack.test', role: &apos;SUPER_ADMIN', firstName: 'Admin&apos;, lastName: 'JobbingTrack' },
-        { id: '2&apos;, email: 'user2@jobbingtrack.test', role: &apos;ADMIN', firstName: 'Marie&apos;, lastName: 'Martin' },
-        { id: '3&apos;, email: 'user3@jobbingtrack.test', role: &apos;USER', firstName: 'Thomas&apos;, lastName: 'Bernard' }
+        { id: '1', email: 'user1@jobbingtrack.test', role: 'SUPER_ADMIN', firstName: 'Admin', lastName: 'JobbingTrack' },
+        { id: '2', email: 'user2@jobbingtrack.test', role: 'ADMIN', firstName: 'Marie', lastName: 'Martin' },
+        { id: '3', email: 'user3@jobbingtrack.test', role: 'USER', firstName: 'Thomas', lastName: 'Bernard' }
       ])
     }
   }
@@ -376,15 +376,15 @@ export default function TestDataGeneratorPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">
-                      {key === 'users&apos; ? '👥' :
-                       key === 'companies&apos; ? '🏢' :
-                       key === 'applications&apos; ? '📋' :
-                       key === 'contacts&apos; ? '👤' :
-                       key === 'interviews&apos; ? '🎤' :
-                       key === 'followups&apos; ? '📧' :
-                       key === 'calls&apos; ? '📞' :
-                       key === 'events&apos; ? '📅' :
-                       key === 'deletedItems&apos; ? '🗑️' : &apos;📦'}
+                      {key === 'users' ? '👥' :
+                       key === 'companies' ? '🏢' :
+                       key === 'applications' ? '📋' :
+                       key === 'contacts' ? '👤' :
+                       key === 'interviews' ? '🎤' :
+                       key === 'followups' ? '📧' :
+                       key === 'calls' ? '📞' :
+                       key === 'events' ? '📅' :
+                       key === 'deletedItems' ? '🗑️' : '📦'}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {getLabelForKey(key)}
@@ -572,7 +572,7 @@ export default function TestDataGeneratorPage() {
           <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total d&apos;éléments à générer</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total d'éléments à générer</p>
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalItems}</p>
               </div>
               <div className="text-gray-400 dark:text-gray-500 text-4xl sm:text-5xl md:text-6xl">🎲</div>
@@ -626,7 +626,7 @@ export default function TestDataGeneratorPage() {
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">🧪 Tests automatiques après génération</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <button
-                onClick={() => window.open('/backoffice/playwright-tests&apos;, '_blank')}
+                onClick={() => window.open('/backoffice/playwright-tests', '_blank')}
                 className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-left"
               >
                 <div className="text-lg sm:text-xl mb-1">🧪</div>
@@ -737,7 +737,7 @@ export default function TestDataGeneratorPage() {
                       userSelection: { generateForAllUsers: true, selectedUsers: [] }
                     })
                     setTimeout(() => {
-                      window.open('/backoffice/playwright-tests&apos;, '_blank')
+                      window.open('/backoffice/playwright-tests', '_blank')
                     }, 1000)
                     alert('✅ Données E2E générées + Tests lancés !')
                   } catch (error) {
@@ -764,7 +764,7 @@ export default function TestDataGeneratorPage() {
                 ✕
               </button>
             </div>
-            <pre className="whitespace-pre-wrap">{output || 'Génération en cours...&apos;}</pre>
+            <pre className="whitespace-pre-wrap">{output || 'Génération en cours...'}</pre>
           </div>
         )}
 

@@ -20,31 +20,31 @@ interface TableData {
 
 interface DBTest {
   name: string
-  status: 'pending&apos; | 'running' | &apos;success' | 'error'
+  status: 'pending' | 'running' | 'success' | 'error'
   result?: string
   error?: string
   duration?: number
 }
 
 const TABLES = [
-  { name: 'User&apos;, icon: '👤', description: &apos;Utilisateurs' },
-  { name: 'Company&apos;, icon: '🏢', description: &apos;Entreprises' },
-  { name: 'Application&apos;, icon: '📝', description: &apos;Candidatures' },
-  { name: 'Contact&apos;, icon: '👥', description: &apos;Contacts' },
-  { name: 'Interview&apos;, icon: '📅', description: &apos;Entretiens' },
-  { name: 'Call&apos;, icon: '📞', description: &apos;Appels' },
-  { name: 'FollowUp&apos;, icon: '📧', description: &apos;Relances' },
-  { name: 'Notification&apos;, icon: '🔔', description: &apos;Notifications' },
-  { name: 'EmailLog&apos;, icon: '📬', description: &apos;Logs Emails' },
-  { name: 'Activity&apos;, icon: '📊', description: &apos;Activités' },
-  { name: 'Document&apos;, icon: '📄', description: &apos;Documents' },
-  { name: 'Reminder&apos;, icon: '⏰', description: &apos;Rappels' },
-  { name: 'MessageTemplate&apos;, icon: '📋', description: &apos;Templates' },
+  { name: 'User', icon: '👤', description: 'Utilisateurs' },
+  { name: 'Company', icon: '🏢', description: 'Entreprises' },
+  { name: 'Application', icon: '📝', description: 'Candidatures' },
+  { name: 'Contact', icon: '👥', description: 'Contacts' },
+  { name: 'Interview', icon: '📅', description: 'Entretiens' },
+  { name: 'Call', icon: '📞', description: 'Appels' },
+  { name: 'FollowUp', icon: '📧', description: 'Relances' },
+  { name: 'Notification', icon: '🔔', description: 'Notifications' },
+  { name: 'EmailLog', icon: '📬', description: 'Logs Emails' },
+  { name: 'Activity', icon: '📊', description: 'Activités' },
+  { name: 'Document', icon: '📄', description: 'Documents' },
+  { name: 'Reminder', icon: '⏰', description: 'Rappels' },
+  { name: 'MessageTemplate', icon: '📋', description: 'Templates' },
 ]
 
 export default function DataManagementPage() {
   const { token } = useAuth()
-  const [activeTab, setActiveTab] = useState<'browse&apos; | 'export' | &apos;import' | 'operations&apos; | 'tests'>(&apos;browse')
+  const [activeTab, setActiveTab] = useState<'browse' | 'export' | 'import' | 'operations' | 'tests'>('browse')
   const [selectedTable, setSelectedTable] = useState<string>('User')
   const [tableData, setTableData] = useState<TableData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -58,12 +58,12 @@ export default function DataManagementPage() {
   
   // Tests DB
   const [dbTests, setDbTests] = useState<DBTest[]>([
-    { name: 'Connexion PostgreSQL&apos;, status: 'pending' },
-    { name: 'Schéma Prisma Auth Service&apos;, status: 'pending' },
-    { name: 'Schéma Prisma Application Service&apos;, status: 'pending' },
-    { name: 'Schéma Prisma Call Service&apos;, status: 'pending' },
-    { name: 'Schéma Prisma Notification Service&apos;, status: 'pending' },
-    { name: 'Test Migration (dry-run)&apos;, status: 'pending' },
+    { name: 'Connexion PostgreSQL', status: 'pending' },
+    { name: 'Schéma Prisma Auth Service', status: 'pending' },
+    { name: 'Schéma Prisma Application Service', status: 'pending' },
+    { name: 'Schéma Prisma Call Service', status: 'pending' },
+    { name: 'Schéma Prisma Notification Service', status: 'pending' },
+    { name: 'Test Migration (dry-run)', status: 'pending' },
   ])
   const [runningDBTests, setRunningDBTests] = useState(false)
 
@@ -130,7 +130,7 @@ export default function DataManagementPage() {
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -186,7 +186,7 @@ export default function DataManagementPage() {
     }
   }
 
-  const exportData = async (format: 'json&apos; | 'csv') => {
+  const exportData = async (format: 'json' | 'csv') => {
     try {
       // Pour l'export, on récupère toutes les données sans pagination
       let endpoint = ''
@@ -225,7 +225,7 @@ export default function DataManagementPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\&apos;export')
+        throw new Error('Erreur lors de l\'export')
       }
 
       const data = await response.json()
@@ -257,8 +257,8 @@ export default function DataManagementPage() {
             headers.map(header => {
               const value = item[header]
               if (value === null || value === undefined) return ''
-              if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, &apos;""&apos;)}"`
-              return `"${String(value).replace(/"/g, &apos;""&apos;)}"`
+              if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
+              return `"${String(value).replace(/"/g, '""')}"`
             }).join(',')
           )
         ].join('\n')
@@ -320,7 +320,7 @@ export default function DataManagementPage() {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
 
@@ -344,9 +344,9 @@ export default function DataManagementPage() {
 
   const renderCellValue = (value: any): string => {
     if (value === null || value === undefined) return '-'
-    if (typeof value === 'boolean&apos;) return value ? '✓' : &apos;✗'
+    if (typeof value === 'boolean') return value ? '✓' : '✗'
     if (typeof value === 'object') return JSON.stringify(value)
-    if (typeof value === 'string&apos; && value.length > 50) return value.substring(0, 47) + '...'
+    if (typeof value === 'string' && value.length > 50) return value.substring(0, 47) + '...'
     return String(value)
   }
 
@@ -366,7 +366,7 @@ export default function DataManagementPage() {
     })
 
     // Test 2-5: Schémas Prisma
-    const services = ['auth&apos;, 'application', &apos;call', 'notification']
+    const services = ['auth', 'application', 'call', 'notification']
     for (let i = 0; i < services.length; i++) {
       await runSingleTest(i + 1, async () => {
         const response = await fetch(`http://localhost:8080/api/v1/admin/test-db/schema/${services[i]}`, {
@@ -383,7 +383,7 @@ export default function DataManagementPage() {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       })
       if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
@@ -476,7 +476,7 @@ export default function DataManagementPage() {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type&apos;: 'application/json'
+            'Content-Type': 'application/json'
           }
         })
         if (!response.ok) throw new Error('Erreur HTTP: ' + response.status)
@@ -530,12 +530,12 @@ export default function DataManagementPage() {
                       // Tester l'exporteur avec les données fictives
                       const testData = {
                         user: [
-                          { id: '1&apos;, email: 'redacted@example.invalid', firstName: &apos;Test', lastName: 'User&apos;, role: 'USER', is_active: true },
-                          { id: '2&apos;, email: 'redacted@example.invalid', firstName: &apos;Admin', lastName: 'User&apos;, role: 'ADMIN', is_active: false }
+                          { id: '1', email: 'redacted@example.invalid', firstName: 'Test', lastName: 'User', role: 'USER', is_active: true },
+                          { id: '2', email: 'redacted@example.invalid', firstName: 'Admin', lastName: 'User', role: 'ADMIN', is_active: false }
                         ],
                         company: [
-                          { id: '1&apos;, name: 'Test Company', sector: &apos;Tech', size: 'startup', is_active: true },
-                          { id: '2&apos;, name: 'Another Company', sector: &apos;Finance', size: 'entreprise', is_active: true }
+                          { id: '1', name: 'Test Company', sector: 'Tech', size: 'startup', is_active: true },
+                          { id: '2', name: 'Another Company', sector: 'Finance', size: 'entreprise', is_active: true }
                         ]
                       }
                     }}
@@ -551,7 +551,7 @@ export default function DataManagementPage() {
         {/* Onglets - Scrollables sur mobile */}
         <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
           <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
-            {['browse&apos;, 'export', &apos;import', 'operations&apos;, 'tests'].map(tab => (
+            {['browse', 'export', 'import', 'operations', 'tests'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -561,11 +561,11 @@ export default function DataManagementPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
-                {tab === 'browse&apos; && '📊 Parcourir'}
-                {tab === 'export&apos; && '📤 Export'}
-                {tab === 'import&apos; && '📥 Import'}
-                {tab === 'operations&apos; && '⚙️ Opérations'}
-                {tab === 'tests&apos; && '🧪 Tests DB'}
+                {tab === 'browse' && '📊 Parcourir'}
+                {tab === 'export' && '📤 Export'}
+                {tab === 'import' && '📥 Import'}
+                {tab === 'operations' && '⚙️ Opérations'}
+                {tab === 'tests' && '🧪 Tests DB'}
               </button>
             ))}
           </nav>
@@ -645,12 +645,12 @@ export default function DataManagementPage() {
                         // Ajouter des données de test pour vérifier l'exporteur
                         const testData = {
                           user: [
-                            { id: '1&apos;, email: 'redacted@example.invalid', firstName: &apos;Test', lastName: 'User&apos;, role: 'USER', is_active: true },
-                            { id: '2&apos;, email: 'redacted@example.invalid', firstName: &apos;Admin', lastName: 'User&apos;, role: 'ADMIN', is_active: false }
+                            { id: '1', email: 'redacted@example.invalid', firstName: 'Test', lastName: 'User', role: 'USER', is_active: true },
+                            { id: '2', email: 'redacted@example.invalid', firstName: 'Admin', lastName: 'User', role: 'ADMIN', is_active: false }
                           ],
                           company: [
-                            { id: '1&apos;, name: 'Test Company', sector: &apos;Tech', size: 'startup', is_active: true },
-                            { id: '2&apos;, name: 'Another Company', sector: &apos;Finance', size: 'entreprise', is_active: true }
+                            { id: '1', name: 'Test Company', sector: 'Tech', size: 'startup', is_active: true },
+                            { id: '2', name: 'Another Company', sector: 'Finance', size: 'entreprise', is_active: true }
                           ]
                         };
 
@@ -677,7 +677,7 @@ export default function DataManagementPage() {
                     </h2>
                     {tableData && tableData.rows.length > 0 && (
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {tableData.total} enregistrement{tableData.total > 1 ? 's&apos; : ''} • {tableData.columns.length} colonne{tableData.columns.length > 1 ? &apos;s' : ''}
+                        {tableData.total} enregistrement{tableData.total > 1 ? 's' : ''} • {tableData.columns.length} colonne{tableData.columns.length > 1 ? 's' : ''}
                       </p>
                     )}
                   </div>
@@ -835,7 +835,7 @@ export default function DataManagementPage() {
             {tableData && tableData.rows.length > 0 && (
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  📊 Aperçu des données - {tableData.total} enregistrement{tableData.total > 1 ? 's&apos; : ''}
+                  📊 Aperçu des données - {tableData.total} enregistrement{tableData.total > 1 ? 's' : ''}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -947,7 +947,7 @@ export default function DataManagementPage() {
                   disabled={runningDBTests}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center disabled:opacity-50"
                 >
-                  {runningDBTests ? '🔄 Tests en cours...&apos; : '▶️ Lancer tous les tests'}
+                  {runningDBTests ? '🔄 Tests en cours...' : '▶️ Lancer tous les tests'}
                 </button>
               </div>
 
@@ -968,10 +968,10 @@ export default function DataManagementPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         <span className="text-2xl">
-                          {test.status === 'success&apos; && '✅'}
-                          {test.status === 'error&apos; && '❌'}
+                          {test.status === 'success' && '✅'}
+                          {test.status === 'error' && '❌'}
                           {test.status === 'running' && <span className="animate-spin">🔄</span>}
-                          {test.status === 'pending&apos; && '⏳'}
+                          {test.status === 'pending' && '⏳'}
                         </span>
                         <div className="flex-1">
                           <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -1005,7 +1005,7 @@ export default function DataManagementPage() {
                           }`}
                           title="Relancer ce test uniquement"
                         >
-                          {test.status === 'running&apos; ? '⏳' : &apos;▶️'}
+                          {test.status === 'running' ? '⏳' : '▶️'}
                         </button>
                       </div>
                     </div>
@@ -1088,7 +1088,7 @@ export default function DataManagementPage() {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`,
-              'Content-Type&apos;: 'application/json'
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify(updatedData)
           });

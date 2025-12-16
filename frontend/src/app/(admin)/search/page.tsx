@@ -119,7 +119,7 @@ export default function SearchPage() {
   const exportResults = () => {
     const allResults = results.flatMap(result => result.results || []);
     const csvContent = [
-      ['Module&apos;, 'Titre', &apos;Sous-titre', 'Détails&apos;, 'Lien'].join(&apos;,'),
+      ['Module', 'Titre', 'Sous-titre', 'Détails', 'Lien'].join(','),
       ...allResults.map(result => [
         getModuleLabel(results.find(r => r.results?.includes(result))?.module || 'unknown'),
         formatResult(result, results.find(r => r.results?.includes(result))?.module || 'unknown').title,
@@ -158,7 +158,7 @@ export default function SearchPage() {
               onClick={() => setIsAdvancedMode(!isAdvancedMode)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              Mode {isAdvancedMode ? 'Simple&apos; : 'Avancé'}
+              Mode {isAdvancedMode ? 'Simple' : 'Avancé'}
             </Button>
           </div>
         </div>

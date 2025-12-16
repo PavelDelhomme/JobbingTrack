@@ -150,19 +150,19 @@ export default function FollowUpsPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'all&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Toutes ({followups.length})
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'pending&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'pending' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             En attente ({followups.filter(f => !f.completed).length})
           </button>
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'completed&apos; ? 'bg-blue-600 dark:bg-blue-500 text-white' : &apos;bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
+            className={`px-4 py-2 rounded-lg text-sm ${filterStatus === 'completed' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'}`}
           >
             Complétées ({followups.filter(f => f.completed).length})
           </button>
@@ -207,7 +207,7 @@ export default function FollowUpsPage() {
                       </div>
                       {followup.message && (
                         <div className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-xs">
-                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...&apos; : ''}
+                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...' : ''}
                         </div>
                       )}
                     </td>
@@ -218,7 +218,7 @@ export default function FollowUpsPage() {
                       {new Date(followup.scheduledDate).toLocaleString('fr-FR')}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      {followup.sentAt ? new Date(followup.sentAt).toLocaleString('fr-FR&apos;) : '-'}
+                      {followup.sentAt ? new Date(followup.sentAt).toLocaleString('fr-FR') : '-'}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       {!followup.completed ? (
@@ -263,7 +263,7 @@ export default function FollowUpsPage() {
                       </h3>
                       {followup.message && (
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...&apos; : ''}
+                          {followup.message.substring(0, 60)}{followup.message.length > 60 ? '...' : ''}
                         </p>
                       )}
                     </div>
@@ -271,9 +271,9 @@ export default function FollowUpsPage() {
                 </div>
 
                 <div className="ml-13 space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  <p>📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR&apos;)}</p>
+                  <p>📅 Prévue : {new Date(followup.scheduledDate).toLocaleString('fr-FR')}</p>
                   {followup.sentAt && (
-                    <p>📤 Envoyée : {new Date(followup.sentAt).toLocaleString('fr-FR&apos;)}</p>
+                    <p>📤 Envoyée : {new Date(followup.sentAt).toLocaleString('fr-FR')}</p>
                   )}
                   {followup.response && (
                     <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded text-xs text-green-900 dark:text-green-100">
@@ -372,7 +372,7 @@ function StatCard({ title, value, icon, color }: {
   title: string
   value: number
   icon: string
-  color: 'blue&apos; | 'yellow' | &apos;green' | 'purple'
+  color: 'blue' | 'yellow' | 'green' | 'purple'
 }) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-900',

@@ -15,7 +15,7 @@ jest.mock('@/lib/services/centralMetricsService');
 jest.mock('@/lib/services/preferencesService');
 jest.mock('@/lib/hooks/auth', () => ({
   useAuth: () => ({
-    user: { id: '1&apos;, email: 'redacted@example.invalid', role: &apos;SUPER_ADMIN' },
+    user: { id: '1', email: 'redacted@example.invalid', role: 'SUPER_ADMIN' },
     isAuthenticated: true,
     isLoading: false
   })
@@ -30,7 +30,7 @@ describe('AnalyticsPage - Tests de validation des props', () => {
     
     // Mock des services
     (centralMetricsService.centralMetricsService.fetchMetrics as jest.Mock).mockResolvedValue({
-      system: { cpu: { usage: '50%&apos; }, memory: { usage: '60%' } },
+      system: { cpu: { usage: '50%' }, memory: { usage: '60%' } },
       containers: {},
       services: {},
       timestamp: new Date().toISOString()
@@ -64,7 +64,7 @@ describe('AnalyticsPage - Tests de validation des props', () => {
       render(<AnalyticsPage />);
     });
     
-    // Vérifier qu'il n&apos;y a pas d'erreur "timeRange is not defined"
+    // Vérifier qu'il n'y a pas d'erreur "timeRange is not defined"
     await waitFor(() => {
       const errors = consoleError.mock.calls.filter(call => 
         call[0]?.toString().includes('timeRange is not defined')
@@ -91,8 +91,8 @@ describe('AnalyticsPage - Tests de validation des props', () => {
   });
 });
 
-describe('AnalyticsPage - Tests de détection d\&apos;erreurs React', () => {
-  it('ne devrait pas avoir d\&apos;erreurs de rendu React', async () => {
+describe('AnalyticsPage - Tests de détection d\'erreurs React', () => {
+  it('ne devrait pas avoir d\'erreurs de rendu React', async () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     
     await act(async () => {
@@ -112,7 +112,7 @@ describe('AnalyticsPage - Tests de détection d\&apos;erreurs React', () => {
     consoleError.mockRestore();
   });
 
-  it('ne devrait pas avoir d\&apos;erreurs de référence non définies', async () => {
+  it('ne devrait pas avoir d\'erreurs de référence non définies', async () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     
     await act(async () => {

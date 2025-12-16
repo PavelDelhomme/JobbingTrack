@@ -57,9 +57,9 @@ export default function EmailDeliverabilityPage() {
     if (!domain || !domain.trim()) {
       setDnsResults({
         domain: '',
-        mx: { status: 'error&apos;, records: [], error: 'Veuillez entrer un domaine à tester' },
-        spf: { status: 'error&apos;, record: null, error: 'Veuillez entrer un domaine à tester' },
-        dkim: { status: 'warning&apos;, record: null, error: 'Veuillez entrer un domaine à tester' }
+        mx: { status: 'error', records: [], error: 'Veuillez entrer un domaine à tester' },
+        spf: { status: 'error', record: null, error: 'Veuillez entrer un domaine à tester' },
+        dkim: { status: 'warning', record: null, error: 'Veuillez entrer un domaine à tester' }
       })
       return
     }
@@ -133,7 +133,7 @@ export default function EmailDeliverabilityPage() {
     }
   }
 
-  const handleSendTestEmail = async (emailType: 'test&apos; | 'reset' | &apos;verification' = 'test') => {
+  const handleSendTestEmail = async (emailType: 'test' | 'reset' | 'verification' = 'test') => {
     if (!testEmail) {
       setSendResult({ success: false, message: 'Veuillez entrer une adresse email' })
       return
@@ -165,7 +165,7 @@ export default function EmailDeliverabilityPage() {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h1 style="color: #3b82f6;">Test de Déliverabilité</h1>
             <p>Si vous recevez cet email, la configuration SMTP fonctionne correctement ! ✅</p>
-            <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR&apos;)}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
             <p><strong>Domaine:</strong> ${domain}</p>
             <p>Vérifiez votre boîte de réception (et les spams) pour confirmer la réception.</p>
           </div>
@@ -195,12 +195,12 @@ export default function EmailDeliverabilityPage() {
           setTestEmail('')
         }
       } else {
-        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\&apos;envoi' })
+        setSendResult({ success: false, message: response.data.error || 'Erreur lors de l\'envoi' })
       }
     } catch (error: any) {
       setSendResult({
         success: false,
-        message: error.response?.data?.error || error.response?.data?.details || error.message || 'Erreur lors de l\&apos;envoi de l\'email'
+        message: error.response?.data?.error || error.response?.data?.details || error.message || 'Erreur lors de l\'envoi de l\'email'
       })
     } finally {
       setSendingTest(false)
@@ -430,7 +430,7 @@ export default function EmailDeliverabilityPage() {
                   ) : (
                     <AlertCircle className="w-5 h-5 text-red-600" />
                   )}
-                  <p className={smtpResult.success ? 'text-green-800 dark:text-green-200 font-semibold&apos; : 'text-red-800 dark:text-red-200 font-semibold'}>
+                  <p className={smtpResult.success ? 'text-green-800 dark:text-green-200 font-semibold' : 'text-red-800 dark:text-red-200 font-semibold'}>
                     {smtpResult.message}
                   </p>
                 </div>
@@ -439,23 +439,23 @@ export default function EmailDeliverabilityPage() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-gray-600 dark:text-gray-400 font-medium">Host:</span> 
-                        <span className="ml-2 font-mono">{smtpResult.data.host || 'Non configuré&apos;}</span>
+                        <span className="ml-2 font-mono">{smtpResult.data.host || 'Non configuré'}</span>
                       </div>
                       <div>
                         <span className="text-gray-600 dark:text-gray-400 font-medium">Port:</span> 
-                        <span className="ml-2 font-mono">{smtpResult.data.port || 'Non configuré&apos;}</span>
+                        <span className="ml-2 font-mono">{smtpResult.data.port || 'Non configuré'}</span>
                       </div>
                       <div>
                         <span className="text-gray-600 dark:text-gray-400 font-medium">Secure:</span> 
-                        <span className="ml-2">{smtpResult.data.secure ? '✅ Oui&apos; : '❌ Non&apos;}</span>
+                        <span className="ml-2">{smtpResult.data.secure ? '✅ Oui' : '❌ Non'}</span>
                       </div>
                       <div>
                         <span className="text-gray-600 dark:text-gray-400 font-medium">User:</span> 
-                        <span className="ml-2 font-mono">{smtpResult.data.user || 'Non configuré&apos;}</span>
+                        <span className="ml-2 font-mono">{smtpResult.data.user || 'Non configuré'}</span>
                       </div>
                       <div className="col-span-2">
                         <span className="text-gray-600 dark:text-gray-400 font-medium">From:</span> 
-                        <span className="ml-2 font-mono">{smtpResult.data.from || 'Non configuré&apos;}</span>
+                        <span className="ml-2 font-mono">{smtpResult.data.from || 'Non configuré'}</span>
                       </div>
                     </div>
                     {smtpResult.data.suggestion && (
@@ -571,7 +571,7 @@ export default function EmailDeliverabilityPage() {
                   ) : (
                     <AlertCircle className="w-5 h-5 text-red-600" />
                   )}
-                  <p className={sendResult.success ? 'text-green-800 dark:text-green-200&apos; : 'text-red-800 dark:text-red-200'}>
+                  <p className={sendResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}>
                     {sendResult.message}
                   </p>
                 </div>

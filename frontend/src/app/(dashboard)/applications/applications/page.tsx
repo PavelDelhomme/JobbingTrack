@@ -304,7 +304,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
   onSuccess: () => void
 }) {
   const [formData, setFormData] = useState({
-    companyName: '&apos;,  // ✅ Nom d'entreprise au lieu de l'ID
+    companyName: '',  // ✅ Nom d'entreprise au lieu de l'ID
     position: '',
     description: '',
     location: '',
@@ -512,7 +512,7 @@ function CreateApplicationModal({ onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Création...&apos; : 'Créer la candidature'}
+              {loading ? 'Création...' : 'Créer la candidature'}
             </button>
           </div>
         </form>

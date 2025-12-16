@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface SeparatorProps {
   className?: string;
-  orientation?: 'horizontal&apos; | 'vertical';
+  orientation?: 'horizontal' | 'vertical';
   decorative?: boolean;
 }
 
@@ -15,11 +15,11 @@ export function Separator({
 }: SeparatorProps & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      role={decorative ? 'none&apos; : 'separator'}
+      role={decorative ? 'none' : 'separator'}
       aria-orientation={orientation}
       className={cn(
         'shrink-0 bg-border',
-        orientation === 'horizontal&apos; ? 'h-[1px] w-full' : &apos;h-full w-[1px]',
+        orientation === 'horizontal' ? 'h-[1px] w-full' : 'h-full w-[1px]',
         className
       )}
       {...props}

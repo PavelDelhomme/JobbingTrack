@@ -227,7 +227,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <input
                 id="password"
-                type={showPassword ? 'text&apos; : 'password'}
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
@@ -247,16 +247,16 @@ export default function ResetPasswordPage() {
               </button>
             </div>
             <div className="mt-2 space-y-1">
-              <p className={`text-xs ${password.length >= 6 ? 'text-green-600 dark:text-green-400&apos; : 'text-gray-500'}`}>
+              <p className={`text-xs ${password.length >= 6 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                 ✓ Au moins 6 caractères
               </p>
-              <p className={`text-xs ${/[A-Z]/.test(password) ? 'text-green-600 dark:text-green-400&apos; : 'text-gray-500'}`}>
+              <p className={`text-xs ${/[A-Z]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                 ✓ Une lettre majuscule
               </p>
-              <p className={`text-xs ${/[a-z]/.test(password) ? 'text-green-600 dark:text-green-400&apos; : 'text-gray-500'}`}>
+              <p className={`text-xs ${/[a-z]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                 ✓ Une lettre minuscule
               </p>
-              <p className={`text-xs ${/[0-9]/.test(password) ? 'text-green-600 dark:text-green-400&apos; : 'text-gray-500'}`}>
+              <p className={`text-xs ${/[0-9]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                 ✓ Un chiffre
               </p>
             </div>
@@ -272,7 +272,7 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text&apos; : 'password'}
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"

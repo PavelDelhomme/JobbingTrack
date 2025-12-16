@@ -11,7 +11,7 @@ export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   
-  const [status, setStatus] = useState<'loading&apos; | 'success' | &apos;error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [resendEmail, setResendEmail] = useState('');
   const [resending, setResending] = useState(false);
@@ -33,7 +33,7 @@ export default function VerifyEmailPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/auth/verify-email/${verificationToken}`, {
         method: 'GET',
         headers: {
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         }
       });
 
@@ -54,7 +54,7 @@ export default function VerifyEmailPage() {
     } catch (error) {
       console.error('Erreur vérification email:', error);
       setStatus('error');
-      setMessage('Une erreur inattendue s\&apos;est produite. Veuillez réessayer.');
+      setMessage('Une erreur inattendue s\'est produite. Veuillez réessayer.');
     }
   };
 
@@ -71,7 +71,7 @@ export default function VerifyEmailPage() {
       const response = await fetch('/api/v1/auth/resend-verification', {
         method: 'POST',
         headers: {
-          'Content-Type&apos;: 'application/json'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ email: resendEmail })
       });
@@ -82,11 +82,11 @@ export default function VerifyEmailPage() {
         alert(data.message || 'Email de vérification renvoyé avec succès !');
         setResendEmail('');
       } else {
-        alert(data.error || 'Erreur lors du renvoi de l\&apos;email.');
+        alert(data.error || 'Erreur lors du renvoi de l\'email.');
       }
     } catch (error) {
       console.error('Erreur renvoi email:', error);
-      alert('Une erreur inattendue s\&apos;est produite.');
+      alert('Une erreur inattendue s\'est produite.');
     } finally {
       setResending(false);
     }
@@ -109,9 +109,9 @@ export default function VerifyEmailPage() {
           </div>
           
           <CardTitle className="text-2xl">
-            {status === 'loading&apos; && 'Vérification en cours...'}
-            {status === 'success&apos; && '✅ Email Vérifié !'}
-            {status === 'error&apos; && '❌ Échec de la Vérification'}
+            {status === 'loading' && 'Vérification en cours...'}
+            {status === 'success' && '✅ Email Vérifié !'}
+            {status === 'error' && '❌ Échec de la Vérification'}
           </CardTitle>
           
           <CardDescription className="mt-2">

@@ -27,8 +27,8 @@ export default function PieChart({
   const centerY = 50
 
   const defaultColors = [
-    '#3B82F6&apos;, '#EF4444', &apos;#10B981', '#F59E0B&apos;, '#8B5CF6',
-    '#EC4899&apos;, '#06B6D4', &apos;#84CC16', '#F97316&apos;, '#6366F1'
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
   ]
 
   const getPath = (startAngle: number, endAngle: number) => {

@@ -35,13 +35,13 @@ export default function EmailTemplatesPage() {
     {
       type: 'WELCOME',
       name: 'Email de Bienvenue',
-      description: 'Envoyé lors de l\&apos;inscription d\'un nouvel utilisateur',
+      description: 'Envoyé lors de l\'inscription d\'un nouvel utilisateur',
       subject: '🎉 Bienvenue sur JobbingTrack !',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #3b82f6; margin: 0;">JobbingTrack</h1>
-            <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d&apos;emploi</p>
+            <p style="color: #6b7280; margin: 5px 0;">Votre assistant personnel pour la recherche d'emploi</p>
           </div>
           <h2 style="color: #1f2937;">Bienvenue {{firstName}} ! 🎉</h2>
           <p>Félicitations ! Votre compte JobbingTrack a été créé avec succès.</p>
@@ -51,7 +51,7 @@ export default function EmailTemplatesPage() {
               <li>📝 <strong>Suivre vos candidatures</strong> - Gardez trace de toutes vos applications</li>
               <li>📅 <strong>Gérer vos entretiens</strong> - Planifiez et préparez vos rendez-vous</li>
               <li>🔔 <strong>Recevoir des rappels</strong> - Ne manquez plus jamais une relance</li>
-              <li>👥 <strong>Organiser vos contacts</strong> - Votre carnet d&apos;adresses professionnel</li>
+              <li>👥 <strong>Organiser vos contacts</strong> - Votre carnet d'adresses professionnel</li>
               <li>📊 <strong>Analyser vos performances</strong> - Statistiques de vos candidatures</li>
             </ul>
           </div>
@@ -62,12 +62,12 @@ export default function EmailTemplatesPage() {
           </div>
         </div>
       `,
-      variables: ['firstName&apos;, 'lastName', &apos;frontendUrl']
+      variables: ['firstName', 'lastName', 'frontendUrl']
     },
     {
       type: 'VERIFICATION',
       name: 'Email de Vérification',
-      description: 'Pour vérifier l\&apos;adresse email lors de l\'inscription',
+      description: 'Pour vérifier l\'adresse email lors de l\'inscription',
       subject: '✅ Vérifiez votre adresse email - JobbingTrack',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -85,7 +85,7 @@ export default function EmailTemplatesPage() {
           <p style="color: #6b7280; font-size: 14px;">Ce lien expire dans 24 heures.</p>
         </div>
       `,
-      variables: ['firstName&apos;, 'verificationUrl']
+      variables: ['firstName', 'verificationUrl']
     },
     {
       type: 'RESET_PASSWORD',
@@ -108,7 +108,7 @@ export default function EmailTemplatesPage() {
           <p style="color: #6b7280; font-size: 14px;">Ce lien est valide pendant 1 heure.</p>
         </div>
       `,
-      variables: ['firstName&apos;, 'resetUrl']
+      variables: ['firstName', 'resetUrl']
     }
   ]
 
@@ -288,7 +288,7 @@ export default function EmailTemplatesPage() {
               <Card 
                 key={template.type} 
                 className={`cursor-pointer hover:shadow-lg transition-shadow ${
-                  selectedTemplate?.type === template.type ? 'ring-2 ring-blue-500&apos; : ''
+                  selectedTemplate?.type === template.type ? 'ring-2 ring-blue-500' : ''
                 }`}
                 onClick={() => handlePreview(template)}
               >
@@ -418,16 +418,16 @@ export default function EmailTemplatesPage() {
                                 <div className="flex items-center gap-2 flex-1">
                                   <code className="text-sm font-mono bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">{`{{${variable}}}`}</code>
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {variable === 'firstName&apos; && 'Prénom de l\'utilisateur'}
-                                    {variable === 'lastName&apos; && 'Nom de l\'utilisateur'}
-                                    {variable === 'frontendUrl&apos; && 'URL du frontend'}
-                                    {variable === 'verificationUrl&apos; && 'URL de vérification email'}
-                                    {variable === 'resetUrl&apos; && 'URL de réinitialisation mot de passe'}
-                                    {variable === 'resetLink&apos; && 'URL de réinitialisation mot de passe'}
-                                    {variable === 'userName&apos; && 'Nom d\'utilisateur'}
-                                    {variable === 'appName&apos; && 'Nom de l\'application'}
-                                    {variable === 'expiryMinutes&apos; && 'Minutes avant expiration'}
-                                    {!['firstName&apos;, 'lastName', &apos;frontendUrl', 'verificationUrl&apos;, 'resetUrl', &apos;resetLink', 'userName&apos;, 'appName', &apos;expiryMinutes'].includes(variable) && 'Variable personnalisée'}
+                                    {variable === 'firstName' && 'Prénom de l\'utilisateur'}
+                                    {variable === 'lastName' && 'Nom de l\'utilisateur'}
+                                    {variable === 'frontendUrl' && 'URL du frontend'}
+                                    {variable === 'verificationUrl' && 'URL de vérification email'}
+                                    {variable === 'resetUrl' && 'URL de réinitialisation mot de passe'}
+                                    {variable === 'resetLink' && 'URL de réinitialisation mot de passe'}
+                                    {variable === 'userName' && 'Nom d\'utilisateur'}
+                                    {variable === 'appName' && 'Nom de l\'application'}
+                                    {variable === 'expiryMinutes' && 'Minutes avant expiration'}
+                                    {!['firstName', 'lastName', 'frontendUrl', 'verificationUrl', 'resetUrl', 'resetLink', 'userName', 'appName', 'expiryMinutes'].includes(variable) && 'Variable personnalisée'}
                                   </span>
                                 </div>
                                 <Button

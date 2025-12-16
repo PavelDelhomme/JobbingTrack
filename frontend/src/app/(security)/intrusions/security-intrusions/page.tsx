@@ -57,18 +57,18 @@ export default function SecurityIntrusionsPage() {
         setIntrusions(response.data.data)
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des tentatives d\&apos;intrusion:', error)
+      console.error('Erreur lors du chargement des tentatives d\'intrusion:', error)
 
       // Fallback vers des données mockées
       const mockIntrusions = Array.from({ length: 50 }, (_, i) => ({
         id: `intrusion-${i}`,
         timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
         sourceIP: `192.168.1.${Math.floor(Math.random() * 255)}`,
-        country: ['US&apos;, 'CN', &apos;RU', 'FR&apos;, 'DE', &apos;BR'][Math.floor(Math.random() * 6)],
-        city: ['New York&apos;, 'Beijing', &apos;Moscow', 'Paris&apos;, 'Berlin', &apos;São Paulo'][Math.floor(Math.random() * 6)],
-        attackType: ['SQL_INJECTION&apos;, 'XSS', &apos;BRUTE_FORCE', 'CSRF&apos;, 'LFI', &apos;RFI', 'DIRECTORY_TRAVERSAL&apos;, 'COMMAND_INJECTION'][Math.floor(Math.random() * 8)],
-        targetEndpoint: `/api/v1/${['auth&apos;, 'users', &apos;applications', 'companies&apos;, 'contacts'][Math.floor(Math.random() * 5)]}`,
-        method: ['GET&apos;, 'POST', &apos;PUT', 'DELETE'][Math.floor(Math.random() * 4)],
+        country: ['US', 'CN', 'RU', 'FR', 'DE', 'BR'][Math.floor(Math.random() * 6)],
+        city: ['New York', 'Beijing', 'Moscow', 'Paris', 'Berlin', 'São Paulo'][Math.floor(Math.random() * 6)],
+        attackType: ['SQL_INJECTION', 'XSS', 'BRUTE_FORCE', 'CSRF', 'LFI', 'RFI', 'DIRECTORY_TRAVERSAL', 'COMMAND_INJECTION'][Math.floor(Math.random() * 8)],
+        targetEndpoint: `/api/v1/${['auth', 'users', 'applications', 'companies', 'contacts'][Math.floor(Math.random() * 5)]}`,
+        method: ['GET', 'POST', 'PUT', 'DELETE'][Math.floor(Math.random() * 4)],
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         payload: Math.random() > 0.5 ? 'SELECT * FROM users WHERE id=1 OR 1=1--' : undefined,
         riskScore: Math.floor(Math.random() * 100),
@@ -77,7 +77,7 @@ export default function SecurityIntrusionsPage() {
         metadata: {
           attackVector: 'Web application attack',
           confidence: Math.random(),
-          severity: ['low&apos;, 'medium', &apos;high', 'critical'][Math.floor(Math.random() * 4)]
+          severity: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)]
         }
       }))
 
@@ -142,14 +142,14 @@ export default function SecurityIntrusionsPage() {
 
   const getAttackTypeColor = (attackType: string) => {
     switch (attackType) {
-      case 'SQL_INJECTION&apos;: return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'XSS&apos;: return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      case 'BRUTE_FORCE&apos;: return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-      case 'CSRF&apos;: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'LFI&apos;: return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
-      case 'RFI&apos;: return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
-      case 'DIRECTORY_TRAVERSAL&apos;: return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400'
-      case 'COMMAND_INJECTION&apos;: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+      case 'SQL_INJECTION': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+      case 'XSS': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+      case 'BRUTE_FORCE': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+      case 'CSRF': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'LFI': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
+      case 'RFI': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
+      case 'DIRECTORY_TRAVERSAL': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400'
+      case 'COMMAND_INJECTION': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
@@ -163,16 +163,16 @@ export default function SecurityIntrusionsPage() {
 
   const getCountryFlag = (country: string) => {
     const flags: { [key: string]: string } = {
-      'US&apos;: '🇺🇸',
-      'CN&apos;: '🇨🇳',
-      'RU&apos;: '🇷🇺',
-      'FR&apos;: '🇫🇷',
-      'DE&apos;: '🇩🇪',
-      'BR&apos;: '🇧🇷',
-      'JP&apos;: '🇯🇵',
-      'KR&apos;: '🇰🇷',
-      'IN&apos;: '🇮🇳',
-      'GB&apos;: '🇬🇧'
+      'US': '🇺🇸',
+      'CN': '🇨🇳',
+      'RU': '🇷🇺',
+      'FR': '🇫🇷',
+      'DE': '🇩🇪',
+      'BR': '🇧🇷',
+      'JP': '🇯🇵',
+      'KR': '🇰🇷',
+      'IN': '🇮🇳',
+      'GB': '🇬🇧'
     }
     return flags[country] || '🌍'
   }
@@ -318,7 +318,7 @@ export default function SecurityIntrusionsPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${getAttackTypeColor(intrusion.attackType)}`}>
-                    {intrusion.attackType.replace('_&apos;, ' ')}
+                    {intrusion.attackType.replace('_', ' ')}
                   </span>
                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${getRiskColor(intrusion.riskScore)}`}>
                     Score: {intrusion.riskScore}
@@ -397,7 +397,7 @@ export default function SecurityIntrusionsPage() {
               <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              <p className="text-gray-500 dark:text-gray-400">Aucune tentative d&apos;intrusion trouvée avec les critères actuels</p>
+              <p className="text-gray-500 dark:text-gray-400">Aucune tentative d'intrusion trouvée avec les critères actuels</p>
             </div>
           )}
         </div>

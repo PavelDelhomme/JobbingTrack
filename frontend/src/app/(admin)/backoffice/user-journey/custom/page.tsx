@@ -24,18 +24,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003';
 
 // Définition des étapes disponibles
 const AVAILABLE_STEPS = [
-  { id: 'register&apos;, name: 'Inscription', description: &apos;Inscription d\'un nouvel utilisateur', icon: &apos;👤' },
-  { id: 'email_validation&apos;, name: 'Validation Email', description: &apos;Validation de l\'email après inscription', icon: &apos;📧' },
-  { id: 'login&apos;, name: 'Connexion', description: &apos;Connexion utilisateur', icon: '🔐' },
-  { id: 'profile&apos;, name: 'Profil Utilisateur', description: &apos;Mise à jour du profil utilisateur', icon: '👨‍💼' },
-  { id: 'application_with_company&apos;, name: 'Candidature avec Entreprise', description: &apos;Création candidature avec création entreprise', icon: '📝' },
-  { id: 'contact_to_application&apos;, name: 'Contact à Candidature', description: &apos;Ajout d\'un contact à une candidature', icon: &apos;📇' },
-  { id: 'followup&apos;, name: 'Relance', description: &apos;Ajout d\'une relance à une candidature', icon: &apos;📞' },
-  { id: 'interview&apos;, name: 'Entretien', description: &apos;Ajout d\'un entretien à une candidature', icon: &apos;📅' },
-  { id: 'call_company&apos;, name: 'Appel Entreprise', description: &apos;Enregistrement d\'un appel avec l\'entreprise&apos;, icon: '☎️' },
-  { id: 'call_contact&apos;, name: 'Appel Contact', description: &apos;Enregistrement d\'un appel avec un contact', icon: &apos;📱' },
-  { id: 'application_status&apos;, name: 'Statut Candidature', description: &apos;Vérification/mise à jour du statut', icon: '📊' },
-  { id: 'application_rejected&apos;, name: 'Candidature Rejetée', description: &apos;Marquer candidature comme rejetée après entretien', icon: '❌' }
+  { id: 'register', name: 'Inscription', description: 'Inscription d\'un nouvel utilisateur', icon: '👤' },
+  { id: 'email_validation', name: 'Validation Email', description: 'Validation de l\'email après inscription', icon: '📧' },
+  { id: 'login', name: 'Connexion', description: 'Connexion utilisateur', icon: '🔐' },
+  { id: 'profile', name: 'Profil Utilisateur', description: 'Mise à jour du profil utilisateur', icon: '👨‍💼' },
+  { id: 'application_with_company', name: 'Candidature avec Entreprise', description: 'Création candidature avec création entreprise', icon: '📝' },
+  { id: 'contact_to_application', name: 'Contact à Candidature', description: 'Ajout d\'un contact à une candidature', icon: '📇' },
+  { id: 'followup', name: 'Relance', description: 'Ajout d\'une relance à une candidature', icon: '📞' },
+  { id: 'interview', name: 'Entretien', description: 'Ajout d\'un entretien à une candidature', icon: '📅' },
+  { id: 'call_company', name: 'Appel Entreprise', description: 'Enregistrement d\'un appel avec l\'entreprise', icon: '☎️' },
+  { id: 'call_contact', name: 'Appel Contact', description: 'Enregistrement d\'un appel avec un contact', icon: '📱' },
+  { id: 'application_status', name: 'Statut Candidature', description: 'Vérification/mise à jour du statut', icon: '📊' },
+  { id: 'application_rejected', name: 'Candidature Rejetée', description: 'Marquer candidature comme rejetée après entretien', icon: '❌' }
 ];
 
 type CustomStep = {
@@ -47,7 +47,7 @@ type CustomStep = {
 type StepResult = {
   step: string;
   name: string;
-  status: 'pending&apos; | 'running' | &apos;success' | 'error&apos; | 'warning' | &apos;skipped';
+  status: 'pending' | 'running' | 'success' | 'error' | 'warning' | 'skipped';
   duration?: number;
   message?: string;
   error?: string;
@@ -74,7 +74,7 @@ export default function CustomJourneyPage() {
     setSteps(steps.filter(s => s.id !== stepId));
   };
 
-  const moveStep = (index: number, direction: 'up&apos; | 'down') => {
+  const moveStep = (index: number, direction: 'up' | 'down') => {
     const newSteps = [...steps];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex >= 0 && targetIndex < newSteps.length) {
@@ -97,7 +97,7 @@ export default function CustomJourneyPage() {
       const response = await fetch(`${API_URL}/api/user-journey/custom`, {
         method: 'POST',
         headers: {
-          'Content-Type&apos;: 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
@@ -182,7 +182,7 @@ export default function CustomJourneyPage() {
             className="flex items-center gap-2"
           >
             <Play className="w-4 h-4" />
-            {isRunning ? 'Exécution...&apos; : 'Lancer le Parcours'}
+            {isRunning ? 'Exécution...' : 'Lancer le Parcours'}
           </Button>
         </div>
 
@@ -304,7 +304,7 @@ export default function CustomJourneyPage() {
         {results.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Résultats de l&apos;Exécution</CardTitle>
+              <CardTitle>Résultats de l'Exécution</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

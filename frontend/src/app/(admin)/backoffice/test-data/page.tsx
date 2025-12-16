@@ -61,7 +61,7 @@ const PRESETS: Preset[] = [
 export default function TestDataPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success&apos; | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string>('standard');
   const [customConfig, setCustomConfig] = useState(PRESETS.find(p => p.name === 'standard')!.config);
   const [showCustomConfig, setShowCustomConfig] = useState(false);
@@ -215,10 +215,10 @@ export default function TestDataPage() {
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`p-2 rounded-lg ${
-                    isSelected ? 'bg-blue-100 dark:bg-blue-900&apos; : 'bg-gray-100 dark:bg-gray-700'
+                    isSelected ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-700'
                   }`}>
                     <Icon className={`h-6 w-6 ${
-                      isSelected ? 'text-blue-600 dark:text-blue-400&apos; : 'text-gray-600 dark:text-gray-400'
+                      isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
                     }`} />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{preset.label}</h3>
@@ -257,7 +257,7 @@ export default function TestDataPage() {
               onClick={() => setShowCustomConfig(!showCustomConfig)}
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
-              {showCustomConfig ? 'Masquer&apos; : 'Afficher'}
+              {showCustomConfig ? 'Masquer' : 'Afficher'}
             </button>
           </div>
 
@@ -274,8 +274,8 @@ export default function TestDataPage() {
                     {key === 'followups' && <><Mail className="h-4 w-4 inline mr-1" /> Relances</>}
                     {key === 'calls' && <><Phone className="h-4 w-4 inline mr-1" /> Appels</>}
                     {key === 'events' && <><Clock className="h-4 w-4 inline mr-1" /> Événements</>}
-                    {key === 'deletedItems&apos; && 'Supprimés'}
-                    {key === 'archivedItems&apos; && 'Archivés'}
+                    {key === 'deletedItems' && 'Supprimés'}
+                    {key === 'archivedItems' && 'Archivés'}
                   </label>
                   <input
                     type="number"
