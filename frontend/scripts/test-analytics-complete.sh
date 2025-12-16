@@ -2,8 +2,27 @@
 
 # Suite de tests complète pour la page Analytics
 # Exécute tous les tests unitaires, d'intégration et de validation
+# S'exécute dans le conteneur Docker
 
 set -e
+
+# Vérifier si on est dans un conteneur Docker ou sur la machine hôte
+if [ -f /.dockerenv ] || [ -n "$DOCKER_CONTAINER" ]; then
+  # On est dans le conteneur, exécuter directement
+  FRONTEND_DIR="/app"
+  cd "$FRONTEND_DIR"
+else
+  # On est sur la machine hôte, exécuter dans le conteneur
+  CONTAINER_NAME="jobbingtrack-frontend"
+  if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "❌ Le conteneur ${CONTAINER_NAME} n'est pas démarré."
+    echo "💡 Lancez 'make up-full' ou 'make start' d'abord."
+    exit 1
+  fi
+  echo "🔍 Exécution dans le conteneur ${CONTAINER_NAME}..."
+  docker exec -w /app "$CONTAINER_NAME" bash scripts/test-analytics-complete.sh
+  exit $?
+fi
 
 FRONTEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$FRONTEND_DIR"

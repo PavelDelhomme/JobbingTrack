@@ -12,17 +12,35 @@ FRONTEND_DIR := frontend
 # AIDE
 # ============================================================================
 
-test-analytics: ## Exécuter les tests de la page Analytics
+test-analytics: ## Exécuter les tests de la page Analytics (dans conteneur Docker)
 	@echo "🧪 Exécution des tests Analytics..."
-	@cd $(FRONTEND_DIR) && npm run test:analytics
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run test:analytics; \
+	else \
+		echo "❌ Le conteneur jobbingtrack-frontend n'est pas démarré."; \
+		echo "💡 Lancez 'make up-full' ou 'make start' d'abord."; \
+		exit 1; \
+	fi
 
 test-analytics-validate: ## Valider la page Analytics (détection automatique de problèmes)
 	@echo "🔍 Validation automatique de la page Analytics..."
-	@cd $(FRONTEND_DIR) && npm run test:analytics:validate
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend bash scripts/validate-analytics-page.sh; \
+	else \
+		echo "❌ Le conteneur jobbingtrack-frontend n'est pas démarré."; \
+		echo "💡 Lancez 'make up-full' ou 'make start' d'abord."; \
+		exit 1; \
+	fi
 
 test-analytics-complete: ## Suite de tests complète pour Analytics
 	@echo "🧪 Suite de tests complète pour Analytics..."
-	@cd $(FRONTEND_DIR) && npm run test:analytics:complete
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend bash scripts/test-analytics-complete.sh; \
+	else \
+		echo "❌ Le conteneur jobbingtrack-frontend n'est pas démarré."; \
+		echo "💡 Lancez 'make up-full' ou 'make start' d'abord."; \
+		exit 1; \
+	fi
 
 help-frontend: ## Afficher l'aide frontend
 	@echo "================================================================"
@@ -86,37 +104,72 @@ install-frontend: ## Installer dépendances
 # QUALITÉ DU CODE
 # ============================================================================
 
-lint-frontend: ## ESLint
+lint-frontend: ## ESLint (dans conteneur Docker)
 	@echo "🔍 ESLint frontend..."
-	@cd $(FRONTEND_DIR) && npm run lint || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run lint || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run lint || true; \
+	fi
 
-type-check-frontend: ## TypeScript check
+type-check-frontend: ## TypeScript check (dans conteneur Docker)
 	@echo "🔍 TypeScript check..."
-	@cd $(FRONTEND_DIR) && npm run type-check || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run type-check || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run type-check || true; \
+	fi
 
-format-frontend: ## Prettier format
+format-frontend: ## Prettier format (dans conteneur Docker)
 	@echo "💅 Formatage Prettier..."
-	@cd $(FRONTEND_DIR) && npm run format || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run format || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run format || true; \
+	fi
 
-format-check-frontend: ## Vérifier formatage
+format-check-frontend: ## Vérifier formatage (dans conteneur Docker)
 	@echo "🔍 Vérification formatage..."
-	@cd $(FRONTEND_DIR) && npm run format:check || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run format:check || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run format:check || true; \
+	fi
 
 # ============================================================================
 # TESTS
 # ============================================================================
 
-test-unit-frontend: ## Tests unitaires Jest
+test-unit-frontend: ## Tests unitaires Jest (dans conteneur Docker)
 	@echo "🧪 Tests unitaires frontend..."
-	@cd $(FRONTEND_DIR) && npm run test:unit || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run test:unit || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run test:unit || true; \
+	fi
 
-test-e2e-frontend: ## Tests E2E Playwright
+test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)
 	@echo "🎭 Tests E2E frontend..."
-	@cd $(FRONTEND_DIR) && npm run test:e2e || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run test:e2e || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run test:e2e || true; \
+	fi
 
-test-all-frontend: ## Tous les tests
+test-all-frontend: ## Tous les tests (dans conteneur Docker)
 	@echo "🧪 Tous les tests frontend..."
-	@cd $(FRONTEND_DIR) && npm run test:all || true
+	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
+		docker exec -w /app jobbingtrack-frontend npm run test:all || true; \
+	else \
+		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
+		cd $(FRONTEND_DIR) && npm run test:all || true; \
+	fi
 
 # ============================================================================
 # PERFORMANCE
