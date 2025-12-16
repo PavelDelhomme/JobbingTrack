@@ -201,12 +201,12 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
           <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4">
             <nav className="space-y-2">
               {[
-                { id: 'appearance&apos;, label: '🎨 Apparence', icon: &apos;🎨' },
-                { id: 'refresh&apos;, label: '🔄 Rafraîchissement', icon: &apos;🔄' },
-                { id: 'notifications&apos;, label: '🔔 Notifications', icon: &apos;🔔' },
-                { id: 'display&apos;, label: '📱 Affichage', icon: &apos;📱' },
-                { id: 'history&apos;, label: '📊 Historique', icon: &apos;📊' },
-                { id: 'system&apos;, label: '⚙️ Système', icon: &apos;⚙️' }
+                { id: 'appearance', label: '🎨 Apparence', icon: '🎨' },
+                { id: 'refresh', label: '🔄 Rafraîchissement', icon: '🔄' },
+                { id: 'notifications', label: '🔔 Notifications', icon: '🔔' },
+                { id: 'display', label: '📱 Affichage', icon: '📱' },
+                { id: 'history', label: '📊 Historique', icon: '📊' },
+                { id: 'system', label: '⚙️ Système', icon: '⚙️' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -236,7 +236,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       Thème
                     </label>
                     <div className="flex gap-2">
-                      {['light&apos;, 'dark', &apos;system'].map((mode) => (
+                      {['light', 'dark', 'system'].map((mode) => (
                         <button
                           key={mode}
                           onClick={() => {
@@ -249,9 +249,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                           }`}
                         >
-                          {mode === 'light&apos; && '☀️ Clair'}
-                          {mode === 'dark&apos; && '🌙 Sombre'}
-                          {mode === 'system&apos; && '💻 Système'}
+                          {mode === 'light' && '☀️ Clair'}
+                          {mode === 'dark' && '🌙 Sombre'}
+                          {mode === 'system' && '💻 Système'}
                         </button>
                       ))}
                     </div>
@@ -299,12 +299,12 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 
                 <div className="space-y-6">
                   {[
-                    { key: 'logs&apos; as const, label: 'Logs de Sécurité', min: 5, max: 120, step: 5 },
-                    { key: 'analytics&apos; as const, label: 'Analytics', min: 5, max: 60, step: 5 },
-                    { key: 'metrics&apos; as const, label: 'Métriques', min: 5, max: 60, step: 5 },
-                    { key: 'dashboard&apos; as const, label: 'Dashboard', min: 10, max: 120, step: 10 },
-                    { key: 'services&apos; as const, label: 'Services', min: 10, max: 120, step: 10 },
-                    { key: 'notifications&apos; as const, label: 'Notifications', min: 30, max: 300, step: 30 }
+                    { key: 'logs' as const, label: 'Logs de Sécurité', min: 5, max: 120, step: 5 },
+                    { key: 'analytics' as const, label: 'Analytics', min: 5, max: 60, step: 5 },
+                    { key: 'metrics' as const, label: 'Métriques', min: 5, max: 60, step: 5 },
+                    { key: 'dashboard' as const, label: 'Dashboard', min: 10, max: 120, step: 10 },
+                    { key: 'services' as const, label: 'Services', min: 10, max: 120, step: 10 },
+                    { key: 'notifications' as const, label: 'Notifications', min: 30, max: 300, step: 30 }
                   ].map(({ key, label, min, max, step }) => {
                     const value = (preferences.refreshInterval?.[key] || 30000) / 1000
                     return (
@@ -352,9 +352,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-3">Paramètres généraux</p>
                     {[
-                      { key: 'desktop&apos; as const, label: 'Notifications Bureau', desc: &apos;Recevoir des notifications de bureau' },
-                      { key: 'sound&apos; as const, label: 'Son', desc: &apos;Jouer un son pour les notifications' },
-                      { key: 'highPriorityOnly&apos; as const, label: 'Priorité Élevée Uniquement', desc: &apos;Ne montrer que les notifications importantes' }
+                      { key: 'desktop' as const, label: 'Notifications Bureau', desc: 'Recevoir des notifications de bureau' },
+                      { key: 'sound' as const, label: 'Son', desc: 'Jouer un son pour les notifications' },
+                      { key: 'highPriorityOnly' as const, label: 'Priorité Élevée Uniquement', desc: 'Ne montrer que les notifications importantes' }
                     ].map(({ key, label, desc }) => (
                       <div key={key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg mb-2">
                         <div>
