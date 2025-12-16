@@ -30,9 +30,16 @@ echo ""
 ERRORS=0
 WARNINGS=0
 
+# Définir le chemin du fichier page.tsx
+PAGE_FILE="${FRONTEND_DIR}/src/app/(admin)/backoffice/analytics/page.tsx"
+if [ ! -f "$PAGE_FILE" ]; then
+  # Essayer avec le chemin relatif
+  PAGE_FILE="src/app/(admin)/backoffice/analytics/page.tsx"
+fi
+
 # 1. Vérifier que timeRange est passé à tous les composants Tab
 echo "📋 Vérification des props timeRange..."
-if grep -r "OverviewTab\|SystemTab\|PerformanceTab\|NetworkTab" src/app/\(admin\)/backoffice/analytics/page.tsx | grep -v "timeRange" | grep -q "Tab"; then
+if grep -r "OverviewTab\|SystemTab\|PerformanceTab\|NetworkTab" "$PAGE_FILE" 2>/dev/null | grep -v "timeRange" | grep -q "Tab"; then
   echo "  ❌ ERREUR: timeRange manquant dans certains composants Tab"
   ERRORS=$((ERRORS + 1))
 else
