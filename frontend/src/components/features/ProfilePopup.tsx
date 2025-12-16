@@ -169,7 +169,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
               ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' 
               : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
           }`}>
-            {message.type === 'success&apos; ? '✓' : &apos;✗'}
+            {message.type === 'success' ? '✓' : '✗'}
             <span className="text-sm font-medium">{message.text}</span>
           </div>
         )}
@@ -237,7 +237,7 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text&apos; : 'password'}
+                  type={showPassword ? 'text' : 'password'}
                   value={formData.currentPassword}
                   onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
                   placeholder="••••••••"

@@ -222,7 +222,7 @@ export function OptimizedSearch({
                   disabled={isIndexing}
                   className="text-xs"
                 >
-                  {isIndexing ? '🔄&apos; : '⚡'} Index
+                  {isIndexing ? '🔄' : '⚡'} Index
                 </Button>
 
                 <Button
@@ -230,7 +230,7 @@ export function OptimizedSearch({
                   size="sm"
                   onClick={handleAdvancedSearch}
                   disabled={isLoading || !query.trim()}
-                  className={`text-xs ${Object.values(searchFilters).some(filter => filter !== '&apos;) ? 'border-primary bg-primary/10' : &apos;'}`}
+                  className={`text-xs ${Object.values(searchFilters).some(filter => filter !== '') ? 'border-primary bg-primary/10' : ''}`}
                 >
                   🔍 Avancé
                   {Object.values(searchFilters).some(filter => filter !== '') && (
@@ -252,7 +252,7 @@ export function OptimizedSearch({
             {/* Sélecteurs de modules */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-foreground">Modules:</span>
-              {['applications&apos;, 'companies', &apos;contacts', 'interviews&apos;, 'calls', &apos;users', 'events&apos;, 'notifications', &apos;archives', 'trash'].map((module) => (
+              {['applications', 'companies', 'contacts', 'interviews', 'calls', 'users', 'events', 'notifications', 'archives', 'trash'].map((module) => (
                 <Badge
                   key={module}
                   variant={selectedModules.includes(module) ? "default" : "outline"}
@@ -295,7 +295,7 @@ export function OptimizedSearch({
                       className="w-full px-2 py-1 text-xs bg-background border border-input rounded-md text-foreground"
                     >
                       <option value="">Toutes les dates</option>
-                      <option value="today">Aujourd&apos;hui</option>
+                      <option value="today">Aujourd'hui</option>
                       <option value="week">Cette semaine</option>
                       <option value="month">Ce mois</option>
                       <option value="year">Cette année</option>
@@ -341,7 +341,7 @@ export function OptimizedSearch({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSearchFilters({ dateRange: '&apos;, status: '', priority: &apos;' })}
+                      onClick={() => setSearchFilters({ dateRange: '', status: '', priority: '' })}
                       className="text-xs h-6 px-2"
                     >
                       Effacer les filtres
@@ -409,7 +409,7 @@ export function OptimizedSearch({
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                       <span className="font-medium text-foreground">
-                        {results.length} résultat{results.length > 1 ? 's&apos; : ''} trouvé{results.length > 1 ? &apos;s' : ''}
+                        {results.length} résultat{results.length > 1 ? 's' : ''} trouvé{results.length > 1 ? 's' : ''}
                       </span>
                     </div>
                     <Badge variant="default" className="text-xs">
