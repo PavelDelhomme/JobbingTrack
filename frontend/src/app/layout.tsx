@@ -20,6 +20,27 @@ function HydrationFix() {
   return null
 }
 
+// Composant pour appliquer le thème avant le rendu
+function ThemeScript() {
+  useEffect(() => {
+    try {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      const storedTheme = localStorage.getItem('theme') || 'system'
+      const actualTheme = storedTheme === 'system' ? systemTheme : storedTheme
+      document.documentElement.classList.add(actualTheme)
+      document.body.classList.add(actualTheme)
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#ffffff')
+      }
+    } catch (e) {
+      console.error('Theme initialization error:', e)
+    }
+  }, [])
+
+  return null
+}
+
 const inter = Inter({ subsets: ['latin'] })
 
 export default function RootLayout({
@@ -35,6 +56,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#111827" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <ThemeScript />
         <HydrationFix />
         <ErrorBoundary>
           <ThemeProvider>
@@ -48,12 +70,6 @@ export default function RootLayout({
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>
-        {/* Script to apply theme before React render */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: '(function(){try{const systemTheme=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";const storedTheme=localStorage.getItem("theme")||"system";const actualTheme=storedTheme==="system"?systemTheme:storedTheme;document.documentElement.classList.add(actualTheme);document.body.classList.add(actualTheme);const metaThemeColor=document.querySelector("meta[name=\\"theme-color\\"]");if(metaThemeColor){metaThemeColor.setAttribute("content",actualTheme==="dark"?"#111827":"#ffffff");}}catch(e){console.error("Theme initialization error:",e);}})();',
-          }}
-        />
       </body>
     </html>
   )
