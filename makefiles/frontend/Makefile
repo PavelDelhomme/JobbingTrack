@@ -12,6 +12,18 @@ FRONTEND_DIR := frontend
 # AIDE
 # ============================================================================
 
+test-analytics: ## Exécuter les tests de la page Analytics
+	@echo "🧪 Exécution des tests Analytics..."
+	@cd $(FRONTEND_DIR) && npm run test:analytics
+
+test-analytics-validate: ## Valider la page Analytics (détection automatique de problèmes)
+	@echo "🔍 Validation automatique de la page Analytics..."
+	@cd $(FRONTEND_DIR) && npm run test:analytics:validate
+
+test-analytics-complete: ## Suite de tests complète pour Analytics
+	@echo "🧪 Suite de tests complète pour Analytics..."
+	@cd $(FRONTEND_DIR) && npm run test:analytics:complete
+
 help-frontend: ## Afficher l'aide frontend
 	@echo "================================================================"
 	@echo "🖥️  FRONTEND - Commandes disponibles"
