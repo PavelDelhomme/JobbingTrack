@@ -24,8 +24,8 @@ else
   exit $?
 fi
 
-FRONTEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$FRONTEND_DIR"
+# Si on arrive ici, on est dans le conteneur
+# FRONTEND_DIR est déjà défini à /app
 
 echo "🧪 Suite de tests complète pour Analytics"
 echo "=========================================="
