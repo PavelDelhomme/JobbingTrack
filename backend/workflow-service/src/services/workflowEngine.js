@@ -71,7 +71,7 @@ class WorkflowEngine {
       ? new Date(Date.now() + rule.delayDays * 24 * 60 * 60 * 1000)
       : new Date();
 
-    await prisma.workflowExecution.create({
+    await prisma.workflowRun.create({
       data: {
         userId: 'system', // TODO: récupérer userId
         entityId,
@@ -115,9 +115,9 @@ class WorkflowEngine {
     }
 
     // Vérifier si la table existe avant de mettre à jour
-    if (prisma.workflowExecution && typeof prisma.workflowExecution.update === 'function') {
+    if (prisma.workflowRun && typeof prisma.workflowRun.update === 'function') {
       try {
-        await prisma.workflowExecution.update({
+        await prisma.workflowRun.update({
           where: { id: execution.id },
           data: {
             status: 'COMPLETED',
