@@ -2730,7 +2730,7 @@ const ReportTab = memo(function ReportTab({
     setIsExporting(true);
     try {
       // Créer une nouvelle fenêtre avec le contenu formaté pour l'impression
-      const printWindow = window.open(', '_blank');
+      const printWindow = window.open('', '_blank');
       if (!printWindow) {
         alert('❌ Veuillez autoriser les popups pour l\'export PDF');
         setIsExporting(false);

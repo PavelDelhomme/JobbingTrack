@@ -501,9 +501,6 @@ export default function ServicesPage() {
     return service.serviceType ? maintenances[service.serviceType] : undefined
   }
 
-  // État pour les métriques Prometheus
-  const [prometheusMetrics, setPrometheusMetrics] = useState<{[serviceName: string]: any}>({})
-
   // Fonction pour récupérer les métriques Prometheus via l'API Gateway
   const fetchPrometheusMetrics = async (serviceName: string) => {
     try {
