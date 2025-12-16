@@ -2819,10 +2819,10 @@ const ReportTab = memo(function ReportTab({
               <tbody>
                 ${data.logs.slice(0, 20).map((log: any) => `
                   <tr>
-                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : '}</td>
+                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : ''}</td>
                     <td>${log.serviceName || ''}</td>
                     <td>${log.level || ''}</td>
-                    <td>${(log.message || ').substring(0, 100)}</td>
+                    <td>${(log.message || '').substring(0, 100)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -3443,7 +3443,7 @@ const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, l
         {trend !== undefined && trend !== null && trend !== 0 && (
           <span className={`text-xs font-medium ${getTrendColor()}`}>
             {trend > 0 ? '↗' : '↘'} {formatTrend(Math.abs(trend))}
-            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : '}
+            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : ''}
           </span>
         )}
       </div>
