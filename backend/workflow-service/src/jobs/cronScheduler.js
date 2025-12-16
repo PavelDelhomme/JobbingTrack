@@ -59,10 +59,12 @@ class CronScheduler {
 
       let pendingExecutions;
       try {
+        // Note: WorkflowRun n'a pas de champ scheduledAt, on utilise createdAt à la place
+        // ou on cherche simplement les exécutions PENDING
         pendingExecutions = await prisma.workflowRun.findMany({
           where: {
             status: 'PENDING',
-            scheduledAt: {
+            createdAt: {
               lte: new Date()
             }
           }
