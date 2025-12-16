@@ -17,7 +17,7 @@
         "test:ci": "jest --ci --coverage --watchAll=false",
         "test:watch": "jest --watch",
         "test:unit": "jest --testPathPattern=unit",
-        "test:analytics": "jest src/app/\\(admin\\)/backoffice/analytics/__tests__",
+        "test:analytics": "jest --testPathPattern=analytics/__tests__",
         "test:analytics:validate": "./scripts/validate-analytics-page.sh",
         "test:analytics:complete": "./scripts/test-analytics-complete.sh",
         "test:e2e": "playwright test",

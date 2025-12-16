@@ -231,6 +231,11 @@ export default function AnalyticsPage() {
     loadRefreshIntervals();
   }, []);
 
+  // ✅ OPTIMISATION : useCallback pour handleTimeRangeChange
+  const handleTimeRangeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTimeRange(e.target.value as '1h' | '6h' | '24h' | '7d' | '30d');
+  }, []);
+
   // ✅ OPTIMISATION : useMemo pour éviter les recalculs
   const timeRangeMs = useMemo(() => {
     const ranges = {
