@@ -50,6 +50,19 @@ class SecurityMiddleware {
         timestamp: new Date()
       };
 
+      // Endpoints légitimes à exclure de l'analyse d'intrusion stricte
+      const safeEndpoints = [
+        '/api/v1/security/logs',
+        '/api/v1/logs',
+        '/health',
+        '/api/v1/health'
+      ];
+
+      // Vérifier si c'est un endpoint sûr (requêtes GET simples avec paramètres de requête normaux)
+      const isSafeEndpoint = safeEndpoints.some(safe => endpoint.startsWith(safe)) && 
+                            method === 'GET' && 
+                            contentLength === 0;
+
       // Vérifier si l'IP est bloquée
       if (this.blockedIPs.has(clientIP)) {
         await logSecurityEvent('critical', 'intrusion', 'blocked_ip_access', `Accès refusé à IP bloquée: ${clientIP}`, {
@@ -69,29 +82,33 @@ class SecurityMiddleware {
       // Mettre à jour l'historique des requêtes pour cette IP
       this.updateRequestHistory(clientIP, req);
 
-      // Détecter les tentatives d'intrusion
-      const intrusionRisk = await this.detectIntrusionAttempts(req);
-      if (intrusionRisk > 80) {
-        this.blockIP(clientIP, 'High intrusion risk detected');
-        return res.status(403).json({
-          success: false,
-          message: 'Accès refusé: Activité suspecte détectée',
-          code: 'INTRUSION_DETECTED'
-        });
+      // Détecter les tentatives d'intrusion (sauf pour les endpoints sûrs)
+      if (!isSafeEndpoint) {
+        const intrusionRisk = await this.detectIntrusionAttempts(req);
+        if (intrusionRisk > 80) {
+          this.blockIP(clientIP, 'High intrusion risk detected');
+          return res.status(403).json({
+            success: false,
+            message: 'Accès refusé: Activité suspecte détectée',
+            code: 'INTRUSION_DETECTED'
+          });
+        }
+
+        // Analyser les payloads suspects (uniquement pour les requêtes avec body)
+        if (contentLength > 0) {
+          const payloadRisk = await this.analyzePayload(req);
+          if (payloadRisk > 70) {
+            this.blockIP(clientIP, 'Suspicious payload detected');
+            return res.status(400).json({
+              success: false,
+              message: 'Requête rejetée: Payload suspect',
+              code: 'SUSPICIOUS_PAYLOAD'
+            });
+          }
+        }
       }
 
-      // Analyser les payloads suspects
-      const payloadRisk = await this.analyzePayload(req);
-      if (payloadRisk > 70) {
-        this.blockIP(clientIP, 'Suspicious payload detected');
-        return res.status(400).json({
-          success: false,
-          message: 'Requête rejetée: Payload suspect',
-          code: 'SUSPICIOUS_PAYLOAD'
-        });
-      }
-
-      // Vérifier les patterns d'attaque DDoS
+      // Vérifier les patterns d'attaque DDoS (toujours actif)
       const ddosRisk = await this.detectDDoSPatterns(req);
       if (ddosRisk > 90) {
         this.blockIP(clientIP, 'DDoS pattern detected');
@@ -150,13 +167,20 @@ class SecurityMiddleware {
     const { clientIP, endpoint, method, userAgent, contentLength } = req.securityInfo;
     let riskScore = 0;
 
-    // Patterns d'intrusion avancés
+    // Extraire uniquement le body et les paramètres de requête (pas l'User-Agent dans l'analyse)
+    const body = req.body ? JSON.stringify(req.body) : '';
+    const query = req.query ? JSON.stringify(req.query) : '';
+    // Ne pas inclure l'User-Agent dans l'analyse des patterns d'intrusion
+    const fullPayload = `${body} ${query}`.trim();
+
+    // Patterns d'intrusion avancés (plus stricts pour éviter les faux positifs)
     const intrusionPatterns = {
       sql_injection: [
-        /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute|declare|cast|set|declare)\b)/i,
-        /(\bor\b|\band\b).*(\b1=1\b|\b1=2\b)/i,
-        /('|(\\')|(;)|(\|)|(\*)|(%))/,
-        /(\-\-|\#|\/\*|\*\/)/
+        // Patterns SQL plus spécifiques (éviter les faux positifs avec des caractères normaux)
+        /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute|declare|cast|set)\s+.*\b(from|into|where|table|database)\b)/i,
+        /(\bor\b|\band\b).*(\b1\s*=\s*1\b|\b1\s*=\s*2\b)/i,
+        /('.*?(union|select|insert|update|delete|drop|create|alter|exec|execute).*?')/i,
+        /(\-\-|\#|\/\*|\*\/).*(union|select|insert|update|delete|drop)/i
       ],
       xss: [
         /(<script[^>]*>.*?<\/script>)/gi,
@@ -171,20 +195,22 @@ class SecurityMiddleware {
         /(\.\.%2f|\.\.%5c)/i
       ],
       command_injection: [
-        /(\||;|&|\$\(|\`)/,
-        /(\bor\b|\band\b).*(\bcat\b|\bnet\b|\bwget\b|\bcurl\b)/i,
-        /(\.\.\/|\.\.\\).*(\.sh|\.bat|\.exe|\.cmd)/i
+        // Patterns plus spécifiques pour éviter les faux positifs
+        /(\||;|&|\$\(|\`).*(cat|net|wget|curl|bash|sh|cmd|powershell)/i,
+        /(\bor\b|\band\b).*(\bcat\b|\bnet\b|\bwget\b|\bcurl\b|\bbash\b|\bsh\b)/i,
+        /(\.\.\/|\.\.\\).*(\.sh|\.bat|\.exe|\.cmd|\.ps1)/i,
+        /\$\{.*\}|\$\(.*\)/ // Command substitution patterns
       ]
     };
 
-    const body = req.body ? JSON.stringify(req.body) : '';
-    const query = req.query ? JSON.stringify(req.query) : '';
-    const fullPayload = `${body} ${query} ${userAgent}`;
-
-    // Analyser chaque type d'attaque
+    // Analyser chaque type d'attaque (uniquement sur le payload, pas sur l'endpoint pour les requêtes GET normales)
     for (const [attackType, patterns] of Object.entries(intrusionPatterns)) {
       for (const pattern of patterns) {
-        if (pattern.test(fullPayload) || pattern.test(endpoint)) {
+        // Pour les requêtes GET avec query params normaux, ne pas analyser l'endpoint
+        const shouldCheckEndpoint = method !== 'GET' || contentLength > 0;
+        const testPayload = shouldCheckEndpoint ? (fullPayload || endpoint) : fullPayload;
+        
+        if (testPayload && pattern.test(testPayload)) {
           riskScore += 25;
 
           await logSecurityEvent('error', 'intrusion', attackType, `Tentative d'intrusion détectée: ${attackType}`, {
