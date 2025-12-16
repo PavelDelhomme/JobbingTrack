@@ -32,6 +32,7 @@
     ".next/types/**/*.ts",
     "src/**/*"
   ],
+  "types": ["jest", "@testing-library/jest-dom", "node"],
   "exclude": [
     "node_modules",
     ".next",

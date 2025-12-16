@@ -65,7 +65,7 @@ tests-help:
 	@echo "  make test-services            Tests services détaillés"
 	@echo "  make test-infrastructure      Tests infrastructure"
 	@echo "  make test-cache               Tests système de cache"
-	@echo "  make test-analytics           Tests endpoint analytics"
+	@echo "  make test-analytics-endpoint  Tests endpoint analytics"
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
 	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
@@ -471,8 +471,8 @@ test-cache: ## Teste le système de cache (cacheManager)
 # 📊 TEST ANALYTICS - Test endpoint analytics
 # ================================================================
 
-test-analytics: ## Teste l'endpoint analytics /api/v1/persistence/logs
-	$(call check_help_read,test-analytics)
+test-analytics-endpoint: ## Teste l'endpoint analytics /api/v1/persistence/logs
+	$(call check_help_read,test-analytics-endpoint)
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║        📊 TEST ENDPOINT ANALYTICS - JobbingTrack      ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
