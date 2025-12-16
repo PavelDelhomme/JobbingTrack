@@ -249,7 +249,7 @@ class CronScheduler {
             gte: today,
             lte: tomorrow
           },
-          status: 'PENDING', // Utiliser PENDING au lieu de SCHEDULED (enum InterviewStatus dans workflow-service)
+          status: 'UPCOMING_ARRIVAL', // Utiliser UPCOMING_ARRIVAL (enum InterviewStatus dans workflow-service: UPCOMING_ARRIVAL, COMPLETED, FEEDBACK_PENDING, PENDING)
           // Note: deletedAt n'existe pas dans le schéma Interview de workflow-service
         },
         include: {
