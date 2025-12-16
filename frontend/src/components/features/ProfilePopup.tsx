@@ -91,12 +91,12 @@ export function ProfilePopup({ isOpen, onClose }: ProfilePopupProps) {
       // Ici on pourrait faire un appel API pour sauvegarder les modifications du profil
       console.log('Sauvegarde des données:', formData)
       
-      setMessage({ type: 'success&apos;, text: 'Paramètres sauvegardés avec succès' })
+      setMessage({ type: 'success', text: 'Paramètres sauvegardés avec succès' })
       setTimeout(() => setMessage(null), 3000)
       setIsEditing(false)
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
-      setMessage({ type: 'error&apos;, text: 'Erreur lors de la sauvegarde' })
+      setMessage({ type: 'error', text: 'Erreur lors de la sauvegarde' })
       setTimeout(() => setMessage(null), 3000)
     } finally {
       setSaving(false)
