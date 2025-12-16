@@ -72,9 +72,9 @@ app.use(morgan('combined', {
   stream: { write: msg => logger.info(msg.trim()) }
 }));
 
-// Middleware de sécurité personnalisé (lier le contexte)
+// Middleware de sécurité personnalisé (lier le contexte avec bind)
 app.use((req, res, next) => {
-  securityMiddleware.analyzeRequest(req, res, next).catch(err => {
+  securityMiddleware.analyzeRequest.bind(securityMiddleware)(req, res, next).catch(err => {
     logger.error('Erreur dans le middleware de sécurité:', err);
     next(); // Continuer même en cas d'erreur
   });

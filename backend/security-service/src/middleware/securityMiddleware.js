@@ -17,9 +17,9 @@ class SecurityMiddleware {
   // Middleware principal d'analyse de sécurité
   async analyzeRequest(req, res, next) {
     try {
-      // Gérer le cas où getClientIP n'est pas disponible
-      const clientIP = this?.getClientIP ? this.getClientIP(req) : (
-        req.headers['x-forwarded-for']?.split(',')[0] ||
+      // Récupérer l'IP du client directement (sans dépendre de this.getClientIP)
+      const clientIP = (
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
         req.headers['x-real-ip'] ||
         req.connection?.remoteAddress ||
         req.socket?.remoteAddress ||
