@@ -6,6 +6,8 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import fs from 'fs';
+import path from 'path';
 
 describe('AnalyticsPage - Tests de performance', () => {
   it('devrait charger en moins de 2 secondes', async () => {
@@ -20,36 +22,23 @@ describe('AnalyticsPage - Tests de performance', () => {
     expect(loadTime).toBeLessThan(2000);
   });
 
-  it('devrait utiliser useMemo pour optimiser les calculs', () => {
-    let calculationCount = 0;
+  it('devrait utiliser useMemo pour timeRangeMs', () => {
+    // Vérifier que le code source utilise useMemo pour timeRangeMs
+    const pagePath = path.join(__dirname, '../page.tsx');
+    const pageContent = fs.readFileSync(pagePath, 'utf-8');
     
-    const expensiveCalculation = () => {
-      calculationCount++;
-      return Math.random() * 100;
-    };
-    
-    // Simuler useMemo
-    const memoizedValue = React.useMemo(() => expensiveCalculation(), []);
-    const memoizedValue2 = React.useMemo(() => expensiveCalculation(), []);
-    
-    // La deuxième utilisation devrait utiliser la valeur mémorisée
-    expect(calculationCount).toBeLessThanOrEqual(2);
+    // Vérifier que useMemo est utilisé pour timeRangeMs
+    expect(pageContent).toMatch(/const timeRangeMs = useMemo/);
+    expect(pageContent).toMatch(/useMemo.*timeRange/);
   });
 
-  it('devrait utiliser useCallback pour éviter les re-créations', () => {
-    let callbackCount = 0;
+  it('devrait utiliser useCallback pour handleTimeRangeChange', () => {
+    // Vérifier que le code source utilise useCallback pour handleTimeRangeChange
+    const pagePath = path.join(__dirname, '../page.tsx');
+    const pageContent = fs.readFileSync(pagePath, 'utf-8');
     
-    const createCallback = () => {
-      callbackCount++;
-      return () => {};
-    };
-    
-    // Simuler useCallback
-    const memoizedCallback = React.useCallback(createCallback(), []);
-    const memoizedCallback2 = React.useCallback(createCallback(), []);
-    
-    // Le deuxième appel devrait réutiliser la fonction mémorisée
-    expect(callbackCount).toBeLessThanOrEqual(1);
+    // Vérifier que useCallback est utilisé pour handleTimeRangeChange
+    expect(pageContent).toMatch(/const handleTimeRangeChange = useCallback/);
   });
 });
 
