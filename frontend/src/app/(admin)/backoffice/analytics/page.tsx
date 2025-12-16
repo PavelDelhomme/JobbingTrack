@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense, lazy } from 'react';
+import { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense, lazy, useCallback } from 'react';
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import preferencesService from '@/lib/services/preferencesService';
@@ -231,8 +231,8 @@ export default function AnalyticsPage() {
     loadRefreshIntervals();
   }, []);
 
-  // Conversion du time range en millisecondes
-  const getTimeRangeMs = () => {
+  // ✅ OPTIMISATION : useMemo pour éviter les recalculs
+  const timeRangeMs = useMemo(() => {
     const ranges = {
       '1h': 60 * 60 * 1000,
       '6h': 6 * 60 * 60 * 1000,
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
       '30d': 30 * 24 * 60 * 60 * 1000
     };
     return ranges[timeRange];
-  };
+  }, [timeRange]);
 
   // Charger les dernières données depuis l'historique pour affichage immédiat
   const loadLastKnownMetrics = async () => {
@@ -395,7 +395,6 @@ export default function AnalyticsPage() {
           setRefreshing(true);
         }
         
-        const timeRangeMs = getTimeRangeMs();
         const endTime = Date.now();
         const startTime = endTime - timeRangeMs;
 
@@ -1016,7 +1015,7 @@ export default function AnalyticsPage() {
           </div>
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
+            onChange={handleTimeRangeChange}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="1h">Dernière heure</option>
@@ -1055,6 +1054,7 @@ export default function AnalyticsPage() {
             loadingHistory={loadingHistory}
             initialHistoryLoaded={initialHistoryLoaded}
             refreshing={refreshing}
+            timeRange={timeRange}
           />
         )}
 
@@ -1066,6 +1066,7 @@ export default function AnalyticsPage() {
             loadingHistory={loadingHistory}
             initialHistoryLoaded={initialHistoryLoaded}
             refreshing={refreshing}
+            timeRange={timeRange}
           />
         )}
 
@@ -1078,6 +1079,7 @@ export default function AnalyticsPage() {
             loadingHistory={loadingHistory}
             refreshing={refreshing}
             initialHistoryLoaded={initialHistoryLoaded}
+            timeRange={timeRange}
           />
         )}
 
@@ -1090,6 +1092,7 @@ export default function AnalyticsPage() {
             loadingHistory={loadingHistory}
             refreshing={refreshing}
             initialHistoryLoaded={initialHistoryLoaded}
+            timeRange={timeRange}
           />
         )}
 
@@ -1130,7 +1133,7 @@ export default function AnalyticsPage() {
 
 // ✅ OPTIMISATION : Memoization des composants de graphiques pour éviter les re-renders inutiles
 // Composant Overview Tab
-const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
+const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
   // Calculer les tendances depuis l'historique
   const last30Points = chartData.slice(-30)
   const cpuTrend = last30Points.length > 0 
@@ -1400,7 +1403,7 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
 });
 
 // Composant Performance Tab
-const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false }: any) {
+const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false, timeRange = '24h' }: any) {
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'responseTime' | 'errorRate'>('cpu');
 
   return (
@@ -1874,7 +1877,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
 });
 
 // Composant Network Tab
-const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false }: any) {
+const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false, timeRange = '24h' }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques réseau */}
@@ -2060,7 +2063,7 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
 });
 
 // Composant System Tab
-const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false }: any) {
+const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques système principales */}
