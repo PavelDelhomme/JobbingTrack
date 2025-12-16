@@ -46,15 +46,15 @@ import {
   ComposedChart
 } from 'recharts';
 
-const TABS = [
-  { id: 'overview', label: 'Synthèse' },
-  { id: 'system', label: 'Système' },
-  { id: 'performance', label: 'Performance' },
-  { id: 'network', label: 'Réseau & Fiabilité' },
-  { id: 'services', label: 'Services & Logs' },
-  { id: 'logs', label: 'Erreurs Récentes' },
-  { id: 'report', label: '📊 Rapport Complet' },
-] as const;
+  const TABS = [
+    { id: 'overview', label: 'Synthèse' },
+    { id: 'system', label: 'Système' },
+    { id: 'performance', label: 'Performance' },
+    { id: 'network', label: 'Réseau & Fiabilité' },
+    { id: 'services', label: 'Services & Logs' },
+    { id: 'logs', label: 'Erreurs Récentes' },
+    { id: 'report', label: '📊 Rapport Complet' },
+  ] as const;
 
 type TabId = typeof TABS[number]['id'];
 
@@ -1400,7 +1400,7 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
       {loadingHistory && !initialHistoryLoaded && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Chargement de l&apos;historique...</p>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Chargement de l'historique...</p>
         </div>
       )}
     </div>
@@ -1783,7 +1783,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
           {/* Taux d'erreur - Évolution temporelle */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚠️ Taux d&apos;Erreur - Évolution temporelle
+              ⚠️ Taux d'Erreur - Évolution temporelle
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData}>
@@ -1824,7 +1824,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                ⚠️ Taux d&apos;Erreur par Service (État actuel)
+                ⚠️ Taux d'Erreur par Service (État actuel)
               </h3>
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Données en temps réel
@@ -2246,7 +2246,7 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
       {loadingHistory && !initialHistoryLoaded && (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de l&apos;historique...</p>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de l'historique...</p>
         </div>
       )}
     </div>
@@ -2730,7 +2730,7 @@ const ReportTab = memo(function ReportTab({
     setIsExporting(true);
     try {
       // Créer une nouvelle fenêtre avec le contenu formaté pour l'impression
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open(', '_blank');
       if (!printWindow) {
         alert('❌ Veuillez autoriser les popups pour l\'export PDF');
         setIsExporting(false);
@@ -2794,8 +2794,8 @@ const ReportTab = memo(function ReportTab({
               <tbody>
                 ${data.services.map((s: any) => `
                   <tr>
-                    <td>${s.name || ''}</td>
-                    <td>${s.status || ''}</td>
+                    <td>${s.name || '}</td>
+                    <td>${s.status || '}</td>
                     <td>${s.responseTime || 'N/A'} ms</td>
                     <td>${s.cpu || 'N/A'}%</td>
                     <td>${s.memory || 'N/A'}%</td>
@@ -2819,10 +2819,10 @@ const ReportTab = memo(function ReportTab({
               <tbody>
                 ${data.logs.slice(0, 20).map((log: any) => `
                   <tr>
-                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : ''}</td>
-                    <td>${log.serviceName || ''}</td>
-                    <td>${log.level || ''}</td>
-                    <td>${(log.message || '').substring(0, 100)}</td>
+                    <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : '}</td>
+                    <td>${log.serviceName || '}</td>
+                    <td>${log.level || '}</td>
+                    <td>${(log.message || ').substring(0, 100)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -2846,7 +2846,7 @@ const ReportTab = memo(function ReportTab({
                     <tr>
                       <td>${s.id}</td>
                       <td>${new Date(s.timestamp).toLocaleString('fr-FR')}</td>
-                      <td>${s.name || ''}</td>
+                      <td>${s.name || '}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -3289,7 +3289,7 @@ const ReportTab = memo(function ReportTab({
             </div>
           </div>
           <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="text-sm text-gray-600 dark:text-gray-400">Taux d&apos;erreur</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</div>
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {metrics?.errors?.rate_per_min ? `${metrics.errors.rate_per_min.toFixed(2)}/min` : 'N/A'}
             </div>
@@ -3443,7 +3443,7 @@ const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, l
         {trend !== undefined && trend !== null && trend !== 0 && (
           <span className={`text-xs font-medium ${getTrendColor()}`}>
             {trend > 0 ? '↗' : '↘'} {formatTrend(Math.abs(trend))}
-            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : ''}
+            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : '}
           </span>
         )}
       </div>

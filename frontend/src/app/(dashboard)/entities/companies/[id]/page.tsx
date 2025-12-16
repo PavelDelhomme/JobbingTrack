@@ -39,7 +39,7 @@ export default function CompanyDetailPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'applications'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview&apos; | 'applications'>(&apos;overview')
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -337,16 +337,16 @@ export default function CompanyDetailPage() {
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900 dark:text-gray-100">{app.position}</h3>
                           <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                            <span>📅 {new Date(app.applicationDate || app.createdAt).toLocaleDateString('fr-FR')}</span>
+                            <span>📅 {new Date(app.applicationDate || app.createdAt).toLocaleDateString('fr-FR&apos;)}</span>
                           </div>
                         </div>
                         <div className="text-right">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            app.status === 'DRAFT' ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300' :
-                            app.status === 'SENT' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
-                            app.status === 'IN_REVIEW' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
-                            app.status === 'INTERVIEW_SCHEDULED' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' :
-                            app.status === 'REJECTED' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                            app.status === 'DRAFT&apos; ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300' :
+                            app.status === 'SENT&apos; ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
+                            app.status === 'IN_REVIEW&apos; ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                            app.status === 'INTERVIEW_SCHEDULED&apos; ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' :
+                            app.status === 'REJECTED&apos; ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
                             'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                           }`}>
                             {app.status}
@@ -510,7 +510,7 @@ function EditCompanyModal({ company, onClose, onSuccess }: {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Modification...' : 'Modifier'}
+              {loading ? 'Modification...&apos; : 'Modifier'}
             </button>
           </div>
         </form>

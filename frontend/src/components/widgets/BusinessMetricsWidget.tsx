@@ -84,7 +84,7 @@ export default function BusinessMetricsWidget({ metrics, className = '' }: Busin
           value={metrics.totalCalls.toLocaleString()}
           change={{
             value: 3,
-            label: 'aujourd\'hui'
+            label: 'aujourd\&apos;hui'
           }}
           trend="neutral"
           icon={<span className="text-red-500">📞</span>}

@@ -47,7 +47,7 @@ export default function UserDetailPage() {
     lastName: '',
     email: '',
     phone: '',
-    role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN',
+    role: 'USER&apos; as 'USER' | &apos;ADMIN' | 'SUPER_ADMIN',
     isActive: true,
   });
 
@@ -70,7 +70,7 @@ export default function UserDetailPage() {
           validateStatus: (status) => status < 500
         });
       } catch (error: any) {
-        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+        if (error.code === 'ECONNREFUSED&apos; || error.code === 'ETIMEDOUT') {
           response = await axios.get(`${API_URL}/api/v1/users/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
             validateStatus: (status) => status < 500
@@ -102,11 +102,11 @@ export default function UserDetailPage() {
           isActive: userData.isActive !== undefined ? userData.isActive : true,
         });
       } else {
-        setError('Erreur lors du chargement de l\'utilisateur');
+        setError('Erreur lors du chargement de l\&apos;utilisateur');
       }
     } catch (error: any) {
       console.error('Erreur chargement utilisateur:', error);
-      setError(error.response?.data?.error || 'Erreur lors du chargement de l\'utilisateur');
+      setError(error.response?.data?.error || 'Erreur lors du chargement de l\&apos;utilisateur');
     } finally {
       setLoading(false);
     }
@@ -183,7 +183,7 @@ export default function UserDetailPage() {
   const handleToggleActive = async () => {
     if (!user) return;
     
-    if (!confirm(`Êtes-vous sûr de vouloir ${user.isActive ? 'désactiver' : 'activer'} cet utilisateur ?`)) {
+    if (!confirm(`Êtes-vous sûr de vouloir ${user.isActive ? 'désactiver&apos; : 'activer'} cet utilisateur ?`)) {
       return;
     }
 
@@ -196,7 +196,7 @@ export default function UserDetailPage() {
 
       if (response.data.success) {
         await loadUser(); // Recharger pour avoir les données à jour
-        alert(`Utilisateur ${!user.isActive ? 'activé' : 'désactivé'} avec succès`);
+        alert(`Utilisateur ${!user.isActive ? 'activé&apos; : 'désactivé'} avec succès`);
       }
     } catch (error: any) {
       console.error('Erreur changement statut:', error);
@@ -249,17 +249,17 @@ export default function UserDetailPage() {
       if (response.data.success) {
         alert('Email de réinitialisation envoyé avec succès');
       } else {
-        alert('Erreur lors de l\'envoi de l\'email');
+        alert('Erreur lors de l\&apos;envoi de l\'email');
       }
     } catch (error: any) {
       console.error('Erreur réinitialisation mot de passe:', error);
-      alert(error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
+      alert(error.response?.data?.error || 'Erreur lors de l\&apos;envoi de l\'email');
     } finally {
       setResettingPassword(false);
     }
   };
 
-  const handleChangeRole = async (newRole: 'USER' | 'ADMIN' | 'SUPER_ADMIN') => {
+  const handleChangeRole = async (newRole: 'USER&apos; | 'ADMIN' | &apos;SUPER_ADMIN') => {
     if (!user) return;
     
     if (!confirm(`Changer le rôle de ${user.firstName} ${user.lastName} en ${newRole} ?`)) {
@@ -359,7 +359,7 @@ export default function UserDetailPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   <Save className="h-5 w-5" />
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? 'Enregistrement...&apos; : 'Enregistrer'}
                 </button>
               </>
             ) : (
@@ -378,7 +378,7 @@ export default function UserDetailPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
                     <Trash2 className="h-5 w-5" />
-                    {deleting ? 'Suppression...' : 'Supprimer'}
+                    {deleting ? 'Suppression...&apos; : 'Supprimer'}
                   </button>
                 )}
               </>
@@ -462,7 +462,7 @@ export default function UserDetailPage() {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 ) : (
-                  <p className="text-gray-900 dark:text-gray-100">{user.phone || 'Non renseigné'}</p>
+                  <p className="text-gray-900 dark:text-gray-100">{user.phone || 'Non renseigné&apos;}</p>
                 )}
               </div>
             </div>
@@ -482,7 +482,7 @@ export default function UserDetailPage() {
                 {editMode ? (
                   <select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER' | 'ADMIN' | 'SUPER_ADMIN' })}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER&apos; | 'ADMIN' | &apos;SUPER_ADMIN' })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   >
                     <option value="USER">Utilisateur</option>
@@ -492,7 +492,7 @@ export default function UserDetailPage() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+                      user.role === 'ADMIN&apos; || user.role === 'SUPER_ADMIN'
                         ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                         : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                     }`}>
@@ -529,7 +529,7 @@ export default function UserDetailPage() {
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                   }`}>
-                    {user.isActive ? 'Actif' : 'Inactif'}
+                    {user.isActive ? 'Actif&apos; : 'Inactif'}
                   </span>
                   {!editMode && (
                     <button
@@ -541,7 +541,7 @@ export default function UserDetailPage() {
                       }`}
                     >
                       {user.isActive ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                      {user.isActive ? 'Désactiver' : 'Activer'}
+                      {user.isActive ? 'Désactiver&apos; : 'Activer'}
                     </button>
                   )}
                 </div>
@@ -570,7 +570,7 @@ export default function UserDetailPage() {
                     Dernière connexion
                   </label>
                   <p className="text-gray-900 dark:text-gray-100">
-                    {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleDateString('fr-FR', {
+                    {new Date(user.lastLogin || user.lastLoginAt || '&apos;).toLocaleDateString('fr-FR', {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric',
@@ -596,7 +596,7 @@ export default function UserDetailPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <Key className="h-5 w-5" />
-              {resettingPassword ? 'Envoi...' : 'Réinitialiser le mot de passe'}
+              {resettingPassword ? 'Envoi...&apos; : 'Réinitialiser le mot de passe'}
             </button>
             
             {currentUser?.id !== userId && (
@@ -606,7 +606,7 @@ export default function UserDetailPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 <Trash2 className="h-5 w-5" />
-                {deleting ? 'Suppression...' : 'Supprimer l\'utilisateur'}
+                {deleting ? 'Suppression...&apos; : 'Supprimer l\'utilisateur'}
               </button>
             )}
           </div>

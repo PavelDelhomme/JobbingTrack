@@ -14,10 +14,10 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history' | 'display'>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance&apos; | 'account' | &apos;notifications' | 'system&apos; | 'refresh' | &apos;history' | 'display&apos;>('appearance')
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success&apos; | 'error', text: string } | null>(null)
   
   // Refs pour debounce
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -201,12 +201,12 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
           <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4">
             <nav className="space-y-2">
               {[
-                { id: 'appearance', label: '🎨 Apparence', icon: '🎨' },
-                { id: 'refresh', label: '🔄 Rafraîchissement', icon: '🔄' },
-                { id: 'notifications', label: '🔔 Notifications', icon: '🔔' },
-                { id: 'display', label: '📱 Affichage', icon: '📱' },
-                { id: 'history', label: '📊 Historique', icon: '📊' },
-                { id: 'system', label: '⚙️ Système', icon: '⚙️' }
+                { id: 'appearance&apos;, label: '🎨 Apparence', icon: &apos;🎨' },
+                { id: 'refresh&apos;, label: '🔄 Rafraîchissement', icon: &apos;🔄' },
+                { id: 'notifications&apos;, label: '🔔 Notifications', icon: &apos;🔔' },
+                { id: 'display&apos;, label: '📱 Affichage', icon: &apos;📱' },
+                { id: 'history&apos;, label: '📊 Historique', icon: &apos;📊' },
+                { id: 'system&apos;, label: '⚙️ Système', icon: &apos;⚙️' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -236,7 +236,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                       Thème
                     </label>
                     <div className="flex gap-2">
-                      {['light', 'dark', 'system'].map((mode) => (
+                      {['light&apos;, 'dark', &apos;system'].map((mode) => (
                         <button
                           key={mode}
                           onClick={() => {
@@ -249,9 +249,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                           }`}
                         >
-                          {mode === 'light' && '☀️ Clair'}
-                          {mode === 'dark' && '🌙 Sombre'}
-                          {mode === 'system' && '💻 Système'}
+                          {mode === 'light&apos; && '☀️ Clair'}
+                          {mode === 'dark&apos; && '🌙 Sombre'}
+                          {mode === 'system&apos; && '💻 Système'}
                         </button>
                       ))}
                     </div>
@@ -299,12 +299,12 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                 
                 <div className="space-y-6">
                   {[
-                    { key: 'logs' as const, label: 'Logs de Sécurité', min: 5, max: 120, step: 5 },
-                    { key: 'analytics' as const, label: 'Analytics', min: 5, max: 60, step: 5 },
-                    { key: 'metrics' as const, label: 'Métriques', min: 5, max: 60, step: 5 },
-                    { key: 'dashboard' as const, label: 'Dashboard', min: 10, max: 120, step: 10 },
-                    { key: 'services' as const, label: 'Services', min: 10, max: 120, step: 10 },
-                    { key: 'notifications' as const, label: 'Notifications', min: 30, max: 300, step: 30 }
+                    { key: 'logs&apos; as const, label: 'Logs de Sécurité', min: 5, max: 120, step: 5 },
+                    { key: 'analytics&apos; as const, label: 'Analytics', min: 5, max: 60, step: 5 },
+                    { key: 'metrics&apos; as const, label: 'Métriques', min: 5, max: 60, step: 5 },
+                    { key: 'dashboard&apos; as const, label: 'Dashboard', min: 10, max: 120, step: 10 },
+                    { key: 'services&apos; as const, label: 'Services', min: 10, max: 120, step: 10 },
+                    { key: 'notifications&apos; as const, label: 'Notifications', min: 30, max: 300, step: 30 }
                   ].map(({ key, label, min, max, step }) => {
                     const value = (preferences.refreshInterval?.[key] || 30000) / 1000
                     return (
@@ -352,9 +352,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-3">Paramètres généraux</p>
                     {[
-                      { key: 'desktop' as const, label: 'Notifications Bureau', desc: 'Recevoir des notifications de bureau' },
-                      { key: 'sound' as const, label: 'Son', desc: 'Jouer un son pour les notifications' },
-                      { key: 'highPriorityOnly' as const, label: 'Priorité Élevée Uniquement', desc: 'Ne montrer que les notifications importantes' }
+                      { key: 'desktop&apos; as const, label: 'Notifications Bureau', desc: &apos;Recevoir des notifications de bureau' },
+                      { key: 'sound&apos; as const, label: 'Son', desc: &apos;Jouer un son pour les notifications' },
+                      { key: 'highPriorityOnly&apos; as const, label: 'Priorité Élevée Uniquement', desc: &apos;Ne montrer que les notifications importantes' }
                     ].map(({ key, label, desc }) => (
                       <div key={key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg mb-2">
                         <div>
@@ -377,11 +377,11 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-300 mb-3">Types de notifications</p>
                     {[
-                      { key: 'applicationUpdates' as const, label: 'Mises à jour de candidatures', desc: 'Notifications pour les changements de statut' },
-                      { key: 'interviewReminders' as const, label: 'Rappels d\'entretiens', desc: 'Notifications avant les entretiens' },
-                      { key: 'followupReminders' as const, label: 'Rappels de relances', desc: 'Notifications pour les relances à faire' },
-                      { key: 'deadlineAlerts' as const, label: 'Alertes de deadlines', desc: 'Notifications pour les échéances importantes' },
-                      { key: 'systemAlerts' as const, label: 'Alertes système', desc: 'Notifications système et de sécurité' }
+                      { key: 'applicationUpdates&apos; as const, label: 'Mises à jour de candidatures', desc: &apos;Notifications pour les changements de statut' },
+                      { key: 'interviewReminders&apos; as const, label: 'Rappels d\'entretiens&apos;, desc: 'Notifications avant les entretiens' },
+                      { key: 'followupReminders&apos; as const, label: 'Rappels de relances', desc: &apos;Notifications pour les relances à faire' },
+                      { key: 'deadlineAlerts&apos; as const, label: 'Alertes de deadlines', desc: &apos;Notifications pour les échéances importantes' },
+                      { key: 'systemAlerts&apos; as const, label: 'Alertes système', desc: &apos;Notifications système et de sécurité' }
                     ].map(({ key, label, desc }) => (
                       <div key={key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg mb-2">
                         <div>
@@ -427,10 +427,10 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   </div>
 
                   {[
-                    { key: 'compactMode' as const, label: 'Mode Compact', desc: 'Interface plus dense' },
-                    { key: 'showCharts' as const, label: 'Afficher les Graphiques', desc: 'Afficher les graphiques sur le dashboard' },
-                    { key: 'showMetrics' as const, label: 'Afficher les Métriques', desc: 'Afficher les métriques de base' },
-                    { key: 'detailedMetrics' as const, label: 'Métriques Détaillées', desc: 'Afficher toutes les métriques détaillées (CPU, mémoire, réseau par service)' }
+                    { key: 'compactMode&apos; as const, label: 'Mode Compact', desc: &apos;Interface plus dense' },
+                    { key: 'showCharts&apos; as const, label: 'Afficher les Graphiques', desc: &apos;Afficher les graphiques sur le dashboard' },
+                    { key: 'showMetrics&apos; as const, label: 'Afficher les Métriques', desc: &apos;Afficher les métriques de base' },
+                    { key: 'detailedMetrics&apos; as const, label: 'Métriques Détaillées', desc: &apos;Afficher toutes les métriques détaillées (CPU, mémoire, réseau par service)' }
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div>
@@ -455,7 +455,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
             {/* Onglet Historique */}
             {activeTab === 'history' && preferences && (
               <div className="space-y-6">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Configuration de l'Historique</h4>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Configuration de l&apos;Historique</h4>
                 
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-blue-800 dark:text-blue-300">
@@ -556,7 +556,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="text-sm text-gray-500 dark:text-gray-400">Rôle</div>
                       <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? '👑 Administrateur' : '👤 Utilisateur'}
+                        {user?.role === 'ADMIN&apos; || user?.role === 'SUPER_ADMIN' ? &apos;👑 Administrateur' : '👤 Utilisateur'}
                       </div>
                     </div>
                   </div>
@@ -570,7 +570,7 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="text-sm text-gray-500 dark:text-gray-400">Environnement</div>
                       <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {process.env.NODE_ENV === 'production' ? '🚀 Production' : '🔧 Développement'}
+                        {process.env.NODE_ENV === 'production&apos; ? '🚀 Production' : &apos;🔧 Développement'}
                       </div>
                     </div>
                   </div>
@@ -578,9 +578,9 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                   <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Informations Navigateur</div>
                     <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                      <div>User Agent: {typeof window !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'N/A'}</div>
-                      <div>Langue: {typeof window !== 'undefined' ? navigator.language : 'N/A'}</div>
-                      <div>Résolution: {typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'N/A'}</div>
+                      <div>User Agent: {typeof window !== 'undefined&apos; ? navigator.userAgent.substring(0, 50) + '...' : &apos;N/A&apos;}</div>
+                      <div>Langue: {typeof window !== 'undefined&apos; ? navigator.language : 'N/A&apos;}</div>
+                      <div>Résolution: {typeof window !== 'undefined&apos; ? `${window.screen.width}x${window.screen.height}` : 'N/A&apos;}</div>
                     </div>
                   </div>
 
@@ -592,11 +592,11 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                         onClick={async () => {
                           try {
                             await preferencesService.exportPreferences()
-                            setMessage({ type: 'success', text: 'Préférences exportées avec succès !' })
+                            setMessage({ type: 'success&apos;, text: 'Préférences exportées avec succès !' })
                             setTimeout(() => setMessage(null), 3000)
                           } catch (error) {
                             console.error('Erreur:', error)
-                            setMessage({ type: 'error', text: 'Erreur lors de l\'export' })
+                            setMessage({ type: 'error&apos;, text: 'Erreur lors de l\'export' })
                             setTimeout(() => setMessage(null), 3000)
                           }
                         }}
@@ -619,11 +619,11 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                               try {
                                 const prefs = await preferencesService.importPreferences(file)
                                 setPreferences(prefs)
-                                setMessage({ type: 'success', text: 'Préférences importées avec succès !' })
+                                setMessage({ type: 'success&apos;, text: 'Préférences importées avec succès !' })
                                 setTimeout(() => setMessage(null), 3000)
                               } catch (error) {
                                 console.error('Erreur:', error)
-                                setMessage({ type: 'error', text: 'Erreur lors de l\'import' })
+                                setMessage({ type: 'error&apos;, text: 'Erreur lors de l\'import' })
                                 setTimeout(() => setMessage(null), 3000)
                               }
                             }
@@ -639,11 +639,11 @@ export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
                             await preferencesService.resetUserPreferences()
                             const prefs = await preferencesService.getUserPreferences()
                             setPreferences(prefs)
-                            setMessage({ type: 'success', text: 'Préférences réinitialisées avec succès !' })
+                            setMessage({ type: 'success&apos;, text: 'Préférences réinitialisées avec succès !' })
                             setTimeout(() => setMessage(null), 3000)
                           } catch (error) {
                             console.error('Erreur:', error)
-                            setMessage({ type: 'error', text: 'Erreur lors de la réinitialisation' })
+                            setMessage({ type: 'error&apos;, text: 'Erreur lors de la réinitialisation' })
                             setTimeout(() => setMessage(null), 3000)
                           }
                         }

@@ -54,7 +54,7 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">{t('settings.loading')}</span>
+        <span className="ml-2">{t('settings.loading&apos;)}</span>
       </div>
     );
   }
@@ -65,8 +65,8 @@ export default function SettingsPage() {
         {/* En-tête */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
-            <p className="text-gray-600">{t('settings.customization')}</p>
+            <h1 className="text-2xl font-bold">{t('settings.title&apos;)}</h1>
+            <p className="text-gray-600">{t('settings.customization&apos;)}</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -93,27 +93,27 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.appearance')}</span>
+            <span className="hidden sm:inline">{t('settings.appearance&apos;)}</span>
           </TabsTrigger>
           <TabsTrigger value="layout" className="flex items-center gap-2">
             <Layout className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.layout')}</span>
+            <span className="hidden sm:inline">{t('settings.layout&apos;)}</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.notifications')}</span>
+            <span className="hidden sm:inline">{t('settings.notifications&apos;)}</span>
           </TabsTrigger>
           <TabsTrigger value="accessibility" className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.accessibility')}</span>
+            <span className="hidden sm:inline">{t('settings.accessibility&apos;)}</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.data')}</span>
+            <span className="hidden sm:inline">{t('settings.data&apos;)}</span>
           </TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('settings.integrations')}</span>
+            <span className="hidden sm:inline">{t('settings.integrations&apos;)}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -129,29 +129,29 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               {/* Sélecteur de thème */}
               <div className="space-y-2">
-                <Label>{t('settings.theme')}</Label>
+                <Label>{t('settings.theme&apos;)}</Label>
                 <Select
                   value={localSettings.theme}
-                  onValueChange={(value: string) => updateLocalSettings({ theme: value as 'light' | 'dark' | 'auto' })}
+                  onValueChange={(value: string) => updateLocalSettings({ theme: value as 'light&apos; | 'dark' | &apos;auto' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t('settings.theme')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">{t('settings.themeLight')}</SelectItem>
-                    <SelectItem value="dark">{t('settings.themeDark')}</SelectItem>
-                    <SelectItem value="auto">{t('settings.themeAuto')}</SelectItem>
+                    <SelectItem value="light">{t('settings.themeLight&apos;)}</SelectItem>
+                    <SelectItem value="dark">{t('settings.themeDark&apos;)}</SelectItem>
+                    <SelectItem value="auto">{t('settings.themeAuto&apos;)}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Sélecteur de couleur principale */}
               <div className="space-y-2">
-                <Label>{t('settings.primaryColor')}</Label>
+                <Label>{t('settings.primaryColor&apos;)}</Label>
                 <div className="flex gap-2">
                   {[
-                    '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
-                    '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
+                    '#3B82F6&apos;, '#EF4444', &apos;#10B981', '#F59E0B',
+                    '#8B5CF6&apos;, '#EC4899', &apos;#06B6D4', '#84CC16'
                   ].map((color) => (
                     <button
                       key={color}
@@ -176,11 +176,11 @@ export default function SettingsPage() {
 
               {/* Sélecteur de couleur d'accent */}
               <div className="space-y-2">
-                <Label>Couleur d'accent</Label>
+                <Label>Couleur d&apos;accent</Label>
                 <div className="flex gap-2">
                   {[
-                    '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-                    '#EC4899', '#06B6D4', '#84CC16', '#F97316'
+                    '#10B981&apos;, '#F59E0B', &apos;#EF4444', '#8B5CF6',
+                    '#EC4899&apos;, '#06B6D4', &apos;#84CC16', '#F97316'
                   ].map((color) => (
                     <button
                       key={color}
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                 <Label>Disposition du tableau de bord</Label>
                 <Select
                   value={localSettings.dashboardLayout}
-                  onValueChange={(value: string) => updateLocalSettings({ dashboardLayout: value as 'grid' | 'list' | 'kanban' })}
+                  onValueChange={(value: string) => updateLocalSettings({ dashboardLayout: value as 'grid&apos; | 'list' | &apos;kanban' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner une disposition" />
@@ -287,7 +287,7 @@ export default function SettingsPage() {
                   onValueChange={(value: string) => updateLocalSettings({ itemsPerPage: parseInt(value) })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Nombre d'éléments" />
+                    <SelectValue placeholder="Nombre d&apos;éléments" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="10">10</SelectItem>
@@ -315,7 +315,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Notifications activées</Label>
-                  <p className="text-sm text-gray-600">Recevoir les notifications de l'application</p>
+                  <p className="text-sm text-gray-600">Recevoir les notifications de l&apos;application</p>
                 </div>
                 <Switch
                   checked={localSettings.notifications.enabled}
@@ -354,7 +354,7 @@ export default function SettingsPage() {
                   value={localSettings.notifications.position}
                   onValueChange={(value: string) =>
                     updateLocalSettings({
-                      notifications: { ...localSettings.notifications, position: value as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' }
+                      notifications: { ...localSettings.notifications, position: value as 'top-right&apos; | 'top-left' | &apos;bottom-right' | 'bottom-left' }
                     })
                   }
                 >
@@ -374,7 +374,7 @@ export default function SettingsPage() {
 
               {/* Durée d'affichage */}
               <div className="space-y-2">
-                <Label>Durée d'affichage (secondes)</Label>
+                <Label>Durée d&apos;affichage (secondes)</Label>
                 <Select
                   value={localSettings.notifications.duration.toString()}
                   onValueChange={(value: string) =>
@@ -390,7 +390,7 @@ export default function SettingsPage() {
                     <SelectItem value="3000">3 secondes</SelectItem>
                     <SelectItem value="5000">5 secondes</SelectItem>
                     <SelectItem value="10000">10 secondes</SelectItem>
-                    <SelectItem value="0">Jusqu'à fermeture</SelectItem>
+                    <SelectItem value="0">Jusqu&apos;à fermeture</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -496,7 +496,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               {/* Langue */}
               <div className="space-y-2">
-                <Label>{t('settings.language')}</Label>
+                <Label>{t('settings.language&apos;)}</Label>
                 <Select
                   value={localSettings.language}
                   onValueChange={handleLanguageChange}
@@ -505,10 +505,10 @@ export default function SettingsPage() {
                     <SelectValue placeholder={t('settings.language')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fr">{t('settings.languageFr')}</SelectItem>
-                    <SelectItem value="en">{t('settings.languageEn')}</SelectItem>
-                    <SelectItem value="es">{t('settings.languageEs')}</SelectItem>
-                    <SelectItem value="de">{t('settings.languageDe')}</SelectItem>
+                    <SelectItem value="fr">{t('settings.languageFr&apos;)}</SelectItem>
+                    <SelectItem value="en">{t('settings.languageEn&apos;)}</SelectItem>
+                    <SelectItem value="es">{t('settings.languageEs&apos;)}</SelectItem>
+                    <SelectItem value="de">{t('settings.languageDe&apos;)}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -537,13 +537,13 @@ export default function SettingsPage() {
 
               {/* Format d'heure */}
               <div className="space-y-2">
-                <Label>Format d'heure</Label>
+                <Label>Format d&apos;heure</Label>
                 <Select
                   value={localSettings.timeFormat}
-                  onValueChange={(value: string) => updateLocalSettings({ timeFormat: value as '12h' | '24h' })}
+                  onValueChange={(value: string) => updateLocalSettings({ timeFormat: value as '12h&apos; | '24h' })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Format d'heure" />
+                    <SelectValue placeholder="Format d&apos;heure" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="24h">24 heures</SelectItem>

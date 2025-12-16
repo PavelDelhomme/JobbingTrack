@@ -29,7 +29,7 @@ export default function EventsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list&apos; | 'calendar'>(&apos;list');
 
   useEffect(() => {
     if (token) {
@@ -189,7 +189,7 @@ export default function EventsPage() {
                           {new Date(event.startDate).toLocaleDateString('fr-FR')}
                           {event.startDate && (
                             <span className="ml-2 text-xs text-gray-500">
-                              {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(event.startDate).toLocaleTimeString('fr-FR&apos;, { hour: '2-digit', minute: &apos;2-digit' })}
                             </span>
                           )}
                         </div>
@@ -231,7 +231,7 @@ export default function EventsPage() {
                   {filteredEvents.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                        {events.length === 0 ? 'Aucun événement trouvé' : 'Aucun résultat pour votre recherche'}
+                        {events.length === 0 ? 'Aucun événement trouvé&apos; : 'Aucun résultat pour votre recherche'}
                       </td>
                     </tr>
                   )}
@@ -284,8 +284,8 @@ export default function EventsPage() {
                             {event.startDate && (
                               <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mb-1">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                {event.endDate && ` - ${new Date(event.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
+                                {new Date(event.startDate).toLocaleTimeString('fr-FR&apos;, { hour: '2-digit', minute: &apos;2-digit' })}
+                                {event.endDate && ` - ${new Date(event.endDate).toLocaleTimeString('fr-FR&apos;, { hour: '2-digit', minute: &apos;2-digit' })}`}
                               </div>
                             )}
                             {event.location && (
@@ -392,7 +392,7 @@ function EventFormModal({
       onSuccess();
     } catch (error: any) {
       console.error('Erreur création/modification événement:', error);
-      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\'événement');
+      alert(error.response?.data?.error || 'Erreur lors de la création/modification de l\&apos;événement');
     } finally {
       setLoading(false);
     }
@@ -403,7 +403,7 @@ function EventFormModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {event ? 'Modifier l\'événement' : 'Nouvel événement'}
+            {event ? 'Modifier l\&apos;événement' : 'Nouvel événement'}
           </h2>
           <button
             onClick={onClose}
@@ -509,7 +509,7 @@ function EventFormModal({
               disabled={loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Enregistrement...' : event ? 'Modifier' : 'Créer'}
+              {loading ? 'Enregistrement...&apos; : event ? 'Modifier' : &apos;Créer'}
             </button>
           </div>
         </form>

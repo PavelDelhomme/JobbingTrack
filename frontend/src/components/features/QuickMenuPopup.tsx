@@ -174,7 +174,7 @@ export function QuickMenuPopup({ isOpen, onClose, onSelectProfile, onSelectSetti
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Cliquez pour {showToken ? 'masquer' : 'afficher'} le token
+                  Cliquez pour {showToken ? 'masquer&apos; : 'afficher'} le token
                 </p>
               </div>
             </div>

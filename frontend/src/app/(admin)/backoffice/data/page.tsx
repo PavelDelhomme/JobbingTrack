@@ -21,15 +21,15 @@ import EventsTab from './components/EventsTab'
 import NotificationsTab from './components/NotificationsTab'
 
 const TABS = [
-  { id: 'management', label: 'Gestion Données', icon: Database },
-  { id: 'applications', label: 'Candidatures', icon: FileText },
-  { id: 'companies', label: 'Entreprises', icon: Building2 },
-  { id: 'contacts', label: 'Contacts', icon: Users },
-  { id: 'interviews', label: 'Entretiens', icon: Calendar },
-  { id: 'calls', label: 'Appels', icon: Phone },
-  { id: 'followups', label: 'Relances', icon: Mail },
-  { id: 'events', label: 'Événements', icon: Calendar },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'management&apos;, label: 'Gestion Données', icon: Database },
+  { id: 'applications&apos;, label: 'Candidatures', icon: FileText },
+  { id: 'companies&apos;, label: 'Entreprises', icon: Building2 },
+  { id: 'contacts&apos;, label: 'Contacts', icon: Users },
+  { id: 'interviews&apos;, label: 'Entretiens', icon: Calendar },
+  { id: 'calls&apos;, label: 'Appels', icon: Phone },
+  { id: 'followups&apos;, label: 'Relances', icon: Mail },
+  { id: 'events&apos;, label: 'Événements', icon: Calendar },
+  { id: 'notifications&apos;, label: 'Notifications', icon: Bell },
 ]
 
 export default function DataPage() {
@@ -37,19 +37,19 @@ export default function DataPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
-  // Récupérer l'onglet depuis l'URL ou utiliser 'management' par défaut
+  // Récupérer l'onglet depuis l&apos;URL ou utiliser 'management' par défaut
   const [activeTab, setActiveTab] = useState<string>('management')
 
   // Synchroniser avec l'URL au chargement
   useEffect(() => {
-    const tabFromUrl = searchParams?.get('tab') || 'management'
+    const tabFromUrl = searchParams?.get('tab&apos;) || 'management'
     setActiveTab(tabFromUrl)
   }, [searchParams])
 
   // Mettre à jour l'URL quand l'onglet change
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId)
-    const newUrl = `/backoffice/data${tabId !== 'management' ? `?tab=${tabId}` : ''}`
+    const newUrl = `/backoffice/data${tabId !== 'management&apos; ? `?tab=${tabId}` : ''}`
     router.push(newUrl, { scroll: false })
   }
 

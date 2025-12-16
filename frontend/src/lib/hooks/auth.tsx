@@ -9,7 +9,7 @@ interface User {
   email: string
   firstName: string
   lastName: string
-  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
+  role: 'USER&apos; | 'ADMIN' | &apos;SUPER_ADMIN'
   isActive: boolean
 }
 
@@ -30,7 +30,7 @@ const validateJwtToken = (token: string): boolean => {
   if (!token || typeof token !== 'string') return false
   
   // En mode développement, accepter les tokens mock SANS validation
-  if (process.env.NODE_ENV === 'development' && token.startsWith('mock-jwt-token')) {
+  if (process.env.NODE_ENV === 'development&apos; && token.startsWith('mock-jwt-token')) {
     return true
   }
   
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Ne pas bloquer l'application si le token est invalide
     if (!authToken || (!validateJwtToken(authToken) && !authToken.startsWith('mock-jwt-token'))) {
-      console.warn('⚠️ Token invalide dans loadUserProfile, nettoyage sans bloquer l\'application');
+      console.warn('⚠️ Token invalide dans loadUserProfile, nettoyage sans bloquer l\&apos;application');
       clearAuthData();
       return;
     }
@@ -211,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // En mode développement, accepter les tokens mock
-        if (process.env.NODE_ENV === 'development' && authToken.startsWith('mock-jwt-token')) {
+        if (process.env.NODE_ENV === 'development&apos; && authToken.startsWith('mock-jwt-token')) {
           console.log('🔐 Mode développement: Token mock accepté');
         } else if (!validateJwtToken(authToken)) {
           console.error('Token invalide détecté lors du chargement du profil');
@@ -311,7 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Valider le token avant de l'accepter (accepte le mock en dev)
           if (
-            !(process.env.NODE_ENV === 'development' && newToken.startsWith('mock-jwt-token'))
+            !(process.env.NODE_ENV === 'development&apos; && newToken.startsWith('mock-jwt-token'))
             && !validateJwtToken(newToken)
           ) {
             console.error('Token reçu du serveur invalide');
@@ -328,7 +328,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Sauvegarder dans les cookies pour le middleware Next.js
           if (typeof window !== 'undefined') {
-            const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+            const secureFlag = window.location.protocol === 'https:&apos; ? '; Secure' : &apos;';
             const domain = process.env.NODE_ENV === 'production' 
               ? `domain=${window.location.hostname}` 
               : '';
@@ -339,9 +339,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             // Vérifier que le cookie a bien été défini
             const cookieSet = document.cookie.includes('token=');
-            console.log('✅ Cookie défini:', cookieSet ? 'Oui' : 'Non');
+            console.log('✅ Cookie défini:&apos;, cookieSet ? 'Oui' : &apos;Non');
             if (!cookieSet) {
-              console.warn('⚠️ Le cookie n\'a pas pu être défini, tentative avec une méthode alternative...');
+              console.warn('⚠️ Le cookie n\&apos;a pas pu être défini, tentative avec une méthode alternative...');
               // Méthode alternative : utiliser un cookie sans domain en développement
               document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
             }
@@ -433,11 +433,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'path=/',
         'expires=Thu, 01 Jan 1970 00:00:00 GMT',
         'samesite=lax',
-        domain !== 'localhost' ? `domain=${domain}` : ''
+        domain !== 'localhost&apos; ? `domain=${domain}` : ''
       ].filter(Boolean).join('; ');
       
       // Supprimer tous les cookies d'authentification possibles
-      const authCookies = ['token', 'session', 'auth', 'jwt'];
+      const authCookies = ['token&apos;, 'session', &apos;auth', 'jwt'];
       authCookies.forEach((name: string) => {
         document.cookie = `${name}=; ${cookieOptions}`;
       });
@@ -475,7 +475,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     isAuthenticated: !!user && !!token,
-    isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+    isAdmin: user?.role === 'ADMIN&apos; || user?.role === 'SUPER_ADMIN'
   }
 
   return (

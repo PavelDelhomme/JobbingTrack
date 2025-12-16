@@ -84,7 +84,7 @@ export default function ServiceDetailPage() {
         const logsData = await logsResponse.json();
         // Log uniquement en mode développement et seulement la première fois
         if (process.env.NODE_ENV === 'development' && !serviceLogs) {
-          console.log('[SERVICE DETAIL] Logs reçus:', logsData.total, 'lignes');
+          console.log('[SERVICE DETAIL] Logs reçus:&apos;, logsData.total, 'lignes');
         }
         setServiceLogs(logsData);
       }
@@ -95,7 +95,7 @@ export default function ServiceDetailPage() {
         const historyData = await historyResponse.json();
         // Log uniquement en mode développement et seulement la première fois
         if (process.env.NODE_ENV === 'development' && !serviceHistory.length) {
-          console.log('[SERVICE DETAIL] Historique reçu:', historyData.data?.length, 'points');
+          console.log('[SERVICE DETAIL] Historique reçu:&apos;, historyData.data?.length, 'points');
         }
         setServiceHistory(historyData.data || []);
       }
@@ -131,7 +131,7 @@ export default function ServiceDetailPage() {
   // Détection améliorée du statut : priorité au statut Docker
   const dockerHealth = serviceMetrics?.health_status_docker || 'none';
   const httpHealth = serviceMetrics?.health_status_http || 'unknown';
-  const isHealthy = dockerHealth === 'healthy' || (dockerHealth === 'none' && httpHealth === 'healthy');
+  const isHealthy = dockerHealth === 'healthy&apos; || (dockerHealth === 'none' && httpHealth === &apos;healthy');
   
   const cpuPercent = serviceMetrics?.cpu_percent || 0;
   const memoryPercent = serviceMetrics?.memory_percent || 0;
@@ -175,7 +175,7 @@ export default function ServiceDetailPage() {
             disabled={refreshing}
             className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? 'animate-spin&apos; : ''}`} />
             Actualiser
           </button>
         </div>
@@ -194,25 +194,25 @@ export default function ServiceDetailPage() {
                 <XCircle className="h-8 w-8 text-red-600 mr-3" />
               )}
               <div>
-                <h3 className={`text-lg font-bold ${isHealthy ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>
-                  {isHealthy ? 'Service opérationnel' : 'Service non disponible'}
+                <h3 className={`text-lg font-bold ${isHealthy ? 'text-green-800 dark:text-green-300&apos; : 'text-red-800 dark:text-red-300'}`}>
+                  {isHealthy ? 'Service opérationnel&apos; : 'Service non disponible'}
                 </h3>
-                <p className={`text-sm ${isHealthy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {isHealthy ? 'Tous les systèmes fonctionnent normalement' : 'Le service rencontre des problèmes'}
+                <p className={`text-sm ${isHealthy ? 'text-green-600 dark:text-green-400&apos; : 'text-red-600 dark:text-red-400'}`}>
+                  {isHealthy ? 'Tous les systèmes fonctionnent normalement&apos; : 'Le service rencontre des problèmes'}
                 </p>
                 <div className="flex gap-2 mt-2">
                   <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                    dockerHealth === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                    dockerHealth === 'unhealthy' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
-                    dockerHealth === 'starting' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                    dockerHealth === 'healthy&apos; ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                    dockerHealth === 'unhealthy&apos; ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                    dockerHealth === 'starting&apos; ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
                     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                   }`}>
                     Docker: {dockerHealth}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                    httpHealth === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                    httpHealth === 'degraded' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
-                    httpHealth === 'unhealthy' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                    httpHealth === 'healthy&apos; ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                    httpHealth === 'degraded&apos; ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
+                    httpHealth === 'unhealthy&apos; ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
                     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                   }`}>
                     HTTP: {httpHealth}
@@ -234,8 +234,8 @@ export default function ServiceDetailPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="h-8 w-8 text-blue-600" />
-              <span className={`text-sm font-medium ${cpuPercent > 70 ? 'text-red-600' : 'text-blue-600'}`}>
-                {cpuPercent > 70 ? 'Élevé' : 'Normal'}
+              <span className={`text-sm font-medium ${cpuPercent > 70 ? 'text-red-600&apos; : 'text-blue-600'}`}>
+                {cpuPercent > 70 ? 'Élevé&apos; : 'Normal'}
               </span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -246,7 +246,7 @@ export default function ServiceDetailPage() {
               <div 
                 className={`h-2 rounded-full transition-all ${
                   cpuPercent > 70 ? 'bg-red-600' :
-                  cpuPercent > 40 ? 'bg-yellow-600' : 'bg-green-600'
+                  cpuPercent > 40 ? 'bg-yellow-600&apos; : 'bg-green-600'
                 }`}
                 style={{ width: `${Math.min(cpuPercent, 100)}%` }}
               ></div>
@@ -256,8 +256,8 @@ export default function ServiceDetailPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
               <Database className="h-8 w-8 text-purple-600" />
-              <span className={`text-sm font-medium ${memoryPercent > 80 ? 'text-red-600' : 'text-purple-600'}`}>
-                {memoryPercent > 80 ? 'Élevé' : 'Normal'}
+              <span className={`text-sm font-medium ${memoryPercent > 80 ? 'text-red-600&apos; : 'text-purple-600'}`}>
+                {memoryPercent > 80 ? 'Élevé&apos; : 'Normal'}
               </span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -268,7 +268,7 @@ export default function ServiceDetailPage() {
               <div 
                 className={`h-2 rounded-full transition-all ${
                   memoryPercent > 80 ? 'bg-red-600' :
-                  memoryPercent > 50 ? 'bg-yellow-600' : 'bg-blue-600'
+                  memoryPercent > 50 ? 'bg-yellow-600&apos; : 'bg-blue-600'
                 }`}
                 style={{ width: `${Math.min(memoryPercent, 100)}%` }}
               ></div>
@@ -334,12 +334,12 @@ export default function ServiceDetailPage() {
                     stroke="#9CA3AF"
                     tickFormatter={(value) => {
                       const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                      return `${date.getHours().toString().padStart(2, '0&apos;)}:${date.getMinutes().toString().padStart(2, '0')}`;
                     }}
                   />
                   <YAxis stroke="#9CA3AF" unit="%" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#1F2937&apos;, border: 'none', borderRadius: &apos;8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)}%`, 'CPU']}
                     labelFormatter={(label) => {
@@ -375,12 +375,12 @@ export default function ServiceDetailPage() {
                     stroke="#9CA3AF"
                     tickFormatter={(value) => {
                       const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                      return `${date.getHours().toString().padStart(2, '0&apos;)}:${date.getMinutes().toString().padStart(2, '0')}`;
                     }}
                   />
                   <YAxis stroke="#9CA3AF" unit="%" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#1F2937&apos;, border: 'none', borderRadius: &apos;8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)}%`, 'Mémoire']}
                     labelFormatter={(label) => {
@@ -410,12 +410,12 @@ export default function ServiceDetailPage() {
                     stroke="#9CA3AF"
                     tickFormatter={(value) => {
                       const date = new Date(value);
-                      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                      return `${date.getHours().toString().padStart(2, '0&apos;)}:${date.getMinutes().toString().padStart(2, '0')}`;
                     }}
                   />
                   <YAxis stroke="#9CA3AF" unit=" MB" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#1F2937&apos;, border: 'none', borderRadius: &apos;8px' }}
                     labelStyle={{ color: '#F9FAFB' }}
                     formatter={(value: any) => [`${value.toFixed(2)} MB`]}
                     labelFormatter={(label) => {
@@ -474,7 +474,7 @@ export default function ServiceDetailPage() {
                       : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {autoScroll ? '✓ Auto-Scroll Actif' : 'Auto-Scroll Désactivé'}
+                  {autoScroll ? '✓ Auto-Scroll Actif&apos; : 'Auto-Scroll Désactivé'}
                 </button>
                 <span className="text-sm text-gray-500">
                   {serviceLogs.total} lignes
@@ -546,7 +546,7 @@ export default function ServiceDetailPage() {
                       <div 
                         key={index} 
                         className={`py-0.5 leading-relaxed ${
-                          message.toLowerCase().includes('error') || message.toLowerCase().includes('exception') || message.toLowerCase().includes('fatal')
+                          message.toLowerCase().includes('error&apos;) || message.toLowerCase().includes('exception') || message.toLowerCase().includes(&apos;fatal')
                             ? 'text-red-400 font-semibold'
                             : message.toLowerCase().includes('warn')
                             ? 'text-yellow-400'

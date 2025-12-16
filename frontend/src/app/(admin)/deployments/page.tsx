@@ -48,7 +48,7 @@ export default function DeploymentsPage() {
   const { token } = useAuth()
   const [metrics, setMetrics] = useState<DeploymentMetrics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'deployments' | 'rollbacks' | 'metrics'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview&apos; | 'deployments' | &apos;rollbacks' | 'metrics&apos;>('overview')
 
   useEffect(() => {
     if (token) {
@@ -92,10 +92,10 @@ export default function DeploymentsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'text-green-600 bg-green-100 dark:bg-green-900/30'
-      case 'failed': return 'text-red-600 bg-red-100 dark:bg-red-900/30'
-      case 'running': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/30'
-      case 'rolled_back': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30'
+      case 'success&apos;: return 'text-green-600 bg-green-100 dark:bg-green-900/30'
+      case 'failed&apos;: return 'text-red-600 bg-red-100 dark:bg-red-900/30'
+      case 'running&apos;: return 'text-blue-600 bg-blue-100 dark:bg-blue-900/30'
+      case 'rolled_back&apos;: return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30'
       default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/30'
     }
   }
@@ -127,10 +127,10 @@ export default function DeploymentsPage() {
         <div className="mb-6">
           <nav className="flex space-x-8">
             {[
-              { id: 'overview', label: 'Vue d\'ensemble', icon: '📊' },
-              { id: 'deployments', label: 'Déploiements', icon: '🚀' },
-              { id: 'rollbacks', label: 'Rollbacks', icon: '↩️' },
-              { id: 'metrics', label: 'Métriques', icon: '📈' }
+              { id: 'overview&apos;, label: 'Vue d\'ensemble&apos;, icon: '📊' },
+              { id: 'deployments&apos;, label: 'Déploiements', icon: &apos;🚀' },
+              { id: 'rollbacks&apos;, label: 'Rollbacks', icon: &apos;↩️' },
+              { id: 'metrics&apos;, label: 'Métriques', icon: &apos;📈' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -245,7 +245,7 @@ export default function DeploymentsPage() {
                       ></div>
                     </div>
                     <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      {new Date(trend.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                      {new Date(trend.date).toLocaleDateString('fr-FR&apos;, { day: '2-digit', month: &apos;2-digit' })}
                     </span>
                   </div>
                 ))}
@@ -367,7 +367,7 @@ export default function DeploymentsPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d'Erreur Moyen</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d&apos;Erreur Moyen</p>
                   <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                     {(metrics.performance.avgErrorRate * 100).toFixed(2)}%
                   </p>
@@ -379,7 +379,7 @@ export default function DeploymentsPage() {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temps d'Indisponibilité Total</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temps d&apos;Indisponibilité Total</p>
                   <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                     {formatDuration(metrics.performance.totalDowntime)}
                   </p>

@@ -15,7 +15,7 @@ export default function SecurityLayout({
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
-    } else if (!loading && user && !['ADMIN', 'SUPER_ADMIN', 'SECURITY'].includes(user.role)) {
+    } else if (!loading && user && !['ADMIN&apos;, 'SUPER_ADMIN', &apos;SECURITY'].includes(user.role)) {
       router.push('/access-denied')
     }
   }, [user, loading, router])
@@ -24,7 +24,7 @@ export default function SecurityLayout({
     return <div>Chargement...</div>
   }
 
-  if (!user || !['ADMIN', 'SUPER_ADMIN', 'SECURITY'].includes(user.role)) {
+  if (!user || !['ADMIN&apos;, 'SUPER_ADMIN', &apos;SECURITY'].includes(user.role)) {
     return null
   }
 

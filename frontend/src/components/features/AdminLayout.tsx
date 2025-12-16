@@ -144,10 +144,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📊',
       isCollapsible: true,
       items: [
-        { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
-        { name: 'Statistiques', href: '/backoffice/statistique', icon: '📈' },
-        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
+        { name: 'Vue d\&apos;ensemble', href: '/backoffice&apos;, icon: '📊' },
+        /*{ name: '🔍 Recherche Optimisée&apos;, href: '/backoffice/search', icon: &apos;⚡' },*/
+        { name: 'Statistiques&apos;, href: '/backoffice/statistique', icon: &apos;📈' },
+        { name: 'Performances & Analytics&apos;, href: '/backoffice/analytics', icon: &apos;⚡' },
       ]
     },
     {
@@ -156,9 +156,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
-        { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
-        { name: 'Politiques de Sécurité', href: '/backoffice/security/policies', icon: '⚙️' },
-        { name: 'Analyse de Sécurité', href: '/backoffice/security/analysis', icon: '🛡️' },
+        { name: 'Logs de Sécurité&apos;, href: '/backoffice/security/logs', icon: &apos;📋' },
+        { name: 'Politiques de Sécurité&apos;, href: '/backoffice/security/policies', icon: &apos;⚙️' },
+        { name: 'Analyse de Sécurité&apos;, href: '/backoffice/security/analysis', icon: &apos;🛡️' },
       ]
     },
     {
@@ -167,18 +167,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '⚙️',
       isCollapsible: true,
       items: [
-        { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
+        { name: 'Gestion des Services&apos;, href: '/backoffice/services', icon: &apos;🔧' },
         { 
           name: 'Gestion des Données', 
           href: '/backoffice/data', 
           icon: '💾',
           subItems: [
-            { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
-            { name: 'Corbeille', href: '/backoffice/trash', icon: '🗑️' },
+            { name: 'Archives&apos;, href: '/backoffice/archives', icon: &apos;📦' },
+            { name: 'Corbeille&apos;, href: '/backoffice/trash', icon: &apos;🗑️' },
           ]
         },
-        { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
-        { name: 'Analytics Utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
+        { name: 'Utilisateurs&apos;, href: '/backoffice/users', icon: &apos;👥' },
+        { name: 'Analytics Utilisateur&apos;, href: '/backoffice/user-analytics', icon: &apos;📊' },
       ]
     },
     {
@@ -187,16 +187,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🛠️',
       isCollapsible: true,
       items: [
-        { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
-        { name: 'Données de Test', href: '/backoffice/test-data', icon: '🎲' },
-        { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
+        { name: 'Testeur API&apos;, href: '/backoffice/api-tester', icon: &apos;🧪' },
+        { name: 'Données de Test&apos;, href: '/backoffice/test-data', icon: &apos;🎲' },
+        { name: 'Émulateur Mobile&apos;, href: '/backoffice/mobile-emulator', icon: &apos;📱' },
         { 
           name: 'Tests', 
           href: '/backoffice/playwright-tests', 
           icon: '🧪',
           subItems: [
-            { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
-            { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
+            { name: 'Tests Playwright&apos;, href: '/backoffice/playwright-tests', icon: &apos;🎭' },
+            { name: 'Tests Performance&apos;, href: '/backoffice/performance-tests', icon: &apos;⚡' },
           ]
         },
         { 
@@ -204,11 +204,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: '/backoffice/user-journey', 
           icon: '🚶',
           subItems: [
-            { name: 'Parcours Prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
-            { name: 'Parcours Personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
+            { name: 'Parcours Prédéfinis&apos;, href: '/backoffice/user-journey', icon: &apos;📋' },
+            { name: 'Parcours Personnalisé&apos;, href: '/backoffice/user-journey/custom', icon: &apos;🎯' },
           ]
         },
-        { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
+        { name: 'Rapports de Tests&apos;, href: '/backoffice/test-reports', icon: &apos;📊' },
       ]
     },
     {
@@ -217,12 +217,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📧',
       isCollapsible: true,
       items: [
-        { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
-        { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
-        { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
-        { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
-        { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
-        { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
+        { name: 'Dashboard&apos;, href: '/backoffice/emails', icon: &apos;📊' },
+        { name: 'Email Monitor&apos;, href: '/backoffice/email-monitor', icon: &apos;📈' },
+        { name: 'Historique&apos;, href: '/backoffice/emails/logs', icon: &apos;📋' },
+        { name: 'Templates&apos;, href: '/backoffice/emails/templates', icon: &apos;📝' },
+        { name: 'Configuration&apos;, href: '/backoffice/emails/settings', icon: &apos;⚙️' },
+        { name: 'Déliverabilité&apos;, href: '/backoffice/emails/deliverability', icon: &apos;✅' },
       ]
     },
   ]
@@ -278,8 +278,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Sidebar - Cachée sur mobile, peut être cachée sur desktop */}
         <div className={`
           fixed inset-y-0 left-0 w-72 md:w-80 bg-white dark:bg-gray-900 flex flex-col shadow-xl border-r border-gray-200 dark:border-gray-800 z-50 transform transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isSidebarCollapsed ? 'lg:-translate-x-full lg:pointer-events-none lg:opacity-0' : 'lg:pointer-events-auto lg:opacity-100'}
+          ${isSidebarOpen ? 'translate-x-0&apos; : '-translate-x-full lg:translate-x-0'}
+          ${isSidebarCollapsed ? 'lg:-translate-x-full lg:pointer-events-none lg:opacity-0&apos; : 'lg:pointer-events-auto lg:opacity-100'}
         `}>
           {/* Logo avec bouton de fermeture sur mobile */}
           <div className="flex h-16 items-center justify-between px-4 bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
@@ -316,15 +316,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   `}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`text-base transition-all ${isSectionActive(section) ? 'animate-pulse' : ''}`}>
+                    <span className={`text-base transition-all ${isSectionActive(section) ? 'animate-pulse&apos; : ''}`}>
                       {section.icon}
                     </span>
-                    <span className={`transition-all ${isSectionActive(section) ? 'font-bold' : ''}`}>
+                    <span className={`transition-all ${isSectionActive(section) ? 'font-bold&apos; : ''}`}>
                       {section.label}
                     </span>
                   </div>
                   {section.isCollapsible && (
-                    <span className={`transform transition-transform ${expandedSections[section.id] ? 'rotate-90' : ''}`}>
+                    <span className={`transform transition-transform ${expandedSections[section.id] ? 'rotate-90&apos; : ''}`}>
                       ▶
                     </span>
                   )}
@@ -356,10 +356,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-blue-500 dark:bg-blue-400 rounded-r-full opacity-50"></div>
                           )}
 
-                          <span className={`mr-3 text-base transition-all ${isActive ? 'animate-bounce' : 'group-hover:scale-110'}`}>
+                          <span className={`mr-3 text-base transition-all ${isActive ? 'animate-bounce&apos; : 'group-hover:scale-110'}`}>
                             {item.icon}
                           </span>
-                          <span className={`truncate transition-all ${isActive || isSubItemActive ? 'font-bold' : ''}`}>
+                          <span className={`truncate transition-all ${isActive || isSubItemActive ? 'font-bold&apos; : ''}`}>
                             {item.name}
                           </span>
 
@@ -410,11 +410,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       toggleSection(itemKey)
                                     }}
                                     className={`ml-1 px-2 py-2 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-all ${
-                                      isItemExpanded ? 'text-white bg-gray-700' : ''
+                                      isItemExpanded ? 'text-white bg-gray-700&apos; : ''
                                     }`}
                                     aria-label="Expander les sous-items"
                                   >
-                                    <span className={`transform transition-transform ${isItemExpanded ? 'rotate-90' : ''}`}>
+                                    <span className={`transform transition-transform ${isItemExpanded ? 'rotate-90&apos; : ''}`}>
                                       ▶
                                     </span>
                                   </button>
@@ -496,10 +496,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Main content - Pas de marge sur mobile, marge sur desktop si drawer visible */}
-        <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-72 md:ml-80'}`}>
+        <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0&apos; : 'lg:ml-72 md:ml-80'}`}>
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-800 transition-colors">
-          <div className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? '' : 'lg:pl-12 md:pl-12'}`}>
+          <div className={`flex h-16 items-center justify-between px-4 lg:px-8 ${isSidebarCollapsed ? '&apos; : 'lg:pl-12 md:pl-12'}`}>
             {/* Section gauche - Navigation et titre */}
             <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
               {/* ✅ Bouton hamburger pour mobile */}
@@ -651,11 +651,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
-                  title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                  title={actualTheme === 'dark&apos; ? 'Passer en mode clair' : &apos;Passer en mode sombre'}
                 >
-                  <span className="text-lg sm:text-xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
+                  <span className="text-lg sm:text-xl">{actualTheme === 'dark&apos; ? '🌙' : &apos;☀️&apos;}</span>
                   <span className="hidden sm:inline text-sm font-medium">
-                    {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
+                    {actualTheme === 'dark&apos; ? 'Sombre' : &apos;Clair'}
                   </span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -674,7 +674,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           setIsThemeDropdownOpen(false)
                         }}
                         className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'light' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                          theme === 'light&apos; ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : &apos;text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         <span>☀️</span>
@@ -687,7 +687,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           setIsThemeDropdownOpen(false)
                         }}
                         className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'dark' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                          theme === 'dark&apos; ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : &apos;text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         <span>🌙</span>
@@ -700,7 +700,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           setIsThemeDropdownOpen(false)
                         }}
                         className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'system' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
+                          theme === 'system&apos; ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : &apos;text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         <span>💻</span>
@@ -721,7 +721,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
           {/* Page content - Padding adapté pour mobile avec espacement supplémentaire si drawer visible */}
-          <main className={`p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? '' : 'lg:pl-12 md:pl-12'}`}>
+          <main className={`p-4 lg:p-8 bg-gray-50 dark:bg-gray-950 min-h-[calc(100vh-4rem)] transition-colors ${isSidebarCollapsed ? '&apos; : 'lg:pl-12 md:pl-12'}`}>
             {children}
           </main>
         </div>

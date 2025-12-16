@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export default function DataManagementPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success&apos; | 'error'; text: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleExport = async (type: string) => {
@@ -41,7 +41,7 @@ export default function DataManagementPage() {
       setMessage({ type: 'success', text: `Export ${type} réussi !` });
     } catch (error) {
       console.error('Erreur export:', error);
-      setMessage({ type: 'error', text: `Erreur lors de l'export ${type}` });
+      setMessage({ type: 'error&apos;, text: `Erreur lors de l'export ${type}` });
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export default function DataManagementPage() {
 
   const handleImport = async () => {
     if (!selectedFile) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner un fichier' });
+      setMessage({ type: 'error&apos;, text: 'Veuillez sélectionner un fichier' });
       return;
     }
 
@@ -66,16 +66,16 @@ export default function DataManagementPage() {
         { 
           headers: { 
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            'Content-Type&apos;: 'multipart/form-data'
           }
         }
       );
       
-      setMessage({ type: 'success', text: 'Import réussi !' });
+      setMessage({ type: 'success&apos;, text: 'Import réussi !' });
       setSelectedFile(null);
     } catch (error) {
       console.error('Erreur import:', error);
-      setMessage({ type: 'error', text: 'Erreur lors de l\'import' });
+      setMessage({ type: 'error&apos;, text: 'Erreur lors de l\'import' });
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export default function DataManagementPage() {
       setMessage({ type: 'success', text: `Nettoyage effectué avec succès` });
     } catch (error) {
       console.error('Erreur nettoyage:', error);
-      setMessage({ type: 'error', text: 'Erreur lors du nettoyage' });
+      setMessage({ type: 'error&apos;, text: 'Erreur lors du nettoyage' });
     } finally {
       setLoading(false);
     }

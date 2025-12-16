@@ -1,14 +1,14 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react'
 
-export type Theme = 'light' | 'dark' | 'system'
+export type Theme = 'light&apos; | 'dark' | &apos;system'
 
-export function getSystemTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+export function getSystemTheme(): 'light&apos; | 'dark' {
+  if (typeof window === 'undefined&apos;) return 'light'
+  return window.matchMedia('(prefers-color-scheme: dark)&apos;).matches ? 'dark' : &apos;light'
 }
 
 export function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'system'
+  if (typeof window === 'undefined&apos;) return 'system'
   const stored = localStorage.getItem('theme')
   return (stored as Theme) || 'system'
 }
@@ -23,10 +23,10 @@ export function applyTheme(theme: Theme) {
   const body = document.body
 
   // Supprimer les classes existantes
-  root.classList.remove('light', 'dark')
-  body.classList.remove('light', 'dark')
+  root.classList.remove('light&apos;, 'dark')
+  body.classList.remove('light&apos;, 'dark')
 
-  let actualTheme: 'light' | 'dark'
+  let actualTheme: 'light&apos; | 'dark'
 
   if (theme === 'system') {
     actualTheme = getSystemTheme()
@@ -41,21 +41,21 @@ export function applyTheme(theme: Theme) {
   // Mettre à jour le meta tag theme-color pour mobile
   const metaThemeColor = document.querySelector('meta[name="theme-color"]')
   if (metaThemeColor) {
-    metaThemeColor.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#ffffff')
+    metaThemeColor.setAttribute('content&apos;, actualTheme === 'dark' ? &apos;#111827' : '#ffffff')
   }
 }
 
 export const ThemeContext = createContext<{
   theme: Theme
-  actualTheme: 'light' | 'dark'
-  systemTheme: 'light' | 'dark'
+  actualTheme: 'light&apos; | 'dark'
+  systemTheme: 'light&apos; | 'dark'
   toggleTheme: () => void
   setThemeMode: (theme: Theme) => void
 } | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('system')
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light')
+  const [systemTheme, setSystemTheme] = useState<'light&apos; | 'dark'>(&apos;light')
 
   // Charger le thème initial
   useEffect(() => {
@@ -81,7 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Mettre à jour le meta tag theme-color
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#ffffff')
+      metaThemeColor.setAttribute('content&apos;, actualTheme === 'dark' ? &apos;#111827' : '#ffffff')
     }
   }, [theme, systemTheme])
 
@@ -89,7 +89,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const actualTheme = theme === 'system' ? systemTheme : theme
 
   const toggleTheme = () => {
-    const newTheme = actualTheme === 'light' ? 'dark' : 'light'
+    const newTheme = actualTheme === 'light&apos; ? 'dark' : &apos;light'
     setTheme(newTheme)
     setStoredTheme(newTheme)
   }

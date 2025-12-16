@@ -36,7 +36,7 @@ export default function SecurityAnalysisPage() {
   }
 
   const securityScore = summary?.avgSecurityScore || 85;
-  const scoreColor = securityScore >= 80 ? 'green' : securityScore >= 60 ? 'orange' : 'red';
+  const scoreColor = securityScore >= 80 ? 'green&apos; : securityScore >= 60 ? 'orange' : &apos;red';
 
   return (
     <AdminLayout>
@@ -104,7 +104,7 @@ export default function SecurityAnalysisPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Tentatives d'Injection</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tentatives d&apos;Injection</p>
               <Activity className="h-6 w-6 text-blue-600" />
             </div>
             <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
@@ -191,7 +191,7 @@ export default function SecurityAnalysisPage() {
                   <span className="text-orange-600 dark:text-orange-400 text-xl">⚠</span>
                   <div>
                     <p className="font-medium text-orange-800 dark:text-orange-200">Augmenter la Surveillance</p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">Activez l'authentification à deux facteurs pour tous les utilisateurs</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">Activez l&apos;authentification à deux facteurs pour tous les utilisateurs</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">

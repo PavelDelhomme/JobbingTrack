@@ -17,7 +17,7 @@ interface ServiceLog {
 
 interface ServiceMetrics {
   name: string;
-  status: 'running' | 'stopped' | 'error';
+  status: 'running&apos; | 'stopped' | &apos;error';
   cpu: number;
   memory: {
     usage: number;
@@ -78,16 +78,16 @@ export default function ServiceDetailPage() {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ['B&apos;, 'KB', &apos;MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const getLevelColor = (level: string) => {
     switch (level?.toLowerCase()) {
-      case 'error': return 'text-red-600';
-      case 'warn': return 'text-yellow-600';
-      case 'info': return 'text-blue-600';
+      case 'error&apos;: return 'text-red-600';
+      case 'warn&apos;: return 'text-yellow-600';
+      case 'info&apos;: return 'text-blue-600';
       default: return 'text-gray-600';
     }
   };

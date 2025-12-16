@@ -23,10 +23,10 @@ export default function APITesterPage() {
     if (token) {
       try {
         const parsedHeaders = JSON.parse(headers);
-        // Remplacer seulement si c'est le token par défaut ou s'il n'y a pas de token
-        if (parsedHeaders['Authorization'] === 'Bearer YOUR_TOKEN' || 
+        // Remplacer seulement si c'est le token par défaut ou s&apos;il n'y a pas de token
+        if (parsedHeaders['Authorization&apos;] === 'Bearer YOUR_TOKEN' || 
             !parsedHeaders['Authorization'] || 
-            parsedHeaders['Authorization'].includes('YOUR_TOKEN')) {
+            parsedHeaders['Authorization&apos;].includes('YOUR_TOKEN')) {
           parsedHeaders['Authorization'] = `Bearer ${token}`;
           setHeaders(JSON.stringify(parsedHeaders, null, 2));
         }
@@ -34,7 +34,7 @@ export default function APITesterPage() {
         // Si les headers ne sont pas un JSON valide, les remplacer
         setHeaders(JSON.stringify({
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type&apos;: 'application/json'
         }, null, 2));
       }
     }
@@ -58,7 +58,7 @@ export default function APITesterPage() {
       
       // Vérifier que l'endpoint ne se termine pas par un slash seul (sauf si c'est la racine)
       let cleanEndpoint = endpoint.trim();
-      if (cleanEndpoint.endsWith('/api/v1/') || cleanEndpoint.endsWith('/api/v1')) {
+      if (cleanEndpoint.endsWith('/api/v1/&apos;) || cleanEndpoint.endsWith('/api/v1')) {
         setResponse({
           error: true,
           message: 'Endpoint incomplet. Veuillez spécifier une ressource (ex: /api/v1/health, /api/v1/users)',
@@ -75,7 +75,7 @@ export default function APITesterPage() {
         headers: parsedHeaders,
       };
       
-      if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
+      if (['POST&apos;, 'PUT', &apos;PATCH'].includes(method) && body) {
         try {
           config.data = JSON.parse(body);
         } catch (e) {
@@ -186,7 +186,7 @@ export default function APITesterPage() {
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 <Play className="h-5 w-5" />
-                {loading ? 'Test...' : 'Tester'}
+                {loading ? 'Test...&apos; : 'Tester'}
               </button>
             </div>
 
@@ -204,7 +204,7 @@ export default function APITesterPage() {
             </div>
 
             {/* Body */}
-            {['POST', 'PUT', 'PATCH'].includes(method) && (
+            {['POST&apos;, 'PUT', &apos;PATCH'].includes(method) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Body (JSON)

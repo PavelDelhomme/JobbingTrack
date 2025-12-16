@@ -18,13 +18,13 @@ interface ExportData {
 
 interface AdvancedDataExporterProps {
   data: ExportData;
-  onExport?: (format: 'json' | 'csv', tables: string[]) => void;
+  onExport?: (format: 'json&apos; | 'csv', tables: string[]) => void;
   className?: string;
 }
 
 export function AdvancedDataExporter({ data, onExport, className = '' }: AdvancedDataExporterProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<'json' | 'csv'>('csv');
+  const [selectedFormat, setSelectedFormat] = useState<'json&apos; | 'csv'>(&apos;csv');
   const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<string>('');
@@ -82,7 +82,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
             break;
           case 'errorlogs':
           case 'error_logs':
-            name = 'Logs d\'erreurs';
+            name = 'Logs d\&apos;erreurs';
             icon = '❌';
             description = 'Journal des erreurs système';
             break;
@@ -146,8 +146,8 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
   useEffect(() => {
     console.log('🔍 AdvancedDataExporter Debug:');
     console.log('  📊 Données reçues:', data);
-    console.log('  📋 Options générées:', allExportOptions.length, 'options');
-    console.log('  ✅ Options disponibles:', availableOptions.length, 'options');
+    console.log('  📋 Options générées:&apos;, allExportOptions.length, 'options');
+    console.log('  ✅ Options disponibles:&apos;, availableOptions.length, 'options');
     console.log('  🎯 Tables sélectionnées:', Array.from(selectedTables));
     console.log('  📈 Sélection automatique activée');
   }, [data, allExportOptions, availableOptions, selectedTables]);
@@ -176,7 +176,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
           }
           return JSON.stringify(tableData, null, 2);
         },
-        exportSelected: async (format: 'json' | 'csv') => {
+        exportSelected: async (format: 'json&apos; | 'csv') => {
           const selectedIds = Array.from(selectedTables);
           const exportData: { [key: string]: any } = {};
 
@@ -246,8 +246,8 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
         headers.map(header => {
           const value = row[header];
           // Échapper les valeurs qui contiennent des virgules, guillemets ou retours à la ligne
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-            return `"${value.replace(/"/g, '""')}"`;
+          if (typeof value === 'string&apos; && (value.includes(',') || value.includes('"') || value.includes(&apos;\n'))) {
+            return `"${value.replace(/"/g, &apos;""&apos;)}"`;
           }
           return value || '';
         }).join(',')
@@ -301,7 +301,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
           window.URL.revokeObjectURL(url);
         } else {
           // Export ZIP pour plusieurs tables
-          setExportProgress('Préparation de l\'archive...');
+          setExportProgress('Préparation de l\&apos;archive...');
 
           // Créer un ZIP avec plusieurs fichiers CSV
           const zip = new JSZip();
@@ -356,8 +356,8 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
       }, 2000);
 
     } catch (error) {
-      console.error('Erreur lors de l\'export:', error);
-      setExportProgress('❌ Erreur lors de l\'export');
+      console.error('Erreur lors de l\&apos;export:', error);
+      setExportProgress('❌ Erreur lors de l\&apos;export');
     } finally {
       setIsExporting(false);
     }
@@ -387,14 +387,14 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
         <span className="text-sm font-medium">Exporter</span>
         {selectedCount > 0 && (
           <span className={`text-xs px-2 py-0.5 rounded-full min-w-[20px] ${
-            allSelected ? 'bg-green-400' : 'bg-blue-400'
+            allSelected ? 'bg-green-400&apos; : 'bg-blue-400'
           }`}>
             {selectedCount}/{availableCount}
           </span>
         )}
         {availableCount > 0 && (
           <span className="text-xs opacity-75">
-            {allSelected ? '✅ Tout' : noneSelected ? '❌ Aucun' : '⚡ Partiel'}
+            {allSelected ? '✅ Tout&apos; : noneSelected ? '❌ Aucun' : &apos;⚡ Partiel'}
           </span>
         )}
       </button>
@@ -457,7 +457,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                       ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                       : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                   }`}>
-                    {selectedCount}/{availableCount} sélectionnée{selectedCount > 1 ? 's' : ''}
+                    {selectedCount}/{availableCount} sélectionnée{selectedCount > 1 ? 's&apos; : ''}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -470,7 +470,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                         : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
                     }`}
                   >
-                    {allSelected ? '✅ Tout' : 'Tout'}
+                    {allSelected ? '✅ Tout&apos; : 'Tout'}
                   </button>
                   <button
                     onClick={handleDeselectAll}
@@ -481,7 +481,7 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                         : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
                     }`}
                   >
-                    {noneSelected ? '❌ Aucun' : 'Aucun'}
+                    {noneSelected ? '❌ Aucun&apos; : 'Aucun'}
                   </button>
                 </div>
               </div>
@@ -504,15 +504,15 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                           ? 'bg-green-100 dark:bg-green-900/30'
                           : 'bg-gray-200 dark:bg-gray-600 group-hover:bg-gray-300 dark:group-hover:bg-gray-500'
                       }`}>
-                        <span className={`text-lg ${isSelected ? 'opacity-100' : 'opacity-60'}`}>
+                        <span className={`text-lg ${isSelected ? 'opacity-100&apos; : 'opacity-60'}`}>
                           {option.icon}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0 text-left">
-                        <div className={`text-sm font-medium ${isSelected ? 'text-green-900 dark:text-green-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <div className={`text-sm font-medium ${isSelected ? 'text-green-900 dark:text-green-100&apos; : 'text-gray-700 dark:text-gray-300'}`}>
                           {option.name}
                         </div>
-                        <div className={`text-xs ${isSelected ? 'text-green-700 dark:text-green-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <div className={`text-xs ${isSelected ? 'text-green-700 dark:text-green-300&apos; : 'text-gray-500 dark:text-gray-400'}`}>
                           {option.description}
                         </div>
                       </div>
@@ -538,9 +538,9 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                   {isExporting ? (
                     <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
                   ) : (
-                    <span className="text-lg">{exportProgress.startsWith('✅') ? '✅' : '❌'}</span>
+                    <span className="text-lg">{exportProgress.startsWith('✅&apos;) ? '✅' : &apos;❌&apos;}</span>
                   )}
-                  <span className={`text-sm ${exportProgress.startsWith('❌') ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  <span className={`text-sm ${exportProgress.startsWith('❌&apos;) ? 'text-red-600 dark:text-red-400' : &apos;text-blue-600 dark:text-blue-400'}`}>
                     {exportProgress}
                   </span>
                 </div>
@@ -567,10 +567,10 @@ export function AdvancedDataExporter({ data, onExport, className = '' }: Advance
                   <Download className="h-5 w-5" />
                   <div className="flex flex-col items-center">
                     <span className="text-sm font-medium">
-                      Exporter {selectedCount} table{selectedCount > 1 ? 's' : ''}
+                      Exporter {selectedCount} table{selectedCount > 1 ? 's&apos; : ''}
                     </span>
                     <span className="text-xs opacity-90">
-                      en {selectedFormat.toUpperCase()} • {allSelected ? 'Toutes les données' : 'Données sélectionnées'}
+                      en {selectedFormat.toUpperCase()} • {allSelected ? 'Toutes les données&apos; : 'Données sélectionnées'}
                     </span>
                   </div>
                 </>

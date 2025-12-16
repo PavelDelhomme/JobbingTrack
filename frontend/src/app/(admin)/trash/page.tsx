@@ -6,7 +6,7 @@ import { adminService } from '@/lib/api'
 
 interface DeletedItem {
   id: string
-  type: 'Application' | 'Contact' | 'Company' | 'Interview' | 'FollowUp' | 'Call' | 'Event' | 'User'
+  type: 'Application&apos; | 'Contact' | &apos;Company' | 'Interview&apos; | 'FollowUp' | &apos;Call' | 'Event&apos; | 'User'
   title: string
   deletedAt: string
   deletedBy?: string
@@ -22,15 +22,15 @@ export default function TrashManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const entityTypes = [
-    { value: 'all', label: 'Tous les éléments', icon: '🗑️' },
-    { value: 'Application', label: 'Candidatures', icon: '📋' },
-    { value: 'Contact', label: 'Contacts', icon: '👤' },
-    { value: 'Company', label: 'Entreprises', icon: '🏢' },
-    { value: 'Interview', label: 'Entretiens', icon: '🎤' },
-    { value: 'FollowUp', label: 'Relances', icon: '📧' },
-    { value: 'Call', label: 'Appels', icon: '📞' },
-    { value: 'Event', label: 'Événements', icon: '📅' },
-    { value: 'User', label: 'Utilisateurs', icon: '👥' }
+    { value: 'all&apos;, label: 'Tous les éléments', icon: &apos;🗑️' },
+    { value: 'Application&apos;, label: 'Candidatures', icon: &apos;📋' },
+    { value: 'Contact&apos;, label: 'Contacts', icon: &apos;👤' },
+    { value: 'Company&apos;, label: 'Entreprises', icon: &apos;🏢' },
+    { value: 'Interview&apos;, label: 'Entretiens', icon: &apos;🎤' },
+    { value: 'FollowUp&apos;, label: 'Relances', icon: &apos;📧' },
+    { value: 'Call&apos;, label: 'Appels', icon: &apos;📞' },
+    { value: 'Event&apos;, label: 'Événements', icon: &apos;📅' },
+    { value: 'User&apos;, label: 'Utilisateurs', icon: &apos;👥' }
   ]
 
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function TrashManagementPage() {
             <div className="p-12 text-center">
               <div className="text-6xl mb-4">🗑️</div>
               <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                {searchQuery ? 'Aucun résultat' : 'Corbeille vide'}
+                {searchQuery ? 'Aucun résultat&apos; : 'Corbeille vide'}
               </h3>
               <p className="text-gray-500">
                 {searchQuery 
@@ -276,7 +276,7 @@ function StatCard({ title, value, icon, color }: {
   title: string
   value: number
   icon: string
-  color: 'blue' | 'green' | 'purple'
+  color: 'blue&apos; | 'green' | &apos;purple'
 }) {
   const colors = {
     blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
@@ -307,7 +307,7 @@ function StatCard({ title, value, icon, color }: {
   title: string
   value: number
   icon: string
-  color: 'gray' | 'green' | 'red'
+  color: 'gray&apos; | 'green' | &apos;red'
 }) {
   const colors = {
     gray: 'bg-gray-50 border-gray-200',
@@ -379,7 +379,7 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
-              <span>Supprimé il y a {daysSinceDeleted} jour{daysSinceDeleted > 1 ? 's' : ''}</span>
+              <span>Supprimé il y a {daysSinceDeleted} jour{daysSinceDeleted > 1 ? 's&apos; : '&apos;}</span>
               {item.deletedBy && (
                 <span className="flex items-center gap-1">
                   <span>👤</span>
@@ -437,7 +437,7 @@ function DeletedItemRow({ item, onRestore, onPermanentDelete }: {
       {daysSinceDeleted >= 25 && daysSinceDeleted < 30 && (
         <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ Cet élément sera automatiquement supprimé définitivement dans {30 - daysSinceDeleted} jour{30 - daysSinceDeleted > 1 ? 's' : ''}
+            ⚠️ Cet élément sera automatiquement supprimé définitivement dans {30 - daysSinceDeleted} jour{30 - daysSinceDeleted > 1 ? 's&apos; : ''}
           </p>
         </div>
       )}

@@ -9,7 +9,7 @@ export function Switch({ className, ...props }: SwitchProps) {
   return (
     <label className={cn(
       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-      props.checked ? 'bg-primary' : 'bg-input',
+      props.checked ? 'bg-primary&apos; : 'bg-input',
       props.disabled && 'cursor-not-allowed opacity-50',
       className
     )}>
@@ -21,7 +21,7 @@ export function Switch({ className, ...props }: SwitchProps) {
       <span
         className={cn(
           'inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform',
-          props.checked ? 'translate-x-6' : 'translate-x-1'
+          props.checked ? 'translate-x-6&apos; : 'translate-x-1'
         )}
       />
     </label>

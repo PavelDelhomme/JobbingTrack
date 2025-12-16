@@ -35,7 +35,7 @@ interface TestResult {
   id: string;
   scenarioId: string;
   scenarioName: string;
-  status: 'passed' | 'failed' | 'running' | 'pending';
+  status: 'passed&apos; | 'failed' | &apos;running' | 'pending';
   duration?: string;
   error?: string;
   timestamp: string;
@@ -45,77 +45,77 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
   {
     id: 'create-contact',
     name: 'Création de Contact',
-    description: 'Test de création d\'un nouveau contact avec entreprise',
+    description: 'Test de création d\&apos;un nouveau contact avec entreprise',
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
-      { id: '2', action: 'click', target: 'button:has-text("Nouveau contact")', description: 'Cliquer sur le bouton Nouveau contact' },
-      { id: '3', action: 'fill', target: 'input[name="firstName"]', value: 'John', description: 'Remplir le prénom' },
-      { id: '4', action: 'fill', target: 'input[name="lastName"]', value: 'Doe', description: 'Remplir le nom' },
-      { id: '5', action: 'fill', target: 'input[name="email"]', value: 'redacted@example.invalid', description: 'Remplir l\'email' },
-      { id: '6', action: 'fill', target: 'input[placeholder*="entreprise"]', value: 'Test Company', description: 'Remplir l\'entreprise' },
-      { id: '7', action: 'click', target: 'button:has-text("Créer")', description: 'Cliquer sur Créer' },
-      { id: '8', action: 'waitFor', target: 'text=John Doe', description: 'Vérifier que le contact apparaît dans la liste' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '2&apos;, action: 'click', target: 'button:has-text("Nouveau contact")', description: &apos;Cliquer sur le bouton Nouveau contact' },
+      { id: '3&apos;, action: 'fill', target: 'input[name="firstName"]', value: &apos;John', description: 'Remplir le prénom' },
+      { id: '4&apos;, action: 'fill', target: 'input[name="lastName"]', value: &apos;Doe', description: 'Remplir le nom' },
+      { id: '5&apos;, action: 'fill', target: 'input[name="email"]', value: &apos;redacted@example.invalid', description: 'Remplir l\&apos;email' },
+      { id: '6&apos;, action: 'fill', target: 'input[placeholder*="entreprise"]', value: &apos;Test Company', description: 'Remplir l\&apos;entreprise' },
+      { id: '7&apos;, action: 'click', target: 'button:has-text("Créer")', description: &apos;Cliquer sur Créer' },
+      { id: '8&apos;, action: 'waitFor', target: &apos;text=John Doe', description: 'Vérifier que le contact apparaît dans la liste' }
     ]
   },
   {
     id: 'delete-contact',
     name: 'Suppression de Contact',
-    description: 'Test de suppression d\'un contact existant',
+    description: 'Test de suppression d\&apos;un contact existant',
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
-      { id: '2', action: 'click', target: 'button[aria-label*="Supprimer"]:first', description: 'Cliquer sur le bouton Supprimer du premier contact' },
-      { id: '3', action: 'click', target: 'button:has-text("OK")', description: 'Confirmer la suppression' },
-      { id: '4', action: 'waitFor', target: 'text=Aucun contact trouvé', description: 'Vérifier que le contact a été supprimé' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '2&apos;, action: 'click', target: 'button[aria-label*="Supprimer"]:first', description: &apos;Cliquer sur le bouton Supprimer du premier contact' },
+      { id: '3&apos;, action: 'click', target: 'button:has-text("OK")', description: &apos;Confirmer la suppression' },
+      { id: '4&apos;, action: 'waitFor', target: &apos;text=Aucun contact trouvé', description: 'Vérifier que le contact a été supprimé' }
     ]
   },
   {
     id: 'create-contact-company',
     name: 'Création Contact avec Entreprise',
-    description: 'Test de création d\'un contact lié à une entreprise',
+    description: 'Test de création d\&apos;un contact lié à une entreprise',
     category: 'contacts',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
-      { id: '2', action: 'click', target: 'button:has-text("Nouveau contact")', description: 'Cliquer sur Nouveau contact' },
-      { id: '3', action: 'fill', target: 'input[name="firstName"]', value: 'Jane', description: 'Remplir le prénom' },
-      { id: '4', action: 'fill', target: 'input[name="lastName"]', value: 'Smith', description: 'Remplir le nom' },
-      { id: '5', action: 'fill', target: 'input[placeholder*="entreprise"]', value: 'New Company', description: 'Saisir une nouvelle entreprise' },
-      { id: '6', action: 'click', target: 'button:has-text("Créer")', description: 'Créer le contact' },
-      { id: '7', action: 'waitFor', target: 'text=Jane Smith', description: 'Vérifier la création' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice/contacts', description: 'Naviguer vers la page Contacts' },
+      { id: '2&apos;, action: 'click', target: 'button:has-text("Nouveau contact")', description: &apos;Cliquer sur Nouveau contact' },
+      { id: '3&apos;, action: 'fill', target: 'input[name="firstName"]', value: &apos;Jane', description: 'Remplir le prénom' },
+      { id: '4&apos;, action: 'fill', target: 'input[name="lastName"]', value: &apos;Smith', description: 'Remplir le nom' },
+      { id: '5&apos;, action: 'fill', target: 'input[placeholder*="entreprise"]', value: &apos;New Company', description: 'Saisir une nouvelle entreprise' },
+      { id: '6&apos;, action: 'click', target: 'button:has-text("Créer")', description: &apos;Créer le contact' },
+      { id: '7&apos;, action: 'waitFor', target: &apos;text=Jane Smith', description: 'Vérifier la création' }
     ]
   },
   {
     id: 'create-application',
     name: 'Création de Candidature',
-    description: 'Test de création d\'une nouvelle candidature',
+    description: 'Test de création d\&apos;une nouvelle candidature',
     category: 'applications',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/applications', description: 'Naviguer vers les candidatures' },
-      { id: '2', action: 'click', target: 'button:has-text("Nouvelle candidature")', description: 'Cliquer sur Nouvelle candidature' },
-      { id: '3', action: 'fill', target: 'input[name="position"]', value: 'Développeur Full Stack', description: 'Remplir le poste' },
-      { id: '4', action: 'fill', target: 'input[placeholder*="entreprise"]', value: 'Tech Corp', description: 'Remplir l\'entreprise' },
-      { id: '5', action: 'click', target: 'button:has-text("Créer")', description: 'Créer la candidature' },
-      { id: '6', action: 'waitFor', target: 'text=Développeur Full Stack', description: 'Vérifier la création' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice/applications', description: 'Naviguer vers les candidatures' },
+      { id: '2&apos;, action: 'click', target: 'button:has-text("Nouvelle candidature")', description: &apos;Cliquer sur Nouvelle candidature' },
+      { id: '3&apos;, action: 'fill', target: 'input[name="position"]', value: &apos;Développeur Full Stack', description: 'Remplir le poste' },
+      { id: '4&apos;, action: 'fill', target: 'input[placeholder*="entreprise"]', value: &apos;Tech Corp', description: 'Remplir l\&apos;entreprise' },
+      { id: '5&apos;, action: 'click', target: 'button:has-text("Créer")', description: &apos;Créer la candidature' },
+      { id: '6&apos;, action: 'waitFor', target: &apos;text=Développeur Full Stack', description: 'Vérifier la création' }
     ]
   },
   {
     id: 'create-followup',
     name: 'Création de Relance',
-    description: 'Test de création d\'une relance depuis une candidature',
+    description: 'Test de création d\&apos;une relance depuis une candidature',
     category: 'followups',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice/followups', description: 'Naviguer vers les relances' },
-      { id: '2', action: 'click', target: 'button:has-text("Nouvelle relance")', description: 'Cliquer sur Nouvelle relance' },
-      { id: '3', action: 'select', target: 'select[name="applicationId"]', value: '1', description: 'Sélectionner une candidature' },
-      { id: '4', action: 'fill', target: 'input[name="subject"]', value: 'Relance candidature', description: 'Remplir le sujet' },
-      { id: '5', action: 'click', target: 'button:has-text("Créer")', description: 'Créer la relance' },
-      { id: '6', action: 'waitFor', target: 'text=Relance candidature', description: 'Vérifier la création' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice/followups', description: 'Naviguer vers les relances' },
+      { id: '2&apos;, action: 'click', target: 'button:has-text("Nouvelle relance")', description: &apos;Cliquer sur Nouvelle relance' },
+      { id: '3&apos;, action: 'select', target: 'select[name="applicationId"]', value: &apos;1', description: 'Sélectionner une candidature' },
+      { id: '4&apos;, action: 'fill', target: 'input[name="subject"]', value: &apos;Relance candidature', description: 'Remplir le sujet' },
+      { id: '5&apos;, action: 'click', target: 'button:has-text("Créer")', description: &apos;Créer la relance' },
+      { id: '6&apos;, action: 'waitFor', target: &apos;text=Relance candidature', description: 'Vérifier la création' }
     ]
   },
   {
@@ -125,9 +125,9 @@ const PREDEFINED_SCENARIOS: TestScenario[] = [
     category: 'sync',
     isCustom: false,
     steps: [
-      { id: '1', action: 'navigate', target: '/backoffice', description: 'Naviguer vers le dashboard' },
-      { id: '2', action: 'click', target: 'button[aria-label*="Synchroniser"]', description: 'Cliquer sur synchroniser' },
-      { id: '3', action: 'waitFor', target: 'text=Synchronisation terminée', description: 'Vérifier la synchronisation' }
+      { id: '1&apos;, action: 'navigate', target: &apos;/backoffice', description: 'Naviguer vers le dashboard' },
+      { id: '2&apos;, action: 'click', target: 'button[aria-label*="Synchroniser"]', description: &apos;Cliquer sur synchroniser' },
+      { id: '3&apos;, action: 'waitFor', target: &apos;text=Synchronisation terminée', description: 'Vérifier la synchronisation' }
     ]
   }
 ];
@@ -182,7 +182,7 @@ export default function PlaywrightTestsPage() {
       setShowCreateModal(false);
       setShowEditModal(false);
       setEditingScenario(null);
-      setNewScenario({ name: '', description: '', category: 'custom', steps: [], isCustom: true });
+      setNewScenario({ name: '&apos;, description: '', category: &apos;custom', steps: [], isCustom: true });
     } catch (error) {
       console.error('Erreur sauvegarde:', error);
       alert('Erreur lors de la sauvegarde');
@@ -280,7 +280,7 @@ export default function PlaywrightTestsPage() {
               const updatedResults = newResults.map((result, index) => {
                 const testResult = resultsResponse.data.results.tests?.[index];
                 if (testResult) {
-                  result.status = testResult.ok ? 'passed' : 'failed';
+                  result.status = testResult.ok ? 'passed&apos; : 'failed';
                   result.duration = `${(testResult.duration || 0) / 1000}s`;
                   if (!testResult.ok && testResult.failure) {
                     result.error = testResult.failure.message || 'Erreur inconnue';
@@ -315,7 +315,7 @@ export default function PlaywrightTestsPage() {
       }
     } catch (error: any) {
       console.error('Erreur exécution tests:', error);
-      alert(error.response?.data?.error || 'Erreur lors de l\'exécution des tests');
+      alert(error.response?.data?.error || 'Erreur lors de l\&apos;exécution des tests');
       
       // Marquer tous comme échoués
       selectedScenariosData.forEach(scenario => {
@@ -357,7 +357,7 @@ export default function PlaywrightTestsPage() {
         scenario.isCustom = true;
         saveScenario(scenario as TestScenario);
       } catch (error) {
-        alert('Erreur lors de l\'import du scénario');
+        alert('Erreur lors de l\&apos;import du scénario');
       }
     };
     reader.readAsText(file);
@@ -374,9 +374,9 @@ ${scenario.steps.map(step => {
     case 'click':
       return `  await page.click('${step.target}');`;
     case 'fill':
-      return `  await page.fill('${step.target}', '${step.value || ''}');`;
+      return `  await page.fill('${step.target}&apos;, '${step.value || '&apos;}');`;
     case 'select':
-      return `  await page.selectOption('${step.target}', '${step.value || ''}');`;
+      return `  await page.selectOption('${step.target}&apos;, '${step.value || '&apos;}');`;
     case 'waitFor':
       return `  await page.waitForSelector('${step.target}');`;
     default:
@@ -387,13 +387,13 @@ ${scenario.steps.map(step => {
   };
 
   const categories = [
-    { id: 'contacts', label: 'Contacts', icon: Users },
-    { id: 'applications', label: 'Candidatures', icon: FileText },
-    { id: 'followups', label: 'Relances', icon: Mail },
-    { id: 'interviews', label: 'Entretiens', icon: Calendar },
-    { id: 'calls', label: 'Appels', icon: Phone },
-    { id: 'sync', label: 'Synchronisation', icon: RefreshCw },
-    { id: 'custom', label: 'Personnalisé', icon: Code }
+    { id: 'contacts&apos;, label: 'Contacts', icon: Users },
+    { id: 'applications&apos;, label: 'Candidatures', icon: FileText },
+    { id: 'followups&apos;, label: 'Relances', icon: Mail },
+    { id: 'interviews&apos;, label: 'Entretiens', icon: Calendar },
+    { id: 'calls&apos;, label: 'Appels', icon: Phone },
+    { id: 'sync&apos;, label: 'Synchronisation', icon: RefreshCw },
+    { id: 'custom&apos;, label: 'Personnalisé', icon: Code }
   ];
 
   return (
@@ -411,7 +411,7 @@ ${scenario.steps.map(step => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
-                setNewScenario({ name: '', description: '', category: 'custom', steps: [], isCustom: true });
+                setNewScenario({ name: '&apos;, description: '', category: &apos;custom', steps: [], isCustom: true });
                 setShowCreateModal(true);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -634,7 +634,7 @@ ${scenario.steps.map(step => {
               setShowCreateModal(false);
               setShowEditModal(false);
               setEditingScenario(null);
-              setNewScenario({ name: '', description: '', category: 'custom', steps: [], isCustom: true });
+              setNewScenario({ name: '&apos;, description: '', category: &apos;custom', steps: [], isCustom: true });
             }}
             onSave={saveScenario}
             onUpdateStep={updateStep}
@@ -706,7 +706,7 @@ function TestScenarioModal({
       <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-4xl w-full border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {scenario.id ? 'Modifier le scénario' : 'Nouveau scénario de test'}
+            {scenario.id ? 'Modifier le scénario&apos; : 'Nouveau scénario de test'}
           </h2>
           <button
             onClick={onClose}
@@ -829,7 +829,7 @@ function TestScenarioModal({
                       type="text"
                       value={step.description}
                       onChange={(e) => onUpdateStep(step.id, 'description', e.target.value)}
-                      placeholder="Description de l'étape"
+                      placeholder="Description de l&apos;étape"
                       className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
                     />
                   </div>
@@ -844,7 +844,7 @@ function TestScenarioModal({
               className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
             >
               <Code className="h-4 w-4" />
-              {showCode ? 'Masquer' : 'Afficher'} le code Playwright
+              {showCode ? 'Masquer&apos; : 'Afficher'} le code Playwright
             </button>
             <div className="flex-1" />
             <button

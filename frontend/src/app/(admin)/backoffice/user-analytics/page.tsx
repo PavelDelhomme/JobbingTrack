@@ -55,7 +55,7 @@ export default function UserAnalyticsPage() {
   const [events, setEvents] = useState<UserEvent[]>([])
   const [errors, setErrors] = useState<UserError[]>([])
   const [selectedDays, setSelectedDays] = useState(7)
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'errors' | 'performance'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview&apos; | 'events' | &apos;errors' | 'performance&apos;>('overview')
 
   useEffect(() => {
     loadData()
@@ -119,10 +119,10 @@ export default function UserAnalyticsPage() {
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8">
             {[
-              { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
-              { id: 'events', label: 'Événements', icon: MousePointer },
-              { id: 'errors', label: 'Erreurs', icon: AlertTriangle },
-              { id: 'performance', label: 'Performance', icon: Zap }
+              { id: 'overview&apos;, label: 'Vue d\'ensemble', icon: BarChart3 },
+              { id: 'events&apos;, label: 'Événements', icon: MousePointer },
+              { id: 'errors&apos;, label: 'Erreurs', icon: AlertTriangle },
+              { id: 'performance&apos;, label: 'Performance', icon: Zap }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -174,8 +174,8 @@ export default function UserAnalyticsPage() {
                   />
                   <StatCard
                     icon={Activity}
-                    title="Taux d'erreur"
-                    value={stats.totalEvents > 0 ? ((stats.totalErrors / stats.totalEvents) * 100).toFixed(2) + '%' : '0%'}
+                    title="Taux d&apos;erreur"
+                    value={stats.totalEvents > 0 ? ((stats.totalErrors / stats.totalEvents) * 100).toFixed(2) + '%&apos; : '0%'}
                     subtitle="Erreurs / Événements"
                     color="yellow"
                   />
