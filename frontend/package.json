@@ -101,6 +101,6 @@
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.6.8",
         "webpack-bundle-analyzer": "^4.10.1",
-        "baseline-browser-mapping": "^1.0.0"
+        "baseline-browser-mapping": "^2.8.16"
     }
 }
