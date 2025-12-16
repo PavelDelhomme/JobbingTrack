@@ -111,8 +111,8 @@ export function OptimizedSearch({
 
     try {
       // Recherche avec tous les modules disponibles pour une recherche complète
-      const allModules = ['applications&apos;, 'companies', &apos;contacts', 'interviews&apos;, 'calls',
-                         'users&apos;, 'events', &apos;notifications', 'archives&apos;, 'trash'];
+      const allModules = ['applications', 'companies', 'contacts', 'interviews', 'calls',
+                         'users', 'events', 'notifications', 'archives', 'trash'];
       const response = await searchService.globalSearch(
         query,
         selectedModules.length > 0 ? selectedModules : allModules,

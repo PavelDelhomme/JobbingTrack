@@ -144,10 +144,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📊',
       isCollapsible: true,
       items: [
-        { name: 'Vue d\&apos;ensemble', href: '/backoffice&apos;, icon: '📊' },
-        /*{ name: '🔍 Recherche Optimisée&apos;, href: '/backoffice/search', icon: &apos;⚡' },*/
-        { name: 'Statistiques&apos;, href: '/backoffice/statistique', icon: &apos;📈' },
-        { name: 'Performances & Analytics&apos;, href: '/backoffice/analytics', icon: &apos;⚡' },
+        { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
+        /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
+        { name: 'Statistiques', href: '/backoffice/statistique', icon: '📈' },
+        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
     },
     {

@@ -14,10 +14,10 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export function SettingsPopup({ isOpen, onClose }: SettingsPopupProps) {
   const { theme, actualTheme, toggleTheme, setThemeMode } = useTheme()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'appearance&apos; | 'account' | &apos;notifications' | 'system&apos; | 'refresh' | &apos;history' | 'display&apos;>('appearance')
+  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'notifications' | 'system' | 'refresh' | 'history' | 'display'>('appearance')
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [message, setMessage] = useState<{ type: 'success&apos; | 'error', text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
   // Refs pour debounce
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
