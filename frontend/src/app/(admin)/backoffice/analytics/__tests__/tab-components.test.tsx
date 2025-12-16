@@ -54,7 +54,9 @@ const mockProps = {
 describe('Tab Components - Validation indirecte via la page', () => {
   it('devrait détecter que timeRange est passé à tous les composants Tab', () => {
     // Ce test vérifie que le code source contient timeRange dans les props
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
     const pageContent = fs.readFileSync(
       path.join(__dirname, '../page.tsx'),
@@ -69,7 +71,9 @@ describe('Tab Components - Validation indirecte via la page', () => {
   });
 
   it('devrait détecter que timeRange a une valeur par défaut', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
     const pageContent = fs.readFileSync(
       path.join(__dirname, '../page.tsx'),

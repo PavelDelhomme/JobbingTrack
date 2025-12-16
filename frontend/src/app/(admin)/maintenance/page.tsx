@@ -43,20 +43,6 @@ export default function MaintenancePage() {
   const [isActivating, setIsActivating] = useState(false)
   const [isDeactivating, setIsDeactivating] = useState<string | null>(null)
 
-  // Vérification d'authentification
-  if (!token || !user) {
-    return (
-      <AdminLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
-            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
-          </div>
-        </div>
-      </AdminLayout>
-    )
-  }
-
   // Charger les services disponibles
   const loadServices = async () => {
     try {
@@ -93,6 +79,20 @@ export default function MaintenancePage() {
     }
     loadData()
   }, [token])
+
+  // Vérification d'authentification (après tous les hooks)
+  if (!token || !user) {
+    return (
+      <AdminLayout>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
+            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   // Activer la maintenance pour un service
   const activateMaintenance = async (serviceName: string) => {

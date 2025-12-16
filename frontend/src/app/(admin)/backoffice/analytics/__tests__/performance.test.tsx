@@ -22,7 +22,9 @@ describe('AnalyticsPage - Tests de performance', () => {
 
   it('devrait utiliser useMemo pour timeRangeMs', () => {
     // Vérifier que le code source utilise useMemo pour timeRangeMs
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
     const pagePath = path.join(__dirname, '../page.tsx');
     
@@ -41,7 +43,9 @@ describe('AnalyticsPage - Tests de performance', () => {
 
   it('devrait utiliser useCallback pour handleTimeRangeChange', () => {
     // Vérifier que le code source utilise useCallback pour handleTimeRangeChange
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
     const pagePath = path.join(__dirname, '../page.tsx');
     

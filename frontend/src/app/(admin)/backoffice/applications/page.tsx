@@ -145,20 +145,7 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<ServiceStatus | null>(null)
   const [serviceLogs, setServiceLogs] = useState<string[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
-
-  // Vérification d'authentification
-  if (!token || !user) {
-    return (
-      <AdminLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 text-lg mb-4">Accès refusé</p>
-            <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
-          </div>
-        </div>
-      </AdminLayout>
-    )
-  }
+  const [prometheusMetrics, setPrometheusMetrics] = useState<{[serviceName: string]: any}>({})
 
   useEffect(() => {
     // Test automatique au chargement de la page
