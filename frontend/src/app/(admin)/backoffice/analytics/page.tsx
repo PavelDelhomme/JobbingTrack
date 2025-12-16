@@ -2794,8 +2794,8 @@ const ReportTab = memo(function ReportTab({
               <tbody>
                 ${data.services.map((s: any) => `
                   <tr>
-                    <td>${s.name || '}</td>
-                    <td>${s.status || '}</td>
+                    <td>${s.name || ''}</td>
+                    <td>${s.status || ''}</td>
                     <td>${s.responseTime || 'N/A'} ms</td>
                     <td>${s.cpu || 'N/A'}%</td>
                     <td>${s.memory || 'N/A'}%</td>
@@ -2820,8 +2820,8 @@ const ReportTab = memo(function ReportTab({
                 ${data.logs.slice(0, 20).map((log: any) => `
                   <tr>
                     <td>${log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : '}</td>
-                    <td>${log.serviceName || '}</td>
-                    <td>${log.level || '}</td>
+                    <td>${log.serviceName || ''}</td>
+                    <td>${log.level || ''}</td>
                     <td>${(log.message || ').substring(0, 100)}</td>
                   </tr>
                 `).join('')}
@@ -2846,7 +2846,7 @@ const ReportTab = memo(function ReportTab({
                     <tr>
                       <td>${s.id}</td>
                       <td>${new Date(s.timestamp).toLocaleString('fr-FR')}</td>
-                      <td>${s.name || '}</td>
+                      <td>${s.name || ''}</td>
                     </tr>
                   `).join('')}
                 </tbody>
