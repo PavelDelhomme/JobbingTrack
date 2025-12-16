@@ -124,59 +124,107 @@ class CronScheduler {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       console.log(`🗑️ Nettoyage automatique de la corbeille (éléments avant ${thirtyDaysAgo.toISOString()})`);
 
-      // Supprimer les candidatures anciennes
-      const deletedApplications = await prisma.application.deleteMany({
-        where: {
-          deletedAt: {
-            lte: thirtyDaysAgo,
-            not: null
+      // Supprimer les candidatures anciennes (si le champ deletedAt existe)
+      // Note: Le modèle Application dans workflow-service n'a pas de champ deletedAt
+      // Cette fonctionnalité nécessite que le schéma Prisma soit synchronisé avec application-service
+      let deletedApplications = { count: 0 };
+      try {
+        deletedApplications = await prisma.application.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
           }
+        });
+      } catch (error) {
+        // Si le champ deletedAt n'existe pas, ignorer silencieusement
+        if (error.message?.includes('Unknown argument `deletedAt`')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Application');
+        } else {
+          throw error;
         }
-      });
+      }
       console.log(`   ✅ ${deletedApplications.count} candidatures supprimées définitivement`);
 
-      // Supprimer les contacts anciens
-      const deletedContacts = await prisma.contact.deleteMany({
-        where: {
-          deletedAt: {
-            lte: thirtyDaysAgo,
-            not: null
+      // Supprimer les contacts anciens (si le champ deletedAt existe)
+      let deletedContacts = { count: 0 };
+      try {
+        deletedContacts = await prisma.contact.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
           }
+        });
+      } catch (error) {
+        if (error.message?.includes('Unknown argument `deletedAt`')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Contact');
+        } else {
+          throw error;
         }
-      });
+      }
       console.log(`   ✅ ${deletedContacts.count} contacts supprimés définitivement`);
 
-      // Supprimer les entretiens anciens
-      const deletedInterviews = await prisma.interview.deleteMany({
-        where: {
-          deletedAt: {
-            lte: thirtyDaysAgo,
-            not: null
+      // Supprimer les entretiens anciens (si le champ deletedAt existe)
+      let deletedInterviews = { count: 0 };
+      try {
+        deletedInterviews = await prisma.interview.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
           }
+        });
+      } catch (error) {
+        if (error.message?.includes('Unknown argument `deletedAt`')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Interview');
+        } else {
+          throw error;
         }
-      });
+      }
       console.log(`   ✅ ${deletedInterviews.count} entretiens supprimés définitivement`);
 
-      // Supprimer les relances anciennes
-      const deletedFollowUps = await prisma.followUp.deleteMany({
-        where: {
-          deletedAt: {
-            lte: thirtyDaysAgo,
-            not: null
+      // Supprimer les relances anciennes (si le champ deletedAt existe)
+      let deletedFollowUps = { count: 0 };
+      try {
+        deletedFollowUps = await prisma.followUp.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
           }
+        });
+      } catch (error) {
+        if (error.message?.includes('Unknown argument `deletedAt`')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma FollowUp');
+        } else {
+          throw error;
         }
-      });
+      }
       console.log(`   ✅ ${deletedFollowUps.count} relances supprimées définitivement`);
 
-      // Supprimer les appels anciens
-      const deletedCalls = await prisma.call.deleteMany({
-        where: {
-          deletedAt: {
-            lte: thirtyDaysAgo,
-            not: null
+      // Supprimer les appels anciens (si le champ deletedAt existe)
+      let deletedCalls = { count: 0 };
+      try {
+        deletedCalls = await prisma.call.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
           }
+        });
+      } catch (error) {
+        if (error.message?.includes('Unknown argument `deletedAt`')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Call');
+        } else {
+          throw error;
         }
-      });
+      }
       console.log(`   ✅ ${deletedCalls.count} appels supprimés définitivement`);
 
       const total = deletedApplications.count + deletedContacts.count + deletedInterviews.count + deletedFollowUps.count + deletedCalls.count;
@@ -201,8 +249,8 @@ class CronScheduler {
             gte: today,
             lte: tomorrow
           },
-          status: 'SCHEDULED',
-          deletedAt: null
+          status: 'PENDING', // Utiliser PENDING au lieu de SCHEDULED (enum InterviewStatus dans workflow-service)
+          // Note: deletedAt n'existe pas dans le schéma Interview de workflow-service
         },
         include: {
           application: {
