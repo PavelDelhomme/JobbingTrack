@@ -60,7 +60,7 @@ describe('React Errors Detector', () => {
     };
     
     const { errors } = detectReactErrors(
-      // @ts-ignore - Test intentionnel
+      // @ts-expect-error - Test intentionnel
       <ComponentWithMissingProp />
     );
     
@@ -70,7 +70,7 @@ describe('React Errors Detector', () => {
   it('devrait détecter les références non définies', () => {
     const ComponentWithUndefinedRef = () => {
       // Référence à une variable non définie
-      // @ts-ignore - Test intentionnel
+      // @ts-expect-error - Test intentionnel
       return <div>{undefinedVariable}</div>;
     };
     
