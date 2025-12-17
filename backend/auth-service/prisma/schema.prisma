@@ -939,7 +939,7 @@ model UserSession {
   
   // Relations
   events          UserEvent[]
-  errors          UserError[]
+  userErrors      UserError[]
   performances    UserPerformance[]
   
   user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
