@@ -445,7 +445,7 @@ _up-full-internal:
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
-	# Démarrer les services de monitoring complets
+	# Démarrer les services de monitoring complets (ancien système)
 	@echo "📊 Démarrage des services de monitoring complets (Prometheus, Grafana, Loki, etc.)..."
 	@if [ -f "$(ROOT_DIR)/monitoring/docker-compose.monitoring.yml" ]; then \
 		cd $(ROOT_DIR)/monitoring && \
@@ -458,6 +458,10 @@ _up-full-internal:
 	else \
 		echo "⚠️  Fichier monitoring/docker-compose.monitoring.yml non trouvé, monitoring non démarré"; \
 	fi
+	# Démarrer le NOUVEAU système de monitoring en C (ultra-léger)
+	@echo "🚀 Démarrage du nouveau système de monitoring en C (ultra-léger)..."
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d monitoring-c log-collector-c)
+	@echo "✅ Nouveau monitoring en C démarré"
 	
 	# Attendre que les services soient prêts
 	@echo "⏳ Attente que les services soient prêts (5s)..."
@@ -469,10 +473,12 @@ _up-full-internal:
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:5003"
 	@echo "  - API Gateway:        http://localhost:5002"
-	@echo "  - Metrics Aggregator: http://localhost:5004"
-	@echo "  - Prometheus:         http://localhost:9090"
+	@echo "  - Metrics Aggregator: http://localhost:5004 (ancien)"
+	@echo "  - Monitoring C:      http://localhost:5014 (nouveau - ultra-léger)"
+	@echo "  - Log Collector C:   http://localhost:5015 (nouveau - remplace Loki)"
+	@echo "  - Prometheus:         http://localhost:9090 (ancien)"
 	@echo "  - Grafana:            http://localhost:3013 (admin/admin123)"
-	@echo "  - Loki:               http://localhost:3100"
+	@echo "  - Loki:               http://localhost:3100 (ancien)"
 	@echo "  - cAdvisor:           http://localhost:8082"
 	@echo ""
 	
