@@ -3,10 +3,9 @@
 
 #include "collector.h"
 
-// Connexion DB
-int db_connect(const char *conn_string);
+// Version simplifiée (sans PostgreSQL pour l'instant)
+int init_storage(void);
 int save_metrics_to_db(const MetricsData *metrics);
-void db_disconnect(void);
+void cleanup_storage(void);
 
 #endif // STORAGE_H
-
