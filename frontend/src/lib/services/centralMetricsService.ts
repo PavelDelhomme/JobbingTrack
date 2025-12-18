@@ -18,9 +18,12 @@ class CentralMetricsService {
   private prometheusUrl: string
   private token: string | null = null
   private customization: UserCustomization | null = null
+  // ✅ OPTIMISATION : Cache réduit pour économiser la mémoire
+  // Le cache est maintenant limité en taille et durée
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0
-  private cacheDuration: number = 10000 // 10 secondes pour données temps réel
+  private cacheDuration: number = 5000 // 5 secondes (réduit de 10s à 5s)
+  private maxCacheSize: number = 50 // Limite en MB (environ)
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
 
@@ -52,16 +55,41 @@ class CentralMetricsService {
 
   // Gestion du cache pour éviter les requêtes multiples
   private getCachedMetrics(): MetricsData | null {
-    // ✅ OPTIMISATION : Réactiver le cache pour éviter les requêtes trop fréquentes
-    // Le cache réduit les changements erratiques de statut
+    // ✅ OPTIMISATION : Cache avec vérification de taille mémoire
     const now = Date.now()
     if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration) {
+      // Vérifier la taille approximative du cache (JSON stringifié)
+      try {
+        const size = JSON.stringify(this.metricsCache).length / 1024 / 1024 // MB
+        if (size > this.maxCacheSize) {
+          // Cache trop volumineux, le vider
+          console.warn('[CENTRAL METRICS] ⚠️ Cache trop volumineux, vidage automatique', size.toFixed(2) + 'MB')
+          this.clearCache()
+          return null
+        }
+      } catch (e) {
+        // Erreur de sérialisation, vider le cache
+        this.clearCache()
+        return null
+      }
       return this.metricsCache
     }
     return null
   }
 
   private setCachedMetrics(metrics: MetricsData): void {
+    // ✅ OPTIMISATION : Vérifier la taille avant de mettre en cache
+    try {
+      const size = JSON.stringify(metrics).length / 1024 / 1024 // MB
+      if (size > this.maxCacheSize) {
+        console.warn('[CENTRAL METRICS] ⚠️ Métriques trop volumineuses pour le cache', size.toFixed(2) + 'MB')
+        // Ne pas mettre en cache si trop volumineux
+        return
+      }
+    } catch (e) {
+      // Erreur de sérialisation, ne pas mettre en cache
+      return
+    }
     this.metricsCache = metrics
     this.cacheTimestamp = Date.now()
   }
