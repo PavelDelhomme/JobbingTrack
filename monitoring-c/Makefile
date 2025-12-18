@@ -9,11 +9,6 @@ BINDIR = bin
 
 SOURCES = $(wildcard $(SRCDIR)/*.c)
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
-
-# S'assurer que proc_reader.c est inclus
-ifneq ($(wildcard $(SRCDIR)/proc_reader.c),)
-	OBJECTS += $(OBJDIR)/proc_reader.o
-endif
 TARGET = $(BINDIR)/monitoring-c
 
 .PHONY: all clean install
@@ -21,8 +16,6 @@ TARGET = $(BINDIR)/monitoring-c
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) | $(BINDIR)
-	@echo "Linking: $@"
-	@echo "Objects: $(OBJECTS)"
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
