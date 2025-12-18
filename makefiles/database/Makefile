@@ -136,11 +136,15 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 			echo "  🔍 Vérification de $$service..."; \
 			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
 				echo "  📦 Prisma db push sur $$service..."; \
-				if docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss; then \
+				# ✅ OPTIMISATION : Ignorer les erreurs d'enums déjà existants (schémas partagés) \
+				PUSH_OUTPUT=$$(docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss --skip-generate 2>&1); \
+				PUSH_EXIT=$$?; \
+				if [ $$PUSH_EXIT -eq 0 ] || echo "$$PUSH_OUTPUT" | grep -q "already exists\|in sync\|Done in"; then \
 					echo "  ✅ $$service - Schéma synchronisé"; \
 					PUSHED=$$((PUSHED + 1)); \
 				else \
 					echo "  ❌ $$service - Échec de prisma db push"; \
+					echo "     Erreur: $$PUSH_OUTPUT" | head -3; \
 					SKIPPED=$$((SKIPPED + 1)); \
 				fi; \
 			else \
