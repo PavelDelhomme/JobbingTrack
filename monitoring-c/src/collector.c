@@ -98,9 +98,22 @@ int main(int argc, char *argv[]) {
     
     printf("🚀 Collecteur de métriques démarré (intervalle: %ds)\n", interval);
     
-    // Démarrer le serveur HTTP
+    // Démarrer le serveur HTTP AVANT de commencer la collecte
+    printf("🌐 Démarrage du serveur HTTP...\n");
     if (start_http_server() != 0) {
         fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP\n");
+    } else {
+        // Attendre que le serveur soit prêt
+        sleep(1);
+    }
+    
+    // Collecter une première fois pour avoir des données
+    printf("📊 Première collecte des métriques...\n");
+    if (collect_system_metrics() != 0) {
+        fprintf(stderr, "Erreur collecte système\n");
+    }
+    if (collect_container_metrics() != 0) {
+        fprintf(stderr, "Erreur collecte conteneurs\n");
     }
     
     // Boucle infinie de collecte
