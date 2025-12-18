@@ -17,15 +17,21 @@ help-backend: ## Afficher l'aide backend
 	@echo "================================================================"
 	@echo ""
 	@echo "📊 MONITORING (Stack):"
-	@echo "  make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki) - ANCIEN"
-	@echo "  make monitoring-c-up            - Démarrer nouveau système monitoring en C (ultra-léger)"
-	@echo "  make monitoring-c-down          - Arrêter nouveau système monitoring en C"
-	@echo "  make up-monitoring              - Alias pour monitoring-c-up"
-	@echo "  make monitoring-down            - Arrêter monitoring"
-	@echo "  make monitoring-restart         - Redémarrer monitoring"
-	@echo "  make monitoring-ps              - Status services monitoring"
-	@echo "  make monitoring-logs            - Logs tous services monitoring"
-	@echo "  make monitoring-logs-service SERVICE=prometheus - Logs service spécifique"
+	@echo "  ANCIEN SYSTÈME (Node.js):"
+	@echo "    make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki)"
+	@echo "    make monitoring-ancien-down     - Arrêter l'ancien système de monitoring complet"
+	@echo "    make monitoring-down            - Alias pour monitoring-ancien-down"
+	@echo "    make monitoring-restart         - Redémarrer monitoring ancien"
+	@echo "  NOUVEAU SYSTÈME (C - ultra-léger):"
+	@echo "    make monitoring-c-up            - Démarrer nouveau système monitoring en C"
+	@echo "    make monitoring-c-down          - Arrêter nouveau système monitoring en C"
+	@echo "    make monitoring-c-restart       - Redémarrer nouveau système monitoring en C"
+	@echo "    make monitoring-c-logs          - Voir les logs du nouveau monitoring"
+	@echo "    make up-monitoring              - Alias pour monitoring-c-up"
+	@echo "  GÉNÉRAL:"
+	@echo "    make monitoring-ps              - Status services monitoring"
+	@echo "    make monitoring-logs            - Logs tous services monitoring"
+	@echo "    make monitoring-logs-service SERVICE=prometheus - Logs service spécifique"
 	@echo ""
 	@echo "📈 MONITORING (Statistiques):"
 	@echo "  make monitoring-stats           - Lancer le script de monitoring complet"
@@ -77,24 +83,47 @@ monitoring-up: ## Démarrer stack monitoring (ancien système - Prometheus/Grafa
 
 monitoring-c-up: ## Démarrer nouveau système de monitoring en C (ultra-léger)
 	@echo "🚀 Démarrage nouveau système de monitoring en C..."
-	@docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d monitoring-c log-collector-c
+	@echo "📦 Compilation et démarrage des services..."
+	@if [ ! -f "docker-compose.monitoring.yml" ]; then \
+		echo "❌ Fichier docker-compose.monitoring.yml non trouvé"; \
+		exit 1; \
+	fi
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d --build monitoring-c log-collector-c)
 	@echo "✅ Monitoring en C démarré"
 	@echo ""
 	@echo "📊 Accès:"
 	@echo "  Monitoring C:   http://localhost:5014"
 	@echo "  Log Collector: http://localhost:5015"
+	@echo ""
+	@echo "💡 Pour voir les logs: make monitoring-c-logs"
 
 monitoring-c-down: ## Arrêter nouveau système de monitoring en C
 	@echo "🛑 Arrêt monitoring en C..."
-	@docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop monitoring-c log-collector-c
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop monitoring-c log-collector-c 2>/dev/null || true)
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c rm -f monitoring-c log-collector-c 2>/dev/null || true)
 	@echo "✅ Monitoring en C arrêté"
+
+monitoring-c-restart: ## Redémarrer nouveau système de monitoring en C
+	@echo "🔄 Redémarrage monitoring en C..."
+	@$(MAKE) monitoring-c-down
+	@sleep 2
+	@$(MAKE) monitoring-c-up
+	@echo "✅ Monitoring en C redémarré"
+
+monitoring-c-logs: ## Voir les logs du nouveau système de monitoring en C
+	@echo "📋 Logs monitoring en C..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c logs -f monitoring-c log-collector-c)
 
 up-monitoring: monitoring-c-up ## Alias - Démarrer monitoring en C
 
-monitoring-down: ## Arrêter stack monitoring
-	@echo "🛑 Arrêt stack monitoring..."
-	@cd monitoring && docker-compose -f docker-compose.monitoring.yml down
-	@echo "✅ Monitoring arrêté"
+monitoring-down: ## Arrêter stack monitoring (ancien système)
+	@echo "🛑 Arrêt stack monitoring (ancien système)..."
+	@cd monitoring && docker-compose -f docker-compose.monitoring.yml down 2>/dev/null || true
+	@echo "✅ Monitoring ancien arrêté"
+
+monitoring-ancien-down: monitoring-down ## Alias - Arrêter l'ancien système de monitoring complet
+	@echo ""
+	@echo "📊 Services arrêtés: Prometheus, Grafana, Loki, Promtail, Node Exporter"
 
 monitoring-restart: ## Redémarrer stack monitoring
 	@echo "🔄 Redémarrage monitoring..."
