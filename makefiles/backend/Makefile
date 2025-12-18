@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs up-monitoring
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring
 
 # ============================================================================
 # AIDE
@@ -113,6 +113,19 @@ monitoring-c-restart: ## Redémarrer nouveau système de monitoring en C
 monitoring-c-logs: ## Voir les logs du nouveau système de monitoring en C
 	@echo "📋 Logs monitoring en C..."
 	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c logs -f monitoring-c log-collector-c)
+
+monitoring-c-debug: ## Mode debug monitoring-c (interactif, build, logs)
+	@echo "🐛 Mode debug monitoring-c..."
+	@echo "📦 Build et démarrage interactif..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up --build monitoring-c log-collector-c)
+
+monitoring-c-shell: ## Accès shell dans monitoring-c
+	@echo "🐚 Accès shell monitoring-c..."
+	@docker exec -it jobbingtrack-monitoring-c sh || echo "⚠️  Container non démarré. Lancez: make monitoring-c-up"
+
+log-collector-c-shell: ## Accès shell dans log-collector-c
+	@echo "🐚 Accès shell log-collector-c..."
+	@docker exec -it jobbingtrack-log-collector-c sh || echo "⚠️  Container non démarré. Lancez: make monitoring-c-up"
 
 up-monitoring: monitoring-c-up ## Alias - Démarrer monitoring en C
 
