@@ -17,7 +17,10 @@ help-backend: ## Afficher l'aide backend
 	@echo "================================================================"
 	@echo ""
 	@echo "📊 MONITORING (Stack):"
-	@echo "  make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki)"
+	@echo "  make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki) - ANCIEN"
+	@echo "  make monitoring-c-up            - Démarrer nouveau système monitoring en C (ultra-léger)"
+	@echo "  make monitoring-c-down          - Arrêter nouveau système monitoring en C"
+	@echo "  make up-monitoring              - Alias pour monitoring-c-up"
 	@echo "  make monitoring-down            - Arrêter monitoring"
 	@echo "  make monitoring-restart         - Redémarrer monitoring"
 	@echo "  make monitoring-ps              - Status services monitoring"
@@ -56,8 +59,8 @@ help-backend: ## Afficher l'aide backend
 # MONITORING
 # ============================================================================
 
-monitoring-up: ## Démarrer stack monitoring
-	@echo "📊 Démarrage stack monitoring..."
+monitoring-up: ## Démarrer stack monitoring (ancien système - Prometheus/Grafana/Loki)
+	@echo "📊 Démarrage stack monitoring (ancien système)..."
 	@echo "🧹 Nettoyage des conteneurs conflictuels..."
 	@docker stop prometheus grafana loki promtail node-exporter 2>/dev/null || true
 	@docker rm prometheus grafana loki promtail node-exporter 2>/dev/null || true
@@ -71,6 +74,22 @@ monitoring-up: ## Démarrer stack monitoring
 	@echo "  Node Exporter:  http://localhost:9100"
 	@echo "  Loki:           http://localhost:3100"
 	@echo "  API Metrics:    http://localhost:8014"
+
+monitoring-c-up: ## Démarrer nouveau système de monitoring en C (ultra-léger)
+	@echo "🚀 Démarrage nouveau système de monitoring en C..."
+	@docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d monitoring-c log-collector-c
+	@echo "✅ Monitoring en C démarré"
+	@echo ""
+	@echo "📊 Accès:"
+	@echo "  Monitoring C:   http://localhost:5014"
+	@echo "  Log Collector: http://localhost:5015"
+
+monitoring-c-down: ## Arrêter nouveau système de monitoring en C
+	@echo "🛑 Arrêt monitoring en C..."
+	@docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop monitoring-c log-collector-c
+	@echo "✅ Monitoring en C arrêté"
+
+up-monitoring: monitoring-c-up ## Alias - Démarrer monitoring en C
 
 monitoring-down: ## Arrêter stack monitoring
 	@echo "🛑 Arrêt stack monitoring..."

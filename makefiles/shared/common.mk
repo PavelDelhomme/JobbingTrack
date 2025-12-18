@@ -227,7 +227,7 @@ COMPOSE_FILES := -f docker-compose.yml -f backend/docker-compose.yml -f frontend
 COMPOSE_FILES_ESSENTIAL := -f docker-compose.yml
 
 # Fichiers pour tous les services (sans backend/docker-compose.yml qui peut redéfinir les contextes)
-COMPOSE_FILES_FULL := -f docker-compose.yml
+COMPOSE_FILES_FULL := -f docker-compose.yml -f docker-compose.monitoring.yml
 
 # Afficher la commande Docker Compose détectée
 DOCKER_COMPOSE_INFO := $(shell echo "🐳 Commande Docker Compose: $(DOCKER_COMPOSE_CMD)")
