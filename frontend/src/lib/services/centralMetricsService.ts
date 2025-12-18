@@ -16,6 +16,7 @@ import { cacheManager } from '@/lib/cache/cacheManager'
 class CentralMetricsService {
   private apiUrl: string
   private prometheusUrl: string
+  private monitoringCUrl: string // ✅ NOUVEAU : URL du monitoring en C
   private token: string | null = null
   private customization: UserCustomization | null = null
   // ✅ OPTIMISATION : Cache réduit pour économiser la mémoire
@@ -30,6 +31,8 @@ class CentralMetricsService {
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
+    // ✅ NOUVEAU : Monitoring en C (port 5014) au lieu de l'ancien système
+    this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5014'
     this.updateToken()
   }
 
@@ -433,9 +436,33 @@ class CentralMetricsService {
   // Récupération des métriques depuis le service agrégateur
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      // ✅ NOUVEAU : Utiliser monitoring-c (port 5014) au lieu de l'ancien système
+      // Essayer d'abord monitoring-c, puis fallback vers l'ancien système
+      let metricsUrl = this.monitoringCUrl
+      let endpoint = '/api/v1/metrics' // Endpoint monitoring-c
+      
+      try {
+        // Tenter monitoring-c d'abord
+        const response = await fetch(`${metricsUrl}${endpoint}`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000) // 5s timeout pour monitoring-c
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('[CENTRAL METRICS] ✅ Métriques depuis monitoring-c (nouveau système)')
+          return this.formatMetricsFromMonitoringC(data)
+        }
+      } catch (error: any) {
+        // Fallback vers l'ancien système si monitoring-c n'est pas disponible
+        console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
+        metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+        endpoint = '/api/v1/docker/jobbingtrack/aggregated'
+      }
 
-      const response = await fetch(`${metricsUrl}/api/v1/docker/jobbingtrack/aggregated`, {
+      const response = await fetch(`${metricsUrl}${endpoint}`, {
         headers: {
           'Accept': 'application/json',
         },
