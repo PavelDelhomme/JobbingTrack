@@ -11,7 +11,6 @@
 #include <sys/statvfs.h>
 #include <sys/sysinfo.h>
 #include "collector.h"
-#include "docker.h"
 #include "proc_reader.h"
 #include "storage.h"
 #include <stdio.h>
