@@ -31,8 +31,8 @@ class CentralMetricsService {
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
-    // ✅ NOUVEAU : Monitoring en C (port 5014) au lieu de l'ancien système
-    this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5014'
+    // ✅ NOUVEAU : Monitoring en C (port 5098) au lieu de l'ancien système
+    this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
     this.updateToken()
   }
 
