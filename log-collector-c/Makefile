@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -std=c11 -pthread
+CFLAGS = -Wall -Wextra -O2 -std=c11 -pthread -D_GNU_SOURCE
 LDFLAGS = -lpq -lm -pthread
 
 SRCDIR = src

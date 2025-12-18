@@ -70,7 +70,7 @@ int collect_system_metrics(void) {
  * Collecte des métriques des conteneurs Docker (simplifié)
  */
 int collect_container_metrics(void) {
-    // Compter les conteneurs Docker actifs
+    // Compter les conteneurs Docker actifs via popen
     FILE *fp = popen("docker ps -q 2>/dev/null | wc -l", "r");
     if (fp) {
         int count = 0;
