@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import AdminLayout from '@/components/features/AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Mail, 
   Send, 
@@ -19,7 +20,7 @@ import {
   RefreshCw,
   AlertCircle,
   TestTube
-} from 'lucide-react'
+} from '@/lib/icons'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'

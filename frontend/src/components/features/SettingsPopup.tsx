@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '@/lib/hooks/theme'
 import { useAuth } from '@/lib/hooks/auth'
 import preferencesService, { type UserPreferences } from '@/lib/services/preferencesService'
-import { RefreshCw, Save, Check, Clock, Loader2, Download, Upload, Server, Cpu, HardDrive, MemoryStick } from 'lucide-react'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { RefreshCw, Save, Check, Clock, Loader2, Download, Upload, Server, Cpu, HardDrive, MemoryStick } from '@/lib/icons'
 
 interface SettingsPopupProps {
   isOpen: boolean

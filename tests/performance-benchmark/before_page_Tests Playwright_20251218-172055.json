@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Tests Playwright",
+  "url": "http://localhost:5003/backoffice/playwright-tests",
+  "time_total": 0.187251,
+  "time_min": 0.157890,
+  "time_max": 0.242588,
+  "time_median": 0.161274,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.242588,0.161274,0.157890],
+  "date": "2025-12-18T17:21:40+01:00"
+}

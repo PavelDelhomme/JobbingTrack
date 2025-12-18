@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
 import { cacheManager } from '@/lib/cache/cacheManager'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Settings, 
   BarChart3, 
@@ -29,7 +30,7 @@ import {
   Shield,
   Zap,
   FileBarChart
-} from 'lucide-react'
+} from '@/lib/icons'
 import {
   LineChart,
   Line,
@@ -226,18 +227,29 @@ export default function StatisticsPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
+  // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT pour les onglets qui en ont besoin
+  // Les onglets qui nécessitent l'historique : overview, security
+  const needsHistory = ['overview', 'security'].includes(activeTab);
+  const needsServiceHistory = activeTab === 'logs';
+  
   useEffect(() => {
     if (isAuthenticated) {
       fetchStatistics()
-      fetchMetricsHistory()
+      // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire
+      if (needsHistory) {
+        fetchMetricsHistory()
+      }
       // Actualiser toutes les 30 secondes (sans recharger l'historique)
       const interval = setInterval(() => {
         fetchStatistics(true) // skipHistorical = true lors des actualisations
-        fetchMetricsHistory()
+        // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire
+        if (needsHistory) {
+          fetchMetricsHistory()
+        }
       }, 30000)
       return () => clearInterval(interval)
     }
-  }, [isAuthenticated, customization.timeRange])
+  }, [isAuthenticated, customization.timeRange, needsHistory]) // ✅ Ajouter needsHistory comme dépendance
 
   // Sauvegarder les paramètres de personnalisation
   useEffect(() => {

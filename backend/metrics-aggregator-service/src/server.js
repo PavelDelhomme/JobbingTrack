@@ -7,6 +7,11 @@ const morgan = require('morgan')
 const cron = require('node-cron')
 const si = require('systeminformation')
 const axios = require('axios')
+const Docker = require('dockerode')
+
+// ✅ OPTIMISATION: Pool de connexions Docker réutilisable
+// Créer une instance Docker unique réutilisable au lieu de créer de nouvelles instances
+const docker = new Docker({ socketPath: '/var/run/docker.sock' })
 
 const app = express()
 const server = http.createServer(app)
@@ -289,18 +294,59 @@ async function collectSystemMetrics() {
   }
 }
 
-// ✅ Fonction pour récupérer les statistiques réseau d'un conteneur
+// ✅ OPTIMISATION: Fonction helper pour lire une ligne spécifique d'un fichier /proc avec streaming
+async function readProcFileLine(filePath, searchPattern) {
+  const readline = require('readline')
+  const fs = require('fs')
+  
+  return new Promise((resolve, reject) => {
+    const fileStream = fs.createReadStream(filePath)
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    })
+    
+    rl.on('line', (line) => {
+      if (line.match(searchPattern)) {
+        rl.close()
+        fileStream.close()
+        resolve(line)
+      }
+    })
+    
+    rl.on('close', () => {
+      resolve(null) // Ligne non trouvée
+    })
+    
+    rl.on('error', (error) => {
+      reject(error)
+    })
+  })
+}
+
+// ✅ OPTIMISATION: Fonction pour récupérer les statistiques réseau d'un conteneur avec streaming
 async function getContainerNetworkStats(pid) {
   try {
-    const fs = require('fs').promises
+    const fs = require('fs')
+    const readline = require('readline')
     const netDevPath = `/host/proc/${pid}/net/dev`
-    const netDevData = await fs.readFile(netDevPath, 'utf8')
     
     let totalRx = 0
     let totalTx = 0
+    let lineCount = 0
     
-    const lines = netDevData.split('\n').slice(2) // Skip header lines
-    for (const line of lines) {
+    // ✅ OPTIMISATION: Utiliser streaming au lieu de lire tout le fichier
+    const fileStream = fs.createReadStream(netDevPath, { encoding: 'utf8' })
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    })
+    
+    for await (const line of rl) {
+      lineCount++
+      // Skip les 2 premières lignes (header)
+      if (lineCount <= 2) continue
+      
       if (!line.trim()) continue
       
       const parts = line.trim().split(/\s+/)
@@ -334,15 +380,16 @@ async function collectContainerMetrics() {
   const containerMetrics = {}
   
   try {
-    const Docker = require('dockerode')
-    const docker = new Docker({ socketPath: '/var/run/docker.sock' })
+    // ✅ OPTIMISATION: Utiliser l'instance Docker réutilisable au lieu d'en créer une nouvelle
     const fs = require('fs').promises
     
     // Lister tous les conteneurs
     const containers = await docker.listContainers({ all: false })
     console.log(`[PROC] ${containers.length} conteneurs en cours d'exécution`)
     
-    for (const containerInfo of containers) {
+    // ✅ OPTIMISATION: Collecte parallèle avec limite de concurrence (max 5 conteneurs à la fois)
+    const MAX_CONCURRENT = 5
+    const collectContainerMetric = async (containerInfo) => {
       const containerId = containerInfo.Id.substring(0, 12)
       const containerName = containerInfo.Names[0].replace(/^\//, '')
       
@@ -354,7 +401,7 @@ async function collectContainerMetrics() {
         
         if (!pid || pid === 0) {
           console.log(`[PROC] ${containerName}: PID non disponible (conteneur arrêté?)`)
-          continue
+          return null
         }
         
         // ✅ Récupérer les stats Docker pour le CPU
@@ -372,18 +419,49 @@ async function collectContainerMetrics() {
           }
         }
         
-        // Lire /host/proc/[pid]/status pour mémoire (mount depuis l'hôte en read-only)
+        // ✅ OPTIMISATION: Lire /host/proc/[pid]/status avec streaming pour extraire uniquement les lignes nécessaires
         const statusPath = `/host/proc/${pid}/status`
-        const statusData = await fs.readFile(statusPath, 'utf8')
+        const readline = require('readline')
+        const fsSync = require('fs')
         
-        // Extraire VmRSS (Resident Set Size = mémoire physique utilisée)
-        const vmrssMatch = statusData.match(/VmRSS:\s+(\d+)\s+kB/)
-        const memoryKB = vmrssMatch ? parseInt(vmrssMatch[1]) : 0
+        let memoryKB = 0
+        let vmsizeKB = 0
+        
+        // ✅ OPTIMISATION: Utiliser streaming pour lire uniquement les lignes VmRSS et VmSize
+        const fileStream = fsSync.createReadStream(statusPath, { encoding: 'utf8' })
+        const rl = readline.createInterface({
+          input: fileStream,
+          crlfDelay: Infinity
+        })
+        
+        for await (const line of rl) {
+          // Extraire VmRSS (Resident Set Size = mémoire physique utilisée)
+          const vmrssMatch = line.match(/^VmRSS:\s+(\d+)\s+kB/)
+          if (vmrssMatch) {
+            memoryKB = parseInt(vmrssMatch[1])
+            // Si on a trouvé les deux, on peut arrêter la lecture
+            if (vmsizeKB > 0) {
+              rl.close()
+              fileStream.close()
+              break
+            }
+            continue
+          }
+          
+          // Extraire VmSize (taille virtuelle totale)
+          const vmsizeMatch = line.match(/^VmSize:\s+(\d+)\s+kB/)
+          if (vmsizeMatch) {
+            vmsizeKB = parseInt(vmsizeMatch[1])
+            // Si on a trouvé les deux, on peut arrêter la lecture
+            if (memoryKB > 0) {
+              rl.close()
+              fileStream.close()
+              break
+            }
+          }
+        }
+        
         const memoryMB = Math.round(memoryKB / 1024)
-        
-        // Extraire VmSize (taille virtuelle totale)
-        const vmsizeMatch = statusData.match(/VmSize:\s+(\d+)\s+kB/)
-        const vmsizeKB = vmsizeMatch ? parseInt(vmsizeMatch[1]) : 0
         const vmsizeMB = Math.round(vmsizeKB / 1024)
         
         // Obtenir les limites de mémoire du conteneur depuis Docker
@@ -396,7 +474,7 @@ async function collectContainerMetrics() {
         // ✅ Récupérer les statistiques réseau
         const networkStats = await getContainerNetworkStats(pid)
         
-        containerMetrics[containerName] = {
+        const metrics = {
           cpu: {
             usage: Math.round(cpuPercent * 10) / 10,
             percentage: Math.round(cpuPercent * 10) / 10,
@@ -414,10 +492,26 @@ async function collectContainerMetrics() {
         
         console.log(`[PROC] ${containerName}: CPU ${cpuPercent.toFixed(1)}%, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
         
+        return { containerName, metrics }
+        
       } catch (err) {
         console.error(`[PROC] Erreur pour ${containerName}:`, err.message)
+        return null
       }
     }
+    
+    // ✅ OPTIMISATION: Collecte parallèle avec limite de concurrence
+    const results = []
+    for (let i = 0; i < containers.length; i += MAX_CONCURRENT) {
+      const batch = containers.slice(i, i + MAX_CONCURRENT)
+      const batchResults = await Promise.all(batch.map(collectContainerMetric))
+      results.push(...batchResults.filter(r => r !== null))
+    }
+    
+    // Construire l'objet containerMetrics
+    results.forEach(({ containerName, metrics }) => {
+      containerMetrics[containerName] = metrics
+    })
     
     console.log(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés`)
     return containerMetrics
@@ -480,7 +574,7 @@ async function collectAllMetrics() {
       }
     })
 
-    // Calculer les métriques agrégées pour les conteneurs JobbingTrack uniquement
+    // ✅ OPTIMISATION : Calculer les métriques agrégées pour les conteneurs JobbingTrack avec moyennes
     const jobbingtrackContainers = Object.entries(containerMetrics)
       .filter(([name]) => name.toLowerCase().includes('jobbingtrack'))
     
@@ -488,17 +582,27 @@ async function collectAllMetrics() {
     let totalMemoryUsed = 0
     let totalMemoryLimit = 0
     let containerCount = 0
+    const cpuValues: number[] = []
+    const memoryValues: number[] = []
 
     jobbingtrackContainers.forEach(([name, metrics]) => {
       if (metrics.cpu?.percentage) {
         totalCpuPercent += metrics.cpu.percentage
+        cpuValues.push(metrics.cpu.percentage)
         containerCount++
       }
       if (metrics.memory?.usage && metrics.memory?.limit) {
         totalMemoryUsed += metrics.memory.usage
         totalMemoryLimit += metrics.memory.limit
+        memoryValues.push(metrics.memory.usage)
       }
     })
+    
+    // ✅ Calculer les moyennes pour plus de précision
+    const avgCpuPercent = cpuValues.length > 0 ? totalCpuPercent / cpuValues.length : 0
+    const avgMemoryUsed = memoryValues.length > 0 ? totalMemoryUsed / memoryValues.length : 0
+    const maxCpuPercent = cpuValues.length > 0 ? Math.max(...cpuValues) : 0
+    const maxMemoryUsed = memoryValues.length > 0 ? Math.max(...memoryValues) : 0
 
     // ✅ Calculer les statistiques réseau agrégées
     let totalNetworkRx = 0;
@@ -547,13 +651,18 @@ async function collectAllMetrics() {
         containers: {
           count: jobbingtrackContainers.length,
           cpu: {
-            averagePercent: containerCount > 0 ? Math.round(totalCpuPercent / containerCount) : 0,
-            totalPercent: Math.round(totalCpuPercent)
+            averagePercent: containerCount > 0 ? Math.round(avgCpuPercent * 10) / 10 : 0,
+            totalPercent: Math.round(totalCpuPercent * 10) / 10,
+            maxPercent: Math.round(maxCpuPercent * 10) / 10,
+            minPercent: cpuValues.length > 0 ? Math.round(Math.min(...cpuValues) * 10) / 10 : 0
           },
           memory: {
             used: Math.round(totalMemoryUsed),
             limit: Math.round(totalMemoryLimit),
-            percent: totalMemoryLimit > 0 ? Math.round((totalMemoryUsed / totalMemoryLimit) * 100) : 0
+            percent: totalMemoryLimit > 0 ? Math.round((totalMemoryUsed / totalMemoryLimit) * 100) : 0,
+            averageUsed: Math.round(avgMemoryUsed),
+            maxUsed: Math.round(maxMemoryUsed),
+            minUsed: memoryValues.length > 0 ? Math.round(Math.min(...memoryValues)) : 0
           },
           network: {
             total_rx: jobbingtrackNetworkRx,
@@ -561,7 +670,9 @@ async function collectAllMetrics() {
             total_rx_mb: Math.round(jobbingtrackNetworkRx / 1024 / 1024 * 100) / 100,
             total_tx_mb: Math.round(jobbingtrackNetworkTx / 1024 / 1024 * 100) / 100,
             total_mb: Math.round((jobbingtrackNetworkRx + jobbingtrackNetworkTx) / 1024 / 1024 * 100) / 100
-          }
+          },
+          // ✅ Ajouter les métriques de disque Docker
+          disk: systemMetrics.disk || []
         }
       }
     }

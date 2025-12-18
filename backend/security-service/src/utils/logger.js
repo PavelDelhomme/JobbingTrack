@@ -27,71 +27,13 @@ const colors = {
 winston.addColors(colors);
 
 // Importer le filtre partagé
-let filterP2021Errors, filterP2021InPrintf;
-try {
-  const sharedFilter = require('../../../shared/logger-filter');
-  filterP2021Errors = sharedFilter.filterP2021Errors;
-  filterP2021InPrintf = sharedFilter.filterP2021InPrintf;
-} catch (e) {
-  // Fallback si le filtre partagé n'est pas disponible
-  filterP2021Errors = winston.format((info) => {
-  // En développement, ignorer TOUTES les erreurs P2021 (table non trouvée)
-  if (process.env.NODE_ENV === 'development') {
-    // Vérifier dans le message
-    if (info.message && typeof info.message === 'string') {
-      const message = info.message.toLowerCase();
-      if (message.includes('p2021') || 
-          message.includes('does not exist') ||
-          message.includes('security_metrics') ||
-          message.includes('table') && message.includes('not exist') ||
-          message.includes('table') && message.includes('does not exist') ||
-          message.includes('invalid') && message.includes('invocation')) {
-        return false; // Ne pas logger
-      }
-    }
-    
-    // Vérifier dans les métadonnées
-    if (info.meta) {
-      if (info.meta.code === 'P2021' || 
-          (info.meta.table && (info.meta.table.includes('security_metrics') || info.meta.table.includes('User') || info.meta.table.includes('Company') || info.meta.table.includes('Application'))) ||
-          (typeof info.meta === 'string' && info.meta.includes('does not exist'))) {
-        return false; // Ne pas logger
-      }
-    }
-    
-    // Vérifier dans l'erreur
-    if (info.error) {
-      if (info.error.code === 'P2021' || 
-          (info.error.message && info.error.message.includes('does not exist')) ||
-          (info.error.meta && info.error.meta.code === 'P2021')) {
-        return false; // Ne pas logger
-      }
-    }
-    
-    // Vérifier le code directement
-    if (info.code === 'P2021') {
-      return false; // Ne pas logger
-    }
-    
-    // Vérifier dans la stack trace
-    if (info.stack && typeof info.stack === 'string') {
-      const stack = info.stack.toLowerCase();
-      if (stack.includes('p2021') || 
-          stack.includes('does not exist') ||
-          stack.includes('security_metrics') ||
-          stack.includes('prismaclientknownrequesterror')) {
-        return false; // Ne pas logger
-      }
-    }
-  }
-  return info;
-});
+const { filterP2021Errors, filterP2021InPrintf } = require('./logger-filter');
 
 const logger = winston.createLogger({
   levels,
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
-    filterP2021Errors(),
+    filterP2021Errors(), // Filtrer les erreurs P2021
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss'
     }),
@@ -136,6 +78,7 @@ if (process.env.NODE_ENV !== 'production') {
       filterP2021Errors(), // Filtrer aussi dans la console
       winston.format.colorize(),
       winston.format.simple(),
+      filterP2021InPrintf, // Filtrer dans printf
       winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
         // Filtrer les erreurs P2021 dans le printf aussi
         if (process.env.NODE_ENV === 'development') {

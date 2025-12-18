@@ -1,0 +1,11 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-163241",
+  "page": "Analyse Sécurité",
+  "url": "http://localhost:5003/backoffice/security/analysis",
+  "time_total": 0.167541,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "date": "2025-12-18T16:32:46+01:00"
+}

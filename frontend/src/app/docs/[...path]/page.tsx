@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, ExternalLink } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { ArrowLeft, Download, ExternalLink } from '@/lib/icons';
 import Link from 'next/link';
 // Import dynamique pour éviter les erreurs si les dépendances ne sont pas installées
 let ReactMarkdown: any;

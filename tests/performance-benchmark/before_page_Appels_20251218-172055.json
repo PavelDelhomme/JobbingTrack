@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Appels",
+  "url": "http://localhost:5003/backoffice/calls",
+  "time_total": 0.373448,
+  "time_min": 0.170506,
+  "time_max": 0.716976,
+  "time_median": 0.232862,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.170506,0.716976,0.232862],
+  "date": "2025-12-18T17:21:12+01:00"
+}

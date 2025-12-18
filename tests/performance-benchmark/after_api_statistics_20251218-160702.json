@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-160702",
+  "endpoint": "statistics",
+  "url": "http://localhost:5002/api/v1/statistics",
+  "time_total": 0.012087,
+  "http_code": 200,
+  "size_bytes": 616,
+  "size_kb": 0,
+  "date": "2025-12-18T16:07:03+01:00"
+}

@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Entreprises",
+  "url": "http://localhost:5003/backoffice/companies",
+  "time_total": 0.179527,
+  "time_min": 0.157396,
+  "time_max": 0.205758,
+  "time_median": 0.175427,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.205758,0.157396,0.175427],
+  "date": "2025-12-18T17:21:05+01:00"
+}

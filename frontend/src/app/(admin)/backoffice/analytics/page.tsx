@@ -9,6 +9,7 @@ import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
 import { VirtualizedList } from './components/VirtualizedList';
 import { useAuth } from '@/lib/hooks/auth';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import {
   AlertTriangle,
   BarChart3,
@@ -29,7 +30,7 @@ import {
   FileDown,
   Trash2,
   CheckCircle
-} from 'lucide-react';
+} from '@/lib/icons';
 import {
   LineChart,
   Line,
@@ -311,16 +312,27 @@ export default function AnalyticsPage() {
     }
   }, [initialLoadDone]);
 
+  // ✅ OPTIMISATION : Déterminer quelles données charger selon l'onglet actif
+  const needsServices = ['services', 'performance', 'network', 'report'].includes(activeTab);
+  
   useEffect(() => {
     let mounted = true;
 
     const initializeMetrics = async () => {
-      // 1. Charger les données fraîches
+      // 1. Charger les données fraîches (uniquement les données essentielles au démarrage)
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
           setMetrics((prev: any) => {
-            if (!prev) return data;
+            if (!prev) {
+              // ✅ OPTIMISATION : Ne pas inclure services/servicesList si pas nécessaire
+              const result = { ...data };
+              if (!needsServices) {
+                delete result.services;
+                delete result.servicesList;
+              }
+              return result;
+            }
             
             // Ne mettre à jour que si on a de nouvelles données valides
             return {
@@ -332,8 +344,9 @@ export default function AnalyticsPage() {
               responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
               errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
               health: data.health ? { ...prev.health, ...data.health } : prev.health,
-              services: data.services ? { ...prev.services, ...data.services } : prev.services,
-              servicesList: data.servicesList ? data.servicesList : prev.servicesList
+              // ✅ OPTIMISATION : Ne mettre à jour services/servicesList que si nécessaire
+              services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
+              servicesList: needsServices && data.servicesList ? data.servicesList : prev.servicesList
             };
           });
         }
@@ -354,7 +367,15 @@ export default function AnalyticsPage() {
         if (mounted && data) {
           // Mise à jour progressive sans réinitialiser l'état (les graphiques restent ouverts)
           setMetrics((prev: any) => {
-            if (!prev) return data;
+            if (!prev) {
+              // ✅ OPTIMISATION : Ne pas inclure services/servicesList si pas nécessaire
+              const result = { ...data };
+              if (!needsServices) {
+                delete result.services;
+                delete result.servicesList;
+              }
+              return result;
+            }
             
             return {
               ...prev,
@@ -365,8 +386,9 @@ export default function AnalyticsPage() {
               responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
               errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
               health: data.health ? { ...prev.health, ...data.health } : prev.health,
-              services: data.services ? { ...prev.services, ...data.services } : prev.services,
-              servicesList: data.servicesList ? data.servicesList : prev.servicesList
+              // ✅ OPTIMISATION : Ne mettre à jour services/servicesList que si nécessaire
+              services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
+              servicesList: needsServices && data.servicesList ? data.servicesList : prev.servicesList
             };
           });
         }
@@ -381,10 +403,52 @@ export default function AnalyticsPage() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [analyticsRefreshInterval]);
-
-  // Charger l'historique des métriques (chargement initial complet, puis incrémental)
+  }, [analyticsRefreshInterval, needsServices]); // ✅ Ajouter needsServices comme dépendance
+  
+  // ✅ OPTIMISATION : Charger les services UNIQUEMENT si l'onglet qui en a besoin est actif
   useEffect(() => {
+    if (!needsServices || !metrics) return;
+    
+    let mounted = true;
+    
+    const loadServices = async () => {
+      try {
+        const allServices = await centralMetricsService.getAllServices();
+        if (mounted && allServices && allServices.length > 0) {
+          setMetrics((prev: any) => ({
+            ...prev,
+            servicesList: allServices,
+            services: allServices.reduce((acc: any, service: any) => {
+              acc[service.name || service.id] = service;
+              return acc;
+            }, {})
+          }));
+        }
+      } catch (error) {
+        console.error('[ANALYTICS] ⚠️ Erreur chargement services:', error);
+      }
+    };
+    
+    // Charger les services si pas déjà chargés
+    if (!metrics.servicesList || metrics.servicesList.length === 0) {
+      loadServices();
+    }
+    
+    return () => {
+      mounted = false;
+    };
+  }, [needsServices, activeTab]); // Charger quand l'onglet change
+
+  // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT pour les onglets qui en ont besoin
+  // Les onglets qui nécessitent l'historique : overview, system, performance, network, report
+  const needsHistory = ['overview', 'system', 'performance', 'network', 'report'].includes(activeTab);
+  
+  useEffect(() => {
+    // Ne charger l'historique que si nécessaire
+    if (!needsHistory) {
+      return;
+    }
+    
     let mounted = true;
 
     const loadHistory = async (isInitialLoad: boolean = false) => {
@@ -503,7 +567,7 @@ export default function AnalyticsPage() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp]); // ✅ CORRECTION : Utiliser metricsRefreshInterval au lieu de unifiedRefreshInterval
+  }, [timeRange, metricsRefreshInterval, initialHistoryLoaded, lastHistoryTimestamp, needsHistory]); // ✅ Ajouter needsHistory comme dépendance
 
   // Charger les logs agrégés (erreurs récentes) avec cache et gestion d'erreurs améliorée
   const loadAggregatedLogs = async () => {
@@ -596,8 +660,13 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Charger les logs agrégés au montage et périodiquement
+  // ✅ OPTIMISATION : Charger les logs agrégés UNIQUEMENT si l'onglet 'logs' est actif
   useEffect(() => {
+    // Ne charger que si l'onglet logs est actif
+    if (activeTab !== 'logs') {
+      return;
+    }
+    
     // Charger une première fois (gestion d'erreurs silencieuse)
     loadAggregatedLogs().catch(() => {
       // Ignorer silencieusement toutes les erreurs
@@ -611,7 +680,7 @@ export default function AnalyticsPage() {
     }, 10000); // Toutes les 10 secondes
     
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]); // ✅ Dépendre de activeTab pour charger uniquement quand nécessaire
 
   // Charger les logs d'un service
   const loadServiceLogs = async (service: ServiceMetrics) => {
@@ -1110,6 +1179,16 @@ export default function AnalyticsPage() {
             logsError={logsError}
             onSelectService={loadServiceLogs}
           />
+        )}
+        
+        {/* ✅ OPTIMISATION : Afficher un loader pour les onglets non chargés */}
+        {!needsHistory && activeTab !== 'services' && activeTab !== 'logs' && activeTab !== 'report' && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Chargement de l'onglet...</p>
+            </div>
+          </div>
         )}
 
         {activeTab === 'logs' && (
@@ -2642,6 +2721,29 @@ const ReportTab = memo(function ReportTab({
     };
   };
 
+  // Sauvegarder le rapport dans les rapports de tests
+  const saveReport = async () => {
+    try {
+      const data = prepareExportData();
+      
+      const response = await fetch('/api/analytics/save-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportData: data })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        alert(`✅ Rapport analytics sauvegardé ! Accessible dans "Rapports de Tests"`)
+      } else {
+        alert(`❌ Erreur: ${result.error}`)
+      }
+    } catch (error: any) {
+      console.error('Erreur sauvegarde rapport analytics:', error)
+      alert('Erreur lors de la sauvegarde du rapport')
+    }
+  }
+
   // Export JSON
   const exportJSON = () => {
     setIsExporting(true);
@@ -2893,6 +2995,14 @@ const ReportTab = memo(function ReportTab({
             >
               <Camera className="h-4 w-4" />
               Prendre un Snapshot
+            </button>
+            <button
+              onClick={saveReport}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+              title="Sauvegarder le rapport dans 'Rapports de Tests'"
+            >
+              <FileDown className="h-4 w-4" />
+              Sauvegarder Rapport
             </button>
             <div className="relative">
               <button

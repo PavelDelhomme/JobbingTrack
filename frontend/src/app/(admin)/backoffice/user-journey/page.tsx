@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/lib/hooks/auth';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Users, 
   UserPlus, 
@@ -28,7 +29,7 @@ import {
   Shield,
   Mail,
   FileDown
-} from 'lucide-react';
+} from '@/lib/icons';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
 
@@ -563,30 +564,38 @@ export default function UserJourneyPage() {
     }
   }, []);
 
-  // Sauvegarder l'état dans localStorage à chaque changement
+  // ✅ OPTIMISATION : Sauvegarder l'état dans localStorage avec debounce pour éviter trop d'écritures
   useEffect(() => {
-    try {
-      const stateToSave = {
-        selectedScenario,
-        steps,
-        analytics,
-        savedAt: new Date().toISOString()
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'état:', error);
-    }
+    const timeoutId = setTimeout(() => {
+      try {
+        const stateToSave = {
+          selectedScenario,
+          steps,
+          analytics,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de l\'état:', error);
+      }
+    }, 500); // Debounce de 500ms
+    
+    return () => clearTimeout(timeoutId);
   }, [selectedScenario, steps, analytics]);
+
+  // ✅ OPTIMISATION : useMemo pour calculer les étapes initiales
+  const initialSteps = useMemo(() => {
+    const scenario = SCENARIOS[selectedScenario];
+    return scenario.steps.map(stepId => ({
+      ...STEP_DEFINITIONS[stepId],
+      status: 'pending' as const
+    }));
+  }, [selectedScenario]);
 
   // Initialiser les étapes selon le scénario
   useEffect(() => {
     // Ne réinitialiser que si les steps sont vides ou si le scénario a changé manuellement
-    const scenario = SCENARIOS[selectedScenario];
     if (steps.length === 0 || !isRunning) {
-      const initialSteps = scenario.steps.map(stepId => ({
-        ...STEP_DEFINITIONS[stepId],
-        status: 'pending' as const
-      }));
       setSteps(initialSteps);
       setCurrentStepIndex(-1);
       
@@ -601,10 +610,10 @@ export default function UserJourneyPage() {
         });
       }
     }
-  }, [selectedScenario]);
+  }, [selectedScenario, initialSteps, steps.length, isRunning]);
 
-  // Fonction helper pour gérer les réponses fetch
-  const handleFetchResponse = async (response: Response) => {
+  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  const handleFetchResponse = useCallback(async (response: Response) => {
     const contentType = response.headers.get('content-type');
     
     if (!contentType || !contentType.includes('application/json')) {
@@ -619,8 +628,9 @@ export default function UserJourneyPage() {
     }
     
     return data;
-  };
+  }, []);
 
+  // ✅ OPTIMISATION : Fonction extractList (pas de useCallback car générique TypeScript)
   const extractList = <T,>(payload: any, primaryKey?: string): T[] => {
     if (Array.isArray(payload)) {
       return payload as T[];
@@ -1605,6 +1615,51 @@ export default function UserJourneyPage() {
     });
   };
 
+  // Sauvegarder le rapport dans les rapports de tests
+  const saveReport = async () => {
+    if (!journeyResults || journeyResults.length === 0) {
+      alert('Aucun résultat à sauvegarder')
+      return
+    }
+
+    try {
+      const reportData = {
+        journeyName: selectedScenario || 'custom',
+        timestamp: new Date().toISOString(),
+        summary: {
+          totalSteps: journeyResults.length,
+          successCount: journeyResults.filter(r => r.status === 'success').length,
+          errorCount: journeyResults.filter(r => r.status === 'error').length,
+          warningCount: journeyResults.filter(r => r.status === 'warning').length,
+          skippedCount: journeyResults.filter(r => r.status === 'skipped').length,
+          totalDuration: journeyResults.reduce((acc, r) => acc + (r.duration || 0), 0),
+          successRate: ((journeyResults.filter(r => r.status === 'success').length / journeyResults.length) * 100).toFixed(2) + '%'
+        },
+        results: journeyResults,
+        context: {
+          testToken: testToken,
+          scenario: selectedScenario
+        }
+      }
+
+      const response = await fetch('/api/user-journey/save-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportData, journeyName: selectedScenario || 'custom' })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        alert(`✅ Rapport sauvegardé ! Accessible dans "Rapports de Tests"`)
+      } else {
+        alert(`❌ Erreur: ${data.error}`)
+      }
+    } catch (error: any) {
+      console.error('Erreur sauvegarde rapport:', error)
+      alert('Erreur lors de la sauvegarde du rapport')
+    }
+  }
+
   // Exporter les résultats en JSON
   const exportResults = () => {
     const data = {
@@ -1914,6 +1969,16 @@ export default function UserJourneyPage() {
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             Réinitialiser
+          </Button>
+          <Button
+            onClick={saveReport}
+            variant="outline"
+            disabled={steps.every(s => s.status === 'pending') || !analytics.completedAt}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-700"
+            title="Sauvegarder le rapport dans 'Rapports de Tests'"
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            Sauvegarder Rapport
           </Button>
           <Button
             onClick={exportResults}

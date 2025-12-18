@@ -1,19 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AdminLayout } from '@/components/features';
-import { Shield, AlertTriangle, Lock, Eye, TrendingUp, Activity } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Shield, AlertTriangle, Lock, Eye, TrendingUp, Activity } from '@/lib/icons';
 import { analyticsService } from '@/lib/api/analytics.service';
 
 export default function SecurityAnalysisPage() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSecuritySummary();
-  }, []);
-
-  const loadSecuritySummary = async () => {
+  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  const loadSecuritySummary = useCallback(async () => {
     try {
       setLoading(true);
       const data = await analyticsService.getSecuritySummary(24);
@@ -23,7 +21,11 @@ export default function SecurityAnalysisPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSecuritySummary();
+  }, [loadSecuritySummary]);
 
   if (loading) {
     return (
@@ -35,8 +37,12 @@ export default function SecurityAnalysisPage() {
     );
   }
 
-  const securityScore = summary?.avgSecurityScore || 85;
-  const scoreColor = securityScore >= 80 ? 'green' : securityScore >= 60 ? 'orange' : 'red';
+  // ✅ OPTIMISATION : useMemo pour calculer le score et la couleur
+  const { securityScore, scoreColor } = useMemo(() => {
+    const score = summary?.avgSecurityScore || 85;
+    const color = score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red';
+    return { securityScore: score, scoreColor: color };
+  }, [summary?.avgSecurityScore]);
 
   return (
     <AdminLayout>

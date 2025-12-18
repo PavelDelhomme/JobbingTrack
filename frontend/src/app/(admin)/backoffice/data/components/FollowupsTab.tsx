@@ -22,8 +22,31 @@ export default function FollowupsTab() {
 
   const fetchFollowups = async () => {
     try {
-      const response = await followUpService.getAll()
-      setFollowups(response.data.followups || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_followups_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setFollowups(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        followUpService.getAll({ limit: 100 }).then(response => {
+          const followups = response.data.followups || []
+          cacheManager.set(cacheKey, followups, { ttl: 30000 })
+          setFollowups(followups)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 relances par défaut
+      const response = await followUpService.getAll({ limit: 100 })
+      const followups = response.data.followups || []
+      setFollowups(followups)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, followups, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement relances:', error)
     } finally {

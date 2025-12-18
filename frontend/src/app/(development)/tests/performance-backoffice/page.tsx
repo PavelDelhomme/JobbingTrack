@@ -101,7 +101,7 @@ import {
   Calendar,
   FileText,
   Zap as ZapIcon
-} from 'lucide-react';
+} from '@/lib/icons';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
 import { Button } from '@/components/ui';

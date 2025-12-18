@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Vue d'ensemble",
+  "url": "http://localhost:5003/backoffice",
+  "time_total": 0.327142,
+  "time_min": 0.153101,
+  "time_max": 0.533431,
+  "time_median": 0.294894,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.533431,0.294894,0.153101],
+  "date": "2025-12-18T17:20:58+01:00"
+}

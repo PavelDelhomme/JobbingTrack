@@ -12,38 +12,90 @@ const prisma = new PrismaClient();
 class MetricsCollector {
   constructor() {
     this.isCollecting = false;
+    // ✅ OPTIMISATION: Collecte différentielle selon le type de métrique
+    // Critique: 5s, Normal: 15s, Low: 60s
+    this.collectionIntervals = {
+      critical: parseInt(process.env.METRICS_COLLECTION_INTERVAL_CRITICAL || '5000'), // 5s pour métriques critiques
+      normal: parseInt(process.env.METRICS_COLLECTION_INTERVAL_NORMAL || '15000'), // 15s pour métriques normales
+      low: parseInt(process.env.METRICS_COLLECTION_INTERVAL_LOW || '60000') // 60s pour métriques non critiques
+    };
+    // Intervalle par défaut (rétrocompatibilité)
     this.collectionInterval = parseInt(process.env.METRICS_COLLECTION_INTERVAL || '300000'); // 5 min par défaut
+    this.lastCollectionTimes = {
+      critical: 0,
+      normal: 0,
+      low: 0
+    };
   }
 
   /**
-   * Démarrer la collecte périodique
+   * Démarrer la collecte périodique avec collecte différentielle
    */
   start() {
-    console.log(`🚀 Démarrage du collecteur de métriques (intervalle: ${this.collectionInterval / 1000}s)`);
+    console.log(`🚀 Démarrage du collecteur de métriques avec collecte différentielle:`);
+    console.log(`  • Critique: ${this.collectionIntervals.critical / 1000}s`);
+    console.log(`  • Normal: ${this.collectionIntervals.normal / 1000}s`);
+    console.log(`  • Low: ${this.collectionIntervals.low / 1000}s`);
     
     // Première collecte immédiate
     this.collect();
     
-    // Collecte périodique
-    this.intervalId = setInterval(() => {
-      this.collect();
-    }, this.collectionInterval);
+    // ✅ OPTIMISATION: Collecte différentielle selon le type de métrique
+    // Collecte critique (CPU, mémoire système) toutes les 5s
+    this.intervalIdCritical = setInterval(() => {
+      this.collect('critical');
+    }, this.collectionIntervals.critical);
+    
+    // Collecte normale (métriques conteneurs) toutes les 15s
+    this.intervalIdNormal = setInterval(() => {
+      this.collect('normal');
+    }, this.collectionIntervals.normal);
+    
+    // Collecte low (métriques non critiques) toutes les 60s
+    this.intervalIdLow = setInterval(() => {
+      this.collect('low');
+    }, this.collectionIntervals.low);
   }
 
   /**
    * Arrêter la collecte
    */
   stop() {
+    if (this.intervalIdCritical) {
+      clearInterval(this.intervalIdCritical);
+    }
+    if (this.intervalIdNormal) {
+      clearInterval(this.intervalIdNormal);
+    }
+    if (this.intervalIdLow) {
+      clearInterval(this.intervalIdLow);
+    }
     if (this.intervalId) {
       clearInterval(this.intervalId);
-      console.log('⏸️  Collecteur de métriques arrêté');
     }
+    console.log('⏸️  Collecteur de métriques arrêté');
   }
 
   /**
-   * Collecter toutes les métriques
+   * Collecter les métriques selon le type (critique, normal, low)
+   * @param {string} type - Type de collecte: 'critical', 'normal', 'low', ou undefined (toutes)
    */
-  async collect() {
+  async collect(type = undefined) {
+    const now = Date.now();
+    
+    // ✅ OPTIMISATION: Vérifier si on doit collecter selon le type et le dernier temps de collecte
+    if (type) {
+      const lastCollection = this.lastCollectionTimes[type];
+      const interval = this.collectionIntervals[type];
+      
+      // Si on a collecté récemment pour ce type, skip
+      if (now - lastCollection < interval * 0.8) {
+        return; // Skip si collecté il y a moins de 80% de l'intervalle
+      }
+      
+      this.lastCollectionTimes[type] = now;
+    }
+    
     if (this.isCollecting) {
       console.log('⚠️  Collecte déjà en cours, skip...');
       return;
@@ -53,13 +105,24 @@ class MetricsCollector {
     const timestamp = new Date();
     
     try {
-      console.log(`📊 Collecte des métriques à ${timestamp.toISOString()}`);
+      console.log(`📊 Collecte des métriques (${type || 'all'}) à ${timestamp.toISOString()}`);
       
-      // Collecter en parallèle
-      await Promise.all([
-        this.collectSystemMetrics(timestamp),
-        this.collectContainerMetrics(timestamp)
-      ]);
+      // ✅ OPTIMISATION: Collecte sélective selon le type
+      if (!type || type === 'critical') {
+        // Collecte critique: métriques système uniquement
+        await this.collectSystemMetrics(timestamp);
+      }
+      
+      if (!type || type === 'normal') {
+        // Collecte normale: métriques conteneurs
+        await this.collectContainerMetrics(timestamp);
+      }
+      
+      // Collecte low: pas de collecte automatique, seulement sur demande
+      if (type === 'low') {
+        // Métriques non critiques (logs, événements, etc.) - collectées moins fréquemment
+        console.log('  ℹ️  Collecte low: métriques non critiques (skip pour l\'instant)');
+      }
       
       console.log('✅ Collecte terminée avec succès');
     } catch (error) {
@@ -73,7 +136,8 @@ class MetricsCollector {
         title: 'Erreur de collecte des métriques',
         description: error.message,
         metadata: {
-          stack: error.stack
+          stack: error.stack,
+          collectionType: type
         }
       });
     } finally {
@@ -139,7 +203,8 @@ class MetricsCollector {
         return;
       }
 
-      // Collecter les métriques pour chaque conteneur
+      // ✅ OPTIMISATION: Collecter les métriques pour chaque conteneur en parallèle
+      const metricsData = [];
       const metricsPromises = containers.map(async (container) => {
         try {
           const stats = await dockerService.getContainerStats(container.name);
@@ -148,25 +213,24 @@ class MetricsCollector {
             return null;
           }
 
-          return prisma.containerMetricsSnapshot.create({
-            data: {
-              timestamp,
-              containerName: container.name,
-              containerId: container.id,
-              status: container.status,
-              cpuUsagePercent: stats.cpu_percent || null,
-              cpuUsageNano: stats.cpu_usage_nano ? BigInt(stats.cpu_usage_nano) : null,
-              memoryUsagePercent: stats.memory_percent || null,
-              memoryUsageBytes: stats.memory_usage_bytes ? BigInt(stats.memory_usage_bytes) : null,
-              memoryLimitBytes: stats.memory_limit_bytes ? BigInt(stats.memory_limit_bytes) : null,
-              networkRxBytes: stats.network_rx_bytes ? BigInt(stats.network_rx_bytes) : null,
-              networkTxBytes: stats.network_tx_bytes ? BigInt(stats.network_tx_bytes) : null,
-              blockReadBytes: stats.block_read_bytes ? BigInt(stats.block_read_bytes) : null,
-              blockWriteBytes: stats.block_write_bytes ? BigInt(stats.block_write_bytes) : null,
-              image: container.image || null,
-              labels: container.labels || null
-            }
-          });
+          // ✅ OPTIMISATION: Préparer les données pour batch insert au lieu de create individuel
+          return {
+            timestamp,
+            containerName: container.name,
+            containerId: container.id,
+            status: container.status,
+            cpuUsagePercent: stats.cpu_percent || null,
+            cpuUsageNano: stats.cpu_usage_nano ? BigInt(stats.cpu_usage_nano) : null,
+            memoryUsagePercent: stats.memory_percent || null,
+            memoryUsageBytes: stats.memory_usage_bytes ? BigInt(stats.memory_usage_bytes) : null,
+            memoryLimitBytes: stats.memory_limit_bytes ? BigInt(stats.memory_limit_bytes) : null,
+            networkRxBytes: stats.network_rx_bytes ? BigInt(stats.network_rx_bytes) : null,
+            networkTxBytes: stats.network_tx_bytes ? BigInt(stats.network_tx_bytes) : null,
+            blockReadBytes: stats.block_read_bytes ? BigInt(stats.block_read_bytes) : null,
+            blockWriteBytes: stats.block_write_bytes ? BigInt(stats.block_write_bytes) : null,
+            image: container.image || null,
+            labels: container.labels || null
+          };
         } catch (error) {
           console.error(`  ✗ Erreur pour ${container.name}:`, error.message);
           return null;
@@ -174,7 +238,17 @@ class MetricsCollector {
       });
 
       const results = await Promise.all(metricsPromises);
-      const collected = results.filter(r => r !== null).length;
+      const validData = results.filter(r => r !== null);
+      
+      // ✅ OPTIMISATION: Batch insert avec createMany au lieu d'inserts individuels
+      if (validData.length > 0) {
+        await prisma.containerMetricsSnapshot.createMany({
+          data: validData,
+          skipDuplicates: true
+        });
+      }
+      
+      const collected = validData.length;
       
       console.log(`  ✓ Métriques conteneurs collectées (${collected}/${containers.length})`);
     } catch (error) {

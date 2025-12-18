@@ -1,0 +1,9 @@
+{
+  "timestamp": "20251218_190048",
+  "date": "2025-12-18T19:00:48+01:00",
+  "bundles": {"js_mb": 0, "css_mb": 0, "images_mb": 0, "total_mb": 0},
+  "dependencies": {"deps_count": 101, "node_modules_mb": 0},
+  "runtime": {"initial_mb": 0, "after_30s_mb": 0, "growth_mb": 0},
+  "imports": {"recharts": 6, "lucide": 31, "axios": 41, "socket": 0},
+  "recommendations": []
+}

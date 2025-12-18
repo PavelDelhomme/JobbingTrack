@@ -9,6 +9,8 @@ import {
   Mail, Phone, Calendar, UserCheck, UserX, RefreshCw, KeyRound, CheckCircle2
 } from 'lucide-react';
 import axios from 'axios';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -43,59 +45,20 @@ export default function UsersManagementPage() {
         return;
       }
 
-      // Essayer d'abord /api/v1/auth/users, puis /api/v1/users en fallback
-      let response;
-      try {
-        response = await axios.get(`${API_URL}/api/v1/auth/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-          validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
-        });
-      } catch (error: any) {
-        // Si erreur réseau, essayer le fallback
-        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-          console.warn('[USERS] Tentative avec /api/v1/users...');
-          try {
-            response = await axios.get(`${API_URL}/api/v1/users`, {
-              headers: { Authorization: `Bearer ${token}` },
-              validateStatus: (status) => status < 500
-            });
-          } catch (fallbackError: any) {
-            throw fallbackError;
-          }
-        } else {
-          throw error;
-        }
+      // ✅ OPTIMISATION : Utiliser le cache
+      const cacheKey = `users_list_${token.substring(0, 10)}`
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setUsers(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        loadUsersFresh(token, cacheKey, cacheManager).catch(() => {}) // Ignorer les erreurs
+        return
       }
       
-      // Gérer les erreurs d'authentification
-      if (response.status === 401 || response.status === 403) {
-        console.warn(`[USERS] ⚠️ Erreur d'authentification (${response.status}):`, response.data.error);
-        // Si token invalide, essayer de recharger le token ou rediriger vers login
-        if (response.status === 401) {
-          console.warn('[USERS] Token invalide ou expiré, redirection vers la page de connexion...');
-          // Optionnel: window.location.href = '/login'
-        }
-        setUsers([]);
-        setLoading(false);
-        return;
-      }
-
-      // Gérer les erreurs 404
-      if (response.status === 404) {
-        console.warn('[USERS] ⚠️ Route non trouvée (404), vérification du service...');
-        setUsers([]);
-        setLoading(false);
-        return;
-      }
-      
-      if (response.data.success) {
-        const usersList = response.data.users || [];
-        console.log(`[USERS] ✅ ${usersList.length} utilisateurs chargés`);
-        setUsers(usersList);
-      } else {
-        console.error('[USERS] ⚠️ Réponse API invalide:', response.data);
-        setUsers([]);
-      }
+      await loadUsersFresh(token, cacheKey, cacheManager)
     } catch (error: any) {
       console.error('[USERS] ❌ Erreur chargement utilisateurs:', error);
       if (error.response) {
@@ -112,6 +75,65 @@ export default function UsersManagementPage() {
       setLoading(false);
     }
   }, [token]);
+  
+  // ✅ OPTIMISATION : Fonction séparée pour le chargement frais
+  const loadUsersFresh = async (token: string, cacheKey: string, cacheManager: any) => {
+    // Essayer d'abord /api/v1/auth/users, puis /api/v1/users en fallback
+    let response;
+    try {
+      // ✅ OPTIMISATION : Limiter à 100 utilisateurs par défaut
+      response = await axios.get(`${API_URL}/api/v1/auth/users?limit=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+        validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
+      });
+    } catch (error: any) {
+      // Si erreur réseau, essayer le fallback
+      if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+        console.warn('[USERS] Tentative avec /api/v1/users...');
+        try {
+          response = await axios.get(`${API_URL}/api/v1/users?limit=100`, { // ✅ OPTIMISATION : Limiter à 100
+            headers: { Authorization: `Bearer ${token}` },
+            validateStatus: (status) => status < 500
+          });
+        } catch (fallbackError: any) {
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+    
+    // Gérer les erreurs d'authentification
+    if (response.status === 401 || response.status === 403) {
+      console.warn(`[USERS] ⚠️ Erreur d'authentification (${response.status}):`, response.data.error);
+      // Si token invalide, essayer de recharger le token ou rediriger vers login
+      if (response.status === 401) {
+        console.warn('[USERS] Token invalide ou expiré, redirection vers la page de connexion...');
+        // Optionnel: window.location.href = '/login'
+      }
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+
+    // Gérer les erreurs 404
+    if (response.status === 404) {
+      console.warn('[USERS] ⚠️ Route non trouvée (404), vérification du service...');
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+    
+    if (response.data.success) {
+      const usersList = response.data.users || [];
+      console.log(`[USERS] ✅ ${usersList.length} utilisateurs chargés`);
+      setUsers(usersList);
+      await cacheManager.set(cacheKey, usersList, { ttl: 30000 });
+    } else {
+      console.error('[USERS] ⚠️ Réponse API invalide:', response.data);
+      setUsers([]);
+    }
+  };
 
   useEffect(() => {
     if (token) {
@@ -127,6 +149,13 @@ export default function UsersManagementPage() {
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     
     return matchesSearch && matchesRole;
+  });
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredUsers,
+    itemsPerPage: 20,
+    initialPage: 1,
   });
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
@@ -345,7 +374,7 @@ export default function UsersManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredUsers.map((user) => (
+                {pagination.paginatedItems.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -439,7 +468,7 @@ export default function UsersManagementPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredUsers.length === 0 && (
+                {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       Aucun utilisateur trouvé
@@ -449,6 +478,25 @@ export default function UsersManagementPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>

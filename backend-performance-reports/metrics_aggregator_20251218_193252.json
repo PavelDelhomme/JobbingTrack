@@ -1,0 +1,11 @@
+{
+  "BlockIO": "184MB / 99.8MB",
+  "CPUPerc": "0.71%",
+  "Container": "jobbingtrack-metrics-aggregator",
+  "ID": "4995c9e4c13f",
+  "MemPerc": "0.49%",
+  "MemUsage": "236MiB / 46.93GiB",
+  "Name": "jobbingtrack-metrics-aggregator",
+  "NetIO": "127MB / 1.84GB",
+  "PIDs": "41"
+}

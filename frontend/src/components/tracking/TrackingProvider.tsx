@@ -15,17 +15,32 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Le tracking s'initialise automatiquement via le singleton
-    // On peut juste s'assurer qu'il est activé
+    // Vérifier si on est sur mobile avant d'initialiser
     if (typeof window !== 'undefined') {
-      // Le tracking est déjà initialisé dans le singleton
-      console.log('[TRACKING] Système de tracking initialisé')
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isBackoffice = pathname?.startsWith('/backoffice');
+      
+      // Le tracking est uniquement pour mobile et pas dans le backoffice
+      if (isMobile && !isBackoffice) {
+        console.log('[TRACKING] Système de tracking initialisé (mobile uniquement)')
+      } else {
+        console.log('[TRACKING] Tracking désactivé - plateforme web/backoffice')
+      }
     }
   }, [])
 
-  // Tracker les changements de page
+  // Tracker les changements de page uniquement sur mobile
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      userTracking.trackPageView()
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isBackoffice = pathname?.startsWith('/backoffice');
+      
+      // Tracker uniquement sur mobile et pas dans le backoffice
+      if (isMobile && !isBackoffice) {
+        userTracking.trackPageView()
+      }
     }
   }, [pathname])
 

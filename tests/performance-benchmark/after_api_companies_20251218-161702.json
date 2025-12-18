@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-161702",
+  "endpoint": "companies",
+  "url": "http://localhost:5002/api/v1/companies",
+  "time_total": 0.003070,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "date": "2025-12-18T16:17:03+01:00"
+}

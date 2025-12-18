@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Companies",
+  "url": "http://localhost:5002/api/v1/companies",
+  "time_total": 0.005558,
+  "time_min": 0.004202,
+  "time_max": 0.007631,
+  "time_median": 0.004840,
+  "measures_count": 3,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "all_times": [0.004840,0.004202,0.007631],
+  "date": "2025-12-18T17:22:08+01:00"
+}

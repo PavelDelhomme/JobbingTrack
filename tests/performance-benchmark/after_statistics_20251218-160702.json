@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-160702",
+  "page": "statistics",
+  "url": "http://localhost:5003/backoffice/statistics",
+  "time_total": 0.029902,
+  "http_code": 307,
+  "size_bytes": 6,
+  "size_kb": 0,
+  "date": "2025-12-18T16:07:02+01:00"
+}

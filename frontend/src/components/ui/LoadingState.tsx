@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Loader2 } from '@/lib/icons';
 
 interface LoadingStateProps {
   /**

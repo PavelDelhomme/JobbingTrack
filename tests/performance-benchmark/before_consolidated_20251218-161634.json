@@ -1,0 +1,150 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-161634",
+  "pages": [
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "analytics",
+      "url": "http://localhost:5003/backoffice/analytics",
+      "time_total": 0.148342,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "applications",
+      "url": "http://localhost:5002/api/v1/applications",
+      "time_total": 0.003358,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "companies",
+      "url": "http://localhost:5002/api/v1/companies",
+      "time_total": 0.003452,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "contacts",
+      "url": "http://localhost:5002/api/v1/contacts",
+      "time_total": 0.003205,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "interviews",
+      "url": "http://localhost:5002/api/v1/interviews",
+      "time_total": 0.003142,
+      "http_code": 401,
+      "size_bytes": 49,
+      "size_kb": 0.05,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "statistics",
+      "url": "http://localhost:5002/api/v1/statistics",
+      "time_total": 0.010435,
+      "http_code": 200,
+      "size_bytes": 616,
+      "size_kb": 0.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "endpoint": "users",
+      "url": "http://localhost:5002/api/v1/auth/users",
+      "time_total": 0.003757,
+      "http_code": 401,
+      "size_bytes": 79,
+      "size_kb": 0.08,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "applications",
+      "url": "http://localhost:5003/backoffice/applications",
+      "time_total": 0.148243,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "backoffice-overview",
+      "url": "http://localhost:5003/backoffice",
+      "time_total": 1.307366,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "companies",
+      "url": "http://localhost:5003/backoffice/companies",
+      "time_total": 0.149676,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "statistics",
+      "url": "http://localhost:5003/backoffice/statistics",
+      "time_total": 0.149667,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-161634",
+      "page": "users",
+      "url": "http://localhost:5003/backoffice/users",
+      "time_total": 0.146006,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:16:36+01:00"
+    }
+
+  ]
+}

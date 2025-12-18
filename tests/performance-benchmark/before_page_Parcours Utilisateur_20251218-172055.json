@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Parcours Utilisateur",
+  "url": "http://localhost:5003/backoffice/user-journey",
+  "time_total": 0.178710,
+  "time_min": 0.153839,
+  "time_max": 0.198095,
+  "time_median": 0.184197,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.153839,0.184197,0.198095],
+  "date": "2025-12-18T17:21:56+01:00"
+}

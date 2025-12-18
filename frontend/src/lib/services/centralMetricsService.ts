@@ -52,19 +52,13 @@ class CentralMetricsService {
 
   // Gestion du cache pour éviter les requêtes multiples
   private getCachedMetrics(): MetricsData | null {
-    // DÉSACTIVÉ pour tests - toujours retourner null pour forcer le rechargement
-    // Log désactivé pour réduire la pollution de la console
-    // console.log('[CACHE] Cache désactivé pour tests - rechargement des données')
-    return null
-    /* Cache normal (réactiver après tests)
+    // ✅ OPTIMISATION : Réactiver le cache pour éviter les requêtes trop fréquentes
+    // Le cache réduit les changements erratiques de statut
     const now = Date.now()
     if (this.metricsCache && (now - this.cacheTimestamp) < this.cacheDuration) {
-      console.log('[CACHE] Données récupérées depuis le cache')
       return this.metricsCache
     }
-    console.log('[CACHE] Cache expiré, rechargement des données')
     return null
-    */
   }
 
   private setCachedMetrics(metrics: MetricsData): void {

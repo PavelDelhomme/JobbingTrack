@@ -10,17 +10,23 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 interface TestReport {
   id: string
+  category?: string
+  name?: string
   timestamp: string
   date: string
   time: string
   path: string
-  summaryPath: string
-  htmlPath: string
+  summaryPath?: string
+  htmlPath?: string
+  pdfPath?: string
+  jsonPath?: string
   totalTests?: number
   passed?: number
   failed?: number
   skipped?: number
-  status?: 'success' | 'failed' | 'partial'
+  status?: 'success' | 'failed' | 'partial' | 'unknown'
+  type?: 'performance-backend' | 'performance-frontend' | 'playwright' | 'unitaire' | 'e2e' | 'coverage' | 'other'
+  size?: number
 }
 
 export default function TestReportsPage() {
@@ -33,8 +39,10 @@ export default function TestReportsPage() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'date' | 'tests' | 'passed' | 'failed'>('date')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [categories, setCategories] = useState<string[]>([])
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -77,8 +85,8 @@ export default function TestReportsPage() {
   const loadReports = async () => {
     try {
       setLoading(true)
-      // Appel direct au backend Next.js pour lister les fichiers
-      const response = await fetch('/api/test-reports/list', {
+      // ✅ NOUVEAU: Utiliser l'API unifiée qui scanne tous les types de rapports
+      const response = await fetch('/api/test-reports/all', {
         method: 'GET'
       })
       
@@ -86,6 +94,10 @@ export default function TestReportsPage() {
         const data = await response.json()
         if (data.success) {
           setReports(data.reports || [])
+          // ✅ Stocker les catégories pour le filtre
+          if (data.categories && Array.isArray(data.categories)) {
+            setCategories(data.categories)
+          }
         } else {
           console.error('Erreur API chargement rapports:', data.error)
           setReports([])
@@ -227,13 +239,20 @@ export default function TestReportsPage() {
         const matchesSearch = 
           report.date.toLowerCase().includes(query) ||
           report.time.toLowerCase().includes(query) ||
-          report.id.toLowerCase().includes(query)
+          report.id.toLowerCase().includes(query) ||
+          (report.name && report.name.toLowerCase().includes(query)) ||
+          (report.category && report.category.toLowerCase().includes(query))
         if (!matchesSearch) return false
       }
 
       // Filtre par statut
       if (filterStatus !== 'all') {
         if (report.status !== filterStatus) return false
+      }
+
+      // ✅ Filtre par catégorie
+      if (filterCategory !== 'all') {
+        if (report.category !== filterCategory) return false
       }
 
       return true
@@ -317,17 +336,32 @@ export default function TestReportsPage() {
           {/* Barre de recherche et filtres */}
           {reports.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
                 {/* Recherche */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Rechercher par date, heure..."
+                    placeholder="Rechercher par nom, date..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+
+                {/* ✅ Filtre par catégorie */}
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  >
+                    <option value="all">Toutes les catégories</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Filtre par statut */}
@@ -407,28 +441,41 @@ export default function TestReportsPage() {
                     onClick={() => loadReportContent(report.id)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getStatusIcon(report.status)}
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">
-                            Rapport du {report.date}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                            {report.name || `Rapport du ${report.date}`}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {report.time}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {report.date} {report.time}
+                            </p>
+                            {report.category && (
+                              <>
+                                <span className="text-gray-300 dark:text-gray-600">•</span>
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                                  {report.category}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {report.status && (
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(report.status)}`}>
+                        <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${getStatusColor(report.status)}`}>
                           {report.status}
                         </span>
                       )}
                     </div>
 
-                    {report.totalTests !== undefined && (
-                      <div className="grid grid-cols-4 gap-2 text-sm">
+                    {/* ✅ Toujours afficher les statistiques si disponibles */}
+                    {(report.totalTests !== undefined && report.totalTests > 0) || 
+                     (report.passed !== undefined && report.passed > 0) || 
+                     (report.failed !== undefined && report.failed > 0) ? (
+                      <div className="grid grid-cols-4 gap-2 text-sm mt-2">
                         <div className="text-center">
-                          <div className="font-semibold text-gray-900 dark:text-white">{report.totalTests}</div>
+                          <div className="font-semibold text-gray-900 dark:text-white">{report.totalTests || 0}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
                         </div>
                         <div className="text-center">
@@ -444,7 +491,11 @@ export default function TestReportsPage() {
                           <div className="text-xs text-gray-500 dark:text-gray-400">Ignorés</div>
                         </div>
                       </div>
-                    )}
+                    ) : report.type === 'performance-backend' || report.type === 'performance-frontend' ? (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        📊 Rapport de performance - Consultez le rapport pour les détails
+                      </div>
+                    ) : null}
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button

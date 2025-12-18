@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-164448",
+  "page": "Logs Sécurité",
+  "url": "http://localhost:5003/backoffice/security/logs",
+  "time_total": 0.149298,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "date": "2025-12-18T16:44:53+01:00"
+}

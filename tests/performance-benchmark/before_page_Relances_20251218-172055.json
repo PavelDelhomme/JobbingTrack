@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Relances",
+  "url": "http://localhost:5003/backoffice/followups",
+  "time_total": 0.169370,
+  "time_min": 0.131908,
+  "time_max": 0.203705,
+  "time_median": 0.172497,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.131908,0.172497,0.203705],
+  "date": "2025-12-18T17:21:15+01:00"
+}

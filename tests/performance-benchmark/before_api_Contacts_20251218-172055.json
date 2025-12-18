@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Contacts",
+  "url": "http://localhost:5002/api/v1/contacts",
+  "time_total": 0.003390,
+  "time_min": 0.002732,
+  "time_max": 0.004634,
+  "time_median": 0.002804,
+  "measures_count": 3,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "all_times": [0.004634,0.002732,0.002804],
+  "date": "2025-12-18T17:22:10+01:00"
+}

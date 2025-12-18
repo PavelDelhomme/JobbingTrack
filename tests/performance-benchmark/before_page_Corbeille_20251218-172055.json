@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Corbeille",
+  "url": "http://localhost:5003/backoffice/trash",
+  "time_total": 0.227165,
+  "time_min": 0.187450,
+  "time_max": 0.271217,
+  "time_median": 0.222827,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.271217,0.222827,0.187450],
+  "date": "2025-12-18T17:21:24+01:00"
+}

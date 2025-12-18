@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Save, X, LogOut, User, Shield, Bell, Palette, Clock, RefreshCw } from 'lucide-react'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Eye, EyeOff, Save, X, LogOut, User, Shield, Bell, Palette, Clock, RefreshCw } from '@/lib/icons'
 import preferencesService, { type UserPreferences } from '@/lib/services/preferencesService'
 
 interface ProfilePopupProps {

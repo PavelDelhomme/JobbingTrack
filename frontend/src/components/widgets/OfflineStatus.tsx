@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, Clock, Database } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, Clock, Database } from '@/lib/icons';
 import { useOfflineSync } from '@/hooks/useOfflineSyncSimple';
 import { Button } from '@/components/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';

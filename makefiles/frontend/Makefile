@@ -211,10 +211,10 @@ check-memory-frontend: ## Vérifier la consommation mémoire du frontend
 	@echo "Recherche des processus Node.js du frontend..."
 	@if pgrep -f "next dev" > /dev/null; then \
 		echo "Processus Next.js trouvés:"; \
-		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{printf "  • PID %s: %s MB\n", $$2, $$6/1024}'; \
+		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{printf "  • PID %s: %.1f MB\n", $$2, $$6/1024}'; \
 		echo ""; \
 		echo "Mémoire totale:"; \
-		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{sum+=\$$6} END {printf "  • Total: %.0f MB\n", sum/1024}'; \
+		ps aux | grep -E "next|node.*frontend" | grep -v grep | awk '{sum+=$$6} END {if (sum>0) printf "  • Total: %.0f MB\n", sum/1024; else print "  • Total: 0 MB"}'; \
 	else \
 		echo "Aucun processus frontend trouvé (le serveur dev n'est peut-être pas démarré)"; \
 	fi

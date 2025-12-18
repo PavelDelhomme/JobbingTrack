@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Settings, 
   BarChart3, 
@@ -27,7 +28,7 @@ import {
   Shield,
   Zap,
   FileBarChart
-} from 'lucide-react'
+} from '@/lib/icons'
 import {
   LineChart,
   Line,

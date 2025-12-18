@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Déliverabilité",
+  "url": "http://localhost:5003/backoffice/emails/deliverability",
+  "time_total": 0.172916,
+  "time_min": 0.159688,
+  "time_max": 0.196937,
+  "time_median": 0.162124,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.196937,0.159688,0.162124],
+  "date": "2025-12-18T17:22:07+01:00"
+}

@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { companyService } from '@/lib/api'
 import Link from 'next/link'
+import { usePagination } from '@/lib/hooks/usePagination'
+import { Pagination } from '@/components/ui/Pagination'
 
 interface Company {
   id: string
@@ -36,6 +38,7 @@ export default function CompaniesPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
+  // ✅ OPTIMISATION : Charger avec pagination et cache
   useEffect(() => {
     if (isAuthenticated) {
       fetchCompanies()
@@ -44,8 +47,31 @@ export default function CompaniesPage() {
 
   const fetchCompanies = async () => {
     try {
-      const response = await companyService.getAll()
-      setCompanies(response.data.companies || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache
+      const cacheKey = 'companies_list'
+      const cached = await (await import('@/lib/cache/cacheManager')).cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setCompanies(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        companyService.getAll({ limit: 100 }).then(async response => {
+          const companies = response.data.companies || []
+          const { cacheManager } = await import('@/lib/cache/cacheManager')
+          await cacheManager.set(cacheKey, companies, { ttl: 30000 })
+          setCompanies(companies)
+        }).catch(() => {}) // Ignorer les erreurs en arrière-plan
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 entreprises par défaut (pagination)
+      const response = await companyService.getAll({ limit: 100 })
+      const companies = response.data.companies || []
+      setCompanies(companies)
+      
+      // Mettre en cache
+      await (await import('@/lib/cache/cacheManager')).cacheManager.set(cacheKey, companies, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement entreprises:', error)
     } finally {
@@ -71,6 +97,13 @@ export default function CompaniesPage() {
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredCompanies,
+    itemsPerPage: 20,
+    initialPage: 1,
+  })
 
   if (authLoading || loading) {
     return (
@@ -142,7 +175,7 @@ export default function CompaniesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredCompanies.map((company) => (
+                {pagination.paginatedItems.map((company) => (
                   <tr
                     key={company.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -214,7 +247,7 @@ export default function CompaniesPage() {
 
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredCompanies.map((company) => (
+            {pagination.paginatedItems.map((company) => (
               <div
                 key={company.id}
                 className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -289,9 +322,28 @@ export default function CompaniesPage() {
             ))}
           </div>
 
-          {filteredCompanies.length === 0 && (
+          {pagination.paginatedItems.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               Aucune entreprise trouvée
+            </div>
+          )}
+
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
             </div>
           )}
         </div>

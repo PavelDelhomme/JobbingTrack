@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Tests Performance",
+  "url": "http://localhost:5003/backoffice/performance-tests",
+  "time_total": 0.253009,
+  "time_min": 0.171928,
+  "time_max": 0.306271,
+  "time_median": 0.280827,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.171928,0.306271,0.280827],
+  "date": "2025-12-18T17:21:50+01:00"
+}

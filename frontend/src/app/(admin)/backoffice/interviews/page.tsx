@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
 import { Calendar, Search, Plus, Edit, Trash2, Clock, MapPin, RefreshCw, X, AlertCircle } from 'lucide-react';
 import { interviewService, applicationService } from '@/lib/api';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface Interview {
   id: string;
@@ -51,8 +53,30 @@ export default function InterviewsPage() {
   const loadInterviews = async () => {
     try {
       setLoading(true);
-      const response = await interviewService.getAll();
-      setInterviews(response.data.interviews || response.data || []);
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'interviews_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setInterviews(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        interviewService.getAll({ limit: 100 }).then(response => {
+          const interviews = response.data.interviews || response.data || []
+          cacheManager.set(cacheKey, interviews, { ttl: 30000 })
+          setInterviews(interviews)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 entretiens par défaut
+      const response = await interviewService.getAll({ limit: 100 })
+      const interviews = response.data.interviews || response.data || []
+      setInterviews(interviews)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, interviews, { ttl: 30000 })
     } catch (error: any) {
       console.error('Erreur chargement entretiens:', error);
       setInterviews([]);
@@ -78,6 +102,13 @@ export default function InterviewsPage() {
     interview.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     interview.applicationTitle?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredInterviews,
+    itemsPerPage: 20,
+    initialPage: 1,
+  });
 
   if (loading) {
     return (
@@ -182,7 +213,7 @@ export default function InterviewsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredInterviews.map((interview) => (
+                {pagination.paginatedItems.map((interview) => (
                   <tr key={interview.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{interview.title || 'Entretien'}</div>
@@ -244,7 +275,7 @@ export default function InterviewsPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredInterviews.length === 0 && (
+                {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {interviews.length === 0 ? 'Aucun entretien trouvé' : 'Aucun résultat pour votre recherche'}
@@ -254,6 +285,25 @@ export default function InterviewsPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
+            </div>
+          )}
         </div>
       </div>
 

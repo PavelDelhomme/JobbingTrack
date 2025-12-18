@@ -32,8 +32,31 @@ export default function ApplicationsTab() {
 
   const fetchApplications = async () => {
     try {
-      const response = await applicationService.getAll()
-      setApplications(response.data.applications || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_applications_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setApplications(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        applicationService.getAll({ limit: 100 }).then(response => {
+          const apps = response.data.applications || []
+          cacheManager.set(cacheKey, apps, { ttl: 30000 })
+          setApplications(apps)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 applications par défaut
+      const response = await applicationService.getAll({ limit: 100 })
+      const apps = response.data.applications || []
+      setApplications(apps)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, apps, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement candidatures:', error)
     } finally {

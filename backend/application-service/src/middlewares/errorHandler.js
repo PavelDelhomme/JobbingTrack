@@ -1,7 +1,19 @@
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error('Erreur:', err);
+  // Logger l'erreur complète avec stack trace en développement
+  if (process.env.NODE_ENV === 'development') {
+    logger.error('Erreur complète:', {
+      message: err.message,
+      code: err.code,
+      name: err.name,
+      stack: err.stack,
+      url: req.originalUrl,
+      method: req.method
+    });
+  } else {
+    logger.error('Erreur:', err);
+  }
 
   // Erreur de validation Prisma
   if (err.code === 'P2002') {

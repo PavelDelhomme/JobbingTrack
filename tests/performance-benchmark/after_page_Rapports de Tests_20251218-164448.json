@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-164448",
+  "page": "Rapports de Tests",
+  "url": "http://localhost:5003/backoffice/test-reports",
+  "time_total": 0.174134,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "date": "2025-12-18T16:44:55+01:00"
+}

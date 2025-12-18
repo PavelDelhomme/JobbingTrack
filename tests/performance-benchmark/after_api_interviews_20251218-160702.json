@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-160702",
+  "endpoint": "interviews",
+  "url": "http://localhost:5002/api/v1/interviews",
+  "time_total": 0.004477,
+  "http_code": 401,
+  "size_bytes": 49,
+  "size_kb": 0,
+  "date": "2025-12-18T16:07:02+01:00"
+}

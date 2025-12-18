@@ -1,0 +1,594 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-163241",
+  "pages": [
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Applications",
+      "url": "http://localhost:5002/api/v1/applications",
+      "time_total": 0.005578,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Calls",
+      "url": "http://localhost:5002/api/v1/calls",
+      "time_total": 0.006252,
+      "http_code": 503,
+      "size_bytes": 387,
+      "size_kb": 0.38,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Companies",
+      "url": "http://localhost:5002/api/v1/companies",
+      "time_total": 0.004953,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Contacts",
+      "url": "http://localhost:5002/api/v1/contacts",
+      "time_total": 0.003071,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Dashboard",
+      "url": "http://localhost:5002/api/v1/dashboard",
+      "time_total": 0.004655,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Events",
+      "url": "http://localhost:5002/api/v1/events",
+      "time_total": 0.051468,
+      "http_code": 403,
+      "size_bytes": 37,
+      "size_kb": 0.04,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Followups",
+      "url": "http://localhost:5002/api/v1/followups",
+      "time_total": 0.002001,
+      "http_code": 503,
+      "size_bytes": 415,
+      "size_kb": 0.41,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Interviews",
+      "url": "http://localhost:5002/api/v1/interviews",
+      "time_total": 0.004319,
+      "http_code": 401,
+      "size_bytes": 49,
+      "size_kb": 0.05,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Statistics",
+      "url": "http://localhost:5002/api/v1/statistics",
+      "time_total": 0.009847,
+      "http_code": 200,
+      "size_bytes": 616,
+      "size_kb": 0.60,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "endpoint": "Users",
+      "url": "http://localhost:5002/api/v1/auth/users",
+      "time_total": 0.006657,
+      "http_code": 401,
+      "size_bytes": 79,
+      "size_kb": 0.08,
+      "date": "2025-12-18T16:32:51+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Analyse Sécurité",
+      "url": "http://localhost:5003/backoffice/security/analysis",
+      "time_total": 0.167541,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Analytics",
+      "url": "http://localhost:5003/backoffice/analytics",
+      "time_total": 0.157112,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:42+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Analytics Utilisateur",
+      "url": "http://localhost:5003/backoffice/user-analytics",
+      "time_total": 0.173038,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:45+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Appels",
+      "url": "http://localhost:5003/backoffice/calls",
+      "time_total": 0.162859,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:44+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Applications",
+      "url": "http://localhost:5003/backoffice/applications",
+      "time_total": 0.145727,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:42+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Archives",
+      "url": "http://localhost:5003/backoffice/archives",
+      "time_total": 0.188611,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:45+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Configuration Emails",
+      "url": "http://localhost:5003/backoffice/emails/settings",
+      "time_total": 0.209303,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Contacts",
+      "url": "http://localhost:5003/backoffice/contacts",
+      "time_total": 0.393359,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:43+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Corbeille",
+      "url": "http://localhost:5003/backoffice/trash",
+      "time_total": 0.190817,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:45+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Dashboard Emails",
+      "url": "http://localhost:5003/backoffice/emails",
+      "time_total": 0.145418,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Déliverabilité",
+      "url": "http://localhost:5003/backoffice/emails/deliverability",
+      "time_total": 0.228093,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Données",
+      "url": "http://localhost:5003/backoffice/data",
+      "time_total": 0.153350,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:45+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Données de Test",
+      "url": "http://localhost:5003/backoffice/test-data",
+      "time_total": 0.143340,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Email Monitor",
+      "url": "http://localhost:5003/backoffice/email-monitor",
+      "time_total": 0.145296,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Émulateur Mobile",
+      "url": "http://localhost:5003/backoffice/mobile-emulator",
+      "time_total": 0.139153,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:47+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Entreprises",
+      "url": "http://localhost:5003/backoffice/companies",
+      "time_total": 0.409855,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:42+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Entretiens",
+      "url": "http://localhost:5003/backoffice/interviews",
+      "time_total": 0.203073,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:44+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Événements",
+      "url": "http://localhost:5003/backoffice/events",
+      "time_total": 0.147426,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:44+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Gestion Données",
+      "url": "http://localhost:5003/backoffice/data-management",
+      "time_total": 0.185543,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:45+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Gestion Services",
+      "url": "http://localhost:5003/backoffice/services",
+      "time_total": 0.162842,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Logs Sécurité",
+      "url": "http://localhost:5003/backoffice/security/logs",
+      "time_total": 0.148868,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Notifications",
+      "url": "http://localhost:5003/backoffice/notifications",
+      "time_total": 0.194356,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:44+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Parcours Personnalisé",
+      "url": "http://localhost:5003/backoffice/user-journey/custom",
+      "time_total": 0.147333,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:49+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Parcours Utilisateur",
+      "url": "http://localhost:5003/backoffice/user-journey",
+      "time_total": 0.144185,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:49+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Politiques Sécurité",
+      "url": "http://localhost:5003/backoffice/security/policies",
+      "time_total": 0.146526,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Programmer Tests",
+      "url": "http://localhost:5003/backoffice/performance-tests/schedule",
+      "time_total": 0.157700,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:49+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Rapports de Tests",
+      "url": "http://localhost:5003/backoffice/test-reports",
+      "time_total": 0.147785,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:49+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Relances",
+      "url": "http://localhost:5003/backoffice/followups",
+      "time_total": 0.163284,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:44+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Statistiques",
+      "url": "http://localhost:5003/backoffice/statistics",
+      "time_total": 0.150414,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:42+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Templates Emails",
+      "url": "http://localhost:5003/backoffice/emails/templates",
+      "time_total": 0.149044,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:50+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Testeur API",
+      "url": "http://localhost:5003/backoffice/api-tester",
+      "time_total": 0.154907,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:46+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests API",
+      "url": "http://localhost:5003/backoffice/tests-api",
+      "time_total": 0.147114,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:47+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests Backend",
+      "url": "http://localhost:5003/backoffice/tests-backend",
+      "time_total": 0.142085,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:47+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests Backoffice",
+      "url": "http://localhost:5003/backoffice/tests-backoffice",
+      "time_total": 0.173117,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:48+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests Frontend",
+      "url": "http://localhost:5003/backoffice/tests-frontend",
+      "time_total": 1.114974,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:48+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests Performance",
+      "url": "http://localhost:5003/backoffice/performance-tests",
+      "time_total": 0.314827,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:49+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Tests Playwright",
+      "url": "http://localhost:5003/backoffice/playwright-tests",
+      "time_total": 0.168894,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:47+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Utilisateurs",
+      "url": "http://localhost:5003/backoffice/users",
+      "time_total": 0.692373,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:43+01:00"
+    }
+,
+    {
+      "mode": "before",
+      "timestamp": "20251218-163241",
+      "page": "Vue d'ensemble",
+      "url": "http://localhost:5003/backoffice",
+      "time_total": 0.173712,
+      "http_code": 200,
+      "size_bytes": 12902,
+      "size_kb": 12.60,
+      "date": "2025-12-18T16:32:41+01:00"
+    }
+
+  ]
+}

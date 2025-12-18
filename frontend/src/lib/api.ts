@@ -61,12 +61,23 @@ export const criticalApiClient = axios.create({
 // Intercepteur pour ajouter le token JWT automatiquement
 apiClient.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            // En développement, logger si le token est manquant pour les routes protégées
+            if (process.env.NODE_ENV === 'development' && 
+                config.url && 
+                !config.url.includes('/health') && 
+                !config.url.includes('/auth/login') &&
+                !config.url.includes('/auth/register')) {
+                console.warn(`[API] Requête sans token vers: ${config.url}`);
+            }
         }
     }
     return config;
+}, (error) => {
+    return Promise.reject(error);
 });
 
 // Intercepteur pour criticalApiClient (même logique)

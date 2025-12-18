@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Filter, X, Clock, TrendingUp, Zap, Database, Settings, Users, Bell, Archive, Trash2, Calendar, FileText } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Search, Filter, X, Clock, TrendingUp, Zap, Database, Settings, Users, Bell, Archive, Trash2, Calendar, FileText } from '@/lib/icons';
 import { useSearchIndex } from '@/hooks/useSearchIndex';
 import { searchService } from '@/lib/api';
 import { Button } from '@/components/ui';

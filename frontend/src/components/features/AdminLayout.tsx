@@ -10,7 +10,8 @@ import { GlobalSearch } from './GlobalSearch'
 import { OfflineActions } from './OfflineActions'
 import { SettingsPopup } from './SettingsPopup'
 import { QuickMenuPopup } from './QuickMenuPopup'
-import { TrendingUp, Database, Activity, Server } from 'lucide-react'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { TrendingUp, Database, Activity, Server } from '@/lib/icons'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -146,7 +147,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
         /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
-        { name: 'Statistiques', href: '/backoffice/statistique', icon: '📈' },
+        { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
         { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
       ]
     },
@@ -196,7 +197,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: '🧪',
           subItems: [
             { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
+            { name: 'Tests API', href: '/backoffice/tests-api', icon: '🔌' },
+            { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
+            { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
+            { name: 'Tests Backoffice', href: '/backoffice/tests-backoffice', icon: '🛡️' },
             { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
+            { name: 'Programmer Tests', href: '/backoffice/performance-tests/schedule', icon: '📅' },
+            { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
           ]
         },
         { 
@@ -208,7 +215,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Parcours Personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
           ]
         },
-        { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
       ]
     },
     {
@@ -609,7 +615,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       </button>
                       <button
                         onClick={() => {
-                          router.push('/backoffice/statistique')
+                          router.push('/backoffice/statistics')
                           setIsQuickActionsDropdownOpen(false)
                         }}
                         className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"

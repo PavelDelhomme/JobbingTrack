@@ -286,28 +286,103 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
     // Calculer la charge (load average approximée)
     const loadAverage = (totalCpuPercent / 100).toFixed(2);
     
-    // Récupérer les stats disque (via Docker)
+    // ✅ OPTIMISATION : Récupérer uniquement l'espace disque utilisé par Docker (conteneurs)
     const { exec } = require('child_process');
     const { promisify } = require('util');
     const execAsync = promisify(exec);
     
     let diskStats = [];
     try {
-      const { stdout } = await execAsync('df -h / /var/lib/docker 2>/dev/null | tail -n +2');
-      const lines = stdout.trim().split('\n');
-      diskStats = lines.map(line => {
-        const parts = line.split(/\s+/);
-        return {
-          mount: parts[5] || '/',
-          total: parts[1] || 'N/A',
-          used: parts[2] || 'N/A',
-          available: parts[3] || 'N/A',
-          usage_percent: parseFloat(parts[4]?.replace('%', '') || '0')
-        };
+      // ✅ Récupérer uniquement l'espace disque Docker (conteneurs, images, volumes)
+      const { stdout: dockerDf } = await execAsync('docker system df --format "{{.Type}}|{{.Size}}" 2>/dev/null');
+      const dockerLines = dockerDf.trim().split('\n');
+      
+      let totalDockerSize = 0; // en bytes
+      let totalDockerSizeGB = 0;
+      
+      // Parser la sortie de docker system df
+      dockerLines.forEach(line => {
+        const [type, size] = line.split('|');
+        if (size) {
+          // Convertir la taille (ex: "1.2GB", "500MB") en bytes
+          const sizeMatch = size.match(/([\d.]+)([KMGT]?B)/);
+          if (sizeMatch) {
+            const value = parseFloat(sizeMatch[1]);
+            const unit = sizeMatch[2];
+            let bytes = 0;
+            
+            switch(unit) {
+              case 'TB': bytes = value * 1024 * 1024 * 1024 * 1024; break;
+              case 'GB': bytes = value * 1024 * 1024 * 1024; break;
+              case 'MB': bytes = value * 1024 * 1024; break;
+              case 'KB': bytes = value * 1024; break;
+              case 'B': bytes = value; break;
+            }
+            
+            totalDockerSize += bytes;
+          }
+        }
       });
+      
+      totalDockerSizeGB = totalDockerSize / (1024 * 1024 * 1024);
+      
+      // ✅ Récupérer aussi l'espace total disponible pour Docker
+      const { stdout: dockerInfo } = await execAsync('df -h /var/lib/docker 2>/dev/null | tail -n +2');
+      const dockerInfoParts = dockerInfo.trim().split(/\s+/);
+      
+      if (dockerInfoParts.length >= 5) {
+        const dockerTotal = dockerInfoParts[1]; // ex: "100G"
+        const dockerUsed = dockerInfoParts[2];  // ex: "50G"
+        const dockerAvailable = dockerInfoParts[3]; // ex: "45G"
+        const dockerPercent = parseFloat(dockerInfoParts[4]?.replace('%', '') || '0');
+        
+        diskStats = [{
+          mount: '/var/lib/docker',
+          type: 'docker',
+          total: dockerTotal,
+          used: dockerUsed,
+          available: dockerAvailable,
+          usage_percent: dockerPercent,
+          // Format pour affichage
+          total_gb: parseFloat(dockerTotal.replace(/[^0-9.]/g, '')) || 0,
+          used_gb: parseFloat(dockerUsed.replace(/[^0-9.]/g, '')) || 0,
+          available_gb: parseFloat(dockerAvailable.replace(/[^0-9.]/g, '')) || 0,
+          // Taille totale des conteneurs/images/volumes Docker
+          containers_size_gb: totalDockerSizeGB
+        }];
+      } else {
+        // Fallback : utiliser docker system df pour avoir au moins la taille des conteneurs
+        diskStats = [{
+          mount: '/var/lib/docker',
+          type: 'docker',
+          total: 'N/A',
+          used: `${totalDockerSizeGB.toFixed(2)} GB`,
+          available: 'N/A',
+          usage_percent: 0,
+          containers_size_gb: totalDockerSizeGB
+        }];
+      }
     } catch (err) {
-      console.error('[DOCKER ROUTES] Erreur récupération disque:', err.message);
+      console.error('[DOCKER ROUTES] Erreur récupération disque Docker:', err.message);
+      // Fallback : tableau vide
+      diskStats = [];
     }
+    
+    // ✅ Ajouter les métriques de disque Docker dans la réponse
+    const response = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      containers_count: jobbingtrackContainers.length,
+      cpu_percent: Math.round(totalCpuPercent * 10) / 10,
+      cpu_percent_per_core: Math.round(cpuPerCore * 10) / 10,
+      cpu_average_percent: jobbingtrackContainers.length > 0 ? Math.round((totalCpuPercent / jobbingtrackContainers.length) * 10) / 10 : 0,
+      memory_percent: Math.round(memoryPercentOfSystem * 10) / 10,
+      memory_usage_mb: Math.round(totalMemoryUsage / (1024 * 1024)),
+      memory_limit_mb: Math.round(systemMemoryTotal / (1024 * 1024)),
+      total_cpus: totalCpus,
+      load_average: parseFloat(loadAverage),
+      disk: diskStats
+    };
     
     const serviceInsights = await Promise.all(jobbingtrackContainers.map(async stat => {
       const serviceType = stat.name.replace(/^jobbingtrack-/, '');

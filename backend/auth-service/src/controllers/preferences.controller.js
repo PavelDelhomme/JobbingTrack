@@ -61,16 +61,28 @@ const getUserPreferences = async (req, res) => {
                                    typeof prisma.userCustomization.findUnique === 'function';
       
       if (!hasUserCustomization) {
-        logger.warn('userCustomization non disponible dans Prisma client. Régénérez le client Prisma avec: npx prisma generate');
+        logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
         return res.json({
           success: true,
           preferences: defaultPreferences
         });
       }
       
-      customization = await prisma.userCustomization.findUnique({
-        where: { userId }
-      });
+      try {
+        customization = await prisma.userCustomization.findUnique({
+          where: { userId }
+        });
+      } catch (error) {
+        // Si la table n'existe pas (P2021), retourner les valeurs par défaut
+        if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+          logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
+          return res.json({
+            success: true,
+            preferences: defaultPreferences
+          });
+        }
+        throw error; // Re-throw si c'est une autre erreur
+      }
 
       // Si pas de customization, créer avec valeurs par défaut
       if (!customization) {

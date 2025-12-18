@@ -6,9 +6,9 @@ import { useAuth } from '@/lib/hooks/auth';
 import { 
   Play, TrendingUp, Zap, Activity, Clock, Target, 
   Layers, Server, Cpu, HardDrive, Wifi, AlertCircle,
-  CheckCircle, Info, BarChart3, Gauge, Timer, Square,
+  CheckCircle, CheckCircle2, Info, BarChart3, Gauge, Timer, Square,
   Loader2, XCircle, RefreshCw
-} from 'lucide-react';
+} from '@/lib/icons';
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:5002';
 
@@ -139,36 +139,61 @@ export default function PerformanceTestsPage() {
     }
   ]);
 
-  const [testTypes] = useState([
+  interface TestType {
+    id: string
+    name: string
+    description: string
+    metrics: string[]
+    duration: string
+    category: string
+    enabled: boolean
+  }
+
+  const [availableTestTypes, setAvailableTestTypes] = useState<TestType[]>([
     {
+      id: 'complete',
       name: 'Tests Complets',
       description: 'Tests de performance complets sur tous les services (API, Frontend, Base de données)',
       metrics: ['Load Time', 'TTFB', 'FCP', 'LCP', 'FID', 'CLS', 'CPU', 'Memory', 'Network'],
-      duration: '2-5 minutes'
+      duration: '2-5 minutes',
+      category: 'Complets',
+      enabled: true
     },
     {
+      id: 'api',
       name: 'Tests API',
       description: 'Tests des performances des endpoints API uniquement (temps de réponse, débit, erreurs)',
       metrics: ['Response Time', 'Requests/s', 'Error Rate', 'Network Latency'],
-      duration: '1-3 minutes'
+      duration: '1-3 minutes',
+      category: 'API',
+      enabled: true
     },
     {
+      id: 'frontend',
       name: 'Tests Frontend',
       description: 'Tests des performances du frontend (rendu, interactions, chargement des ressources)',
       metrics: ['Load Time', 'FCP', 'LCP', 'FID', 'CLS', 'CPU', 'Memory'],
-      duration: '1-2 minutes'
+      duration: '1-2 minutes',
+      category: 'Frontend',
+      enabled: true
     },
     {
+      id: 'load',
       name: 'Tests de Charge',
       description: 'Tests de charge intensive avec plusieurs utilisateurs simultanés',
       metrics: ['Response Time', 'Requests/s', 'CPU', 'Memory', 'Error Rate'],
-      duration: '3-10 minutes'
+      duration: '3-10 minutes',
+      category: 'Charge',
+      enabled: true
     },
     {
+      id: 'memory',
       name: 'Tests Mémoire',
       description: 'Tests d\'utilisation mémoire et détection de fuites mémoire',
       metrics: ['Memory Usage', 'CPU', 'Response Time'],
-      duration: '1-2 minutes'
+      duration: '1-2 minutes',
+      category: 'Mémoire',
+      enabled: true
     }
   ]);
 
@@ -202,7 +227,23 @@ export default function PerformanceTestsPage() {
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const startTests = async () => {
+  const [selectedTestType, setSelectedTestType] = useState<'performance-backend' | 'performance-frontend' | 'both'>('both')
+
+  const toggleTestType = (testId: string) => {
+    setAvailableTestTypes(prev => prev.map(test => 
+      test.id === testId ? { ...test, enabled: !test.enabled } : test
+    ))
+  }
+
+  const startTests = async (testType?: 'performance-backend' | 'performance-frontend' | 'both') => {
+    const typeToRun = testType || selectedTestType
+    const selectedTests = availableTestTypes.filter(t => t.enabled)
+    
+    if (selectedTests.length === 0) {
+      alert('Veuillez sélectionner au moins un type de test à exécuter')
+      return
+    }
+    
     if (isRunning) {
       // Arrêter les tests
       if (progressIntervalRef.current) {
@@ -218,80 +259,84 @@ export default function PerformanceTestsPage() {
     setProgress(0);
     setLogs([]);
     setCurrentTest('');
-    setTestStatuses([
-      { name: 'Tests API', status: 'pending', progress: 0 },
-      { name: 'Tests Frontend', status: 'pending', progress: 0 },
-      { name: 'Tests de Charge', status: 'pending', progress: 0 },
-      { name: 'Tests Mémoire', status: 'pending', progress: 0 },
-      { name: 'Analyse des Métriques', status: 'pending', progress: 0 }
-    ]);
+    
+    // Définir les tests selon le type sélectionné
+    let testStatusesList: TestStatus[] = []
+    if (typeToRun === 'performance-backend' || typeToRun === 'both') {
+      testStatusesList.push(
+        { name: 'Tests Performance Backend', status: 'pending', progress: 0 },
+        { name: 'Analyse Métriques Backend', status: 'pending', progress: 0 }
+      )
+    }
+    if (typeToRun === 'performance-frontend' || typeToRun === 'both') {
+      testStatusesList.push(
+        { name: 'Tests Performance Frontend', status: 'pending', progress: 0 },
+        { name: 'Analyse Bundles', status: 'pending', progress: 0 },
+        { name: 'Tests Mémoire', status: 'pending', progress: 0 }
+      )
+    }
+    setTestStatuses(testStatusesList)
 
-    addLog('🚀 Démarrage des tests de performance...');
-    addLog('📋 Tests complets sur tous les services');
+    addLog(`🚀 Démarrage des tests de performance: ${typeToRun === 'both' ? 'Backend + Frontend' : typeToRun}`);
+    addLog(`📋 Types de tests sélectionnés: ${selectedTests.map(t => t.name).join(', ')}`);
+    addLog('📋 Tests en cours...');
 
     try {
-      // Simuler l'exécution des tests avec progression
-      const tests = [
-        { name: 'Tests API', duration: 2000 },
-        { name: 'Tests Frontend', duration: 3000 },
-        { name: 'Tests de Charge', duration: 4000 },
-        { name: 'Tests Mémoire', duration: 2000 },
-        { name: 'Analyse des Métriques', duration: 1000 }
-      ];
-
-      let currentTestIndex = 0;
-      let overallProgress = 0;
-
-      for (let i = 0; i < tests.length; i++) {
-        const test = tests[i];
-        currentTestIndex = i;
-        setCurrentTest(test.name);
-        
-        // Mettre à jour le statut du test
+      // Lancer les tests réels via l'API
+      if (typeToRun === 'performance-backend' || typeToRun === 'both') {
+        addLog('📡 Lancement des tests backend...')
         setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'running', progress: 0 } : t
-        ));
-
-        addLog(`▶️ Démarrage: ${test.name}`);
-
-        // Simuler la progression du test
-        let testProgress = 0;
-        const testProgressInterval = setInterval(() => {
-          testProgress = Math.min(testProgress + 10, 100);
-          
-          setTestStatuses(prev => prev.map((t, idx) => {
-            if (idx === i && t.status === 'running') {
-              return { ...t, progress: testProgress };
-            }
-            return t;
-          }));
-
-          // Calculer la progression globale
-          const completedTests = i;
-          const currentTestProgress = testProgress / 100;
-          overallProgress = ((completedTests + currentTestProgress) * 100) / tests.length;
-          setProgress(overallProgress);
-        }, test.duration / 10);
-
-        // Attendre la fin du test
-        await new Promise(resolve => setTimeout(resolve, test.duration));
-
-        clearInterval(testProgressInterval);
-
-        // Marquer le test comme terminé
+          idx === 0 ? { ...t, status: 'running', progress: 0 } : t
+        ))
+        try {
+          await fetch('/api/test/run-performance-backend', { method: 'POST' })
+          addLog('✅ Tests backend lancés')
+          setTestStatuses(prev => prev.map((t, idx) => 
+            idx === 0 ? { ...t, status: 'completed', progress: 100 } : t
+          ))
+        } catch (error) {
+          addLog(`⚠️ Erreur lancement backend: ${error}`)
+          setTestStatuses(prev => prev.map((t, idx) => 
+            idx === 0 ? { ...t, status: 'error', progress: 0 } : t
+          ))
+        }
+      }
+      
+      if (typeToRun === 'performance-frontend' || typeToRun === 'both') {
+        addLog('📡 Lancement des tests frontend...')
+        const frontendStartIdx = typeToRun === 'both' ? 2 : 0
         setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'completed', progress: 100 } : t
-        ));
-
-        addLog(`✅ Terminé: ${test.name}`);
-        overallProgress = ((i + 1) * 100) / tests.length;
-        setProgress(overallProgress);
+          idx === frontendStartIdx ? { ...t, status: 'running', progress: 0 } : t
+        ))
+        try {
+          await fetch('/api/test/run-performance-frontend', { method: 'POST' })
+          addLog('✅ Tests frontend lancés')
+          setTestStatuses(prev => prev.map((t, idx) => 
+            idx === frontendStartIdx ? { ...t, status: 'completed', progress: 100 } : t
+          ))
+        } catch (error) {
+          addLog(`⚠️ Erreur lancement frontend: ${error}`)
+          setTestStatuses(prev => prev.map((t, idx) => 
+            idx === frontendStartIdx ? { ...t, status: 'error', progress: 0 } : t
+          ))
+        }
       }
 
-      addLog('🎉 Tous les tests sont terminés !');
-      setCurrentTest('');
-      setIsRunning(false);
-      setProgress(100);
+      // Simuler la progression globale
+      let currentProgress = 0
+      progressIntervalRef.current = setInterval(() => {
+        currentProgress = Math.min(currentProgress + 2, 100)
+        setProgress(currentProgress)
+        
+        if (currentProgress >= 100) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current)
+          }
+          setIsRunning(false)
+          addLog('🎉 Tests de performance lancés !')
+          addLog('📊 Consultez les rapports dans "Rapports de Tests"')
+        }
+      }, 100)
 
       // Mettre à jour les métriques avec des valeurs simulées
       setMetrics(prev => prev.map(m => ({
@@ -328,27 +373,40 @@ export default function PerformanceTestsPage() {
                 <span>En cours...</span>
               </div>
             )}
-            <button 
-              onClick={startTests}
-              disabled={!token}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                isRunning
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isRunning ? (
-                <>
-                  <Square className="h-5 w-5" />
-                  Arrêter les tests
-                </>
-              ) : (
-                <>
-                  <Play className="h-5 w-5" />
-                  Lancer les tests
-                </>
+            <div className="flex items-center gap-3">
+              {!isRunning && (
+                <select
+                  value={selectedTestType}
+                  onChange={(e) => setSelectedTestType(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="both">Backend + Frontend</option>
+                  <option value="performance-backend">Backend uniquement</option>
+                  <option value="performance-frontend">Frontend uniquement</option>
+                </select>
               )}
-            </button>
+              <button 
+                onClick={() => startTests()}
+                disabled={!token}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  isRunning
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isRunning ? (
+                  <>
+                    <Square className="h-5 w-5" />
+                    Arrêter les tests
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5" />
+                    Lancer les tests
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -476,7 +534,7 @@ export default function PerformanceTestsPage() {
             Types de Tests Disponibles
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {testTypes.map((test, index) => (
+            {availableTestTypes.map((test, index) => (
               <div 
                 key={index}
                 className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"

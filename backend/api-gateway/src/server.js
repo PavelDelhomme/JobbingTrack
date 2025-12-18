@@ -600,14 +600,50 @@ Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
     } catch (error) {
       // Ensure targetUrl is defined for logging (it's already defined above, but use it for clarity)
       const errorTargetUrl = targetUrl || `${target}${req.originalUrl}`;
+      
+      // Si c'est une erreur de connexion (ECONNREFUSED, ETIMEDOUT, etc.), c'est que le service n'est pas disponible
+      const isConnectionError = error.code === 'ECONNREFUSED' || 
+                                error.code === 'ETIMEDOUT' || 
+                                error.code === 'ENOTFOUND' ||
+                                error.message?.includes('connect') ||
+                                error.message?.includes('timeout');
+      
       logger.error(`Error proxying ${path}:`, {
         message: error.message,
         code: error.code,
         url: errorTargetUrl,
-        method: req.method
+        method: req.method,
+        isConnectionError
       });
       
-      // In development, return a clear error instead of a fallback
+      // Si c'est une erreur de connexion, retourner 503 (Service Unavailable)
+      if (isConnectionError) {
+        return res.status(503).json({
+          success: false,
+          error: `Service ${serviceName} unavailable`,
+          message: `Unable to reach service ${serviceName} at address ${target}`,
+          details: {
+            error: error.message,
+            code: error.code,
+            targetUrl: errorTargetUrl,
+            suggestion: `Check that service ${serviceName} is started with "make start-service SERVICE=${serviceName}"`
+          }
+        });
+      }
+      
+      // Pour les autres erreurs (500 du service backend, etc.), transmettre l'erreur telle quelle
+      // mais avec un format cohérent
+      if (error.response) {
+        // Si le service backend a retourné une erreur, la transmettre
+        return res.status(error.response.status || 500).json({
+          success: false,
+          error: error.response.data?.error || 'Service error',
+          message: error.response.data?.message || error.message,
+          details: error.response.data?.details
+        });
+      }
+      
+      // En développement, retourner une erreur claire
       if (process.env.NODE_ENV === 'development') {
         return res.status(503).json({
           success: false,

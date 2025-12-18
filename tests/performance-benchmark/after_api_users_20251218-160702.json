@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-160702",
+  "endpoint": "users",
+  "url": "http://localhost:5002/api/v1/auth/users",
+  "time_total": 0.003752,
+  "http_code": 401,
+  "size_bytes": 79,
+  "size_kb": 0,
+  "date": "2025-12-18T16:07:02+01:00"
+}

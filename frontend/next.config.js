@@ -25,8 +25,10 @@ const nextConfig = {
             },
         },
     },
-    // ✅ Compression des assets
+    // ✅ Compression des assets (Gzip activé, Brotli via serveur/reverse proxy)
     compress: true,
+    // ✅ Désactiver les source maps en production pour réduire la taille
+    productionBrowserSourceMaps: false,
     // ✅ Optimisation des images
     images: {
         formats: ['image/webp', 'image/avif'],
@@ -77,7 +79,7 @@ const nextConfig = {
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
         // ✅ Optimisations de performance avancées
         if (!dev) {
-            // Compression Gzip/Brotli
+            // Compression Gzip/Brotli (Brotli via serveur/reverse proxy)
             config.optimization = {
                 ...config.optimization,
                 splitChunks: {
@@ -98,8 +100,13 @@ const nextConfig = {
                 minimize: true,
                 minimizer: [
                     new webpack.optimize.ModuleConcatenationPlugin(),
+                    // ✅ TerserPlugin pour une meilleure minification (si disponible)
+                    ...(config.optimization.minimizer || []),
                 ],
             };
+            
+            // ✅ Désactiver les source maps en production
+            config.devtool = false;
 
             // Tree shaking amélioré
             config.optimization.usedExports = true;

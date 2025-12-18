@@ -154,6 +154,16 @@ const createApplication = async (req, res, next) => {
 // READ - Lister les candidatures
 const getApplications = async (req, res, next) => {
   try {
+    // Vérifier que l'utilisateur est authentifié
+    if (!req.user || !req.user.id) {
+      logger.warn('Tentative d\'accès aux candidatures sans authentification');
+      return res.status(401).json({
+        success: false,
+        error: 'Non authentifié',
+        message: 'Vous devez être connecté pour accéder aux candidatures'
+      });
+    }
+
   const {
     page = 1,
     limit = 10,
@@ -168,8 +178,13 @@ const getApplications = async (req, res, next) => {
     
   const where = {
     userId: req.user.id,
-    ...(includeArchived !== 'true' && { isArchived: false }), // Exclure les candidatures archivées sauf si demandé
-    ...(status && { status: status }), // Utiliser status (enum ApplicationStatus)
+    ...(includeArchived !== 'true' && { archived: false }), // Exclure les candidatures archivées sauf si demandé
+    // ✅ CORRECTION: Utiliser statusId au lieu de status (car status est une relation, pas un champ)
+    ...(status && { 
+      status: {
+        code: status // Rechercher par code du statut
+      }
+    }),
     ...(search && {
       position: { contains: search, mode: 'insensitive' }
     })
@@ -183,7 +198,7 @@ const getApplications = async (req, res, next) => {
           include: {
             company: true,
             platform: true, // ✅ NOUVEAU - Inclure la plateforme
-            // ✅ Temporairement désactivé : status - Prisma Client ne reconnaît pas la relation
+            status: true, // ✅ Inclure le statut (relation ApplicationStatus)
             _count: {
               select: {
                 interviews: true,
@@ -225,7 +240,17 @@ const getApplications = async (req, res, next) => {
           warning: 'Table Application non trouvée. Exécutez "make db-push-all" pour créer les tables.'
         });
       } else {
-        logger.error('Erreur récupération candidatures:', error);
+        // Logger l'erreur complète en développement
+        if (process.env.NODE_ENV === 'development') {
+          logger.error('Erreur récupération candidatures:', {
+            message: error.message,
+            code: error.code,
+            name: error.name,
+            stack: error.stack
+          });
+        } else {
+          logger.error('Erreur récupération candidatures:', error);
+        }
         return next(error);
       }
     }
@@ -241,7 +266,17 @@ const getApplications = async (req, res, next) => {
       }
     });
   } catch (error) {
-    logger.error('Erreur récupération candidatures:', error);
+    // Logger l'erreur complète en développement
+    if (process.env.NODE_ENV === 'development') {
+      logger.error('Erreur récupération candidatures (catch externe):', {
+        message: error.message,
+        code: error.code,
+        name: error.name,
+        stack: error.stack
+      });
+    } else {
+      logger.error('Erreur récupération candidatures:', error);
+    }
     next(error);
   }
 };

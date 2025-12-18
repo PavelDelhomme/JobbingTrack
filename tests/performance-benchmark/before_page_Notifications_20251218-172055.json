@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Notifications",
+  "url": "http://localhost:5003/backoffice/notifications",
+  "time_total": 0.212577,
+  "time_min": 0.167341,
+  "time_max": 0.278027,
+  "time_median": 0.192364,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.192364,0.278027,0.167341],
+  "date": "2025-12-18T17:21:17+01:00"
+}

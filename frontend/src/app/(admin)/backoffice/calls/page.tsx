@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
 import { Phone, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, Building2, Users, FileText } from 'lucide-react';
 import { callService, contactService, companyService, applicationService } from '@/lib/api';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface Call {
   id: string;
@@ -44,8 +46,30 @@ export default function CallsPage() {
   const loadCalls = async () => {
     try {
       setLoading(true);
-      const response = await callService.getAll();
-      setCalls(response.data.calls || response.data || []);
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'calls_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setCalls(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        callService.getAll({ limit: 100 }).then(response => {
+          const calls = response.data.calls || response.data || []
+          cacheManager.set(cacheKey, calls, { ttl: 30000 })
+          setCalls(calls)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 appels par défaut
+      const response = await callService.getAll({ limit: 100 })
+      const calls = response.data.calls || response.data || []
+      setCalls(calls)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, calls, { ttl: 30000 })
     } catch (error: any) {
       console.error('Erreur chargement appels:', error);
       setCalls([]);
@@ -71,6 +95,13 @@ export default function CallsPage() {
     call.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.contactName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredCalls,
+    itemsPerPage: 20,
+    initialPage: 1,
+  });
 
   if (loading) {
     return (
@@ -144,7 +175,7 @@ export default function CallsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredCalls.map((call) => (
+                {pagination.paginatedItems.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{call.subject || 'Appel'}</div>
@@ -203,7 +234,7 @@ export default function CallsPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredCalls.length === 0 && (
+                {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {calls.length === 0 ? 'Aucun appel trouvé' : 'Aucun résultat pour votre recherche'}
@@ -213,6 +244,25 @@ export default function CallsPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
+            </div>
+          )}
         </div>
       </div>
 
