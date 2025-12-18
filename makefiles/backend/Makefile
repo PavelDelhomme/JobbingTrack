@@ -92,8 +92,8 @@ monitoring-c-up: ## Démarrer nouveau système de monitoring en C (ultra-léger)
 	@echo "✅ Monitoring en C démarré"
 	@echo ""
 	@echo "📊 Accès:"
-	@echo "  Monitoring C:   http://localhost:5014"
-	@echo "  Log Collector: http://localhost:5015"
+	@echo "  Monitoring C:   http://localhost:5098"
+	@echo "  Log Collector: http://localhost:5099"
 	@echo ""
 	@echo "💡 Pour voir les logs: make monitoring-c-logs"
 
