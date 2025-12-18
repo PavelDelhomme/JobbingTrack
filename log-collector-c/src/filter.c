@@ -4,35 +4,25 @@
 
 #include "filter.h"
 #include <string.h>
-#include <regex.h>
+// Utiliser strstr au lieu de regex pour éviter les dépendances
+// #include <regex.h>
 
-static regex_t error_regex;
-static regex_t warn_regex;
-static int regex_compiled = 0;
+// Utiliser strstr au lieu de regex
+static int filters_initialized = 0;
 
 /**
- * Initialise les regex de filtrage
+ * Initialise les filtres (simplifié sans regex)
  */
 int init_filters(void) {
-    if (regex_compiled) return 0;
-    
-    if (regcomp(&error_regex, "error|ERROR|Error|exception|Exception", REG_ICASE | REG_EXTENDED) != 0) {
-        return -1;
-    }
-    
-    if (regcomp(&warn_regex, "warn|WARN|Warn|warning|WARNING", REG_ICASE | REG_EXTENDED) != 0) {
-        return -1;
-    }
-    
-    regex_compiled = 1;
+    filters_initialized = 1;
     return 0;
 }
 
 /**
- * Détermine si un log doit être traité
+ * Détermine si un log doit être traité (version simplifiée)
  */
 int should_process_log(const LogEntry *entry) {
-    if (!regex_compiled) {
+    if (!filters_initialized) {
         init_filters();
     }
     
@@ -51,13 +41,9 @@ int should_process_log(const LogEntry *entry) {
 }
 
 /**
- * Nettoie les ressources
+ * Nettoie les ressources (simplifié)
  */
 void cleanup_filters(void) {
-    if (regex_compiled) {
-        regfree(&error_regex);
-        regfree(&warn_regex);
-        regex_compiled = 0;
-    }
+    filters_initialized = 0;
 }
 

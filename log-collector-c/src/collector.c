@@ -121,7 +121,7 @@ void read_new_log_lines(WatchInfo *watch) {
 /**
  * Boucle principale de collecte
  */
-int main(int argc, char *argv[]) {
+int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
     printf("🚀 Collecteur de logs démarré\n");
     
     if (init_log_collector() != 0) {

@@ -8,7 +8,12 @@ OBJDIR = obj
 BINDIR = bin
 
 SOURCES = $(wildcard $(SRCDIR)/*.c)
-OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+
+# S'assurer que proc_reader.c est inclus
+ifneq ($(wildcard $(SRCDIR)/proc_reader.c),)
+	OBJECTS += $(OBJDIR)/proc_reader.o
+endif
 TARGET = $(BINDIR)/monitoring-c
 
 .PHONY: all clean install

@@ -13,14 +13,29 @@
 #include "collector.h"
 #include "docker.h"
 #include "proc_reader.h"
-#include "metrics.h"
 #include "storage.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/statvfs.h>
+#include <sys/sysinfo.h>
 
 #define COLLECTION_INTERVAL 15  // secondes
 #define MAX_CONTAINERS 100
 
 // Structure globale pour les métriques
 static MetricsData global_metrics = {0};
+
+// Définitions simplifiées si non définies
+#ifndef CONTAINER_METRICS_DEFINED
+typedef struct {
+    char name[256];
+    double cpu_percent;
+    unsigned long memory_mb;
+} ContainerMetrics;
+#endif
 
 /**
  * Collecte des métriques système
@@ -40,14 +55,11 @@ int collect_system_metrics(void) {
     }
     
     // CPU - lecture depuis /proc/loadavg
-    FILE *loadavg = fopen("/proc/loadavg", "r");
-    if (loadavg) {
-        double load1, load5, load15;
-        fscanf(loadavg, "%lf %lf %lf", &load1, &load5, &load15);
+    double load1 = 0.0, load5 = 0.0, load15 = 0.0;
+    if (read_proc_loadavg(&load1, &load5, &load15) == 0) {
         global_metrics.cpu.load_1 = load1;
         global_metrics.cpu.load_5 = load5;
         global_metrics.cpu.load_15 = load15;
-        fclose(loadavg);
     }
     
     // Mémoire

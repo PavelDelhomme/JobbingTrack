@@ -445,22 +445,11 @@ _up-full-internal:
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	
-	# Démarrer les services de monitoring complets (ancien système)
-	@echo "📊 Démarrage des services de monitoring complets (Prometheus, Grafana, Loki, etc.)..."
-	@if [ -f "$(ROOT_DIR)/monitoring/docker-compose.monitoring.yml" ]; then \
-		cd $(ROOT_DIR)/monitoring && \
-		if echo "$(DOCKER_COMPOSE_CMD)" | grep -q "docker compose"; then \
-			docker compose -f docker-compose.monitoring.yml up -d; \
-		else \
-			docker-compose -f docker-compose.monitoring.yml up -d; \
-		fi; \
-		echo "✅ Services de monitoring démarrés"; \
-	else \
-		echo "⚠️  Fichier monitoring/docker-compose.monitoring.yml non trouvé, monitoring non démarré"; \
-	fi
-	# Démarrer le NOUVEAU système de monitoring en C (ultra-léger)
+	# Démarrer le NOUVEAU système de monitoring en C (ultra-léger) - REMPLACE l'ancien
 	@echo "🚀 Démarrage du nouveau système de monitoring en C (ultra-léger)..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d monitoring-c log-collector-c)
+	@echo "   ⚠️  L'ancien système (Prometheus/Grafana/Loki) n'est PAS démarré automatiquement"
+	@echo "   💡 Utilisez 'make monitoring-up' si vous avez besoin de l'ancien système"
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build monitoring-c log-collector-c)
 	@echo "✅ Nouveau monitoring en C démarré"
 	
 	# Attendre que les services soient prêts
@@ -473,13 +462,12 @@ _up-full-internal:
 	@echo "🌐 Accès aux services :"
 	@echo "  - Frontend:           http://localhost:5003"
 	@echo "  - API Gateway:        http://localhost:5002"
-	@echo "  - Metrics Aggregator: http://localhost:5004 (ancien)"
-	@echo "  - Monitoring C:      http://localhost:5014 (nouveau - ultra-léger)"
-	@echo "  - Log Collector C:   http://localhost:5015 (nouveau - remplace Loki)"
-	@echo "  - Prometheus:         http://localhost:9090 (ancien)"
-	@echo "  - Grafana:            http://localhost:3013 (admin/admin123)"
-	@echo "  - Loki:               http://localhost:3100 (ancien)"
-	@echo "  - cAdvisor:           http://localhost:8082"
+	@echo "  - Monitoring C:       http://localhost:5014 (nouveau - ultra-léger)"
+	@echo "  - Log Collector C:    http://localhost:5015 (nouveau - remplace Loki)"
+	@echo "  - Metrics Aggregator: http://localhost:5004 (ancien - toujours disponible)"
+	@echo ""
+	@echo "💡 Ancien système de monitoring (Prometheus/Grafana/Loki):"
+	@echo "   Utilisez 'make monitoring-up' si vous en avez besoin"
 	@echo ""
 	
 	# Note: La vérification Prisma est faite après le démarrage complet dans up-full
