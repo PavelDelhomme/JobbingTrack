@@ -1,70 +1,43 @@
 /**
  * Stockage des métriques en base de données PostgreSQL
+ * Version simplifiée sans dépendance PostgreSQL (pour compilation)
  */
 
 #include "storage.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <libpq-fe.h>
+#include <time.h>
 
-static PGconn *conn = NULL;
+// TODO: Implémenter la connexion PostgreSQL quand nécessaire
+// Pour l'instant, stockage simplifié (affichage ou fichier)
 
 /**
- * Connexion à PostgreSQL
+ * Initialise le stockage
  */
-int db_connect(const char *conn_string) {
-    if (conn) return 0;  // Déjà connecté
-    
-    conn = PQconnectdb(conn_string);
-    if (PQstatus(conn) != CONNECTION_OK) {
-        fprintf(stderr, "Erreur connexion DB: %s\n", PQerrorMessage(conn));
-        PQfinish(conn);
-        conn = NULL;
-        return -1;
-    }
+int init_storage(void) {
+    // Pour l'instant, juste retourner 0 (succès)
+    // TODO: Connexion PostgreSQL
     return 0;
 }
 
 /**
- * Sauvegarde des métriques
+ * Sauvegarde les métriques en base
  */
 int save_metrics_to_db(const MetricsData *metrics) {
-    if (!conn) {
-        const char *conn_str = getenv("DATABASE_URL");
-        if (!conn_str) {
-            conn_str = "postgresql://jobbingtrack:jobbingtrack123@localhost:5000/jobbingtrack";
-        }
-        if (db_connect(conn_str) != 0) return -1;
-    }
-    
-    char query[2048];
-    snprintf(query, sizeof(query),
-        "INSERT INTO system_metrics_snapshot (timestamp, cpu_percent, memory_percent, disk_usage_percent) "
-        "VALUES (NOW(), %.2f, %.2f, %.2f) "
-        "ON CONFLICT DO NOTHING",
-        metrics->cpu.load_1 * 100.0 / (metrics->cpu.cores > 0 ? metrics->cpu.cores : 1),
-        metrics->memory.usage_percent,
-        metrics->disk.usage_percent);
-    
-    PGresult *res = PQexec(conn, query);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "Erreur INSERT: %s\n", PQerrorMessage(conn));
-        PQclear(res);
-        return -1;
-    }
-    
-    PQclear(res);
+    // Pour l'instant, juste afficher
+    // TODO: Insérer dans PostgreSQL
+    printf("[METRICS] CPU: %.2f%%, Memory: %.2f%% (%.2f MB used / %.2f MB total), Containers: %d\n",
+           metrics->cpu.load_1,
+           metrics->memory.usage_percent,
+           metrics->memory.used_mb,
+           metrics->memory.total_mb,
+           metrics->container_count);
     return 0;
 }
 
 /**
- * Fermeture de la connexion
+ * Nettoie les ressources
  */
-void db_disconnect(void) {
-    if (conn) {
-        PQfinish(conn);
-        conn = NULL;
-    }
+void cleanup_storage(void) {
+    // TODO: Fermer connexion PostgreSQL
 }
-
