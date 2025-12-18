@@ -94,7 +94,7 @@ void handle_request(int client_fd) {
 /**
  * Thread serveur HTTP
  */
-void* http_server_thread(void* arg) {
+void* http_server_thread(void* arg __attribute__((unused))) {
     int server_fd, client_fd;
     struct sockaddr_in address;
     int opt = 1;
