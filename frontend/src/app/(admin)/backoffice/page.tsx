@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/features/AdminLayout'
@@ -8,7 +8,9 @@ import MetricsErrorBoundary from '@/components/MetricsErrorBoundary'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
-import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from 'lucide-react'
+import { cacheManager } from '@/lib/cache/cacheManager'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from '@/lib/icons'
 import axios from 'axios'
 import { useTracking } from '@/components/tracking/TrackingProvider'
 
@@ -251,9 +253,11 @@ export default function BackofficePage() {
           // ✅ Enrichir les services avec leurs métriques en temps réel
           // FUSIONNER avec les valeurs précédentes pour éviter d'afficher "Test en cours" pendant le chargement
           setServicesWithMetrics((prevServices: any[]) => {
+            // ✅ CORRECTION : S'assurer que prevServices est un tableau
+            const safePrevServices = Array.isArray(prevServices) ? prevServices : []
             return services.map(service => {
               // Trouver le service précédent pour garder ses valeurs si disponibles
-              const prevService = prevServices.find(s => s.id === service.id)
+              const prevService = safePrevServices.find(s => s.id === service.id)
               
               // Chercher les métriques du conteneur correspondant au service
               const serviceKey = service.id.replace('-service', '')
@@ -273,14 +277,34 @@ export default function BackofficePage() {
                 serviceMetrics = allMetrics.services[service.id]
               }
               
-              // Déterminer le status : garder l'ancien si le nouveau n'est pas disponible
+              // ✅ OPTIMISATION : Déterminer le status avec logique de stabilité
+              // Ne changer le statut que si on a une confirmation claire, sinon garder l'ancien
               let newStatus = prevService?.status || 'testing'
-              if (serviceMetrics?.health?.status === 'healthy') {
-                newStatus = 'running'
-              } else if (serviceMetrics?.health?.status === 'unhealthy') {
-                newStatus = 'stopped'
-              } else if (serviceMetrics?.health?.status) {
-                newStatus = serviceMetrics.health.status
+              
+              // Si on a des métriques de service avec un statut de santé clair
+              if (serviceMetrics?.health?.status) {
+                const healthStatus = serviceMetrics.health.status
+                // Seulement changer si le statut est clairement défini
+                if (healthStatus === 'healthy') {
+                  newStatus = 'running'
+                } else if (healthStatus === 'unhealthy' || healthStatus === 'down') {
+                  newStatus = 'stopped'
+                } else if (healthStatus === 'testing' || healthStatus === 'starting') {
+                  // Garder l'ancien statut si on est en train de tester/démarrer
+                  newStatus = prevService?.status || 'testing'
+                } else {
+                  // Pour les autres statuts, utiliser le nouveau seulement s'il est différent de 'testing'
+                  if (healthStatus !== 'testing') {
+                    newStatus = healthStatus
+                  }
+                }
+              } else if (containerMetrics) {
+                // Si on a des métriques de conteneur mais pas de statut de santé, vérifier si le conteneur est actif
+                // Garder le statut précédent si disponible, sinon 'running' si le conteneur existe
+                newStatus = prevService?.status || 'running'
+              } else {
+                // Pas de métriques disponibles : garder l'ancien statut ou 'testing' si c'est la première fois
+                newStatus = prevService?.status || 'testing'
               }
               
               return {
@@ -324,17 +348,23 @@ export default function BackofficePage() {
     }
 
     if (isAuthenticated) {
-      loadSystemMetrics()
-      loadMaintenances()
+      // ✅ OPTIMISATION : Délai initial pour ne pas bloquer le chargement principal
+      const initialTimeout = setTimeout(() => {
+        loadSystemMetrics()
+        loadMaintenances()
+      }, 500)
       
-      // Actualiser toutes les 5 secondes (rafraîchissement rapide pour les métriques système)
+      // ✅ OPTIMISATION : Actualiser toutes les 15 secondes pour réduire les changements erratiques
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible') {
           loadSystemMetrics()
         }
-      }, 5000)
+      }, 15000) // ✅ OPTIMISATION : 15 secondes pour plus de stabilité
       
-      return () => clearInterval(interval)
+      return () => {
+        clearTimeout(initialTimeout)
+        clearInterval(interval)
+      }
     }
   }, [isAuthenticated])
 
@@ -343,24 +373,101 @@ export default function BackofficePage() {
       try {
         setLoadingStats(true)
         
-        // Récupérer les statistiques depuis les services (avec gestion silencieuse des 404)
+        // Récupérer les statistiques depuis les services (avec gestion silencieuse des erreurs)
         const fetchWithFallback = async (promise: Promise<any>, fallback: any) => {
           try {
             const result = await promise
             return result
           } catch (error: any) {
-            // Ne log que les erreurs autres que 404
-            if (error?.response?.status !== 404 && error?.code !== 'ERR_BAD_REQUEST') {
-              // Optional services can fail silently in production
-              // Only log in development or for critical services
+            // Gérer les erreurs 500, 503, et autres erreurs serveur gracieusement
+            const status = error?.response?.status
+            const isServerError = status >= 500 && status < 600
+            const isClientError = status >= 400 && status < 500
+            
+            // Ne log que les erreurs serveur (500+) ou les erreurs client critiques (401, 403)
+            // Ignorer silencieusement les 404 et autres erreurs non critiques
+            if (isServerError || (isClientError && (status === 401 || status === 403))) {
+              // En développement, logger pour debug
               if (process.env.NODE_ENV === 'development') {
-                console.warn('Error retrieving data:', error.message);
+                console.warn('Error retrieving data:', {
+                  status,
+                  message: error.message,
+                  url: error?.config?.url
+                });
               }
             }
+            // Toujours retourner le fallback pour éviter de bloquer l'interface
             return fallback
           }
         }
 
+        // ✅ OPTIMISATION : Charger les données en parallèle mais avec cache et limites
+        const cacheKey = `backoffice_overview_stats_${token?.substring(0, 10)}`
+        const cached = await cacheManager?.get(cacheKey, { ttl: 15000 }) // Cache 15 secondes
+        
+        if (cached) {
+          setStats(cached)
+          setLoadingStats(false)
+          // ✅ OPTIMISATION : Rafraîchir en arrière-plan sans bloquer
+          Promise.all([
+            fetchWithFallback(
+              applicationService.getAll({ limit: 10 }).catch((error: any) => {
+                if (error?.response?.status === 500) {
+                  console.warn('[Vue d\'ensemble] Erreur 500 sur /api/v1/applications');
+                }
+                throw error;
+              }),
+              { data: { total: 0, applications: [] } }
+            ),
+            fetchWithFallback(
+              axios.get(`${API_URL}/api/v1/auth/users?limit=10`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                validateStatus: (status) => status < 500
+              }).then(r => ({ data: r.data })).catch(e => {
+                if (e.response?.status !== 401 && e.response?.status !== 403) {
+                  return axios.get(`${API_URL}/api/v1/users?limit=10`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    validateStatus: (status) => status < 500
+                  }).then(r => ({ data: r.data })).catch(() => ({ data: { users: [] } }));
+                }
+                return { data: { users: [] } };
+              }),
+              { data: { users: [] } }
+            ),
+            fetchWithFallback(
+              companyService.getAll({ limit: 10 }),
+              { data: { companies: [] } }
+            ),
+            fetchWithFallback(
+              axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                validateStatus: (status) => status < 500
+              }),
+              { data: { total: 0, activeUsersLast30Min: 0 } }
+            )
+          ]).then(([applicationsResponse, usersResponse, companiesResponse, activeSessionsResponse]) => {
+            const totalApplications = applicationsResponse?.data?.total || 0
+            const totalUsers = usersResponse?.data?.users?.length || usersResponse?.data?.total || 0
+            const totalCompanies = companiesResponse?.data?.companies?.length || 0
+            const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || (user ? 1 : 0)
+
+            const newStats = {
+              totalApplications,
+              totalUsers,
+              totalCompanies,
+              activeUsers: activeSessions,
+              activeSessions: activeSessions,
+              systemHealth: 100,
+              deploymentStatus: 'success' as const
+            }
+
+            setStats(prev => ({ ...prev, ...newStats }))
+            cacheManager?.set(cacheKey, newStats, { ttl: 15000 }).catch(() => {})
+          }).catch(() => {})
+          return
+        }
+        
+        // Pas de cache, charger les données
         const [
           applicationsResponse,
           usersResponse,
@@ -368,17 +475,21 @@ export default function BackofficePage() {
           activeSessionsResponse
         ] = await Promise.all([
           fetchWithFallback(
-            applicationService.getAll(),
+            applicationService.getAll({ limit: 10 }).catch((error: any) => {
+              if (error?.response?.status === 500) {
+                console.warn('[Vue d\'ensemble] Erreur 500 sur /api/v1/applications');
+              }
+              throw error;
+            }),
             { data: { total: 0, applications: [] } }
           ),
           fetchWithFallback(
-            axios.get(`${API_URL}/api/v1/auth/users`, {
+            axios.get(`${API_URL}/api/v1/auth/users?limit=10`, {
               headers: { 'Authorization': `Bearer ${token}` },
-              validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
+              validateStatus: (status) => status < 500
             }).then(r => ({ data: r.data })).catch(e => {
-              // Si erreur, essayer le fallback /api/v1/users
               if (e.response?.status !== 401 && e.response?.status !== 403) {
-                return axios.get(`${API_URL}/api/v1/users`, {
+                return axios.get(`${API_URL}/api/v1/users?limit=10`, {
                   headers: { 'Authorization': `Bearer ${token}` },
                   validateStatus: (status) => status < 500
                 }).then(r => ({ data: r.data })).catch(() => ({ data: { users: [] } }));
@@ -388,13 +499,13 @@ export default function BackofficePage() {
             { data: { users: [] } }
           ),
           fetchWithFallback(
-            companyService.getAll(),
+            companyService.getAll({ limit: 10 }),
             { data: { companies: [] } }
           ),
           fetchWithFallback(
             axios.get(`${API_URL}/api/v1/auth/sessions/active`, {
               headers: { 'Authorization': `Bearer ${token}` },
-              validateStatus: (status) => status < 500 // Accepter 401, 403, 404 mais pas 500
+              validateStatus: (status) => status < 500
             }),
             { data: { total: 0, activeUsersLast30Min: 0 } }
           )
@@ -404,19 +515,25 @@ export default function BackofficePage() {
         const totalApplications = applicationsResponse?.data?.total || 0
         const totalUsers = usersResponse?.data?.users?.length || usersResponse?.data?.total || 0
         const totalCompanies = companiesResponse?.data?.companies?.length || 0
-        // Pour les sessions actives, utiliser l'utilisateur connecté si aucune session n'est trouvée
         const activeSessions = activeSessionsResponse?.data?.total || activeSessionsResponse?.data?.activeUsersLast30Min || (user ? 1 : 0)
 
-        setStats(prev => ({
-          ...prev,
+        const newStats = {
           totalApplications,
           totalUsers,
           totalCompanies,
           activeUsers: activeSessions,
-          activeSessions: activeSessions, // ✅ Ajouter aussi ici
+          activeSessions: activeSessions,
           systemHealth: 100,
-          deploymentStatus: 'success'
+          deploymentStatus: 'success' as const
+        }
+
+        setStats(prev => ({
+          ...prev,
+          ...newStats
         }))
+        
+        // Mettre en cache
+        await cacheManager?.set(cacheKey, newStats, { ttl: 15000 })
       } catch (error) {
         console.error('Erreur chargement statistiques:', error)
       } finally {
@@ -429,28 +546,69 @@ export default function BackofficePage() {
     }
   }, [isAuthenticated, token])
 
-  // Charger les services avec leurs métriques
+  // ✅ OPTIMISATION : Charger les services avec leurs métriques avec cache et délai
   useEffect(() => {
+    let mounted = true
+    let timeoutId: NodeJS.Timeout | null = null
+    
     const loadServicesWithMetrics = async () => {
       try {
+        // ✅ OPTIMISATION : Utiliser le cache
+        const cacheKey = 'backoffice_services_metrics'
+        const cached = await cacheManager?.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+        
+        if (cached && mounted) {
+          setServicesWithMetrics(cached)
+          // Rafraîchir en arrière-plan
+          timeoutId = setTimeout(async () => {
+            try {
+              const servicesData = await centralMetricsService.getAllServices()
+              if (servicesData && servicesData.length > 0 && mounted) {
+                const updatedServices = services.map(service => {
+                  const serviceData = servicesData.find((s: any) => s.name === service.name || s.id === service.id)
+                  return serviceData ? { ...service, ...serviceData } : service
+                })
+                await cacheManager?.set(cacheKey, updatedServices, { ttl: 30000 })
+                if (mounted) setServicesWithMetrics(updatedServices)
+              }
+            } catch (error) {
+              // Ignorer les erreurs en arrière-plan
+            }
+          }, 1000)
+          return
+        }
+        
+        // ✅ OPTIMISATION : Délai initial pour ne pas bloquer le chargement principal
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
         const servicesData = await centralMetricsService.getAllServices()
-        if (servicesData && servicesData.length > 0) {
+        if (servicesData && servicesData.length > 0 && mounted) {
           // ✅ FUSIONNER avec les valeurs précédentes au lieu d'écraser
           setServicesWithMetrics((prevServices: any[]) => {
-            return services.map(service => {
+            // ✅ CORRECTION : S'assurer que prevServices est un tableau
+            const safePrevServices = Array.isArray(prevServices) ? prevServices : []
+            const updated = services.map(service => {
               // Trouver le service précédent pour garder ses valeurs
-              const prevService = prevServices.find(s => s.id === service.id)
+              const prevService = safePrevServices.find(s => s.id === service.id)
               
               // Chercher le service correspondant dans les données Docker
               const dockerService = servicesData.find((s: any) => 
                 s.name?.includes(service.id) || s.name === `jobbingtrack-${service.id}`
               )
               
-              // Si on a des nouvelles données Docker, les utiliser, sinon garder les anciennes
+              // ✅ OPTIMISATION : Si on a des nouvelles données Docker, les utiliser avec logique stable
               if (dockerService) {
+                // Logique de statut stable - ne changer que si nécessaire
+                const dockerStatus = dockerService.is_running ? 'running' : 'stopped'
+                // Garder l'ancien statut si le nouveau est 'stopped' mais l'ancien était 'running'
+                // (éviter les changements erratiques dus aux requêtes qui échouent temporairement)
+                const finalStatus = (prevService?.status === 'running' && dockerStatus === 'stopped' && !dockerService.is_healthy) 
+                  ? prevService.status  // Garder 'running' si on était en ligne et que la requête échoue
+                  : dockerStatus
+                
                 return {
                   ...service,
-                  status: dockerService.is_running ? 'running' : 'stopped',
+                  status: finalStatus,
                   metrics: dockerService.metrics ? {
                     cpu: dockerService.metrics.cpu_percent,
                     memory: {
@@ -459,7 +617,9 @@ export default function BackofficePage() {
                     },
                     pids: dockerService.metrics.pids
                   } : prevService?.metrics,
-                  uptime: dockerService.is_running ? 'En ligne' : 'Hors ligne'
+                  health: prevService?.health || (dockerService.is_healthy ? { status: 'healthy' } : { status: 'unhealthy' }),
+                  responseTime: prevService?.responseTime || 'N/A',
+                  uptime: prevService?.uptime || (dockerService.is_running ? 'En ligne' : 'Hors ligne')
                 }
               }
               
@@ -476,7 +636,7 @@ export default function BackofficePage() {
     }
 
     loadServicesWithMetrics()
-    const interval = setInterval(loadServicesWithMetrics, 10000) // Refresh every 10s
+    const interval = setInterval(loadServicesWithMetrics, 15000) // ✅ OPTIMISATION : Refresh every 15s pour plus de stabilité
     return () => clearInterval(interval)
   }, [])
 
@@ -487,8 +647,8 @@ export default function BackofficePage() {
     }
   }, [isAuthenticated, token])
 
-  // Fonction pour générer le statut des services (simulé pour l'instant)
-  const generateServiceStatus = () => {
+  // ✅ OPTIMISATION : Mémoriser le statut des services simulés avec useMemo
+  const generateServiceStatus = useMemo(() => {
     const services = [
       { name: 'Auth Service', status: 'running', uptime: '15j 4h 23m' },
       { name: 'Application Service', status: 'running', uptime: '15j 4h 23m' },
@@ -502,9 +662,8 @@ export default function BackofficePage() {
       { name: 'Event Service', status: 'running', uptime: '15j 4h 23m' },
       { name: 'Followup Service', status: 'running', uptime: '15j 4h 23m' }
     ]
-
     return services
-  }
+  }, [])
 
   if (loading) {
     return (
@@ -710,13 +869,21 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent !== null
+                {/* ✅ OPTIMISATION : Afficher uniquement l'espace disque des conteneurs Docker */}
+                {systemMetrics?.jobbingtrack?.disk?.[0]?.usage_percent !== undefined 
+                  ? `${systemMetrics.jobbingtrack.disk[0].usage_percent}%` 
+                  : systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent !== null
                   ? `${systemMetrics.disk[0].usage_percent}%` 
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Disque</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Disque (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {systemMetrics?.disk?.[0]?.used_human && systemMetrics?.disk?.[0]?.total_human ? 
+                {/* ✅ Afficher l'espace utilisé par les conteneurs Docker uniquement */}
+                {systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human ? 
+                  `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}` : 
+                  systemMetrics?.jobbingtrack?.disk?.[0]?.containers_size_gb !== undefined ?
+                  `${systemMetrics.jobbingtrack.disk[0].containers_size_gb.toFixed(2)} GB (conteneurs)` :
+                  systemMetrics?.disk?.[0]?.used_human && systemMetrics?.disk?.[0]?.total_human ? 
                   `${systemMetrics.disk[0].used_human} / ${systemMetrics.disk[0].total_human}` : 
                   systemMetrics?.disk?.[0]?.used !== undefined && systemMetrics?.disk?.[0]?.total !== undefined ?
                   `${systemMetrics.disk[0].used} GB / ${systemMetrics.disk[0].total} GB` :
@@ -806,13 +973,13 @@ export default function BackofficePage() {
               </button>
             </div>
             <div className="space-y-3">
-              {generateServiceStatus().slice(0, 5).map((service, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              {(Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0 ? servicesWithMetrics : generateServiceStatus).slice(0, 5).map((service: any, index: number) => (
+                <div key={service.id || service.name || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${service.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{service.name}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{service.name || service.id}</span>
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{service.uptime}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{service.uptime || 'N/A'}</span>
                 </div>
               ))}
             </div>

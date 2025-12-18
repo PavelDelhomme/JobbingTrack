@@ -25,8 +25,31 @@ export default function ContactsTab() {
 
   const fetchContacts = async () => {
     try {
-      const response = await contactService.getAll()
-      setContacts(response.data.contacts || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_contacts_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setContacts(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        contactService.getAll({ limit: 100 }).then(response => {
+          const contacts = response.data.contacts || []
+          cacheManager.set(cacheKey, contacts, { ttl: 30000 })
+          setContacts(contacts)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 contacts par défaut
+      const response = await contactService.getAll({ limit: 100 })
+      const contacts = response.data.contacts || []
+      setContacts(contacts)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, contacts, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement contacts:', error)
     } finally {

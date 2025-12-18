@@ -32,8 +32,31 @@ export default function CompaniesTab() {
 
   const fetchCompanies = async () => {
     try {
-      const response = await companyService.getAll()
-      setCompanies(response.data.companies || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_companies_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setCompanies(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        companyService.getAll({ limit: 100 }).then(response => {
+          const companies = response.data.companies || []
+          cacheManager.set(cacheKey, companies, { ttl: 30000 })
+          setCompanies(companies)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 entreprises par défaut
+      const response = await companyService.getAll({ limit: 100 })
+      const companies = response.data.companies || []
+      setCompanies(companies)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, companies, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement entreprises:', error)
     } finally {

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from '@/lib/icons';
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -22,26 +23,55 @@ export default function NotificationsPage() {
     }
   }, [token]);
 
-  const loadNotifications = async () => {
+  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/v1/notifications`, {
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = `notifications_list_${token?.substring(0, 10)}`
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setNotifications(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        axios.get(`${API_URL}/api/v1/notifications?limit=100`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(response => {
+          if (response.data.success) {
+            const notifications = response.data.notifications || []
+            cacheManager.set(cacheKey, notifications, { ttl: 30000 })
+            setNotifications(notifications)
+          }
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 notifications par défaut
+      const response = await axios.get(`${API_URL}/api/v1/notifications?limit=100`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data.success) {
-        setNotifications(response.data.notifications || []);
+        const notifications = response.data.notifications || []
+        setNotifications(notifications)
+        // Mettre en cache
+        await cacheManager.set(cacheKey, notifications, { ttl: 30000 })
       }
     } catch (error) {
       console.error('Erreur chargement notifications:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const filteredNotifications = notifications.filter(notification =>
-    notification.message?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ✅ OPTIMISATION : useMemo pour filteredNotifications
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification =>
+      notification.message?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [notifications, searchTerm]);
 
   if (loading) {
     return (

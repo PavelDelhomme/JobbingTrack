@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { Calendar as CalendarIcon, Search, Plus, Edit, Trash2, RefreshCw, X, Clock, MapPin } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Calendar as CalendarIcon, Search, Plus, Edit, Trash2, RefreshCw, X, Clock, MapPin } from '@/lib/icons';
 import { eventService } from '@/lib/api';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface Event {
   id: string;
@@ -40,8 +43,30 @@ export default function EventsPage() {
   const loadEvents = async () => {
     try {
       setLoading(true);
-      const response = await eventService.getAll();
-      setEvents(response.data.events || response.data || []);
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'events_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setEvents(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        eventService.getAll({ limit: 100 }).then(response => {
+          const events = response.data.events || response.data || []
+          cacheManager.set(cacheKey, events, { ttl: 30000 })
+          setEvents(events)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 événements par défaut
+      const response = await eventService.getAll({ limit: 100 })
+      const events = response.data.events || response.data || []
+      setEvents(events)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, events, { ttl: 30000 })
     } catch (error: any) {
       console.error('Erreur chargement événements:', error);
       setEvents([]);
@@ -68,15 +93,24 @@ export default function EventsPage() {
     event.location?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Grouper les événements par date pour la vue calendrier
-  const eventsByDate = filteredEvents.reduce((acc, event) => {
-    const date = new Date(event.startDate).toLocaleDateString('fr-FR');
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(event);
-    return acc;
-  }, {} as Record<string, Event[]>);
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredEvents,
+    itemsPerPage: 20,
+    initialPage: 1,
+  });
+
+  // ✅ OPTIMISATION : useMemo pour grouper les événements par date
+  const eventsByDate = useMemo(() => {
+    return filteredEvents.reduce((acc, event) => {
+      const date = new Date(event.startDate).toLocaleDateString('fr-FR');
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(event);
+      return acc;
+    }, {} as Record<string, Event[]>);
+  }, [filteredEvents]);
 
   if (loading) {
     return (
@@ -175,7 +209,7 @@ export default function EventsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredEvents.map((event) => (
+                  {pagination.paginatedItems.map((event) => (
                     <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
@@ -228,7 +262,7 @@ export default function EventsPage() {
                       </td>
                     </tr>
                   ))}
-                  {filteredEvents.length === 0 && (
+                  {pagination.paginatedItems.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                         {events.length === 0 ? 'Aucun événement trouvé' : 'Aucun résultat pour votre recherche'}
@@ -238,6 +272,25 @@ export default function EventsPage() {
                 </tbody>
               </table>
             </div>
+            
+            {/* ✅ OPTIMISATION : Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.totalItems}
+                  itemsPerPage={20}
+                  startIndex={pagination.startIndex}
+                  endIndex={pagination.endIndex}
+                  onPageChange={pagination.goToPage}
+                  onNext={pagination.nextPage}
+                  onPrevious={pagination.previousPage}
+                  canGoNext={pagination.canGoNext}
+                  canGoPrevious={pagination.canGoPrevious}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">

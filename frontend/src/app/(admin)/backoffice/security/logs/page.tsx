@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AdminLayout } from '@/components/features'
 import axios from 'axios'
 
@@ -24,13 +24,8 @@ export default function SecurityLogsPage() {
   const [filterLevel, setFilterLevel] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
 
-  useEffect(() => {
-    fetchLogs()
-    const interval = setInterval(fetchLogs, 30000) // Rafraîchir toutes les 30 secondes
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchLogs = async () => {
+  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  const fetchLogs = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
@@ -52,13 +47,22 @@ export default function SecurityLogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, []);
 
-  const filteredLogs = logs.filter(log => {
-    if (filterLevel !== 'all' && log.level !== filterLevel) return false
-    if (filterCategory !== 'all' && log.category !== filterCategory) return false
-    return true
-  })
+  useEffect(() => {
+    fetchLogs()
+    const interval = setInterval(fetchLogs, 30000) // Rafraîchir toutes les 30 secondes
+    return () => clearInterval(interval)
+  }, [fetchLogs])
+
+  // ✅ OPTIMISATION : useMemo pour filteredLogs
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      if (filterLevel !== 'all' && log.level !== filterLevel) return false
+      if (filterCategory !== 'all' && log.category !== filterCategory) return false
+      return true
+    })
+  }, [logs, filterLevel, filterCategory])
 
   const levelColors = {
     info: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',

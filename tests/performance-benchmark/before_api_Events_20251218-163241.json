@@ -1,0 +1,11 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-163241",
+  "endpoint": "Events",
+  "url": "http://localhost:5002/api/v1/events",
+  "time_total": 0.051468,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "date": "2025-12-18T16:32:51+01:00"
+}

@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Contacts",
+  "url": "http://localhost:5003/backoffice/contacts",
+  "time_total": 0.185257,
+  "time_min": 0.169538,
+  "time_max": 0.215569,
+  "time_median": 0.170664,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.169538,0.170664,0.215569],
+  "date": "2025-12-18T17:21:08+01:00"
+}

@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Calls",
+  "url": "http://localhost:5002/api/v1/calls",
+  "time_total": 0,
+  "time_min": ,
+  "time_max": ,
+  "time_median": ,
+  "measures_count": 0,
+  "http_code": 0,
+  "size_bytes": 387,
+  "size_kb": 0.38,
+  "all_times": [],
+  "date": "2025-12-18T17:22:11+01:00"
+}

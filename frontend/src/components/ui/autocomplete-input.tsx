@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, Loader2 } from 'lucide-react'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Search, X, Loader2 } from '@/lib/icons'
 
 interface AutocompleteInputProps {
   value: string

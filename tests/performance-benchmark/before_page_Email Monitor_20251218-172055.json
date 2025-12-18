@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Email Monitor",
+  "url": "http://localhost:5003/backoffice/email-monitor",
+  "time_total": 0.208784,
+  "time_min": 0.198100,
+  "time_max": 0.229243,
+  "time_median": 0.199009,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.229243,0.198100,0.199009],
+  "date": "2025-12-18T17:22:01+01:00"
+}

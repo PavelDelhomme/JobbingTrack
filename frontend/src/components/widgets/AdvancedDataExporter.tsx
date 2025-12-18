@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, Database, Settings, Check, AlertCircle } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Download, FileText, Database, Settings, Check, AlertCircle } from '@/lib/icons';
 import JSZip from 'jszip';
 
 interface ExportOption {

@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Dashboard Emails",
+  "url": "http://localhost:5003/backoffice/emails",
+  "time_total": 0.492517,
+  "time_min": 0.157506,
+  "time_max": 0.951744,
+  "time_median": 0.368301,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.951744,0.368301,0.157506],
+  "date": "2025-12-18T17:22:00+01:00"
+}

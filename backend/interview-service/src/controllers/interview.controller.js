@@ -93,13 +93,26 @@ const getInterviews = async (req, res, next) => {
         prisma.interview.count({ where: { userId } })
       ]);
     } catch (error) {
-      // Fallback si table Interview n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table Interview non trouvée, retour de données vides (mode développement)');
+      // ✅ CORRECTION : Gérer les erreurs de colonne manquante (deletedAt, etc.)
+      const isTableError = error.code === 'P2021' || 
+                          error.code === 'P2022' ||
+                          (error.message && (
+                            error.message.includes('does not exist') || 
+                            error.message.includes('column') && error.message.includes('does not exist') ||
+                            error.message.includes('deletedAt')
+                          ));
+      
+      if (isTableError && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Interview ou colonne manquante, retour de données vides (mode développement)');
+        logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
         interviews = [];
         total = 0;
       } else {
-        logger.error('Erreur récupération entretiens:', error);
+        logger.error('Erreur récupération entretiens:', {
+          message: error.message,
+          code: error.code,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
         return next(error);
       }
     }

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
-import { Lock, CheckCircle, XCircle, Eye, EyeOff, AlertCircle } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Lock, CheckCircle, XCircle, Eye, EyeOff, AlertCircle } from '@/lib/icons';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 

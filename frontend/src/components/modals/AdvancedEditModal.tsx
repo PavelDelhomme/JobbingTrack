@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Edit, Save, X, CheckCircle, XCircle, Archive, ArchiveRestore, AlertTriangle, Shield } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Edit, Save, X, CheckCircle, XCircle, Archive, ArchiveRestore, AlertTriangle, Shield } from '@/lib/icons';
 
 interface AdvancedEditModalProps {
   isOpen: boolean;

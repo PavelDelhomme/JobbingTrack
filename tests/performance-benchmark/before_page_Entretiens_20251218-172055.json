@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Entretiens",
+  "url": "http://localhost:5003/backoffice/interviews",
+  "time_total": 0.197287,
+  "time_min": 0.163135,
+  "time_max": 0.233353,
+  "time_median": 0.195372,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.233353,0.163135,0.195372],
+  "date": "2025-12-18T17:21:10+01:00"
+}

@@ -60,12 +60,39 @@ class UserTracking {
   }
 
   /**
+   * Vérifier si on est sur une plateforme mobile
+   */
+  private isMobilePlatform(): boolean {
+    if (typeof window === 'undefined') return false;
+    
+    // Vérifier via user agent
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    
+    // Vérifier via la largeur d'écran (optionnel)
+    const isSmallScreen = window.innerWidth <= 768;
+    
+    // Vérifier si on est dans le backoffice (ne pas tracker)
+    const isBackoffice = window.location.pathname.startsWith('/backoffice');
+    
+    // Le tracking est uniquement pour mobile ET pas dans le backoffice
+    return isMobile && !isBackoffice;
+  }
+
+  /**
    * Initialiser le tracking
    */
   private async init() {
     if (typeof window === 'undefined') return;
 
-    // Vérifier si le tracking est désactivé
+    // ✅ DÉSACTIVER le tracking pour le web/backoffice - uniquement pour mobile
+    if (!this.isMobilePlatform()) {
+      this.enabled = false;
+      console.log('[TRACKING] Tracking désactivé - plateforme web/backoffice détectée');
+      return;
+    }
+
+    // Vérifier si le tracking est désactivé manuellement
     const trackingDisabled = localStorage.getItem('tracking_disabled') === 'true';
     if (trackingDisabled) {
       this.enabled = false;

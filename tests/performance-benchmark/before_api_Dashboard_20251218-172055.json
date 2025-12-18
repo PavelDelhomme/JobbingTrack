@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Dashboard",
+  "url": "http://localhost:5002/api/v1/dashboard",
+  "time_total": 0.005561,
+  "time_min": 0.004346,
+  "time_max": 0.007772,
+  "time_median": 0.004564,
+  "measures_count": 3,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "all_times": [0.007772,0.004346,0.004564],
+  "date": "2025-12-18T17:22:14+01:00"
+}

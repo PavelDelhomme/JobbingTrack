@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Users",
+  "url": "http://localhost:5002/api/v1/auth/users",
+  "time_total": 0.006504,
+  "time_min": 0.004415,
+  "time_max": 0.009010,
+  "time_median": 0.006087,
+  "measures_count": 3,
+  "http_code": 401,
+  "size_bytes": 79,
+  "size_kb": 0.08,
+  "all_times": [0.006087,0.009010,0.004415],
+  "date": "2025-12-18T17:22:09+01:00"
+}

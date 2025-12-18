@@ -45,6 +45,44 @@ start: ## Alias de up-full - Démarrer TOUS les services
 	@$(MAKE) up-full
 
 # ============================================================================
+# BENCHMARK BACKOFFICE - Tests de performance avant/après optimisations
+# ============================================================================
+
+benchmark-backoffice-before: ## Lance le benchmark complet du backoffice AVANT optimisations
+	@echo "📊 Benchmark Backoffice - AVANT optimisations"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/benchmark-all-backoffice.sh before
+	@echo ""
+	@echo "✅ Benchmark 'before' terminé !"
+	@echo "💡 Fichiers sauvegardés dans: tests/performance-benchmark/"
+
+benchmark-backoffice-after: ## Lance le benchmark complet du backoffice APRÈS optimisations
+	@echo "📊 Benchmark Backoffice - APRÈS optimisations"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/benchmark-all-backoffice.sh after
+	@echo ""
+	@echo "✅ Benchmark 'after' terminé !"
+	@echo "💡 Fichiers sauvegardés dans: tests/performance-benchmark/"
+
+benchmark-backoffice-compare: ## Compare les résultats des benchmarks avant/après
+	@echo "📊 Comparaison des benchmarks Backoffice"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/compare-all-backoffice.sh
+	@echo ""
+	@echo "✅ Comparaison terminée !"
+
+benchmark-backoffice-full: ## Lance le benchmark complet (before + after + compare)
+	@echo "📊 Benchmark Backoffice Complet"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "1️⃣  Benchmark AVANT optimisations..."
+	@$(MAKE) benchmark-backoffice-before
+	@echo ""
+	@echo "⏸️  Attendez que vous ayez appliqué les optimisations, puis :"
+	@echo "   make benchmark-backoffice-after"
+	@echo "   make benchmark-backoffice-compare"
+
+# ============================================================================
 # COMMANDE PAR DÉFAUT
 # ============================================================================
 

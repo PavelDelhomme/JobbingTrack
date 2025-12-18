@@ -1,0 +1,11 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-160635",
+  "page": "applications",
+  "url": "http://localhost:5003/backoffice/applications",
+  "time_total": 0.015222,
+  "http_code": 307,
+  "size_bytes": 6,
+  "size_kb": 0,
+  "date": "2025-12-18T16:06:36+01:00"
+}

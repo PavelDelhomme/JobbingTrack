@@ -2,11 +2,25 @@ const axios = require('axios');
 
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://prometheus:9090';
 
+// ✅ OPTIMISATION: Cache des métriques système avec TTL
+const systemMetricsCache = {
+  data: null,
+  timestamp: 0,
+  ttl: 5000 // 5 secondes de cache
+};
+
 // ============================================
 // MÉTRIQUES SYSTÈME HÔTE (via Node Exporter)
 // ============================================
 
 async function getSystemMetrics() {
+  // ✅ OPTIMISATION: Vérifier le cache avant de faire la requête
+  const now = Date.now();
+  if (systemMetricsCache.data && (now - systemMetricsCache.timestamp) < systemMetricsCache.ttl) {
+    console.log('[PROMETHEUS] Utilisation du cache pour les métriques système');
+    return systemMetricsCache.data;
+  }
+
   try {
     const queries = {
       // CPU - Nombre de cœurs
@@ -65,11 +79,17 @@ async function getSystemMetrics() {
       }
     }
 
-    return {
+    const result = {
       success: true,
       timestamp: new Date().toISOString(),
       data: results
     };
+    
+    // ✅ OPTIMISATION: Mettre en cache le résultat
+    systemMetricsCache.data = result;
+    systemMetricsCache.timestamp = now;
+    
+    return result;
   } catch (error) {
     console.error('Error fetching system metrics:', error.message);
     return {

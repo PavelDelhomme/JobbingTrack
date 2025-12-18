@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "endpoint": "Applications",
+  "url": "http://localhost:5002/api/v1/applications",
+  "time_total": 0.003251,
+  "time_min": 0.003008,
+  "time_max": 0.003466,
+  "time_median": 0.003278,
+  "measures_count": 3,
+  "http_code": 403,
+  "size_bytes": 37,
+  "size_kb": 0.04,
+  "all_times": [0.003466,0.003008,0.003278],
+  "date": "2025-12-18T17:22:08+01:00"
+}

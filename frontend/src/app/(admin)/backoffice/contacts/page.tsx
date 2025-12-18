@@ -7,6 +7,8 @@ import { AdminLayout } from '@/components/features';
 import { Users, Search, Plus, Edit, Trash2, Mail, Phone, Building2, RefreshCw, X } from 'lucide-react';
 import { contactService, companyService } from '@/lib/api';
 import { AutocompleteInput } from '@/components/ui/autocomplete-input';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -41,8 +43,30 @@ export default function ContactsPage() {
   const loadContacts = async () => {
     try {
       setLoading(true);
-      const response = await contactService.getAll();
-      setContacts(response.data.contacts || response.data || []);
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'contacts_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setContacts(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        contactService.getAll({ limit: 100 }).then(response => {
+          const contacts = response.data.contacts || response.data || []
+          cacheManager.set(cacheKey, contacts, { ttl: 30000 })
+          setContacts(contacts)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 contacts par défaut
+      const response = await contactService.getAll({ limit: 100 })
+      const contacts = response.data.contacts || response.data || []
+      setContacts(contacts)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, contacts, { ttl: 30000 })
     } catch (error: any) {
       console.error('Erreur chargement contacts:', error);
       // Fallback si erreur
@@ -71,6 +95,13 @@ export default function ContactsPage() {
     contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredContacts,
+    itemsPerPage: 20,
+    initialPage: 1,
+  });
 
   if (loading) {
     return (
@@ -144,7 +175,7 @@ export default function ContactsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredContacts.map((contact) => (
+                {pagination.paginatedItems.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -208,7 +239,7 @@ export default function ContactsPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredContacts.length === 0 && (
+                {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {contacts.length === 0 ? 'Aucun contact trouvé' : 'Aucun résultat pour votre recherche'}
@@ -218,6 +249,25 @@ export default function ContactsPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
+            </div>
+          )}
         </div>
       </div>
 

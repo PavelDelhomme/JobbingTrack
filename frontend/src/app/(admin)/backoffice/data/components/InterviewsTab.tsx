@@ -25,8 +25,31 @@ export default function InterviewsTab() {
 
   const fetchInterviews = async () => {
     try {
-      const response = await interviewService.getAll()
-      setInterviews(response.data.interviews || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_interviews_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setInterviews(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        interviewService.getAll({ limit: 100 }).then(response => {
+          const interviews = response.data.interviews || []
+          cacheManager.set(cacheKey, interviews, { ttl: 30000 })
+          setInterviews(interviews)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 entretiens par défaut
+      const response = await interviewService.getAll({ limit: 100 })
+      const interviews = response.data.interviews || []
+      setInterviews(interviews)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, interviews, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement entretiens:', error)
     } finally {

@@ -212,6 +212,15 @@ generate_report() {
 EOF
     
     echo -e "${GREEN}✅ Rapport généré: $REPORT_FILE${NC}"
+    
+    # ✅ Générer automatiquement un rapport HTML
+    if [ -f "$REPORT_FILE" ]; then
+        HTML_REPORT="${REPORT_FILE%.json}.html"
+        if [ -f "scripts/generate-html-report.sh" ]; then
+            bash scripts/generate-html-report.sh "$REPORT_FILE" "$HTML_REPORT"
+            echo -e "${GREEN}✅ Rapport HTML généré: $HTML_REPORT${NC}"
+        fi
+    fi
 }
 
 # Exécution

@@ -1,5 +1,6 @@
 import * as React from "react"
-import { ChevronDown, Check } from "lucide-react"
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { ChevronDown, Check } from "@/lib/icons"
 
 import { cn } from "@/lib/utils"
 

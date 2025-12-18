@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Tests API",
+  "url": "http://localhost:5003/backoffice/tests-api",
+  "time_total": 0.160064,
+  "time_min": 0.147569,
+  "time_max": 0.182251,
+  "time_median": 0.150371,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.182251,0.150371,0.147569],
+  "date": "2025-12-18T17:21:42+01:00"
+}

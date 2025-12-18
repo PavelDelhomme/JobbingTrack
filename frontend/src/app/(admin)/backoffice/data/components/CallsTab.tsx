@@ -24,8 +24,31 @@ export default function CallsTab() {
 
   const fetchCalls = async () => {
     try {
-      const response = await callService.getAll()
-      setCalls(response.data.calls || [])
+      setLoading(true)
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'data_calls_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setCalls(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        callService.getAll({ limit: 100 }).then(response => {
+          const calls = response.data.calls || []
+          cacheManager.set(cacheKey, calls, { ttl: 30000 })
+          setCalls(calls)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 appels par défaut
+      const response = await callService.getAll({ limit: 100 })
+      const calls = response.data.calls || []
+      setCalls(calls)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, calls, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement appels:', error)
     } finally {

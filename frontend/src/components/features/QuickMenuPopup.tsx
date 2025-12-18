@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Settings, User, X, Copy, Check, Key } from 'lucide-react'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Settings, User, X, Copy, Check, Key } from '@/lib/icons'
 
 interface QuickMenuPopupProps {
   isOpen: boolean

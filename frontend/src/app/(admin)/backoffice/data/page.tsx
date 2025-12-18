@@ -1,24 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Database, FileText, Building2, Users, Calendar, 
   Phone, Mail, Bell, Download, Upload
-} from 'lucide-react'
+} from '@/lib/icons'
 
-// Import des composants pour chaque type de données
-import DataManagementTab from './components/DataManagementTab'
-import ApplicationsTab from './components/ApplicationsTab'
-import CompaniesTab from './components/CompaniesTab'
-import ContactsTab from './components/ContactsTab'
-import InterviewsTab from './components/InterviewsTab'
-import CallsTab from './components/CallsTab'
-import FollowupsTab from './components/FollowupsTab'
-import EventsTab from './components/EventsTab'
-import NotificationsTab from './components/NotificationsTab'
+// ✅ OPTIMISATION : Chargement lazy des composants d'onglets
+const DataManagementTab = lazy(() => import('./components/DataManagementTab'))
+const ApplicationsTab = lazy(() => import('./components/ApplicationsTab'))
+const CompaniesTab = lazy(() => import('./components/CompaniesTab'))
+const ContactsTab = lazy(() => import('./components/ContactsTab'))
+const InterviewsTab = lazy(() => import('./components/InterviewsTab'))
+const CallsTab = lazy(() => import('./components/CallsTab'))
+const FollowupsTab = lazy(() => import('./components/FollowupsTab'))
+const EventsTab = lazy(() => import('./components/EventsTab'))
+const NotificationsTab = lazy(() => import('./components/NotificationsTab'))
 
 const TABS = [
   { id: 'management', label: 'Gestion Données', icon: Database },
@@ -104,17 +105,53 @@ export default function DataPage() {
           </nav>
         </div>
 
-        {/* Contenu des onglets */}
+        {/* Contenu des onglets - ✅ OPTIMISATION : Chargement lazy */}
         <div className="mt-6">
-          {activeTab === 'management' && <DataManagementTab />}
-          {activeTab === 'applications' && <ApplicationsTab />}
-          {activeTab === 'companies' && <CompaniesTab />}
-          {activeTab === 'contacts' && <ContactsTab />}
-          {activeTab === 'interviews' && <InterviewsTab />}
-          {activeTab === 'calls' && <CallsTab />}
-          {activeTab === 'followups' && <FollowupsTab />}
-          {activeTab === 'events' && <EventsTab />}
-          {activeTab === 'notifications' && <NotificationsTab />}
+          {activeTab === 'management' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <DataManagementTab />
+            </Suspense>
+          )}
+          {activeTab === 'applications' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <ApplicationsTab />
+            </Suspense>
+          )}
+          {activeTab === 'companies' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <CompaniesTab />
+            </Suspense>
+          )}
+          {activeTab === 'contacts' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <ContactsTab />
+            </Suspense>
+          )}
+          {activeTab === 'interviews' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <InterviewsTab />
+            </Suspense>
+          )}
+          {activeTab === 'calls' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <CallsTab />
+            </Suspense>
+          )}
+          {activeTab === 'followups' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <FollowupsTab />
+            </Suspense>
+          )}
+          {activeTab === 'events' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <EventsTab />
+            </Suspense>
+          )}
+          {activeTab === 'notifications' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <NotificationsTab />
+            </Suspense>
+          )}
         </div>
       </div>
     </AdminLayout>

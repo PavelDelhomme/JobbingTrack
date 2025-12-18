@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/auth';
 import { AdminLayout } from '@/components/features';
-import { Clock, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, AlertCircle, Mail } from 'lucide-react';
+// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import { Clock, Search, Plus, Edit, Trash2, Calendar, RefreshCw, X, AlertCircle, Mail } from '@/lib/icons';
 import { followUpService, applicationService } from '@/lib/api';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface FollowUp {
   id: string;
@@ -51,8 +54,30 @@ export default function FollowupsPage() {
   const loadFollowups = async () => {
     try {
       setLoading(true);
-      const response = await followUpService.getAll();
-      setFollowups(response.data.followups || response.data || []);
+      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      const cacheKey = 'followups_list'
+      const { cacheManager } = await import('@/lib/cache/cacheManager')
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
+      
+      if (cached) {
+        setFollowups(cached)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+        followUpService.getAll({ limit: 100 }).then(response => {
+          const followups = response.data.followups || response.data || []
+          cacheManager.set(cacheKey, followups, { ttl: 30000 })
+          setFollowups(followups)
+        }).catch(() => {}) // Ignorer les erreurs
+        return
+      }
+      
+      // ✅ OPTIMISATION : Limiter à 100 relances par défaut
+      const response = await followUpService.getAll({ limit: 100 })
+      const followups = response.data.followups || response.data || []
+      setFollowups(followups)
+      
+      // Mettre en cache
+      await cacheManager.set(cacheKey, followups, { ttl: 30000 })
     } catch (error: any) {
       console.error('Erreur chargement relances:', error);
       setFollowups([]);
@@ -78,6 +103,13 @@ export default function FollowupsPage() {
     followup.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     followup.applicationTitle?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ✅ OPTIMISATION : Pagination pour réduire la charge mémoire
+  const pagination = usePagination({
+    items: filteredFollowups,
+    itemsPerPage: 20,
+    initialPage: 1,
+  });
 
   if (loading) {
     return (
@@ -163,7 +195,7 @@ export default function FollowupsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredFollowups.map((followup) => (
+                {pagination.paginatedItems.map((followup) => (
                   <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{followup.subject || 'Relance'}</div>
@@ -211,7 +243,7 @@ export default function FollowupsPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredFollowups.length === 0 && (
+                {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {followups.length === 0 ? 'Aucune relance trouvée' : 'Aucun résultat pour votre recherche'}
@@ -221,6 +253,25 @@ export default function FollowupsPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* ✅ OPTIMISATION : Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={20}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                onPageChange={pagination.goToPage}
+                onNext={pagination.nextPage}
+                onPrevious={pagination.previousPage}
+                canGoNext={pagination.canGoNext}
+                canGoPrevious={pagination.canGoPrevious}
+              />
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,0 +1,16 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-172055",
+  "page": "Analytics Utilisateur",
+  "url": "http://localhost:5003/backoffice/user-analytics",
+  "time_total": 0.149494,
+  "time_min": 0.141099,
+  "time_max": 0.164572,
+  "time_median": 0.142811,
+  "measures_count": 3,
+  "http_code": 200,
+  "size_bytes": 12902,
+  "size_kb": 12.60,
+  "all_times": [0.164572,0.141099,0.142811],
+  "date": "2025-12-18T17:21:26+01:00"
+}

@@ -64,13 +64,26 @@ const getContacts = async (req, res, next) => {
         prisma.contact.count({ where })
       ]);
     } catch (error) {
-      // Fallback si table Contact n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table Contact non trouvée, retour de données vides (mode développement)');
+      // ✅ CORRECTION : Gérer les erreurs de colonne manquante (deletedAt, etc.)
+      const isTableError = error.code === 'P2021' || 
+                          error.code === 'P2022' ||
+                          (error.message && (
+                            error.message.includes('does not exist') || 
+                            error.message.includes('column') && error.message.includes('does not exist') ||
+                            error.message.includes('deletedAt')
+                          ));
+      
+      if (isTableError && process.env.NODE_ENV !== 'production') {
+        logger.warn('Table Contact ou colonne manquante, retour de données vides (mode développement)');
+        logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
         contacts = [];
         total = 0;
       } else {
-        logger.error('Erreur récupération contacts:', error);
+        logger.error('Erreur récupération contacts:', {
+          message: error.message,
+          code: error.code,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
         return next(error);
       }
     }

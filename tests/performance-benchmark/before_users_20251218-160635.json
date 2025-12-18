@@ -1,0 +1,11 @@
+{
+  "mode": "before",
+  "timestamp": "20251218-160635",
+  "page": "users",
+  "url": "http://localhost:5003/backoffice/users",
+  "time_total": 0.010815,
+  "http_code": 307,
+  "size_bytes": 6,
+  "size_kb": 0,
+  "date": "2025-12-18T16:06:36+01:00"
+}

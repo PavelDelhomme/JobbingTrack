@@ -1,0 +1,170 @@
+[
+  {
+    "service": "auth-service",
+    "stats": {
+      "BlockIO": "71.7MB / 3.41MB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-auth-service",
+      "ID": "4237063bc6da",
+      "MemPerc": "0.09%",
+      "MemUsage": "41.34MiB / 46.93GiB",
+      "Name": "jobbingtrack-auth-service",
+      "NetIO": "8.52MB / 640kB",
+      "PIDs": "61"
+    }
+  },
+  {
+    "service": "company-service",
+    "stats": {
+      "BlockIO": "56.2MB / 1.02MB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-company-service",
+      "ID": "3e251615da07",
+      "MemPerc": "0.07%",
+      "MemUsage": "35.42MiB / 46.93GiB",
+      "Name": "jobbingtrack-company-service",
+      "NetIO": "8.19MB / 335kB",
+      "PIDs": "59"
+    }
+  },
+  {
+    "service": "application-service",
+    "stats": {
+      "BlockIO": "56.1MB / 545kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-application-service",
+      "ID": "064f12e34617",
+      "MemPerc": "0.10%",
+      "MemUsage": "48.26MiB / 46.93GiB",
+      "Name": "jobbingtrack-application-service",
+      "NetIO": "1.73MB / 128kB",
+      "PIDs": "53"
+    }
+  },
+  {
+    "service": "contact-service",
+    "stats": {
+      "BlockIO": "48.8MB / 254kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-contact-service",
+      "ID": "2000541536ea",
+      "MemPerc": "0.06%",
+      "MemUsage": "27.07MiB / 46.93GiB",
+      "Name": "jobbingtrack-contact-service",
+      "NetIO": "3.8MB / 98.4kB",
+      "PIDs": "42"
+    }
+  },
+  {
+    "service": "interview-service",
+    "stats": {
+      "BlockIO": "45.2MB / 254kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-interview-service",
+      "ID": "e695f03bdd04",
+      "MemPerc": "0.06%",
+      "MemUsage": "29.02MiB / 46.93GiB",
+      "Name": "jobbingtrack-interview-service",
+      "NetIO": "3.8MB / 110kB",
+      "PIDs": "42"
+    }
+  },
+  {
+    "service": "call-service",
+    "stats": {
+      "BlockIO": "36.8MB / 254kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-call-service",
+      "ID": "94be148dc2c0",
+      "MemPerc": "0.03%",
+      "MemUsage": "14.77MiB / 46.93GiB",
+      "Name": "jobbingtrack-call-service",
+      "NetIO": "3.77MB / 62kB",
+      "PIDs": "41"
+    }
+  },
+  {
+    "service": "event-service",
+    "stats": {
+      "BlockIO": "35.3MB / 254kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-event-service",
+      "ID": "a6c834391eb6",
+      "MemPerc": "0.05%",
+      "MemUsage": "24.27MiB / 46.93GiB",
+      "Name": "jobbingtrack-event-service",
+      "NetIO": "3.77MB / 68.6kB",
+      "PIDs": "41"
+    }
+  },
+  {
+    "service": "followup-service",
+    "stats": {
+      "BlockIO": "35.3MB / 778kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-followup-service",
+      "ID": "cc88dd666d7e",
+      "MemPerc": "0.03%",
+      "MemUsage": "16.29MiB / 46.93GiB",
+      "Name": "jobbingtrack-followup-service",
+      "NetIO": "3.76MB / 61.7kB",
+      "PIDs": "41"
+    }
+  },
+  {
+    "service": "dashboard-service",
+    "stats": {
+      "BlockIO": "50.3MB / 594kB",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-dashboard-service",
+      "ID": "c3db4dc49833",
+      "MemPerc": "0.06%",
+      "MemUsage": "31.23MiB / 46.93GiB",
+      "Name": "jobbingtrack-dashboard-service",
+      "NetIO": "8.36MB / 699kB",
+      "PIDs": "48"
+    }
+  },
+  {
+    "service": "workflow-service",
+    "stats": {
+      "BlockIO": "59.7MB / 1.59MB",
+      "CPUPerc": "0.01%",
+      "Container": "jobbingtrack-workflow-service",
+      "ID": "590fc4438ad1",
+      "MemPerc": "0.04%",
+      "MemUsage": "21.2MiB / 46.93GiB",
+      "Name": "jobbingtrack-workflow-service",
+      "NetIO": "5.9MB / 337kB",
+      "PIDs": "48"
+    }
+  },
+  {
+    "service": "notification-service",
+    "stats": {
+      "BlockIO": "0B / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "jobbingtrack-notification-service",
+      "ID": "21d57c147d67",
+      "MemPerc": "0.04%",
+      "MemUsage": "18.38MiB / 46.93GiB",
+      "Name": "jobbingtrack-notification-service",
+      "NetIO": "7.63MB / 29.2kB",
+      "PIDs": "18"
+    }
+  },
+  {
+    "service": "security-service",
+    "stats": {
+      "BlockIO": "64.9MB / 1.13MB",
+      "CPUPerc": "0.01%",
+      "Container": "jobbingtrack-security-service",
+      "ID": "53dd77a9efb8",
+      "MemPerc": "0.17%",
+      "MemUsage": "80.95MiB / 46.93GiB",
+      "Name": "jobbingtrack-security-service",
+      "NetIO": "10.8MB / 6.06MB",
+      "PIDs": "44"
+    }
+  }
+]

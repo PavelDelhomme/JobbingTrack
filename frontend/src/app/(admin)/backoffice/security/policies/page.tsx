@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AdminLayout } from '@/components/features'
 import axios from 'axios'
 
@@ -21,12 +21,8 @@ export default function SecurityPoliciesPage() {
   const [blockedIPs, setBlockedIPs] = useState<string[]>([])
   const [newIP, setNewIP] = useState('')
 
-  useEffect(() => {
-    fetchPolicies()
-    fetchBlockedIPs()
-  }, [])
-
-  const fetchPolicies = async () => {
+  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  const fetchPolicies = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/security/policies`, {
@@ -68,9 +64,9 @@ export default function SecurityPoliciesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, []);
 
-  const fetchBlockedIPs = async () => {
+  const fetchBlockedIPs = useCallback(async () => {
     try {
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/security/blocked-ips`, {
@@ -83,7 +79,12 @@ export default function SecurityPoliciesPage() {
     } catch (error) {
       console.error('Erreur chargement IPs bloquées:', error)
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchPolicies()
+    fetchBlockedIPs()
+  }, [fetchPolicies, fetchBlockedIPs])
 
   const handleBlockIP = async () => {
     if (!newIP) return

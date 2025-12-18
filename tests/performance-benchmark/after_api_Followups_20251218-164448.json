@@ -1,0 +1,11 @@
+{
+  "mode": "after",
+  "timestamp": "20251218-164448",
+  "endpoint": "Followups",
+  "url": "http://localhost:5002/api/v1/followups",
+  "time_total": 0.001932,
+  "http_code": 503,
+  "size_bytes": 415,
+  "size_kb": 0.41,
+  "date": "2025-12-18T16:44:57+01:00"
+}
