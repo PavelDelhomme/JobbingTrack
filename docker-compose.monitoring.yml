@@ -38,7 +38,7 @@ services:
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
     ports:
-      - "${LOG_COLLECTOR_C_PORT:-5015}:${LOG_COLLECTOR_C_INTERNAL_PORT:-8016}"
+      - "${LOG_COLLECTOR_C_PORT:-5016}:${LOG_COLLECTOR_C_INTERNAL_PORT:-8016}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     volumes:
