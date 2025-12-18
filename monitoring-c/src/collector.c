@@ -83,30 +83,20 @@ int collect_system_metrics(void) {
 }
 
 /**
- * Collecte des métriques des conteneurs Docker
+ * Collecte des métriques des conteneurs Docker (simplifié)
  */
 int collect_container_metrics(void) {
-    // Utiliser l'API Docker via socket Unix
-    ContainerInfo containers[MAX_CONTAINERS];
-    int container_count = docker_list_containers(containers, MAX_CONTAINERS);
-    
-    if (container_count < 0) {
-        fprintf(stderr, "Erreur récupération conteneurs\n");
-        return -1;
-    }
-    
-    global_metrics.container_count = container_count;
-    
-    // Collecter métriques pour chaque conteneur
-    for (int i = 0; i < container_count; i++) {
-        ContainerMetrics metrics;
-        if (docker_get_container_stats(&containers[i], &metrics) == 0) {
-            // Stocker les métriques
-            // TODO: Implémenter le stockage
+    // Compter les conteneurs Docker actifs
+    FILE *fp = popen("docker ps -q 2>/dev/null | wc -l", "r");
+    if (fp) {
+        int count = 0;
+        if (fscanf(fp, "%d", &count) == 1) {
+            global_metrics.container_count = count;
         }
+        pclose(fp);
+        return 0;
     }
-    
-    return 0;
+    return -1;
 }
 
 /**
