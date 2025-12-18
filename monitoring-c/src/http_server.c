@@ -22,6 +22,7 @@ extern MetricsData global_metrics;
  * Génère une réponse JSON avec les métriques
  */
 void generate_json_response(char *buffer, size_t buffer_size) {
+    // Format adapté pour le frontend (formatMetricsFromMonitoringC)
     snprintf(buffer, buffer_size,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
@@ -34,7 +35,8 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "    \"load_1\": %.2f,\n"
         "    \"load_5\": %.2f,\n"
         "    \"load_15\": %.2f,\n"
-        "    \"cores\": %d\n"
+        "    \"cores\": %d,\n"
+        "    \"usage_percent\": %.2f\n"
         "  },\n"
         "  \"memory\": {\n"
         "    \"total_mb\": %lu,\n"
@@ -55,6 +57,7 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.cpu.load_5,
         global_metrics.cpu.load_15,
         global_metrics.cpu.cores,
+        global_metrics.cpu.load_1, // usage_percent approximatif depuis load_1
         global_metrics.memory.total_mb,
         global_metrics.memory.used_mb,
         global_metrics.memory.free_mb,
