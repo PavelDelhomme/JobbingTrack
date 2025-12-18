@@ -21,6 +21,8 @@ TARGET = $(BINDIR)/monitoring-c
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS) | $(BINDIR)
+	@echo "Linking: $@"
+	@echo "Objects: $(OBJECTS)"
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
