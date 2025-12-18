@@ -18,8 +18,8 @@
 #define COLLECTION_INTERVAL 15  // secondes
 #define MAX_CONTAINERS 100
 
-// Structure globale pour les métriques
-static MetricsData global_metrics = {0};
+// Structure globale pour les métriques (exportée pour http_server.c)
+MetricsData global_metrics = {0};
 
 /**
  * Collecte des métriques système
