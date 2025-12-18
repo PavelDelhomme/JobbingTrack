@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -std=c11 -D_GNU_SOURCE
-LDFLAGS = -lpq -lcurl -lm
+CFLAGS = -Wall -Wextra -O2 -std=c11 -D_GNU_SOURCE -pthread
+LDFLAGS = -lpq -lcurl -lm -pthread
 
 SRCDIR = src
 INCDIR = include

@@ -13,6 +13,7 @@
 #include "collector.h"
 #include "proc_reader.h"
 #include "storage.h"
+#include "http_server.h"
 
 #define COLLECTION_INTERVAL 15  // secondes
 #define MAX_CONTAINERS 100
@@ -96,6 +97,11 @@ int main(int argc, char *argv[]) {
     }
     
     printf("🚀 Collecteur de métriques démarré (intervalle: %ds)\n", interval);
+    
+    // Démarrer le serveur HTTP
+    if (start_http_server() != 0) {
+        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP\n");
+    }
     
     // Boucle infinie de collecte
     while (1) {
