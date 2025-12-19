@@ -11,6 +11,7 @@
 #include <sys/inotify.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <pthread.h>
 #include "collector.h"
 #include "parser.h"
