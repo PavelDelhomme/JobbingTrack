@@ -38,6 +38,7 @@ typedef struct {
     unsigned long network_tx_bytes;
     double response_time_ms;  // Temps de réponse HTTP en ms
     int http_status;          // Code HTTP (200, 404, etc.)
+    char health_url[512];     // URL pour health check
 } ContainerMetrics;
 
 // Structure complète des métriques

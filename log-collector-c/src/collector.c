@@ -45,9 +45,39 @@ int init_log_collector(void) {
  * Découvre les conteneurs Docker à surveiller
  */
 void discover_containers(void) {
-    // Lister les conteneurs via Docker API
-    FILE *fp = popen("docker ps --format '{{.ID}}'", "r");
-    if (!fp) return;
+    // Lister les conteneurs via Docker API (utiliser curl avec socket Unix)
+    FILE *fp = popen("curl -s --unix-socket /var/run/docker.sock http://localhost/containers/json 2>/dev/null | grep -o '\"Id\":\"[^\"]*\"' | cut -d'\"' -f4", "r");
+    if (!fp) {
+        // Fallback : lister directement les répertoires dans /var/lib/docker/containers
+        DIR *dir = opendir(LOG_DIR);
+        if (!dir) return;
+        
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL && watch_count < MAX_WATCHES) {
+            if (entry->d_name[0] == '.') continue;
+            
+            char container_id[64];
+            strncpy(container_id, entry->d_name, sizeof(container_id) - 1);
+            container_id[sizeof(container_id) - 1] = '\0';
+            
+            char log_path[512];
+            snprintf(log_path, sizeof(log_path), "%s/%s/%s-json.log", 
+                     LOG_DIR, container_id, container_id);
+            
+            struct stat st;
+            if (stat(log_path, &st) == 0) {
+                int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY);
+                if (wd >= 0) {
+                    strncpy(watches[watch_count].container_id, container_id, sizeof(watches[watch_count].container_id) - 1);
+                    strncpy(watches[watch_count].log_path, log_path, sizeof(watches[watch_count].log_path) - 1);
+                    watches[watch_count].watch_descriptor = wd;
+                    watch_count++;
+                }
+            }
+        }
+        closedir(dir);
+        return;
+    }
     
     char container_id[64];
     while (fgets(container_id, sizeof(container_id), fp) && watch_count < MAX_WATCHES) {

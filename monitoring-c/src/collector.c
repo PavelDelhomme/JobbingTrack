@@ -144,6 +144,35 @@ int collect_container_metrics(void) {
         pclose(stats_fp);
     }
     
+    // Mesurer les temps de réponse HTTP pour les services JobbingTrack
+    for (int i = 0; i < global_metrics.container_count && i < 100; i++) {
+        if (global_metrics.containers[i].name[0] != '\0') {
+            // Construire l'URL de health check (format: http://service-name:port/health)
+            char health_url[512];
+            snprintf(health_url, sizeof(health_url), "http://%s/health", global_metrics.containers[i].name);
+            
+            // Mesurer le temps de réponse avec curl
+            char curl_cmd[1024];
+            snprintf(curl_cmd, sizeof(curl_cmd),
+                "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 2 %s 2>/dev/null",
+                health_url);
+            
+            FILE *curl_fp = popen(curl_cmd, "r");
+            if (curl_fp) {
+                char response[64];
+                if (fgets(response, sizeof(response), curl_fp)) {
+                    double time_total = 0.0;
+                    int http_code = 0;
+                    if (sscanf(response, "%lf,%d", &time_total, &http_code) == 2) {
+                        global_metrics.containers[i].response_time_ms = time_total * 1000.0; // Convertir en ms
+                        global_metrics.containers[i].http_status = http_code;
+                    }
+                }
+                pclose(curl_fp);
+            }
+        }
+    }
+    
     return 0;
 }
 
