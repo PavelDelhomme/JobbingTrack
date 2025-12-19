@@ -14,7 +14,7 @@
 #include "storage.h"
 
 #define HTTP_PORT 8015
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 65536  // 64KB pour supporter plus de conteneurs
 
 extern MetricsData global_metrics;
 
