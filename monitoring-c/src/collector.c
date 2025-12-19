@@ -11,6 +11,7 @@
 #include <sys/statvfs.h>
 #include <sys/sysinfo.h>
 #include <strings.h>
+#include <string.h>
 #include "collector.h"
 #include "proc_reader.h"
 #include "storage.h"
