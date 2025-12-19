@@ -19,6 +19,9 @@ typedef struct {
     char level[16];  // INFO, WARN, ERROR, DEBUG
     char message[2048];
     char source[128];  // service name
+    double response_time_ms;  // Temps de réponse HTTP détecté (0 si non détecté)
+    int http_status;            // Code HTTP détecté (0 si non détecté)
+    int is_error;               // 1 si erreur détectée, 0 sinon
 } LogEntry;
 
 // Fonctions principales

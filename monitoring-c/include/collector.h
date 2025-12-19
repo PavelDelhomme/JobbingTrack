@@ -36,6 +36,8 @@ typedef struct {
     double memory_percent;
     unsigned long network_rx_bytes;
     unsigned long network_tx_bytes;
+    double response_time_ms;  // Temps de réponse HTTP en ms
+    int http_status;          // Code HTTP (200, 404, etc.)
 } ContainerMetrics;
 
 // Structure complète des métriques

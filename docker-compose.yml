@@ -146,6 +146,8 @@ services:
       - jobbingtrack_metrics_data:/tmp/metrics
     networks:
       - jobbingtrack-network
+    profiles:
+      - monitoring-old  # ⚠️ ANCIEN SYSTÈME - Ne démarre PAS avec 'full'
     restart: unless-stopped
   
   # =====================================
