@@ -99,31 +99,12 @@ export default defineConfig({
     }
   ],
 
-  // Serveur de développement
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
-
   // Setup et teardown globaux
   globalSetup: './e2e/global-setup.ts',
-  globalTeardown: './e2e/global-teardown.ts',
+  globalTeardown: './e2e/global-teardown.ts'
 
-  // Configuration pour les tests API
-  webServer: [
-    {
-      command: 'cd ../backend && docker-compose up -d',
-      url: 'http://localhost:3000/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-    },
-    {
-      command: 'cd ../frontend && npm run dev',
-      url: 'http://localhost:8080',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-    }
-  ]
+  // ⚠️ webServer désactivé - utilisez les services déjà démarrés avec make up-full
+  // Pour éviter les conflits de réseau Docker, démarrez les services manuellement:
+  // make up-full
+  // Puis lancez les tests: npx playwright test
 });

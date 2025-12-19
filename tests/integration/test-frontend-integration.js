@@ -82,6 +82,6 @@ testFrontendIntegration().then(() => {
   console.log('✅ Tous les ports sont correctement configurés');
 
   describe('Error handling', () => {
-    test('should handle network errors', () => {
-      // Test implementation
+    test.skip('should handle network errors', () => {
+      // TODO: Implémenter le test de gestion des erreurs réseau
     });
