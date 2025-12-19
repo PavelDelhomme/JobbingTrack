@@ -13,15 +13,18 @@ describe('Monitoring C Endpoints', () => {
     it('devrait retourner les métriques système', async () => {
       try {
         const response = await axios.get(`${MONITORING_C_URL}/api/v1/metrics`, {
-          timeout: 5000
+          timeout: 5000,
+          responseType: 'json' // S'assurer que axios parse le JSON
         });
 
         expect(response.status).toBe(200);
-        expect(response.data).toHaveProperty('cpu');
-        expect(response.data).toHaveProperty('memory');
-        expect(response.data).toHaveProperty('disk');
-        expect(response.data).toHaveProperty('containers');
-        expect(Array.isArray(response.data.containers)).toBe(true);
+        // Parser le JSON si c'est une chaîne
+        const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+        expect(data).toHaveProperty('cpu');
+        expect(data).toHaveProperty('memory');
+        expect(data).toHaveProperty('disk');
+        expect(data).toHaveProperty('containers');
+        expect(Array.isArray(data.containers)).toBe(true);
       } catch (error) {
         // Si monitoring-c n'est pas démarré, skip le test
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
@@ -34,10 +37,13 @@ describe('Monitoring C Endpoints', () => {
 
     it('devrait inclure les métriques de conteneurs', async () => {
       try {
-        const response = await axios.get(`${MONITORING_C_URL}/api/v1/metrics`);
+        const response = await axios.get(`${MONITORING_C_URL}/api/v1/metrics`, {
+          responseType: 'json'
+        });
 
-        if (response.data.containers && response.data.containers.length > 0) {
-          const container = response.data.containers[0];
+        const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+        if (data.containers && data.containers.length > 0) {
+          const container = data.containers[0];
           expect(container).toHaveProperty('name');
           expect(container).toHaveProperty('cpu_percent');
           expect(container).toHaveProperty('memory_mb');
@@ -54,13 +60,16 @@ describe('Monitoring C Endpoints', () => {
 
     it('devrait inclure les métriques globales', async () => {
       try {
-        const response = await axios.get(`${MONITORING_C_URL}/api/v1/metrics`);
+        const response = await axios.get(`${MONITORING_C_URL}/api/v1/metrics`, {
+          responseType: 'json'
+        });
 
-        expect(response.data).toHaveProperty('avg_response_time_ms');
-        expect(response.data).toHaveProperty('avg_cpu_percent');
-        expect(response.data).toHaveProperty('avg_memory_percent');
-        expect(response.data).toHaveProperty('availability_percent');
-        expect(response.data).toHaveProperty('load_score');
+        const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+        expect(data).toHaveProperty('avg_response_time_ms');
+        expect(data).toHaveProperty('avg_cpu_percent');
+        expect(data).toHaveProperty('avg_memory_percent');
+        expect(data).toHaveProperty('availability_percent');
+        expect(data).toHaveProperty('load_score');
       } catch (error) {
         if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
           return;

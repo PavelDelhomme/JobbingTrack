@@ -27,7 +27,7 @@ export default defineConfig({
 
   // Configuration globale pour tous les tests
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5003',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

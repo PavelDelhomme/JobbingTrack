@@ -1,0 +1,254 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+          - /url: /backoffice
+        - button "Fermer le menu" [ref=e8] [cursor=pointer]:
+          - img [ref=e9]
+      - navigation [ref=e11]:
+        - generic [ref=e12]:
+          - button "📊 Tableau de bord ▶" [ref=e13] [cursor=pointer]:
+            - generic [ref=e14]:
+              - generic [ref=e15]: 📊
+              - generic [ref=e16]: Tableau de bord
+            - generic [ref=e17]: ▶
+          - generic [ref=e18]:
+            - link "📊 Vue d'ensemble" [ref=e22] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e23]: 📊
+              - generic [ref=e24]: Vue d'ensemble
+            - link "📈 Statistiques" [ref=e28] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e29]: 📈
+              - generic [ref=e30]: Statistiques
+            - link "⚡ Performances & Analytics" [ref=e34] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e35]: ⚡
+              - generic [ref=e36]: Performances & Analytics
+        - generic [ref=e37]:
+          - button "🔒 Sécurité ▶" [ref=e38] [cursor=pointer]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: 🔒
+              - generic [ref=e41]: Sécurité
+            - generic [ref=e42]: ▶
+          - generic [ref=e43]:
+            - link "📋 Logs de Sécurité" [ref=e47] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e48]: 📋
+              - generic [ref=e49]: Logs de Sécurité
+            - link "⚙️ Politiques de Sécurité" [ref=e53] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e54]: ⚙️
+              - generic [ref=e55]: Politiques de Sécurité
+            - link "🛡️ Analyse de Sécurité" [ref=e59] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e60]: 🛡️
+              - generic [ref=e61]: Analyse de Sécurité
+            - link "🔥 Firewall" [ref=e65] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e66]: 🔥
+              - generic [ref=e67]: Firewall
+            - link "🌐 Réseau" [ref=e71] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e72]: 🌐
+              - generic [ref=e73]: Réseau
+            - link "⚠️ Menaces" [ref=e77] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e78]: ⚠️
+              - generic [ref=e79]: Menaces
+        - generic [ref=e80]:
+          - button "⚙️ Administration ▶" [ref=e81] [cursor=pointer]:
+            - generic [ref=e82]:
+              - generic [ref=e83]: ⚙️
+              - generic [ref=e84]: Administration
+            - generic [ref=e85]: ▶
+          - generic [ref=e86]:
+            - link "🔧 Gestion des Services" [ref=e90] [cursor=pointer]:
+              - /url: /backoffice/services
+              - generic [ref=e91]: 🔧
+              - generic [ref=e92]: Gestion des Services
+            - generic [ref=e95]:
+              - link "💾 Gestion des Données" [ref=e96] [cursor=pointer]:
+                - /url: /backoffice/data
+                - generic [ref=e97]: 💾
+                - generic [ref=e98]: Gestion des Données
+              - button "Expander les sous-items" [ref=e99] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e103] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e106]: 👥
+              - generic [ref=e107]: Utilisateurs
+            - link "📊 Analytics Utilisateur" [ref=e113] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e114]: 📊
+              - generic [ref=e115]: Analytics Utilisateur
+        - generic [ref=e116]:
+          - button "🛠️ Développement ▶" [ref=e117] [cursor=pointer]:
+            - generic [ref=e118]:
+              - generic [ref=e119]: 🛠️
+              - generic [ref=e120]: Développement
+            - generic [ref=e121]: ▶
+          - generic [ref=e122]:
+            - link "🧪 Testeur API" [ref=e126] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e127]: 🧪
+              - generic [ref=e128]: Testeur API
+            - link "🎲 Données de Test" [ref=e132] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e133]: 🎲
+              - generic [ref=e134]: Données de Test
+            - link "📱 Émulateur Mobile" [ref=e138] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e139]: 📱
+              - generic [ref=e140]: Émulateur Mobile
+            - generic [ref=e143]:
+              - link "🧪 Tests" [ref=e144] [cursor=pointer]:
+                - /url: /backoffice/playwright-tests
+                - generic [ref=e145]: 🧪
+                - generic [ref=e146]: Tests
+              - button "Expander les sous-items" [ref=e147] [cursor=pointer]: ▶
+            - generic [ref=e150]:
+              - link "🚶 Parcours Utilisateur" [ref=e151] [cursor=pointer]:
+                - /url: /backoffice/user-journey
+                - generic [ref=e152]: 🚶
+                - generic [ref=e153]: Parcours Utilisateur
+              - button "Expander les sous-items" [ref=e154] [cursor=pointer]: ▶
+        - generic [ref=e155]:
+          - button "📧 Gestion des Emails ▶" [ref=e156] [cursor=pointer]:
+            - generic [ref=e157]:
+              - generic [ref=e158]: 📧
+              - generic [ref=e159]: Gestion des Emails
+            - generic [ref=e160]: ▶
+          - generic [ref=e161]:
+            - link "📊 Dashboard" [ref=e165] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e166]: 📊
+              - generic [ref=e167]: Dashboard
+            - link "📈 Email Monitor" [ref=e171] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e172]: 📈
+              - generic [ref=e173]: Email Monitor
+            - link "📋 Historique" [ref=e177] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e178]: 📋
+              - generic [ref=e179]: Historique
+            - link "📝 Templates" [ref=e183] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e184]: 📝
+              - generic [ref=e185]: Templates
+            - link "⚙️ Configuration" [ref=e189] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e190]: ⚙️
+              - generic [ref=e191]: Configuration
+            - link "✅ Déliverabilité" [ref=e195] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e196]: ✅
+              - generic [ref=e197]: Déliverabilité
+      - generic [ref=e199]:
+        - button "DU Dev User SUPER_ADMIN" [ref=e201] [cursor=pointer]:
+          - generic [ref=e202]: DU
+          - generic [ref=e203]:
+            - paragraph [ref=e204]: Dev User
+            - paragraph [ref=e205]: SUPER_ADMIN
+        - button "🚪" [ref=e207] [cursor=pointer]
+    - generic [ref=e208]:
+      - generic [ref=e209]:
+        - generic [ref=e210]:
+          - button "Toggle menu" [ref=e212] [cursor=pointer]:
+            - img [ref=e213]
+          - generic [ref=e215]:
+            - button "Paramètres" [ref=e216] [cursor=pointer]:
+              - img [ref=e217]
+            - button "Actions rapides" [ref=e221] [cursor=pointer]:
+              - img [ref=e222]
+              - img [ref=e225]
+            - button "☀️" [ref=e228] [cursor=pointer]:
+              - generic [ref=e229]: ☀️
+              - img [ref=e230]
+        - generic [ref=e233]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e234]
+      - main [ref=e235]:
+        - generic [ref=e236]:
+          - generic [ref=e237]:
+            - generic [ref=e238]:
+              - heading "Gestion des Utilisateurs" [level=1] [ref=e239]
+              - paragraph [ref=e240]: Gérez les comptes utilisateurs et leurs permissions
+            - button "Nouvel utilisateur" [ref=e241] [cursor=pointer]:
+              - img [ref=e242]
+              - text: Nouvel utilisateur
+          - generic [ref=e243]:
+            - generic [ref=e245]:
+              - generic [ref=e246]:
+                - paragraph [ref=e247]: Total
+                - paragraph [ref=e248]: "1"
+              - img [ref=e249]
+            - generic [ref=e255]:
+              - generic [ref=e256]:
+                - paragraph [ref=e257]: Actifs
+                - paragraph [ref=e258]: "1"
+              - img [ref=e259]
+            - generic [ref=e264]:
+              - generic [ref=e265]:
+                - paragraph [ref=e266]: Inactifs
+                - paragraph [ref=e267]: "0"
+              - img [ref=e268]
+            - generic [ref=e274]:
+              - generic [ref=e275]:
+                - paragraph [ref=e276]: Admins
+                - paragraph [ref=e277]: "1"
+              - img [ref=e278]
+          - generic [ref=e281]:
+            - generic [ref=e283]:
+              - img [ref=e284]
+              - textbox "Rechercher par nom ou email..." [ref=e287]
+            - combobox [ref=e288]:
+              - option "Tous les rôles" [selected]
+              - option "Super Administrateurs"
+              - option "Administrateurs"
+              - option "Utilisateurs"
+              - option "Invités"
+            - button "Actualiser" [ref=e289] [cursor=pointer]:
+              - img [ref=e290]
+              - text: Actualiser
+          - table [ref=e297]:
+            - rowgroup [ref=e298]:
+              - row "Utilisateur Email Rôle Statut Création Actions" [ref=e299]:
+                - cell "Utilisateur" [ref=e300]
+                - cell "Email" [ref=e301]
+                - cell "Rôle" [ref=e302]
+                - cell "Statut" [ref=e303]
+                - cell "Création" [ref=e304]
+                - cell "Actions" [ref=e305]
+            - rowgroup [ref=e306]:
+              - row "DU Dev User admin@jobbingtrack.com SUPER ADMIN Actif 12/20/2025" [ref=e307]:
+                - cell "DU Dev User" [ref=e308]:
+                  - generic [ref=e309]:
+                    - generic [ref=e311]: DU
+                    - generic [ref=e313]: Dev User
+                - cell "admin@jobbingtrack.com" [ref=e314]:
+                  - generic [ref=e315]:
+                    - img [ref=e316]
+                    - text: admin@jobbingtrack.com
+                - cell "SUPER ADMIN" [ref=e319]:
+                  - generic [ref=e320]: SUPER ADMIN
+                - cell "Actif" [ref=e321]:
+                  - button "Actif" [ref=e322] [cursor=pointer]
+                - cell "12/20/2025" [ref=e323]:
+                  - generic [ref=e324]:
+                    - img [ref=e325]
+                    - text: 12/20/2025
+                - cell [ref=e327]:
+                  - generic [ref=e328]:
+                    - button "Modifier" [ref=e329] [cursor=pointer]:
+                      - img [ref=e330]
+                    - button "Envoyer email de réinitialisation de mot de passe" [ref=e333] [cursor=pointer]:
+                      - img [ref=e334]
+                    - button "Envoyer email de vérification" [ref=e337] [cursor=pointer]:
+                      - img [ref=e338]
+  - alert [ref=e341]
+```
