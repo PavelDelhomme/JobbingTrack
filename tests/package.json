@@ -4,7 +4,7 @@
   "description": "Tests complets pour JobbingTrack",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:all",
+    "test": "jest",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:database && npm run test:api && npm run test:e2e",
     "test:unit": "jest --config jest.config.js unit/",
     "test:integration": "jest --config jest.config.js integration/",

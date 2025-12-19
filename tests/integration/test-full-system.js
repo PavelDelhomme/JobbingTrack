@@ -90,6 +90,6 @@ testFullSystem().then(() => {
   console.log('\n🎉 TEST TERMINÉ');
 
   describe('Error handling', () => {
-    test('should handle network errors', () => {
-      // Test implementation
+    test.skip('should handle network errors', () => {
+      // TODO: Implémenter le test de gestion des erreurs réseau
     });

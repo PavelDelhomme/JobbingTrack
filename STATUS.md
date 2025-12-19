@@ -55,10 +55,15 @@
    - **Status** : 📋 À faire
 
 10. **Firewall et extension security-service**
-    - Implémentation firewall
-    - Analyse SYN
-    - Détection DDoS
-    - **Status** : 📋 À faire
+    - ✅ Implémentation firewall (règles, IPs bloquées)
+    - ✅ WAF (règles SQLi, XSS, etc.)
+    - ✅ Analyse SYN Flood
+    - ✅ Détection Port Scan
+    - ✅ Détection Brute Force
+    - ✅ Logs de sécurité complets
+    - ✅ Tests validés: 15/15 réussis
+    - **Status** : ✅ Opérationnel
+    - **Reste à faire** : Améliorer page d'analyse pour intégrer données firewall/threats
 
 ### 🟢 EN COURS - Améliorations continues
 

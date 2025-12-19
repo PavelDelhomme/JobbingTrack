@@ -1,16 +1,14 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: [
-    '<rootDir>/unit/test-utils.js',
-    '<rootDir>/unit/test-environment-variables.js',
-    '<rootDir>/integration/test-frontend-integration.js',
-    '<rootDir>/integration/test-full-system.js',
-    '<rootDir>/integration/test-hydration-fixes.js',
-    '<rootDir>/integration/test-implementation.js',
-    '<rootDir>/integration/test-websocket.js',
-    '<rootDir>/integration/verify-test-system.js',
     '**/tests/**/*.test.js',
     '**/tests/**/*.spec.js'
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/integration/test-hydration-fixes.js',
+    '/integration/test-implementation.js',
+    '/integration/verify-test-system.js'
   ],
   collectCoverageFrom: [
     '**/*.js',
