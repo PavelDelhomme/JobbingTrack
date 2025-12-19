@@ -56,6 +56,11 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "  \"avg_memory_percent\": %.2f,\n"
         "  \"availability_percent\": %.2f,\n"
         "  \"load_score\": %.2f,\n"
+        "  \"network\": {\n"
+        "    \"total_rx_mb\": %.2f,\n"
+        "    \"total_tx_mb\": %.2f,\n"
+        "    \"total_mb\": %.2f\n"
+        "  },\n"
         "  \"containers\": [\n",
         (long)global_metrics.timestamp,
         global_metrics.cpu.load_1,
@@ -76,7 +81,10 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.avg_cpu_percent,
         global_metrics.avg_memory_percent,
         global_metrics.availability_percent,
-        global_metrics.load_score
+        global_metrics.load_score,
+        global_metrics.total_network_rx_bytes / (1024.0 * 1024.0),
+        global_metrics.total_network_tx_bytes / (1024.0 * 1024.0),
+        (global_metrics.total_network_rx_bytes + global_metrics.total_network_tx_bytes) / (1024.0 * 1024.0)
     );
     
     // Ajouter les conteneurs avec métriques complètes

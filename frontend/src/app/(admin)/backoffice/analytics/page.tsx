@@ -129,7 +129,7 @@ const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
   }
 };
 
-// Fonction pour formater les labels de l'axe X en évitant les doublons
+// ✅ CORRECTION : Utiliser le timezone de l'utilisateur
 const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRange: string) => {
   if (!data || data.length === 0) return tickItem;
   
@@ -140,11 +140,23 @@ const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRang
   const date = new Date(item.timestamp);
   if (Number.isNaN(date.getTime())) return tickItem;
   
+  // ✅ CORRECTION : Utiliser le timezone de l'utilisateur
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: userTimezone,
+    hour12: false
+  };
+  
   // Pour 1h, afficher toutes les 5 minutes avec secondes
   if (timeRange === '1h') {
     const minutes = date.getMinutes();
     if (minutes % 5 === 0) {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options,
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
     }
     return '';
   }
@@ -259,8 +271,9 @@ export default function AnalyticsPage() {
   const [loadingAggregatedLogs, setLoadingAggregatedLogs] = useState(false);
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(10000);
-  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000);
+  // ✅ OPTIMISATION : Réduire les intervalles de rafraîchissement pour améliorer les performances
+  const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(15000); // 15s au lieu de 10s
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000); // 30s au lieu de 15s
 
   // Charger les préférences de rafraîchissement
   useEffect(() => {
@@ -987,9 +1000,13 @@ export default function AnalyticsPage() {
       const availability = toNumber(item.availability_percent, 100)
       const loadScore = toNumber(item.load_score || item.overallLoadScore, 0)
       
+      // ✅ CORRECTION : Utiliser le timestamp directement (déjà en UTC) et formater avec timezone utilisateur
+      // Ne pas convertir le timestamp lui-même, juste le formater pour l'affichage
+      const timestampDate = new Date(item.timestamp);
+      
       return {
         time: formatTimestamp(item.timestamp, timeRange),
-        timestamp: timestamp.getTime(), // Timestamp numérique pour tri
+        timestamp: timestampDate.getTime(), // Timestamp numérique pour tri (UTC)
         uniqueTime: uniqueTime, // Timestamp ISO unique pour éviter doublons
         cpu: Number.isFinite(cpu) ? cpu : 0,
         memory: Number.isFinite(memory) ? memory : 0,
@@ -1021,21 +1038,51 @@ export default function AnalyticsPage() {
       avgErrorRate: null
     };
 
-    const servicesList = metrics.servicesList || Object.values(metrics.services || {});
+    // ✅ CORRECTION : S'assurer que servicesList est toujours un tableau valide
+    const servicesList = Array.isArray(metrics.servicesList) && metrics.servicesList.length > 0
+      ? metrics.servicesList
+      : (metrics.services && typeof metrics.services === 'object' && !Array.isArray(metrics.services))
+      ? Object.values(metrics.services)
+      : [];
 
     // ✅ Utiliser les données des conteneurs (source fiable)
     let avgCpuUsage = null;
     let totalMemoryMb = null;
     
-    // Priorité 1: Données conteneurs (si disponibles dans containers)
+    // ✅ CORRECTION : Priorité 1: Données du monitoring C (avg_cpu_percent, avg_memory_percent directement)
+    // Vérifier aussi dans monitoringC si disponible
+    if (metrics.monitoringC?.avg_cpu_percent !== undefined) {
+      avgCpuUsage = Number(metrics.monitoringC.avg_cpu_percent);
+    } else if (metrics.avg_cpu_percent !== undefined) {
+      avgCpuUsage = Number(metrics.avg_cpu_percent);
+    }
+    // ✅ CORRECTION : Vérifier aussi dans monitoringC si disponible
+    if (metrics.monitoringC?.avg_memory_percent !== undefined) {
+      // avg_memory_percent est un pourcentage, on doit calculer la mémoire totale
+      if (metrics.memory?.total_mb) {
+        totalMemoryMb = Number(metrics.memory.total_mb) * (Number(metrics.monitoringC.avg_memory_percent) / 100);
+      } else if (metrics.memory?.used_mb) {
+        totalMemoryMb = Number(metrics.memory.used_mb);
+      }
+    } else if (metrics.avg_memory_percent !== undefined) {
+      // avg_memory_percent est un pourcentage, on doit calculer la mémoire totale
+      // Utiliser memory.total_mb et memory.usage_percent si disponibles
+      if (metrics.memory?.total_mb) {
+        totalMemoryMb = Number(metrics.memory.total_mb) * (Number(metrics.avg_memory_percent) / 100);
+      } else if (metrics.memory?.used_mb) {
+        totalMemoryMb = Number(metrics.memory.used_mb);
+      }
+    }
+    
+    // Priorité 1b: Données conteneurs (si disponibles dans containers)
     // Note: metrics.containers peut être un objet ou un tableau selon l'interface
-    if (metrics.containers && typeof metrics.containers === 'object' && !Array.isArray(metrics.containers)) {
+    if (avgCpuUsage === null && metrics.containers && typeof metrics.containers === 'object' && !Array.isArray(metrics.containers)) {
       const containers = metrics.containers as any;
       // Chercher des données agrégées dans les conteneurs
       if (containers.cpu?.averagePercent !== undefined) {
         avgCpuUsage = Number(containers.cpu.averagePercent);
       }
-      if (containers.memory?.used !== undefined) {
+      if (totalMemoryMb === null && containers.memory?.used !== undefined) {
         totalMemoryMb = Number(containers.memory.used);
       }
     }
@@ -1069,24 +1116,51 @@ export default function AnalyticsPage() {
         sum + toNumber(s.metrics?.memory?.usageMb, 0), 0);
     }
 
-    const totalNetworkRxMb = metrics.network?.total_rx_mb !== undefined 
+    // ✅ CORRECTION : Récupérer le trafic réseau depuis monitoring C ou network
+    const totalNetworkRxMb = metrics.network?.total_rx_mb !== undefined && metrics.network.total_rx_mb > 0
       ? toNumber(metrics.network.total_rx_mb, 0)
-      : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.rx_mb, 0), 0);
+      : servicesList.length > 0
+      ? servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.rx_mb || s.networkMb?.rx || s.network?.rx_mb, 0), 0)
+      : 0;
       
-    const totalNetworkTxMb = metrics.network?.total_tx_mb !== undefined
+    const totalNetworkTxMb = metrics.network?.total_tx_mb !== undefined && metrics.network.total_tx_mb > 0
       ? toNumber(metrics.network.total_tx_mb, 0)
-      : servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.tx_mb, 0), 0);
+      : servicesList.length > 0
+      ? servicesList.reduce((sum, s: any) => sum + toNumber(s.metrics?.network?.tx_mb || s.networkMb?.tx || s.network?.tx_mb, 0), 0)
+      : 0;
       
     const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
 
-    // Compter les services sains (healthy, running, online)
-    const healthyCount = servicesList.filter((s: any) => 
-      s.status === 'healthy' || 
-      s.status === 'running' || 
-      s.status === 'online' ||
-      s.healthStatus === 'online' ||
-      s.healthStatus === 'healthy'
-    ).length;
+    // ✅ CORRECTION : Compter les services sains (healthy, running, online)
+    // Un service est sain s'il a un status running/healthy/online OU un healthStatus online/healthy
+    // OU s'il a un http_status === 200 OU s'il a des métriques CPU/mémoire > 0
+    // OU s'il a un responseTimeMs valide (> 0 et < 10000ms)
+    const healthyCount = servicesList.length > 0 ? servicesList.filter((s: any) => {
+      // Priorité 1 : Status explicite
+      if (s.status === 'healthy' || s.status === 'running' || s.status === 'online' || s.status === 'active') {
+        return true;
+      }
+      // Priorité 2 : HealthStatus
+      if (s.healthStatus === 'online' || s.healthStatus === 'healthy' || s.healthStatus === 'active') {
+        return true;
+      }
+      // Priorité 3 : HTTP status 200
+      if (s.http_status === 200 || s.httpStatus === 200 || s.statusCode === 200) {
+        return true;
+      }
+      // Priorité 4 : Temps de réponse valide (service répond)
+      if (s.responseTimeMs && typeof s.responseTimeMs === 'number' && s.responseTimeMs > 0 && s.responseTimeMs < 10000) {
+        return true;
+      }
+      // Priorité 5 : Métriques disponibles (CPU ou mémoire > 0)
+      if ((s.metrics?.cpu?.percentage && s.metrics.cpu.percentage > 0) ||
+          (s.metrics?.memory?.usageMb && s.metrics.memory.usageMb > 0) ||
+          (s.cpu_percent && s.cpu_percent > 0) ||
+          (s.memory_mb && s.memory_mb > 0)) {
+        return true;
+      }
+      return false;
+    }).length : 0;
     const degradedCount = servicesList.filter((s: any) => 
       s.status === 'degraded' || 
       s.healthStatus === 'degraded'
@@ -1098,15 +1172,22 @@ export default function AnalyticsPage() {
       s.healthStatus === 'offline'
     ).length;
 
-    const responseTimes = servicesList
-      .map((s: any) => s.responseTimeMs)
-      .filter((rt): rt is number => typeof rt === 'number' && rt > 0);
-    let avgResponseTime = metrics.responseTime?.average_ms !== undefined 
-      ? toNumber(metrics.responseTime.average_ms, 0)
-      : null;
+    // ✅ CORRECTION : Récupérer le temps de réponse depuis monitoring C en priorité
+    let avgResponseTime = metrics.monitoringC?.avg_response_time_ms !== undefined
+      ? toNumber(metrics.monitoringC.avg_response_time_ms, 0)
+      : (metrics.responseTime?.average_ms !== undefined 
+        ? toNumber(metrics.responseTime.average_ms, 0)
+        : null);
     
-    if (avgResponseTime === null && responseTimes.length > 0) {
-      avgResponseTime = responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length;
+    // Fallback : calculer depuis les services si pas disponible
+    if (avgResponseTime === null) {
+      const responseTimes = servicesList
+        .map((s: any) => s.responseTimeMs || s.response_time_ms)
+        .filter((rt): rt is number => typeof rt === 'number' && rt > 0);
+      
+      if (responseTimes.length > 0) {
+        avgResponseTime = responseTimes.reduce((sum, rt) => sum + rt, 0) / responseTimes.length;
+      }
     }
 
     const totalErrors = servicesList.reduce((sum, s: any) => 

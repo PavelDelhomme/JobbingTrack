@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats
 
 # ============================================================================
 # AIDE
@@ -289,6 +289,31 @@ analyze-metrics-aggregator: ## Analyser spécifiquement metrics-aggregator
 	else \
 		echo "❌ Conteneur metrics-aggregator non trouvé"; \
 	fi
+
+# ============================================================================
+# SÉCURITÉ
+# ============================================================================
+
+security-generate-threats: ## Générer des menaces de test pour le système de sécurité
+	@echo "🔍 Génération de menaces de test..."
+	@chmod +x scripts/security/generate-test-threats.sh
+	@./scripts/security/generate-test-threats.sh
+	@echo ""
+	@echo "✅ Menaces de test générées !"
+	@echo "📋 Pour voir les menaces:"
+	@echo "   - Frontend: http://localhost:5003/backoffice/security/threats"
+	@echo "   - API: curl http://localhost:5002/api/v1/security/firewall/threats"
+
+test-firewall: ## Tester toutes les fonctionnalités du firewall et WAF
+	@echo "🔥 Test du Firewall et WAF"
+	@echo "=========================="
+	@chmod +x scripts/security/test-firewall.sh
+	@./scripts/security/test-firewall.sh
+	@echo ""
+	@echo "✅ Tests terminés !"
+	@echo "📋 Vérifiez les logs de sécurité:"
+	@echo "   - Frontend: http://localhost:5003/backoffice/security/logs"
+	@echo "   - API: curl http://localhost:5002/api/v1/security/logs?limit=20"
 
 backend-help: ## Aide complète backend + monitoring
 	@echo "================================================================"

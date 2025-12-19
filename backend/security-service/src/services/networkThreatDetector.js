@@ -6,7 +6,7 @@
 const { PrismaClient } = require('@prisma/client');
 const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
-const logger = require('../utils/logger');
+const { logger } = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
@@ -109,17 +109,43 @@ async function handleAnomaly(anomaly, metrics) {
       return;
     }
 
-    // Créer une nouvelle menace
+    // Enrichir les métadonnées avec plus de détails
+    const threatConnections = metrics.connections.filter(
+      conn => conn.remoteIp === anomaly.sourceIp
+    );
+    
+    const ports = [...new Set(threatConnections.map(c => c.localPort))];
+    const protocols = [...new Set(threatConnections.map(c => c.protocol))];
+    const states = [...new Set(threatConnections.map(c => c.state))];
+    
+    // Créer une nouvelle menace avec métadonnées enrichies
     const threat = await prisma.networkThreat.create({
       data: {
         threatType: anomaly.type,
         sourceIp: anomaly.sourceIp,
+        destIp: threatConnections[0]?.localIp || null,
+        destPort: ports.length === 1 ? ports[0] : null,
         severity: anomaly.severity,
         blocked: false,
         metadata: {
           message: anomaly.message,
           count: anomaly.count || anomaly.portCount || 1,
-          detectedAt: new Date().toISOString()
+          detectedAt: new Date().toISOString(),
+          ports: ports,
+          protocols: protocols,
+          states: states,
+          totalConnections: threatConnections.length,
+          connectionDetails: threatConnections.slice(0, 10).map(c => ({
+            localIp: c.localIp,
+            localPort: c.localPort,
+            remotePort: c.remotePort,
+            protocol: c.protocol,
+            state: typeof c.state === 'string' ? c.state : 'UNKNOWN'
+          })),
+          containerInfo: threatConnections[0]?.containerName ? {
+            containerName: threatConnections[0].containerName,
+            containerId: threatConnections[0].containerId
+          } : null
         }
       }
     });

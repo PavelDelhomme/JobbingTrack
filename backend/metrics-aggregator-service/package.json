@@ -14,27 +14,33 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   },
-  "keywords": ["metrics", "monitoring", "prometheus", "loki", "api"],
+  "keywords": [
+    "metrics",
+    "monitoring",
+    "prometheus",
+    "loki",
+    "api"
+  ],
   "author": "JobbingTrack Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "jsonwebtoken": "^9.0.2",
-    "cors": "^2.8.5",
     "@prisma/client": "^6.0.0",
-    "socket.io": "^4.6.1",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dockerode": "^4.0.0",
+    "express": "^4.18.2",
     "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.2",
-    "systeminformation": "^5.21.0",
-    "dockerode": "^4.0.0"
+    "socket.io": "^4.6.1",
+    "systeminformation": "^5.21.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3",
     "nodemon": "^3.0.2",
-    "prisma": "^6.0.0"
+    "prisma": "^7.2.0",
+    "supertest": "^6.3.3"
   },
   "engines": {
     "node": ">=18.0.0"

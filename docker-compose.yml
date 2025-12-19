@@ -133,6 +133,7 @@ services:
       - CADVISOR_URL=http://jobbingtrack-cadvisor:8080
       - PROMETHEUS_URL=http://jobbingtrack-prometheus:9090
       - LOKI_URL=http://jobbingtrack-loki:3100
+      - MONITORING_C_URL=http://monitoring-c:5098
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5003}
       - METRICS_API_KEY=jobbingtrack-metrics-secret-key
       - METRICS_COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-300000}
@@ -526,6 +527,12 @@ services:
       - SECURITY_SERVICE_URL=http://security-service:3017
       - PRISMA_DISABLE_WARNINGS=true
       - DEBUG=
+      - WAF_ENABLED=${WAF_ENABLED:-false}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     depends_on:
       postgres:
         condition: service_healthy

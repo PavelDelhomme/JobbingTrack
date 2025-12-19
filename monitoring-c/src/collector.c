@@ -308,10 +308,17 @@ int collect_container_metrics(void) {
         pclose(stats_fp);
     }
     
+    // ✅ CORRECTION : Stocker les totaux réseau dans global_metrics
+    global_metrics.total_network_rx_bytes = total_rx;
+    global_metrics.total_network_tx_bytes = total_tx;
+    
     // Mettre à jour le nombre de conteneurs JobbingTrack trouvés
     if (container_idx > 0) {
         global_metrics.container_count = container_idx;
-        printf("[CONTAINERS] %d conteneurs JobbingTrack trouvés\n", container_idx);
+        printf("[CONTAINERS] %d conteneurs JobbingTrack trouvés, réseau: RX=%.2f MB, TX=%.2f MB\n", 
+               container_idx, 
+               total_rx / (1024.0 * 1024.0), 
+               total_tx / (1024.0 * 1024.0));
     } else {
         // Si aucun conteneur JobbingTrack trouvé, utiliser le compte total
         // (déjà fait plus haut si container_idx == 0)

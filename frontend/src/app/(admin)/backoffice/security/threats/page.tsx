@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
 import { AlertTriangle, Shield, Ban, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
@@ -20,6 +21,7 @@ interface NetworkThreat {
 }
 
 export default function ThreatsPage() {
+  const router = useRouter();
   const [threats, setThreats] = useState<NetworkThreat[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -159,7 +161,13 @@ export default function ThreatsPage() {
                           <span className="font-semibold">{getThreatTypeLabel(threat.threatType)}</span>
                         </td>
                         <td className="p-3 font-mono text-sm">{threat.sourceIp}</td>
-                        <td className="p-3">{threat.destPort || 'N/A'}</td>
+                        <td className="p-3">
+                          {threat.destPort ? (
+                            <span className="font-mono">{threat.destPort}</span>
+                          ) : (
+                            <span className="text-gray-400">Tous</span>
+                          )}
+                        </td>
                         <td className="p-3">
                           <span className={`px-2 py-1 rounded text-sm ${getSeverityColor(threat.severity)}`}>
                             {threat.severity}
@@ -179,15 +187,24 @@ export default function ThreatsPage() {
                           )}
                         </td>
                         <td className="p-3">
-                          {!threat.blocked && (
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleBlockThreat(threat.id)}
-                              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
+                              onClick={() => router.push(`/backoffice/security/threats/${threat.id}`)}
+                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
                             >
-                              <Ban className="h-4 w-4" />
-                              Bloquer
+                              <Eye className="h-4 w-4" />
+                              Détails
                             </button>
-                          )}
+                            {!threat.blocked && (
+                              <button
+                                onClick={() => handleBlockThreat(threat.id)}
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
+                              >
+                                <Ban className="h-4 w-4" />
+                                Bloquer
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
