@@ -69,20 +69,30 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.container_count
     );
     
-    // Ajouter les conteneurs
+    // Ajouter les conteneurs avec métriques complètes
+    int container_added = 0;
     for (int i = 0; i < global_metrics.container_count && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
             pos += snprintf(buffer + pos, buffer_size - pos,
                 "%s    {\n"
                 "      \"name\": \"%s\",\n"
                 "      \"network_rx_bytes\": %lu,\n"
-                "      \"network_tx_bytes\": %lu\n"
+                "      \"network_tx_bytes\": %lu,\n"
+                "      \"network_rx_mb\": %.2f,\n"
+                "      \"network_tx_mb\": %.2f,\n"
+                "      \"response_time_ms\": %.2f,\n"
+                "      \"http_status\": %d\n"
                 "    }",
-                (i > 0) ? ",\n" : "",
+                (container_added > 0) ? ",\n" : "",
                 global_metrics.containers[i].name,
                 global_metrics.containers[i].network_rx_bytes,
-                global_metrics.containers[i].network_tx_bytes
+                global_metrics.containers[i].network_tx_bytes,
+                global_metrics.containers[i].network_rx_bytes / (1024.0 * 1024.0),
+                global_metrics.containers[i].network_tx_bytes / (1024.0 * 1024.0),
+                global_metrics.containers[i].response_time_ms,
+                global_metrics.containers[i].http_status
             );
+            container_added++;
         }
     }
     
