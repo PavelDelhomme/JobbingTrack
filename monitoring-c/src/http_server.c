@@ -71,7 +71,16 @@ void generate_json_response(char *buffer, size_t buffer_size) {
     
     // Ajouter les conteneurs avec métriques complètes
     int container_added = 0;
-    for (int i = 0; i < global_metrics.container_count && i < 100; i++) {
+    int actual_count = 0;
+    
+    // Compter d'abord les conteneurs valides
+    for (int i = 0; i < 100; i++) {
+        if (global_metrics.containers[i].name[0] != '\0') {
+            actual_count++;
+        }
+    }
+    
+    for (int i = 0; i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
             pos += snprintf(buffer + pos, buffer_size - pos,
                 "%s    {\n"
