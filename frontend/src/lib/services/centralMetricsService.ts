@@ -1151,6 +1151,75 @@ class CentralMetricsService {
   }
 
   /**
+   * Formate les métriques depuis monitoring-c vers le format attendu par le frontend
+   */
+  private formatMetricsFromMonitoringC(data: any): MetricsData {
+    const timestamp = data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString()
+    
+    // Convertir les conteneurs en services
+    const containers = Array.isArray(data.containers) ? data.containers : []
+    const servicesList: ServiceMetrics[] = containers.map((container: any) => {
+      const rawName = container.name || 'unknown-service'
+      const serviceType = rawName.replace(/^jobbingtrack-/, '')
+      const baseServiceType = serviceType.replace(/-prod$/, '').replace(/-preview$/, '').replace(/-staging$/, '')
+      const displayName = formatServiceName(rawName)
+      const networkRxMb = container.network_rx_bytes ? (container.network_rx_bytes / (1024 * 1024)) : 0
+      const networkTxMb = container.network_tx_bytes ? (container.network_tx_bytes / (1024 * 1024)) : 0
+
+      return {
+        id: rawName, rawName, displayName, serviceType: baseServiceType, name: displayName,
+        url: getServiceUrl(baseServiceType), port: getServicePort(baseServiceType),
+        status: 'running', responseTime: 'N/A', responseTimeMs: null, version: 'N/A',
+        healthStatus: 'online', healthError: undefined,
+        health: { status: 'online', responseTime: 'N/A', error: undefined },
+        lastCheck: timestamp, pids: null, errorRatePerMin: 0, errorCount5m: 0,
+        metrics: {
+          memory: { usage: 0, limit: 0, percentage: 0, usageMb: 0, limitMb: 0 },
+          cpu: { usage: 0, system: 0, percentage: 0, perCore: 0 },
+          network: { rx_bytes: container.network_rx_bytes || 0, tx_bytes: container.network_tx_bytes || 0, rx_mb: networkRxMb, tx_mb: networkTxMb }
+        },
+        networkMb: { rx: networkRxMb, tx: networkTxMb }
+      }
+    })
+
+    const servicesMap: { [key: string]: ServiceMetrics } = {}
+    const containersMap: Record<string, ContainerMetricEntry> = {}
+    servicesList.forEach(service => {
+      const key = service.rawName || service.name
+      servicesMap[key] = service
+      containersMap[key] = {
+        name: service.rawName || service.name,
+        memory: { usage: 0, limit: 0, percentage: 0, usageMb: 0, limitMb: 0 },
+        cpu: { usage: 0, system: 0, percentage: 0, perCore: 0 },
+        network: { rx_bytes: service.metrics?.network?.rx_bytes ?? 0, tx_bytes: service.metrics?.network?.tx_bytes ?? 0, rx_mb: service.metrics?.network?.rx_mb, tx_mb: service.metrics?.network?.tx_mb },
+        status: service.status, response_time_ms: null, error_count_5m: 0, error_rate_per_min: 0, pids: null
+      }
+    })
+
+    const totalNetworkRxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.rx ?? 0), 0)
+    const totalNetworkTxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0)
+
+    return {
+      services: servicesMap, system: {
+        cpu: { usage: data.cpu?.usage_percent ? `${data.cpu.usage_percent.toFixed(1)}%` : 'N/A', cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A', model: 'N/A' },
+        memory: {
+          total: data.memory?.total_mb ? `${(data.memory.total_mb / 1024).toFixed(2)} GB` : 'N/A',
+          used: data.memory?.used_mb ? `${(data.memory.used_mb / 1024).toFixed(2)} GB` : 'N/A',
+          free: data.memory?.free_mb ? `${(data.memory.free_mb / 1024).toFixed(2)} GB` : 'N/A',
+          usage: data.memory?.usage_percent ? `${data.memory.usage_percent.toFixed(1)}%` : 'N/A'
+        },
+        load: { average: data.cpu?.load_1 ? `${data.cpu.load_1.toFixed(2)}` : 'N/A', cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A' },
+        disk: data.disk ? [{ name: 'root', total: `${data.disk.total_gb.toFixed(2)} GB`, used: `${data.disk.used_gb.toFixed(2)} GB`, free: `${data.disk.free_gb.toFixed(2)} GB`, usage: `${data.disk.usage_percent.toFixed(1)}%` }] : []
+      },
+      containers: containersMap, timestamp,
+      network: { total_rx_mb: totalNetworkRxMb, total_tx_mb: totalNetworkTxMb, per_service: servicesList.map(s => ({ name: s.rawName || s.name, rx_mb: s.networkMb?.rx ?? 0, tx_mb: s.networkMb?.tx ?? 0 })) },
+      responseTime: { average_ms: null, fastest_ms: null, slowest_ms: null, per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, response_time_ms: null })) },
+      errors: { total_last_5m: 0, rate_per_min: 0, per_service: servicesList.map(s => ({ name: s.rawName || s.name, count_last_5m: 0, rate_per_min: 0 })) },
+      health: { availability_percent: 100, per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) }
+    }
+  }
+
+  /**
    * Récupère l'historique des métriques
    */
   async getMetricsHistory(options?: { limit?: number; startTime?: number; endTime?: number }) {
