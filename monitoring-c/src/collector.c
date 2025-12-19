@@ -68,10 +68,10 @@ int collect_system_metrics(void) {
 }
 
 /**
- * Collecte des métriques des conteneurs Docker (simplifié)
+ * Collecte des métriques des conteneurs Docker (amélioré avec réseau)
  */
 int collect_container_metrics(void) {
-    // Compter les conteneurs Docker actifs via popen
+    // Compter les conteneurs Docker actifs
     FILE *fp = popen("docker ps -q 2>/dev/null | wc -l", "r");
     if (fp) {
         int count = 0;
@@ -79,9 +79,72 @@ int collect_container_metrics(void) {
             global_metrics.container_count = count;
         }
         pclose(fp);
-        return 0;
     }
-    return -1;
+    
+    // Collecter les stats détaillées des conteneurs JobbingTrack
+    FILE *stats_fp = popen("docker stats --no-stream --format '{{json .}}' $(docker ps --filter 'name=jobbingtrack-' --format '{{.Names}}' 2>/dev/null | tr '\\n' ' ') 2>/dev/null", "r");
+    if (stats_fp) {
+        char line[4096];
+        int container_idx = 0;
+        unsigned long total_rx = 0, total_tx = 0;
+        
+        while (fgets(line, sizeof(line), stats_fp) && container_idx < 100) {
+            // Parser JSON basique pour extraire NetIO (format: "1.2MB / 3.4MB")
+            char *netio_start = strstr(line, "\"NetIO\":\"");
+            if (netio_start) {
+                netio_start += 9; // Skip "NetIO":"
+                char *netio_end = strstr(netio_start, "\"");
+                if (netio_end) {
+                    *netio_end = '\0';
+                    // Parser "1.2MB / 3.4MB" -> extraire les valeurs
+                    char *slash = strstr(netio_start, " / ");
+                    if (slash) {
+                        *slash = '\0';
+                        // Parser RX (avant le slash)
+                        double rx_val = 0.0;
+                        char rx_unit[4] = {0};
+                        if (sscanf(netio_start, "%lf%s", &rx_val, rx_unit) == 2) {
+                            unsigned long rx_bytes = (unsigned long)(rx_val * 1024 * 1024); // Convertir MB en bytes
+                            if (strcmp(rx_unit, "GB") == 0) rx_bytes *= 1024;
+                            else if (strcmp(rx_unit, "KB") == 0) rx_bytes /= 1024;
+                            
+                            // Parser TX (après le slash)
+                            double tx_val = 0.0;
+                            char tx_unit[4] = {0};
+                            if (sscanf(slash + 3, "%lf%s", &tx_val, tx_unit) == 2) {
+                                unsigned long tx_bytes = (unsigned long)(tx_val * 1024 * 1024);
+                                if (strcmp(tx_unit, "GB") == 0) tx_bytes *= 1024;
+                                else if (strcmp(tx_unit, "KB") == 0) tx_bytes /= 1024;
+                                
+                                total_rx += rx_bytes;
+                                total_tx += tx_bytes;
+                                
+                                // Extraire le nom du conteneur
+                                char *name_start = strstr(line, "\"Name\":\"");
+                                if (name_start) {
+                                    name_start += 8;
+                                    char *name_end = strstr(name_start, "\"");
+                                    if (name_end && container_idx < 100) {
+                                        size_t name_len = name_end - name_start;
+                                        if (name_len < sizeof(global_metrics.containers[container_idx].name)) {
+                                            strncpy(global_metrics.containers[container_idx].name, name_start, name_len);
+                                            global_metrics.containers[container_idx].name[name_len] = '\0';
+                                            global_metrics.containers[container_idx].network_rx_bytes = rx_bytes;
+                                            global_metrics.containers[container_idx].network_tx_bytes = tx_bytes;
+                                            container_idx++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        pclose(stats_fp);
+    }
+    
+    return 0;
 }
 
 /**

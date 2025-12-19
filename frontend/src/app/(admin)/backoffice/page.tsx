@@ -1029,7 +1029,7 @@ export default function BackofficePage() {
 
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {(servicesWithMetrics.length > 0 ? servicesWithMetrics : services).map((service) => {
+                  {((Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0) ? servicesWithMetrics : (Array.isArray(services) ? services : [])).map((service) => {
                     const maintenance = maintenances[service.id]
                     
                     return (
@@ -1196,7 +1196,7 @@ export default function BackofficePage() {
               <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {(servicesWithMetrics.length > 0 ? servicesWithMetrics : services).length} services disponibles
+                    {((Array.isArray(servicesWithMetrics) && servicesWithMetrics.length > 0) ? servicesWithMetrics : (Array.isArray(services) ? services : [])).length} services disponibles
                   </p>
                   <div className="flex items-center gap-3">
                     <button

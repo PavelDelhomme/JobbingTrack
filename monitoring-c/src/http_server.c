@@ -23,7 +23,7 @@ extern MetricsData global_metrics;
  */
 void generate_json_response(char *buffer, size_t buffer_size) {
     // Format adapté pour le frontend (formatMetricsFromMonitoringC)
-    snprintf(buffer, buffer_size,
+    int pos = snprintf(buffer, buffer_size,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
         "Access-Control-Allow-Origin: *\r\n"
@@ -50,8 +50,8 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "    \"free_gb\": %.2f,\n"
         "    \"usage_percent\": %.2f\n"
         "  },\n"
-        "  \"container_count\": %d\n"
-        "}",
+        "  \"container_count\": %d,\n"
+        "  \"containers\": [\n",
         (long)global_metrics.timestamp,
         global_metrics.cpu.load_1,
         global_metrics.cpu.load_5,
@@ -68,6 +68,26 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.disk.usage_percent,
         global_metrics.container_count
     );
+    
+    // Ajouter les conteneurs
+    for (int i = 0; i < global_metrics.container_count && i < 100; i++) {
+        if (global_metrics.containers[i].name[0] != '\0') {
+            pos += snprintf(buffer + pos, buffer_size - pos,
+                "%s    {\n"
+                "      \"name\": \"%s\",\n"
+                "      \"network_rx_bytes\": %lu,\n"
+                "      \"network_tx_bytes\": %lu\n"
+                "    }",
+                (i > 0) ? ",\n" : "",
+                global_metrics.containers[i].name,
+                global_metrics.containers[i].network_rx_bytes,
+                global_metrics.containers[i].network_tx_bytes
+            );
+        }
+    }
+    
+    // Fermer le JSON
+    snprintf(buffer + pos, buffer_size - pos, "\n  ]\n}");
 }
 
 /**
