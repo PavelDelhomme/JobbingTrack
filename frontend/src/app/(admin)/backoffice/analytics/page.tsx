@@ -108,12 +108,21 @@ const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return timestamp;
   
-  if (timeRange === '1h' || timeRange === '6h') {
+  if (timeRange === '1h') {
+    // Pour 1h, afficher heure:minute:seconde pour éviter les doublons
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } else if (timeRange === '6h') {
+    // Pour 6h, afficher heure:minute
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   } else if (timeRange === '24h') {
+    // Pour 24h, afficher heure:minute
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  } else {
+  } else if (timeRange === '7d') {
+    // Pour 7d, afficher jour mois heure
     return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit' });
+  } else {
+    // Pour 30d, afficher jour mois
+    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
   }
 };
 
@@ -121,20 +130,24 @@ const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
 const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRange: string) => {
   if (!data || data.length === 0) return tickItem;
   
-  // Pour les petites plages de temps, afficher toutes les heures
+  // Obtenir le timestamp réel depuis les données
+  const item = data[index];
+  if (!item || !item.timestamp) return tickItem;
+  
+  const date = new Date(item.timestamp);
+  if (Number.isNaN(date.getTime())) return tickItem;
+  
+  // Pour 1h, afficher toutes les 5 minutes avec secondes
   if (timeRange === '1h') {
-    // Afficher toutes les 10 minutes
-    const date = new Date(data[index]?.timestamp || tickItem);
     const minutes = date.getMinutes();
-    if (minutes % 10 === 0) {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (minutes % 5 === 0) {
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
     return '';
   }
   
   // Pour 6h, afficher toutes les heures
   if (timeRange === '6h') {
-    const date = new Date(data[index]?.timestamp || tickItem);
     const minutes = date.getMinutes();
     if (minutes === 0) {
       return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -142,12 +155,23 @@ const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRang
     return '';
   }
   
-  // Pour 24h, afficher toutes les 2 heures
+  // Pour 24h, afficher toutes les 2 heures (éviter les doublons)
   if (timeRange === '24h') {
-    const date = new Date(data[index]?.timestamp || tickItem);
     const hours = date.getHours();
     const minutes = date.getMinutes();
-    if (hours % 2 === 0 && minutes === 0) {
+    // Afficher seulement si c'est une heure paire et minute 0, ou si c'est le premier/dernier point
+    if ((hours % 2 === 0 && minutes === 0) || index === 0 || index === data.length - 1) {
+      // Vérifier qu'on n'affiche pas le même label que le précédent
+      if (index > 0) {
+        const prevDate = new Date(data[index - 1]?.timestamp);
+        if (!Number.isNaN(prevDate.getTime())) {
+          const prevHours = prevDate.getHours();
+          const prevMinutes = prevDate.getMinutes();
+          if (prevHours === hours && prevMinutes === minutes) {
+            return ''; // Éviter les doublons
+          }
+        }
+      }
       return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     }
     return '';
@@ -155,9 +179,19 @@ const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRang
   
   // Pour 7d, afficher le jour et l'heure toutes les 12h
   if (timeRange === '7d') {
-    const date = new Date(data[index]?.timestamp || tickItem);
     const hours = date.getHours();
     if (hours % 12 === 0) {
+      // Vérifier les doublons
+      if (index > 0) {
+        const prevDate = new Date(data[index - 1]?.timestamp);
+        if (!Number.isNaN(prevDate.getTime())) {
+          const prevDay = prevDate.getDate();
+          const prevHours = prevDate.getHours();
+          if (prevDay === date.getDate() && prevHours === hours) {
+            return '';
+          }
+        }
+      }
       return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit' });
     }
     return '';
@@ -165,9 +199,17 @@ const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRang
   
   // Pour 30d, afficher le jour toutes les 2 jours
   if (timeRange === '30d') {
-    const date = new Date(data[index]?.timestamp || tickItem);
     const day = date.getDate();
     if (day % 2 === 0) {
+      // Vérifier les doublons
+      if (index > 0) {
+        const prevDate = new Date(data[index - 1]?.timestamp);
+        if (!Number.isNaN(prevDate.getTime())) {
+          if (prevDate.getDate() === day && prevDate.getMonth() === date.getMonth()) {
+            return '';
+          }
+        }
+      }
       return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     }
     return '';
@@ -926,9 +968,14 @@ export default function AnalyticsPage() {
         }, 0);
       }
       
+      // Créer un timestamp unique pour éviter les doublons
+      // Utiliser timestamp ISO complet pour garantir l'unicité
+      const uniqueTime = timestamp.toISOString();
+      
       return {
         time: formatTimestamp(item.timestamp, timeRange),
-        timestamp: timestamp.getTime(), // Ajouter pour éviter de recalculer
+        timestamp: timestamp.getTime(), // Timestamp numérique pour tri
+        uniqueTime: uniqueTime, // Timestamp ISO unique pour éviter doublons
         cpu: toNumber(item.cpu_percent, 0),
         memory: toNumber(item.memory_percent, 0),
         networkRx: networkRx, // ✅ CORRECTION : Utiliser la valeur calculée (globale ou somme des services)
@@ -1290,10 +1337,14 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1339,10 +1390,14 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1389,10 +1444,14 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1443,10 +1502,14 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1546,10 +1609,14 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1723,10 +1790,14 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -1868,10 +1939,14 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
@@ -2027,10 +2102,14 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
-                  dataKey="time" 
+                  dataKey="uniqueTime" 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
                   interval="preserveStartEnd"
                 />
                 <YAxis 
