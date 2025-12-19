@@ -22,9 +22,12 @@ RUN make clean && make
 
 # Runtime minimal
 FROM alpine:latest
-RUN apk add --no-cache libpq curl
+RUN apk add --no-cache libpq curl docker-cli
 WORKDIR /app
 COPY --from=0 /app/bin/monitoring-c ./
+
+# Volume pour accéder à Docker socket
+VOLUME ["/var/run/docker.sock"]
 
 CMD ["./monitoring-c", "15"]
 

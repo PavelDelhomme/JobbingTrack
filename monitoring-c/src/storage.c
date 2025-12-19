@@ -26,7 +26,7 @@ int init_storage(void) {
 int save_metrics_to_db(const MetricsData *metrics) {
     // Pour l'instant, juste afficher
     // TODO: Insérer dans PostgreSQL
-    printf("[METRICS] CPU: %.2f%%, Memory: %.2f%% (%.2f MB used / %.2f MB total), Containers: %d\n",
+    printf("[METRICS] CPU: %.2f%%, Memory: %.2f%% (%lu MB used / %lu MB total), Containers: %d\n",
            metrics->cpu.load_1,
            metrics->memory.usage_percent,
            metrics->memory.used_mb,
