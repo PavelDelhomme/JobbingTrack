@@ -51,7 +51,8 @@ export default function SecurityLogsPage() {
 
   useEffect(() => {
     fetchLogs()
-    const interval = setInterval(fetchLogs, 30000) // Rafraîchir toutes les 30 secondes
+    // Rafraîchir toutes les 5 secondes pour un affichage en temps réel
+    const interval = setInterval(fetchLogs, 5000)
     return () => clearInterval(interval)
   }, [fetchLogs])
 
@@ -90,7 +91,7 @@ export default function SecurityLogsPage() {
               📋 Security Logs
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Monitor security events in real time
+              Monitor security events in real time (auto-refresh every 5 seconds)
             </p>
           </div>
         </div>

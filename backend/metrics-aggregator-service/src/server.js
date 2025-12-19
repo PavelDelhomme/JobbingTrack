@@ -523,20 +523,142 @@ async function collectContainerMetrics() {
   }
 }
 
+// ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
+async function collectMetricsFromMonitoringC() {
+  // Essayer d'abord l'URL depuis l'env, puis fallback vers le nom du service Docker
+  // Port interne: 8015, port externe: 5098
+  const monitoringCUrl = process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
+  try {
+    console.log('[MONITORING-C] Récupération des métriques depuis monitoring C...')
+    const response = await axios.get(`${monitoringCUrl}/api/v1/metrics`, {
+      timeout: 5000
+    })
+    
+    if (response.data) {
+      const containerCount = response.data.containers?.length || 0
+      console.log(`[MONITORING-C] ✅ Métriques récupérées depuis monitoring C: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
+      return response.data
+    }
+    return null
+  } catch (error) {
+    console.warn('[MONITORING-C] ⚠️ Monitoring C non disponible:', error.message)
+    return null
+  }
+}
+
 // Fonction principale de collecte des métriques
 async function collectAllMetrics() {
   console.log('[COLLECTOR] === DÉBUT COLLECTE ===')
   try {
     console.log('[COLLECTOR] Démarrage de la collecte des métriques...')
 
+    // ✅ NOUVEAU : Essayer d'abord de récupérer depuis monitoring C
+    let monitoringCData = null
+    try {
+      monitoringCData = await collectMetricsFromMonitoringC()
+    } catch (error) {
+      console.warn('[COLLECTOR] ⚠️ Monitoring C non disponible, utilisation de la collecte classique')
+    }
+
     // Découvrir les services
     const discoveredServices = await discoverServices()
 
-    // Collecter métriques système et conteneurs
-    await Promise.all([
-      collectSystemMetrics(),
-      collectContainerMetrics()
-    ])
+    // Collecter métriques système et conteneurs (fallback si monitoring C non disponible)
+    if (!monitoringCData) {
+      await Promise.all([
+        collectSystemMetrics(),
+        collectContainerMetrics()
+      ])
+    } else {
+      // ✅ Utiliser les données de monitoring C pour enrichir les métriques
+      console.log('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
+      
+      // Convertir les conteneurs de monitoring C en format attendu
+      if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
+        console.log(`[COLLECTOR] Conversion de ${monitoringCData.containers.length} conteneurs depuis monitoring C`)
+        monitoringCData.containers.forEach(container => {
+          const containerName = container.name || 'unknown'
+          if (!containerMetrics[containerName]) {
+            containerMetrics[containerName] = {}
+          }
+          
+          containerMetrics[containerName] = {
+            ...containerMetrics[containerName],
+            cpu: {
+              percentage: container.cpu_percent || 0,
+              usage: container.cpu_percent || 0
+            },
+            memory: {
+              usage: container.memory_mb || 0,
+              limit: container.memory_limit_mb || 0,
+              percentage: container.memory_percent || 0,
+              usageMb: container.memory_mb || 0,
+              limitMb: container.memory_limit_mb || 0
+            },
+            network: {
+              rx: container.network_rx_bytes || 0,
+              tx: container.network_tx_bytes || 0,
+              rx_mb: container.network_rx_mb || (container.network_rx_bytes ? container.network_rx_bytes / (1024 * 1024) : 0),
+              tx_mb: container.network_tx_mb || (container.network_tx_bytes ? container.network_tx_bytes / (1024 * 1024) : 0)
+            },
+            responseTimeMs: container.response_time_ms || null,
+            httpStatus: container.http_status || 0
+          }
+        })
+      }
+      
+      // Enrichir systemMetrics avec les données de monitoring C
+      if (!systemMetrics) {
+        systemMetrics = {}
+      }
+      
+      systemMetrics.monitoringC = {
+        avg_cpu_percent: monitoringCData.avg_cpu_percent || 0,
+        avg_memory_percent: monitoringCData.avg_memory_percent || 0,
+        avg_response_time_ms: monitoringCData.avg_response_time_ms || 0,
+        container_count: monitoringCData.container_count || 0,
+        load_score: monitoringCData.load_score || 0,
+        availability_percent: monitoringCData.availability_percent || 0,
+        // ✅ CORRECTION : Ajouter les métriques réseau depuis monitoring C
+        network: monitoringCData.network || {
+          total_rx_mb: 0,
+          total_tx_mb: 0,
+          total_mb: 0
+        }
+      }
+      
+      // Enrichir avec les métriques CPU, mémoire, disque depuis monitoring C
+      if (monitoringCData.cpu) {
+        systemMetrics.cpu = {
+          ...systemMetrics.cpu,
+          load_1: monitoringCData.cpu.load_1,
+          load_5: monitoringCData.cpu.load_5,
+          load_15: monitoringCData.cpu.load_15,
+          cores: monitoringCData.cpu.cores,
+          usage_percent: monitoringCData.cpu.usage_percent || monitoringCData.avg_cpu_percent
+        }
+      }
+      
+      if (monitoringCData.memory) {
+        systemMetrics.memory = {
+          ...systemMetrics.memory,
+          total_mb: monitoringCData.memory.total_mb,
+          used_mb: monitoringCData.memory.used_mb,
+          free_mb: monitoringCData.memory.free_mb,
+          usage_percent: monitoringCData.memory.usage_percent || monitoringCData.avg_memory_percent
+        }
+      }
+      
+      if (monitoringCData.disk) {
+        systemMetrics.disk = [{
+          name: 'root',
+          total: monitoringCData.disk.total_gb,
+          used: monitoringCData.disk.used_gb,
+          free: monitoringCData.disk.free_gb,
+          usage: monitoringCData.disk.usage_percent
+        }]
+      }
+    }
 
     // Tester la santé de chaque service
     for (const [serviceName, serviceConfig] of Object.entries(discoveredServices)) {
@@ -724,8 +846,9 @@ async function collectAllMetrics() {
         total_last_5m: 0,
         rate_per_min: 0
       },
-      // ✅ Ajouter le réseau depuis containersAggregate
-      network: systemMetrics.containersAggregate?.network || {
+      // ✅ CORRECTION : Ajouter le réseau depuis monitoring C en priorité, puis containersAggregate
+      network: monitoringCData?.network || 
+               systemMetrics.containersAggregate?.network || {
         total_rx_mb: 0,
         total_tx_mb: 0,
         total_mb: 0
@@ -747,22 +870,103 @@ async function collectAllMetrics() {
     
     // ✅ PERSISTANCE : Sauvegarder dans la base de données
     try {
-      // Calculer le load score (combinaison CPU + mémoire)
-      const cpuPercent = systemMetrics.host?.cpu?.usagePercent || systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent || 0;
-      const memoryPercent = systemMetrics.host?.memory?.usagePercent || systemMetrics.jobbingtrack?.containers?.memory?.percent || 0;
-      const loadScore = parseFloat((((cpuPercent / 100) + (memoryPercent / 100)) / 2).toFixed(3));
+      // ✅ PRIORITÉ : Utiliser les données de monitoring C si disponibles
+      const cpuPercent = monitoringCData?.avg_cpu_percent || 
+                        systemMetrics.monitoringC?.avg_cpu_percent ||
+                        systemMetrics.host?.cpu?.usagePercent || 
+                        systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent || 
+                        systemMetrics.cpu?.usage_percent || 0;
+      
+      const memoryPercent = monitoringCData?.avg_memory_percent ||
+                           systemMetrics.monitoringC?.avg_memory_percent ||
+                           systemMetrics.host?.memory?.usagePercent || 
+                           systemMetrics.jobbingtrack?.containers?.memory?.percent || 
+                           systemMetrics.memory?.usage_percent || 0;
+      
+      const loadScore = monitoringCData?.load_score || 
+                       systemMetrics.monitoringC?.load_score ||
+                       parseFloat((((cpuPercent / 100) + (memoryPercent / 100)) / 2).toFixed(3));
+      
+      const responseTimeAvg = monitoringCData?.avg_response_time_ms ||
+                             systemMetrics.monitoringC?.avg_response_time_ms ||
+                             metricsData.responseTime?.average_ms || null;
+      
+      const availabilityPercent = monitoringCData?.availability_percent ||
+                                 systemMetrics.monitoringC?.availability_percent ||
+                                 stackAvailability;
+      
+      // Préparer les métriques système pour la sauvegarde
+      const systemMetricsForDb = {
+        ...systemMetrics,
+        cpu: {
+          ...systemMetrics.cpu,
+          usage: cpuPercent,
+          percent: cpuPercent,
+          usagePercent: cpuPercent
+        },
+        memory: {
+          ...systemMetrics.memory,
+          usage: memoryPercent,
+          percent: memoryPercent,
+          usagePercent: memoryPercent,
+          used: systemMetrics.memory?.used_mb || 0,
+          total: systemMetrics.memory?.total_mb || 0,
+          free: systemMetrics.memory?.free_mb || 0
+        },
+        load: {
+          average: systemMetrics.cpu?.load_1 || 0,
+          [0]: systemMetrics.cpu?.load_1 || 0,
+          [1]: systemMetrics.cpu?.load_5 || 0,
+          [2]: systemMetrics.cpu?.load_15 || 0
+        },
+        network: {
+          rx: metricsData.network?.total_rx_mb ? metricsData.network.total_rx_mb * 1024 * 1024 : 0,
+          tx: metricsData.network?.total_tx_mb ? metricsData.network.total_tx_mb * 1024 * 1024 : 0
+        }
+      }
       
       // Sauvegarder les métriques système avec les valeurs calculées
-      await persistenceService.saveSystemMetricsSnapshot(systemMetrics, {
-        availabilityPercent: stackAvailability,
+      await persistenceService.saveSystemMetricsSnapshot(systemMetricsForDb, {
+        availabilityPercent: availabilityPercent,
         loadScore: loadScore,
         errorCount: metricsData.errors?.total_last_5m || 0,
         errorRate: metricsData.errors?.rate_per_min || 0,
-        responseTimeAvg: metricsData.responseTime?.average_ms || null
+        responseTimeAvg: responseTimeAvg
       })
       
-      // Sauvegarder les métriques des conteneurs
-      await persistenceService.saveMultipleContainerMetrics(containerMetrics)
+      // ✅ Sauvegarder les métriques des conteneurs (depuis monitoring C ou collecte classique)
+      // Convertir les métriques de monitoring C au format attendu par persistenceService
+      const containersForDb = {}
+      
+      // Si on a des données de monitoring C, les utiliser en priorité
+      if (monitoringCData && monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
+        console.log(`[PERSISTENCE] Préparation de ${monitoringCData.containers.length} conteneurs depuis monitoring C pour sauvegarde`)
+        monitoringCData.containers.forEach(container => {
+          const containerName = container.name || 'unknown'
+          containersForDb[containerName] = {
+            cpu: {
+              percentage: container.cpu_percent || 0,
+              usage: container.cpu_percent || 0
+            },
+            memory: {
+              usage: container.memory_mb ? container.memory_mb * 1024 * 1024 : 0, // Convertir MB en bytes
+              limit: container.memory_limit_mb ? container.memory_limit_mb * 1024 * 1024 : 0,
+              percentage: container.memory_percent || 0
+            },
+            network: {
+              rx: container.network_rx_bytes || 0,
+              tx: container.network_tx_bytes || 0
+            },
+            status: container.http_status === 200 ? 'running' : 'unknown'
+          }
+        })
+      }
+      
+      // Fusionner avec les métriques collectées classiquement (si disponibles)
+      Object.assign(containersForDb, containerMetrics)
+      
+      console.log(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
+      await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
       // Sauvegarder la disponibilité des services
       for (const [serviceName, serviceData] of Object.entries(servicesMetrics)) {

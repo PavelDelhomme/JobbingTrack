@@ -140,12 +140,13 @@ async function collectNetworkMetrics() {
   const udpConnections = await readUdpConnections();
   const allConnections = [...tcpConnections, ...udpConnections];
 
-  // Enrichir avec les informations de conteneurs
+  // Enrichir avec les informations de conteneurs et convertir les états
   const enrichedConnections = await Promise.all(
     allConnections.map(async (conn) => {
       const container = await getContainerForConnection(conn.localPort);
       return {
         ...conn,
+        state: getStateName(conn.state), // Convertir l'état en nom lisible
         containerId: container?.containerId || null,
         containerName: container?.containerName || null
       };
@@ -224,16 +225,36 @@ function detectAnomalies(connections, previousConnections = []) {
   // Détection SYN flood (trop de connexions SYN depuis une IP)
   const synByIp = {};
   for (const conn of connections) {
-    if (conn.state === 0x02 || conn.state === 0x03) { // SYN_SENT ou SYN_RECV
+    const state = typeof conn.state === 'string' ? 
+      (conn.state === 'SYN_SENT' || conn.state === 'SYN_RECV' ? 0x02 : null) : 
+      conn.state;
+    if (state === 0x02 || state === 0x03) { // SYN_SENT ou SYN_RECV
       synByIp[conn.remoteIp] = (synByIp[conn.remoteIp] || 0) + 1;
     }
   }
 
+  // ✅ CORRECTION : Ignorer les IPs privées et localhost pour éviter les fausses alertes
+  const isPrivateIP = (ip) => {
+    // IPs privées (RFC 1918) : 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+    // Localhost : 127.0.0.0/8
+    if (ip.startsWith('127.') || ip === 'localhost' || ip === '::1') return true;
+    if (ip.startsWith('10.')) return true;
+    if (ip.startsWith('172.') && parseInt(ip.split('.')[1]) >= 16 && parseInt(ip.split('.')[1]) <= 31) return true;
+    if (ip.startsWith('192.168.')) return true;
+    return false;
+  };
+
   for (const [ip, count] of Object.entries(synByIp)) {
-    if (count > 100) {
+    // Ignorer les IPs privées en développement (sauf si count > 500 pour vraies menaces internes)
+    if (isPrivateIP(ip) && count < 500 && process.env.NODE_ENV !== 'production') {
+      logger.debug(`[THREAT] IP privée ${ip} ignorée (${count} connexions SYN, seuil: 500)`);
+      continue;
+    }
+    
+    if (count > 50) { // Seuil réduit pour détecter plus tôt
       anomalies.push({
         type: 'SYN_FLOOD',
-        severity: 'HIGH',
+        severity: count > 200 ? 'CRITICAL' : 'HIGH',
         sourceIp: ip,
         count,
         message: `SYN flood détecté: ${count} connexions SYN depuis ${ip}`
@@ -244,7 +265,10 @@ function detectAnomalies(connections, previousConnections = []) {
   // Détection port scanning (tentatives sur plusieurs ports depuis une IP)
   const portsByIp = {};
   for (const conn of connections) {
-    if (conn.state === 0x02 || conn.state === 0x06) { // SYN_SENT ou TIME_WAIT
+    const state = typeof conn.state === 'string' ? 
+      (conn.state === 'SYN_SENT' || conn.state === 'TIME_WAIT' ? 0x02 : null) : 
+      conn.state;
+    if (state === 0x02 || state === 0x06) { // SYN_SENT ou TIME_WAIT
       if (!portsByIp[conn.remoteIp]) {
         portsByIp[conn.remoteIp] = new Set();
       }
@@ -253,13 +277,35 @@ function detectAnomalies(connections, previousConnections = []) {
   }
 
   for (const [ip, ports] of Object.entries(portsByIp)) {
-    if (ports.size > 10) {
+    if (ports.size > 5) { // Seuil réduit pour détecter plus tôt
       anomalies.push({
         type: 'PORT_SCAN',
-        severity: 'MEDIUM',
+        severity: ports.size > 20 ? 'HIGH' : ports.size > 10 ? 'MEDIUM' : 'LOW',
         sourceIp: ip,
         portCount: ports.size,
-        message: `Port scanning détecté: ${ports.size} ports différents depuis ${ip}`
+        ports: Array.from(ports),
+        message: `Port scanning détecté: ${ports.size} ports différents depuis ${ip} (ports: ${Array.from(ports).slice(0, 10).join(', ')})`
+      });
+    }
+  }
+  
+  // Détection brute force (trop de connexions échouées depuis une IP)
+  const failedByIp = {};
+  for (const conn of connections) {
+    const state = typeof conn.state === 'string' ? conn.state : getStateName(conn.state);
+    if (state === 'TIME_WAIT' || state === 'CLOSE' || state === 'CLOSING') {
+      failedByIp[conn.remoteIp] = (failedByIp[conn.remoteIp] || 0) + 1;
+    }
+  }
+  
+  for (const [ip, count] of Object.entries(failedByIp)) {
+    if (count > 20) {
+      anomalies.push({
+        type: 'BRUTE_FORCE',
+        severity: count > 50 ? 'HIGH' : 'MEDIUM',
+        sourceIp: ip,
+        count,
+        message: `Brute force détecté: ${count} connexions échouées depuis ${ip}`
       });
     }
   }
@@ -271,6 +317,7 @@ module.exports = {
   collectNetworkMetrics,
   detectAnomalies,
   readTcpConnections,
-  readUdpConnections
+  readUdpConnections,
+  getStateName
 };
 

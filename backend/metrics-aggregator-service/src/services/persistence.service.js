@@ -97,13 +97,20 @@ class PersistenceService {
           containerName,
           containerId: metricsData.containerId || null,
           status: metricsData.status || 'running',
-          cpuUsagePercent: metricsData.cpu?.percentage || null,
+          cpuUsagePercent: metricsData.cpu?.percentage || metricsData.cpu?.usage || null,
           cpuUsageNano: metricsData.cpu?.usage ? BigInt(metricsData.cpu.usage) : null,
           memoryUsagePercent: metricsData.memory?.percentage || null,
-          memoryUsageBytes: metricsData.memory?.usage ? BigInt(metricsData.memory.usage) : null,
-          memoryLimitBytes: metricsData.memory?.limit ? BigInt(metricsData.memory.limit) : null,
-          networkRxBytes: metricsData.network?.rx ? BigInt(metricsData.network.rx) : null,
-          networkTxBytes: metricsData.network?.tx ? BigInt(metricsData.network.tx) : null,
+          // ✅ CORRECTION : Gérer les valeurs en MB (monitoring C) et bytes (collecte classique)
+          memoryUsageBytes: metricsData.memory?.usage ? 
+            (typeof metricsData.memory.usage === 'number' && metricsData.memory.usage > 1000000 ? 
+              BigInt(Math.round(metricsData.memory.usage)) : 
+              BigInt(Math.round(metricsData.memory.usage * 1024 * 1024))) : null,
+          memoryLimitBytes: metricsData.memory?.limit ? 
+            (typeof metricsData.memory.limit === 'number' && metricsData.memory.limit > 1000000 ? 
+              BigInt(Math.round(metricsData.memory.limit)) : 
+              BigInt(Math.round(metricsData.memory.limit * 1024 * 1024))) : null,
+          networkRxBytes: metricsData.network?.rx ? BigInt(Math.round(metricsData.network.rx)) : null,
+          networkTxBytes: metricsData.network?.tx ? BigInt(Math.round(metricsData.network.tx)) : null,
           blockReadBytes: metricsData.blockIO?.read ? BigInt(metricsData.blockIO.read) : null,
           blockWriteBytes: metricsData.blockIO?.write ? BigInt(metricsData.blockIO.write) : null,
           image: metricsData.image || null,

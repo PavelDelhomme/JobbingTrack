@@ -10,7 +10,7 @@ import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { cacheManager } from '@/lib/cache/cacheManager'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
-import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server } from '@/lib/icons'
+import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server, Wifi } from '@/lib/icons'
 import axios from 'axios'
 import { useTracking } from '@/components/tracking/TrackingProvider'
 
@@ -822,16 +822,23 @@ export default function BackofficePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
+                {/* ✅ CORRECTION : Utiliser avg_cpu_percent depuis monitoring C en priorité */}
+                {systemMetrics?.monitoringC?.avg_cpu_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
+                  : systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%` 
+                  : systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
                   ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
                   : systemMetrics?.cpu?.containers_only !== undefined 
                   ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
-                  : '...'}
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">CPU (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
                   ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+                  : systemMetrics?.monitoringC?.container_count !== undefined
+                  ? `${systemMetrics.monitoringC.container_count} conteneurs`
                   : systemMetrics?.cpu?.per_core !== undefined 
                   ? `${safeToFixed(systemMetrics.cpu.per_core, 1)}% par coeur` 
                   : '...'}
@@ -840,16 +847,23 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
+                {/* ✅ CORRECTION : Utiliser avg_memory_percent depuis monitoring C en priorité */}
+                {systemMetrics?.monitoringC?.avg_memory_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
                   ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
+                  : systemMetrics?.memory?.usage_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
                   : systemMetrics?.memory?.usage !== undefined 
                   ? `${safeToFixed(systemMetrics.memory.usage, 1)}%` 
-                  : '...'}
+                  : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire (Conteneurs)</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
                   ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB`
+                  : systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
+                  ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
                   : systemMetrics?.memory?.used 
                   ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
                   : '...'}
@@ -860,11 +874,13 @@ export default function BackofficePage() {
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {systemMetrics?.load?.average !== undefined || systemMetrics?.load?.load_1 !== undefined
                   ? safeToFixed(systemMetrics?.load?.average || systemMetrics?.load?.load_1, 2, '0.00')
-                  : '...'}
+                  : systemMetrics?.cpu?.load_1 !== undefined
+                  ? safeToFixed(systemMetrics.cpu.load_1, 2, '0.00')
+                  : loadingSystemMetrics ? '...' : '0.00'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : '...'}
+                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : systemMetrics?.load?.cores ? `${systemMetrics.load.cores} coeurs` : 'N/A'}
               </div>
             </div>
 
@@ -1041,7 +1057,7 @@ export default function BackofficePage() {
                 <>
                   <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                     <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                      <Network className="h-4 w-4" />
+                      <Wifi className="h-4 w-4" />
                       Trafic Réseau (RX)
                     </span>
                     <span className="font-bold text-blue-600 dark:text-blue-400">
@@ -1052,7 +1068,7 @@ export default function BackofficePage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                      <Network className="h-4 w-4" />
+                      <Wifi className="h-4 w-4" />
                       Trafic Réseau (TX)
                     </span>
                     <span className="font-bold text-orange-600 dark:text-orange-400">

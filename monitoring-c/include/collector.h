@@ -55,6 +55,8 @@ typedef struct {
     double avg_memory_percent;         // Mémoire moyenne des conteneurs
     double availability_percent;       // Pourcentage de services sains
     double load_score;                 // Score de charge (0-100)
+    unsigned long total_network_rx_bytes;  // Total réseau réception (bytes)
+    unsigned long total_network_tx_bytes;   // Total réseau émission (bytes)
 } MetricsData;
 
 // Fonctions principales

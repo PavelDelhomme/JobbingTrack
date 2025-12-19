@@ -137,7 +137,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
 				echo "  📦 Prisma db push sur $$service..."; \
 				# ✅ OPTIMISATION : Ignorer les erreurs d'enums déjà existants (schémas partagés) \
-				PUSH_OUTPUT=$$(docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss --skip-generate 2>&1); \
+				PUSH_OUTPUT=$$(docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss 2>&1); \
 				PUSH_EXIT=$$?; \
 				if [ $$PUSH_EXIT -eq 0 ] || echo "$$PUSH_OUTPUT" | grep -q "already exists\|in sync\|Done in"; then \
 					echo "  ✅ $$service - Schéma synchronisé"; \
@@ -163,7 +163,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 				echo "  🔍 Vérification de $$service (hors conteneur)..."; \
 				if [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
 					echo "  📦 Prisma db push sur $$service (local)..."; \
-					cd backend/metrics-aggregator-service && npx prisma db push --accept-data-loss --skip-generate 2>&1 | head -5 && cd ../.. || true; \
+					cd backend/metrics-aggregator-service && (npm list prisma 2>/dev/null || npm install --yes --legacy-peer-deps prisma@latest 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -5 && cd ../.. || true; \
 					echo "  ✅ $$service - Schéma synchronisé (local)"; \
 					PUSHED=$$((PUSHED + 1)); \
 				else \

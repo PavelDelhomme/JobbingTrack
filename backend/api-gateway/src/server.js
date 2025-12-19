@@ -525,6 +525,11 @@ const adminRoutes = require('./routes/admin.routes');
 app.use('/api/v1/admin', adminRoutes);
 logger.info('📋 Routes admin montées sur /api/v1/admin');
 
+// ✅ Routes WAF
+const wafRoutes = require('./routes/waf.routes');
+app.use('/api/v1/waf', wafRoutes);
+logger.info('📋 Routes WAF montées sur /api/v1/waf');
+
 // ✅ Routes maintenance (montées avant les routes proxy)
 const maintenanceRoutes = require('./routes/maintenance.routes');
 app.use('/api/v1/maintenance', maintenanceRoutes);
@@ -557,6 +562,7 @@ const services = {
 };
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
+// ⚠️ IMPORTANT: Les routes spécifiques (WAF, admin, maintenance) doivent être montées AVANT ce proxy
 Object.entries(services).forEach(([path, { url: target, serviceName }]) => {
   app.all(path + '*', MaintenanceController.checkMaintenance(serviceName), async (req, res) => {
     // Define targetUrl outside try block to ensure it's always available in catch

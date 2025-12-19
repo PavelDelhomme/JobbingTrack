@@ -259,7 +259,12 @@ class SecurityService {
       ddosAttacks: 0,
       vulnerabilities: 0,
       blockedIPs: 0,
-      suspiciousActivities: 0
+      suspiciousActivities: 0,
+      firewallEvents: 0,
+      wafEvents: 0,
+      networkThreats: 0,
+      firewallRules: 0,
+      wafRules: 0
     };
 
     for (const log of logs) {
@@ -280,10 +285,55 @@ class SecurityService {
         case 'vulnerability':
           metrics.vulnerabilities++;
           break;
+        case 'firewall':
+          metrics.firewallEvents++;
+          if (log.eventType === 'ip_blocked_manually' || log.eventType === 'threat_blocked') {
+            metrics.blockedIPs++;
+          }
+          break;
+        case 'waf':
+          metrics.wafEvents++;
+          break;
       }
 
       if (log.eventType === 'suspicious_activity') {
         metrics.suspiciousActivities++;
+      }
+
+      if (log.eventType === 'network_threat_detected') {
+        metrics.networkThreats++;
+      }
+
+      if (log.eventType === 'firewall_rule_created' || log.eventType === 'firewall_rule_updated') {
+        metrics.firewallRules++;
+      }
+
+      if (log.eventType === 'waf_rule_toggled') {
+        metrics.wafRules++;
+      }
+    }
+
+    // Enrichir avec les données du firewall et des menaces réseau
+    try {
+      // Compter les règles firewall actives
+      const firewallRulesCount = await prisma.firewallRule.count({
+        where: { enabled: true }
+      }).catch(() => 0);
+      metrics.firewallRules = firewallRulesCount;
+
+      // Compter les menaces réseau récentes (dernières 24h)
+      const networkThreatsCount = await prisma.networkThreat.count({
+        where: {
+          detectedAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      }).catch(() => 0);
+      metrics.networkThreats = networkThreatsCount;
+    } catch (error) {
+      // Ignorer les erreurs si les tables n'existent pas
+      if (error.code !== 'P2021' && !error.message?.includes('does not exist')) {
+        logger.error('Erreur enrichissement métriques firewall:', error);
       }
     }
 

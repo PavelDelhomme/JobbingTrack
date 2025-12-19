@@ -598,38 +598,49 @@ class SecurityController {
       let blockedIPs = [];
       
       try {
-        const { prisma } = require('../config/database');
-        if (prisma) {
-          const logs = await prisma.securityLog.findMany({
-            where: {
-              isBlocked: true,
-              createdAt: {
-                gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Dernières 24h
-              }
+        // ✅ CORRECTION : Utiliser PrismaClient directement depuis le contrôleur firewall
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        
+        // ✅ CORRECTION : Utiliser sourceIP au lieu de ip (champ correct dans SecurityLog)
+        const logs = await prisma.securityLog.findMany({
+          where: {
+            isBlocked: true,
+            sourceIP: {
+              not: null
             },
-            select: {
-              ip: true,
-              createdAt: true,
-              message: true
-            },
-            distinct: ['ip'],
-            orderBy: {
-              createdAt: 'desc'
-            },
-            take: 100
-          });
+            createdAt: {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Dernières 24h
+            }
+          },
+          select: {
+            sourceIP: true,
+            createdAt: true,
+            message: true,
+            blockReason: true
+          },
+          distinct: ['sourceIP'],
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 100
+        });
 
-          blockedIPs = logs.map(log => ({
-            ip: log.ip,
-            blockedAt: log.createdAt,
-            reason: log.message || 'Tentative d\'intrusion détectée'
-          }));
-        }
+        blockedIPs = logs.map(log => ({
+          ip: log.sourceIP,
+          blockedAt: log.createdAt,
+          reason: log.blockReason || log.message || 'Tentative d\'intrusion détectée'
+        }));
+        
+        await prisma.$disconnect();
       } catch (dbError) {
-        // Si la base de données n'est pas disponible ou la table n'existe pas, retourner un tableau vide
+        // ✅ CORRECTION : Ne pas logger en mode développement si table n'existe pas
         if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
-          logger.warn('Table SecurityLog non trouvée, retour de données vides');
+          // Mode silencieux en développement (table sera créée automatiquement)
+          // Ne pas logger en développement
         } else {
+          // Logger seulement les vraies erreurs (pas les erreurs de table manquante)
+          // Même en développement, si c'est une vraie erreur, on la log
           logger.warn('Impossible de récupérer les IPs bloquées depuis la DB:', dbError.message);
         }
       }
@@ -639,7 +650,10 @@ class SecurityController {
         ips: blockedIPs
       });
     } catch (error) {
-      logger.error('Erreur lors de la récupération des IPs bloquées:', error);
+      // ✅ CORRECTION : Ne logger que les vraies erreurs
+      if (!error.message?.includes('does not exist') && error.code !== 'P2021') {
+        logger.error('Erreur lors de la récupération des IPs bloquées:', error);
+      }
       res.json({
         success: true,
         ips: []

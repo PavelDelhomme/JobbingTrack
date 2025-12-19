@@ -17,6 +17,8 @@ router.delete('/rules/:id', firewallController.deleteFirewallRule);
 
 // Routes pour les menaces réseau
 router.get('/threats', firewallController.getNetworkThreats);
+router.get('/threats/:id', firewallController.getThreatDetails);
+router.post('/threats', firewallController.createThreat);
 router.post('/threats/:id/block', firewallController.blockThreat);
 
 // Routes pour les statistiques réseau

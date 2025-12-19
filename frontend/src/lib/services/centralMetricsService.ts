@@ -452,12 +452,14 @@ class CentralMetricsService {
         
         if (response.ok) {
           const data = await response.json()
-          console.log('[CENTRAL METRICS] ✅ Métriques depuis monitoring-c (nouveau système)')
+          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+          // console.log('[CENTRAL METRICS] ✅ Métriques depuis monitoring-c (nouveau système)')
           return this.formatMetricsFromMonitoringC(data)
         }
       } catch (error: any) {
         // Fallback vers l'ancien système si monitoring-c n'est pas disponible
-        console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
         metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
         endpoint = '/api/v1/docker/jobbingtrack/aggregated'
       }
@@ -961,7 +963,8 @@ class CentralMetricsService {
     // Vérifier le cache d'abord
     const cachedMetrics = this.getCachedMetrics()
     if (cachedMetrics) {
-      console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis le cache')
+      // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+      // console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis le cache')
       return cachedMetrics
     }
 
@@ -995,12 +998,14 @@ class CentralMetricsService {
         }
         
         // Priorité 2 : API Gateway + métriques séparées
-        console.log('[CENTRAL METRICS] ↩️ Fallback vers API Gateway')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[CENTRAL METRICS] ↩️ Fallback vers API Gateway')
         
         const allServices = await this.getAllServices().catch(() => null)
 
         if (allServices && allServices.length > 0) {
-          console.log('[CENTRAL METRICS] ✅ Services API Gateway:', allServices.length)
+          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+          // console.log('[CENTRAL METRICS] ✅ Services API Gateway:', allServices.length)
 
           // Récupérer les métriques système avec timeout
           const systemMetrics = await Promise.race([
@@ -1089,7 +1094,8 @@ class CentralMetricsService {
         }
 
         // Fallback vers Docker/cAdvisor seulement si nécessaire
-        console.log('[CENTRAL METRICS] ⚠️ API Gateway non disponible, tentative Docker')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[CENTRAL METRICS] ⚠️ API Gateway non disponible, tentative Docker')
 
         const dockerServices = await Promise.race([
           this.getDockerServices(),
@@ -1099,7 +1105,8 @@ class CentralMetricsService {
         ])
 
         if (dockerServices) {
-          console.log('[CENTRAL METRICS] ✅ Services récupérés depuis Docker')
+          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+          // console.log('[CENTRAL METRICS] ✅ Services récupérés depuis Docker')
 
           const systemMetrics = await Promise.race([
             this.getSystemMetrics(),
@@ -1125,7 +1132,8 @@ class CentralMetricsService {
         }
 
         // Dernier fallback vers les métriques individuelles
-        console.log('[CENTRAL METRICS] ⚠️ Docker non disponible, fallback vers sources individuelles')
+        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+        // console.log('[CENTRAL METRICS] ⚠️ Docker non disponible, fallback vers sources individuelles')
         const metrics = await Promise.race([
           this.getAllMetrics(),
           new Promise<MetricsData | null>(resolve =>
@@ -1134,7 +1142,8 @@ class CentralMetricsService {
         ])
 
         if (metrics) {
-          console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis les sources individuelles')
+          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
+          // console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis les sources individuelles')
           this.setCachedMetrics(metrics)
           return metrics
         }
@@ -1154,6 +1163,8 @@ class CentralMetricsService {
    * Formate les métriques depuis monitoring-c vers le format attendu par le frontend
    */
   private formatMetricsFromMonitoringC(data: any): MetricsData {
+    // ✅ CORRECTION : Exposer avg_cpu_percent et avg_memory_percent directement
+    // pour que le frontend puisse les utiliser
     const timestamp = data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString()
     
     // Convertir les conteneurs en services
@@ -1224,8 +1235,13 @@ class CentralMetricsService {
       }
     })
 
-    const totalNetworkRxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.rx ?? 0), 0)
-    const totalNetworkTxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0)
+    // ✅ CORRECTION : Utiliser network.total_rx_mb et total_tx_mb depuis monitoring C en priorité
+    const totalNetworkRxMb = data.network?.total_rx_mb !== undefined && data.network.total_rx_mb > 0
+      ? data.network.total_rx_mb
+      : servicesList.reduce((sum, service) => sum + (service.networkMb?.rx ?? 0), 0)
+    const totalNetworkTxMb = data.network?.total_tx_mb !== undefined && data.network.total_tx_mb > 0
+      ? data.network.total_tx_mb
+      : servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0)
 
     // Utiliser les statistiques calculées par monitoring-c si disponibles
     const avgResponseTimeMs = typeof data.avg_response_time_ms === 'number' && data.avg_response_time_ms > 0
@@ -1271,25 +1287,54 @@ class CentralMetricsService {
       .filter(s => typeof s.responseTimeMs === 'number' && s.responseTimeMs > 0)
       .map(s => s.responseTimeMs as number)
 
+    // ✅ CORRECTION : Exposer avg_cpu_percent et avg_memory_percent directement
+    const avgCpuPercent = typeof data.avg_cpu_percent === 'number' ? data.avg_cpu_percent : null
+    const avgMemoryPercent = typeof data.avg_memory_percent === 'number' ? data.avg_memory_percent : null
+    
     return {
       services: servicesMap, 
       system: {
         cpu: { 
-          usage: data.cpu?.usage_percent ? `${data.cpu.usage_percent.toFixed(1)}%` : (data.avg_cpu_percent ? `${data.avg_cpu_percent.toFixed(1)}%` : 'N/A'), 
+          usage: data.cpu?.usage_percent ? `${data.cpu.usage_percent.toFixed(1)}%` : (avgCpuPercent !== null ? `${avgCpuPercent.toFixed(1)}%` : 'N/A'), 
           cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A', 
-          model: 'N/A' 
+          model: 'N/A',
+          // ✅ CORRECTION : Exposer load_1, load_5, load_15 pour la charge
+          load_1: data.cpu?.load_1,
+          load_5: data.cpu?.load_5,
+          load_15: data.cpu?.load_15
         },
         memory: {
           total: data.memory?.total_mb ? `${(data.memory.total_mb / 1024).toFixed(2)} GB` : 'N/A',
           used: data.memory?.used_mb ? `${(data.memory.used_mb / 1024).toFixed(2)} GB` : 'N/A',
           free: data.memory?.free_mb ? `${(data.memory.free_mb / 1024).toFixed(2)} GB` : 'N/A',
-          usage: data.memory?.usage_percent ? `${data.memory.usage_percent.toFixed(1)}%` : (data.avg_memory_percent ? `${data.avg_memory_percent.toFixed(1)}%` : 'N/A')
+          usage: data.memory?.usage_percent ? `${data.memory.usage_percent.toFixed(1)}%` : (avgMemoryPercent !== null ? `${avgMemoryPercent.toFixed(1)}%` : 'N/A'),
+          // ✅ CORRECTION : Exposer used_mb et total_mb pour l'affichage
+          used_mb: data.memory?.used_mb,
+          total_mb: data.memory?.total_mb
         },
-        load: { average: data.cpu?.load_1 ? `${data.cpu.load_1.toFixed(2)}` : 'N/A', cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A' },
+        load: { 
+          average: data.cpu?.load_1 ? `${data.cpu.load_1.toFixed(2)}` : 'N/A', 
+          cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A',
+          load_1: data.cpu?.load_1,
+          load_5: data.cpu?.load_5,
+          load_15: data.cpu?.load_15
+        },
         disk: data.disk ? [{ name: 'root', total: `${data.disk.total_gb.toFixed(2)} GB`, used: `${data.disk.used_gb.toFixed(2)} GB`, free: `${data.disk.free_gb.toFixed(2)} GB`, usage: `${data.disk.usage_percent.toFixed(1)}%` }] : []
+      },
+      // ✅ CORRECTION : Exposer monitoringC pour que le frontend puisse l'utiliser
+      monitoringC: {
+        avg_cpu_percent: avgCpuPercent,
+        avg_memory_percent: avgMemoryPercent,
+        avg_response_time_ms: data.avg_response_time_ms,
+        container_count: data.container_count,
+        load_score: data.load_score,
+        availability_percent: data.availability_percent
       },
       containers: containersMap, 
       timestamp,
+      // ✅ CORRECTION : Exposer avg_cpu_percent et avg_memory_percent directement pour le frontend
+      avg_cpu_percent: avgCpuPercent,
+      avg_memory_percent: avgMemoryPercent,
       network: { 
         total_rx_mb: totalNetworkRxMb, 
         total_tx_mb: totalNetworkTxMb, 
