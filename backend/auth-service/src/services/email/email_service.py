@@ -23,13 +23,18 @@ class EmailService:
             # Essayer d'abord le nom de service Docker Compose
             self.host = 'mailhog'  # Nom du service dans docker-compose
         self.port = int(os.getenv('SMTP_PORT', '1025'))
-        self.use_tls = os.getenv('SMTP_SECURE', 'false').lower() == 'true'
+        self.use_tls = os.getenv('SMTP_SECURE', 'false').lower() == 'true' or os.getenv('SMTP_USE_TLS', 'false').lower() == 'true'
         self.use_ssl = os.getenv('SMTP_USE_SSL', 'false').lower() == 'true'
         
         # Correction automatique : Port 465 nécessite SSL
         if self.port == 465 and not self.use_ssl:
             self.use_ssl = True
             self.use_tls = False  # SSL et TLS sont mutuellement exclusifs
+        
+        # Correction automatique : Port 587 nécessite STARTTLS (TLS)
+        if self.port == 587 and not self.use_ssl:
+            self.use_tls = True
+            self.use_ssl = False  # Port 587 utilise STARTTLS, pas SSL direct
         self.username = os.getenv('SMTP_USER', '')
         self.password = os.getenv('SMTP_PASS', '')
         self.from_email = os.getenv('SMTP_FROM', 'JobbingTrack <noreply@jobbingtrack.test>')
@@ -74,12 +79,16 @@ class EmailService:
             
             # Pour les autres serveurs SMTP (OVH, etc.)
             print(f"📧 Connexion à {self.host}:{self.port}...", file=sys.stderr)
+            # Augmenter le timeout pour OVH (peut être lent)
+            smtp_timeout = int(os.getenv('SMTP_TIMEOUT', '30'))
+            print(f"   Timeout: {smtp_timeout}s", file=sys.stderr)
+            
             if self.use_ssl:
                 print(f"   Utilisation SSL (port {self.port})", file=sys.stderr)
-                server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+                server = smtplib.SMTP_SSL(self.host, self.port, timeout=smtp_timeout)
                 print(f"✅ Connexion SSL établie", file=sys.stderr)
             else:
-                server = smtplib.SMTP(self.host, self.port, timeout=15)
+                server = smtplib.SMTP(self.host, self.port, timeout=smtp_timeout)
                 print(f"✅ Connexion SMTP établie", file=sys.stderr)
             
             if self.use_tls and not self.use_ssl:
@@ -202,11 +211,14 @@ class EmailService:
                 import time
                 time.sleep(1)  # 1 seconde avant connexion
                 
+                # Utiliser le timeout configuré ou 30s par défaut
+                smtp_timeout = int(os.getenv('SMTP_TIMEOUT', '30'))
+                
                 if self.use_ssl:
-                    server = smtplib.SMTP_SSL(self.host, self.port, timeout=20)
+                    server = smtplib.SMTP_SSL(self.host, self.port, timeout=smtp_timeout)
                     print(f"✅ Connexion SSL établie", file=sys.stderr)
                 else:
-                    server = smtplib.SMTP(self.host, self.port, timeout=20)
+                    server = smtplib.SMTP(self.host, self.port, timeout=smtp_timeout)
                     print(f"✅ Connexion SMTP établie", file=sys.stderr)
                 
                 if self.use_tls and not self.use_ssl:

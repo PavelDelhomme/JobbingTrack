@@ -160,6 +160,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
         { name: 'Politiques de Sécurité', href: '/backoffice/security/policies', icon: '⚙️' },
         { name: 'Analyse de Sécurité', href: '/backoffice/security/analysis', icon: '🛡️' },
+        { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
+        { name: 'Réseau', href: '/backoffice/security/network', icon: '🌐' },
+        { name: 'Menaces', href: '/backoffice/security/threats', icon: '⚠️' },
       ]
     },
     {

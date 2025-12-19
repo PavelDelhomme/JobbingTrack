@@ -69,10 +69,15 @@ void discover_containers(void) {
             if (stat(log_path, &st) == 0) {
                 int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY);
                 if (wd >= 0) {
-                    strncpy(watches[watch_count].container_id, container_id, sizeof(watches[watch_count].container_id) - 1);
-                    strncpy(watches[watch_count].log_path, log_path, sizeof(watches[watch_count].log_path) - 1);
-                    watches[watch_count].watch_descriptor = wd;
-                    watch_count++;
+                    size_t id_len = strlen(container_id);
+                    size_t path_len = strlen(log_path);
+                    if (id_len < sizeof(watches[watch_count].container_id) && 
+                        path_len < sizeof(watches[watch_count].log_path)) {
+                        memcpy(watches[watch_count].container_id, container_id, id_len + 1);
+                        memcpy(watches[watch_count].log_path, log_path, path_len + 1);
+                        watches[watch_count].watch_descriptor = wd;
+                        watch_count++;
+                    }
                 }
             }
         }
@@ -96,10 +101,15 @@ void discover_containers(void) {
             // Ajouter un watch
             int wd = inotify_add_watch(inotify_fd, log_path, IN_MODIFY);
             if (wd >= 0) {
-                strncpy(watches[watch_count].container_id, container_id, sizeof(watches[watch_count].container_id) - 1);
-                strncpy(watches[watch_count].log_path, log_path, sizeof(watches[watch_count].log_path) - 1);
-                watches[watch_count].watch_descriptor = wd;
-                watch_count++;
+                size_t id_len = strlen(container_id);
+                size_t path_len = strlen(log_path);
+                if (id_len < sizeof(watches[watch_count].container_id) && 
+                    path_len < sizeof(watches[watch_count].log_path)) {
+                    memcpy(watches[watch_count].container_id, container_id, id_len + 1);
+                    memcpy(watches[watch_count].log_path, log_path, path_len + 1);
+                    watches[watch_count].watch_descriptor = wd;
+                    watch_count++;
+                }
             }
         }
     }
@@ -126,13 +136,23 @@ void process_log_event(const struct inotify_event *event) {
  */
 void read_new_log_lines(WatchInfo *watch) {
     FILE *fp = fopen(watch->log_path, "r");
-    if (!fp) return;
+    if (!fp) {
+        // Debug: afficher si le fichier n'existe pas
+        // printf("[DEBUG] Impossible d'ouvrir %s\n", watch->log_path);
+        return;
+    }
     
     // Aller à la position de la dernière lecture
-    fseek(fp, watch->last_position, SEEK_SET);
+    if (fseek(fp, watch->last_position, SEEK_SET) != 0) {
+        // Si la position est invalide, aller au début
+        fseek(fp, 0, SEEK_SET);
+        watch->last_position = 0;
+    }
     
     char line[BUFFER_SIZE];
+    int lines_read = 0;
     while (fgets(line, sizeof(line), fp)) {
+        lines_read++;
         // Parser la ligne JSON Docker
         LogEntry entry;
         if (parse_docker_log_line(line, &entry) == 0) {
@@ -145,7 +165,16 @@ void read_new_log_lines(WatchInfo *watch) {
     }
     
     // Sauvegarder la nouvelle position
-    watch->last_position = ftell(fp);
+    long new_position = ftell(fp);
+    if (new_position >= 0) {
+        watch->last_position = new_position;
+    }
+    
+    // Debug: afficher si des lignes ont été lues
+    // if (lines_read > 0) {
+    //     printf("[DEBUG] %d lignes lues depuis %s\n", lines_read, watch->container_id);
+    // }
+    
     fclose(fp);
 }
 
@@ -162,20 +191,43 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     printf("✅ Surveillance de %d conteneurs\n", watch_count);
     
+    // ✅ AMÉLIORATION : Afficher les conteneurs surveillés
+    if (watch_count > 0) {
+        printf("📋 Conteneurs surveillés:\n");
+        for (int i = 0; i < watch_count && i < 10; i++) {
+            printf("   - %s\n", watches[i].container_id);
+        }
+        if (watch_count > 10) {
+            printf("   ... et %d autres\n", watch_count - 10);
+        }
+    } else {
+        printf("⚠️  Aucun conteneur trouvé à surveiller\n");
+        printf("💡 Vérifiez que /var/lib/docker/containers est accessible\n");
+    }
+    
     // Boucle principale
     char buffer[BUFFER_SIZE];
     while (1) {
         ssize_t length = read(inotify_fd, buffer, BUFFER_SIZE);
         if (length < 0) {
             perror("read");
-            break;
+            // Réessayer après une courte pause
+            sleep(1);
+            continue;
+        }
+        
+        if (length == 0) {
+            // Pas d'événements, continuer
+            continue;
         }
         
         // Traiter les événements
         int i = 0;
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *)&buffer[i];
-            process_log_event(event);
+            if (event->len > 0) {
+                process_log_event(event);
+            }
             i += sizeof(struct inotify_event) + event->len;
         }
     }

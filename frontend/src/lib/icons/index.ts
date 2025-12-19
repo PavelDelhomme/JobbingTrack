@@ -52,6 +52,8 @@ export {
   Menu,
   Bell,
   User,
+  UserPlus,
+  LogIn,
   LogOut,
   Lock,
   Unlock,

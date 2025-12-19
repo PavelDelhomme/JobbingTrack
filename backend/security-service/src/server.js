@@ -12,6 +12,7 @@ const intrusionRoutes = require('./routes/intrusionRoutes');
 const ddosRoutes = require('./routes/ddosRoutes');
 const alertsRoutes = require('./routes/alertsRoutes');
 const healthRoutes = require('./routes/healthRoutes');
+const firewallRoutes = require('./routes/firewallRoutes');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { securityMiddleware } = require('./middleware/securityMiddleware');
@@ -89,6 +90,7 @@ app.use('/health', healthRoutes);
 
 // Routes API avec protection
 app.use('/api/v1/security', securityRoutes);
+app.use('/api/v1/security/firewall', firewallRoutes);
 app.use('/api/v1/logs', logsRoutes);
 app.use('/api/v1/vulnerabilities', vulnerabilitiesRoutes);
 app.use('/api/v1/intrusion', intrusionRoutes);
