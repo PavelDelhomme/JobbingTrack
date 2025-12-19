@@ -99,9 +99,12 @@ const formatMb = (value?: number | null, decimals = 2) => {
   return `${value.toFixed(decimals)} MB`;
 };
 
-const formatLoad = (value?: number | null) => {
-  if (value === undefined || value === null || Number.isNaN(value)) return 'N/A';
-  return value.toFixed(3);
+const formatLoad = (value?: number | string | null) => {
+  if (value === undefined || value === null) return 'N/A';
+  // Convertir en nombre si c'est une chaîne
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (Number.isNaN(numValue) || !Number.isFinite(numValue)) return 'N/A';
+  return numValue.toFixed(3);
 };
 
 const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
@@ -367,13 +370,14 @@ export default function AnalyticsPage() {
         if (mounted && data) {
           setMetrics((prev: any) => {
             if (!prev) {
-              // ✅ OPTIMISATION : Ne pas inclure services/servicesList si pas nécessaire
-              const result = { ...data };
-              if (!needsServices) {
-                delete result.services;
-                delete result.servicesList;
-              }
-              return result;
+            // ✅ OPTIMISATION : Ne pas inclure services si pas nécessaire, mais garder servicesList (utilisé dans aggregatedStats)
+            const result = { ...data };
+            if (!needsServices) {
+              delete result.services;
+              // ✅ CORRECTION : Ne PAS supprimer servicesList car il est utilisé dans aggregatedStats même si needsServices est false
+              // servicesList est nécessaire pour calculer servicesTotal et servicesHealthy
+            }
+            return result;
             }
             
             // Ne mettre à jour que si on a de nouvelles données valides
@@ -386,9 +390,10 @@ export default function AnalyticsPage() {
               responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
               errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
               health: data.health ? { ...prev.health, ...data.health } : prev.health,
-              // ✅ OPTIMISATION : Ne mettre à jour services/servicesList que si nécessaire
+              // ✅ OPTIMISATION : Ne mettre à jour services que si nécessaire, mais toujours mettre à jour servicesList
               services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
-              servicesList: needsServices && data.servicesList ? data.servicesList : prev.servicesList
+              // ✅ CORRECTION : Toujours mettre à jour servicesList si disponible (nécessaire pour aggregatedStats)
+              servicesList: data.servicesList ? data.servicesList : prev.servicesList
             };
           });
         }
@@ -410,13 +415,14 @@ export default function AnalyticsPage() {
           // Mise à jour progressive sans réinitialiser l'état (les graphiques restent ouverts)
           setMetrics((prev: any) => {
             if (!prev) {
-              // ✅ OPTIMISATION : Ne pas inclure services/servicesList si pas nécessaire
-              const result = { ...data };
-              if (!needsServices) {
-                delete result.services;
-                delete result.servicesList;
-              }
-              return result;
+            // ✅ OPTIMISATION : Ne pas inclure services si pas nécessaire, mais garder servicesList (utilisé dans aggregatedStats)
+            const result = { ...data };
+            if (!needsServices) {
+              delete result.services;
+              // ✅ CORRECTION : Ne PAS supprimer servicesList car il est utilisé dans aggregatedStats même si needsServices est false
+              // servicesList est nécessaire pour calculer servicesTotal et servicesHealthy
+            }
+            return result;
             }
             
             return {
@@ -428,9 +434,10 @@ export default function AnalyticsPage() {
               responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
               errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
               health: data.health ? { ...prev.health, ...data.health } : prev.health,
-              // ✅ OPTIMISATION : Ne mettre à jour services/servicesList que si nécessaire
+              // ✅ OPTIMISATION : Ne mettre à jour services que si nécessaire, mais toujours mettre à jour servicesList
               services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
-              servicesList: needsServices && data.servicesList ? data.servicesList : prev.servicesList
+              // ✅ CORRECTION : Toujours mettre à jour servicesList si disponible (nécessaire pour aggregatedStats)
+              servicesList: data.servicesList ? data.servicesList : prev.servicesList
             };
           });
         }
@@ -972,18 +979,26 @@ export default function AnalyticsPage() {
       // Utiliser timestamp ISO complet pour garantir l'unicité
       const uniqueTime = timestamp.toISOString();
       
+      // S'assurer que toutes les valeurs sont des nombres valides (pas NaN, pas Infinity)
+      const cpu = toNumber(item.cpu_percent, 0)
+      const memory = toNumber(item.memory_percent, 0)
+      const responseTime = toNumber(item.response_time_avg || item.avg_response_time_ms, 0)
+      const errorRate = toNumber(item.error_rate, 0)
+      const availability = toNumber(item.availability_percent, 100)
+      const loadScore = toNumber(item.load_score || item.overallLoadScore, 0)
+      
       return {
         time: formatTimestamp(item.timestamp, timeRange),
         timestamp: timestamp.getTime(), // Timestamp numérique pour tri
         uniqueTime: uniqueTime, // Timestamp ISO unique pour éviter doublons
-        cpu: toNumber(item.cpu_percent, 0),
-        memory: toNumber(item.memory_percent, 0),
-        networkRx: networkRx, // ✅ CORRECTION : Utiliser la valeur calculée (globale ou somme des services)
-        networkTx: networkTx, // ✅ CORRECTION : Utiliser la valeur calculée (globale ou somme des services)
-        responseTime: toNumber(item.response_time_avg, 0),
-        errorRate: toNumber(item.error_rate, 0),
-        availability: toNumber(item.availability_percent, 100),
-        loadScore: toNumber(item.load_score, 0)
+        cpu: Number.isFinite(cpu) ? cpu : 0,
+        memory: Number.isFinite(memory) ? memory : 0,
+        networkRx: Number.isFinite(networkRx) ? networkRx : 0,
+        networkTx: Number.isFinite(networkTx) ? networkTx : 0,
+        responseTime: Number.isFinite(responseTime) ? responseTime : 0,
+        errorRate: Number.isFinite(errorRate) ? errorRate : 0,
+        availability: Number.isFinite(availability) ? availability : 100,
+        loadScore: Number.isFinite(loadScore) ? loadScore : 0
       };
     });
   }, [metricsHistory, timeRange]);
@@ -1064,10 +1079,24 @@ export default function AnalyticsPage() {
       
     const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
 
-    const healthyCount = servicesList.filter((s: any) => s.status === 'healthy').length;
-    const degradedCount = servicesList.filter((s: any) => s.status === 'degraded').length;
+    // Compter les services sains (healthy, running, online)
+    const healthyCount = servicesList.filter((s: any) => 
+      s.status === 'healthy' || 
+      s.status === 'running' || 
+      s.status === 'online' ||
+      s.healthStatus === 'online' ||
+      s.healthStatus === 'healthy'
+    ).length;
+    const degradedCount = servicesList.filter((s: any) => 
+      s.status === 'degraded' || 
+      s.healthStatus === 'degraded'
+    ).length;
     const offlineCount = servicesList.filter((s: any) => 
-      s.status === 'offline' || s.status === 'unknown').length;
+      s.status === 'offline' || 
+      s.status === 'unknown' ||
+      s.status === 'stopped' ||
+      s.healthStatus === 'offline'
+    ).length;
 
     const responseTimes = servicesList
       .map((s: any) => s.responseTimeMs)
@@ -1515,7 +1544,8 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
                 <YAxis 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  domain={[90, 100]}
+                  // ✅ CORRECTION : Retirer domain pour éviter les erreurs NaN
+                  // domain={[90, 100]} // Retiré pour permettre auto-scaling
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -1622,7 +1652,8 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                 <YAxis 
                   stroke="#9CA3AF"
                   style={{ fontSize: '12px' }}
-                  domain={[0, 100]}
+                  // ✅ CORRECTION : Retirer domain pour éviter les erreurs NaN
+                  // domain={[0, 100]} // Retiré pour permettre auto-scaling
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -1662,13 +1693,15 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                     yAxisId="left"
                     stroke="#9CA3AF"
                     style={{ fontSize: '12px' }}
-                    domain={[0, 100]}
+                    // ✅ CORRECTION : Ne pas forcer domain si les valeurs peuvent être NaN
+                    // domain={[0, 100]} // Retiré pour éviter les erreurs NaN
                   />
                   <YAxis 
                     yAxisId="right"
                     orientation="right"
                     stroke="#9CA3AF"
                     style={{ fontSize: '12px' }}
+                    // ✅ CORRECTION : Laisser Recharts calculer automatiquement le domain
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -1839,10 +1872,19 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
                 data={servicesList
-                  .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                    responseTime: s.responseTimeMs || 0
-                  }))
+                  .map((s: any) => {
+                    // ✅ CORRECTION : Essayer plusieurs sources pour temps de réponse
+                    const responseTime = toNumber(
+                      s.responseTimeMs || 
+                      s.response_time_ms || 
+                      s.metrics?.response_time_ms || 
+                      0
+                    )
+                    return {
+                      name: (s.displayName || s.name || s.rawName || 'Service inconnu').substring(0, 20),
+                      responseTime: responseTime
+                    }
+                  })
                   .filter((item: any) => item.responseTime > 0)}
                 layout="horizontal"
               >
@@ -1889,10 +1931,20 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
                   data={servicesList
-                    .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                  memory: toNumber(s.metrics?.memory?.usageMb, 0)
-                }))
+                    .map((s: any) => {
+                      // ✅ CORRECTION : Essayer plusieurs sources pour mémoire
+                      const memory = toNumber(
+                        s.memory_mb || 
+                        s.memory_usage_mb || 
+                        s.metrics?.memory?.usageMb || 
+                        s.metrics?.memory_usage_mb || 
+                        0
+                      )
+                      return {
+                        name: (s.displayName || s.name || s.rawName || 'Service inconnu').substring(0, 20),
+                        memory: memory
+                      }
+                    })
                     .filter((item: any) => item.memory > 0)}
                 layout="horizontal"
               >
@@ -2077,7 +2129,21 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
             <Activity className="w-5 h-5 text-green-600" />
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {metrics?.health?.availability_percent?.toFixed(1) || 'N/A'}%
+            {(() => {
+              // ✅ CORRECTION : Calculer la disponibilité depuis les services
+              const availability = metrics?.health?.availability_percent !== undefined
+                ? toNumber(metrics.health.availability_percent, 100)
+                : (servicesList && servicesList.length > 0
+                  ? (servicesList.filter((s: any) => 
+                      s.status === 'running' || 
+                      s.status === 'healthy' || 
+                      s.status === 'online' ||
+                      s.healthStatus === 'online' ||
+                      s.healthStatus === 'healthy'
+                    ).length / servicesList.length) * 100
+                  : 100)
+              return Number.isFinite(availability) ? availability.toFixed(1) : 'N/A'
+            })()}%
           </div>
         </div>
       </div>
@@ -2394,6 +2460,8 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   strokeWidth={3}
                   name="Score de charge"
                   dot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -3613,9 +3681,9 @@ const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, l
   }
 
   const formatTrend = (trendValue: number) => {
-    if (Math.abs(trendValue) < 0.1) return '0.0'
-    if (Math.abs(trendValue) < 1) return trendValue.toFixed(1)
-    return trendValue.toFixed(0)
+    if (Math.abs(trendValue) < 0.1) return '0.0%'
+    if (Math.abs(trendValue) < 1) return `${trendValue.toFixed(1)}%`
+    return `${trendValue.toFixed(0)}%`
   }
 
   return (
@@ -3632,7 +3700,6 @@ const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, l
         {trend !== undefined && trend !== null && trend !== 0 && (
           <span className={`text-xs font-medium ${getTrendColor()}`}>
             {trend > 0 ? '↗' : '↘'} {formatTrend(Math.abs(trend))}
-            {typeof trend === 'number' && Math.abs(trend) < 1 ? '%' : ''}
           </span>
         )}
       </div>

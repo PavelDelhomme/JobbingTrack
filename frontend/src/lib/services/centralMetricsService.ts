@@ -1165,17 +1165,45 @@ class CentralMetricsService {
       const displayName = formatServiceName(rawName)
       const networkRxMb = container.network_rx_bytes ? (container.network_rx_bytes / (1024 * 1024)) : 0
       const networkTxMb = container.network_tx_bytes ? (container.network_tx_bytes / (1024 * 1024)) : 0
+      const responseTimeMs = typeof container.response_time_ms === 'number' && container.response_time_ms > 0 
+        ? parseFloat(container.response_time_ms.toFixed(2)) 
+        : null
+      const httpStatus = typeof container.http_status === 'number' ? container.http_status : 0
+      const cpuPercent = typeof container.cpu_percent === 'number' ? parseFloat(container.cpu_percent.toFixed(2)) : 0
+      const memoryMb = typeof container.memory_mb === 'number' ? parseFloat(container.memory_mb.toFixed(2)) : 0
+      const memoryLimitMb = typeof container.memory_limit_mb === 'number' ? parseFloat(container.memory_limit_mb.toFixed(2)) : 0
+      const memoryPercent = typeof container.memory_percent === 'number' ? parseFloat(container.memory_percent.toFixed(2)) : 0
+
+      let status: ServiceMetrics['status'] = 'unknown'
+      let healthStatus: ServiceMetrics['healthStatus'] = 'unknown'
+      let healthError: string | undefined = undefined
+
+      if (httpStatus === 200) {
+        status = 'running'
+        healthStatus = 'online'
+      } else if (httpStatus && httpStatus >= 400) {
+        status = 'degraded'
+        healthStatus = 'degraded'
+        healthError = `HTTP Error ${httpStatus}`
+      } else if (httpStatus === 0 && responseTimeMs === null) {
+        status = 'offline'
+        healthStatus = 'offline'
+        healthError = 'Service unreachable'
+      } else {
+        status = 'starting'
+        healthStatus = 'starting'
+      }
 
       return {
         id: rawName, rawName, displayName, serviceType: baseServiceType, name: displayName,
         url: getServiceUrl(baseServiceType), port: getServicePort(baseServiceType),
-        status: 'running', responseTime: 'N/A', responseTimeMs: null, version: 'N/A',
-        healthStatus: 'online', healthError: undefined,
-        health: { status: 'online', responseTime: 'N/A', error: undefined },
+        status, responseTime: responseTimeMs !== null ? `${responseTimeMs} ms` : 'N/A', responseTimeMs, version: 'N/A',
+        healthStatus, healthError,
+        health: { status: healthStatus, responseTime: responseTimeMs !== null ? `${responseTimeMs} ms` : 'N/A', error: healthError },
         lastCheck: timestamp, pids: null, errorRatePerMin: 0, errorCount5m: 0,
         metrics: {
-          memory: { usage: 0, limit: 0, percentage: 0, usageMb: 0, limitMb: 0 },
-          cpu: { usage: 0, system: 0, percentage: 0, perCore: 0 },
+          memory: { usage: memoryMb, limit: memoryLimitMb, percentage: memoryPercent, usageMb: memoryMb, limitMb: memoryLimitMb },
+          cpu: { usage: cpuPercent, system: cpuPercent, percentage: cpuPercent, perCore: 0 },
           network: { rx_bytes: container.network_rx_bytes || 0, tx_bytes: container.network_tx_bytes || 0, rx_mb: networkRxMb, tx_mb: networkTxMb }
         },
         networkMb: { rx: networkRxMb, tx: networkTxMb }
@@ -1199,47 +1227,96 @@ class CentralMetricsService {
     const totalNetworkRxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.rx ?? 0), 0)
     const totalNetworkTxMb = servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0)
 
+    // Utiliser les statistiques calculées par monitoring-c si disponibles
+    const avgResponseTimeMs = typeof data.avg_response_time_ms === 'number' && data.avg_response_time_ms > 0
+      ? parseFloat(data.avg_response_time_ms.toFixed(2))
+      : (servicesList.length > 0 && servicesList.some(s => s.responseTimeMs) 
+        ? servicesList.filter(s => s.responseTimeMs).reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / servicesList.filter(s => s.responseTimeMs).length
+        : null)
+
+    // ✅ CORRECTION : Calculer la disponibilité correctement
+    // Un service est disponible s'il est running ET a un http_status valide (200 ou >= 400 mais running)
+    // Un service est indisponible s'il est stopped, offline, ou http_status === 0 sans métriques
+    const availabilityPercent = typeof data.availability_percent === 'number' && !Number.isNaN(data.availability_percent)
+      ? parseFloat(data.availability_percent.toFixed(2))
+      : (servicesList.length > 0 
+        ? (servicesList.filter(s => {
+            // Service disponible si :
+            // 1. Status est running/healthy/online
+            // 2. OU http_status === 200
+            // 3. OU http_status >= 400 mais status est running (dégradé mais disponible)
+            if (s.status === 'running' || s.status === 'healthy' || s.status === 'online' || 
+                s.healthStatus === 'online' || s.healthStatus === 'healthy') {
+              return true
+            }
+            if (s.http_status === 200) {
+              return true
+            }
+            if (s.status === 'running' && s.http_status >= 400) {
+              return true // Dégradé mais disponible
+            }
+            // Si http_status === 0 mais on a des métriques CPU/mémoire, le service est disponible
+            if (s.http_status === 0 && (s.cpu_percent > 0 || s.memory_mb > 0)) {
+              return true
+            }
+            return false
+          }).length / servicesList.length) * 100
+        : 100)
+
+    const loadScore = typeof data.load_score === 'number' && !Number.isNaN(data.load_score)
+      ? parseFloat(data.load_score.toFixed(2))
+      : undefined
+
+    const numericResponseTimes = servicesList
+      .filter(s => typeof s.responseTimeMs === 'number' && s.responseTimeMs > 0)
+      .map(s => s.responseTimeMs as number)
+
     return {
-      services: servicesMap, system: {
-        cpu: { usage: data.cpu?.usage_percent ? `${data.cpu.usage_percent.toFixed(1)}%` : 'N/A', cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A', model: 'N/A' },
+      services: servicesMap, 
+      system: {
+        cpu: { 
+          usage: data.cpu?.usage_percent ? `${data.cpu.usage_percent.toFixed(1)}%` : (data.avg_cpu_percent ? `${data.avg_cpu_percent.toFixed(1)}%` : 'N/A'), 
+          cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A', 
+          model: 'N/A' 
+        },
         memory: {
           total: data.memory?.total_mb ? `${(data.memory.total_mb / 1024).toFixed(2)} GB` : 'N/A',
           used: data.memory?.used_mb ? `${(data.memory.used_mb / 1024).toFixed(2)} GB` : 'N/A',
           free: data.memory?.free_mb ? `${(data.memory.free_mb / 1024).toFixed(2)} GB` : 'N/A',
-          usage: data.memory?.usage_percent ? `${data.memory.usage_percent.toFixed(1)}%` : 'N/A'
+          usage: data.memory?.usage_percent ? `${data.memory.usage_percent.toFixed(1)}%` : (data.avg_memory_percent ? `${data.avg_memory_percent.toFixed(1)}%` : 'N/A')
         },
         load: { average: data.cpu?.load_1 ? `${data.cpu.load_1.toFixed(2)}` : 'N/A', cores: data.cpu?.cores ? `${data.cpu.cores}` : 'N/A' },
         disk: data.disk ? [{ name: 'root', total: `${data.disk.total_gb.toFixed(2)} GB`, used: `${data.disk.used_gb.toFixed(2)} GB`, free: `${data.disk.free_gb.toFixed(2)} GB`, usage: `${data.disk.usage_percent.toFixed(1)}%` }] : []
       },
-      containers: containersMap, timestamp,
-      network: { total_rx_mb: totalNetworkRxMb, total_tx_mb: totalNetworkTxMb, per_service: servicesList.map(s => ({ name: s.rawName || s.name, rx_mb: s.networkMb?.rx ?? 0, tx_mb: s.networkMb?.tx ?? 0 })) },
-        responseTime: {
-          average_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs) 
-            ? servicesList.filter(s => s.responseTimeMs).reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / servicesList.filter(s => s.responseTimeMs).length
-            : null,
-          fastest_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs)
-            ? Math.min(...servicesList.filter(s => s.responseTimeMs).map(s => s.responseTimeMs || Infinity))
-            : null,
-          slowest_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs)
-            ? Math.max(...servicesList.filter(s => s.responseTimeMs).map(s => s.responseTimeMs || 0))
-            : null,
-          per_service: servicesList.map(s => ({ 
-            name: s.rawName || s.name, 
-            status: s.status, 
-            response_time_ms: s.responseTimeMs
-          }))
-        },
-        errors: { 
-          total_last_5m: 0, 
-          rate_per_min: 0, 
-          per_service: servicesList.map(s => ({ name: s.rawName || s.name, count_last_5m: 0, rate_per_min: 0 })) 
-        },
-        health: { 
-          availability_percent: servicesList.length > 0 
-            ? (servicesList.filter(s => s.status === 'running' || s.status === 'online').length / servicesList.length) * 100
-            : 100, 
-          per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) 
-        }
+      containers: containersMap, 
+      timestamp,
+      network: { 
+        total_rx_mb: totalNetworkRxMb, 
+        total_tx_mb: totalNetworkTxMb, 
+        per_service: servicesList.map(s => ({ name: s.rawName || s.name, rx_mb: s.networkMb?.rx ?? 0, tx_mb: s.networkMb?.tx ?? 0 })) 
+      },
+      responseTime: {
+        average_ms: avgResponseTimeMs,
+        fastest_ms: numericResponseTimes.length > 0 ? Math.min(...numericResponseTimes) : null,
+        slowest_ms: numericResponseTimes.length > 0 ? Math.max(...numericResponseTimes) : null,
+        per_service: servicesList.map(s => ({ 
+          name: s.rawName || s.name, 
+          status: s.status, 
+          response_time_ms: s.responseTimeMs
+        }))
+      },
+      errors: { 
+        total_last_5m: 0, 
+        rate_per_min: 0, 
+        per_service: servicesList.map(s => ({ name: s.rawName || s.name, count_last_5m: 0, rate_per_min: 0 })) 
+      },
+      health: { 
+        availability_percent: availabilityPercent, 
+        per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) 
+      },
+      overallLoadScore: loadScore,
+      servicesList: servicesList, // ✅ IMPORTANT : Inclure servicesList pour analytics
+      services: servicesMap // ✅ Aussi inclure services pour compatibilité
     }
   }
 

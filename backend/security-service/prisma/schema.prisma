@@ -132,3 +132,56 @@ model SecurityMetric {
 
   @@map("security_metrics")
 }
+
+model FirewallRule {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  sourceIp      String?  @db.VarChar(45) // IP source (CIDR)
+  destPort      Int?     // Port destination
+  protocol      String   @db.VarChar(10) // TCP, UDP, ICMP
+  action        String   @db.VarChar(10) // ALLOW, DENY, REJECT
+  priority      Int      @default(100)
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("firewall_rules")
+}
+
+model NetworkThreat {
+  id            String   @id @default(cuid())
+  threatType    String   @db.VarChar(50) // SYN_FLOOD, PORT_SCAN, BRUTE_FORCE, etc.
+  sourceIp      String   @db.VarChar(45)
+  destIp        String?  @db.VarChar(45)
+  destPort      Int?
+  severity      String   @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  detectedAt    DateTime @default(now())
+  blocked       Boolean  @default(false)
+  metadata      Json?    // Détails supplémentaires
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("network_threats")
+}
+
+model NetworkConnection {
+  id            String   @id @default(cuid())
+  sourceIp      String   @db.VarChar(45)
+  destIp        String   @db.VarChar(45)
+  sourcePort    Int
+  destPort      Int
+  protocol      String   @db.VarChar(10)
+  state         String   @db.VarChar(20) // ESTABLISHED, SYN_SENT, etc.
+  containerId   String?  @db.VarChar(100)
+  containerName String?  @db.VarChar(200)
+  bytesRx       BigInt   @default(0)
+  bytesTx       BigInt   @default(0)
+  packetsRx     Int      @default(0)
+  packetsTx     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("network_connections")
+}

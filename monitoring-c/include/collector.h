@@ -49,6 +49,12 @@ typedef struct {
     DiskMetrics disk;
     int container_count;
     ContainerMetrics containers[100];
+    // Statistiques globales calculées
+    double avg_response_time_ms;      // Temps de réponse moyen en ms
+    double avg_cpu_percent;            // CPU moyen des conteneurs
+    double avg_memory_percent;         // Mémoire moyenne des conteneurs
+    double availability_percent;       // Pourcentage de services sains
+    double load_score;                 // Score de charge (0-100)
 } MetricsData;
 
 // Fonctions principales

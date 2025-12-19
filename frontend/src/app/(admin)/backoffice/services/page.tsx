@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock, AlertTriangle, RotateCw, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 
+// ✅ NOUVEAU : Utiliser monitoring-c (port 5098) au lieu de l'ancien système
+const MONITORING_C_URL = 'http://localhost:5098'
 const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
 
 // Services critiques qui ne doivent pas être redémarrés/arrêtés depuis l'interface
@@ -59,14 +61,162 @@ export default function ServicesPage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
       
-      const response = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
-        signal: controller.signal
-      })
+      // ✅ NOUVEAU : Essayer d'abord monitoring-c, puis fallback vers l'ancien système
+      let response: Response | null = null
+      let data: any = null
+      
+      try {
+        // Tenter monitoring-c d'abord
+        response = await fetch(`${MONITORING_C_URL}/api/v1/metrics`, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        })
+        
+        if (response.ok) {
+          const monitoringCData = await response.json()
+          // Convertir les conteneurs en format services
+          const containers = Array.isArray(monitoringCData.containers) ? monitoringCData.containers : []
+          const loadedServices: Service[] = containers.map((container: any) => {
+            const rawName = container.name || 'unknown-service'
+            const serviceName = rawName.replace(/^jobbingtrack-/, '')
+            
+            // ✅ CORRECTION : Déterminer le statut de santé correctement
+            // Si le conteneur existe dans les métriques, il est probablement running
+            // http_status === 0 peut signifier que le health check n'a pas encore été fait ou a échoué
+            // mais si le conteneur existe et a des métriques CPU/mémoire, il est running
+            let healthStatus = 'unknown'
+            let status = 'running' // Par défaut, si le conteneur existe, il est running
+            
+            if (container.http_status === 200) {
+              healthStatus = 'healthy'
+              status = 'running'
+            } else if (container.http_status && container.http_status >= 400) {
+              healthStatus = 'degraded'
+              status = 'degraded'
+            } else if (container.http_status === 0) {
+              // http_status === 0 peut signifier :
+              // 1. Le service n'a pas d'endpoint health check (normal pour certains services)
+              // 2. Le health check n'a pas encore été fait (starting)
+              // 3. Le service est vraiment arrêté
+              // Si on a des métriques CPU/mémoire, le conteneur est probablement running
+              if (container.cpu_percent !== undefined || container.memory_mb !== undefined) {
+                healthStatus = 'healthy' // Si on a des métriques, le service fonctionne
+                status = 'running'
+              } else {
+                healthStatus = 'unknown'
+                status = 'starting' // Pas encore de métriques, peut-être en démarrage
+              }
+            }
+            
+            // ✅ CORRECTION : S'assurer que les valeurs sont des nombres valides
+            // CPU peut être une chaîne comme "0.00%" ou un nombre
+            let cpuPercent = 0
+            if (typeof container.cpu_percent === 'number' && !Number.isNaN(container.cpu_percent)) {
+              cpuPercent = parseFloat(container.cpu_percent.toFixed(2))
+            } else if (typeof container.cpu_percent === 'string') {
+              // Enlever le % si présent
+              const cleaned = container.cpu_percent.replace('%', '').trim()
+              cpuPercent = parseFloat(cleaned) || 0
+            }
+            
+            // Memory percent
+            let memoryPercent = 0
+            if (typeof container.memory_percent === 'number' && !Number.isNaN(container.memory_percent)) {
+              memoryPercent = parseFloat(container.memory_percent.toFixed(2))
+            } else if (typeof container.memory_percent === 'string') {
+              const cleaned = container.memory_percent.replace('%', '').trim()
+              memoryPercent = parseFloat(cleaned) || 0
+            }
+            
+            // Memory MB
+            let memoryMb = 0
+            if (typeof container.memory_mb === 'number' && !Number.isNaN(container.memory_mb)) {
+              memoryMb = parseFloat(container.memory_mb.toFixed(2))
+            } else if (typeof container.memory_mb === 'string') {
+              // Enlever "MB" si présent
+              const cleaned = container.memory_mb.replace(/MB/i, '').trim()
+              memoryMb = parseFloat(cleaned) || 0
+            }
+            
+            return {
+              name: serviceName,
+              status: status,
+              health_status: healthStatus,
+              is_running: status === 'running', // ✅ CORRECTION : Basé sur le statut réel
+              is_healthy: container.http_status === 200,
+              created: '',
+              ports: '',
+              image: '',
+              metrics: {
+                cpu_percent: cpuPercent,
+                memory_percent: memoryPercent,
+                memory_usage_mb: memoryMb,
+                pids: null
+              }
+            }
+          })
+          
+          // Enrichir avec les données Docker depuis l'ancien système pour ports, image, etc.
+          try {
+            const dockerResponse = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
+              signal: AbortSignal.timeout(5000)
+            })
+            if (dockerResponse.ok) {
+              const dockerData = await dockerResponse.json()
+              const dockerServices = dockerData.services || []
+              
+              // Fusionner les métriques C avec les données Docker
+              loadedServices.forEach((service: Service) => {
+                const dockerService = dockerServices.find((ds: Service) => 
+                  ds.name === service.name || 
+                  ds.name === `jobbingtrack-${service.name}` ||
+                  ds.name.replace(/^jobbingtrack-/, '') === service.name
+                )
+                if (dockerService) {
+                  service.ports = dockerService.ports || ''
+                  service.image = dockerService.image || ''
+                  service.created = dockerService.created || ''
+                  // ✅ CORRECTION : Utiliser le statut Docker pour is_running et status aussi
+                  if (dockerService.is_running !== undefined) {
+                    service.is_running = dockerService.is_running
+                  }
+                  if (dockerService.status) {
+                    service.status = dockerService.status
+                  }
+                  // Utiliser le statut Docker si disponible (plus fiable)
+                  if (dockerService.health_status) {
+                    service.health_status = dockerService.health_status
+                    service.is_healthy = dockerService.is_healthy
+                  }
+                  // Garder les métriques C (CPU/mémoire) mais utiliser les PIDs de Docker si disponibles
+                  if (dockerService.metrics?.pids) {
+                    service.metrics = service.metrics ? { ...service.metrics, pids: dockerService.metrics.pids } : null
+                  }
+                }
+              })
+            }
+          } catch (dockerError) {
+            // Ignorer l'erreur Docker, on a déjà les métriques C
+            console.log('[SERVICES] Métriques Docker non disponibles, utilisation uniquement des métriques C')
+          }
+          
+          data = { services: loadedServices }
+        }
+      } catch (monitoringCError) {
+        // Fallback vers l'ancien système
+        console.log('[SERVICES] Monitoring-c non disponible, fallback vers ancien système')
+        response = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
+          signal: controller.signal
+        })
+      }
       
       clearTimeout(timeoutId)
       
-      if (response.ok) {
-        const data = await response.json()
+      if (!data && response && response.ok) {
+        data = await response.json()
+      }
+      
+      if (data && data.services) {
         // Charger progressivement : d'abord les services actifs, puis les autres
         const loadedServices = data.services || []
         

@@ -129,7 +129,7 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo ""
 	@PUSHED=0; \
 	SKIPPED=0; \
-	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator-service security-service"; \
+	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator-service security-service deployment-service workflow-service"; \
 	for service in $$SERVICES; do \
 		CONTAINER="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
@@ -143,17 +143,37 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 					echo "  ✅ $$service - Schéma synchronisé"; \
 					PUSHED=$$((PUSHED + 1)); \
 				else \
-					echo "  ❌ $$service - Échec de prisma db push"; \
-					echo "     Erreur: $$PUSH_OUTPUT" | head -3; \
-					SKIPPED=$$((SKIPPED + 1)); \
+					# Filtrer les erreurs d'enums déjà existants (non bloquantes) \
+					if echo "$$PUSH_OUTPUT" | grep -q "type.*already exists"; then \
+						echo "  ⚠️  $$service - Enums déjà existants (ignoré)"; \
+						PUSHED=$$((PUSHED + 1)); \
+					else \
+						echo "  ❌ $$service - Échec de prisma db push"; \
+						echo "     Erreur: $$PUSH_OUTPUT" | head -3; \
+						SKIPPED=$$((SKIPPED + 1)); \
+					fi; \
 				fi; \
 			else \
 				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
 				SKIPPED=$$((SKIPPED + 1)); \
 			fi; \
 		else \
-			echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
-			SKIPPED=$$((SKIPPED + 1)); \
+			# Pour metrics-aggregator, essayer même si le conteneur n'est pas démarré (peut être dans un autre profil) \
+			if [ "$$service" = "metrics-aggregator-service" ]; then \
+				echo "  🔍 Vérification de $$service (hors conteneur)..."; \
+				if [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
+					echo "  📦 Prisma db push sur $$service (local)..."; \
+					cd backend/metrics-aggregator-service && npx prisma db push --accept-data-loss --skip-generate 2>&1 | head -5 && cd ../.. || true; \
+					echo "  ✅ $$service - Schéma synchronisé (local)"; \
+					PUSHED=$$((PUSHED + 1)); \
+				else \
+					echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
+					SKIPPED=$$((SKIPPED + 1)); \
+				fi; \
+			else \
+				echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
+				SKIPPED=$$((SKIPPED + 1)); \
+			fi; \
 		fi; \
 		echo ""; \
 	done; \

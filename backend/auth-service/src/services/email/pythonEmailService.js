@@ -64,7 +64,7 @@ class PythonEmailService {
       const { stdout, stderr } = await execAsync(command, {
         env: process.env,
         maxBuffer: 10 * 1024 * 1024, // 10MB
-        timeout: 30000, // 30 secondes timeout (augmenté pour OVH)
+        timeout: parseInt(process.env.SMTP_TIMEOUT || '45000'), // 45 secondes timeout par défaut (augmenté pour OVH)
       });
       
       // Afficher stderr pour le debug (contient les messages Python)

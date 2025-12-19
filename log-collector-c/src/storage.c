@@ -26,7 +26,13 @@ int init_storage(void) {
 int save_log_to_db(const LogEntry *entry) {
     // Pour l'instant, juste afficher (ou écrire dans un fichier)
     // TODO: Insérer dans PostgreSQL
-    printf("[LOG] %s: %s\n", entry->level, entry->message);
+    // ✅ AMÉLIORATION : Afficher seulement les erreurs et warnings pour éviter le spam
+    if (strcmp(entry->level, "ERROR") == 0 || strcmp(entry->level, "WARN") == 0) {
+        printf("[LOG] [%s] %s: %s\n", entry->level, 
+               entry->timestamp > 0 ? ctime(&entry->timestamp) : "now", 
+               entry->message);
+    }
+    // Pour les autres logs, on peut les ignorer ou les logger dans un fichier
     return 0;
 }
 

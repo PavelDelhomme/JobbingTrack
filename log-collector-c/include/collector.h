@@ -2,6 +2,7 @@
 #define COLLECTOR_H
 
 #include <time.h>
+#include <sys/inotify.h>
 
 // Structure pour un watch inotify
 typedef struct {

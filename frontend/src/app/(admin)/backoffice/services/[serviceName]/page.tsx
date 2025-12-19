@@ -61,43 +61,137 @@ export default function ServiceDetailPage() {
     try {
       if (showRefreshing) setRefreshing(true);
       
+      // ✅ NOUVEAU : Utiliser monitoring-c d'abord, puis fallback vers ancien système
+      const monitoringCUrl = 'http://localhost:5098';
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
       
-      // Récupérer les métriques du service
-      const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}`);
-      if (metricsResponse.ok) {
-        const data = await metricsResponse.json();
-        // Log uniquement en mode développement et seulement la première fois
-        if (process.env.NODE_ENV === 'development' && !serviceMetrics) {
-          console.log('[SERVICE DETAIL] Métriques reçues:', data.service);
+      // Récupérer les métriques depuis monitoring-c
+      try {
+        const monitoringCResponse = await fetch(`${monitoringCUrl}/api/v1/metrics`);
+        if (monitoringCResponse.ok) {
+          const monitoringCData = await monitoringCResponse.json();
+          const containers = Array.isArray(monitoringCData.containers) ? monitoringCData.containers : [];
+          const container = containers.find((c: any) => c.name === fullServiceName);
+          
+          if (container) {
+            // Convertir les données de monitoring-c au format attendu
+            const serviceData = {
+              name: container.name,
+              cpu_percent: typeof container.cpu_percent === 'number' ? container.cpu_percent : 0,
+              memory_percent: typeof container.memory_percent === 'number' ? container.memory_percent : 0,
+              memory_usage_mb: typeof container.memory_mb === 'number' ? container.memory_mb : 0,
+              memory_limit_mb: typeof container.memory_limit_mb === 'number' ? container.memory_limit_mb : 0,
+              network_rx_mb: typeof container.network_rx_bytes === 'number' ? container.network_rx_bytes / (1024 * 1024) : 0,
+              network_tx_mb: typeof container.network_tx_bytes === 'number' ? container.network_tx_bytes / (1024 * 1024) : 0,
+              response_time_ms: typeof container.response_time_ms === 'number' ? container.response_time_ms : null,
+              health_status_http: container.http_status === 200 ? 'healthy' : (container.http_status >= 400 ? 'unhealthy' : 'unknown'),
+              health_status_docker: 'none', // Sera rempli par l'ancien système si disponible
+              pids: null // Sera rempli par l'ancien système si disponible
+            };
+            setServiceMetrics(serviceData);
+          }
         }
-        setServiceMetrics(data.service);
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[SERVICE DETAIL] Erreur métriques:', metricsResponse.status);
+      } catch (monitoringCError) {
+        console.warn('[SERVICE DETAIL] Monitoring-c non disponible, fallback vers ancien système');
+      }
+      
+      // Fallback : Récupérer les métriques du service depuis l'ancien système (pour enrichir)
+      try {
+        const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}`);
+        if (metricsResponse.ok) {
+          const data = await metricsResponse.json();
+          // Fusionner avec les données de monitoring-c si disponibles
+          if (serviceMetrics) {
+            setServiceMetrics({
+              ...serviceMetrics,
+              health_status_docker: data.service?.health_status_docker || serviceMetrics.health_status_docker,
+              pids: data.service?.pids || serviceMetrics.pids,
+              created: data.service?.created,
+              image: data.service?.image,
+              ports: data.service?.ports
+            });
+          } else {
+            setServiceMetrics(data.service);
+          }
+        }
+      } catch (error) {
+        // Ignorer si monitoring-c a déjà fourni les données
+        if (!serviceMetrics) {
+          console.error('[SERVICE DETAIL] Erreur métriques:', error);
         }
       }
       
-      // Récupérer les logs
-      const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json();
-        // Log uniquement en mode développement et seulement la première fois
-        if (process.env.NODE_ENV === 'development' && !serviceLogs) {
-          console.log('[SERVICE DETAIL] Logs reçus:', logsData.total, 'lignes');
+      // Récupérer les logs depuis l'ancien système (log-collector-c n'a pas encore d'API)
+      try {
+        // ✅ CORRECTION : Utiliser l'API gateway pour les logs au lieu de metrics-aggregator
+        const apiGatewayUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+        try {
+          const logsResponse = await fetch(`${apiGatewayUrl}/api/v1/logs/${serviceName}?limit=100`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+            }
+          });
+          if (logsResponse.ok) {
+            const logsData = await logsResponse.json();
+            // Adapter le format si nécessaire
+            if (logsData.success && logsData.data) {
+              setServiceLogs({
+                lines: Array.isArray(logsData.data) ? logsData.data.map((log: any) => log.message || log) : [],
+                errorLines: Array.isArray(logsData.data) ? logsData.data.filter((log: any) => log.level === 'error' || log.level === 'ERROR') : []
+              });
+            } else {
+              setServiceLogs(logsData);
+            }
+          }
+        } catch (logsError) {
+          console.warn('[SERVICE DETAIL] Erreur récupération logs depuis API gateway, fallback vers metrics-aggregator');
+          // Fallback vers l'ancien système
+          try {
+            const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
+            if (logsResponse.ok) {
+              const logsData = await logsResponse.json();
+              setServiceLogs(logsData);
+            }
+          } catch (fallbackError) {
+            console.error('[SERVICE DETAIL] Erreur récupération logs:', fallbackError);
+          }
         }
-        setServiceLogs(logsData);
+      } catch (error) {
+        console.warn('[SERVICE DETAIL] Erreur logs:', error);
       }
       
-      // Récupérer l'historique (augmenté à 50 points)
-      const historyResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/history?limit=50`);
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json();
-        // Log uniquement en mode développement et seulement la première fois
-        if (process.env.NODE_ENV === 'development' && !serviceHistory.length) {
-          console.log('[SERVICE DETAIL] Historique reçu:', historyData.data?.length, 'points');
+      // ✅ NOUVEAU : Récupérer l'historique depuis monitoring-c (via centralMetricsService)
+      try {
+        const metrics = await centralMetricsService.getAggregatorMetrics(true);
+        if (metrics && metrics.servicesList) {
+          const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName);
+          if (service && metrics.chartData) {
+            // Construire l'historique depuis chartData pour ce service
+            const history = metrics.chartData
+              .map((point: any) => ({
+                timestamp: point.time || point.timestamp,
+                cpu_percent: point.services?.[service.rawName]?.cpu || service.metrics?.cpu?.percentage || 0,
+                memory_percent: point.services?.[service.rawName]?.memory || service.metrics?.memory?.percentage || 0,
+                memory_usage_mb: point.services?.[service.rawName]?.memory_mb || service.metrics?.memory?.usageMb || 0,
+                network_rx_mb: point.services?.[service.rawName]?.network_rx || service.metrics?.network?.rx_mb || 0,
+                network_tx_mb: point.services?.[service.rawName]?.network_tx || service.metrics?.network?.tx_mb || 0
+              }))
+              .filter((h: any) => h.timestamp)
+              .slice(-50); // Derniers 50 points
+            setServiceHistory(history);
+          }
         }
-        setServiceHistory(historyData.data || []);
+      } catch (historyError) {
+        // Fallback vers l'ancien système pour l'historique
+        try {
+          const historyResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/history?limit=50`);
+          if (historyResponse.ok) {
+            const historyData = await historyResponse.json();
+            setServiceHistory(historyData.data || []);
+          }
+        } catch (error) {
+          console.warn('[SERVICE DETAIL] Erreur historique:', error);
+        }
       }
     } catch (error) {
       console.error('[SERVICE DETAIL] Erreur chargement données service:', error);

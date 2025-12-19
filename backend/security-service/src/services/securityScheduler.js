@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('./securityService');
+const networkThreatDetector = require('./networkThreatDetector');
 
 class SecurityScheduler {
   constructor() {
@@ -32,6 +33,9 @@ class SecurityScheduler {
     // Planifier l'analyse des menaces en temps réel toutes les minutes
     this.scheduleRealTimeThreatAnalysis();
 
+    // Démarrer la détection continue des menaces réseau
+    networkThreatDetector.startDetection(30000); // Toutes les 30 secondes
+
     logger.info('Planificateur de sécurité démarré avec succès');
   }
 
@@ -59,6 +63,10 @@ class SecurityScheduler {
     });
 
     this.jobs.clear();
+    
+    // Arrêter la détection de menaces réseau
+    networkThreatDetector.stopDetection();
+    
     this.isRunning = false;
     logger.info('Planificateur de sécurité arrêté');
   }

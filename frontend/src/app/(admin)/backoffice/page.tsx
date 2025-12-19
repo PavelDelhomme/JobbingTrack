@@ -277,34 +277,51 @@ export default function BackofficePage() {
                 serviceMetrics = allMetrics.services[service.id]
               }
               
-              // ✅ OPTIMISATION : Déterminer le status avec logique de stabilité
-              // Ne changer le statut que si on a une confirmation claire, sinon garder l'ancien
+              // ✅ CORRECTION : Chercher aussi dans servicesList pour avoir les métriques complètes
+              const serviceFromList = allMetrics.servicesList?.find((s: any) => 
+                s.rawName === `jobbingtrack-${serviceKey}` || 
+                s.name === service.id ||
+                s.serviceType === serviceKey
+              )
+              
+              if (serviceFromList) {
+                serviceMetrics = serviceFromList
+              }
+              
+              // ✅ CORRECTION : Déterminer le status correctement depuis les métriques
               let newStatus = prevService?.status || 'testing'
               
-              // Si on a des métriques de service avec un statut de santé clair
-              if (serviceMetrics?.health?.status) {
+              // Priorité 1 : Statut depuis serviceMetrics (le plus fiable)
+              if (serviceMetrics?.status) {
+                newStatus = serviceMetrics.status
+              } else if (serviceMetrics?.healthStatus) {
+                // Mapper healthStatus vers status
+                if (serviceMetrics.healthStatus === 'online' || serviceMetrics.healthStatus === 'healthy') {
+                  newStatus = 'running'
+                } else if (serviceMetrics.healthStatus === 'offline' || serviceMetrics.healthStatus === 'unhealthy') {
+                  newStatus = 'stopped'
+                } else if (serviceMetrics.healthStatus === 'degraded') {
+                  newStatus = 'degraded'
+                } else {
+                  newStatus = 'unknown'
+                }
+              } else if (serviceMetrics?.health?.status) {
                 const healthStatus = serviceMetrics.health.status
-                // Seulement changer si le statut est clairement défini
                 if (healthStatus === 'healthy') {
                   newStatus = 'running'
                 } else if (healthStatus === 'unhealthy' || healthStatus === 'down') {
                   newStatus = 'stopped'
-                } else if (healthStatus === 'testing' || healthStatus === 'starting') {
-                  // Garder l'ancien statut si on est en train de tester/démarrer
-                  newStatus = prevService?.status || 'testing'
+                } else if (healthStatus === 'degraded') {
+                  newStatus = 'degraded'
                 } else {
-                  // Pour les autres statuts, utiliser le nouveau seulement s'il est différent de 'testing'
-                  if (healthStatus !== 'testing') {
-                    newStatus = healthStatus
-                  }
+                  newStatus = 'unknown'
                 }
               } else if (containerMetrics) {
-                // Si on a des métriques de conteneur mais pas de statut de santé, vérifier si le conteneur est actif
-                // Garder le statut précédent si disponible, sinon 'running' si le conteneur existe
-                newStatus = prevService?.status || 'running'
+                // Si on a des métriques de conteneur, le service est probablement running
+                newStatus = 'running'
               } else {
-                // Pas de métriques disponibles : garder l'ancien statut ou 'testing' si c'est la première fois
-                newStatus = prevService?.status || 'testing'
+                // Pas de métriques disponibles : garder l'ancien statut ou 'unknown'
+                newStatus = prevService?.status || 'unknown'
               }
               
               return {
@@ -330,13 +347,24 @@ export default function BackofficePage() {
               ? Math.round(Number(allMetrics.responseTime.average_ms))
               : 0
           
-          // ✅ Mettre à jour les stats avec le temps de réponse
-          if (avgResponseTime > 0) {
-            setStats((prev: any) => ({
-              ...prev,
-              averageResponseTime: avgResponseTime
-            }))
-          }
+          // ✅ Calculer le taux d'erreur depuis les métriques
+          const totalErrors = allMetrics.errors?.total_last_5m || 0
+          const errorRate = allMetrics.errors?.rate_per_min || 0
+          
+          // ✅ Calculer les erreurs récentes (24h) depuis les métriques
+          // Pour l'instant, on utilise les erreurs des 5 dernières minutes comme approximation
+          const recentErrors = totalErrors
+          
+          // ✅ Mettre à jour les stats avec toutes les métriques
+          setStats((prev: any) => ({
+            ...prev,
+            averageResponseTime: avgResponseTime > 0 ? avgResponseTime : prev.averageResponseTime,
+            errorRate: errorRate > 0 ? errorRate : prev.errorRate,
+            recentErrors: recentErrors > 0 ? recentErrors : prev.recentErrors,
+            systemHealth: allMetrics.health?.availability_percent 
+              ? Math.round(allMetrics.health.availability_percent) 
+              : prev.systemHealth
+          }))
         }
         // ✅ Suppression du else - on garde les anciennes valeurs si échec
       } catch (error) {
@@ -781,7 +809,7 @@ export default function BackofficePage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Activity className="h-5 w-5 text-blue-600" />
               État du système
-              <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded">📊 Prometheus</span>
+              <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ monitoring-c</span>
             </h2>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${systemMetrics ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -994,16 +1022,47 @@ export default function BackofficePage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Temps de réponse</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">{stats.averageResponseTime}ms</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">
+                  {stats.averageResponseTime > 0 ? `${stats.averageResponseTime}ms` : 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Taux d'erreur</span>
-                <span className="font-bold text-red-600 dark:text-red-400">{stats.errorRate}%</span>
+                <span className="font-bold text-red-600 dark:text-red-400">
+                  {stats.errorRate !== undefined ? `${stats.errorRate}%` : 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Sessions actives</span>
-                <span className="font-bold text-green-600 dark:text-green-400">{stats.activeSessions}</span>
+                <span className="font-bold text-green-600 dark:text-green-400">{stats.activeSessions || 0}</span>
               </div>
+              {/* ✅ NOUVEAU : Trafic réseau */}
+              {systemMetrics?.network && (
+                <>
+                  <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <Network className="h-4 w-4" />
+                      Trafic Réseau (RX)
+                    </span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">
+                      {systemMetrics.network.total_rx_mb !== undefined 
+                        ? `${systemMetrics.network.total_rx_mb.toFixed(2)} MB`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <Network className="h-4 w-4" />
+                      Trafic Réseau (TX)
+                    </span>
+                    <span className="font-bold text-orange-600 dark:text-orange-400">
+                      {systemMetrics.network.total_tx_mb !== undefined 
+                        ? `${systemMetrics.network.total_tx_mb.toFixed(2)} MB`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

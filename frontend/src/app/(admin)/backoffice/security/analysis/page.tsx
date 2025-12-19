@@ -27,6 +27,14 @@ export default function SecurityAnalysisPage() {
     loadSecuritySummary();
   }, [loadSecuritySummary]);
 
+  // ✅ CORRECTION : useMemo doit être appelé à chaque render, pas conditionnellement
+  // Déplacer avant le if (loading) pour respecter les règles des Hooks
+  const { securityScore, scoreColor } = useMemo(() => {
+    const score = summary?.avgSecurityScore || 85;
+    const color = score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red';
+    return { securityScore: score, scoreColor: color };
+  }, [summary?.avgSecurityScore]);
+
   if (loading) {
     return (
       <AdminLayout>
@@ -36,13 +44,6 @@ export default function SecurityAnalysisPage() {
       </AdminLayout>
     );
   }
-
-  // ✅ OPTIMISATION : useMemo pour calculer le score et la couleur
-  const { securityScore, scoreColor } = useMemo(() => {
-    const score = summary?.avgSecurityScore || 85;
-    const color = score >= 80 ? 'green' : score >= 60 ? 'orange' : 'red';
-    return { securityScore: score, scoreColor: color };
-  }, [summary?.avgSecurityScore]);
 
   return (
     <AdminLayout>

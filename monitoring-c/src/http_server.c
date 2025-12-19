@@ -51,6 +51,11 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "    \"usage_percent\": %.2f\n"
         "  },\n"
         "  \"container_count\": %d,\n"
+        "  \"avg_response_time_ms\": %.2f,\n"
+        "  \"avg_cpu_percent\": %.2f,\n"
+        "  \"avg_memory_percent\": %.2f,\n"
+        "  \"availability_percent\": %.2f,\n"
+        "  \"load_score\": %.2f,\n"
         "  \"containers\": [\n",
         (long)global_metrics.timestamp,
         global_metrics.cpu.load_1,
@@ -66,7 +71,12 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.disk.used_gb,
         global_metrics.disk.free_gb,
         global_metrics.disk.usage_percent,
-        global_metrics.container_count
+        global_metrics.container_count,
+        global_metrics.avg_response_time_ms,
+        global_metrics.avg_cpu_percent,
+        global_metrics.avg_memory_percent,
+        global_metrics.availability_percent,
+        global_metrics.load_score
     );
     
     // Ajouter les conteneurs avec métriques complètes
@@ -85,6 +95,10 @@ void generate_json_response(char *buffer, size_t buffer_size) {
             pos += snprintf(buffer + pos, buffer_size - pos,
                 "%s    {\n"
                 "      \"name\": \"%s\",\n"
+                "      \"cpu_percent\": %.2f,\n"
+                "      \"memory_mb\": %lu,\n"
+                "      \"memory_limit_mb\": %lu,\n"
+                "      \"memory_percent\": %.2f,\n"
                 "      \"network_rx_bytes\": %lu,\n"
                 "      \"network_tx_bytes\": %lu,\n"
                 "      \"network_rx_mb\": %.2f,\n"
@@ -94,6 +108,10 @@ void generate_json_response(char *buffer, size_t buffer_size) {
                 "    }",
                 (container_added > 0) ? ",\n" : "",
                 global_metrics.containers[i].name,
+                global_metrics.containers[i].cpu_percent,
+                global_metrics.containers[i].memory_mb,
+                global_metrics.containers[i].memory_limit_mb,
+                global_metrics.containers[i].memory_percent,
                 global_metrics.containers[i].network_rx_bytes,
                 global_metrics.containers[i].network_tx_bytes,
                 global_metrics.containers[i].network_rx_bytes / (1024.0 * 1024.0),

@@ -146,10 +146,22 @@ run_test() {
         # Si on trouve des patterns de test individuels, les compter
         # Pattern: "[X] Test: ..." ou "Test X:" ou "✓ Test" ou "✗ Test"
         test_count=$(echo "$output" | grep -cE "(\[.*\] Test:|Test [0-9]+:|✓|✗|PASS|FAIL)" 2>/dev/null || echo "0")
+        # Nettoyer test_count
+        test_count=$(echo "$test_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+        if [ -n "$test_count" ] && [ "$test_count" -ge 0 ] 2>/dev/null; then
+            test_count=$((test_count + 0))
+        else
+            test_count=0
+        fi
         if [ "$test_count" -gt 0 ] && [ "$total" -eq 0 ]; then
             total=$test_count
         fi
-        # S'assurer que passed et failed sont des nombres
+        # S'assurer que passed et failed sont des nombres (nettoyer les espaces et retours à la ligne)
+        passed=$(echo "$passed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+        failed=$(echo "$failed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+        # Convertir en nombres entiers
+        passed=$((passed + 0))
+        failed=$((failed + 0))
         if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
         if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
         # Si total est 0 mais qu'on a des passed/failed, utiliser leur somme
@@ -158,7 +170,16 @@ run_test() {
         fi
     fi
     
-    # S'assurer que toutes les variables sont des nombres valides
+    # S'assurer que toutes les variables sont des nombres valides (nettoyer les espaces)
+    total=$(echo "$total" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+    passed=$(echo "$passed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+    failed=$(echo "$failed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+    
+    # Convertir en nombres entiers
+    total=$((total + 0))
+    passed=$((passed + 0))
+    failed=$((failed + 0))
+    
     if [ -z "$total" ] || ! [ "$total" -ge 0 ] 2>/dev/null; then total=0; fi
     if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
     if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
@@ -201,9 +222,14 @@ EOF
     
     # Mettre à jour les compteurs globaux
     # S'assurer que total = passed + failed (cohérence)
-    if [ "$total" -gt 0 ] && [ "$total" -ne $((passed + failed)) ]; then
-        # Si incohérence, recalculer total à partir de passed + failed
-        total=$((passed + failed))
+    # Vérifier que passed et failed sont des nombres avant de faire l'opération
+    if [ -n "$passed" ] && [ "$passed" -ge 0 ] 2>/dev/null && [ -n "$failed" ] && [ "$failed" -ge 0 ] 2>/dev/null; then
+        passed=$((passed + 0))
+        failed=$((failed + 0))
+        if [ "$total" -gt 0 ] && [ "$total" -ne $((passed + failed)) ] 2>/dev/null; then
+            # Si incohérence, recalculer total à partir de passed + failed
+            total=$((passed + failed))
+        fi
     fi
     
     # Si total est 0, essayer d'extraire depuis la sortie brute avant de compter comme 1 test
@@ -215,6 +241,14 @@ EOF
             raw_passed=$(echo "$raw_output" | grep -cE "(✓ PASS|PASS|✓|réussis|✅|Test.*PASS)" 2>/dev/null || echo "0")
             raw_failed=$(echo "$raw_output" | grep -cE "(✗ FAIL|FAIL|✗|échoué|❌|Test.*FAIL)" 2>/dev/null || echo "0")
             raw_test_count=$(echo "$raw_output" | grep -cE "(\[.*\] Test:|Test [0-9]+:|Test:)" 2>/dev/null || echo "0")
+            
+            # Nettoyer et convertir en nombres
+            raw_test_count=$(echo "$raw_test_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+            if [ -n "$raw_test_count" ] && [ "$raw_test_count" -ge 0 ] 2>/dev/null; then
+                raw_test_count=$((raw_test_count + 0))
+            else
+                raw_test_count=0
+            fi
             
             if [ "$raw_test_count" -gt 0 ]; then
                 total=$raw_test_count

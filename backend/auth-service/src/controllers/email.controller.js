@@ -496,23 +496,63 @@ const sendTestEmail = async (req, res) => {
       // Logger l'email avant l'envoi
       let emailLog = null;
       try {
-        emailLog = await prisma.emailLog.create({
-          data: {
-            userId: userId || null,
-            to,
-            from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
-            subject: emailSubject,
-            type: 'TEST',
-            status: 'PENDING',
-            emailContent,
-            metadata: { test: true, sentBy: userId }
+        const createData = {
+          to,
+          from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+          subject: emailSubject,
+          type: 'TEST',
+          status: 'PENDING',
+          emailContent,
+          metadata: { test: true, sentBy: userId }
+        };
+        
+        // Ajouter userId seulement si valide
+        if (userId && !userId.toString().startsWith('test-') && !userId.toString().startsWith('temp-')) {
+          try {
+            const user = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { id: true }
+            });
+            if (user) {
+              createData.user = {
+                connect: { id: userId }
+              };
+            }
+          } catch (userError) {
+            logger.debug(`[EmailController] Utilisateur ${userId} non trouvé, userId sera null`);
           }
+        }
+        
+        emailLog = await prisma.emailLog.create({
+          data: createData
         });
       } catch (dbError) {
-        if (dbError.code === 'P2021') {
-          logger.warn('Table EmailLog non trouvée, email sera envoyé sans log');
+        // Si la table n'existe pas, continuer sans log
+        if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+          logger.warn('Table EmailLog non trouvée, email sera envoyé sans log. Exécutez: make db-push-all');
+          emailLog = { id: 'temp-' + Date.now() };
+        } else if (dbError.code === 'P2003') {
+          // Erreur de clé étrangère - userId invalide, réessayer sans userId
+          logger.warn(`[EmailController] userId invalide (${userId}), création sans userId`);
+          try {
+            emailLog = await prisma.emailLog.create({
+              data: {
+                to,
+                from: process.env.SMTP_FROM || 'noreply@jobbingtrack.com',
+                subject: emailSubject,
+                type: 'TEST',
+                status: 'PENDING',
+                emailContent,
+                metadata: { test: true, sentBy: null }
+              }
+            });
+          } catch (retryError) {
+            logger.error(`[EmailController] Erreur création log email (retry): ${retryError.message}`);
+            emailLog = { id: 'temp-' + Date.now() };
+          }
         } else {
-          logger.error('Erreur log email test:', dbError.message);
+          logger.error('Erreur création log email:', dbError);
+          emailLog = { id: 'temp-' + Date.now() };
         }
       }
 
@@ -531,7 +571,7 @@ const sendTestEmail = async (req, res) => {
         const { stdout } = await execAsync(command, {
           env: process.env,
           maxBuffer: 10 * 1024 * 1024,
-          timeout: 15000
+          timeout: parseInt(process.env.SMTP_TIMEOUT || '45000') // 45 secondes timeout par défaut
         });
 
         const result = JSON.parse(stdout.trim());
@@ -859,7 +899,7 @@ const testSMTPConnection = async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Réponse invalide du service Python',
-        message: 'Le service Python a retourné une réponse inattendue',
+        message: 'Le service Python n\'a pas retourné une réponse valide',
         details: {
           host: process.env.SMTP_HOST || 'Non configuré',
           port: process.env.SMTP_PORT || 'Non configuré',

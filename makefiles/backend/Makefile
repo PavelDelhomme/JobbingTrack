@@ -116,6 +116,18 @@ monitoring-c-logs: ## Voir les logs du nouveau système de monitoring en C
 
 monitoring-c-debug: ## Mode debug monitoring-c (interactif, build, logs)
 	@echo "🐛 Mode debug monitoring-c..."
+
+monitoring-c-test-services: ## Test monitoring-c avec services spécifiques (usage: make monitoring-c-test-services SERVICES="frontend api-gateway")
+	@echo "🧪 Test monitoring-c avec services spécifiques..."
+	@SERVICES=$${SERVICES:-"frontend api-gateway auth-service"}; \
+	echo "📋 Services à tester: $$SERVICES"; \
+	echo ""; \
+	for service in $$SERVICES; do \
+		echo "🔍 Test de jobbingtrack-$$service:"; \
+		curl -s http://localhost:5098/api/v1/metrics | jq -r ".containers[] | select(.name == \"jobbingtrack-$$service\") | {name, cpu_percent, memory_mb, memory_percent, response_time_ms, http_status}" || echo "❌ Service non trouvé ou erreur"; \
+		echo ""; \
+	done
+	@echo "✅ Test terminé"
 	@echo "📦 Build et démarrage interactif..."
 	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up --build monitoring-c log-collector-c)
 
