@@ -1213,9 +1213,33 @@ class CentralMetricsService {
       },
       containers: containersMap, timestamp,
       network: { total_rx_mb: totalNetworkRxMb, total_tx_mb: totalNetworkTxMb, per_service: servicesList.map(s => ({ name: s.rawName || s.name, rx_mb: s.networkMb?.rx ?? 0, tx_mb: s.networkMb?.tx ?? 0 })) },
-      responseTime: { average_ms: null, fastest_ms: null, slowest_ms: null, per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, response_time_ms: null })) },
-      errors: { total_last_5m: 0, rate_per_min: 0, per_service: servicesList.map(s => ({ name: s.rawName || s.name, count_last_5m: 0, rate_per_min: 0 })) },
-      health: { availability_percent: 100, per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) }
+        responseTime: {
+          average_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs) 
+            ? servicesList.filter(s => s.responseTimeMs).reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / servicesList.filter(s => s.responseTimeMs).length
+            : null,
+          fastest_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs)
+            ? Math.min(...servicesList.filter(s => s.responseTimeMs).map(s => s.responseTimeMs || Infinity))
+            : null,
+          slowest_ms: servicesList.length > 0 && servicesList.some(s => s.responseTimeMs)
+            ? Math.max(...servicesList.filter(s => s.responseTimeMs).map(s => s.responseTimeMs || 0))
+            : null,
+          per_service: servicesList.map(s => ({ 
+            name: s.rawName || s.name, 
+            status: s.status, 
+            response_time_ms: s.responseTimeMs
+          }))
+        },
+        errors: { 
+          total_last_5m: 0, 
+          rate_per_min: 0, 
+          per_service: servicesList.map(s => ({ name: s.rawName || s.name, count_last_5m: 0, rate_per_min: 0 })) 
+        },
+        health: { 
+          availability_percent: servicesList.length > 0 
+            ? (servicesList.filter(s => s.status === 'running' || s.status === 'online').length / servicesList.length) * 100
+            : 100, 
+          per_service: servicesList.map(s => ({ name: s.rawName || s.name, status: s.status, last_check: timestamp })) 
+        }
     }
   }
 

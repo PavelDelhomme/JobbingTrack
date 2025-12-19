@@ -144,6 +144,9 @@ int collect_container_metrics(void) {
         pclose(stats_fp);
     }
     
+    // Mettre à jour le nombre de conteneurs JobbingTrack trouvés
+    global_metrics.container_count = name_count > 0 ? name_count : global_metrics.container_count;
+    
     // Mesurer les temps de réponse HTTP pour les services JobbingTrack
     for (int i = 0; i < global_metrics.container_count && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
