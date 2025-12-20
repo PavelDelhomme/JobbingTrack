@@ -17,6 +17,7 @@
 #define BUFFER_SIZE 65536  // 64KB pour supporter plus de conteneurs
 
 extern MetricsData global_metrics;
+static pthread_mutex_t metrics_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * Génère une réponse JSON avec les métriques
@@ -198,8 +199,10 @@ void handle_request(int client_fd) {
     // Initialiser le buffer de réponse
     memset(response, 0, sizeof(response));
     
-    // Générer la réponse JSON
+    // Générer la réponse JSON (protéger l'accès à global_metrics)
+    pthread_mutex_lock(&metrics_mutex);
     generate_json_response(response, sizeof(response));
+    pthread_mutex_unlock(&metrics_mutex);
     
     // Vérifier que la réponse a été générée correctement
     size_t response_len = strlen(response);
@@ -296,11 +299,19 @@ void* http_server_thread(void* arg __attribute__((unused))) {
  */
 int start_http_server(void) {
     pthread_t thread;
-    if (pthread_create(&thread, NULL, http_server_thread, NULL) != 0) {
+    pthread_attr_t attr;
+    
+    // Initialiser les attributs du thread
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    
+    if (pthread_create(&thread, &attr, http_server_thread, NULL) != 0) {
         perror("pthread_create");
+        pthread_attr_destroy(&attr);
         return -1;
     }
-    pthread_detach(thread);
+    
+    pthread_attr_destroy(&attr);
     return 0;
 }
 
