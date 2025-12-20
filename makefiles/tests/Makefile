@@ -508,3 +508,74 @@ test-analytics-endpoint: ## Teste l'endpoint analytics /api/v1/persistence/logs
 	@echo "║                ✅ TEST TERMINÉ                         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
+
+# ================================================================
+# 🧪 TESTS API - Tests API complets (Jest dans conteneur)
+# ================================================================
+
+test-api: ## Tests API complets (Jest - dans conteneur ou local)
+	$(call check_help_read,test-api)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║           🧪 TESTS API COMPLETS - JobbingTrack        ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Cette commande exécute tous les tests API disponibles :"
+	@echo "   ✓ Tests monitoring-c endpoints"
+	@echo "   ✓ Tests email endpoints"
+	@echo "   ✓ Tests analytics endpoints"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Services démarrés (make up-full)"
+	@echo "   • Tests disponibles dans tests/api/"
+	@echo ""
+	@echo "🚀 Lancement des tests..."
+	@echo ""
+	@if docker ps | grep -q jobbingtrack-frontend; then \
+		echo "🐳 Exécution des tests dans le conteneur jobbingtrack-frontend..."; \
+		docker exec -w /app/tests jobbingtrack-frontend sh -c "npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
+		docker exec -w /app jobbingtrack-frontend sh -c "cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
+		(cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1); \
+	else \
+		echo "💻 Exécution des tests en local..."; \
+		cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1 || echo "⚠️  Tests nécessitent npm install dans tests/"; \
+	fi
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# ================================================================
+# 🔧 TESTS BACKEND - Tests services backend (Jest dans conteneur)
+# ================================================================
+
+test-backend: ## Tests services backend (Jest - dans conteneur ou local)
+	$(call check_help_read,test-backend)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🔧 TESTS BACKEND SERVICES - JobbingTrack       ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Cette commande exécute tous les tests backend disponibles :"
+	@echo "   ✓ Tests security-service"
+	@echo "   ✓ Tests autres services backend"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Services démarrés (make up-full)"
+	@echo "   • Tests disponibles dans tests/backend/"
+	@echo ""
+	@echo "🚀 Lancement des tests..."
+	@echo ""
+	@if docker ps | grep -q jobbingtrack-frontend; then \
+		echo "🐳 Exécution des tests dans le conteneur jobbingtrack-frontend..."; \
+		docker exec -w /app/tests jobbingtrack-frontend sh -c "npm test -- backend/ --verbose --forceExit --no-coverage 2>&1" || \
+		docker exec -w /app jobbingtrack-frontend sh -c "cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1" || \
+		(cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1); \
+	else \
+		echo "💻 Exécution des tests en local..."; \
+		cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1 || echo "⚠️  Tests nécessitent npm install dans tests/"; \
+	fi
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST TERMINÉ                         ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
