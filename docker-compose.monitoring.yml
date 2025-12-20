@@ -5,6 +5,8 @@ networks:
   jobbingtrack-network:
     external: true
     name: backend_jobbingtrack-network
+    # Fallback si le réseau backend_jobbingtrack-network n'existe pas
+    # Utiliser jobbingtrack_jobbingtrack-network à la place
 
 services:
   # Nouveau système de monitoring en C (ultra-léger)
