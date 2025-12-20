@@ -271,9 +271,9 @@ export default function AnalyticsPage() {
   const [loadingAggregatedLogs, setLoadingAggregatedLogs] = useState(false);
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  // ✅ OPTIMISATION : Réduire les intervalles de rafraîchissement pour améliorer les performances
-  const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(15000); // 15s au lieu de 10s
-  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(30000); // 30s au lieu de 15s
+  // ✅ OPTIMISATION : Augmenter les intervalles pour réduire CPU et mémoire
+  const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(30000); // 30s au lieu de 15s
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(45000); // 45s au lieu de 30s
 
   // Charger les préférences de rafraîchissement
   useEffect(() => {
@@ -622,7 +622,10 @@ export default function AnalyticsPage() {
     
     // Ensuite, chargement incrémental périodique
     const interval = setInterval(() => {
-      loadHistory(false);
+      // ✅ OPTIMISATION : Ne charger l'historique que si la page est visible
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        loadHistory(false);
+      }
     }, metricsRefreshInterval);
 
     return () => {
@@ -947,11 +950,21 @@ export default function AnalyticsPage() {
       }
     }
     
-    // ✅ OPTIMISATION : Limiter plus agressivement selon la plage de temps
+    // ✅ OPTIMISATION : Limiter la taille de l'historique dès le début pour économiser la mémoire
+    const maxHistorySize = timeRange === '1h' ? 120 : 
+                           timeRange === '6h' ? 360 : 
+                           timeRange === '24h' ? 480 : 
+                           timeRange === '7d' ? 336 : 480; // Limiter à 480 points max
+    
+    let workingHistory = metricsHistory.length > maxHistorySize 
+      ? metricsHistory.slice(-maxHistorySize) // Prendre les N derniers points
+      : metricsHistory;
+    
+    // ✅ OPTIMISATION : Limiter plus agressivement selon la plage de temps pour réduire la mémoire
     const maxPoints = timeRange === '1h' ? 60 : 
                       timeRange === '6h' ? 120 : 
                       timeRange === '24h' ? 240 : 
-                      timeRange === '7d' ? 280 : 500; // 30d - réduit de 720 à 500
+                      timeRange === '7d' ? 280 : 400; // 30d - réduit de 500 à 400
     
     // ✅ OPTIMISATION : Sous-échantillonnage plus efficace avec slice au lieu de filter
     let dataToUse = sortedHistory;

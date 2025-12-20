@@ -228,20 +228,32 @@ export default function BackofficePage() {
           // ✅ FUSIONNER les nouvelles métriques avec les anciennes pour garder toutes les valeurs
           // Ne jamais mettre null ou undefined pour éviter d'afficher N/A
           if (allMetrics.system) {
-            setSystemMetrics((prev: any) => ({
-              ...prev,
-              ...allMetrics.system,
-              // Préserver les sous-objets en les fusionnant aussi
-              cpu: prev?.cpu ? { ...prev.cpu, ...allMetrics.system.cpu } : allMetrics.system.cpu,
-              memory: prev?.memory ? { ...prev.memory, ...allMetrics.system.memory } : allMetrics.system.memory,
-              load: prev?.load ? { ...prev.load, ...allMetrics.system.load } : allMetrics.system.load,
-              disk: allMetrics.system.disk || prev?.disk,
-              jobbingtrack: prev?.jobbingtrack ? {
-                ...prev.jobbingtrack,
-                ...allMetrics.system.jobbingtrack,
-                containers: allMetrics.system.jobbingtrack?.containers || prev.jobbingtrack.containers
-              } : allMetrics.system.jobbingtrack
-            }))
+            // ✅ OPTIMISATION : Éviter les mises à jour si les données n'ont pas changé significativement
+            setSystemMetrics((prev: any) => {
+              // Comparer rapidement les valeurs clés pour éviter les re-renders inutiles
+              const cpuChanged = Math.abs((prev?.cpu?.usage || 0) - (allMetrics.system.cpu?.usage || 0)) > 0.1
+              const memChanged = Math.abs((prev?.memory?.usage || 0) - (allMetrics.system.memory?.usage || 0)) > 0.1
+              
+              // Si pas de changement significatif, retourner l'objet précédent (évite re-render)
+              if (!cpuChanged && !memChanged && prev) {
+                return prev
+              }
+              
+              return {
+                ...prev,
+                ...allMetrics.system,
+                // Préserver les sous-objets en les fusionnant aussi
+                cpu: prev?.cpu ? { ...prev.cpu, ...allMetrics.system.cpu } : allMetrics.system.cpu,
+                memory: prev?.memory ? { ...prev.memory, ...allMetrics.system.memory } : allMetrics.system.memory,
+                load: prev?.load ? { ...prev.load, ...allMetrics.system.load } : allMetrics.system.load,
+                disk: allMetrics.system.disk || prev?.disk,
+                jobbingtrack: prev?.jobbingtrack ? {
+                  ...prev.jobbingtrack,
+                  ...allMetrics.system.jobbingtrack,
+                  containers: allMetrics.system.jobbingtrack?.containers || prev.jobbingtrack.containers
+                } : allMetrics.system.jobbingtrack
+              }
+            })
           }
           if (allMetrics.containers) {
             setContainerMetrics((prev: any) => ({
@@ -382,12 +394,12 @@ export default function BackofficePage() {
         loadMaintenances()
       }, 500)
       
-      // ✅ OPTIMISATION : Actualiser toutes les 15 secondes pour réduire les changements erratiques
+      // ✅ OPTIMISATION : Actualiser toutes les 30 secondes pour réduire CPU et mémoire
       const interval = setInterval(() => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && !document.hidden) {
           loadSystemMetrics()
         }
-      }, 15000) // ✅ OPTIMISATION : 15 secondes pour plus de stabilité
+      }, 30000) // ✅ OPTIMISATION : 30 secondes pour réduire la charge
       
       return () => {
         clearTimeout(initialTimeout)
@@ -664,7 +676,11 @@ export default function BackofficePage() {
     }
 
     loadServicesWithMetrics()
-    const interval = setInterval(loadServicesWithMetrics, 15000) // ✅ OPTIMISATION : Refresh every 15s pour plus de stabilité
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        loadServicesWithMetrics()
+      }
+    }, 30000) // ✅ OPTIMISATION : 30 secondes pour réduire CPU et mémoire
     return () => clearInterval(interval)
   }, [])
 
@@ -749,7 +765,9 @@ export default function BackofficePage() {
             trendType="positive-is-bad"  // Moins de temps de réponse = bon
           />
           <MetricCard
-            title="CPU (Conteneurs)"
+            title={systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
+              ? `CPU (Conteneurs) - ${systemMetrics.cpu.cores} cores`
+              : "CPU (Conteneurs)"}
             value={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
               ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
               : systemMetrics?.cpu?.containers_only !== undefined 
@@ -757,8 +775,8 @@ export default function BackofficePage() {
               : '...'}
             subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
               ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
-              : systemMetrics?.cpu?.cores 
-              ? `${systemMetrics.cpu.cores} coeurs • ${safeToFixed(systemMetrics.cpu.per_core, 1)}% par coeur` 
+              : systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
+              ? `${systemMetrics.cpu.cores} cores disponibles • ${safeToFixed(systemMetrics.cpu.per_core, 1)}% par core` 
               : '...'}
             icon={<Cpu className="h-6 w-6" />}
             color={

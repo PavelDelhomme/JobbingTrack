@@ -27,12 +27,8 @@ void generate_json_response(char *buffer, size_t buffer_size) {
     memset(buffer, 0, buffer_size);
     
     // Format adapté pour le frontend (formatMetricsFromMonitoringC)
+    // ✅ Ne pas inclure les en-têtes HTTP ici (seront ajoutés dans handle_request)
     int pos = snprintf(buffer, buffer_size,
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: application/json\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
-        "Connection: close\r\n"
-        "\r\n"
         "{\n"
         "  \"timestamp\": %ld,\n"
         "  \"cpu\": {\n"
@@ -171,19 +167,22 @@ void generate_json_response(char *buffer, size_t buffer_size) {
  */
 void handle_request(int client_fd) {
     char buffer[BUFFER_SIZE];
-    char response[BUFFER_SIZE];
     
     // Lire la requête (simplifié)
     ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
     if (bytes_read <= 0) {
+        // Connexion fermée ou erreur de lecture
         close(client_fd);
         return;
     }
     
     buffer[bytes_read] = '\0';
     
-    // Vérifier si c'est une requête GET /api/v1/metrics
-    if (strstr(buffer, "GET /api/v1/metrics") == NULL && strstr(buffer, "GET /") == NULL) {
+    // Debug: afficher la première ligne de la requête
+    // printf("[DEBUG] Requête reçue: %.100s\n", buffer);
+    
+    // Vérifier si c'est une requête GET /api/v1/metrics ou GET /
+    if (strstr(buffer, "GET /api/v1/metrics") == NULL && strstr(buffer, "GET / HTTP") == NULL) {
         // Requête non supportée
         const char *not_found = 
             "HTTP/1.1 404 Not Found\r\n"
@@ -196,22 +195,48 @@ void handle_request(int client_fd) {
         return;
     }
     
-    // Initialiser le buffer de réponse
-    memset(response, 0, sizeof(response));
+    // Buffer pour le JSON
+    char json_buffer[BUFFER_SIZE];
+    memset(json_buffer, 0, sizeof(json_buffer));
     
     // Générer la réponse JSON (protéger l'accès à global_metrics)
     pthread_mutex_lock(&metrics_mutex);
-    generate_json_response(response, sizeof(response));
+    generate_json_response(json_buffer, sizeof(json_buffer));
     pthread_mutex_unlock(&metrics_mutex);
     
     // Vérifier que la réponse a été générée correctement
-    size_t response_len = strlen(response);
+    size_t json_len = strlen(json_buffer);
     
-    if (response_len == 0 || response_len >= sizeof(response)) {
+    // Si le JSON est vide, envoyer une réponse minimale
+    if (json_len == 0) {
+        fprintf(stderr, "[ERROR] JSON vide - utilisation réponse minimale\n");
+        // Réponse minimale avec données vides
+        strncpy(json_buffer, 
+            "{\n"
+            "  \"timestamp\": 0,\n"
+            "  \"cpu\": {\"load_1\": 0, \"load_5\": 0, \"load_15\": 0, \"cores\": 0, \"usage_percent\": 0},\n"
+            "  \"memory\": {\"total_mb\": 0, \"used_mb\": 0, \"free_mb\": 0, \"usage_percent\": 0},\n"
+            "  \"disk\": {\"total_gb\": 0, \"used_gb\": 0, \"free_gb\": 0, \"usage_percent\": 0},\n"
+            "  \"container_count\": 0,\n"
+            "  \"avg_response_time_ms\": 0,\n"
+            "  \"avg_cpu_percent\": 0,\n"
+            "  \"avg_memory_percent\": 0,\n"
+            "  \"availability_percent\": 0,\n"
+            "  \"load_score\": 0,\n"
+            "  \"network\": {\"total_rx_mb\": 0, \"total_tx_mb\": 0, \"total_mb\": 0},\n"
+            "  \"containers\": []\n"
+            "}",
+            sizeof(json_buffer) - 1);
+        json_len = strlen(json_buffer);
+    }
+    
+    if (json_len >= sizeof(json_buffer) - 200) {
+        fprintf(stderr, "[ERROR] JSON trop grand: %zu bytes\n", json_len);
         // Réponse vide ou buffer dépassé, envoyer une erreur
         const char *error_response = 
             "HTTP/1.1 500 Internal Server Error\r\n"
             "Content-Type: application/json\r\n"
+            "Content-Length: 52\r\n"
             "Connection: close\r\n"
             "\r\n"
             "{\"error\": \"Failed to generate metrics response\"}";
@@ -219,22 +244,61 @@ void handle_request(int client_fd) {
         if (written < 0) {
             perror("write error");
         }
+        shutdown(client_fd, SHUT_WR);
         close(client_fd);
         return;
     }
     
-    // Envoyer la réponse normale
+    // Construire la réponse HTTP complète avec en-têtes
+    char http_response[BUFFER_SIZE + 300];
+    int http_len = snprintf(http_response, sizeof(http_response),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %zu\r\n"
+        "Connection: close\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
+        "%s",
+        json_len, json_buffer);
+    
+    if (http_len < 0 || (size_t)http_len >= sizeof(http_response)) {
+        // Erreur de formatage, envoyer erreur 500
+        const char *error_response = 
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: 52\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{\"error\": \"Response too large\"}";
+        write(client_fd, error_response, strlen(error_response));
+        shutdown(client_fd, SHUT_WR);
+        close(client_fd);
+        return;
+    }
+    
+    // Envoyer la réponse HTTP complète
     ssize_t total_written = 0;
-    while (total_written < (ssize_t)response_len) {
-        ssize_t written = write(client_fd, response + total_written, response_len - total_written);
+    size_t http_response_len = (size_t)http_len;
+    
+    // Debug: afficher la taille de la réponse
+    // printf("[DEBUG] Envoi réponse HTTP: %zu bytes\n", http_response_len);
+    
+    while (total_written < (ssize_t)http_response_len) {
+        ssize_t written = write(client_fd, http_response + total_written, http_response_len - total_written);
         if (written < 0) {
-            perror("write error");
+            perror("[ERROR] write error");
             break;
         }
         if (written == 0) {
+            fprintf(stderr, "[WARN] write returned 0\n");
             break;
         }
         total_written += written;
+    }
+    
+    // Debug: vérifier que tout a été envoyé
+    if (total_written < (ssize_t)http_response_len) {
+        fprintf(stderr, "[WARN] Réponse incomplète: %zd/%zu bytes\n", total_written, http_response_len);
     }
     
     // Fermer proprement la connexion
@@ -250,47 +314,92 @@ void* http_server_thread(void* arg __attribute__((unused))) {
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
+    int retry_count = 0;
+    const int max_retries = 5;
+    const int retry_delay = 2; // secondes
     
-    // Créer socket
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("socket failed");
-        return NULL;
-    }
-    
-    // Configurer socket
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        perror("setsockopt");
-        return NULL;
-    }
-    
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(HTTP_PORT);
-    
-    // Bind
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("bind failed");
-        return NULL;
-    }
-    
-    // Listen
-    if (listen(server_fd, 3) < 0) {
-        perror("listen");
-        return NULL;
-    }
-    
-    printf("🌐 Serveur HTTP démarré sur le port %d\n", HTTP_PORT);
-    
-    // Accepter les connexions
-    while (1) {
-        if ((client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
-            perror("accept");
+    // Boucle de réessai pour le bind
+    while (retry_count < max_retries) {
+        // Créer socket
+        server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd < 0) {
+            perror("socket failed");
+            retry_count++;
+            sleep(retry_delay);
             continue;
         }
         
+        // Configurer socket - SO_REUSEADDR pour permettre le rebind rapide
+        if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+            perror("setsockopt SO_REUSEADDR");
+            close(server_fd);
+            retry_count++;
+            sleep(retry_delay);
+            continue;
+        }
+        
+        // SO_REUSEPORT pour Linux (permet plusieurs processus sur le même port)
+        #ifdef SO_REUSEPORT
+        if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) < 0) {
+            // Non critique, continuer même si ça échoue
+            // perror("setsockopt SO_REUSEPORT (non critique)");
+        }
+        #endif
+        
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = INADDR_ANY;
+        address.sin_port = htons(HTTP_PORT);
+        
+        // Bind avec retry
+        if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+            perror("bind failed");
+            close(server_fd);
+            retry_count++;
+            if (retry_count < max_retries) {
+                fprintf(stderr, "⚠️  Réessai du bind dans %d secondes... (tentative %d/%d)\n", 
+                        retry_delay, retry_count, max_retries);
+                sleep(retry_delay);
+            }
+            continue;
+        }
+        
+        // Listen
+        if (listen(server_fd, 10) < 0) {  // Augmenté à 10 pour plus de connexions
+            perror("listen");
+            close(server_fd);
+            retry_count++;
+            sleep(retry_delay);
+            continue;
+        }
+        
+        // Succès - sortir de la boucle de retry
+        printf("🌐 Serveur HTTP démarré sur le port %d\n", HTTP_PORT);
+        fflush(stdout);
+        break;
+    }
+    
+    // Si on a épuisé les tentatives, retourner erreur
+    if (retry_count >= max_retries) {
+        fprintf(stderr, "❌ Impossible de démarrer le serveur HTTP après %d tentatives\n", max_retries);
+        return NULL;
+    }
+    
+    // Accepter les connexions (boucle infinie)
+    while (1) {
+        client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+        if (client_fd < 0) {
+            perror("accept");
+            // Ne pas sortir de la boucle en cas d'erreur accept
+            sleep(1);
+            continue;
+        }
+        
+        // Traiter la requête (ne pas bloquer la boucle principale)
         handle_request(client_fd);
     }
     
+    // Ne devrait jamais arriver ici, mais fermer proprement si c'est le cas
+    close(server_fd);
     return NULL;
 }
 

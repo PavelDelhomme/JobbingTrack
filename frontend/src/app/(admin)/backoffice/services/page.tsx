@@ -310,7 +310,12 @@ export default function ServicesPage() {
   useEffect(() => {
     loadServices(true) // Chargement initial
     // Rafraîchir toutes les 20 secondes (plus long pour éviter les timeouts)
-    const interval = setInterval(() => loadServices(false), 20000)
+    // ✅ OPTIMISATION : Arrêter le polling si la page n'est pas visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        loadServices(false)
+      }
+    }, 30000) // Augmenté de 20s à 30s pour réduire CPU
     return () => clearInterval(interval)
   }, [])
 
