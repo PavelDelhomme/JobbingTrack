@@ -1,0 +1,14 @@
+{
+  "testName": "Tests API Complets",
+  "command": "node tests/api/test-api.js",
+  "timestamp": "2025-12-20T12:11:50+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 20,
+    "passed": 2,
+    "failed": 18
+  },
+  "output": "🧪 Lancement de tous les tests API...\n\n🏥 Test de santé API Gateway...\n❌ Health check failed: \n🔧 Test des services backend...\n❌ API Gateway Health: \n❌ API Gateway Services: \n⚠️ Auth Service (si disponible): \n⚠️ Auth Service Login (si disponible): \n⚠️ Company Service (si disponible): \n⚠️ Application Service (si disponible): \n🔐 Authentification...\n❌ Erreur d'authentification: \n👤 Test des endpoints utilisateurs...\n🔐 Authentification...\n❌ Erreur d'authentification: \n❌ GET /api/users: \n❌ GET /api/users/profile: \n❌ PUT /api/users/profile: \n🏢 Test des endpoints entreprises...\n🔐 Authentification...\n❌ Erreur d'authentification: \n❌ Company endpoints: \n📋 Test des endpoints candidatures...\n🔐 Authentification...\n❌ Erreur d'authentification: \n❌ Application endpoints: \n📊 Test des métriques...\n❌ Metrics: \n\n📋 Résumé des tests API:\n❌ health\n📊 services: 4/6 ✅\n❌ auth\n📊 users: 0/3 ✅\n❌ companies\n❌ applications\n❌ metrics\n"
+}

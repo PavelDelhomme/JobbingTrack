@@ -1,0 +1,310 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+        - /url: /backoffice
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - button "📊 Tableau de bord ▶" [ref=e10] [cursor=pointer]:
+            - generic [ref=e11]:
+              - generic [ref=e12]: 📊
+              - generic [ref=e13]: Tableau de bord
+            - generic [ref=e14]: ▶
+          - generic [ref=e15]:
+            - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques" [ref=e25] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+        - generic [ref=e34]:
+          - button "🔒 Sécurité ▶" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: 🔒
+              - generic [ref=e38]: Sécurité
+            - generic [ref=e39]: ▶
+          - generic [ref=e40]:
+            - link "📋 Logs de Sécurité" [ref=e44] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e45]: 📋
+              - generic [ref=e46]: Logs de Sécurité
+            - link "⚙️ Politiques de Sécurité" [ref=e50] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e51]: ⚙️
+              - generic [ref=e52]: Politiques de Sécurité
+            - link "🛡️ Analyse de Sécurité" [ref=e56] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e57]: 🛡️
+              - generic [ref=e58]: Analyse de Sécurité
+            - link "🔥 Firewall" [ref=e62] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e63]: 🔥
+              - generic [ref=e64]: Firewall
+            - link "🌐 Réseau" [ref=e68] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e69]: 🌐
+              - generic [ref=e70]: Réseau
+            - link "⚠️ Menaces" [ref=e74] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e75]: ⚠️
+              - generic [ref=e76]: Menaces
+        - generic [ref=e77]:
+          - button "⚙️ Administration ▶" [ref=e78] [cursor=pointer]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: ⚙️
+              - generic [ref=e81]: Administration
+            - generic [ref=e82]: ▶
+          - generic [ref=e83]:
+            - link "🔧 Gestion des Services" [ref=e87] [cursor=pointer]:
+              - /url: /backoffice/services
+              - generic [ref=e88]: 🔧
+              - generic [ref=e89]: Gestion des Services
+            - generic [ref=e92]:
+              - link "💾 Gestion des Données" [ref=e93] [cursor=pointer]:
+                - /url: /backoffice/data
+                - generic [ref=e94]: 💾
+                - generic [ref=e95]: Gestion des Données
+              - button "Expander les sous-items" [ref=e96] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e100] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e101]: 👥
+              - generic [ref=e102]: Utilisateurs
+            - link "📊 Analytics Utilisateur" [ref=e106] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e107]: 📊
+              - generic [ref=e108]: Analytics Utilisateur
+        - generic [ref=e109]:
+          - button "🛠️ Développement ▶" [ref=e110] [cursor=pointer]:
+            - generic [ref=e111]:
+              - generic [ref=e112]: 🛠️
+              - generic [ref=e113]: Développement
+            - generic [ref=e114]: ▶
+          - generic [ref=e115]:
+            - link "🧪 Testeur API" [ref=e119] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e120]: 🧪
+              - generic [ref=e121]: Testeur API
+            - link "🎲 Données de Test" [ref=e125] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e126]: 🎲
+              - generic [ref=e127]: Données de Test
+            - link "📱 Émulateur Mobile" [ref=e131] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e132]: 📱
+              - generic [ref=e133]: Émulateur Mobile
+            - generic [ref=e136]:
+              - link "🧪 Tests" [ref=e137] [cursor=pointer]:
+                - /url: /backoffice/playwright-tests
+                - generic [ref=e140]: 🧪
+                - generic [ref=e141]: Tests
+              - button "Expander les sous-items" [ref=e144] [cursor=pointer]: ▶
+            - generic [ref=e147]:
+              - link "🚶 Parcours Utilisateur" [ref=e148] [cursor=pointer]:
+                - /url: /backoffice/user-journey
+                - generic [ref=e149]: 🚶
+                - generic [ref=e150]: Parcours Utilisateur
+              - button "Expander les sous-items" [ref=e151] [cursor=pointer]: ▶
+        - generic [ref=e152]:
+          - button "📧 Gestion des Emails ▶" [ref=e153] [cursor=pointer]:
+            - generic [ref=e154]:
+              - generic [ref=e155]: 📧
+              - generic [ref=e156]: Gestion des Emails
+            - generic [ref=e157]: ▶
+          - generic [ref=e158]:
+            - link "📊 Dashboard" [ref=e162] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e163]: 📊
+              - generic [ref=e164]: Dashboard
+            - link "📈 Email Monitor" [ref=e168] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e169]: 📈
+              - generic [ref=e170]: Email Monitor
+            - link "📋 Historique" [ref=e174] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e175]: 📋
+              - generic [ref=e176]: Historique
+            - link "📝 Templates" [ref=e180] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e181]: 📝
+              - generic [ref=e182]: Templates
+            - link "⚙️ Configuration" [ref=e186] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e187]: ⚙️
+              - generic [ref=e188]: Configuration
+            - link "✅ Déliverabilité" [ref=e192] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e193]: ✅
+              - generic [ref=e194]: Déliverabilité
+      - generic [ref=e196]:
+        - button "DU Dev User SUPER_ADMIN" [ref=e198] [cursor=pointer]:
+          - generic [ref=e199]: DU
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: Dev User
+            - paragraph [ref=e202]: SUPER_ADMIN
+        - button "🚪" [ref=e204] [cursor=pointer]
+    - generic [ref=e205]:
+      - generic [ref=e207]:
+        - button "Toggle sidebar" [ref=e209] [cursor=pointer]:
+          - img [ref=e210]
+        - generic [ref=e213]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e214]
+        - generic [ref=e215]:
+          - button "DU admin@jobbingtrack.com" [ref=e216] [cursor=pointer]:
+            - generic [ref=e217]: DU
+            - generic [ref=e218]: admin@jobbingtrack.com
+          - button "Paramètres" [ref=e219] [cursor=pointer]:
+            - img [ref=e220]
+            - generic [ref=e223]: Paramètres
+          - button "Actions" [ref=e225] [cursor=pointer]:
+            - img [ref=e226]
+            - generic [ref=e229]: Actions
+            - img [ref=e230]
+          - button "☀️ Clair" [ref=e233] [cursor=pointer]:
+            - generic [ref=e234]: ☀️
+            - generic [ref=e235]: Clair
+            - img [ref=e236]
+      - main [ref=e238]:
+        - generic [ref=e239]:
+          - generic [ref=e240]:
+            - generic [ref=e241]:
+              - heading "Tests Playwright" [level=1] [ref=e242]
+              - paragraph [ref=e243]: Créez, gérez et exécutez des tests end-to-end personnalisés
+            - generic [ref=e244]:
+              - button "Nouveau test" [ref=e245] [cursor=pointer]:
+                - img [ref=e246]
+                - text: Nouveau test
+              - button "Lancer les tests" [disabled] [ref=e247]:
+                - img [ref=e248]
+                - text: Lancer les tests
+          - generic [ref=e250]:
+            - generic [ref=e251]:
+              - paragraph [ref=e252]: Total Scénarios
+              - paragraph [ref=e253]: "6"
+            - generic [ref=e254]:
+              - paragraph [ref=e255]: Réussis
+              - paragraph [ref=e256]: "0"
+            - generic [ref=e257]:
+              - paragraph [ref=e258]: Échoués
+              - paragraph [ref=e259]: "0"
+            - generic [ref=e260]:
+              - paragraph [ref=e261]: Sélectionnés
+              - paragraph [ref=e262]: "0"
+          - generic [ref=e264]:
+            - heading "Scénarios de Test" [level=2] [ref=e265]
+            - generic [ref=e266]:
+              - button "Contacts (3)" [ref=e267] [cursor=pointer]:
+                - img [ref=e268]
+                - text: Contacts (3)
+              - button "Candidatures (1)" [ref=e273] [cursor=pointer]:
+                - img [ref=e274]
+                - text: Candidatures (1)
+              - button "Relances (1)" [ref=e277] [cursor=pointer]:
+                - img [ref=e278]
+                - text: Relances (1)
+              - button "Entretiens (0)" [ref=e281] [cursor=pointer]:
+                - img [ref=e282]
+                - text: Entretiens (0)
+              - button "Appels (0)" [ref=e284] [cursor=pointer]:
+                - img [ref=e285]
+                - text: Appels (0)
+              - button "Synchronisation (1)" [ref=e287] [cursor=pointer]:
+                - img [ref=e288]
+                - text: Synchronisation (1)
+              - button "Personnalisé (0)" [ref=e293] [cursor=pointer]:
+                - img [ref=e294]
+                - text: Personnalisé (0)
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - generic [ref=e299]:
+                  - checkbox [ref=e300]
+                  - img [ref=e301]
+                  - generic [ref=e306]:
+                    - heading "Création de Contact" [level=3] [ref=e308]
+                    - paragraph [ref=e309]: Test de création d'un nouveau contact avec entreprise
+                    - generic [ref=e311]: 8 étapes
+                - generic [ref=e312]:
+                  - button "Modifier" [ref=e313] [cursor=pointer]:
+                    - img [ref=e314]
+                  - button "Exporter" [ref=e317] [cursor=pointer]:
+                    - img [ref=e318]
+              - generic [ref=e321]:
+                - generic [ref=e322]:
+                  - checkbox [ref=e323]
+                  - img [ref=e324]
+                  - generic [ref=e329]:
+                    - heading "Suppression de Contact" [level=3] [ref=e331]
+                    - paragraph [ref=e332]: Test de suppression d'un contact existant
+                    - generic [ref=e334]: 4 étapes
+                - generic [ref=e335]:
+                  - button "Modifier" [ref=e336] [cursor=pointer]:
+                    - img [ref=e337]
+                  - button "Exporter" [ref=e340] [cursor=pointer]:
+                    - img [ref=e341]
+              - generic [ref=e344]:
+                - generic [ref=e345]:
+                  - checkbox [ref=e346]
+                  - img [ref=e347]
+                  - generic [ref=e352]:
+                    - heading "Création Contact avec Entreprise" [level=3] [ref=e354]
+                    - paragraph [ref=e355]: Test de création d'un contact lié à une entreprise
+                    - generic [ref=e357]: 7 étapes
+                - generic [ref=e358]:
+                  - button "Modifier" [ref=e359] [cursor=pointer]:
+                    - img [ref=e360]
+                  - button "Exporter" [ref=e363] [cursor=pointer]:
+                    - img [ref=e364]
+              - generic [ref=e367]:
+                - generic [ref=e368]:
+                  - checkbox [ref=e369]
+                  - img [ref=e370]
+                  - generic [ref=e373]:
+                    - heading "Création de Candidature" [level=3] [ref=e375]
+                    - paragraph [ref=e376]: Test de création d'une nouvelle candidature
+                    - generic [ref=e378]: 6 étapes
+                - generic [ref=e379]:
+                  - button "Modifier" [ref=e380] [cursor=pointer]:
+                    - img [ref=e381]
+                  - button "Exporter" [ref=e384] [cursor=pointer]:
+                    - img [ref=e385]
+              - generic [ref=e388]:
+                - generic [ref=e389]:
+                  - checkbox [ref=e390]
+                  - img [ref=e391]
+                  - generic [ref=e394]:
+                    - heading "Création de Relance" [level=3] [ref=e396]
+                    - paragraph [ref=e397]: Test de création d'une relance depuis une candidature
+                    - generic [ref=e399]: 6 étapes
+                - generic [ref=e400]:
+                  - button "Modifier" [ref=e401] [cursor=pointer]:
+                    - img [ref=e402]
+                  - button "Exporter" [ref=e405] [cursor=pointer]:
+                    - img [ref=e406]
+              - generic [ref=e409]:
+                - generic [ref=e410]:
+                  - checkbox [ref=e411]
+                  - img [ref=e412]
+                  - generic [ref=e417]:
+                    - heading "Test de Synchronisation" [level=3] [ref=e419]
+                    - paragraph [ref=e420]: Test de synchronisation des données
+                    - generic [ref=e422]: 3 étapes
+                - generic [ref=e423]:
+                  - button "Modifier" [ref=e424] [cursor=pointer]:
+                    - img [ref=e425]
+                  - button "Exporter" [ref=e428] [cursor=pointer]:
+                    - img [ref=e429]
+          - generic [ref=e433] [cursor=pointer]:
+            - img [ref=e434]
+            - generic [ref=e437]: Importer un scénario
+  - alert [ref=e438]
+```

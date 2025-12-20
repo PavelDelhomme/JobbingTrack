@@ -131,8 +131,14 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         }
     }
     
-    // Fermer le JSON
-    snprintf(buffer + pos, buffer_size - pos, "\n  ]\n}");
+    // Fermer le JSON (vérifier que pos n'a pas dépassé buffer_size)
+    if (pos < buffer_size - 10) {
+        snprintf(buffer + pos, buffer_size - pos, "\n  ]\n}");
+    } else {
+        // Buffer trop petit, tronquer proprement
+        buffer[buffer_size - 10] = '\0';
+        strcat(buffer, "\n  ]\n}");
+    }
 }
 
 /**
@@ -154,8 +160,21 @@ void handle_request(int client_fd) {
     // Générer la réponse JSON
     generate_json_response(response, sizeof(response));
     
-    // Envoyer la réponse
-    write(client_fd, response, strlen(response));
+    // Vérifier que la réponse a été générée correctement
+    size_t response_len = strlen(response);
+    if (response_len == 0 || response_len >= sizeof(response)) {
+        // Réponse vide ou buffer dépassé, envoyer une erreur
+        const char *error_response = 
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{\"error\": \"Failed to generate metrics response\"}";
+        write(client_fd, error_response, strlen(error_response));
+    } else {
+        // Envoyer la réponse normale
+        write(client_fd, response, response_len);
+    }
     close(client_fd);
 }
 
