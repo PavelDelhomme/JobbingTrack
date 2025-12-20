@@ -16,16 +16,16 @@
           - generic [ref=e15]:
             - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
               - /url: /backoffice
-              - generic [ref=e22]: 📊
-              - generic [ref=e23]: Vue d'ensemble
-            - link "📈 Statistiques" [ref=e29] [cursor=pointer]:
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques" [ref=e25] [cursor=pointer]:
               - /url: /backoffice/statistics
-              - generic [ref=e30]: 📈
-              - generic [ref=e31]: Statistiques
-            - link "⚡ Performances & Analytics" [ref=e35] [cursor=pointer]:
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
               - /url: /backoffice/analytics
-              - generic [ref=e36]: ⚡
-              - generic [ref=e37]: Performances & Analytics
+              - generic [ref=e34]: ⚡
+              - generic [ref=e35]: Performances & Analytics
         - generic [ref=e38]:
           - button "🔒 Sécurité ▶" [ref=e39] [cursor=pointer]:
             - generic [ref=e40]:
@@ -177,134 +177,126 @@
       - main [ref=e238]:
         - generic [ref=e239]:
           - generic [ref=e240]:
-            - link "→ 1 Sessions Actives 1 utilisateurs" [ref=e241] [cursor=pointer]:
-              - /url: /backoffice/users
+            - generic [ref=e241]:
               - generic [ref=e242]:
-                - generic [ref=e243]:
-                  - img [ref=e245]
-                  - generic [ref=e250]: →
-                - generic [ref=e251]:
-                  - paragraph [ref=e252]: "1"
-                  - paragraph [ref=e253]: Sessions Actives
-                  - paragraph [ref=e254]: 1 utilisateurs
-            - link "→ 0 Erreurs Récentes 24h dernières" [ref=e255] [cursor=pointer]:
-              - /url: /backoffice/security/logs
-              - generic [ref=e256]:
-                - generic [ref=e257]:
-                  - img [ref=e259]
-                  - generic [ref=e261]: →
-                - generic [ref=e262]:
-                  - paragraph [ref=e263]: "0"
-                  - paragraph [ref=e264]: Erreurs Récentes
-                  - paragraph [ref=e265]: 24h dernières
-            - generic [ref=e267]:
-              - generic [ref=e268]:
-                - img [ref=e270]
-                - generic [ref=e272]:
-                  - generic [ref=e273]: ↑
-                  - generic [ref=e274]: 2.5%
-              - generic [ref=e275]:
-                - paragraph [ref=e276]: 100%
-                - paragraph [ref=e277]: Santé Système
-                - paragraph [ref=e278]: Disponibilité
-            - generic [ref=e280]:
-              - generic [ref=e281]:
-                - img [ref=e283]
-                - generic [ref=e286]:
-                  - generic [ref=e287]: ↓
-                  - generic [ref=e288]: 8.3%
-              - generic [ref=e289]:
-                - paragraph [ref=e290]: ...
-                - paragraph [ref=e291]: Temps Réponse
-                - paragraph [ref=e292]: Moyen
-            - generic [ref=e294]:
-              - generic [ref=e295]:
-                - img [ref=e297]
-                - generic [ref=e300]:
-                  - generic [ref=e301]: ↓
-                  - generic [ref=e302]: 3.2%
-              - generic [ref=e303]:
-                - paragraph [ref=e304]: ...
-                - paragraph [ref=e305]: CPU (Conteneurs)
-                - paragraph [ref=e306]: ...
-            - generic [ref=e308]:
-              - generic [ref=e309]:
-                - img [ref=e311]
-                - generic [ref=e313]:
-                  - generic [ref=e314]: ↑
-                  - generic [ref=e315]: 1.8%
-              - generic [ref=e316]:
-                - paragraph [ref=e317]: ...
-                - paragraph [ref=e318]: Mémoire (Conteneurs)
-                - paragraph [ref=e319]: ...
-          - generic [ref=e320]:
-            - generic [ref=e321]:
-              - heading "État du système ⚡ monitoring-c" [level=2] [ref=e322]:
-                - img [ref=e323]
-                - text: État du système
-                - generic [ref=e325]: ⚡ monitoring-c
-              - generic [ref=e328]: Déconnecté
-            - generic [ref=e329]:
-              - generic [ref=e330]:
-                - generic [ref=e331]: N/A
-                - generic [ref=e332]: CPU (Conteneurs)
-                - generic [ref=e333]: ...
-              - generic [ref=e334]:
-                - generic [ref=e335]: N/A
-                - generic [ref=e336]: Mémoire (Conteneurs)
-                - generic [ref=e337]: ...
-              - generic [ref=e338]:
-                - generic [ref=e339]: "0.00"
-                - generic [ref=e340]: Charge
-                - generic [ref=e341]: N/A
-              - generic [ref=e342]:
-                - generic [ref=e343]: ...
-                - generic [ref=e344]: Conteneurs
-                - generic [ref=e345]: ...
-              - generic [ref=e346]:
-                - generic [ref=e347]: "12"
-                - generic [ref=e348]: Services
-                - generic [ref=e349]: 🟢 OK
-              - generic [ref=e350]:
-                - generic [ref=e351]: N/A
-                - generic [ref=e352]: Disque (Conteneurs)
-                - generic [ref=e353]: N/A
-          - generic [ref=e354]:
-            - generic [ref=e355] [cursor=pointer]:
-              - generic [ref=e356]:
-                - heading "État des Services" [level=3] [ref=e357]:
-                  - img [ref=e358]
-                  - text: État des Services
-                - button "Voir tous" [ref=e361]
-              - generic [ref=e362]:
-                - generic [ref=e363]:
-                  - generic [ref=e366]: Auth Service
-                  - generic [ref=e367]: 15j 4h 23m
-                - generic [ref=e368]:
-                  - generic [ref=e371]: Application Service
-                  - generic [ref=e372]: 15j 4h 23m
-                - generic [ref=e373]:
-                  - generic [ref=e376]: Company Service
-                  - generic [ref=e377]: 15j 4h 23m
-                - generic [ref=e378]:
-                  - generic [ref=e381]: Contact Service
-                  - generic [ref=e382]: 15j 4h 23m
-                - generic [ref=e383]:
-                  - generic [ref=e386]: Interview Service
-                  - generic [ref=e387]: 15j 4h 23m
-            - generic [ref=e388]:
-              - heading "Performance" [level=3] [ref=e389]:
-                - img [ref=e390]
-                - text: Performance
-              - generic [ref=e393]:
-                - generic [ref=e394]:
-                  - generic [ref=e395]: Temps de réponse
-                  - generic [ref=e396]: N/A
-                - generic [ref=e397]:
-                  - generic [ref=e398]: Taux d'erreur
-                  - generic [ref=e399]: 0%
-                - generic [ref=e400]:
-                  - generic [ref=e401]: Sessions actives
-                  - generic [ref=e402]: "1"
-  - alert [ref=e403]
+                - heading "⚡ Performances & Analytics" [level=1] [ref=e243]
+                - generic [ref=e246]: Live
+              - paragraph [ref=e247]: Monitoring complet des performances système et services • Actualisation toutes les 10s
+            - combobox [ref=e248]:
+              - option "Dernière heure"
+              - option "6 heures"
+              - option "24 heures" [selected]
+              - option "7 jours"
+              - option "30 jours"
+          - navigation [ref=e250]:
+            - button "Synthèse" [ref=e251] [cursor=pointer]
+            - button "Système" [ref=e252] [cursor=pointer]
+            - button "Performance" [ref=e253] [cursor=pointer]
+            - button "Réseau & Fiabilité" [ref=e254] [cursor=pointer]
+            - button "Services & Logs" [ref=e255] [cursor=pointer]
+            - button "Erreurs Récentes" [ref=e256] [cursor=pointer]
+            - button "📊 Rapport Complet" [ref=e257] [cursor=pointer]
+          - generic [ref=e258]:
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - img [ref=e263]
+                - heading "Services" [level=3] [ref=e266]
+                - generic [ref=e267]: "21"
+                - generic [ref=e268]: 21 sains
+              - generic [ref=e269]:
+                - generic [ref=e270]:
+                  - img [ref=e272]
+                  - generic [ref=e275]: ↘ 150%
+                - heading "CPU Moyen" [level=3] [ref=e276]
+                - generic [ref=e277]: 73.4%
+              - generic [ref=e278]:
+                - generic [ref=e279]:
+                  - img [ref=e281]
+                  - generic [ref=e283]: ↘ 4%
+                - heading "Mémoire Totale" [level=3] [ref=e284]
+                - generic [ref=e285]: 2.00 MB
+              - generic [ref=e286]:
+                - generic [ref=e287]:
+                  - img [ref=e289]
+                  - generic [ref=e292]: ↗ 4%
+                - heading "Temps Réponse Moy." [level=3] [ref=e293]
+                - generic [ref=e294]: 4 ms
+            - generic [ref=e295]:
+              - generic [ref=e296]:
+                - heading "💻 CPU & Mémoire" [level=3] [ref=e297]
+                - generic [ref=e299]:
+                  - img [ref=e300]:
+                    - generic [ref=e307]: 22:52
+                    - generic [ref=e338]:
+                      - generic [ref=e340]: "0"
+                      - generic [ref=e342]: "150"
+                      - generic [ref=e344]: "300"
+                      - generic [ref=e346]: "475.92"
+                  - list [ref=e356]:
+                    - listitem [ref=e357]:
+                      - img [ref=e358]
+                      - text: CPU (%)
+                    - listitem [ref=e360]:
+                      - img [ref=e361]
+                      - text: Mémoire (%)
+                  - generic:
+                    - generic:
+                      - paragraph: 2025-12-19T23:14:57.127Z
+                      - list:
+                        - listitem: "CPU (%) : 351.94"
+                        - listitem: "Mémoire (%) : 7.37"
+              - generic [ref=e363]:
+                - heading "🌐 Trafic Réseau" [level=3] [ref=e364]
+                - generic [ref=e366]:
+                  - img [ref=e367]:
+                    - generic [ref=e374]: 22:52
+                    - generic [ref=e405]:
+                      - generic [ref=e407]: "0"
+                      - generic [ref=e409]: "1"
+                      - generic [ref=e411]: "2"
+                      - generic [ref=e413]: "3"
+                      - generic [ref=e415]: "4"
+                  - list [ref=e417]:
+                    - listitem [ref=e418]:
+                      - img [ref=e419]
+                      - text: RX (MB)
+                    - listitem [ref=e421]:
+                      - img [ref=e422]
+                      - text: TX (MB)
+              - generic [ref=e424]:
+                - heading "⚡ Temps de Réponse & Erreurs" [level=3] [ref=e425]
+                - generic [ref=e427]:
+                  - img [ref=e428]:
+                    - generic [ref=e435]: 22:52
+                    - generic [ref=e466]:
+                      - generic [ref=e468]: "0"
+                      - generic [ref=e470]: "1"
+                      - generic [ref=e472]: "2"
+                      - generic [ref=e474]: "3"
+                      - generic [ref=e476]: "4"
+                    - generic [ref=e478]:
+                      - generic [ref=e480]: "0"
+                      - generic [ref=e482]: "1"
+                      - generic [ref=e484]: "2"
+                      - generic [ref=e486]: "3"
+                      - generic [ref=e488]: "4"
+                  - list [ref=e490]:
+                    - listitem [ref=e491]:
+                      - img [ref=e492]
+                      - text: Temps réponse (ms)
+                    - listitem [ref=e494]:
+                      - img [ref=e495]
+                      - text: Taux d'erreur (%)
+              - generic [ref=e497]:
+                - heading "📊 Disponibilité" [level=3] [ref=e498]
+                - img [ref=e501]:
+                  - generic [ref=e508]: 22:52
+                  - generic [ref=e539]:
+                    - generic [ref=e541]: "0"
+                    - generic [ref=e543]: "25"
+                    - generic [ref=e545]: "50"
+                    - generic [ref=e547]: "75"
+                    - generic [ref=e549]: "100"
+  - alert [ref=e550]
+  - generic [ref=e551]: "25"
 ```

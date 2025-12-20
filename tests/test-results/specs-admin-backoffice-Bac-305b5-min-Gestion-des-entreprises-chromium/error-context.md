@@ -1,0 +1,198 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
+        - /url: /backoffice
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - button "📊 Tableau de bord ▶" [ref=e10] [cursor=pointer]:
+            - generic [ref=e11]:
+              - generic [ref=e12]: 📊
+              - generic [ref=e13]: Tableau de bord
+            - generic [ref=e14]: ▶
+          - generic [ref=e15]:
+            - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
+              - /url: /backoffice
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques" [ref=e25] [cursor=pointer]:
+              - /url: /backoffice/statistics
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
+              - /url: /backoffice/analytics
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+        - generic [ref=e34]:
+          - button "🔒 Sécurité ▶" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: 🔒
+              - generic [ref=e38]: Sécurité
+            - generic [ref=e39]: ▶
+          - generic [ref=e40]:
+            - link "📋 Logs de Sécurité" [ref=e44] [cursor=pointer]:
+              - /url: /backoffice/security/logs
+              - generic [ref=e45]: 📋
+              - generic [ref=e46]: Logs de Sécurité
+            - link "⚙️ Politiques de Sécurité" [ref=e50] [cursor=pointer]:
+              - /url: /backoffice/security/policies
+              - generic [ref=e51]: ⚙️
+              - generic [ref=e52]: Politiques de Sécurité
+            - link "🛡️ Analyse de Sécurité" [ref=e56] [cursor=pointer]:
+              - /url: /backoffice/security/analysis
+              - generic [ref=e57]: 🛡️
+              - generic [ref=e58]: Analyse de Sécurité
+            - link "🔥 Firewall" [ref=e62] [cursor=pointer]:
+              - /url: /backoffice/security/firewall
+              - generic [ref=e63]: 🔥
+              - generic [ref=e64]: Firewall
+            - link "🌐 Réseau" [ref=e68] [cursor=pointer]:
+              - /url: /backoffice/security/network
+              - generic [ref=e69]: 🌐
+              - generic [ref=e70]: Réseau
+            - link "⚠️ Menaces" [ref=e74] [cursor=pointer]:
+              - /url: /backoffice/security/threats
+              - generic [ref=e75]: ⚠️
+              - generic [ref=e76]: Menaces
+        - generic [ref=e77]:
+          - button "⚙️ Administration ▶" [ref=e78] [cursor=pointer]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: ⚙️
+              - generic [ref=e81]: Administration
+            - generic [ref=e82]: ▶
+          - generic [ref=e83]:
+            - link "🔧 Gestion des Services" [ref=e87] [cursor=pointer]:
+              - /url: /backoffice/services
+              - generic [ref=e88]: 🔧
+              - generic [ref=e89]: Gestion des Services
+            - generic [ref=e92]:
+              - link "💾 Gestion des Données" [ref=e93] [cursor=pointer]:
+                - /url: /backoffice/data
+                - generic [ref=e94]: 💾
+                - generic [ref=e95]: Gestion des Données
+              - button "Expander les sous-items" [ref=e96] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e100] [cursor=pointer]:
+              - /url: /backoffice/users
+              - generic [ref=e101]: 👥
+              - generic [ref=e102]: Utilisateurs
+            - link "📊 Analytics Utilisateur" [ref=e106] [cursor=pointer]:
+              - /url: /backoffice/user-analytics
+              - generic [ref=e107]: 📊
+              - generic [ref=e108]: Analytics Utilisateur
+        - generic [ref=e109]:
+          - button "🛠️ Développement ▶" [ref=e110] [cursor=pointer]:
+            - generic [ref=e111]:
+              - generic [ref=e112]: 🛠️
+              - generic [ref=e113]: Développement
+            - generic [ref=e114]: ▶
+          - generic [ref=e115]:
+            - link "🧪 Testeur API" [ref=e119] [cursor=pointer]:
+              - /url: /backoffice/api-tester
+              - generic [ref=e120]: 🧪
+              - generic [ref=e121]: Testeur API
+            - link "🎲 Données de Test" [ref=e125] [cursor=pointer]:
+              - /url: /backoffice/test-data
+              - generic [ref=e126]: 🎲
+              - generic [ref=e127]: Données de Test
+            - link "📱 Émulateur Mobile" [ref=e131] [cursor=pointer]:
+              - /url: /backoffice/mobile-emulator
+              - generic [ref=e132]: 📱
+              - generic [ref=e133]: Émulateur Mobile
+            - generic [ref=e136]:
+              - link "🧪 Tests" [ref=e137] [cursor=pointer]:
+                - /url: /backoffice/playwright-tests
+                - generic [ref=e138]: 🧪
+                - generic [ref=e139]: Tests
+              - button "Expander les sous-items" [ref=e140] [cursor=pointer]: ▶
+            - generic [ref=e143]:
+              - link "🚶 Parcours Utilisateur" [ref=e144] [cursor=pointer]:
+                - /url: /backoffice/user-journey
+                - generic [ref=e145]: 🚶
+                - generic [ref=e146]: Parcours Utilisateur
+              - button "Expander les sous-items" [ref=e147] [cursor=pointer]: ▶
+        - generic [ref=e148]:
+          - button "📧 Gestion des Emails ▶" [ref=e149] [cursor=pointer]:
+            - generic [ref=e150]:
+              - generic [ref=e151]: 📧
+              - generic [ref=e152]: Gestion des Emails
+            - generic [ref=e153]: ▶
+          - generic [ref=e154]:
+            - link "📊 Dashboard" [ref=e158] [cursor=pointer]:
+              - /url: /backoffice/emails
+              - generic [ref=e159]: 📊
+              - generic [ref=e160]: Dashboard
+            - link "📈 Email Monitor" [ref=e164] [cursor=pointer]:
+              - /url: /backoffice/email-monitor
+              - generic [ref=e165]: 📈
+              - generic [ref=e166]: Email Monitor
+            - link "📋 Historique" [ref=e170] [cursor=pointer]:
+              - /url: /backoffice/emails/logs
+              - generic [ref=e171]: 📋
+              - generic [ref=e172]: Historique
+            - link "📝 Templates" [ref=e176] [cursor=pointer]:
+              - /url: /backoffice/emails/templates
+              - generic [ref=e177]: 📝
+              - generic [ref=e178]: Templates
+            - link "⚙️ Configuration" [ref=e182] [cursor=pointer]:
+              - /url: /backoffice/emails/settings
+              - generic [ref=e183]: ⚙️
+              - generic [ref=e184]: Configuration
+            - link "✅ Déliverabilité" [ref=e188] [cursor=pointer]:
+              - /url: /backoffice/emails/deliverability
+              - generic [ref=e189]: ✅
+              - generic [ref=e190]: Déliverabilité
+      - generic [ref=e192]:
+        - button "DU Dev User SUPER_ADMIN" [ref=e194] [cursor=pointer]:
+          - generic [ref=e195]: DU
+          - generic [ref=e196]:
+            - paragraph [ref=e197]: Dev User
+            - paragraph [ref=e198]: SUPER_ADMIN
+        - button "🚪" [ref=e200] [cursor=pointer]
+    - generic [ref=e201]:
+      - generic [ref=e203]:
+        - button "Toggle sidebar" [ref=e205] [cursor=pointer]:
+          - img [ref=e206]
+        - generic [ref=e209]:
+          - generic:
+            - img
+          - textbox "Rechercher..." [ref=e210]
+        - generic [ref=e211]:
+          - button "DU admin@jobbingtrack.test" [ref=e212] [cursor=pointer]:
+            - generic [ref=e213]: DU
+            - generic [ref=e214]: admin@jobbingtrack.test
+          - button "Paramètres" [ref=e215] [cursor=pointer]:
+            - img [ref=e216]
+            - generic [ref=e219]: Paramètres
+          - button "Actions" [ref=e221] [cursor=pointer]:
+            - img [ref=e222]
+            - generic [ref=e225]: Actions
+            - img [ref=e226]
+          - button "☀️ Clair" [ref=e229] [cursor=pointer]:
+            - generic [ref=e230]: ☀️
+            - generic [ref=e231]: Clair
+            - img [ref=e232]
+      - main [ref=e234]:
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - heading "🏢 Gestion des Entreprises" [level=1] [ref=e238]
+              - paragraph [ref=e239]: Gérez votre base de données d'entreprises
+            - button "➕ Nouvelle entreprise" [ref=e240] [cursor=pointer]
+          - textbox "Rechercher une entreprise..." [ref=e242]
+          - generic [ref=e243]:
+            - table [ref=e245]:
+              - rowgroup [ref=e246]:
+                - row "Entreprise Secteur Localisation Taille Statistiques Actions" [ref=e247]:
+                  - cell "Entreprise" [ref=e248]
+                  - cell "Secteur" [ref=e249]
+                  - cell "Localisation" [ref=e250]
+                  - cell "Taille" [ref=e251]
+                  - cell "Statistiques" [ref=e252]
+                  - cell "Actions" [ref=e253]
+              - rowgroup
+            - generic [ref=e254]: Aucune entreprise trouvée
+  - alert [ref=e255]
+```

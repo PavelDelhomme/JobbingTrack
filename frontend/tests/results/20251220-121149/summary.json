@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-12-20T12:11:54+01:00",
+  "reportDir": "tests/results/20251220-121149",
+  "summary": {
+    "totalCategories": 4,
+    "totalTests": 0,
+    "totalPassed": 0,
+    "totalFailed": 0,
+    "totalSkipped": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "successRate": 0.00
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "failed", "duration": 1},
+    {"name": "Tests API Complets", "status": "success", "duration": 0},
+    {"name": "Tests Backend Services", "status": "success", "duration": 1},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 2}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Backend Services",
+  "command": "node tests/backend/test-services.js",
+  "timestamp": "2025-12-20T12:11:51+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  },
+  "output": "🧪 Tests backend - Démarrage...\n\n🚪 Test de l'API Gateway...\n🔐 Test du service d'authentification...\n👤 Test du service utilisateurs...\n🏢 Test du service entreprises...\n📋 Test du service candidatures...\n📊 Test du service dashboard...\n\n📋 Résumé tests backend:\n📊 apiGateway: 0/5 ✅\n📊 authService: 0/3 ✅\n📊 userService: 0/1 ✅\n📊 companyService: 0/1 ✅\n📊 applicationService: 0/1 ✅\n📊 dashboardService: 0/1 ✅\n"
+}

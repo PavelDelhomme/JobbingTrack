@@ -244,10 +244,23 @@ EOF
             
             # Nettoyer et convertir en nombres
             raw_test_count=$(echo "$raw_test_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+            raw_passed=$(echo "$raw_passed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+            raw_failed=$(echo "$raw_failed" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+            
             if [ -n "$raw_test_count" ] && [ "$raw_test_count" -ge 0 ] 2>/dev/null; then
                 raw_test_count=$((raw_test_count + 0))
             else
                 raw_test_count=0
+            fi
+            if [ -n "$raw_passed" ] && [ "$raw_passed" -ge 0 ] 2>/dev/null; then
+                raw_passed=$((raw_passed + 0))
+            else
+                raw_passed=0
+            fi
+            if [ -n "$raw_failed" ] && [ "$raw_failed" -ge 0 ] 2>/dev/null; then
+                raw_failed=$((raw_failed + 0))
+            else
+                raw_failed=0
             fi
             
             if [ "$raw_test_count" -gt 0 ]; then
@@ -258,7 +271,7 @@ EOF
                 if command -v jq > /dev/null 2>&1; then
                     jq ".statistics.total = $total | .statistics.passed = $passed | .statistics.failed = $failed" "$result_file" > "$result_file.tmp2" && mv "$result_file.tmp2" "$result_file" 2>/dev/null || true
                 fi
-            elif [ $((raw_passed + raw_failed)) -gt 0 ]; then
+            elif [ -n "$raw_passed" ] && [ -n "$raw_failed" ] && [ "$raw_passed" -ge 0 ] && [ "$raw_failed" -ge 0 ] 2>/dev/null && [ $((raw_passed + raw_failed)) -gt 0 ]; then
                 total=$((raw_passed + raw_failed))
                 passed=$raw_passed
                 failed=$raw_failed
@@ -371,17 +384,25 @@ EOF
     echo ""
 fi
 
-# 5. Tests API complets (si disponible)
-if [ -f "tests/api/test-api.js" ]; then
-    run_test "Tests API Complets" \
-        "node tests/api/test-api.js" \
+# 5. Tests API complets (via make test-api qui utilise Jest dans conteneur)
+if docker ps | grep -q jobbingtrack-frontend; then
+    run_test "Tests API Complets (Jest)" \
+        "docker exec -w /app/tests jobbingtrack-frontend sh -c 'npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || docker exec -w /app jobbingtrack-frontend sh -c 'cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || (cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1)" \
+        "$REPORT_DIR/api-tests.json"
+elif [ -f "tests/api/test-monitoring-c-endpoints.test.js" ] || [ -f "tests/api/test-email-endpoints.test.js" ]; then
+    run_test "Tests API Complets (Jest local)" \
+        "cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1" \
         "$REPORT_DIR/api-tests.json"
 fi
 
-# 6. Tests Backend Services (si disponible)
-if [ -f "tests/backend/test-services.js" ]; then
-    run_test "Tests Backend Services" \
-        "node tests/backend/test-services.js" \
+# 6. Tests Backend Services (via make test-backend qui utilise Jest dans conteneur)
+if docker ps | grep -q jobbingtrack-frontend; then
+    run_test "Tests Backend Services (Jest)" \
+        "docker exec -w /app/tests jobbingtrack-frontend sh -c 'npm test -- backend/ --verbose --forceExit --no-coverage 2>&1' || docker exec -w /app jobbingtrack-frontend sh -c 'cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1' || (cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1)" \
+        "$REPORT_DIR/backend-services.json"
+elif [ -f "tests/backend/test-security-service.test.js" ]; then
+    run_test "Tests Backend Services (Jest local)" \
+        "cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1" \
         "$REPORT_DIR/backend-services.json"
 fi
 
@@ -806,11 +827,21 @@ for json_file in "$REPORT_DIR"/*.json; do
                     # Compter les tests individuels
                     test_count=$(echo "$output_clean" | grep -cE "(\[.*\] Test:|Test [0-9]+:|✓|✗)" 2>/dev/null || echo "0")
                     
+                    # Nettoyer les variables (enlever retours à la ligne et espaces)
+                    test_count=$(echo "$test_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+                    passed_count=$(echo "$passed_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+                    failed_count=$(echo "$failed_count" | tr -d '[:space:]\n\r' | grep -E '^[0-9]+$' || echo "0")
+                    
+                    # Convertir en nombres
+                    test_count=$((test_count + 0))
+                    passed_count=$((passed_count + 0))
+                    failed_count=$((failed_count + 0))
+                    
                     if [ "$test_count" -gt 0 ]; then
                         total=$test_count
                         passed=$passed_count
                         failed=$failed_count
-                    elif [ $((passed_count + failed_count)) -gt 0 ]; then
+                    elif [ -n "$passed_count" ] && [ -n "$failed_count" ] && [ "$passed_count" -ge 0 ] && [ "$failed_count" -ge 0 ] 2>/dev/null && [ $((passed_count + failed_count)) -gt 0 ]; then
                         total=$((passed_count + failed_count))
                         passed=$passed_count
                         failed=$failed_count

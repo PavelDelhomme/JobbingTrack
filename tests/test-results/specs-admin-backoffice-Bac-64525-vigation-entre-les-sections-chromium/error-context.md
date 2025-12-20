@@ -1,7 +1,7 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e1]:
+- generic [active] [ref=e1]:
   - generic [ref=e4]:
     - generic [ref=e5]:
       - link "🎯 JobbingTrack" [ref=e7] [cursor=pointer]:
@@ -16,68 +16,68 @@
           - generic [ref=e15]:
             - link "📊 Vue d'ensemble" [ref=e19] [cursor=pointer]:
               - /url: /backoffice
-              - generic [ref=e22]: 📊
-              - generic [ref=e23]: Vue d'ensemble
-            - link "📈 Statistiques" [ref=e29] [cursor=pointer]:
+              - generic [ref=e20]: 📊
+              - generic [ref=e21]: Vue d'ensemble
+            - link "📈 Statistiques" [ref=e25] [cursor=pointer]:
               - /url: /backoffice/statistics
-              - generic [ref=e30]: 📈
-              - generic [ref=e31]: Statistiques
-            - link "⚡ Performances & Analytics" [ref=e35] [cursor=pointer]:
+              - generic [ref=e26]: 📈
+              - generic [ref=e27]: Statistiques
+            - link "⚡ Performances & Analytics" [ref=e31] [cursor=pointer]:
               - /url: /backoffice/analytics
-              - generic [ref=e36]: ⚡
-              - generic [ref=e37]: Performances & Analytics
-        - generic [ref=e38]:
-          - button "🔒 Sécurité ▶" [ref=e39] [cursor=pointer]:
-            - generic [ref=e40]:
-              - generic [ref=e41]: 🔒
-              - generic [ref=e42]: Sécurité
-            - generic [ref=e43]: ▶
-          - generic [ref=e44]:
-            - link "📋 Logs de Sécurité" [ref=e48] [cursor=pointer]:
+              - generic [ref=e32]: ⚡
+              - generic [ref=e33]: Performances & Analytics
+        - generic [ref=e34]:
+          - button "🔒 Sécurité ▶" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: 🔒
+              - generic [ref=e38]: Sécurité
+            - generic [ref=e39]: ▶
+          - generic [ref=e40]:
+            - link "📋 Logs de Sécurité" [ref=e44] [cursor=pointer]:
               - /url: /backoffice/security/logs
-              - generic [ref=e49]: 📋
-              - generic [ref=e50]: Logs de Sécurité
-            - link "⚙️ Politiques de Sécurité" [ref=e54] [cursor=pointer]:
+              - generic [ref=e45]: 📋
+              - generic [ref=e46]: Logs de Sécurité
+            - link "⚙️ Politiques de Sécurité" [ref=e50] [cursor=pointer]:
               - /url: /backoffice/security/policies
-              - generic [ref=e55]: ⚙️
-              - generic [ref=e56]: Politiques de Sécurité
-            - link "🛡️ Analyse de Sécurité" [ref=e60] [cursor=pointer]:
+              - generic [ref=e51]: ⚙️
+              - generic [ref=e52]: Politiques de Sécurité
+            - link "🛡️ Analyse de Sécurité" [ref=e56] [cursor=pointer]:
               - /url: /backoffice/security/analysis
-              - generic [ref=e61]: 🛡️
-              - generic [ref=e62]: Analyse de Sécurité
-            - link "🔥 Firewall" [ref=e66] [cursor=pointer]:
+              - generic [ref=e57]: 🛡️
+              - generic [ref=e58]: Analyse de Sécurité
+            - link "🔥 Firewall" [ref=e62] [cursor=pointer]:
               - /url: /backoffice/security/firewall
-              - generic [ref=e67]: 🔥
-              - generic [ref=e68]: Firewall
-            - link "🌐 Réseau" [ref=e72] [cursor=pointer]:
+              - generic [ref=e63]: 🔥
+              - generic [ref=e64]: Firewall
+            - link "🌐 Réseau" [ref=e68] [cursor=pointer]:
               - /url: /backoffice/security/network
-              - generic [ref=e73]: 🌐
-              - generic [ref=e74]: Réseau
-            - link "⚠️ Menaces" [ref=e78] [cursor=pointer]:
+              - generic [ref=e69]: 🌐
+              - generic [ref=e70]: Réseau
+            - link "⚠️ Menaces" [ref=e74] [cursor=pointer]:
               - /url: /backoffice/security/threats
-              - generic [ref=e79]: ⚠️
-              - generic [ref=e80]: Menaces
-        - generic [ref=e81]:
-          - button "⚙️ Administration ▶" [ref=e82] [cursor=pointer]:
-            - generic [ref=e83]:
-              - generic [ref=e84]: ⚙️
-              - generic [ref=e85]: Administration
-            - generic [ref=e86]: ▶
-          - generic [ref=e87]:
-            - link "🔧 Gestion des Services" [ref=e91] [cursor=pointer]:
+              - generic [ref=e75]: ⚠️
+              - generic [ref=e76]: Menaces
+        - generic [ref=e77]:
+          - button "⚙️ Administration ▶" [ref=e78] [cursor=pointer]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: ⚙️
+              - generic [ref=e81]: Administration
+            - generic [ref=e82]: ▶
+          - generic [ref=e83]:
+            - link "🔧 Gestion des Services" [ref=e87] [cursor=pointer]:
               - /url: /backoffice/services
-              - generic [ref=e92]: 🔧
-              - generic [ref=e93]: Gestion des Services
-            - generic [ref=e96]:
-              - link "💾 Gestion des Données" [ref=e97] [cursor=pointer]:
+              - generic [ref=e88]: 🔧
+              - generic [ref=e89]: Gestion des Services
+            - generic [ref=e92]:
+              - link "💾 Gestion des Données" [ref=e93] [cursor=pointer]:
                 - /url: /backoffice/data
-                - generic [ref=e98]: 💾
-                - generic [ref=e99]: Gestion des Données
-              - button "Expander les sous-items" [ref=e100] [cursor=pointer]: ▶
-            - link "👥 Utilisateurs" [active] [ref=e104] [cursor=pointer]:
+                - generic [ref=e94]: 💾
+                - generic [ref=e95]: Gestion des Données
+              - button "Expander les sous-items" [ref=e96] [cursor=pointer]: ▶
+            - link "👥 Utilisateurs" [ref=e100] [cursor=pointer]:
               - /url: /backoffice/users
-              - generic [ref=e105]: 👥
-              - generic [ref=e106]: Utilisateurs
+              - generic [ref=e103]: 👥
+              - generic [ref=e104]: Utilisateurs
             - link "📊 Analytics Utilisateur" [ref=e110] [cursor=pointer]:
               - /url: /backoffice/user-analytics
               - generic [ref=e111]: 📊
@@ -177,134 +177,80 @@
       - main [ref=e238]:
         - generic [ref=e239]:
           - generic [ref=e240]:
-            - link "→ 1 Sessions Actives 1 utilisateurs" [ref=e241] [cursor=pointer]:
-              - /url: /backoffice/users
-              - generic [ref=e242]:
-                - generic [ref=e243]:
-                  - img [ref=e245]
-                  - generic [ref=e250]: →
-                - generic [ref=e251]:
-                  - paragraph [ref=e252]: "1"
-                  - paragraph [ref=e253]: Sessions Actives
-                  - paragraph [ref=e254]: 1 utilisateurs
-            - link "→ 0 Erreurs Récentes 24h dernières" [ref=e255] [cursor=pointer]:
-              - /url: /backoffice/security/logs
-              - generic [ref=e256]:
-                - generic [ref=e257]:
-                  - img [ref=e259]
-                  - generic [ref=e261]: →
-                - generic [ref=e262]:
-                  - paragraph [ref=e263]: "0"
-                  - paragraph [ref=e264]: Erreurs Récentes
-                  - paragraph [ref=e265]: 24h dernières
+            - generic [ref=e241]:
+              - heading "Gestion des Utilisateurs" [level=1] [ref=e242]
+              - paragraph [ref=e243]: Gérez les comptes utilisateurs et leurs permissions
+            - button "Nouvel utilisateur" [ref=e244] [cursor=pointer]:
+              - img [ref=e245]
+              - text: Nouvel utilisateur
+          - generic [ref=e246]:
+            - generic [ref=e248]:
+              - generic [ref=e249]:
+                - paragraph [ref=e250]: Total
+                - paragraph [ref=e251]: "1"
+              - img [ref=e252]
+            - generic [ref=e258]:
+              - generic [ref=e259]:
+                - paragraph [ref=e260]: Actifs
+                - paragraph [ref=e261]: "1"
+              - img [ref=e262]
             - generic [ref=e267]:
               - generic [ref=e268]:
-                - img [ref=e270]
-                - generic [ref=e272]:
-                  - generic [ref=e273]: ↑
-                  - generic [ref=e274]: 2.5%
-              - generic [ref=e275]:
-                - paragraph [ref=e276]: 100%
-                - paragraph [ref=e277]: Santé Système
-                - paragraph [ref=e278]: Disponibilité
-            - generic [ref=e280]:
-              - generic [ref=e281]:
-                - img [ref=e283]
-                - generic [ref=e286]:
-                  - generic [ref=e287]: ↓
-                  - generic [ref=e288]: 8.3%
-              - generic [ref=e289]:
-                - paragraph [ref=e290]: ...
-                - paragraph [ref=e291]: Temps Réponse
-                - paragraph [ref=e292]: Moyen
-            - generic [ref=e294]:
-              - generic [ref=e295]:
-                - img [ref=e297]
-                - generic [ref=e300]:
-                  - generic [ref=e301]: ↓
-                  - generic [ref=e302]: 3.2%
-              - generic [ref=e303]:
-                - paragraph [ref=e304]: ...
-                - paragraph [ref=e305]: CPU (Conteneurs)
-                - paragraph [ref=e306]: ...
-            - generic [ref=e308]:
-              - generic [ref=e309]:
-                - img [ref=e311]
-                - generic [ref=e313]:
-                  - generic [ref=e314]: ↑
-                  - generic [ref=e315]: 1.8%
-              - generic [ref=e316]:
-                - paragraph [ref=e317]: ...
-                - paragraph [ref=e318]: Mémoire (Conteneurs)
-                - paragraph [ref=e319]: ...
-          - generic [ref=e320]:
-            - generic [ref=e321]:
-              - heading "État du système ⚡ monitoring-c" [level=2] [ref=e322]:
-                - img [ref=e323]
-                - text: État du système
-                - generic [ref=e325]: ⚡ monitoring-c
-              - generic [ref=e328]: Déconnecté
-            - generic [ref=e329]:
-              - generic [ref=e330]:
-                - generic [ref=e331]: ...
-                - generic [ref=e332]: CPU (Conteneurs)
-                - generic [ref=e333]: ...
-              - generic [ref=e334]:
-                - generic [ref=e335]: ...
-                - generic [ref=e336]: Mémoire (Conteneurs)
-                - generic [ref=e337]: ...
-              - generic [ref=e338]:
-                - generic [ref=e339]: ...
-                - generic [ref=e340]: Charge
-                - generic [ref=e341]: N/A
-              - generic [ref=e342]:
-                - generic [ref=e343]: ...
-                - generic [ref=e344]: Conteneurs
-                - generic [ref=e345]: ...
-              - generic [ref=e346]:
-                - generic [ref=e347]: "12"
-                - generic [ref=e348]: Services
-                - generic [ref=e349]: 🟢 OK
-              - generic [ref=e350]:
-                - generic [ref=e351]: ...
-                - generic [ref=e352]: Disque (Conteneurs)
-                - generic [ref=e353]: ...
-          - generic [ref=e354]:
-            - generic [ref=e355] [cursor=pointer]:
-              - generic [ref=e356]:
-                - heading "État des Services" [level=3] [ref=e357]:
-                  - img [ref=e358]
-                  - text: État des Services
-                - button "Voir tous" [ref=e361]
-              - generic [ref=e362]:
-                - generic [ref=e363]:
-                  - generic [ref=e366]: Auth Service
-                  - generic [ref=e367]: 15j 4h 23m
-                - generic [ref=e368]:
-                  - generic [ref=e371]: Application Service
-                  - generic [ref=e372]: 15j 4h 23m
-                - generic [ref=e373]:
-                  - generic [ref=e376]: Company Service
-                  - generic [ref=e377]: 15j 4h 23m
-                - generic [ref=e378]:
-                  - generic [ref=e381]: Contact Service
-                  - generic [ref=e382]: 15j 4h 23m
-                - generic [ref=e383]:
-                  - generic [ref=e386]: Interview Service
-                  - generic [ref=e387]: 15j 4h 23m
-            - generic [ref=e388]:
-              - heading "Performance" [level=3] [ref=e389]:
-                - img [ref=e390]
-                - text: Performance
-              - generic [ref=e393]:
-                - generic [ref=e394]:
-                  - generic [ref=e395]: Temps de réponse
-                  - generic [ref=e396]: N/A
-                - generic [ref=e397]:
-                  - generic [ref=e398]: Taux d'erreur
-                  - generic [ref=e399]: 0%
-                - generic [ref=e400]:
-                  - generic [ref=e401]: Sessions actives
-                  - generic [ref=e402]: "1"
-  - alert [ref=e403]
+                - paragraph [ref=e269]: Inactifs
+                - paragraph [ref=e270]: "0"
+              - img [ref=e271]
+            - generic [ref=e277]:
+              - generic [ref=e278]:
+                - paragraph [ref=e279]: Admins
+                - paragraph [ref=e280]: "1"
+              - img [ref=e281]
+          - generic [ref=e284]:
+            - generic [ref=e286]:
+              - img [ref=e287]
+              - textbox "Rechercher par nom ou email..." [ref=e290]
+            - combobox [ref=e291]:
+              - option "Tous les rôles" [selected]
+              - option "Super Administrateurs"
+              - option "Administrateurs"
+              - option "Utilisateurs"
+              - option "Invités"
+            - button "Actualiser" [ref=e292] [cursor=pointer]:
+              - img [ref=e293]
+              - text: Actualiser
+          - table [ref=e300]:
+            - rowgroup [ref=e301]:
+              - row "Utilisateur Email Rôle Statut Création Actions" [ref=e302]:
+                - cell "Utilisateur" [ref=e303]
+                - cell "Email" [ref=e304]
+                - cell "Rôle" [ref=e305]
+                - cell "Statut" [ref=e306]
+                - cell "Création" [ref=e307]
+                - cell "Actions" [ref=e308]
+            - rowgroup [ref=e309]:
+              - row "DU Dev User admin@jobbingtrack.test SUPER ADMIN Actif 12/20/2025" [ref=e310]:
+                - cell "DU Dev User" [ref=e311]:
+                  - generic [ref=e312]:
+                    - generic [ref=e314]: DU
+                    - generic [ref=e316]: Dev User
+                - cell "admin@jobbingtrack.test" [ref=e317]:
+                  - generic [ref=e318]:
+                    - img [ref=e319]
+                    - text: admin@jobbingtrack.test
+                - cell "SUPER ADMIN" [ref=e322]:
+                  - generic [ref=e323]: SUPER ADMIN
+                - cell "Actif" [ref=e324]:
+                  - button "Actif" [ref=e325] [cursor=pointer]
+                - cell "12/20/2025" [ref=e326]:
+                  - generic [ref=e327]:
+                    - img [ref=e328]
+                    - text: 12/20/2025
+                - cell [ref=e330]:
+                  - generic [ref=e331]:
+                    - button "Modifier" [ref=e332] [cursor=pointer]:
+                      - img [ref=e333]
+                    - button "Envoyer email de réinitialisation de mot de passe" [ref=e336] [cursor=pointer]:
+                      - img [ref=e337]
+                    - button "Envoyer email de vérification" [ref=e340] [cursor=pointer]:
+                      - img [ref=e341]
+  - alert [ref=e344]
 ```

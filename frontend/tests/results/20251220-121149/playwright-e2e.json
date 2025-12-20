@@ -1,0 +1,14 @@
+{
+  "testName": "Playwright E2E Frontend",
+  "command": "cd frontend && npx playwright test tests/e2e --reporter=list,json 2>&1",
+  "timestamp": "2025-12-20T12:11:53+01:00",
+  "duration": 2,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 1
+  },
+  "output": "Erreur : Aucune sortie capturée (code de sortie: 1). Le test a probablement échoué avant de produire une sortie.\n"
+}

@@ -205,7 +205,7 @@
                   - generic [ref=e271]: ↑
                   - generic [ref=e272]: 2.5%
               - generic [ref=e273]:
-                - paragraph [ref=e274]: 19%
+                - paragraph [ref=e274]: 100%
                 - paragraph [ref=e275]: Santé Système
                 - paragraph [ref=e276]: Disponibilité
             - generic [ref=e278]:
@@ -215,7 +215,7 @@
                   - generic [ref=e285]: ↓
                   - generic [ref=e286]: 8.3%
               - generic [ref=e287]:
-                - paragraph [ref=e288]: 11ms
+                - paragraph [ref=e288]: ...
                 - paragraph [ref=e289]: Temps Réponse
                 - paragraph [ref=e290]: Moyen
             - generic [ref=e292]:
@@ -225,9 +225,9 @@
                   - generic [ref=e299]: ↓
                   - generic [ref=e300]: 3.2%
               - generic [ref=e301]:
-                - paragraph [ref=e302]: 164.2%
+                - paragraph [ref=e302]: ...
                 - paragraph [ref=e303]: CPU (Conteneurs)
-                - paragraph [ref=e304]: "Moy: 164.2% • 21 conteneurs"
+                - paragraph [ref=e304]: ...
             - generic [ref=e306]:
               - generic [ref=e307]:
                 - img [ref=e309]
@@ -235,100 +235,77 @@
                   - generic [ref=e312]: ↑
                   - generic [ref=e313]: 1.8%
               - generic [ref=e314]:
-                - paragraph [ref=e315]: 5.3%
+                - paragraph [ref=e315]: ...
                 - paragraph [ref=e316]: Mémoire (Conteneurs)
-                - paragraph [ref=e317]: 2572 MB / 48052 MB
+                - paragraph [ref=e317]: ...
           - generic [ref=e318]:
             - generic [ref=e319]:
               - heading "État du système ⚡ monitoring-c" [level=2] [ref=e320]:
                 - img [ref=e321]
                 - text: État du système
                 - generic [ref=e323]: ⚡ monitoring-c
-              - generic [ref=e326]: Connecté
+              - generic [ref=e326]: Déconnecté
             - generic [ref=e327]:
               - generic [ref=e328]:
-                - generic [ref=e329]: 164.2%
+                - generic [ref=e329]: N/A
                 - generic [ref=e330]: CPU (Conteneurs)
-                - generic [ref=e331]: "Moy: 164.2% • 21 conteneurs"
+                - generic [ref=e331]: ...
               - generic [ref=e332]:
-                - generic [ref=e333]: 5.3%
+                - generic [ref=e333]: N/A
                 - generic [ref=e334]: Mémoire (Conteneurs)
-                - generic [ref=e335]: 2572 MB / 48052 MB
+                - generic [ref=e335]: ...
               - generic [ref=e336]:
-                - generic [ref=e337]: "1.64"
+                - generic [ref=e337]: "0.00"
                 - generic [ref=e338]: Charge
-                - generic [ref=e339]: 16 coeurs
+                - generic [ref=e339]: N/A
               - generic [ref=e340]:
-                - generic [ref=e341]: "21"
+                - generic [ref=e341]: ...
                 - generic [ref=e342]: Conteneurs
-                - generic [ref=e343]: ✅ Actifs
+                - generic [ref=e343]: ...
               - generic [ref=e344]:
                 - generic [ref=e345]: "12"
                 - generic [ref=e346]: Services
                 - generic [ref=e347]: 🟢 OK
               - generic [ref=e348]:
-                - generic [ref=e349]: 27%
+                - generic [ref=e349]: N/A
                 - generic [ref=e350]: Disque (Conteneurs)
-                - generic [ref=e351]: 238G GB / 900G GB
-            - generic [ref=e352]:
-              - heading "📦 Conteneurs JobbingTrack (21)" [level=3] [ref=e353]
+                - generic [ref=e351]: N/A
+          - generic [ref=e352]:
+            - generic [ref=e353] [cursor=pointer]:
               - generic [ref=e354]:
-                - generic [ref=e355]:
-                  - generic [ref=e356]:
-                    - generic [ref=e357]: CPU Moyen
-                    - generic [ref=e358]: 164.2%
-                  - generic [ref=e361]: "Total: 164.2%"
-                - generic [ref=e362]:
-                  - generic [ref=e363]:
-                    - generic [ref=e364]: Mémoire Utilisée
-                    - generic [ref=e365]: 5.3%
-                  - generic [ref=e368]: 2572 MB / 48052 MB
-          - generic [ref=e369]:
-            - generic [ref=e370] [cursor=pointer]:
-              - generic [ref=e371]:
-                - heading "État des Services" [level=3] [ref=e372]:
-                  - img [ref=e373]
+                - heading "État des Services" [level=3] [ref=e355]:
+                  - img [ref=e356]
                   - text: État des Services
-                - button "Voir tous" [ref=e376]
-              - generic [ref=e377]:
-                - generic [ref=e378]:
-                  - generic [ref=e381]: Auth Service
-                  - generic [ref=e382]: 15j 4h 23m
-                - generic [ref=e383]:
-                  - generic [ref=e386]: Application Service
-                  - generic [ref=e387]: 15j 4h 23m
-                - generic [ref=e388]:
-                  - generic [ref=e391]: Company Service
-                  - generic [ref=e392]: 15j 4h 23m
-                - generic [ref=e393]:
-                  - generic [ref=e396]: Contact Service
-                  - generic [ref=e397]: 15j 4h 23m
-                - generic [ref=e398]:
-                  - generic [ref=e401]: Interview Service
-                  - generic [ref=e402]: 15j 4h 23m
-            - generic [ref=e403]:
-              - heading "Performance" [level=3] [ref=e404]:
-                - img [ref=e405]
+                - button "Voir tous" [ref=e359]
+              - generic [ref=e360]:
+                - generic [ref=e361]:
+                  - generic [ref=e364]: Auth Service
+                  - generic [ref=e365]: 15j 4h 23m
+                - generic [ref=e366]:
+                  - generic [ref=e369]: Application Service
+                  - generic [ref=e370]: 15j 4h 23m
+                - generic [ref=e371]:
+                  - generic [ref=e374]: Company Service
+                  - generic [ref=e375]: 15j 4h 23m
+                - generic [ref=e376]:
+                  - generic [ref=e379]: Contact Service
+                  - generic [ref=e380]: 15j 4h 23m
+                - generic [ref=e381]:
+                  - generic [ref=e384]: Interview Service
+                  - generic [ref=e385]: 15j 4h 23m
+            - generic [ref=e386]:
+              - heading "Performance" [level=3] [ref=e387]:
+                - img [ref=e388]
                 - text: Performance
-              - generic [ref=e408]:
-                - generic [ref=e409]:
-                  - generic [ref=e410]: Temps de réponse
-                  - generic [ref=e411]: 11ms
-                - generic [ref=e412]:
-                  - generic [ref=e413]: Taux d'erreur
-                  - generic [ref=e414]: N/A
-                - generic [ref=e415]:
-                  - generic [ref=e416]: Sessions actives
-                  - generic [ref=e417]: "1"
-                - generic [ref=e418]:
-                  - generic [ref=e419]:
-                    - img [ref=e420]
-                    - text: Trafic Réseau (RX)
-                  - generic [ref=e424]: 29.91 MB
-                - generic [ref=e425]:
-                  - generic [ref=e426]:
-                    - img [ref=e427]
-                    - text: Trafic Réseau (TX)
-                  - generic [ref=e431]: 88.77 MB
-  - alert [ref=e432]
+              - generic [ref=e391]:
+                - generic [ref=e392]:
+                  - generic [ref=e393]: Temps de réponse
+                  - generic [ref=e394]: N/A
+                - generic [ref=e395]:
+                  - generic [ref=e396]: Taux d'erreur
+                  - generic [ref=e397]: N/A
+                - generic [ref=e398]:
+                  - generic [ref=e399]: Sessions actives
+                  - generic [ref=e400]: "1"
+  - alert [ref=e401]
 ```
