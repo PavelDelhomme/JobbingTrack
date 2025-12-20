@@ -447,16 +447,24 @@ class CentralMetricsService {
           headers: {
             'Accept': 'application/json',
           },
-          signal: AbortSignal.timeout(5000) // 5s timeout pour monitoring-c
+          signal: AbortSignal.timeout(3000) // 3s timeout pour monitoring-c
         })
         
-        if (response.ok) {
-          const data = await response.json()
+        if (response.ok && response.status === 200) {
+          const text = await response.text()
+          if (!text || text.trim().length === 0) {
+            throw new Error('Empty response from monitoring-c')
+          }
+          const data = JSON.parse(text)
           // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
           // console.log('[CENTRAL METRICS] ✅ Métriques depuis monitoring-c (nouveau système)')
           return this.formatMetricsFromMonitoringC(data)
         }
       } catch (error: any) {
+        // Ignorer silencieusement les erreurs de monitoring-c en mode production
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('[CENTRAL METRICS] ⚠️ monitoring-c non disponible:', error.message)
+        }
         // Fallback vers l'ancien système si monitoring-c n'est pas disponible
         // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
         // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')

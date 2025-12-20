@@ -22,6 +22,9 @@ extern MetricsData global_metrics;
  * Génère une réponse JSON avec les métriques
  */
 void generate_json_response(char *buffer, size_t buffer_size) {
+    // Initialiser le buffer
+    memset(buffer, 0, buffer_size);
+    
     // Format adapté pour le frontend (formatMetricsFromMonitoringC)
     int pos = snprintf(buffer, buffer_size,
         "HTTP/1.1 200 OK\r\n"
@@ -100,7 +103,14 @@ void generate_json_response(char *buffer, size_t buffer_size) {
     
     for (int i = 0; i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
-            pos += snprintf(buffer + pos, buffer_size - pos,
+            // Vérifier l'espace disponible avant d'écrire
+            size_t remaining = buffer_size - (size_t)pos;
+            if (remaining < 300) {
+                // Pas assez d'espace pour un conteneur complet
+                break;
+            }
+            
+            int written = snprintf(buffer + pos, remaining,
                 "%s    {\n"
                 "      \"name\": \"%s\",\n"
                 "      \"cpu_percent\": %.2f,\n"
@@ -127,17 +137,31 @@ void generate_json_response(char *buffer, size_t buffer_size) {
                 global_metrics.containers[i].response_time_ms,
                 global_metrics.containers[i].http_status
             );
+            
+            // Vérifier si l'écriture a réussi
+            if (written < 0) {
+                // Erreur lors de l'écriture
+                break;
+            } else if ((size_t)written >= remaining) {
+                // Buffer plein, tronquer et arrêter
+                buffer[buffer_size - 1] = '\0';
+                break;
+            }
+            
+            pos += written;
             container_added++;
         }
     }
     
     // Fermer le JSON (vérifier que pos n'a pas dépassé buffer_size)
-    if (pos < buffer_size - 10) {
+    if ((size_t)pos < buffer_size - 10) {
         snprintf(buffer + pos, buffer_size - pos, "\n  ]\n}");
     } else {
         // Buffer trop petit, tronquer proprement
-        buffer[buffer_size - 10] = '\0';
-        strcat(buffer, "\n  ]\n}");
+        if (buffer_size > 10) {
+            buffer[buffer_size - 10] = '\0';
+            strncat(buffer, "\n  ]\n}", buffer_size - strlen(buffer) - 1);
+        }
     }
 }
 
@@ -157,11 +181,15 @@ void handle_request(int client_fd) {
     
     buffer[bytes_read] = '\0';
     
+    // Initialiser le buffer de réponse
+    memset(response, 0, sizeof(response));
+    
     // Générer la réponse JSON
     generate_json_response(response, sizeof(response));
     
     // Vérifier que la réponse a été générée correctement
     size_t response_len = strlen(response);
+    
     if (response_len == 0 || response_len >= sizeof(response)) {
         // Réponse vide ou buffer dépassé, envoyer une erreur
         const char *error_response = 
@@ -170,11 +198,23 @@ void handle_request(int client_fd) {
             "Connection: close\r\n"
             "\r\n"
             "{\"error\": \"Failed to generate metrics response\"}";
-        write(client_fd, error_response, strlen(error_response));
+        ssize_t written = write(client_fd, error_response, strlen(error_response));
+        if (written < 0) {
+            perror("write error");
+        }
     } else {
         // Envoyer la réponse normale
-        write(client_fd, response, response_len);
+        ssize_t written = write(client_fd, response, response_len);
+        if (written < 0) {
+            perror("write error");
+        } else if ((size_t)written < response_len) {
+            // Écriture partielle, essayer d'envoyer le reste
+            write(client_fd, response + written, response_len - written);
+        }
     }
+    
+    // Fermer proprement la connexion
+    shutdown(client_fd, SHUT_WR);
     close(client_fd);
 }
 
