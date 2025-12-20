@@ -32,7 +32,15 @@ class CentralMetricsService {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
     // ✅ NOUVEAU : Monitoring en C (port 5098) au lieu de l'ancien système
-    this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
+    // Si on est côté serveur (SSR), utiliser le nom du service Docker
+    // Si on est côté client (navigateur), utiliser localhost
+    if (typeof window === 'undefined') {
+      // Côté serveur (SSR) - utiliser le nom du service Docker
+      this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
+    } else {
+      // Côté client (navigateur) - utiliser localhost avec le port mappé
+      this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
+    }
     this.updateToken()
   }
 
@@ -461,10 +469,9 @@ class CentralMetricsService {
           return this.formatMetricsFromMonitoringC(data)
         }
       } catch (error: any) {
-        // Ignorer silencieusement les erreurs de monitoring-c en mode production
-        if (process.env.NODE_ENV === 'development') {
-          console.debug('[CENTRAL METRICS] ⚠️ monitoring-c non disponible:', error.message)
-        }
+        // Ignorer silencieusement les erreurs de monitoring-c
+        // Ne pas polluer la console avec des erreurs de connexion
+        // Le service basculera automatiquement vers l'ancien système
         // Fallback vers l'ancien système si monitoring-c n'est pas disponible
         // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
         // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
