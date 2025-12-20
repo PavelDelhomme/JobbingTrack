@@ -10,7 +10,7 @@ services:
     container_name: jobbingtrack-monitoring-c
     user: "0:0"
     ports:
-      - "${MONITORING_C_PORT:-5098}:${MONITORING_C_INTERNAL_PORT:-8015}"
+      - "5098:8015"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-15}
