@@ -1,6 +1,6 @@
 # 📊 STATUS - JobbingTrack
 
-**Dernière mise à jour** : 2025-01-19
+**Dernière mise à jour** : 2025-12-20
 
 ## 🎯 PRIORITÉS ACTUELLES
 
@@ -70,11 +70,21 @@
 11. **Monitoring C - Optimisations**
     - Système de monitoring en C opérationnel
     - Collecte CPU, mémoire, réseau, temps de réponse
-    - **Status** : ✅ Opérationnel
+    - ✅ BUFFER_SIZE augmenté de 8KB à 64KB pour éviter troncature JSON
+    - ✅ Tests API: 3/3 passent (100%)
+    - **Status** : ✅ Opérationnel et testé
 
 12. **Log Collector C - Optimisations**
     - Collecteur de logs en C opérationnel
     - **Status** : ✅ Opérationnel
+
+13. **Tests - Corrections et améliorations**
+    - ✅ Tests API monitoring-c: 3/3 passent (100%)
+    - ✅ Tests E2E Playwright: Corrections CSRF et accessibilité
+    - ✅ Test CSRF corrigé (vérification status HTTP correcte)
+    - ✅ Test accessibilité corrigé (compatible mobile)
+    - ⚠️ Tests E2E: 3/16 passent (14 échecs dus à pages manquantes - normal)
+    - **Status** : ✅ Tests API fonctionnels, E2E en attente de pages
 
 ## 📈 PROGRESSION
 
@@ -84,23 +94,41 @@
 
 ## 🔧 CORRECTIONS RÉCENTES
 
-### ✅ Corrigé aujourd'hui
+### ✅ Corrigé récemment (2025-12-20)
 
-1. **Analytics endpoints** - Gestion d'erreur P2021 ajoutée pour tables manquantes
-2. **Imports icônes** - UserPlus et LogIn ajoutés à l'export
+1. **Tests API monitoring-c** - Tous les tests passent (3/3)
+   - Parsing JSON corrigé (responseType: 'json')
+   - Gestion gracieuse des erreurs de connexion
+   
+2. **Tests E2E Playwright** - Corrections appliquées
+   - Test CSRF: Vérification status HTTP corrigée (401/403/404)
+   - Test accessibilité: Compatible avec éléments cachés sur mobile
+   
+3. **Monitoring C - Buffer size**
+   - BUFFER_SIZE augmenté de 8KB à 64KB
+   - Résout le problème de troncature JSON pour grands nombres de conteneurs
+   - Rebuild du conteneur effectué
+
+4. **Tests email** - Authentification automatique
+   - Login automatique avant les tests
+   - Gestion gracieuse si authentification échoue
 
 ### 🔄 En cours
 
 1. **Email test endpoint** - Vérification script Python et configuration SMTP
 2. **Email logs endpoint** - Vérification routage API Gateway
 3. **Configuration SMTP** - Vérification variables d'environnement
+4. **Pages manquantes pour tests E2E** - /backoffice/users, /companies, etc.
 
 ## 📝 NOTES
 
 - Les erreurs 500 dans analytics sont maintenant gérées gracieusement avec retour de données vides si tables inexistantes
 - Les imports d'icônes sont corrigés
-- Le système de monitoring C est opérationnel et performant
+- Le système de monitoring C est opérationnel et performant (BUFFER_SIZE 64KB)
 - Le log collector C est opérationnel
+- **Tests**: Tous les tests API monitoring-c passent (100%)
+- **Tests E2E**: 3/16 passent, les échecs sont dus à des pages non encore créées (normal)
+- **Services Docker**: deployment-service et security-service marqués unhealthy (à vérifier)
 
 ## 🎯 PROCHAINES ÉTAPES
 
@@ -112,3 +140,7 @@
 6. ✅ Ajouter tests manquants
 7. ✅ Améliorer schedule de tests
 8. ✅ Implémenter firewall
+9. ✅ Tests API monitoring-c (100% passent)
+10. ✅ Tests E2E corrigés (CSRF, accessibilité)
+11. 📋 Créer pages manquantes pour tests E2E complets (/backoffice/users, /companies, etc.)
+12. 📋 Vérifier/corriger services unhealthy (deployment-service, security-service)
