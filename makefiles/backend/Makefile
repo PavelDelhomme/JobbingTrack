@@ -17,11 +17,6 @@ help-backend: ## Afficher l'aide backend
 	@echo "================================================================"
 	@echo ""
 	@echo "📊 MONITORING (Stack):"
-	@echo "  ANCIEN SYSTÈME (Node.js):"
-	@echo "    make monitoring-up              - Démarrer stack monitoring (Prometheus/Grafana/Loki)"
-	@echo "    make monitoring-ancien-down     - Arrêter l'ancien système de monitoring complet"
-	@echo "    make monitoring-down            - Alias pour monitoring-ancien-down"
-	@echo "    make monitoring-restart         - Redémarrer monitoring ancien"
 	@echo "  NOUVEAU SYSTÈME (C - ultra-léger):"
 	@echo "    make monitoring-c-up            - Démarrer nouveau système monitoring en C"
 	@echo "    make monitoring-c-down          - Arrêter nouveau système monitoring en C"
@@ -30,8 +25,7 @@ help-backend: ## Afficher l'aide backend
 	@echo "    make up-monitoring              - Alias pour monitoring-c-up"
 	@echo "  GÉNÉRAL:"
 	@echo "    make monitoring-ps              - Status services monitoring"
-	@echo "    make monitoring-logs            - Logs tous services monitoring"
-	@echo "    make monitoring-logs-service SERVICE=prometheus - Logs service spécifique"
+	@echo "    make monitoring-c-logs          - Logs tous services monitoring"
 	@echo ""
 	@echo "📈 MONITORING (Statistiques):"
 	@echo "  make monitoring-stats           - Lancer le script de monitoring complet"
@@ -49,14 +43,12 @@ help-backend: ## Afficher l'aide backend
 	@echo "  make analyze-metrics-aggregator - Analyser metrics-aggregator"
 	@echo ""
 	@echo "🌍 ACCÈS:"
-	@echo "  Prometheus:  http://localhost:9090"
-	@echo "  Loki:        http://localhost:3100"
-	@echo "  Grafana:     http://localhost:3001 (admin/admin123)"
+	@echo "  Monitoring C:   http://localhost:5098"
+	@echo "  Log Collector:  http://localhost:5099"
 	@echo ""
 	@echo "💡 EXEMPLES:"
-	@echo "  make monitoring-up && make monitoring-test   # Démarrer et tester"
-	@echo "  make monitoring-stats-save                    # Collecter et sauvegarder"
-	@echo "  make monitoring-logs-service SERVICE=grafana # Logs Grafana"
+	@echo "  make monitoring-c-up                         # Démarrer nouveau monitoring"
+	@echo "  make monitoring-c-logs                       # Voir les logs"
 	@echo ""
 	@echo "📖 Documentation: docs/monitoring/"
 	@echo ""
@@ -65,21 +57,10 @@ help-backend: ## Afficher l'aide backend
 # MONITORING
 # ============================================================================
 
-monitoring-up: ## Démarrer stack monitoring (ancien système - Prometheus/Grafana/Loki)
-	@echo "📊 Démarrage stack monitoring (ancien système)..."
-	@echo "🧹 Nettoyage des conteneurs conflictuels..."
-	@docker stop prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@docker rm prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@cd monitoring && docker-compose -f docker-compose.monitoring.yml up -d
-	@echo "✅ Monitoring démarré"
-	@echo ""
-	@echo "📊 Accès monitoring:"
-	@echo "  Prometheus:     http://localhost:9090"
-	@echo "  Grafana:        http://localhost:3013 (admin/admin123)"
-	@echo "  cAdvisor:       http://localhost:8082"
-	@echo "  Node Exporter:  http://localhost:9100"
-	@echo "  Loki:           http://localhost:3100"
-	@echo "  API Metrics:    http://localhost:8014"
+monitoring-up: ## Démarrer stack monitoring (alias pour monitoring-c-up)
+	@echo "⚠️  L'ancien système de monitoring a été supprimé"
+	@echo "📊 Utilisation du nouveau système en C (monitoring-c)"
+	@$(MAKE) monitoring-c-up
 
 monitoring-c-up: ## Démarrer nouveau système de monitoring en C (ultra-léger)
 	@echo "🚀 Démarrage nouveau système de monitoring en C..."
@@ -176,11 +157,8 @@ monitoring-full: ## Démarrer JobbingTrack + Monitoring (propre)
 	@echo "║   Démarrage Complet: JobbingTrack + Monitoring        ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "🧹 Nettoyage des conteneurs conflictuels..."
-	@docker stop prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@docker rm prometheus grafana loki promtail node-exporter 2>/dev/null || true
-	@echo "🛑 Arrêt de la stack monitoring..."
-	@cd monitoring && docker-compose -f docker-compose.monitoring.yml down 2>/dev/null || true
+	@echo "🛑 Arrêt du nouveau système de monitoring..."
+	@$(MAKE) monitoring-c-down
 	@echo ""
 	@echo "🚀 Démarrage de la stack principale..."
 	@$(MAKE) up-full
@@ -204,14 +182,14 @@ monitoring-logs: ## Logs de tous les services monitoring
 	@echo "📋 Logs monitoring en temps réel..."
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml logs -f
 
-monitoring-logs-service: ## Logs d'un service monitoring (SERVICE=prometheus)
+monitoring-logs-service: ## Logs d'un service monitoring (SERVICE=monitoring-c|log-collector-c)
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "❌ Spécifiez SERVICE=<nom>"; \
-		echo "Exemples: prometheus, loki, grafana"; \
+		echo "Exemples: monitoring-c, log-collector-c"; \
 		exit 1; \
 	fi
 	@echo "📋 Logs $(SERVICE)..."
-	@cd monitoring && docker-compose -f docker-compose.monitoring.yml logs -f $(SERVICE)
+	@docker logs -f jobbingtrack-$(SERVICE) 2>/dev/null || echo "❌ Service $(SERVICE) non trouvé"
 
 monitoring-test: ## Test health des endpoints monitoring
 	@echo "🧪 Test des endpoints monitoring..."
@@ -234,7 +212,7 @@ test-monitoring: ## Suite de tests complète du monitoring
 	@echo "🧪 Suite de tests monitoring complète..."
 	@echo ""
 	@echo "1️⃣ Vérification des conteneurs..."
-	@docker ps --filter "name=prometheus" --filter "name=loki" --filter "name=grafana" --format "table {{.Names}}\t{{.Status}}"
+	@docker ps --filter "name=monitoring-c" --filter "name=log-collector-c" --format "table {{.Names}}\t{{.Status}}"
 	@echo ""
 	@echo "2️⃣ Test des endpoints..."
 	@$(MAKE) monitoring-test
@@ -325,8 +303,8 @@ backend-help: ## Aide complète backend + monitoring
 	@echo "  make monitoring-down            - Arrêter monitoring"
 	@echo "  make monitoring-restart         - Redémarrer monitoring"
 	@echo "  make monitoring-ps              - Status services"
-	@echo "  make monitoring-logs            - Logs tous services"
-	@echo "  make monitoring-logs-service SERVICE=prometheus"
+	@echo "  make monitoring-c-logs          - Logs tous services"
+	@echo "  make monitoring-logs-service SERVICE=monitoring-c"
 	@echo "  make monitoring-test            - Test health"
 	@echo "  make monitoring-test-auth TOKEN=xxx"
 	@echo "  make test-monitoring            - Suite tests complète"

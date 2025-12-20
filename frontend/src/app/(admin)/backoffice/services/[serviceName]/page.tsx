@@ -204,7 +204,12 @@ export default function ServiceDetailPage() {
   useEffect(() => {
     loadServiceData();
     // Rafraîchir toutes les 5 secondes pour des données plus en temps réel
-    const interval = setInterval(() => loadServiceData(), 5000);
+    // ✅ OPTIMISATION : Réduire la fréquence de polling pour économiser CPU
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        loadServiceData()
+      }
+    }, 20000); // 20 secondes au lieu de 5 secondes
     return () => clearInterval(interval);
   }, [serviceName]);
 

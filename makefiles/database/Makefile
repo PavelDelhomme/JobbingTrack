@@ -246,10 +246,7 @@ create-admin-user: ## Créer l'utilisateur Admin avec rôle SUPER_ADMIN
 db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@echo "🗑️  Suppression des volumes JobbingTrack..."
 	@docker volume rm jobbingtrack_postgres_data 2>/dev/null && echo "  ✅ jobbingtrack_postgres_data supprimé" || echo "  ⚠️  jobbingtrack_postgres_data n'existe pas"
-	@docker volume rm jobbingtrack_prometheus_data 2>/dev/null && echo "  ✅ jobbingtrack_prometheus_data supprimé" || echo "  ⚠️  jobbingtrack_prometheus_data n'existe pas"
 	@docker volume rm jobbingtrack_metrics_data 2>/dev/null && echo "  ✅ jobbingtrack_metrics_data supprimé" || echo "  ⚠️  jobbingtrack_metrics_data n'existe pas"
-	@docker volume rm jobbingtrack_loki_data 2>/dev/null && echo "  ✅ jobbingtrack_loki_data supprimé" || echo "  ⚠️  jobbingtrack_loki_data n'existe pas"
-	@docker volume rm jobbingtrack_grafana_data 2>/dev/null && echo "  ✅ jobbingtrack_grafana_data supprimé" || echo "  ⚠️  jobbingtrack_grafana_data n'existe pas"
 	@echo ""
 	@echo "✅ Nettoyage terminé !"
 

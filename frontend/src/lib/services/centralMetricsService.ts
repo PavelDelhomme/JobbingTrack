@@ -19,11 +19,11 @@ class CentralMetricsService {
   private monitoringCUrl: string // ✅ NOUVEAU : URL du monitoring en C
   private token: string | null = null
   private customization: UserCustomization | null = null
-  // ✅ OPTIMISATION : Cache réduit pour économiser la mémoire
+  // ✅ OPTIMISATION : Cache optimisé pour réduire les requêtes et CPU
   // Le cache est maintenant limité en taille et durée
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0
-  private cacheDuration: number = 5000 // 5 secondes (réduit de 10s à 5s)
+  private cacheDuration: number = 8000 // 8 secondes (compromis performance/réactivité)
   private maxCacheSize: number = 50 // Limite en MB (environ)
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
@@ -219,8 +219,8 @@ class CentralMetricsService {
       // Endpoint de monitoring système non disponible, utiliser le service de métriques
       console.log('[SYSTEM] Endpoint non disponible, utilisation du service de métriques')
 
-      // Utiliser le service de métriques agrégateur
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      // ✅ Utiliser uniquement monitoring-c
+      const metricsUrl = this.monitoringCUrl
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -296,8 +296,8 @@ class CentralMetricsService {
     try {
       console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
 
-      // Utiliser le service de métriques agrégateur qui se connecte à Prometheus
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+      const metricsUrl = this.monitoringCUrl
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
@@ -340,8 +340,10 @@ class CentralMetricsService {
       // Utiliser le service de métriques agrégateur
       console.log('[SERVICES] Récupération depuis le service de métriques')
 
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const response = await fetch(`${metricsUrl}/api/v1/services`, {
+      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+      const metricsUrl = this.monitoringCUrl
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
+        // Note: monitoring-c retourne les services dans la réponse /api/v1/metrics
         headers: {
           'Accept': 'application/json',
         },
@@ -443,48 +445,42 @@ class CentralMetricsService {
 
   // Récupération des métriques depuis le service agrégateur
   async getAggregatorMetrics(): Promise<MetricsData | null> {
+    // ✅ UTILISER UNIQUEMENT monitoring-c - Plus de fallback vers l'ancien système
     try {
-      // ✅ NOUVEAU : Utiliser monitoring-c (port 5014) au lieu de l'ancien système
-      // Essayer d'abord monitoring-c, puis fallback vers l'ancien système
-      let metricsUrl = this.monitoringCUrl
-      let endpoint = '/api/v1/metrics' // Endpoint monitoring-c
+      const metricsUrl = this.monitoringCUrl
+      const endpoint = '/api/v1/metrics'
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
       
       try {
-        // Tenter monitoring-c d'abord
         const response = await fetch(`${metricsUrl}${endpoint}`, {
           headers: {
             'Accept': 'application/json',
           },
-          signal: AbortSignal.timeout(2000) // 2s timeout pour monitoring-c
-        })
+          signal: controller.signal
+        }).catch(() => null)
         
-        if (response.ok && response.status === 200) {
-          const text = await response.text()
-          if (!text || text.trim().length === 0) {
-            throw new Error('Empty response from monitoring-c')
-          }
-          const data = JSON.parse(text)
-          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-          // console.log('[CENTRAL METRICS] ✅ Métriques depuis monitoring-c (nouveau système)')
-          return this.formatMetricsFromMonitoringC(data)
+        clearTimeout(timeoutId)
+        
+        if (!response || !response.ok || response.status !== 200) {
+          return null // Retourner null si monitoring-c n'est pas disponible
         }
-      } catch (error: any) {
-        // Ignorer complètement les erreurs de monitoring-c
-        // Ne pas afficher dans la console, ne pas logger
-        // Le service basculera automatiquement vers l'ancien système
-        // Rien à faire ici, on continue avec le fallback
-        // Fallback vers l'ancien système si monitoring-c n'est pas disponible
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
-        metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-        endpoint = '/api/v1/docker/jobbingtrack/aggregated'
+        
+        const text = await response.text().catch(() => '')
+        if (!text || text.trim().length === 0) {
+          return null // Retourner null si réponse vide
+        }
+        
+        const data = JSON.parse(text)
+        return this.formatMetricsFromMonitoringC(data)
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        return null // Retourner null en cas d'erreur
       }
-
-      const response = await fetch(`${metricsUrl}${endpoint}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      })
+    } catch (error: any) {
+      return null // Retourner null en cas d'erreur générale
+    }
 
       if (!response.ok) {
         return null
@@ -819,9 +815,10 @@ class CentralMetricsService {
     ]
 
     try {
-      // Priorité 1 : Agrégateur de métriques (source la plus fiable)
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const response = await fetch(`${metricsUrl}/api/v1/docker/services/all`, {
+      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+      // Les services sont inclus dans la réponse /api/v1/metrics
+      const metricsUrl = this.monitoringCUrl
+      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         headers: {
           'Accept': 'application/json',
         },
@@ -871,58 +868,14 @@ class CentralMetricsService {
 
   // Récupération des logs d'un service spécifique
   async getServiceLogs(serviceName: string, options?: { lines?: number }): Promise<any | null> {
-    try {
-      const lines = options?.lines || 100;
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
-      
-      const response = await fetch(`${metricsUrl}/api/v1/docker/service/${serviceName}/logs?lines=${lines}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data
-      }
-    } catch (error) {
-      console.error(`Erreur récupération logs pour ${serviceName}:`, error)
-    }
-
+    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+    // Note: monitoring-c ne gère pas encore les logs, retourner null
     return null
   }
 
   async getAggregatorLogs(containerName: string, options?: { limit?: number; start?: number; end?: number }): Promise<any | null> {
-    const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-    const params = new URLSearchParams()
-
-    if (options?.limit) {
-      params.append('limit', options.limit.toString())
-    }
-    if (options?.start) {
-      params.append('start', options.start.toString())
-    }
-    if (options?.end) {
-      params.append('end', options.end.toString())
-    }
-
-    const queryString = params.toString()
-
-    try {
-      const response = await fetch(`${metricsUrl}/api/v1/logs/container/${containerName}${queryString ? `?${queryString}` : ''}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(15000) // 15s pour l'historique qui peut être volumineux
-      })
-
-      if (response.ok) {
-        return await response.json()
-      }
-    } catch (error) {
-      console.error(`Erreur récupération logs agrégateur pour ${containerName}:`, error)
-    }
-
+    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+    // Note: monitoring-c ne gère pas encore les logs, retourner null
     return null
   }
 
@@ -984,187 +937,18 @@ class CentralMetricsService {
       return cachedMetrics
     }
 
-    // Éviter les requêtes simultanées identiques
+    // ✅ UTILISER UNIQUEMENT monitoring-c - Plus de fallback
     return this.getWithCache('fetchMetrics', async () => {
       try {
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[CENTRAL METRICS] 🔄 Récupération des métriques...')
-
-        // Priorité 1 : Service agrégateur (source la plus fiable)
-        try {
-          const aggregatorMetrics = await this.getAggregatorMetrics()
-          
-          if (aggregatorMetrics) {
-            // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-            // console.log('[CENTRAL METRICS] ✅ Métriques depuis l\'agrégateur', {
-            //   servicesList_length: aggregatorMetrics.servicesList?.length || 0,
-            //   services_keys: Object.keys(aggregatorMetrics.services || {}).length,
-            //   containers_keys: Object.keys(aggregatorMetrics.containers || {}).length,
-            //   cpu: aggregatorMetrics.system?.cpu?.usage,
-            //   memory: aggregatorMetrics.system?.memory?.usage
-            // })
-            this.setCachedMetrics(aggregatorMetrics)
-            return aggregatorMetrics
-          }
-        } catch (error: any) {
-          // Seulement logger les vraies erreurs (pas timeout)
-          if (error.name !== 'TimeoutError') {
-            console.warn('[CENTRAL METRICS] ⚠️ Agrégateur erreur:', error.message)
-          }
-        }
+        const aggregatorMetrics = await this.getAggregatorMetrics()
         
-        // Priorité 2 : API Gateway + métriques séparées
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[CENTRAL METRICS] ↩️ Fallback vers API Gateway')
-        
-        const allServices = await this.getAllServices().catch(() => null)
-
-        if (allServices && allServices.length > 0) {
-          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-          // console.log('[CENTRAL METRICS] ✅ Services API Gateway:', allServices.length)
-
-          // Récupérer les métriques système avec timeout
-          const systemMetrics = await Promise.race([
-            this.getSystemMetrics(),
-            new Promise<SystemMetrics | null>(resolve =>
-              setTimeout(() => resolve(null), 2000)
-            )
-          ])
-
-          // Calculer les moyennes CPU/mémoire depuis les conteneurs
-          let totalCpu = 0
-          let totalMemoryUsed = 0
-          let totalMemoryLimit = 0
-          let validContainersCount = 0
-
-          allServices.forEach((service: any) => {
-            if (service.metrics?.cpu?.percent !== undefined) {
-              totalCpu += service.metrics.cpu.percent
-              validContainersCount++
-            }
-            if (service.metrics?.memory) {
-              totalMemoryUsed += service.metrics.memory.usage || 0
-              totalMemoryLimit += service.metrics.memory.limit || 0
-            }
-          })
-
-          const avgCpu = validContainersCount > 0 ? totalCpu / validContainersCount : 0
-          const memoryPercent = totalMemoryLimit > 0 ? (totalMemoryUsed / totalMemoryLimit) * 100 : 0
-
-          // Convertir les services en format compatible
-          const servicesMap: {[key: string]: any} = {}
-          allServices.forEach((service: any) => {
-            servicesMap[service.serviceType] = {
-              name: service.name,
-              url: service.url,
-              port: service.port,
-              status: service.status,
-              serviceType: service.serviceType,
-              containerName: service.containerName,
-              lastCheck: new Date().toISOString()
-            }
-          })
-
-          // Enrichir systemMetrics avec les données calculées
-          const enrichedSystemMetrics = systemMetrics ? {
-            ...systemMetrics,
-            cpu: {
-              ...systemMetrics.cpu,
-              usage: avgCpu > 0 ? avgCpu.toFixed(2) : systemMetrics.cpu.usage
-            },
-            memory: {
-              total: totalMemoryLimit > 0 ? totalMemoryLimit : systemMetrics.memory.total,
-              used: totalMemoryUsed > 0 ? totalMemoryUsed : systemMetrics.memory.used,
-              free: totalMemoryLimit > 0 && totalMemoryUsed > 0 ? totalMemoryLimit - totalMemoryUsed : systemMetrics.memory.free,
-              usage: memoryPercent > 0 ? memoryPercent.toFixed(2) : systemMetrics.memory.usage
-            }
-          } : {
-            cpu: { usage: avgCpu > 0 ? avgCpu.toFixed(2) : 0, cores: 'N/A', model: 'N/A' },
-            memory: { 
-              total: totalMemoryLimit > 0 ? totalMemoryLimit : 'N/A', 
-              used: totalMemoryUsed > 0 ? totalMemoryUsed : 'N/A', 
-              free: totalMemoryLimit > 0 ? totalMemoryLimit - totalMemoryUsed : 'N/A', 
-              usage: memoryPercent > 0 ? memoryPercent.toFixed(2) : 0
-            },
-            load: { average: 'N/A', cores: 'N/A' },
-            disk: []
-          }
-          
-          console.log('[CENTRAL METRICS] 📊 Métriques calculées:', {
-            avgCpu: avgCpu.toFixed(2) + '%',
-            memoryUsed: (totalMemoryUsed / 1024 / 1024 / 1024).toFixed(2) + ' GB',
-            memoryTotal: (totalMemoryLimit / 1024 / 1024 / 1024).toFixed(2) + ' GB',
-            memoryPercent: memoryPercent.toFixed(2) + '%',
-            containersCount: validContainersCount
-          })
-
-          const metrics = {
-            services: servicesMap,
-            system: enrichedSystemMetrics,
-            containers: {},
-            timestamp: new Date().toISOString()
-          }
-
-          this.setCachedMetrics(metrics)
-          return metrics
+        if (aggregatorMetrics) {
+          this.setCachedMetrics(aggregatorMetrics)
+          return aggregatorMetrics
         }
 
-        // Fallback vers Docker/cAdvisor seulement si nécessaire
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[CENTRAL METRICS] ⚠️ API Gateway non disponible, tentative Docker')
-
-        const dockerServices = await Promise.race([
-          this.getDockerServices(),
-          new Promise<{[key: string]: any} | null>(resolve =>
-            setTimeout(() => resolve(null), 2000)
-          )
-        ])
-
-        if (dockerServices) {
-          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-          // console.log('[CENTRAL METRICS] ✅ Services récupérés depuis Docker')
-
-          const systemMetrics = await Promise.race([
-            this.getSystemMetrics(),
-            new Promise<SystemMetrics | null>(resolve =>
-              setTimeout(() => resolve(null), 1000)
-            )
-          ])
-
-          const metrics = {
-            services: dockerServices,
-            system: systemMetrics || {
-              cpu: { usage: 'N/A', cores: 'N/A', model: 'N/A' },
-              memory: { total: 'N/A', used: 'N/A', free: 'N/A', usage: 'N/A' },
-              load: { average: 'N/A', cores: 'N/A' },
-              disk: []
-            },
-            containers: {},
-            timestamp: new Date().toISOString()
-          }
-
-          this.setCachedMetrics(metrics)
-          return metrics
-        }
-
-        // Dernier fallback vers les métriques individuelles
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[CENTRAL METRICS] ⚠️ Docker non disponible, fallback vers sources individuelles')
-        const metrics = await Promise.race([
-          this.getAllMetrics(),
-          new Promise<MetricsData | null>(resolve =>
-            setTimeout(() => resolve(null), 2000)
-          )
-        ])
-
-        if (metrics) {
-          // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-          // console.log('[CENTRAL METRICS] ✅ Métriques récupérées depuis les sources individuelles')
-          this.setCachedMetrics(metrics)
-          return metrics
-        }
-
-        console.log('[CENTRAL METRICS] ❌ Aucun service de métriques disponible')
+        // Si monitoring-c n'est pas disponible, retourner null
+        console.warn('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible')
         return null
 
       } catch (error) {
@@ -1385,55 +1169,18 @@ class CentralMetricsService {
    * Récupère l'historique des métriques
    */
   async getMetricsHistory(options?: { limit?: number; startTime?: number; endTime?: number }) {
-    try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const { limit = 100, startTime, endTime } = options || {}
-      
-      const params = new URLSearchParams()
-      params.append('limit', limit.toString())
-      if (startTime) params.append('startTime', startTime.toString())
-      if (endTime) params.append('endTime', endTime.toString())
-      
-      const response = await fetch(`${metricsUrl}/api/v1/docker/history?${params}`, {
-        headers: { 'Accept': 'application/json' }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        return data.data || []
-      }
-      return []
-    } catch (error) {
-      console.error('[METRICS] Erreur récupération historique:', error)
-      return []
-    }
+    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+    // Note: monitoring-c ne gère pas encore l'historique, retourner []
+    return []
   }
 
   /**
    * Récupère les statistiques sur une période
    */
   async getMetricsStats(options?: { startTime?: number; endTime?: number }) {
-    try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
-      const { startTime, endTime } = options || {}
-      
-      const params = new URLSearchParams()
-      if (startTime) params.append('startTime', startTime.toString())
-      if (endTime) params.append('endTime', endTime.toString())
-      
-      const response = await fetch(`${metricsUrl}/api/v1/docker/stats?${params}`, {
-        headers: { 'Accept': 'application/json' }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        return data.stats || null
-      }
-      return null
-    } catch (error) {
-      console.error('[METRICS] Erreur récupération stats:', error)
-      return null
-    }
+    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
+    // Note: monitoring-c ne gère pas encore les stats, retourner null
+    return null
   }
 }
 

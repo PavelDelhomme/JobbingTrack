@@ -481,45 +481,68 @@ int main(int argc, char *argv[]) {
     
     // Démarrer le serveur HTTP AVANT de commencer la collecte
     printf("🌐 Démarrage du serveur HTTP...\n");
+    fflush(stdout);
     if (start_http_server() != 0) {
-        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP\n");
+        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n");
+        fflush(stderr);
     } else {
-        // Attendre que le serveur soit prêt
-        sleep(1);
+        // Attendre que le serveur soit prêt (thread démarré)
+        sleep(2);  // Augmenté à 2s pour laisser le temps au thread de se lancer
+        printf("✅ Serveur HTTP initialisé\n");
+        fflush(stdout);
     }
+    
+    // Initialiser les métriques à zéro
+    memset(&global_metrics, 0, sizeof(MetricsData));
+    global_metrics.timestamp = time(NULL);
     
     // Collecter une première fois pour avoir des données
     printf("📊 Première collecte des métriques...\n");
+    fflush(stdout);
+    
+    // Collecter avec gestion d'erreur robuste
     if (collect_system_metrics() != 0) {
-        fprintf(stderr, "Erreur collecte système\n");
-    }
-    if (collect_container_metrics() != 0) {
-        fprintf(stderr, "Erreur collecte conteneurs\n");
+        fprintf(stderr, "⚠️  Erreur collecte système (continuons)\n");
+        fflush(stderr);
     }
     
-    // Boucle infinie de collecte
+    if (collect_container_metrics() != 0) {
+        fprintf(stderr, "⚠️  Erreur collecte conteneurs (continuons)\n");
+        fflush(stderr);
+    }
+    
+    printf("✅ Collecte initiale terminée\n");
+    fflush(stdout);
+    
+    // Boucle infinie de collecte avec gestion d'erreur robuste
     while (1) {
-        printf("[%ld] Collecte des métriques...\n", time(NULL));
+        time_t current_time = time(NULL);
+        printf("[%ld] Collecte des métriques...\n", current_time);
+        fflush(stdout);
         
-        // Collecter métriques système
+        // Collecter métriques système (ne pas crash si erreur)
         if (collect_system_metrics() != 0) {
-            fprintf(stderr, "Erreur collecte système\n");
+            fprintf(stderr, "⚠️  Erreur collecte système (continuons)\n");
+            fflush(stderr);
         }
         
-        // Collecter métriques conteneurs
+        // Collecter métriques conteneurs (ne pas crash si erreur)
         if (collect_container_metrics() != 0) {
-            fprintf(stderr, "Erreur collecte conteneurs\n");
+            fprintf(stderr, "⚠️  Erreur collecte conteneurs (continuons)\n");
+            fflush(stderr);
         }
         
-        // Sauvegarder en base de données
+        // Sauvegarder en base de données (ne pas crash si erreur)
         if (save_metrics_to_db(&global_metrics) != 0) {
-            fprintf(stderr, "Erreur sauvegarde DB\n");
+            fprintf(stderr, "⚠️  Erreur sauvegarde DB (continuons)\n");
+            fflush(stderr);
         }
         
         // Attendre avant la prochaine collecte
         sleep(interval);
     }
     
+    // Ne devrait jamais arriver ici
     return 0;
 }
 

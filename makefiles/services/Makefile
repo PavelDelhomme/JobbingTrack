@@ -340,7 +340,7 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "✅ Frontend démarré !"
 	@echo ""
 	@echo "📦 Phase 3/4 - Monitoring..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d jobbingtrack-metrics-aggregator cadvisor)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d jobbingtrack-metrics-aggregator)
 	@echo "✅ Monitoring démarré !"
 	@echo ""
 	@echo "📱 Phase 4/4 - Application Mobile Flutter..."
@@ -881,22 +881,44 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+			health=$$(docker inspect $$container --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-healthcheck"); \
 			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			uptime=$$(echo "$$status" | sed -n 's/.*Up \([^(]*\).*/\1/p' | sed 's/ (.*//' | xargs || echo "N/A"); \
 			if [ -n "$$ports" ]; then \
 				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
 				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
 				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "starting" ]; then \
+						printf "  \033[1;33m🔄 UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;33m[starting]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					fi; \
 				elif [ -n "$$port_ext" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					fi; \
 				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 			fi; \
 		else \
-			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+			if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				status=$$(docker ps -a --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+				printf "  \033[1;31m❌ DOWN\033[0m %-30s \033[0;90m[%s]\033[0m\n" "$$service" "$$status"; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		fi; \
 	done
 	@echo ""
@@ -906,22 +928,44 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+			health=$$(docker inspect $$container --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-healthcheck"); \
 			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			uptime=$$(echo "$$status" | sed -n 's/.*Up \([^(]*\).*/\1/p' | sed 's/ (.*//' | xargs || echo "N/A"); \
 			if [ -n "$$ports" ]; then \
 				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
 				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
 				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "starting" ]; then \
+						printf "  \033[1;33m🔄 UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;33m[starting]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					fi; \
 				elif [ -n "$$port_ext" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					fi; \
 				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 			fi; \
 		else \
-			printf "  \033[1;31m❌ DOWN\033[0m %-30s\n" "$$service"; \
+			if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				status=$$(docker ps -a --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+				printf "  \033[1;31m❌ DOWN\033[0m %-30s \033[0;90m[%s]\033[0m\n" "$$service" "$$status"; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		fi; \
 	done
 	@echo ""
@@ -931,47 +975,91 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+			health=$$(docker inspect $$container --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-healthcheck"); \
 			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			uptime=$$(echo "$$status" | sed -n 's/.*Up \([^(]*\).*/\1/p' | sed 's/ (.*//' | xargs || echo "N/A"); \
 			if [ -n "$$ports" ]; then \
 				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
 				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
 				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "starting" ]; then \
+						printf "  \033[1;33m🔄 UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;33m[starting]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					fi; \
 				elif [ -n "$$port_ext" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					fi; \
 				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 			fi; \
 		else \
-			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				status=$$(docker ps -a --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+				printf "  \033[1;31m❌ DOWN\033[0m %-30s \033[0;90m[%s]\033[0m\n" "$$service" "$$status"; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		fi; \
 	done
 	@echo ""
 	@echo "📊 Monitoring & Métriques:"
 	@echo ""
-	@services="metrics-aggregator prometheus grafana loki promtail cadvisor node-exporter"; \
+	@services="metrics-aggregator monitoring-c log-collector-c"; \
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+			health=$$(docker inspect $$container --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-healthcheck"); \
 			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			uptime=$$(echo "$$status" | sed -n 's/.*Up \([^(]*\).*/\1/p' | sed 's/ (.*//' | xargs || echo "N/A"); \
 			if [ -n "$$ports" ]; then \
 				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
 				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
 				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "starting" ]; then \
+						printf "  \033[1;33m🔄 UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;33m[starting]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					fi; \
 				elif [ -n "$$port_ext" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					fi; \
 				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 			fi; \
 		else \
-			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				status=$$(docker ps -a --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s \033[0;90m[%s]\033[0m\n" "$$service" "$$status"; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		fi; \
 	done
 	@echo ""
@@ -981,22 +1069,44 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	for service in $$services; do \
 		container="jobbingtrack-$$service"; \
 		if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+			status=$$(docker ps --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+			health=$$(docker inspect $$container --format='{{.State.Health.Status}}' 2>/dev/null || echo "no-healthcheck"); \
 			ports=$$(docker ps --filter "name=^$$container$$" --format "{{.Ports}}" 2>/dev/null); \
+			uptime=$$(echo "$$status" | sed -n 's/.*Up \([^(]*\).*/\1/p' | sed 's/ (.*//' | xargs || echo "N/A"); \
 			if [ -n "$$ports" ]; then \
 				port_ext=$$(echo "$$ports" | sed -n 's/.*0\.0\.0\.0:\([0-9]*\)->.*/\1/p' | head -1); \
 				port_int=$$(echo "$$ports" | sed -n 's/.*->\([0-9]*\)\/tcp.*/\1/p' | head -1); \
 				if [ -n "$$port_ext" ] && [ -n "$$port_int" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m\n" "$$service" "$$port_ext" "$$port_int"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					elif [ "$$health" = "starting" ]; then \
+						printf "  \033[1;33m🔄 UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m \033[0;33m[starting]\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m → \033[0;33m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$port_int" "$$uptime"; \
+					fi; \
 				elif [ -n "$$port_ext" ]; then \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m\n" "$$service" "$$port_ext"; \
+					if [ "$$health" = "healthy" ]; then \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m \033[0;32m[healthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					elif [ "$$health" = "unhealthy" ]; then \
+						printf "  \033[1;33m⚠️  UP\033[0m   %-30s \033[0;36m%s\033[0m \033[1;31m[unhealthy]\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					else \
+						printf "  \033[1;32m✅ UP\033[0m   %-30s \033[0;36m%s\033[0m (%s)\n" "$$service" "$$port_ext" "$$uptime"; \
+					fi; \
 				else \
-					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+					printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 				fi; \
 			else \
-				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé)\n" "$$service"; \
+				printf "  \033[1;32m✅ UP\033[0m   %-30s (pas de port exposé) (%s)\n" "$$service" "$$uptime"; \
 			fi; \
 		else \
-			printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^$$container$$"; then \
+				status=$$(docker ps -a --filter "name=^$$container$$" --format "{{.Status}}" 2>/dev/null); \
+				printf "  \033[1;31m❌ DOWN\033[0m %-30s \033[0;90m[%s]\033[0m\n" "$$service" "$$status"; \
+			else \
+				printf "  \033[1;90m⚪ DOWN\033[0m %-30s\n" "$$service"; \
+			fi; \
 		fi; \
 	done
 	@echo ""
