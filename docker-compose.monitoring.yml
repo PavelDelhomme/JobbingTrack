@@ -1,6 +1,11 @@
 # Configuration pour le nouveau système de monitoring en C
 # Remplace progressivement metrics-aggregator-service et Loki
 
+networks:
+  jobbingtrack-network:
+    external: true
+    name: backend_jobbingtrack-network
+
 services:
   # Nouveau système de monitoring en C (ultra-léger)
   monitoring-c:

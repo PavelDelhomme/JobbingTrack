@@ -455,7 +455,7 @@ class CentralMetricsService {
           headers: {
             'Accept': 'application/json',
           },
-          signal: AbortSignal.timeout(3000) // 3s timeout pour monitoring-c
+          signal: AbortSignal.timeout(2000) // 2s timeout pour monitoring-c
         })
         
         if (response.ok && response.status === 200) {
@@ -469,10 +469,10 @@ class CentralMetricsService {
           return this.formatMetricsFromMonitoringC(data)
         }
       } catch (error: any) {
-        // Ignorer silencieusement les erreurs de monitoring-c
-        // Ne pas polluer la console avec des erreurs de connexion
+        // Ignorer complètement les erreurs de monitoring-c
+        // Ne pas afficher dans la console, ne pas logger
         // Le service basculera automatiquement vers l'ancien système
-        // Ne pas afficher l'erreur dans la console du navigateur
+        // Rien à faire ici, on continue avec le fallback
         // Fallback vers l'ancien système si monitoring-c n'est pas disponible
         // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
         // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')

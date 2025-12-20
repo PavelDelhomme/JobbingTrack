@@ -449,6 +449,11 @@ _up-full-internal:
 	@echo "🚀 Démarrage du nouveau système de monitoring en C (ultra-léger)..."
 	@echo "   ⚠️  L'ancien système (Prometheus/Grafana/Loki) n'est PAS démarré automatiquement"
 	@echo "   💡 Utilisez 'make monitoring-up' si vous avez besoin de l'ancien système"
+	@# Créer le réseau si nécessaire
+	@if ! docker network inspect backend_jobbingtrack-network >/dev/null 2>&1; then \
+		echo "🌐 Création du réseau backend_jobbingtrack-network..."; \
+		docker network create backend_jobbingtrack-network >/dev/null 2>&1 || true; \
+	fi
 	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build monitoring-c log-collector-c)
 	@echo "✅ Nouveau monitoring en C démarré"
 	
