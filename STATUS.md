@@ -129,6 +129,7 @@
 - **Tests**: Tous les tests API monitoring-c passent (100%)
 - **Tests E2E**: 3/16 passent, les échecs sont dus à des pages non encore créées (normal)
 - **Services Docker**: deployment-service et security-service marqués unhealthy (à vérifier)
+- **Commandes tests**: Les tests doivent être lancés via `make test-api` ou `make test-all` (dans les conteneurs Docker), pas directement avec `npm test`
 
 ## 🎯 PROCHAINES ÉTAPES
 
