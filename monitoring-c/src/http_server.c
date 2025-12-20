@@ -181,6 +181,20 @@ void handle_request(int client_fd) {
     
     buffer[bytes_read] = '\0';
     
+    // Vérifier si c'est une requête GET /api/v1/metrics
+    if (strstr(buffer, "GET /api/v1/metrics") == NULL && strstr(buffer, "GET /") == NULL) {
+        // Requête non supportée
+        const char *not_found = 
+            "HTTP/1.1 404 Not Found\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{\"error\": \"Endpoint not found\"}";
+        write(client_fd, not_found, strlen(not_found));
+        close(client_fd);
+        return;
+    }
+    
     // Initialiser le buffer de réponse
     memset(response, 0, sizeof(response));
     
@@ -202,15 +216,22 @@ void handle_request(int client_fd) {
         if (written < 0) {
             perror("write error");
         }
-    } else {
-        // Envoyer la réponse normale
-        ssize_t written = write(client_fd, response, response_len);
+        close(client_fd);
+        return;
+    }
+    
+    // Envoyer la réponse normale
+    ssize_t total_written = 0;
+    while (total_written < (ssize_t)response_len) {
+        ssize_t written = write(client_fd, response + total_written, response_len - total_written);
         if (written < 0) {
             perror("write error");
-        } else if ((size_t)written < response_len) {
-            // Écriture partielle, essayer d'envoyer le reste
-            write(client_fd, response + written, response_len - written);
+            break;
         }
+        if (written == 0) {
+            break;
+        }
+        total_written += written;
     }
     
     // Fermer proprement la connexion
