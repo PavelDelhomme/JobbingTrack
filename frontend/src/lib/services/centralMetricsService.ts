@@ -472,6 +472,7 @@ class CentralMetricsService {
         // Ignorer silencieusement les erreurs de monitoring-c
         // Ne pas polluer la console avec des erreurs de connexion
         // Le service basculera automatiquement vers l'ancien système
+        // Ne pas afficher l'erreur dans la console du navigateur
         // Fallback vers l'ancien système si monitoring-c n'est pas disponible
         // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
         // console.log('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible, fallback vers ancien système')
