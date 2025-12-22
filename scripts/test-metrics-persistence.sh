@@ -57,7 +57,7 @@ test_recent_data() {
         if [ "$last_record" != "ERROR" ] && [ -n "$last_record" ]; then
             echo -e "${GREEN}   Dernier enregistrement (toutes métriques):${NC}"
             IFS='|' read -r ts cpu_load cpu_cores mem_percent disk_percent cont_count proj_cpu proj_mem <<< "$last_record"
-            echo "     - Timestamp: $ts ($(date -d "@$ts" 2>/dev/null || echo "N/A"))"
+            echo "     - Timestamp: $ts"
             echo "     - CPU Load 1min: $cpu_load"
             echo "     - CPU Cores: $cpu_cores"
             echo "     - Mémoire usage: $mem_percent%"
