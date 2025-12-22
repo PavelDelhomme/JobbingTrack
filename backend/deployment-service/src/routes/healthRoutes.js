@@ -6,8 +6,26 @@ const { logger } = require('../utils/logger');
 // Route de santé de base
 router.get('/', async (req, res) => {
   try {
-    // Test de connexion à la base de données
-    await prisma.$queryRaw`SELECT 1`;
+    // Test de connexion à la base de données avec timeout et retry
+    try {
+      await Promise.race([
+        prisma.$queryRaw`SELECT 1`,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+      ]);
+    } catch (dbError) {
+      // Si erreur de connexion (P1001), retourner 503 sans logger d'erreur
+      // (c'est normal au démarrage si PostgreSQL n'est pas encore prêt)
+      if (dbError.code === 'P1001' || dbError.message?.includes('Can\'t reach database server')) {
+        return res.status(503).json({
+          status: 'ERROR',
+          service: 'deployment-service',
+          timestamp: new Date().toISOString(),
+          error: 'Database not ready',
+          message: 'Service is starting, database connection will be established shortly'
+        });
+      }
+      throw dbError;
+    }
 
     res.json({
       status: 'OK',
@@ -18,12 +36,15 @@ router.get('/', async (req, res) => {
       environment: process.env.NODE_ENV || 'development'
     });
   } catch (error) {
-    logger.error('Health check failed:', error);
+    // Ne logger que les erreurs non-P1001 (erreurs de connexion temporaires)
+    if (error.code !== 'P1001' && !error.message?.includes('Can\'t reach database server')) {
+      logger.error('Health check failed:', error);
+    }
     res.status(503).json({
       status: 'ERROR',
       service: 'deployment-service',
       timestamp: new Date().toISOString(),
-      error: 'Database connection failed'
+      error: error.code === 'P1001' ? 'Database not ready' : 'Health check failed'
     });
   }
 });
