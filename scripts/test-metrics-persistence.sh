@@ -46,11 +46,8 @@ test_tables_exist() {
 test_recent_data() {
     echo -e "${BLUE}📈 Test 2: Vérification des données récentes${NC}"
     
-    # Utiliser timestamp Unix au lieu de NOW() pour compatibilité
-    current_timestamp=$(date +%s)
-    one_hour_ago=$((current_timestamp - 3600))
-    
-    count=$(run_sql "SELECT COUNT(*) FROM system_metrics WHERE timestamp >= $one_hour_ago;")
+    # Utiliser NOW() - INTERVAL pour compatibilité avec TIMESTAMP PostgreSQL
+    count=$(run_sql "SELECT COUNT(*) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';")
     
     if [ "$count" != "ERROR" ] && [ "$count" -gt "0" ]; then
         echo -e "${GREEN}✅ $count enregistrements dans la dernière heure${NC}"
@@ -81,23 +78,21 @@ test_recent_data() {
 test_container_metrics() {
     echo -e "${BLUE}🐳 Test 3: Vérification des métriques de conteneurs${NC}"
     
-    # Utiliser timestamp Unix
-    current_timestamp=$(date +%s)
-    one_hour_ago=$((current_timestamp - 3600))
-    
-    count=$(run_sql "SELECT COUNT(*) FROM container_metrics WHERE timestamp >= $one_hour_ago;")
+    # Utiliser NOW() - INTERVAL pour compatibilité avec TIMESTAMP PostgreSQL
+    count=$(run_sql "SELECT COUNT(*) FROM container_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';")
     
     if [ "$count" != "ERROR" ] && [ "$count" -gt "0" ]; then
         echo -e "${GREEN}✅ $count enregistrements de conteneurs dans la dernière heure${NC}"
         
         # Afficher quelques conteneurs avec leurs métriques
-        containers=$(run_sql "SELECT DISTINCT name FROM container_metrics WHERE timestamp >= $one_hour_ago LIMIT 10;")
+        containers=$(run_sql "SELECT DISTINCT container_name FROM container_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour' LIMIT 10;")
         if [ "$containers" != "ERROR" ] && [ -n "$containers" ]; then
             echo -e "${GREEN}   Conteneurs détectés (10 premiers):${NC}"
             echo "$containers" | while IFS= read -r name; do
                 if [ -n "$name" ]; then
-                    # Récupérer les métriques moyennes pour ce conteneur
-                    metrics=$(run_sql "SELECT AVG(cpu_percent), AVG(memory_mb), AVG(memory_percent) FROM container_metrics WHERE name = '$name' AND timestamp >= $one_hour_ago;")
+                    # Récupérer les métriques moyennes pour ce conteneur (échapper les quotes dans le nom)
+                    escaped_name=$(echo "$name" | sed "s/'/''/g")
+                    metrics=$(run_sql "SELECT AVG(cpu_percent), AVG(memory_mb), AVG(memory_percent) FROM container_metrics WHERE container_name = '$escaped_name' AND timestamp >= NOW() - INTERVAL '1 hour';")
                     if [ "$metrics" != "ERROR" ] && [ -n "$metrics" ]; then
                         IFS='|' read -r avg_cpu avg_mem_mb avg_mem_pct <<< "$metrics"
                         echo "     - $name: CPU=${avg_cpu}%, Mem=${avg_mem_mb}MB (${avg_mem_pct}%)"
@@ -118,17 +113,14 @@ test_container_metrics() {
 test_complete_metrics() {
     echo -e "${BLUE}📊 Test 4: Vérification de toutes les métriques complètes${NC}"
     
-    current_timestamp=$(date +%s)
-    one_hour_ago=$((current_timestamp - 3600))
-    
     # Vérifier que toutes les colonnes importantes ont des valeurs non-nulles
-    metrics_check=$(run_sql "SELECT COUNT(*) FROM system_metrics WHERE timestamp >= $one_hour_ago AND cpu_load_1 IS NOT NULL AND cpu_cores IS NOT NULL AND memory_usage_percent IS NOT NULL AND disk_usage_percent IS NOT NULL AND project_cpu_avg IS NOT NULL AND project_memory_mb IS NOT NULL;")
+    metrics_check=$(run_sql "SELECT COUNT(*) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour' AND cpu_load_1 IS NOT NULL AND cpu_cores IS NOT NULL AND memory_usage_percent IS NOT NULL AND disk_usage_percent IS NOT NULL AND project_cpu_avg IS NOT NULL AND project_memory_mb IS NOT NULL;")
     
     if [ "$metrics_check" != "ERROR" ] && [ "$metrics_check" -gt "0" ]; then
         echo -e "${GREEN}✅ $metrics_check enregistrements avec toutes les métriques complètes${NC}"
         
         # Afficher statistiques complètes
-        stats=$(run_sql "SELECT AVG(cpu_load_1), AVG(cpu_cores), AVG(memory_usage_percent), AVG(disk_usage_percent), AVG(project_cpu_avg), AVG(project_memory_mb), AVG(container_count) FROM system_metrics WHERE timestamp >= $one_hour_ago;")
+        stats=$(run_sql "SELECT AVG(cpu_load_1), AVG(cpu_cores), AVG(memory_usage_percent), AVG(disk_usage_percent), AVG(project_cpu_avg), AVG(project_memory_mb), AVG(container_count) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';")
         if [ "$stats" != "ERROR" ] && [ -n "$stats" ]; then
             IFS='|' read -r avg_load avg_cores avg_mem avg_disk avg_proj_cpu avg_proj_mem avg_containers <<< "$stats"
             echo -e "${GREEN}   Moyennes (1h):${NC}"
@@ -151,16 +143,13 @@ test_complete_metrics() {
 test_project_cpu() {
     echo -e "${BLUE}💻 Test 5: Vérification du CPU Projet${NC}"
     
-    current_timestamp=$(date +%s)
-    one_hour_ago=$((current_timestamp - 3600))
-    
-    avg_cpu=$(run_sql "SELECT AVG(project_cpu_avg) FROM system_metrics WHERE timestamp >= $one_hour_ago;")
+    avg_cpu=$(run_sql "SELECT AVG(project_cpu_avg) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';")
     
     if [ "$avg_cpu" != "ERROR" ] && [ -n "$avg_cpu" ]; then
         echo -e "${GREEN}✅ CPU Projet moyen (1h): ${avg_cpu}%${NC}"
         
         # Afficher min/max
-        min_max=$(run_sql "SELECT MIN(project_cpu_avg), MAX(project_cpu_avg) FROM system_metrics WHERE timestamp >= $one_hour_ago;")
+        min_max=$(run_sql "SELECT MIN(project_cpu_avg), MAX(project_cpu_avg) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';")
         if [ "$min_max" != "ERROR" ]; then
             IFS='|' read -r min_cpu max_cpu <<< "$min_max"
             echo "   Min/Max: ${min_cpu}% / ${max_cpu}%"
