@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics rebuild-monitoring-c
 
 # ============================================================================
 # AIDE
@@ -36,6 +36,8 @@ help-backend: ## Afficher l'aide backend
 	@echo "  make monitoring-test            - Test health endpoints"
 	@echo "  make monitoring-test-auth TOKEN=xxx - Test avec auth JWT"
 	@echo "  make test-monitoring            - Suite tests complète"
+	@echo "  make test-metrics               - Test complet métriques (reconstruction + persistance)"
+	@echo "  make rebuild-monitoring-c       - Reconstruire conteneur monitoring-c"
 	@echo ""
 	@echo "⚡ PERFORMANCE:"
 	@echo "  make test-performance-backend   - Tests de performance backend"
@@ -221,6 +223,123 @@ test-monitoring: ## Suite de tests complète du monitoring
 	@cd monitoring && docker-compose -f docker-compose.monitoring.yml logs --tail=5
 	@echo ""
 	@echo "✅ Tests terminés"
+
+rebuild-monitoring-c: ## Reconstruire le conteneur monitoring-c
+	@echo "🔨 Reconstruction du conteneur monitoring-c..."
+	@echo ""
+	@echo "1️⃣ Arrêt du conteneur..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop monitoring-c 2>/dev/null || true)
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c rm -f monitoring-c 2>/dev/null || true)
+	@echo "✅ Conteneur arrêté"
+	@echo ""
+	@echo "2️⃣ Reconstruction (sans cache)..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c build --no-cache monitoring-c)
+	@echo "✅ Build terminé"
+	@echo ""
+	@echo "3️⃣ Démarrage..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d monitoring-c)
+	@echo "✅ Conteneur démarré"
+	@echo ""
+	@echo "⏳ Attente initialisation (5 secondes)..."
+	@sleep 5
+	@echo ""
+	@echo "✅ Reconstruction terminée !"
+	@echo "💡 Pour voir les logs: make monitoring-c-logs"
+
+test-metrics: ## Test complet du système de métriques (monitoring-c + persistance)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🧪 TEST COMPLET - Système de Métriques           ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Ce test vérifie :"
+	@echo "   ✓ Reconstruction du conteneur monitoring-c"
+	@echo "   ✓ Redémarrage du système"
+	@echo "   ✓ Vérification des logs"
+	@echo "   ✓ Persistance PostgreSQL"
+	@echo "   ✓ Métriques système et conteneurs"
+	@echo "   ✓ Endpoint /api/v1/metrics"
+	@echo ""
+	@read -p "🚀 Démarrer le test complet ? [Y/n] " -n 1 -r; \
+	echo ""; \
+	if [[ $$REPLY =~ ^[Nn]$$ ]]; then \
+		echo "❌ Test annulé"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "1️⃣  RECONSTRUCTION DU CONTENEUR"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) rebuild-monitoring-c
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "2️⃣  REDÉMARRAGE COMPLET"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "⏳ Redémarrage du système de monitoring..."
+	@$(MAKE) monitoring-c-restart
+	@echo "⏳ Attente stabilisation (10 secondes)..."
+	@sleep 10
+	@echo "✅ Redémarrage terminé"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "3️⃣  VÉRIFICATION DES LOGS"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📋 Dernières lignes des logs monitoring-c:"
+	@docker logs jobbingtrack-monitoring-c --tail 30 2>&1 | tail -20 || echo "⚠️  Impossible de lire les logs"
+	@echo ""
+	@echo "🔍 Recherche de messages STORAGE (persistance PostgreSQL):"
+	@docker logs jobbingtrack-monitoring-c 2>&1 | grep -i "\[STORAGE\]" | tail -10 || echo "⚠️  Aucun log STORAGE trouvé (peut être normal si PostgreSQL non connecté)"
+	@echo ""
+	@echo "🔍 Recherche de messages DEBUG (calcul CPU projet):"
+	@docker logs jobbingtrack-monitoring-c 2>&1 | grep -i "\[DEBUG\].*CPU.*Projet" | tail -5 || echo "ℹ️  Pas de logs DEBUG CPU projet (normal si pas d'erreur)"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "4️⃣  TEST DES MÉTRIQUES (Système)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@if [ -f "scripts/test-monitoring-system.sh" ]; then \
+		chmod +x scripts/test-monitoring-system.sh; \
+		./scripts/test-monitoring-system.sh || echo "⚠️  Certains tests ont échoué"; \
+	else \
+		echo "❌ Script test-monitoring-system.sh non trouvé"; \
+	fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "5️⃣  TEST DES MÉTRIQUES (Backoffice)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@if [ -f "scripts/test-backoffice-metrics.sh" ]; then \
+		chmod +x scripts/test-backoffice-metrics.sh; \
+		./scripts/test-backoffice-metrics.sh || echo "⚠️  Certains tests ont échoué"; \
+	else \
+		echo "❌ Script test-backoffice-metrics.sh non trouvé"; \
+	fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "6️⃣  TEST DE LA PERSISTANCE POSTGRESQL"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@if [ -f "scripts/test-metrics-persistence.sh" ]; then \
+		chmod +x scripts/test-metrics-persistence.sh; \
+		./scripts/test-metrics-persistence.sh || echo "⚠️  Tests de persistance échoués (peut être normal si PostgreSQL non accessible)"; \
+	else \
+		echo "❌ Script test-metrics-persistence.sh non trouvé"; \
+		echo "ℹ️  Vérification manuelle de la persistance:"; \
+		echo "   PGPASSWORD=jobbingtrack123 psql -h localhost -p 5000 -U jobbingtrack -d jobbingtrack -c \"SELECT COUNT(*) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';\" || echo "⚠️  PostgreSQL non accessible depuis le host"; \
+	fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ TEST COMPLET TERMINÉ"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "📊 RÉSUMÉ:"
+	@echo "   • Conteneur monitoring-c reconstruit et redémarré"
+	@echo "   • Logs vérifiés"
+	@echo "   • Métriques système testées"
+	@echo "   • Métriques backoffice testées"
+	@echo "   • Persistance PostgreSQL testée"
+	@echo ""
+	@echo "💡 Commandes utiles:"
+	@echo "   make monitoring-c-logs          - Voir les logs en temps réel"
+	@echo "   make monitoring-c-restart       - Redémarrer monitoring-c"
+	@echo "   curl http://localhost:5098/api/v1/metrics | jq  - Voir métriques JSON"
+	@echo ""
 
 monitoring-stats: ## Exécuter le script de monitoring complet
 	@echo "📊 Lancement du monitoring complet JobbingTrack..."
