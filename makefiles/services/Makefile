@@ -426,12 +426,27 @@ _up-full-internal:
 	# Attendre PostgreSQL
 	$(call wait_for_postgres)
 	
+	# Attendre un peu plus pour que PostgreSQL soit complètement prêt
+	@echo "⏳ Attente supplémentaire pour que PostgreSQL soit complètement prêt (3s)..."
+	@sleep 3
+	
 	# Démarrer services principaux
 	@echo "🚀 Démarrage des services principaux..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d api-gateway auth-service)
 	
+	# Attendre que auth-service soit prêt avant de continuer
+	@echo "⏳ Attente que auth-service soit prêt (5s)..."
+	@sleep 5
+	
 	# Correction DB
 	$(MAKE) db-fix-role
+	
+	# ✅ CRÉER AUTOMATIQUEMENT LES TABLES PRISMA
+	@echo "📊 Création automatique des tables Prisma..."
+	@echo "⏳ Cela peut prendre quelques secondes..."
+	@$(MAKE) db-push-all || echo "⚠️  Erreur lors de la création des tables Prisma (peut être normal si elles existent déjà)"
+	@echo "⏳ Attente supplémentaire pour que les tables soient créées (3s)..."
+	@sleep 3
 	
 	# Démarrer frontend
 	@echo "🚀 Démarrage du frontend..."
@@ -449,6 +464,20 @@ _up-full-internal:
 	@echo "🚀 Démarrage du nouveau système de monitoring en C (ultra-léger)..."
 	@echo "   ⚠️  L'ancien système (Prometheus/Grafana/Loki) n'est PAS démarré automatiquement"
 	@echo "   💡 Utilisez 'make monitoring-up' si vous avez besoin de l'ancien système"
+	@# S'assurer que PostgreSQL est vraiment prêt avant de démarrer monitoring-c
+	@echo "⏳ Vérification que PostgreSQL est prêt avant de démarrer monitoring-c..."
+	@POSTGRES_READY=0; \
+	for i in 1 2 3 4 5; do \
+		if docker exec jobbingtrack-postgres pg_isready -U jobbingtrack -d jobbingtrack >/dev/null 2>&1; then \
+			POSTGRES_READY=1; \
+			break; \
+		fi; \
+		echo "⏳ Attente PostgreSQL (tentative $$i/5)..."; \
+		sleep 2; \
+	done; \
+	if [ $$POSTGRES_READY -eq 0 ]; then \
+		echo "⚠️  PostgreSQL n'est pas encore prêt, mais on continue quand même..."; \
+	fi
 	@# Créer le réseau si nécessaire (utiliser celui qui existe déjà ou créer)
 	@if ! docker network inspect backend_jobbingtrack-network >/dev/null 2>&1; then \
 		if docker network inspect jobbingtrack_jobbingtrack-network >/dev/null 2>&1; then \
@@ -458,7 +487,8 @@ _up-full-internal:
 			docker network create backend_jobbingtrack-network >/dev/null 2>&1 || true; \
 		fi \
 	fi
-	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build monitoring-c log-collector-c)
+	@# Utiliser --no-deps pour éviter que Docker Compose recrée PostgreSQL
+	$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build --no-deps monitoring-c log-collector-c)
 	@echo "✅ Nouveau monitoring en C démarré"
 	
 	# Attendre que les services soient prêts

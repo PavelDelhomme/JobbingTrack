@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
+const { initializePrisma } = require('./utils/prismaClient');
 
 const authRoutes = require('./routes/auth.routes');
 const preferencesRoutes = require('./routes/preferences.routes');
@@ -158,17 +159,48 @@ auth_service_active_sessions ${Math.floor(Math.random() * 50)}
 app.use(notFound);
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
-  logger.info(`🔐 Auth Service démarré sur le port ${PORT}`);
-  logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
+// Fonction pour démarrer le serveur après initialisation de Prisma
+async function startServer() {
+  try {
+    // Initialiser Prisma avec retry (attend que PostgreSQL soit prêt)
+    logger.info('🔄 Attente que PostgreSQL soit prêt...');
+    await initializePrisma();
+    
+    // Démarrer le serveur
+    const server = app.listen(PORT, () => {
+      logger.info(`🔐 Auth Service démarré sur le port ${PORT}`);
+      logger.info(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
+    });
+    
+    return server;
+  } catch (error) {
+    logger.error('❌ Erreur lors du démarrage du serveur:', error);
+    logger.error('💡 Vérifiez que PostgreSQL est démarré et accessible');
+    process.exit(1);
+  }
+}
+
+// Variable globale pour stocker le serveur
+let serverInstance = null;
+
+// Démarrer le serveur
+startServer().then(server => {
+  serverInstance = server;
+}).catch(error => {
+  logger.error('❌ Erreur lors du démarrage du serveur:', error);
+  process.exit(1);
 });
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal reçu: fermeture du service d\'authentification');
-  server.close(() => {
-    logger.info('Auth Service fermé');
+  if (serverInstance) {
+    serverInstance.close(() => {
+      logger.info('Auth Service fermé');
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
 });
 
 process.on('unhandledRejection', (err) => {

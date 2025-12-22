@@ -230,18 +230,49 @@ export default function BackofficePage() {
           if (allMetrics.system) {
             // ✅ OPTIMISATION : Éviter les mises à jour si les données n'ont pas changé significativement
             setSystemMetrics((prev: any) => {
-              // Comparer rapidement les valeurs clés pour éviter les re-renders inutiles
-              const cpuChanged = Math.abs((prev?.cpu?.usage || 0) - (allMetrics.system.cpu?.usage || 0)) > 0.1
-              const memChanged = Math.abs((prev?.memory?.usage || 0) - (allMetrics.system.memory?.usage || 0)) > 0.1
+              // ✅ CORRECTION : Toujours retourner un objet valide, même si prev est null
+              if (!prev) {
+                return {
+                  ...allMetrics.system,
+                  monitoringC: allMetrics.monitoringC,
+                  jobbingtrack: allMetrics.system.jobbingtrack
+                }
+              }
+              
+              // ✅ OPTIMISATION : Comparer les valeurs numériques au lieu des strings pour éviter les re-renders inutiles
+              const prevCpuPercent = typeof prev?.cpu?.usage_percent === 'number' ? prev.cpu.usage_percent : 
+                (typeof prev?.cpu?.usage === 'string' ? parseFloat(prev.cpu.usage.replace('%', '')) : 0)
+              const newCpuPercent = typeof allMetrics.system.cpu?.usage_percent === 'number' ? allMetrics.system.cpu.usage_percent :
+                (typeof allMetrics.system.cpu?.usage === 'string' ? parseFloat(allMetrics.system.cpu.usage.replace('%', '')) : 0)
+              
+              const prevMemPercent = typeof prev?.memory?.usage_percent === 'number' ? prev.memory.usage_percent :
+                (typeof prev?.memory?.usage === 'string' ? parseFloat(prev.memory.usage.replace('%', '')) : 0)
+              const newMemPercent = typeof allMetrics.system.memory?.usage_percent === 'number' ? allMetrics.system.memory.usage_percent :
+                (typeof allMetrics.system.memory?.usage === 'string' ? parseFloat(allMetrics.system.memory.usage.replace('%', '')) : 0)
+              
+              const cpuChanged = Math.abs(prevCpuPercent - newCpuPercent) > 0.5 // Seuil de 0.5% pour éviter trop de re-renders
+              const memChanged = Math.abs(prevMemPercent - newMemPercent) > 0.5
+              
+              // ✅ OPTIMISATION : Toujours mettre à jour si les données projet ont changé
+              const projectCpuChanged = Math.abs(
+                (prev?.jobbingtrack?.containers?.cpu?.averagePercent || 0) - 
+                (allMetrics.system.jobbingtrack?.containers?.cpu?.averagePercent || 0)
+              ) > 0.1
+              const projectMemChanged = Math.abs(
+                (prev?.jobbingtrack?.containers?.memory?.percent_of_system || 0) - 
+                (allMetrics.system.jobbingtrack?.containers?.memory?.percent_of_system || 0)
+              ) > 0.1
               
               // Si pas de changement significatif, retourner l'objet précédent (évite re-render)
-              if (!cpuChanged && !memChanged && prev) {
+              if (!cpuChanged && !memChanged && !projectCpuChanged && !projectMemChanged && prev) {
                 return prev
               }
               
               return {
                 ...prev,
                 ...allMetrics.system,
+                // ✅ CORRECTION : Préserver monitoringC et jobbingtrack
+                monitoringC: allMetrics.monitoringC || prev.monitoringC,
                 // Préserver les sous-objets en les fusionnant aussi
                 cpu: prev?.cpu ? { ...prev.cpu, ...allMetrics.system.cpu } : allMetrics.system.cpu,
                 memory: prev?.memory ? { ...prev.memory, ...allMetrics.system.memory } : allMetrics.system.memory,
@@ -394,12 +425,12 @@ export default function BackofficePage() {
         loadMaintenances()
       }, 500)
       
-      // ✅ OPTIMISATION : Actualiser toutes les 30 secondes pour réduire CPU et mémoire
+      // ✅ OPTIMISATION : Actualiser toutes les 45 secondes pour réduire CPU et mémoire
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible' && !document.hidden) {
           loadSystemMetrics()
         }
-      }, 30000) // ✅ OPTIMISATION : 30 secondes pour réduire la charge
+      }, 45000) // ✅ OPTIMISATION : 45 secondes pour réduire la charge
       
       return () => {
         clearTimeout(initialTimeout)
@@ -680,7 +711,7 @@ export default function BackofficePage() {
       if (document.visibilityState === 'visible' && !document.hidden) {
         loadServicesWithMetrics()
       }
-    }, 30000) // ✅ OPTIMISATION : 30 secondes pour réduire CPU et mémoire
+    }, 60000) // ✅ OPTIMISATION : 60 secondes pour réduire CPU et mémoire (services changent moins souvent)
     return () => clearInterval(interval)
   }, [])
 
@@ -765,27 +796,25 @@ export default function BackofficePage() {
             trendType="positive-is-bad"  // Moins de temps de réponse = bon
           />
           <MetricCard
-            title={systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
-              ? `CPU (Conteneurs) - ${systemMetrics.cpu.cores} cores`
-              : "CPU (Conteneurs)"}
-            value={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
+            title="CPU Projet (Conteneurs)"
+            value={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%`
               : systemMetrics?.cpu?.containers_only !== undefined 
               ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
               : '...'}
-            subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-              ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
-              : systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
-              ? `${systemMetrics.cpu.cores} cores disponibles • ${safeToFixed(systemMetrics.cpu.per_core, 1)}% par core` 
+            subtitle={systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined
+              ? `Total: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+              : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+              ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
               : '...'}
             icon={<Cpu className="h-6 w-6" />}
             color={
-              (systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.cpu.totalPercent 
+              (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
+                ? systemMetrics.jobbingtrack.containers.cpu.averagePercent 
                 : systemMetrics?.cpu?.containers_only) > 80 
               ? "red" 
-              : (systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.cpu.totalPercent 
+              : (systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
+                ? systemMetrics.jobbingtrack.containers.cpu.averagePercent 
                 : systemMetrics?.cpu?.containers_only) > 60 
               ? "yellow" 
               : "green"}
@@ -793,26 +822,26 @@ export default function BackofficePage() {
             trendType="positive-is-bad"  // Moins de CPU = bon, Plus = mauvais
           />
           <MetricCard
-            title="Mémoire (Conteneurs)"
-            value={systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
+            title="Mémoire Projet (Conteneurs)"
+            value={systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
+              : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
               ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
-              : systemMetrics?.memory?.usage !== undefined 
-              ? `${safeToFixed(systemMetrics.memory.usage, 1)}%` 
               : '...'}
-            subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB`
-              : systemMetrics?.memory?.used 
-              ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
+            subtitle={systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+              : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
+              ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite` 
               : '...'}
             icon={<MemoryStick className="h-6 w-6" />}
             color={
-              (systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.memory.percent 
-                : systemMetrics?.memory?.usage) > 85 
+              (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined 
+                ? systemMetrics.jobbingtrack.containers.memory.percent_of_system 
+                : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 20 
               ? "red" 
-              : (systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-                ? systemMetrics.jobbingtrack.containers.memory.percent 
-                : systemMetrics?.memory?.usage) > 70 
+              : (systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined 
+                ? systemMetrics.jobbingtrack.containers.memory.percent_of_system 
+                : systemMetrics?.jobbingtrack?.containers?.memory?.percent) > 10 
               ? "yellow" 
               : "green"}
             trend={1.8}  // Exemple: +1.8% de mémoire (mauvais = rouge ⬆️ car plus de mémoire utilisée)
@@ -837,68 +866,137 @@ export default function BackofficePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {/* ✅ CORRECTION : Utiliser avg_cpu_percent depuis monitoring C en priorité */}
-                {systemMetrics?.monitoringC?.avg_cpu_percent !== undefined
+                {/* ✅ CORRECTION : Utiliser CPU système (usage_percent) au lieu de load_1 */}
+                {systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0
+                  ? `${safeToFixed(systemMetrics.cpu.usage_percent, 1)}%`
+                  : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
                   ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
-                  : systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
+                  : loadingSystemMetrics ? '...' : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>CPU Système</span>
+                {systemMetrics?.cpu?.usage_percent !== undefined && (
+                  <span className={`text-xs ${systemMetrics.cpu.usage_percent > 80 ? 'text-red-500' : systemMetrics.cpu.usage_percent > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.cpu.usage_percent > 80 ? '🔴' : systemMetrics.cpu.usage_percent > 60 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
+                  ? `${systemMetrics.cpu.cores} cores`
+                  : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                  ? `${systemMetrics.jobbingtrack.containers.count} conteneurs`
+                  : '...'}
+              </div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                {/* ✅ NOUVEAU : Afficher CPU projet (conteneurs JobbingTrack uniquement) */}
+                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
                   ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}%` 
-                  : systemMetrics?.jobbingtrack?.containers?.cpu?.totalPercent !== undefined 
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.totalPercent, 1)}%` 
                   : systemMetrics?.cpu?.containers_only !== undefined 
                   ? `${safeToFixed(systemMetrics.cpu.containers_only, 1)}%` 
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">CPU (Conteneurs)</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>CPU Projet</span>
+                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined && (
+                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? '🔴' : systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined 
-                  ? `Moy: ${safeToFixed(systemMetrics.jobbingtrack.containers.cpu.averagePercent, 1)}% • ${systemMetrics.jobbingtrack.containers.count || 0} conteneurs`
+                {systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                  ? `${systemMetrics.jobbingtrack.containers.count} conteneurs JobbingTrack`
                   : systemMetrics?.monitoringC?.container_count !== undefined
                   ? `${systemMetrics.monitoringC.container_count} conteneurs`
-                  : systemMetrics?.cpu?.per_core !== undefined 
-                  ? `${safeToFixed(systemMetrics.cpu.per_core, 1)}% par coeur` 
                   : '...'}
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {/* ✅ CORRECTION : Utiliser avg_memory_percent depuis monitoring C en priorité */}
-                {systemMetrics?.monitoringC?.avg_memory_percent !== undefined
-                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
-                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined 
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%` 
-                  : systemMetrics?.memory?.usage_percent !== undefined
+                {/* ✅ NOUVEAU : Afficher mémoire système globale */}
+                {systemMetrics?.memory?.usage_percent !== undefined
                   ? `${safeToFixed(systemMetrics.memory.usage_percent, 1)}%`
                   : systemMetrics?.memory?.usage !== undefined 
-                  ? `${safeToFixed(systemMetrics.memory.usage, 1)}%` 
+                  ? `${safeToFixed(parseFloat(systemMetrics.memory.usage.toString().replace('%', '')), 1)}%`
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Mémoire (Conteneurs)</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Mémoire Système</span>
+                {systemMetrics?.memory?.usage_percent !== undefined && (
+                  <span className={`text-xs ${systemMetrics.memory.usage_percent > 90 ? 'text-red-500' : systemMetrics.memory.usage_percent > 75 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.memory.usage_percent > 90 ? '🔴' : systemMetrics.memory.usage_percent > 75 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
-                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB`
-                  : systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
+                {systemMetrics?.memory?.used_mb && systemMetrics?.memory?.total_mb
                   ? `${safeToFixed(systemMetrics.memory.used_mb, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB`
-                  : systemMetrics?.memory?.used 
+                  : systemMetrics?.memory?.used && systemMetrics?.memory?.total
                   ? `${systemMetrics.memory.used} / ${systemMetrics.memory.total}` 
                   : '...'}
               </div>
             </div>
 
             <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {/* ✅ NOUVEAU : Afficher mémoire projet (pourcentage de la mémoire système totale) */}
+                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent_of_system, 1)}%`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.percent !== undefined
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.percent, 1)}%`
+                  : systemMetrics?.monitoringC?.avg_memory_percent !== undefined
+                  ? `${safeToFixed(systemMetrics.monitoringC.avg_memory_percent, 1)}%`
+                  : loadingSystemMetrics ? '...' : 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Mémoire Projet</span>
+                {systemMetrics?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined && (
+                  <span className={`text-xs ${systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-500' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? '🔴' : systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.memory?.total_mb
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
+                  : systemMetrics?.jobbingtrack?.containers?.memory?.used && systemMetrics?.jobbingtrack?.containers?.memory?.limit
+                  ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                  : '...'}
+              </div>
+            </div>
+
+            <div className="text-center">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {systemMetrics?.load?.average !== undefined || systemMetrics?.load?.load_1 !== undefined
-                  ? safeToFixed(systemMetrics?.load?.average || systemMetrics?.load?.load_1, 2, '0.00')
-                  : systemMetrics?.cpu?.load_1 !== undefined
+                {systemMetrics?.cpu?.load_1 !== undefined && systemMetrics.cpu.load_1 > 0
                   ? safeToFixed(systemMetrics.cpu.load_1, 2, '0.00')
+                  : systemMetrics?.load?.load_1 !== undefined && systemMetrics.load.load_1 > 0
+                  ? safeToFixed(systemMetrics.load.load_1, 2, '0.00')
+                  : systemMetrics?.load?.average !== undefined
+                  ? safeToFixed(systemMetrics.load.average, 2, '0.00')
                   : loadingSystemMetrics ? '...' : '0.00'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Charge</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Charge Système</span>
+                {systemMetrics?.cpu?.load_1 !== undefined && systemMetrics.cpu.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores) > 0 && (
+                  <span className={`text-xs ${(systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.5 ? 'text-red-500' : (systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.0 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {(systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.5 ? '🔴' : (systemMetrics.cpu.load_1 / parseInt(systemMetrics.cpu.cores)) > 1.0 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {systemMetrics?.cpu?.cores ? `${systemMetrics.cpu.cores} coeurs` : systemMetrics?.load?.cores ? `${systemMetrics.load.cores} coeurs` : 'N/A'}
+                {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A' && parseInt(systemMetrics.cpu.cores) > 0
+                  ? `${systemMetrics.cpu.cores} coeurs`
+                  : systemMetrics?.load?.cores && systemMetrics.load.cores !== 'N/A'
+                  ? `${systemMetrics.load.cores} coeurs`
+                  : 'N/A'}
               </div>
             </div>
 
@@ -931,26 +1029,29 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {/* ✅ OPTIMISATION : Afficher uniquement l'espace disque des conteneurs Docker */}
-                {systemMetrics?.jobbingtrack?.disk?.[0]?.usage_percent !== undefined 
-                  ? `${systemMetrics.jobbingtrack.disk[0].usage_percent}%` 
-                  : systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent !== null
-                  ? `${systemMetrics.disk[0].usage_percent}%` 
+                {/* ✅ CORRECTION : Afficher l'usage disque depuis monitoring-c */}
+                {systemMetrics?.disk?.[0]?.usage_percent_number !== undefined
+                  ? `${safeToFixed(systemMetrics.disk[0].usage_percent_number, 1)}%`
+                  : systemMetrics?.disk?.[0]?.usage !== undefined
+                  ? `${safeToFixed(parseFloat(systemMetrics.disk[0].usage.toString().replace('%', '')), 1)}%`
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Disque (Conteneurs)</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+                <span>Disque</span>
+                {systemMetrics?.disk?.[0]?.usage_percent_number !== undefined && (
+                  <span className={`text-xs ${systemMetrics.disk[0].usage_percent_number > 90 ? 'text-red-500' : systemMetrics.disk[0].usage_percent_number > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {systemMetrics.disk[0].usage_percent_number > 90 ? '🔴' : systemMetrics.disk[0].usage_percent_number > 80 ? '🟡' : '🟢'}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {/* ✅ Afficher l'espace utilisé par les conteneurs Docker uniquement */}
-                {systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human ? 
+                {/* ✅ Afficher l'espace disque système */}
+                {systemMetrics?.disk?.[0]?.used && systemMetrics?.disk?.[0]?.total ? 
+                  `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total}` : 
+                  systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human ? 
                   `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}` : 
-                  systemMetrics?.jobbingtrack?.disk?.[0]?.containers_size_gb !== undefined ?
-                  `${systemMetrics.jobbingtrack.disk[0].containers_size_gb.toFixed(2)} GB (conteneurs)` :
-                  systemMetrics?.disk?.[0]?.used_human && systemMetrics?.disk?.[0]?.total_human ? 
-                  `${systemMetrics.disk[0].used_human} / ${systemMetrics.disk[0].total_human}` : 
-                  systemMetrics?.disk?.[0]?.used !== undefined && systemMetrics?.disk?.[0]?.total !== undefined ?
-                  `${systemMetrics.disk[0].used} GB / ${systemMetrics.disk[0].total} GB` :
-                  systemMetrics?.disk?.[0]?.usage_percent !== undefined && systemMetrics.disk[0].usage_percent > 0
-                  ? (systemMetrics.disk[0].usage_percent > 80 ? '⚠️ Plein' : '✅ OK')
+                  systemMetrics?.disk?.[0]?.usage_percent_number !== undefined
+                  ? (systemMetrics.disk[0].usage_percent_number > 90 ? '⚠️ Critique' : systemMetrics.disk[0].usage_percent_number > 80 ? '⚠️ Attention' : '✅ OK')
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
             </div>
@@ -958,15 +1059,15 @@ export default function BackofficePage() {
 
           {/* Métriques des conteneurs JobbingTrack - Toujours visible */}
           {systemMetrics?.jobbingtrack?.containers?.count !== undefined ? (
-            <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
               <h3 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-                📦 Conteneurs JobbingTrack ({systemMetrics.jobbingtrack.containers.count})
+                📦 Métriques Projet - Conteneurs JobbingTrack ({systemMetrics.jobbingtrack.containers.count})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">CPU Moyen</span>
-                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Moyen (Projet)</span>
+                    <span className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
                       {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined 
                         ? `${systemMetrics.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%` 
                         : '...'}
@@ -974,38 +1075,68 @@ export default function BackofficePage() {
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all" 
+                      className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 ? 'bg-red-500' : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 ? 'bg-yellow-500' : 'bg-blue-500'}`}
                       style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.cpu?.averagePercent || 0, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Total: {systemMetrics.jobbingtrack.containers.cpu?.totalPercent !== undefined 
                       ? `${systemMetrics.jobbingtrack.containers.cpu.totalPercent.toFixed(1)}%` 
-                      : '...'}
+                      : '...'} • 
+                    {systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 80 
+                      ? ' 🔴 Élevé' 
+                      : systemMetrics.jobbingtrack.containers.cpu?.averagePercent !== undefined && systemMetrics.jobbingtrack.containers.cpu.averagePercent > 60 
+                      ? ' 🟡 Modéré' 
+                      : ' 🟢 Normal'}
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Mémoire Utilisée</span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {systemMetrics.jobbingtrack.containers.memory?.percent !== undefined 
-                        ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%` 
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Utilisée (Projet)</span>
+                    <span className={`text-lg font-bold ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'text-red-600 dark:text-red-400' : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                      {systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined 
+                        ? `${systemMetrics.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%` 
+                        : systemMetrics.jobbingtrack.containers.memory?.percent !== undefined
+                        ? `${systemMetrics.jobbingtrack.containers.memory.percent.toFixed(1)}%`
                         : '...'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
-                      className="bg-green-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%` }}
+                      className={`h-2 rounded-full transition-all ${systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 ? 'bg-red-500' : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                      style={{ width: `${Math.min(systemMetrics.jobbingtrack.containers.memory?.percent_of_system || systemMetrics.jobbingtrack.containers.memory?.percent || 0, 100)}%` }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics.jobbingtrack.containers.memory?.limit 
-                      ? `${systemMetrics.jobbingtrack.containers.memory.used.toFixed(0)} MB / ${systemMetrics.jobbingtrack.containers.memory.limit.toFixed(0)} MB`
-                      : '...'}
+                    {systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics?.memory?.total_mb
+                      ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.memory.total_mb, 0)} MB système`
+                      : systemMetrics.jobbingtrack.containers.memory?.used && systemMetrics.jobbingtrack.containers.memory?.limit 
+                      ? `${safeToFixed(systemMetrics.jobbingtrack.containers.memory.used, 0)} MB / ${safeToFixed(systemMetrics.jobbingtrack.containers.memory.limit, 0)} MB limite`
+                      : '...'} • 
+                    {systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 20 
+                      ? ' 🔴 Élevé' 
+                      : systemMetrics.jobbingtrack.containers.memory?.percent_of_system !== undefined && systemMetrics.jobbingtrack.containers.memory.percent_of_system > 10 
+                      ? ' 🟡 Modéré' 
+                      : ' 🟢 Normal'}
                   </div>
                 </div>
+              </div>
+              <div className="mt-3 text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                <p className="font-medium mb-1">💡 Explication des métriques :</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li><strong>Mémoire Système</strong> : Mémoire totale utilisée par tout le système (OS + tous les processus). Seuil critique: {'>'} 90%</li>
+                  <li><strong>Mémoire Projet</strong> : Pourcentage de la mémoire système totale utilisée uniquement par les conteneurs JobbingTrack. Seuil critique: {'>'} 20%</li>
+                  <li><strong>CPU Système</strong> : Charge CPU globale du système (load average). Seuil critique: {'>'} 80%</li>
+                  <li><strong>CPU Projet</strong> : CPU moyen utilisé par les conteneurs JobbingTrack. Seuil critique: {'>'} 80%</li>
+                  <li><strong>Charge Système</strong> : Load average sur 1 minute. Normal si {'<'} 1.0 par core</li>
+                </ul>
+                <p className="mt-2 font-medium">🎨 Indicateurs :</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>🟢 <strong>Vert</strong> : Normal - Tout fonctionne bien</li>
+                  <li>🟡 <strong>Jaune</strong> : Attention - Surveillance recommandée</li>
+                  <li>🔴 <strong>Rouge</strong> : Critique - Action requise</li>
+                </ul>
               </div>
             </div>
           ) : null}

@@ -364,9 +364,10 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-call-service
     ports:
-      - "${CALL_SERVICE_PORT:-5010}:${CALL_SERVICE_INTERNAL_PORT:-3006}"
+      - "${CALL_SERVICE_PORT:-5010}:${CALL_SERVICE_INTERNAL_PORT:-3008}"
     environment:
       - NODE_ENV=development
+      - PORT=${CALL_SERVICE_INTERNAL_PORT:-3008}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
     depends_on:
@@ -379,7 +380,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3006/api/v1/calls/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3008/api/v1/calls/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -393,9 +394,10 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-event-service
     ports:
-      - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3007}"
+      - "${EVENT_SERVICE_PORT:-5011}:${EVENT_SERVICE_INTERNAL_PORT:-3011}"
     environment:
       - NODE_ENV=development
+      - PORT=${EVENT_SERVICE_INTERNAL_PORT:-3011}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
@@ -407,7 +409,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3007/api/v1/events/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3011/api/v1/events/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -421,9 +423,10 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-followup-service
     ports:
-      - "${FOLLOWUP_SERVICE_PORT:-5012}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3008}"
+      - "${FOLLOWUP_SERVICE_PORT:-5012}:${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}"
     environment:
       - NODE_ENV=development
+      - PORT=${FOLLOWUP_SERVICE_INTERNAL_PORT:-3012}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
     depends_on:
@@ -436,7 +439,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3008/api/v1/followups/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3012/api/v1/followups/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -478,9 +481,10 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-notification-service
     ports:
-      - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3010}"
+      - "${NOTIFICATION_SERVICE_PORT:-5014}:${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}"
     environment:
       - NODE_ENV=development
+      - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
     depends_on:
@@ -495,7 +499,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3010/api/v1/notifications/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3008/api/v1/notifications/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -549,9 +553,10 @@ services:
       dockerfile: Dockerfile
     container_name: jobbingtrack-workflow-service
     ports:
-      - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3011}"
+      - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
       - NODE_ENV=development
+      - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     depends_on:
       postgres:
@@ -563,7 +568,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3011/api/v1/workflow/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3013/api/v1/workflow/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

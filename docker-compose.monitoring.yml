@@ -59,8 +59,8 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
-    depends_on:
-      - postgres
+    # Note: depends_on retiré car PostgreSQL est déjà démarré avant dans le Makefile
+    # et cela évite la recréation du conteneur PostgreSQL
     profiles:
       - monitoring-c
       - full

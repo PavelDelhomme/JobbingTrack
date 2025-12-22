@@ -75,7 +75,7 @@ app.use(cors({
     'http://cadvisor:8080',
     'http://jobbingtrack-metrics-aggregator:3014',
     // Autres services
-    'http://auth-service:3001',
+    'http://jobbingtrack-auth-service:3001',
     'http://application-service:3002',
     'http://company-service:3003',
     'http://contact-service:3004',
@@ -267,7 +267,7 @@ app.post('/api/v1/auth/register', async (req, res) => {
     logger.info('📝 Route /api/v1/auth/register interceptée');
     
     // Proxyfier vers auth-service
-    const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+    const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001';
     const response = await axios.post(
       `${authServiceUrl}/api/v1/auth/register`,
       req.body,
@@ -536,7 +536,7 @@ app.use('/api/v1/maintenance', maintenanceRoutes);
 
 // ✅ Proxy vers les services (utilise les noms de service Docker avec fallback localhost)
 const services = {
-  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
+  '/api/v1/auth': { url: process.env.AUTH_SERVICE_URL || 'http://jobbingtrack-auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/preferences': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/users': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
   '/api/v1/emails': { url: process.env.AUTH_SERVICE_URL || 'http://auth-service:3001', serviceName: 'auth-service' },
@@ -551,7 +551,7 @@ const services = {
   '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3006', serviceName: 'call-service' },
   '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
-  '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3008', serviceName: 'followup-service' },
+      '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },
   '/api/v1/workflows': { url: process.env.WORKFLOW_SERVICE_URL || 'http://workflow-service:3013', serviceName: 'workflow-service' },
   '/api/v1/security': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },
   '/api/v1/logs': { url: process.env.SECURITY_SERVICE_URL || 'http://security-service:3017', serviceName: 'security-service' },

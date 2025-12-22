@@ -1,11 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../utils/prismaClient');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
-
-const prisma = new PrismaClient();
 
 // ✅ Récupérer un utilisateur par ID
 const getUserById = async (req, res) => {
