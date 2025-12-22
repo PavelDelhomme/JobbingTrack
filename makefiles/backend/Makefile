@@ -259,11 +259,13 @@ test-metrics: ## Test complet du système de métriques (monitoring-c + persista
 	@echo "   ✓ Métriques système et conteneurs"
 	@echo "   ✓ Endpoint /api/v1/metrics"
 	@echo ""
-	@read -p "🚀 Démarrer le test complet ? [Y/n] " -n 1 -r; \
-	echo ""; \
-	if [[ $$REPLY =~ ^[Nn]$$ ]]; then \
-		echo "❌ Test annulé"; \
-		exit 1; \
+	@if [ -t 0 ] && [ -z "$$SKIP_CONFIRM" ]; then \
+		read -p "🚀 Démarrer le test complet ? [Y/n] " -n 1 -r; \
+		echo ""; \
+		if [[ $$REPLY =~ ^[Nn]$$ ]]; then \
+			echo "❌ Test annulé"; \
+			exit 1; \
+		fi \
 	fi
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
