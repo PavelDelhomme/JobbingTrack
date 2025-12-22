@@ -246,7 +246,7 @@ export default function StatisticsPage() {
         if (needsHistory) {
           fetchMetricsHistory()
         }
-      }, 30000)
+      }, 60000) // ✅ OPTIMISATION : 60 secondes pour réduire la charge CPU/mémoire
       return () => clearInterval(interval)
     }
   }, [isAuthenticated, customization.timeRange, needsHistory]) // ✅ Ajouter needsHistory comme dépendance
