@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../utils/prismaClient');
 const emailService = require('../services/emailService');
 const logger = require('../utils/logger');
 const { exec } = require('child_process');
@@ -6,7 +7,6 @@ const { promisify } = require('util');
 const dns = require('dns').promises;
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
 
 /**
  * Récupérer les logs d'emails avec pagination et filtres

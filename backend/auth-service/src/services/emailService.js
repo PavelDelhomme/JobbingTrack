@@ -4,6 +4,7 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../utils/prismaClient');
 const logger = require('../utils/logger');
 const { replaceVariables } = require('../utils/templateParser');
 
@@ -19,8 +20,6 @@ const welcomeTemplate = require('./email/templates/welcome.template');
 const resetPasswordTemplate = require('./email/templates/resetPassword.template');
 const verificationTemplate = require('./email/templates/verification.template');
 const passwordChangedTemplate = require('./email/templates/passwordChanged.template');
-
-const prisma = new PrismaClient();
 
 class EmailService {
   constructor() {

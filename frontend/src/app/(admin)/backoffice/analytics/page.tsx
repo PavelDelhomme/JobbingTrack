@@ -274,6 +274,9 @@ export default function AnalyticsPage() {
   // ✅ OPTIMISATION : Augmenter les intervalles pour réduire CPU et mémoire
   const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(30000); // 30s au lieu de 15s
   const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(45000); // 45s au lieu de 30s
+  
+  // ✅ OPTIMISATION : État pour savoir si les métriques initiales sont chargées
+  const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false);
 
   // Charger les préférences de rafraîchissement
   useEffect(() => {
@@ -377,7 +380,7 @@ export default function AnalyticsPage() {
     let mounted = true;
 
     const initializeMetrics = async () => {
-      // 1. Charger les données fraîches (uniquement les données essentielles au démarrage)
+      // 1. Charger les données fraîches depuis monitoring-c (uniquement les données essentielles au démarrage)
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
@@ -390,6 +393,7 @@ export default function AnalyticsPage() {
               // ✅ CORRECTION : Ne PAS supprimer servicesList car il est utilisé dans aggregatedStats même si needsServices est false
               // servicesList est nécessaire pour calculer servicesTotal et servicesHealthy
             }
+            setInitialMetricsLoaded(true);
             return result;
             }
             
@@ -413,7 +417,10 @@ export default function AnalyticsPage() {
       } catch (error) {
         console.error('[ANALYTICS] ⚠️ Erreur chargement métriques:', error);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setInitialMetricsLoaded(true);
+        }
       }
     };
 
@@ -459,7 +466,7 @@ export default function AnalyticsPage() {
       } finally {
         setRefreshing(false);
       }
-    }, analyticsRefreshInterval); // ⚡ Rafraîchir selon les préférences utilisateur
+    }, analyticsRefreshInterval || 45000); // ⚡ Rafraîchir selon les préférences utilisateur (défaut 45s)
 
     return () => {
       mounted = false;
@@ -1402,7 +1409,7 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
 
   return (
     <div className="space-y-6">
-      {/* Cartes de synthèse */}
+      {/* Cartes de synthèse - Utilisation de monitoring-c */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Server className="w-6 h-6" />}
@@ -1413,32 +1420,110 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
         />
         <StatCard
           icon={<Cpu className="w-6 h-6" />}
-          title="CPU Moyen"
-          value={aggregatedStats.avgCpuUsage !== null ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` : '...'}
+          title="CPU Système"
+          value={metrics?.system?.cpu?.load_1 !== undefined 
+            ? `${metrics.system.cpu.load_1.toFixed(1)}%` 
+            : aggregatedStats.avgCpuUsage !== null 
+            ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` 
+            : '...'}
+          subtitle={metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A'
+            ? `${metrics.system.cpu.cores} cores`
+            : metrics?.system?.jobbingtrack?.containers?.count !== undefined
+            ? `${metrics.system.jobbingtrack.containers.count} conteneurs`
+            : ''}
           trend={cpuTrend}
           trendType="positive-is-bad"
           color="purple"
-          loading={aggregatedStats.avgCpuUsage === null}
+          loading={aggregatedStats.avgCpuUsage === null && metrics?.system?.cpu?.load_1 === undefined}
         />
         <StatCard
           icon={<MemoryStick className="w-6 h-6" />}
-          title="Mémoire Totale"
-          value={aggregatedStats.totalMemoryMb !== null ? formatMb(aggregatedStats.totalMemoryMb) : '...'}
+          title="Mémoire Système"
+          value={metrics?.system?.memory?.usage_percent !== undefined
+            ? `${metrics.system.memory.usage_percent.toFixed(1)}%`
+            : aggregatedStats.totalMemoryMb !== null 
+            ? formatMb(aggregatedStats.totalMemoryMb) 
+            : '...'}
+          subtitle={metrics?.system?.memory?.used_mb && metrics?.system?.memory?.total_mb
+            ? `${formatMb(metrics.system.memory.used_mb)} / ${formatMb(metrics.system.memory.total_mb)}`
+            : ''}
           trend={memoryTrend}
           trendType="positive-is-bad"
           color="green"
-          loading={aggregatedStats.totalMemoryMb === null}
+          loading={aggregatedStats.totalMemoryMb === null && metrics?.system?.memory?.usage_percent === undefined}
         />
         <StatCard
           icon={<Clock className="w-6 h-6" />}
           title="Temps Réponse Moy."
-          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          value={metrics?.monitoringC?.avg_response_time_ms !== undefined
+            ? formatMs(metrics.monitoringC.avg_response_time_ms)
+            : aggregatedStats.avgResponseTime !== null 
+            ? formatMs(aggregatedStats.avgResponseTime) 
+            : '...'}
           trend={responseTimeTrend}
           trendType="positive-is-bad"
           color="orange"
-          loading={aggregatedStats.avgResponseTime === null}
+          loading={aggregatedStats.avgResponseTime === null && metrics?.monitoringC?.avg_response_time_ms === undefined}
         />
       </div>
+      
+      {/* ✅ NOUVEAU : Métriques projet depuis monitoring-c */}
+      {metrics?.system?.jobbingtrack && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
+              <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
+                ? `${metrics.system.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
+                : '...'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {metrics.system.jobbingtrack.containers?.count || 0} conteneurs JobbingTrack
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
+              <MemoryStick className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
+                ? `${metrics.system.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
+                : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
+                ? `${metrics.system.jobbingtrack.containers.memory.percent.toFixed(1)}%`
+                : '...'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
+                ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
+                : ''}
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Charge Système</span>
+              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
+                ? metrics.system.cpu.load_1.toFixed(2)
+                : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
+                ? metrics.system.load.load_1.toFixed(2)
+                : '0.00'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A' && parseInt(metrics.system.cpu.cores) > 0
+                ? `${metrics.system.cpu.cores} coeurs`
+                : 'N/A'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Graphiques principaux */}
       {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}

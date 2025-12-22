@@ -1,8 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 const { detectVariables, replaceVariables, validateTemplate } = require('../utils/templateParser');
-
-const prisma = new PrismaClient();
+const { prisma } = require('../utils/prismaClient');
 
 /**
  * Récupérer tous les templates

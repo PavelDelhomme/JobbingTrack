@@ -10,6 +10,7 @@
 #include <time.h>
 #include <sys/statvfs.h>
 #include <sys/sysinfo.h>
+#include <unistd.h>
 #include <strings.h>
 #include <string.h>
 #include "collector.h"
@@ -46,6 +47,32 @@ int collect_system_metrics(void) {
         global_metrics.cpu.load_1 = load1;
         global_metrics.cpu.load_5 = load5;
         global_metrics.cpu.load_15 = load15;
+    }
+    
+    // ✅ CORRECTION : Détecter le nombre de cores CPU
+    long cores = sysconf(_SC_NPROCESSORS_ONLN);
+    if (cores > 0) {
+        global_metrics.cpu.cores = (int)cores;
+    } else {
+        // Fallback : lire depuis /proc/cpuinfo
+        FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+        if (cpuinfo) {
+            int core_count = 0;
+            char line[256];
+            while (fgets(line, sizeof(line), cpuinfo)) {
+                if (strncmp(line, "processor", 9) == 0) {
+                    core_count++;
+                }
+            }
+            fclose(cpuinfo);
+            if (core_count > 0) {
+                global_metrics.cpu.cores = core_count;
+            }
+        }
+        // Si toujours 0, utiliser 1 par défaut
+        if (global_metrics.cpu.cores == 0) {
+            global_metrics.cpu.cores = 1;
+        }
     }
     
     // Mémoire

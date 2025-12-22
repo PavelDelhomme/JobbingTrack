@@ -8,9 +8,9 @@ const { promisify } = require('util');
 const path = require('path');
 const logger = require('../../utils/logger');
 const { PrismaClient } = require('@prisma/client');
+const { prisma } = require('../../utils/prismaClient');
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
 
 // Chemin vers le script Python
 const PYTHON_SCRIPT = path.join(__dirname, 'email_service.py');

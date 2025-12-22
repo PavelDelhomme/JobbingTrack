@@ -6,10 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <signal.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "collector.h"
 #include "storage.h"
 
@@ -19,15 +24,50 @@
 extern MetricsData global_metrics;
 static pthread_mutex_t metrics_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// ✅ CORRECTION : Handler pour capturer les signaux de crash
+void signal_handler(int sig) {
+    const char *msg = "[FATAL] Signal reçu: ";
+    write(2, msg, strlen(msg));
+    char sig_str[20];
+    snprintf(sig_str, sizeof(sig_str), "%d", sig);
+    write(2, sig_str, strlen(sig_str));
+    write(2, "\n", 1);
+    _exit(1);
+}
+
 /**
  * Génère une réponse JSON avec les métriques
  */
 void generate_json_response(char *buffer, size_t buffer_size) {
+    const char *msg = "[DEBUG] generate_json_response: début\n";
+    write(2, msg, strlen(msg));
+    
     // Initialiser le buffer
     memset(buffer, 0, buffer_size);
     
+    const char *msg2 = "[DEBUG] generate_json_response: buffer initialisé\n";
+    write(2, msg2, strlen(msg2));
+    
     // Format adapté pour le frontend (formatMetricsFromMonitoringC)
     // ✅ Ne pas inclure les en-têtes HTTP ici (seront ajoutés dans handle_request)
+    const char *msg3 = "[DEBUG] generate_json_response: snprintf début\n";
+    write(2, msg3, strlen(msg3));
+    
+    // ✅ NOUVEAU : Calculer les métriques projet (conteneurs JobbingTrack uniquement)
+    unsigned long project_memory_mb = 0;
+    double project_cpu_total_percent = 0.0;
+    int project_container_count = 0;
+    
+    for (int i = 0; i < 100; i++) {
+        if (global_metrics.containers[i].name[0] != '\0' && 
+            strstr(global_metrics.containers[i].name, "jobbingtrack-") != NULL) {
+            project_memory_mb += global_metrics.containers[i].memory_mb;
+            project_cpu_total_percent += global_metrics.containers[i].cpu_percent;
+            project_container_count++;
+        }
+    }
+    double project_cpu_avg = (project_container_count > 0) ? (project_cpu_total_percent / project_container_count) : 0.0;
+    
     int pos = snprintf(buffer, buffer_size,
         "{\n"
         "  \"timestamp\": %ld,\n"
@@ -61,6 +101,8 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "    \"total_tx_mb\": %.2f,\n"
         "    \"total_mb\": %.2f\n"
         "  },\n"
+        "  \"project_memory_mb\": %lu,\n"
+        "  \"project_cpu_avg\": %.2f,\n"
         "  \"containers\": [\n",
         (long)global_metrics.timestamp,
         global_metrics.cpu.load_1,
@@ -84,8 +126,17 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.load_score,
         global_metrics.total_network_rx_bytes / (1024.0 * 1024.0),
         global_metrics.total_network_tx_bytes / (1024.0 * 1024.0),
-        (global_metrics.total_network_rx_bytes + global_metrics.total_network_tx_bytes) / (1024.0 * 1024.0)
+        (global_metrics.total_network_rx_bytes + global_metrics.total_network_tx_bytes) / (1024.0 * 1024.0),
+        project_memory_mb,
+        project_cpu_avg
     );
+    
+    const char *msg4 = "[DEBUG] generate_json_response: snprintf terminé, pos=";
+    write(2, msg4, strlen(msg4));
+    char pos_str[20];
+    snprintf(pos_str, sizeof(pos_str), "%d", pos);
+    write(2, pos_str, strlen(pos_str));
+    write(2, "\n", 1);
     
     // Ajouter les conteneurs avec métriques complètes
     int container_added = 0;
@@ -151,6 +202,9 @@ void generate_json_response(char *buffer, size_t buffer_size) {
     }
     
     // Fermer le JSON (vérifier que pos n'a pas dépassé buffer_size)
+    const char *msg5 = "[DEBUG] generate_json_response: fermeture JSON\n";
+    write(2, msg5, strlen(msg5));
+    
     if ((size_t)pos < buffer_size - 10) {
         snprintf(buffer + pos, buffer_size - pos, "\n  ]\n}");
     } else {
@@ -160,26 +214,94 @@ void generate_json_response(char *buffer, size_t buffer_size) {
             strncat(buffer, "\n  ]\n}", buffer_size - strlen(buffer) - 1);
         }
     }
+    
+    const char *msg6 = "[DEBUG] generate_json_response: fin\n";
+    write(2, msg6, strlen(msg6));
 }
 
 /**
  * Traite une requête HTTP
  */
 void handle_request(int client_fd) {
-    char buffer[BUFFER_SIZE];
+    // ✅ CORRECTION : Installer le signal handler pour capturer les crashes
+    signal(SIGSEGV, signal_handler);
+    signal(SIGBUS, signal_handler);
+    signal(SIGABRT, signal_handler);
     
-    // Lire la requête (simplifié)
-    ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-    if (bytes_read <= 0) {
-        // Connexion fermée ou erreur de lecture
+    // ✅ CORRECTION : Utiliser write() directement pour éviter les problèmes de buffering
+    const char *msg1 = "[DEBUG] handle_request appelé pour fd=";
+    write(2, msg1, strlen(msg1));
+    char fd_str[20];
+    snprintf(fd_str, sizeof(fd_str), "%d", client_fd);
+    write(2, fd_str, strlen(fd_str));
+    write(2, "\n", 1);
+    
+    // ✅ CORRECTION : Vérifier que client_fd est valide avant de continuer
+    if (client_fd < 0) {
+        const char *err = "[ERROR] handle_request appelé avec fd invalide\n";
+        write(2, err, strlen(err));
+        return;
+    }
+    
+    // ✅ CORRECTION : Allouer le buffer sur la heap pour éviter les problèmes de stack
+    char *buffer = (char *)malloc(BUFFER_SIZE);
+    if (!buffer) {
+        const char *err = "[ERROR] Échec allocation mémoire pour buffer\n";
+        write(2, err, strlen(err));
+        close(client_fd);
+        return;
+    }
+    memset(buffer, 0, BUFFER_SIZE);
+    
+    // ✅ CORRECTION : Utiliser recv() avec MSG_DONTWAIT pour éviter de bloquer
+    // et ajouter un timeout avec select() pour s'assurer que les données arrivent
+    fd_set read_fds;
+    struct timeval timeout;
+    FD_ZERO(&read_fds);
+    FD_SET(client_fd, &read_fds);
+    timeout.tv_sec = 2;  // 2 secondes de timeout
+    timeout.tv_usec = 0;
+    
+    int select_result = select(client_fd + 1, &read_fds, NULL, NULL, &timeout);
+    if (select_result <= 0) {
+        fprintf(stderr, "[DEBUG] select() timeout ou erreur: %d\n", select_result);
+        fflush(stderr);
         close(client_fd);
         return;
     }
     
+    fprintf(stderr, "[DEBUG] Données disponibles, lecture...\n");
+    fflush(stderr);
+    
+    // Lire la requête avec recv() et MSG_DONTWAIT pour éviter de bloquer
+    ssize_t bytes_read = recv(client_fd, buffer, BUFFER_SIZE - 1, MSG_DONTWAIT);
+    if (bytes_read <= 0) {
+        fprintf(stderr, "[DEBUG] Erreur recv() ou connexion fermée: %zd (errno=%d)\n", bytes_read, errno);
+        fflush(stderr);
+        // Si EAGAIN/EWOULDBLOCK, réessayer avec read() normal
+        if (bytes_read < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            bytes_read = read(client_fd, buffer, BUFFER_SIZE - 1);
+            if (bytes_read <= 0) {
+                fprintf(stderr, "[DEBUG] read() aussi échoué: %zd\n", bytes_read);
+                fflush(stderr);
+                free(buffer);
+                close(client_fd);
+                return;
+            }
+        } else {
+            free(buffer);
+            close(client_fd);
+            return;
+        }
+    }
+    
     buffer[bytes_read] = '\0';
+    fprintf(stderr, "[DEBUG] %zd bytes lus: %.100s\n", bytes_read, buffer);
+    fflush(stderr);
     
     // Debug: afficher la première ligne de la requête
-    // printf("[DEBUG] Requête reçue: %.100s\n", buffer);
+    fprintf(stderr, "[DEBUG] Requête reçue: %.100s\n", buffer);
+    fflush(stderr);
     
     // Vérifier si c'est une requête GET /api/v1/metrics ou GET /
     if (strstr(buffer, "GET /api/v1/metrics") == NULL && strstr(buffer, "GET / HTTP") == NULL) {
@@ -191,21 +313,41 @@ void handle_request(int client_fd) {
             "\r\n"
             "{\"error\": \"Endpoint not found\"}";
         write(client_fd, not_found, strlen(not_found));
+        free(buffer);
+        close(client_fd);
+        return; // json_buffer n'est pas encore alloué ici
+    }
+    
+    // ✅ CORRECTION : Allouer json_buffer sur la heap pour éviter stack overflow
+    const char *msg_json = "[DEBUG] Génération JSON...\n";
+    write(2, msg_json, strlen(msg_json));
+    
+    char *json_buffer = (char *)malloc(BUFFER_SIZE);
+    if (!json_buffer) {
+        const char *err = "[ERROR] Échec allocation mémoire pour json_buffer\n";
+        write(2, err, strlen(err));
+        free(buffer);
         close(client_fd);
         return;
     }
+    memset(json_buffer, 0, BUFFER_SIZE);
     
-    // Buffer pour le JSON
-    char json_buffer[BUFFER_SIZE];
-    memset(json_buffer, 0, sizeof(json_buffer));
-    
-    // Générer la réponse JSON (protéger l'accès à global_metrics)
+    const char *msg_lock = "[DEBUG] Verrouillage mutex...\n";
+    write(2, msg_lock, strlen(msg_lock));
     pthread_mutex_lock(&metrics_mutex);
-    generate_json_response(json_buffer, sizeof(json_buffer));
+    
+    const char *msg_gen = "[DEBUG] Appel generate_json_response...\n";
+    write(2, msg_gen, strlen(msg_gen));
+    generate_json_response(json_buffer, BUFFER_SIZE);
+    
+    const char *msg_unlock = "[DEBUG] Déverrouillage mutex...\n";
+    write(2, msg_unlock, strlen(msg_unlock));
     pthread_mutex_unlock(&metrics_mutex);
     
     // Vérifier que la réponse a été générée correctement
     size_t json_len = strlen(json_buffer);
+    fprintf(stderr, "[DEBUG] JSON généré: %zu bytes\n", json_len);
+    fflush(stderr);
     
     // Si le JSON est vide, envoyer une réponse minimale
     if (json_len == 0) {
@@ -226,11 +368,11 @@ void handle_request(int client_fd) {
             "  \"network\": {\"total_rx_mb\": 0, \"total_tx_mb\": 0, \"total_mb\": 0},\n"
             "  \"containers\": []\n"
             "}",
-            sizeof(json_buffer) - 1);
+            BUFFER_SIZE - 1);
         json_len = strlen(json_buffer);
     }
     
-    if (json_len >= sizeof(json_buffer) - 200) {
+    if (json_len >= BUFFER_SIZE - 200) {
         fprintf(stderr, "[ERROR] JSON trop grand: %zu bytes\n", json_len);
         // Réponse vide ou buffer dépassé, envoyer une erreur
         const char *error_response = 
@@ -244,14 +386,35 @@ void handle_request(int client_fd) {
         if (written < 0) {
             perror("write error");
         }
+        free(buffer);
+        free(json_buffer);
         shutdown(client_fd, SHUT_WR);
         close(client_fd);
         return;
     }
     
-    // Construire la réponse HTTP complète avec en-têtes
-    char http_response[BUFFER_SIZE + 300];
-    int http_len = snprintf(http_response, sizeof(http_response),
+    // ✅ CORRECTION : Configurer SO_LINGER AVANT d'envoyer les données
+    // Cela garantit que les données sont envoyées avant de fermer la connexion
+    struct linger linger_opt;
+    linger_opt.l_onoff = 1;
+    linger_opt.l_linger = 5; // Attendre 5 secondes pour que les données soient envoyées
+    setsockopt(client_fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt));
+    
+    // Activer TCP_NODELAY pour envoyer les données immédiatement (pas de Nagle)
+    int flag = 1;
+    setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+    
+    // ✅ CORRECTION : Allouer http_response sur la heap aussi pour éviter stack overflow
+    char *http_response = (char *)malloc(BUFFER_SIZE + 300);
+    if (!http_response) {
+        const char *err = "[ERROR] Échec allocation mémoire pour http_response\n";
+        write(2, err, strlen(err));
+        free(buffer);
+        free(json_buffer);
+        close(client_fd);
+        return;
+    }
+    int http_len = snprintf(http_response, BUFFER_SIZE + 300,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"
         "Content-Length: %zu\r\n"
@@ -261,7 +424,7 @@ void handle_request(int client_fd) {
         "%s",
         json_len, json_buffer);
     
-    if (http_len < 0 || (size_t)http_len >= sizeof(http_response)) {
+    if (http_len < 0 || (size_t)http_len >= (BUFFER_SIZE + 300)) {
         // Erreur de formatage, envoyer erreur 500
         const char *error_response = 
             "HTTP/1.1 500 Internal Server Error\r\n"
@@ -270,8 +433,10 @@ void handle_request(int client_fd) {
             "Connection: close\r\n"
             "\r\n"
             "{\"error\": \"Response too large\"}";
+        free(buffer);
+        free(json_buffer);
+        free(http_response);
         write(client_fd, error_response, strlen(error_response));
-        shutdown(client_fd, SHUT_WR);
         close(client_fd);
         return;
     }
@@ -280,17 +445,18 @@ void handle_request(int client_fd) {
     ssize_t total_written = 0;
     size_t http_response_len = (size_t)http_len;
     
-    // Debug: afficher la taille de la réponse
-    // printf("[DEBUG] Envoi réponse HTTP: %zu bytes\n", http_response_len);
+    fprintf(stderr, "[DEBUG] Envoi réponse HTTP: %zu bytes\n", http_response_len);
+    fflush(stderr);
     
+    // Utiliser send() au lieu de write() pour plus de contrôle
     while (total_written < (ssize_t)http_response_len) {
-        ssize_t written = write(client_fd, http_response + total_written, http_response_len - total_written);
+        ssize_t written = send(client_fd, http_response + total_written, http_response_len - total_written, MSG_NOSIGNAL);
         if (written < 0) {
-            perror("[ERROR] write error");
+            perror("[ERROR] send error");
             break;
         }
         if (written == 0) {
-            fprintf(stderr, "[WARN] write returned 0\n");
+            fprintf(stderr, "[WARN] send returned 0\n");
             break;
         }
         total_written += written;
@@ -299,11 +465,23 @@ void handle_request(int client_fd) {
     // Debug: vérifier que tout a été envoyé
     if (total_written < (ssize_t)http_response_len) {
         fprintf(stderr, "[WARN] Réponse incomplète: %zd/%zu bytes\n", total_written, http_response_len);
+    } else {
+        fprintf(stderr, "[DEBUG] Réponse complète envoyée: %zd bytes\n", total_written);
     }
+    fflush(stderr);
     
-    // Fermer proprement la connexion
-    shutdown(client_fd, SHUT_WR);
+    // Fermer la connexion - SO_LINGER s'assurera que les données sont envoyées
+    // Ne pas utiliser shutdown() car SO_LINGER gère déjà la fermeture propre
+    const char *msg_close = "[DEBUG] Fermeture connexion...\n";
+    write(2, msg_close, strlen(msg_close));
     close(client_fd);
+    const char *msg_closed = "[DEBUG] Connexion fermée\n";
+    write(2, msg_closed, strlen(msg_closed));
+    
+    // ✅ CORRECTION : Libérer tous les buffers alloués sur la heap
+    free(buffer);
+    free(json_buffer);
+    free(http_response);
 }
 
 /**
@@ -386,6 +564,8 @@ void* http_server_thread(void* arg __attribute__((unused))) {
     
     // Accepter les connexions (boucle infinie)
     while (1) {
+        fprintf(stderr, "[DEBUG] En attente de connexion...\n");
+        fflush(stderr);
         client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
         if (client_fd < 0) {
             perror("accept");
@@ -394,8 +574,18 @@ void* http_server_thread(void* arg __attribute__((unused))) {
             continue;
         }
         
+        fprintf(stderr, "[DEBUG] Connexion acceptée: fd=%d\n", client_fd);
+        fflush(stderr);
+        
+        // ✅ CORRECTION : Vérifier que handle_request existe et est appelé
+        fprintf(stderr, "[DEBUG] Appel de handle_request(%d)...\n", client_fd);
+        fflush(stderr);
+        
         // Traiter la requête (ne pas bloquer la boucle principale)
         handle_request(client_fd);
+        
+        fprintf(stderr, "[DEBUG] handle_request(%d) terminé\n", client_fd);
+        fflush(stderr);
     }
     
     // Ne devrait jamais arriver ici, mais fermer proprement si c'est le cas
