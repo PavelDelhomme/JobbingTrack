@@ -323,7 +323,7 @@ test-metrics: ## Test complet du système de métriques (monitoring-c + persista
 	else \
 		echo "❌ Script test-metrics-persistence.sh non trouvé"; \
 		echo "ℹ️  Vérification manuelle de la persistance:"; \
-		echo "   PGPASSWORD=jobbingtrack123 psql -h localhost -p 5000 -U jobbingtrack -d jobbingtrack -c \"SELECT COUNT(*) FROM system_metrics WHERE timestamp >= NOW() - INTERVAL '1 hour';\" || echo "⚠️  PostgreSQL non accessible depuis le host"; \
+		echo '   PGPASSWORD=jobbingtrack123 psql -h localhost -p 5000 -U jobbingtrack -d jobbingtrack -c "SELECT COUNT(*) FROM system_metrics WHERE timestamp >= (EXTRACT(EPOCH FROM NOW())::bigint - 3600);" || echo "⚠️  PostgreSQL non accessible depuis le host"'; \
 	fi
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
