@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -std=c11 -D_GNU_SOURCE -pthread
+CFLAGS = -Wall -Wextra -O2 -std=c11 -D_GNU_SOURCE -pthread -I/usr/include/postgresql
 LDFLAGS = -lpq -lcurl -lm -pthread
 
 SRCDIR = src

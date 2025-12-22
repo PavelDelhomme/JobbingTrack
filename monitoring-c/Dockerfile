@@ -5,7 +5,7 @@ RUN apk add --no-cache \
     gcc \
     g++ \
     make \
-    libpq-dev \
+    postgresql-dev \
     curl-dev \
     linux-headers \
     musl-dev
