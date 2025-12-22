@@ -299,6 +299,10 @@ int save_metrics_to_db(const MetricsData *metrics) {
         PQclear(res);
     }
     
+    fprintf(stderr, "[STORAGE] ✅ Métriques sauvegardées dans PostgreSQL (system_id=%lld, %d conteneurs)\n", 
+            system_id, metrics->container_count);
+    fflush(stderr);
+    
     return 0;
 }
 

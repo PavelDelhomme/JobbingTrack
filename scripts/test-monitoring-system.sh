@@ -147,11 +147,22 @@ test_metrics_persistence() {
     
     # Vérifier les logs de monitoring-c pour voir si save_metrics_to_db est appelé
     echo "Vérification des logs de monitoring-c (sauvegarde DB):"
-    docker logs --tail 50 jobbingtrack-monitoring-c 2>&1 | grep -i "\[METRICS\]" | tail -5 || echo "  (pas de logs de sauvegarde trouvés)"
-    
-    echo ""
-    echo -e "${YELLOW}ℹ️  Note: La persistance en base de données PostgreSQL n'est pas encore implémentée (voir storage.c)${NC}"
-    echo "   Actuellement, save_metrics_to_db() affiche juste les métriques dans les logs."
+    STORAGE_LOGS=$(docker logs --tail 100 jobbingtrack-monitoring-c 2>&1 | grep -i "\[STORAGE\]" | tail -10)
+    if [ -n "$STORAGE_LOGS" ]; then
+        echo "$STORAGE_LOGS"
+        echo ""
+        if echo "$STORAGE_LOGS" | grep -q "✅ Métriques sauvegardées"; then
+            echo -e "${GREEN}✅ Persistance PostgreSQL fonctionne (métriques sauvegardées détectées)${NC}"
+        elif echo "$STORAGE_LOGS" | grep -q "✅ Connecté à PostgreSQL"; then
+            echo -e "${YELLOW}⚠️  Connexion PostgreSQL établie mais pas de sauvegarde récente détectée${NC}"
+            echo "   (peut être normal si monitoring-c vient de démarrer)"
+        else
+            echo -e "${YELLOW}ℹ️  Connexion PostgreSQL en cours...${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Aucun log STORAGE trouvé${NC}"
+        echo "   Vérifiez manuellement: docker logs jobbingtrack-monitoring-c | grep STORAGE"
+    fi
     echo ""
 }
 
