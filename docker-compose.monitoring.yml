@@ -21,10 +21,18 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL:-15}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - jobbingtrack-network
     healthcheck:
