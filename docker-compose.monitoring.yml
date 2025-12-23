@@ -4,9 +4,8 @@
 networks:
   jobbingtrack-network:
     external: true
-    name: backend_jobbingtrack-network
-    # Fallback si le réseau backend_jobbingtrack-network n'existe pas
-    # Utiliser jobbingtrack_jobbingtrack-network à la place
+    name: jobbingtrack_jobbingtrack-network
+    # Utiliser le même réseau que docker-compose.yml principal
 
 services:
   # Nouveau système de monitoring en C (ultra-léger)

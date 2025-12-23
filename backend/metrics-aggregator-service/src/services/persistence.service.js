@@ -467,20 +467,118 @@ class PersistenceService {
     }
 
     try {
-      return await prisma.systemMetricsSnapshot.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-        skip: offset,
+      // ✅ CORRECTION : Utiliser $queryRaw pour accéder directement à la table system_metrics
+      // créée par monitoring-c (qui contient project_cpu_avg et project_memory_mb)
+      // au lieu de SystemMetricsSnapshot (Prisma) qui n'a pas ces champs
+      let query = `
+        SELECT 
+          timestamp,
+          cpu_load_1,
+          cpu_load_5,
+          cpu_load_15,
+          cpu_cores,
+          cpu_usage_percent,
+          memory_total_mb,
+          memory_used_mb,
+          memory_free_mb,
+          memory_usage_percent,
+          disk_total_gb,
+          disk_used_gb,
+          disk_free_gb,
+          disk_usage_percent,
+          container_count,
+          avg_response_time_ms,
+          avg_cpu_percent,
+          avg_memory_percent,
+          availability_percent,
+          load_score,
+          total_network_rx_bytes,
+          total_network_tx_bytes,
+          project_cpu_avg,
+          project_memory_mb
+        FROM system_metrics
+      `;
+      
+      // ✅ CORRECTION : Construire la requête avec des valeurs directement (sécurisé car les valeurs sont contrôlées)
+      const conditions = [];
+      if (where.timestamp) {
+        if (where.timestamp.gte) {
+          const gteDate = where.timestamp.gte instanceof Date ? where.timestamp.gte.toISOString() : where.timestamp.gte;
+          conditions.push(`timestamp >= '${gteDate}'`);
+        }
+        if (where.timestamp.lte) {
+          const lteDate = where.timestamp.lte instanceof Date ? where.timestamp.lte.toISOString() : where.timestamp.lte;
+          conditions.push(`timestamp <= '${lteDate}'`);
+        }
+      }
+      
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+      
+      query += ` ORDER BY timestamp DESC LIMIT ${limit} OFFSET ${offset}`;
+      
+      console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
+      console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
+      
+      const rawResults = await prisma.$queryRawUnsafe(query);
+      
+      console.log(`[PERSISTENCE] ✅ ${rawResults.length} résultats récupérés depuis system_metrics`);
+      if (rawResults.length > 0) {
+        // Convertir BigInt en Number pour les logs
+        const firstRowForLog = { ...rawResults[0] };
+        Object.keys(firstRowForLog).forEach(key => {
+          if (typeof firstRowForLog[key] === 'bigint') {
+            firstRowForLog[key] = Number(firstRowForLog[key]);
+          }
+        });
+        console.log('[PERSISTENCE] 🔍 Premier résultat:', JSON.stringify(firstRowForLog, null, 2));
+      }
+      
+      // Convertir les résultats en format compatible avec SystemMetricsSnapshot
+      return rawResults.map((row) => {
+        // Convertir timestamp en Date si c'est une string
+        const timestamp = row.timestamp instanceof Date ? row.timestamp : new Date(row.timestamp);
+        return {
+        id: `system_${timestamp.getTime()}`,
+        timestamp: timestamp,
+        cpuUsagePercent: row.cpu_usage_percent || 0,
+        cpuCores: row.cpu_cores || 0,
+        cpuLoadAverage1m: row.cpu_load_1,
+        cpuLoadAverage5m: row.cpu_load_5,
+        cpuLoadAverage15m: row.cpu_load_15,
+        memoryUsagePercent: row.memory_usage_percent || 0,
+        memoryUsedBytes: row.memory_used_mb ? Number(row.memory_used_mb) * 1024 * 1024 : 0,
+        memoryTotalBytes: row.memory_total_mb ? Number(row.memory_total_mb) * 1024 * 1024 : 0,
+        memoryFreeBytes: row.memory_free_mb ? Number(row.memory_free_mb) * 1024 * 1024 : 0,
+        diskUsagePercent: row.disk_usage_percent,
+        diskUsedBytes: row.disk_used_gb ? Math.round(Number(row.disk_used_gb) * 1024 * 1024 * 1024) : null,
+        diskTotalBytes: row.disk_total_gb ? Math.round(Number(row.disk_total_gb) * 1024 * 1024 * 1024) : null,
+        diskFreeBytes: row.disk_free_gb ? Math.round(Number(row.disk_free_gb) * 1024 * 1024 * 1024) : null,
+        networkRxBytes: row.total_network_rx_bytes ? Number(row.total_network_rx_bytes) : null,
+        networkTxBytes: row.total_network_tx_bytes ? Number(row.total_network_tx_bytes) : null,
+        availabilityPercent: row.availability_percent,
+        loadScore: row.load_score,
+        errorCount: null,
+        errorRate: null,
+        responseTimeAvg: row.avg_response_time_ms,
+        // ✅ NOUVEAU : Inclure project_cpu_avg et project_memory_mb depuis system_metrics
+        project_cpu_avg: row.project_cpu_avg ? Number(row.project_cpu_avg) : null,
+        project_memory_mb: row.project_memory_mb ? Number(row.project_memory_mb) : null,
+        createdAt: timestamp
+      };
       });
     } catch (error) {
       // Gérer les erreurs P2021 (table non trouvée) gracieusement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('table')) {
+        console.error('[PERSISTENCE] ❌ Erreur table system_metrics:', error.message);
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[PERSISTENCE] ⚠️ Table SystemMetricsSnapshot non trouvée, retour de données vides (mode développement)');
+          console.warn('[PERSISTENCE] ⚠️ Table system_metrics non trouvée, retour de données vides (mode développement)');
+          console.warn('[PERSISTENCE] 💡 Vérifiez que monitoring-c a créé la table system_metrics dans PostgreSQL');
           return [];
         }
       }
+      console.error('[PERSISTENCE] ❌ Erreur récupération métriques système:', error);
       throw error;
     }
   }
@@ -849,4 +947,5 @@ class PersistenceService {
 }
 
 module.exports = new PersistenceService();
+
 

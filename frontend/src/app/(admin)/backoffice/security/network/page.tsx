@@ -23,29 +23,59 @@ export default function NetworkStatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ OPTIMISATION : useCallback avec cache
   const loadStats = useCallback(async () => {
     try {
-      setLoading(true);
+      // ✅ OPTIMISATION : Vérifier le cache d'abord
+      const cacheKey = 'network_stats_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      const cacheTime = cached ? JSON.parse(cached).timestamp : 0
+      const now = Date.now()
+      
+      // Utiliser le cache si moins de 10 secondes
+      if (cached && (now - cacheTime) < 10000 && !loading) {
+        const cachedData = JSON.parse(cached).data
+        setStats(cachedData)
+        // Rafraîchir en arrière-plan
+      } else {
+        setLoading(true);
+      }
       setError(null);
+      
       const response = await axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/network/stats`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
       });
       if (response.data.success) {
-        setStats(response.data.data.stats);
+        const statsData = response.data.data.stats
+        setStats(statsData)
+        // ✅ OPTIMISATION : Mettre en cache
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          data: statsData,
+          timestamp: now
+        }))
       } else {
         setError('Erreur lors du chargement des statistiques');
       }
     } catch (err: any) {
       console.error('Erreur chargement stats réseau:', err);
+      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
+      const cacheKey = 'network_stats_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const cachedData = JSON.parse(cached).data
+        setStats(cachedData)
+      }
       setError(err.response?.data?.error || 'Erreur lors du chargement des statistiques');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
     loadStats();
-    const interval = setInterval(loadStats, 30000); // Rafraîchir toutes les 30 secondes
+    // ✅ OPTIMISATION : Rafraîchir toutes les 45 secondes au lieu de 30
+    const interval = setInterval(loadStats, 45000);
     return () => clearInterval(interval);
   }, [loadStats]);
 

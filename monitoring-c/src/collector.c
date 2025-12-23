@@ -69,7 +69,7 @@ int collect_system_metrics(void) {
                 global_metrics.cpu.cores = core_count;
             }
         }
-        // Si toujours 0, utiliser 1 par défaut
+        // Si toujours 0, utiliser 1 par défaut // TODO: Ajotuer qu'il le fasse par défaut oup passe en exit error
         if (global_metrics.cpu.cores == 0) {
             global_metrics.cpu.cores = 1;
         }
@@ -411,25 +411,67 @@ int collect_container_metrics(void) {
                 }
             }
             
-            // Mesurer le temps de réponse avec curl
+            // ✅ CORRECTION : Mesurer le temps de réponse avec curl (amélioré)
             char curl_cmd[1024];
             snprintf(curl_cmd, sizeof(curl_cmd),
-                "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 2 --connect-timeout 1 %s 2>/dev/null",
+                "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 3 --connect-timeout 2 %s 2>&1",
                 health_url);
             
             FILE *curl_fp = popen(curl_cmd, "r");
             if (curl_fp) {
-                char response[64];
+                char response[128];
                 if (fgets(response, sizeof(response), curl_fp)) {
+                    // ✅ CORRECTION : Nettoyer la réponse (supprimer les retours à la ligne)
+                    char *newline = strchr(response, '\n');
+                    if (newline) *newline = '\0';
+                    
                     double time_total = 0.0;
                     int http_code = 0;
-                    if (sscanf(response, "%lf,%d", &time_total, &http_code) == 2) {
+                    // ✅ CORRECTION : Parser la réponse (format: "time_total,http_code" ou erreur)
+                    if (sscanf(response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
                         global_metrics.containers[i].response_time_ms = time_total * 1000.0;
                         global_metrics.containers[i].http_status = http_code;
+                        printf("[DEBUG] Health check %s: %.2f ms (HTTP %d)\n", 
+                               global_metrics.containers[i].name, 
+                               global_metrics.containers[i].response_time_ms, 
+                               http_code);
                     } else {
-                        // Si pas de réponse, mettre à 0
-                        global_metrics.containers[i].response_time_ms = 0.0;
-                        global_metrics.containers[i].http_status = 0;
+                        // ✅ CORRECTION : Si curl a échoué, essayer avec le nom du service directement
+                        // (dans Docker network, le nom du service fonctionne)
+                        char fallback_url[512];
+                        snprintf(fallback_url, sizeof(fallback_url), "http://%s/health", global_metrics.containers[i].name);
+                        char fallback_cmd[1024];
+                        snprintf(fallback_cmd, sizeof(fallback_cmd),
+                            "curl -s -o /dev/null -w '%%{time_total},%%{http_code}' --max-time 3 --connect-timeout 2 %s 2>&1",
+                            fallback_url);
+                        
+                        FILE *fallback_fp = popen(fallback_cmd, "r");
+                        if (fallback_fp) {
+                            char fallback_response[128];
+                            if (fgets(fallback_response, sizeof(fallback_response), fallback_fp)) {
+                                char *newline2 = strchr(fallback_response, '\n');
+                                if (newline2) *newline2 = '\0';
+                                
+                                if (sscanf(fallback_response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
+                                    global_metrics.containers[i].response_time_ms = time_total * 1000.0;
+                                    global_metrics.containers[i].http_status = http_code;
+                                    printf("[DEBUG] Health check fallback %s: %.2f ms (HTTP %d)\n", 
+                                           global_metrics.containers[i].name, 
+                                           global_metrics.containers[i].response_time_ms, 
+                                           http_code);
+                                } else {
+                                    global_metrics.containers[i].response_time_ms = 0.0;
+                                    global_metrics.containers[i].http_status = 0;
+                                }
+                            } else {
+                                global_metrics.containers[i].response_time_ms = 0.0;
+                                global_metrics.containers[i].http_status = 0;
+                            }
+                            pclose(fallback_fp);
+                        } else {
+                            global_metrics.containers[i].response_time_ms = 0.0;
+                            global_metrics.containers[i].http_status = 0;
+                        }
                     }
                 } else {
                     global_metrics.containers[i].response_time_ms = 0.0;
@@ -505,6 +547,17 @@ int main(int argc, char *argv[]) {
     }
     
     printf("🚀 Collecteur de métriques démarré (intervalle: %ds)\n", interval);
+    
+    // ✅ NOUVEAU : Initialiser le stockage PostgreSQL au démarrage
+    printf("💾 Initialisation du stockage PostgreSQL...\n");
+    fflush(stdout);
+    if (init_storage() != 0) {
+        fprintf(stderr, "⚠️  Échec initialisation PostgreSQL (les métriques seront toujours disponibles via l'API HTTP)\n");
+        fflush(stderr);
+    } else {
+        printf("✅ Stockage PostgreSQL initialisé\n");
+        fflush(stdout);
+    }
     
     // Démarrer le serveur HTTP AVANT de commencer la collecte
     printf("🌐 Démarrage du serveur HTTP...\n");

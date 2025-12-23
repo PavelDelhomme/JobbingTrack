@@ -18,7 +18,7 @@ static int storage_initialized = 0;
 // Variables d'environnement pour la connexion
 static const char *get_db_host(void) {
     const char *host = getenv("POSTGRES_HOST");
-    return host ? host : "postgres";  // Default: nom du service Docker
+    return host ? host : "postgres";  // Default: nom du service Docker (pas le conteneur)
 }
 
 static const char *get_db_port(void) {

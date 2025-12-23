@@ -23,7 +23,7 @@ class CentralMetricsService {
   // Le cache est maintenant limité en taille et durée
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0
-  private cacheDuration: number = 8000 // 8 secondes (compromis performance/réactivité)
+  private cacheDuration: number = 5000 // 5 secondes (métriques plus réactives)
   private maxCacheSize: number = 50 // Limite en MB (environ)
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
@@ -668,20 +668,40 @@ class CentralMetricsService {
       let healthStatus: ServiceMetrics['healthStatus'] = 'unknown'
       let healthError: string | undefined = undefined
 
+      // ✅ CORRECTION : Déterminer le statut correctement
       if (httpStatus === 200) {
         status = 'running'
         healthStatus = 'online'
-      } else if (httpStatus && httpStatus >= 400) {
+      } else if (httpStatus && httpStatus >= 400 && httpStatus < 500) {
         status = 'degraded'
         healthStatus = 'degraded'
         healthError = `HTTP Error ${httpStatus}`
-      } else if (httpStatus === 0 && responseTimeMs === null) {
+      } else if (httpStatus && httpStatus >= 500) {
+        status = 'degraded'
+        healthStatus = 'degraded'
+        healthError = `HTTP Error ${httpStatus}`
+      } else if (httpStatus === 0 && (responseTimeMs === null || responseTimeMs === 0)) {
+        // ✅ CORRECTION : Si http_status est 0 ET pas de temps de réponse, le service est offline
+        // Mais si on a un temps de réponse même avec http_status 0, c'est peut-être un problème de parsing
         status = 'offline'
         healthStatus = 'offline'
         healthError = 'Service unreachable'
+      } else if (httpStatus > 0 && httpStatus !== 200) {
+        // ✅ CORRECTION : Si on a un code HTTP mais pas 200, c'est dégradé
+        status = 'degraded'
+        healthStatus = 'degraded'
+        healthError = `HTTP ${httpStatus}`
       } else {
-        status = 'starting'
-        healthStatus = 'starting'
+        // ✅ CORRECTION : Si on a un temps de réponse mais pas de code HTTP valide, considérer comme running
+        // (peut arriver si le parsing curl a échoué mais le service répond)
+        if (responseTimeMs !== null && responseTimeMs > 0) {
+          status = 'running'
+          healthStatus = 'online'
+        } else {
+          status = 'offline'
+          healthStatus = 'offline'
+          healthError = 'No response'
+        }
       }
 
       return {
@@ -772,15 +792,48 @@ class CentralMetricsService {
     
     // ✅ CORRECTION : Calculer les métriques agrégées des conteneurs JobbingTrack
     const jobbingtrackContainers = containers.filter((c: any) => c.name?.startsWith('jobbingtrack-'))
+    
+    // ✅ CORRECTION : Utiliser project_memory_mb et project_cpu_avg directement depuis monitoring-c
+    // Ces valeurs sont déjà calculées correctement par monitoring-c
+    const projectMemoryMb = typeof data.project_memory_mb === 'number' && data.project_memory_mb > 0
+      ? data.project_memory_mb
+      : jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_mb || 0), 0)
+    
+    // ✅ CORRECTION : Utiliser project_cpu_avg directement depuis monitoring-c
+    // Ne pas vérifier si > 0 car 0 peut être une valeur valide (système inactif)
+    let projectCpuAvg = typeof data.project_cpu_avg === 'number' && !isNaN(data.project_cpu_avg)
+      ? data.project_cpu_avg
+      : null
+    
+    // Si project_cpu_avg n'est pas disponible, calculer depuis les conteneurs
+    if (projectCpuAvg === null && jobbingtrackContainers.length > 0) {
+      const totalCpu = jobbingtrackContainers.reduce((sum: number, c: any) => {
+        const cpu = typeof c.cpu_percent === 'number' && !isNaN(c.cpu_percent) ? c.cpu_percent : 0
+        return sum + cpu
+      }, 0)
+      projectCpuAvg = totalCpu / jobbingtrackContainers.length
+      console.log(`[CENTRAL METRICS] ⚠️ project_cpu_avg non disponible, calculé depuis ${jobbingtrackContainers.length} conteneurs: ${projectCpuAvg.toFixed(2)}%`)
+    } else if (projectCpuAvg === null) {
+      projectCpuAvg = avgCpuPercent || 0
+      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, utilisation avgCpuPercent: ${projectCpuAvg}%`)
+    } else {
+      console.log(`[CENTRAL METRICS] ✅ project_cpu_avg depuis monitoring-c: ${projectCpuAvg.toFixed(2)}% (${jobbingtrackContainers.length} conteneurs)`)
+    }
+    
+    // ✅ CORRECTION : Calculer avgCpuPercentContainers (moyenne CPU des conteneurs JobbingTrack)
+    const avgCpuPercentContainers = jobbingtrackContainers.length > 0
+      ? jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.cpu_percent || 0), 0) / jobbingtrackContainers.length
+      : (projectCpuAvg || 0)
+    
+    // Calculer les totaux pour le pourcentage par rapport aux limites
     const totalCpuPercent = jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.cpu_percent || 0), 0)
-    const avgCpuPercentContainers = jobbingtrackContainers.length > 0 ? totalCpuPercent / jobbingtrackContainers.length : (avgCpuPercent || 0)
-    const totalMemoryMb = jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_mb || 0), 0)
     const totalMemoryLimitMb = jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_limit_mb || 0), 0)
+    
     // ✅ NOUVEAU : Calculer le pourcentage de mémoire projet par rapport à la mémoire système totale
     const systemTotalMemoryMb = data.memory?.total_mb || 0
-    const memoryProjectPercent = systemTotalMemoryMb > 0 ? (totalMemoryMb / systemTotalMemoryMb) * 100 : 0
+    const memoryProjectPercent = systemTotalMemoryMb > 0 ? (projectMemoryMb / systemTotalMemoryMb) * 100 : 0
     // Pourcentage par rapport à la limite des conteneurs (pour affichage détaillé)
-    const avgMemoryPercentContainers = totalMemoryLimitMb > 0 ? (totalMemoryMb / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
+    const avgMemoryPercentContainers = totalMemoryLimitMb > 0 ? (projectMemoryMb / totalMemoryLimitMb) * 100 : (avgMemoryPercent || 0)
     
     return {
       services: servicesMap, 
@@ -832,10 +885,10 @@ class CentralMetricsService {
             count: jobbingtrackContainers.length || data.container_count || 0,
             cpu: {
               totalPercent: totalCpuPercent,
-              averagePercent: avgCpuPercentContainers
+              averagePercent: projectCpuAvg || 0 // ✅ Utiliser project_cpu_avg directement (avec fallback à 0)
             },
             memory: {
-              used: totalMemoryMb,
+              used: projectMemoryMb, // ✅ Utiliser project_memory_mb directement
               limit: totalMemoryLimitMb,
               percent: avgMemoryPercentContainers, // Pourcentage par rapport à la limite des conteneurs
               percent_of_system: memoryProjectPercent // ✅ NOUVEAU : Pourcentage par rapport à la mémoire système totale
@@ -893,12 +946,129 @@ class CentralMetricsService {
   }
 
   /**
-   * Récupère l'historique des métriques
+   * Récupère l'historique des métriques depuis PostgreSQL via metrics-aggregator
    */
   async getMetricsHistory(options?: { limit?: number; startTime?: number; endTime?: number }) {
-    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-    // Note: monitoring-c ne gère pas encore l'historique, retourner []
-    return []
+    try {
+      const limit = options?.limit || 500
+      const startTime = options?.startTime ? new Date(options.startTime).toISOString() : undefined
+      const endTime = options?.endTime ? new Date(options.endTime).toISOString() : undefined
+
+      // Utiliser l'API du metrics-aggregator pour récupérer l'historique depuis PostgreSQL
+      // Le port externe est 5004, le port interne est 3004
+      const metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || 
+                                   process.env.NEXT_PUBLIC_METRICS_URL ||
+                                   (typeof window !== 'undefined' ? 'http://localhost:5004' : 'http://metrics-aggregator:3004')
+      
+      const params = new URLSearchParams()
+      params.append('limit', limit.toString())
+      if (startTime) params.append('startDate', startTime)
+      if (endTime) params.append('endDate', endTime)
+
+      const url = `${metricsAggregatorUrl}/api/v1/persistence/system/metrics?${params.toString()}`
+      console.log(`[CENTRAL METRICS] 🔍 Requête historique: ${url}`)
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {})
+        },
+        signal: AbortSignal.timeout(10000) // Timeout de 10 secondes
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        console.warn('[CENTRAL METRICS] ⚠️ Erreur récupération historique:', response.status, response.statusText, errorText)
+        return []
+      }
+
+      const data = await response.json()
+      
+      if (!data.success || !Array.isArray(data.data)) {
+        console.warn('[CENTRAL METRICS] ⚠️ Format de réponse invalide:', data)
+        return []
+      }
+
+      if (data.data.length === 0) {
+        console.warn('[CENTRAL METRICS] ⚠️ Aucune donnée historique disponible')
+        return []
+      }
+
+      console.log(`[CENTRAL METRICS] ✅ ${data.data.length} points d'historique récupérés`)
+
+      // ✅ CORRECTION : Formater les données pour correspondre au format attendu par les graphiques
+      // Le format Prisma SystemMetricsSnapshot utilise des noms de champs différents
+      return data.data.map((item: any) => {
+        // ✅ CORRECTION : Mapper depuis le format Prisma SystemMetricsSnapshot
+        // Prisma utilise : cpuUsagePercent, memoryUsagePercent, networkRxBytes, etc.
+        // On doit aussi vérifier le format depuis system_metrics (PostgreSQL direct) qui utilise : cpu_usage_percent, etc.
+        const cpuPercent = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
+                          (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : 0)
+        const memoryPercent = item.memoryUsagePercent !== undefined ? item.memoryUsagePercent :
+                             (item.memory_usage_percent !== undefined ? item.memory_usage_percent : 0)
+        
+        // Calculer les métriques réseau depuis les conteneurs si nécessaire
+        const networkRxBytes = item.networkRxBytes !== undefined ? item.networkRxBytes :
+                              (item.total_network_rx_bytes !== undefined ? item.total_network_rx_bytes : 0)
+        const networkTxBytes = item.networkTxBytes !== undefined ? item.networkTxBytes :
+                              (item.total_network_tx_bytes !== undefined ? item.total_network_tx_bytes : 0)
+        const networkRxMb = networkRxBytes ? (Number(networkRxBytes) / (1024 * 1024)) : 0
+        const networkTxMb = networkTxBytes ? (Number(networkTxBytes) / (1024 * 1024)) : 0
+
+        // ✅ CORRECTION : Convertir le timestamp en ISO string valide
+        let timestamp = item.timestamp;
+        if (timestamp) {
+          // Si c'est déjà une string ISO, la garder
+          if (typeof timestamp === 'string') {
+            // Vérifier que c'est une date valide
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) {
+              console.warn('[CENTRAL METRICS] ⚠️ Timestamp invalide:', timestamp, 'utilisation de la date actuelle');
+              timestamp = new Date().toISOString();
+            } else {
+              timestamp = date.toISOString();
+            }
+          } else if (timestamp instanceof Date) {
+            timestamp = timestamp.toISOString();
+          } else {
+            // Si c'est un nombre (timestamp Unix), le convertir
+            const date = new Date(typeof timestamp === 'number' ? timestamp : Number(timestamp));
+            if (Number.isNaN(date.getTime())) {
+              timestamp = new Date().toISOString();
+            } else {
+              timestamp = date.toISOString();
+            }
+          }
+        } else {
+          timestamp = new Date().toISOString();
+        }
+
+        return {
+          timestamp: timestamp,
+          cpu_percent: cpuPercent,
+          memory_percent: memoryPercent,
+          network_rx_mb: networkRxMb,
+          network_tx_mb: networkTxMb,
+          response_time_avg: item.responseTimeAvg !== undefined ? item.responseTimeAvg :
+                            (item.avg_response_time_ms !== undefined ? item.avg_response_time_ms : 0),
+          error_rate: item.errorRate !== undefined ? item.errorRate :
+                     (item.error_rate !== undefined ? item.error_rate : 0),
+          availability_percent: item.availabilityPercent !== undefined ? item.availabilityPercent :
+                               (item.availability_percent !== undefined ? item.availability_percent : 100),
+          load_score: item.loadScore !== undefined ? item.loadScore :
+                     (item.load_score !== undefined ? item.load_score : 0),
+          // ✅ CORRECTION : Inclure project_cpu_avg et project_memory_mb si disponibles
+          project_cpu_avg: item.project_cpu_avg !== undefined ? item.project_cpu_avg : undefined,
+          project_memory_mb: item.project_memory_mb !== undefined ? item.project_memory_mb : undefined,
+          // Inclure les métriques des conteneurs si disponibles
+          services: item.containers || []
+        }
+      })
+    } catch (error: any) {
+      console.warn('[CENTRAL METRICS] ⚠️ Erreur récupération historique:', error.message)
+      return []
+    }
   }
 
   /**

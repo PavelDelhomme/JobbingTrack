@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Notification Service (Health Check)",
+  "command": "curl -s http://localhost:3006/health || echo 'Service non accessible'",
+  "timestamp": "2025-12-23T00:09:36+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "Service non accessible\n"
+}

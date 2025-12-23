@@ -9,6 +9,7 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { dashboardService, applicationService, authService, companyService } from '@/lib/api'
 import { cacheManager } from '@/lib/cache/cacheManager'
+import { preferencesService } from '@/lib/services/preferencesService'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Settings, Shield, Zap, Clock, X, Cpu, MemoryStick, Server, Wifi } from '@/lib/icons'
 import axios from 'axios'
@@ -58,6 +59,8 @@ export default function BackofficePage() {
   const [servicesWithMetrics, setServicesWithMetrics] = useState<any[]>([])
   const [maintenances, setMaintenances] = useState<{[key: string]: any}>({})
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false)
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000) // Valeur par défaut, sera remplacée par les préférences
+  const [servicesRefreshInterval, setServicesRefreshInterval] = useState(20000) // Valeur par défaut
 
   const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
@@ -419,25 +422,38 @@ export default function BackofficePage() {
     }
 
     if (isAuthenticated) {
+      // ✅ Charger les préférences de rafraîchissement
+      const loadRefreshIntervals = async () => {
+        try {
+          const metricsInterval = await preferencesService.getRefreshInterval('metrics')
+          const dashboardInterval = await preferencesService.getRefreshInterval('dashboard')
+          setMetricsRefreshInterval(metricsInterval)
+          setServicesRefreshInterval(dashboardInterval)
+        } catch (error) {
+          console.error('Erreur chargement préférences:', error)
+        }
+      }
+      loadRefreshIntervals()
+
       // ✅ OPTIMISATION : Délai initial pour ne pas bloquer le chargement principal
       const initialTimeout = setTimeout(() => {
         loadSystemMetrics()
         loadMaintenances()
       }, 500)
       
-      // ✅ OPTIMISATION : Actualiser toutes les 45 secondes pour réduire CPU et mémoire
+      // ✅ Actualiser selon les préférences utilisateur
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible' && !document.hidden) {
           loadSystemMetrics()
         }
-      }, 45000) // ✅ OPTIMISATION : 45 secondes pour réduire la charge
+      }, metricsRefreshInterval)
       
       return () => {
         clearTimeout(initialTimeout)
         clearInterval(interval)
       }
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, metricsRefreshInterval])
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -706,14 +722,25 @@ export default function BackofficePage() {
       }
     }
 
+    // ✅ Charger les préférences de rafraîchissement
+    const loadRefreshIntervals = async () => {
+      try {
+        const servicesInterval = await preferencesService.getRefreshInterval('services')
+        setServicesRefreshInterval(servicesInterval)
+      } catch (error) {
+        console.error('Erreur chargement préférences:', error)
+      }
+    }
+    loadRefreshIntervals()
+
     loadServicesWithMetrics()
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible' && !document.hidden) {
         loadServicesWithMetrics()
       }
-    }, 60000) // ✅ OPTIMISATION : 60 secondes pour réduire CPU et mémoire (services changent moins souvent)
+    }, servicesRefreshInterval)
     return () => clearInterval(interval)
-  }, [])
+  }, [servicesRefreshInterval])
 
   // Charger les maintenances au démarrage
   useEffect(() => {
@@ -743,10 +770,13 @@ export default function BackofficePage() {
   if (loading) {
     return (
       <AdminLayout>
-        <LoadingState 
-          message="Chargement du tableau de bord..." 
-          size="lg"
-        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <LoadingState 
+            message="Chargement du tableau de bord..." 
+            size="lg"
+            fullScreen={false}
+          />
+        </div>
       </AdminLayout>
     )
   }
@@ -859,9 +889,21 @@ export default function BackofficePage() {
               <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ monitoring-c</span>
             </h2>
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${systemMetrics ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`text-sm ${systemMetrics ? 'text-green-600' : 'text-red-600'}`}>
-                {systemMetrics ? 'Connecté' : 'Déconnecté'}
+              <div className={`w-3 h-3 rounded-full ${
+                loadingSystemMetrics 
+                  ? 'bg-yellow-500 animate-pulse' 
+                  : systemMetrics 
+                    ? 'bg-green-500' 
+                    : 'bg-red-500'
+              }`}></div>
+              <span className={`text-sm ${
+                loadingSystemMetrics 
+                  ? 'text-yellow-600' 
+                  : systemMetrics 
+                    ? 'text-green-600' 
+                    : 'text-red-600'
+              }`}>
+                {loadingSystemMetrics ? 'Connexion...' : systemMetrics ? 'Connecté' : 'Déconnecté'}
               </span>
             </div>
           </div>
