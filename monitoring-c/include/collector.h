@@ -76,6 +76,9 @@ typedef struct {
     double error_rate_per_min;          // ✅ NOUVEAU : Taux d'erreur par minute
     double system_cpu_usage_percent;   // CPU système (pas conteneurs)
     double system_memory_usage_percent; // Mémoire système (pas conteneurs)
+    // ✅ NOUVEAU : Métriques projet (conteneurs JobbingTrack uniquement)
+    double project_cpu_avg;             // CPU moyen des conteneurs projet
+    unsigned long project_memory_mb;   // Mémoire totale utilisée par le projet (MB)
 } MetricsData;
 
 // Fonctions principales

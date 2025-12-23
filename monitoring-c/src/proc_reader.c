@@ -46,3 +46,44 @@ int read_proc_meminfo(unsigned long *total, unsigned long *free) {
     return (*total > 0 && *free > 0) ? 0 : -1;
 }
 
+/**
+ * Lit /proc/stat pour calculer le CPU usage réel
+ * Retourne le pourcentage d'utilisation CPU (0-100)
+ */
+int read_proc_stat_cpu(double *cpu_percent) {
+    static unsigned long long last_idle = 0, last_total = 0;
+    FILE *fp = fopen("/proc/stat", "r");
+    if (!fp) return -1;
+    
+    char line[256];
+    unsigned long long user = 0, nice = 0, system = 0, idle = 0, iowait = 0, irq = 0, softirq = 0, steal = 0;
+    
+    if (fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+                   &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) >= 4) {
+            unsigned long long total = user + nice + system + idle + iowait + irq + softirq + steal;
+            unsigned long long total_idle = idle + iowait;
+            
+            if (last_total > 0 && last_idle > 0) {
+                unsigned long long total_diff = total - last_total;
+                unsigned long long idle_diff = total_idle - last_idle;
+                
+                if (total_diff > 0) {
+                    *cpu_percent = 100.0 * (1.0 - ((double)idle_diff / (double)total_diff));
+                } else {
+                    *cpu_percent = 0.0;
+                }
+            } else {
+                // Première lecture, pas encore de pourcentage
+                *cpu_percent = 0.0;
+            }
+            
+            last_idle = total_idle;
+            last_total = total;
+        }
+    }
+    
+    fclose(fp);
+    return 0;
+}
+

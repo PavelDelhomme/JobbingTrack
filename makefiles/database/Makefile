@@ -29,6 +29,7 @@ help-database: ## Afficher l'aide base de données
 	@echo ""
 	@echo "🗑️  NETTOYAGE & RESET:"
 	@echo "  make db-clean              - Supprimer UNIQUEMENT les volumes JobbingTrack"
+	@echo "  make db-clean-metrics      - Nettoyer toutes les métriques (system_metrics, container_metrics, container_logs)"
 	@echo "  make db-reset              - Reset COMPLET (arrêt + clean + up + migrate + admin)"
 	@echo "                              ⚠️  Demande confirmation (taper 'oui')"
 	@echo ""
@@ -249,6 +250,25 @@ db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@docker volume rm jobbingtrack_metrics_data 2>/dev/null && echo "  ✅ jobbingtrack_metrics_data supprimé" || echo "  ⚠️  jobbingtrack_metrics_data n'existe pas"
 	@echo ""
 	@echo "✅ Nettoyage terminé !"
+
+db-clean-metrics: ## Nettoyer toutes les métriques enregistrées (system_metrics, container_metrics, container_logs)
+	@echo "🧹 Nettoyage de toutes les métriques dans PostgreSQL..."
+	@./scripts/db/clean-metrics.sh
+	@echo ""
+	@echo "✅ Toutes les métriques ont été supprimées de la base de données"
+	@echo ""
+	@echo "⚠️  IMPORTANT : Vous devez aussi nettoyer le cache du navigateur !"
+	@echo ""
+	@echo "📋 Instructions :"
+	@echo "   1. Ouvrez la console développeur (F12)"
+	@echo "   2. Exécutez cette commande :"
+	@echo "      sessionStorage.setItem('force_clear_analytics_cache', 'true'); location.reload();"
+	@echo ""
+	@echo "   OU supprimez manuellement les clés sessionStorage commençant par 'analytics_history_'"
+	@echo ""
+
+db-clean-all-metrics: ## Nettoyer TOUT : PostgreSQL + instructions pour le cache frontend
+	@./scripts/db/clean-all-metrics.sh
 
 db-reset: ## Réinitialisation complète (ATTENTION: Supprime toutes les données !)
 	@echo "⚠️  ATTENTION: Cette commande va supprimer TOUTES les données !"

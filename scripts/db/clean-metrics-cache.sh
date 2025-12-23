@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Script pour nettoyer le cache frontend des métriques (sessionStorage)
+
+echo "🧹 Nettoyage du cache frontend des métriques..."
+echo ""
+echo "📋 Instructions pour nettoyer le cache du navigateur :"
+echo ""
+echo "1. Ouvrez la console développeur (F12)"
+echo "2. Allez dans l'onglet 'Application' (Chrome) ou 'Stockage' (Firefox)"
+echo "3. Dans 'Session Storage', trouvez 'http://localhost:5003' (ou votre URL)"
+echo "4. Supprimez les clés qui commencent par :"
+echo "   - analytics_history_"
+echo "   - backoffice_services_metrics"
+echo "   - aggregated_logs_"
+echo ""
+echo "OU exécutez dans la console du navigateur :"
+echo ""
+echo "// Nettoyer tous les caches analytics"
+echo "Object.keys(sessionStorage).forEach(key => {"
+echo "  if (key.startsWith('analytics_history_') ||"
+echo "      key.startsWith('backoffice_services_metrics') ||"
+echo "      key.startsWith('aggregated_logs_')) {"
+echo "    sessionStorage.removeItem(key);"
+echo "    console.log('Supprimé:', key);"
+echo "  }"
+echo "});"
+echo "location.reload();"
+echo ""
+echo "✅ Instructions affichées"
+

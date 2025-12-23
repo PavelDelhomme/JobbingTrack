@@ -53,33 +53,9 @@ void generate_json_response(char *buffer, size_t buffer_size) {
     const char *msg3 = "[DEBUG] generate_json_response: snprintf début\n";
     write(2, msg3, strlen(msg3));
     
-    // ✅ NOUVEAU : Calculer les métriques projet (conteneurs JobbingTrack uniquement)
-    unsigned long project_memory_mb = 0;
-    double project_cpu_total_percent = 0.0;
-    int project_container_count = 0;
-    
-    for (int i = 0; i < 100; i++) {
-        if (global_metrics.containers[i].name[0] != '\0' && 
-            strstr(global_metrics.containers[i].name, "jobbingtrack-") != NULL) {
-            project_memory_mb += global_metrics.containers[i].memory_mb;
-            project_cpu_total_percent += global_metrics.containers[i].cpu_percent;
-            project_container_count++;
-            
-            // ✅ DEBUG : Logger les valeurs CPU pour diagnostiquer 0.0%
-            if (project_container_count <= 5) { // Logger seulement les 5 premiers pour éviter spam
-                fprintf(stderr, "[DEBUG] Conteneur projet %d: %s, CPU=%.2f%%, Mem=%luMB\n",
-                    project_container_count,
-                    global_metrics.containers[i].name,
-                    global_metrics.containers[i].cpu_percent,
-                    global_metrics.containers[i].memory_mb);
-            }
-        }
-    }
-    double project_cpu_avg = (project_container_count > 0) ? (project_cpu_total_percent / project_container_count) : 0.0;
-    
-    // ✅ DEBUG : Logger le calcul final
-    fprintf(stderr, "[DEBUG] CPU Projet: total=%.2f%%, count=%d, avg=%.2f%%\n",
-        project_cpu_total_percent, project_container_count, project_cpu_avg);
+    // ✅ CORRECTION : Utiliser les métriques projet déjà calculées dans collector.c
+    double project_cpu_avg = global_metrics.project_cpu_avg;
+    unsigned long project_memory_mb = global_metrics.project_memory_mb;
     
     int pos = snprintf(buffer, buffer_size,
         "{\n"
@@ -140,7 +116,7 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.cpu.load_5,
         global_metrics.cpu.load_15,
         global_metrics.cpu.cores,
-        global_metrics.cpu.load_1, // usage_percent approximatif depuis load_1
+        global_metrics.system_cpu_usage_percent, // ✅ CORRECTION : CPU usage réel depuis /proc/stat
         global_metrics.memory.total_mb,
         global_metrics.memory.used_mb,
         global_metrics.memory.free_mb,

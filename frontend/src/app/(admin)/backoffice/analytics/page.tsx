@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense, lazy, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense, lazy, useCallback } from 'react';
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import preferencesService from '@/lib/services/preferencesService';
@@ -109,37 +109,181 @@ const formatLoad = (value?: number | string | null) => {
 };
 
 const formatTimestamp = (timestamp: string, timeRange: string = '24h') => {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return timestamp;
+  // ✅ CORRECTION : Convertir le timestamp PostgreSQL (UTC) en format ISO avec 'Z' si nécessaire
+  let timestampForDate = timestamp;
+  if (typeof timestampForDate === 'string') {
+    // Si c'est une date PostgreSQL (format: "2025-12-23 16:37:58 UTC")
+    if (timestampForDate.includes(' UTC')) {
+      timestampForDate = timestampForDate.replace(' UTC', 'Z');
+    } else if (!timestampForDate.includes('Z') && !timestampForDate.includes('+') && !timestampForDate.includes('-', 10)) {
+      // Si c'est une date ISO sans timezone, ajouter 'Z' pour UTC
+      timestampForDate = timestampForDate + 'Z';
+    }
+  }
+  
+  const date = new Date(timestampForDate);
+  if (Number.isNaN(date.getTime())) {
+    console.warn('[ANALYTICS] ⚠️ Timestamp invalide dans formatTimestamp:', timestamp, 'timestampForDate:', timestampForDate);
+    return timestamp;
+  }
+  
+  // ✅ CORRECTION : Utiliser le timezone de l'utilisateur pour l'affichage
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: userTimezone,
+    hour12: false
+  };
   
   if (timeRange === '1h') {
     // Pour 1h, afficher heure:minute:seconde pour éviter les doublons
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleTimeString('fr-FR', { ...options, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   } else if (timeRange === '6h') {
     // Pour 6h, afficher heure:minute
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('fr-FR', { ...options, hour: '2-digit', minute: '2-digit' });
   } else if (timeRange === '24h') {
     // Pour 24h, afficher heure:minute
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('fr-FR', { ...options, hour: '2-digit', minute: '2-digit' });
   } else if (timeRange === '7d') {
     // Pour 7d, afficher jour mois heure
-    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', hour: '2-digit' });
+    return date.toLocaleDateString('fr-FR', { ...options, month: 'short', day: 'numeric', hour: '2-digit' });
   } else {
     // Pour 30d, afficher jour mois
-    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('fr-FR', { ...options, month: 'short', day: 'numeric' });
   }
 };
 
-// ✅ CORRECTION : Utiliser le timezone de l'utilisateur
-const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRange: string) => {
+// ✅ NOUVEAU : Fonctions utilitaires pour les couleurs (accessibles partout)
+const getAvailabilityColor = (percent: number | null) => {
+  if (percent === null || percent === undefined) {
+    return {
+      bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
+      border: 'border-gray-200 dark:border-gray-800',
+      text: 'text-gray-600 dark:text-gray-400'
+    }
+  }
+  if (percent >= 95) {
+    return {
+      bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+      border: 'border-green-200 dark:border-green-800',
+      text: 'text-green-600 dark:text-green-400'
+    }
+  }
+  if (percent >= 75) {
+    return {
+      bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
+      border: 'border-yellow-200 dark:border-yellow-800',
+      text: 'text-yellow-600 dark:text-yellow-400'
+    }
+  }
+  if (percent >= 50) {
+    return {
+      bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
+      border: 'border-orange-200 dark:border-orange-800',
+      text: 'text-orange-600 dark:text-orange-400'
+    }
+  }
+  return {
+    bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
+    border: 'border-red-200 dark:border-red-800',
+    text: 'text-red-600 dark:text-red-400'
+  }
+}
+
+const getCpuMemoryColor = (percent: number | null, isCpu: boolean = true) => {
+  if (percent === null || percent === undefined) {
+    return {
+      bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
+      border: 'border-gray-200 dark:border-gray-800',
+      text: 'text-gray-600 dark:text-gray-400'
+    }
+  }
+  if (percent <= 50) {
+    return isCpu ? {
+      bg: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+      border: 'border-blue-200 dark:border-blue-800',
+      text: 'text-blue-600 dark:text-blue-400'
+    } : {
+      bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+      border: 'border-green-200 dark:border-green-800',
+      text: 'text-green-600 dark:text-green-400'
+    }
+  }
+  if (percent <= 75) {
+    return {
+      bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
+      border: 'border-yellow-200 dark:border-yellow-800',
+      text: 'text-yellow-600 dark:text-yellow-400'
+    }
+  }
+  if (percent <= 90) {
+    return {
+      bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
+      border: 'border-orange-200 dark:border-orange-800',
+      text: 'text-orange-600 dark:text-orange-400'
+    }
+  }
+  return {
+    bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
+    border: 'border-red-200 dark:border-red-800',
+    text: 'text-red-600 dark:text-red-400'
+  }
+}
+
+// ✅ NOUVEAU : Variantes de formatage de l'axe X
+const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRange: string, variant: 'compact' | 'detailed' | 'time-only' = 'detailed') => {
   if (!data || data.length === 0) return tickItem;
   
   // Obtenir le timestamp réel depuis les données
   const item = data[index];
-  if (!item || !item.timestamp) return tickItem;
+  if (!item) {
+    // ✅ DEBUG : Logger pour diagnostiquer
+    console.warn('[ANALYTICS] ⚠️ Item non trouvé à l\'index', index, 'dans chartData de longueur', data.length);
+    return tickItem;
+  }
   
-  const date = new Date(item.timestamp);
-  if (Number.isNaN(date.getTime())) return tickItem;
+  // ✅ CORRECTION : Essayer plusieurs formats de timestamp
+  // Priorité 1 : timestamp (nombre ou ISO string)
+  // Priorité 2 : uniqueTime (ISO string)
+  // Priorité 3 : time (string formatée)
+  let timestamp: string | number | Date | null = null;
+  
+  if (item.timestamp !== undefined && item.timestamp !== null) {
+    timestamp = item.timestamp;
+  } else if (item.uniqueTime) {
+    timestamp = item.uniqueTime;
+  } else if (item.time) {
+    // Si on a seulement item.time, essayer de le parser
+    timestamp = item.time;
+  } else {
+    // ✅ DEBUG : Logger pour diagnostiquer
+    console.warn('[ANALYTICS] ⚠️ Aucun timestamp trouvé dans item:', item);
+    return tickItem;
+  }
+  
+  // Convertir en Date
+  let date: Date;
+  if (typeof timestamp === 'number') {
+    date = new Date(timestamp);
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === 'string') {
+    // Si c'est une chaîne ISO, l'utiliser directement
+    if (timestamp.includes('T') || timestamp.includes('Z') || timestamp.match(/^\d{4}-\d{2}-\d{2}/)) {
+      date = new Date(timestamp);
+    } else {
+      // Sinon, essayer de parser comme date locale
+      date = new Date(timestamp);
+    }
+  } else {
+    console.warn('[ANALYTICS] ⚠️ Format de timestamp inattendu:', typeof timestamp, timestamp);
+    return tickItem;
+  }
+  
+  if (Number.isNaN(date.getTime())) {
+    // ✅ DEBUG : Logger l'erreur pour diagnostiquer
+    console.warn('[ANALYTICS] ⚠️ Timestamp invalide après conversion:', timestamp, 'item:', item);
+    return tickItem;
+  }
   
   // ✅ CORRECTION : Utiliser le timezone de l'utilisateur
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -148,90 +292,123 @@ const formatXAxisLabel = (tickItem: string, index: number, data: any[], timeRang
     hour12: false
   };
   
-  // Pour 1h, afficher toutes les 5 minutes avec secondes
-  if (timeRange === '1h') {
-    const minutes = date.getMinutes();
-    if (minutes % 5 === 0) {
+  // ✅ CORRECTION : Toujours afficher le premier et dernier point
+  const isFirst = index === 0;
+  const isLast = index === data.length - 1;
+  
+  // Calculer l'intervalle optimal pour afficher un nombre raisonnable de labels
+  const totalPoints = data.length;
+  let targetLabels = 8; // Nombre cible de labels à afficher
+  
+  // Ajuster selon la variante
+  if (variant === 'compact') {
+    targetLabels = Math.floor(targetLabels / 2); // Moins de labels pour version compacte
+  } else if (variant === 'time-only') {
+    targetLabels = targetLabels * 2; // Plus de labels pour version time-only
+  }
+  
+  if (timeRange === '1h') targetLabels = variant === 'compact' ? 4 : variant === 'time-only' ? 12 : 6;
+  else if (timeRange === '6h') targetLabels = variant === 'compact' ? 4 : variant === 'time-only' ? 12 : 6;
+  else if (timeRange === '24h') targetLabels = variant === 'compact' ? 6 : variant === 'time-only' ? 24 : 12;
+  else if (timeRange === '7d') targetLabels = variant === 'compact' ? 7 : variant === 'time-only' ? 28 : 14;
+  else if (timeRange === '30d') targetLabels = variant === 'compact' ? 8 : variant === 'time-only' ? 30 : 15;
+  
+  const interval = Math.max(1, Math.floor(totalPoints / targetLabels));
+  
+  // ✅ CORRECTION : Toujours afficher le premier et dernier point
+  // Afficher aussi les points à intervalles réguliers
+  // Note: Cette logique est maintenant gérée dans renderXAxis, mais on garde cette vérification pour sécurité
+  const shouldShow = isFirst || isLast || (interval > 0 && index % interval === 0);
+  
+  // ✅ CORRECTION : Ne jamais retourner une chaîne vide ici, car cela peut causer des problèmes avec Recharts
+  // Si on ne doit pas afficher, on retourne quand même un label minimal pour éviter les bugs
+  if (!shouldShow && !isFirst && !isLast) {
+    // Pour les points intermédiaires non affichés, retourner une chaîne vide
+    // (mais cette logique devrait être gérée dans renderXAxis)
+    return '';
+  }
+  
+  // Formater selon la variante et la période
+  if (variant === 'time-only') {
+    // Version simple : seulement l'heure
+    if (timeRange === '1h' || timeRange === '6h' || timeRange === '24h') {
       return date.toLocaleTimeString('fr-FR', { 
         ...options,
         hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit' 
+        minute: '2-digit'
+      });
+    } else {
+      return date.toLocaleDateString('fr-FR', { 
+        ...options, 
+        day: 'numeric', 
+        month: 'short'
       });
     }
-    return '';
-  }
-  
-  // Pour 6h, afficher toutes les heures
-  if (timeRange === '6h') {
-    const minutes = date.getMinutes();
-    if (minutes === 0) {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } else if (variant === 'compact') {
+    // Version compacte : format court
+    if (timeRange === '1h' || timeRange === '6h') {
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options,
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+    } else if (timeRange === '24h') {
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options, 
+        hour: '2-digit'
+      });
+    } else {
+      return date.toLocaleDateString('fr-FR', { 
+        ...options, 
+        day: 'numeric', 
+        month: 'short'
+      });
     }
-    return '';
-  }
-  
-  // Pour 24h, afficher toutes les 2 heures (éviter les doublons)
-  if (timeRange === '24h') {
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    // Afficher seulement si c'est une heure paire et minute 0, ou si c'est le premier/dernier point
-    if ((hours % 2 === 0 && minutes === 0) || index === 0 || index === data.length - 1) {
-      // Vérifier qu'on n'affiche pas le même label que le précédent
-      if (index > 0) {
-        const prevDate = new Date(data[index - 1]?.timestamp);
-        if (!Number.isNaN(prevDate.getTime())) {
-          const prevHours = prevDate.getHours();
-          const prevMinutes = prevDate.getMinutes();
-          if (prevHours === hours && prevMinutes === minutes) {
-            return ''; // Éviter les doublons
-          }
-        }
-      }
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } else {
+    // Version détaillée : format complet
+    if (timeRange === '1h') {
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options,
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
     }
-    return '';
-  }
-  
-  // Pour 7d, afficher le jour et l'heure toutes les 12h
-  if (timeRange === '7d') {
-    const hours = date.getHours();
-    if (hours % 12 === 0) {
-      // Vérifier les doublons
-      if (index > 0) {
-        const prevDate = new Date(data[index - 1]?.timestamp);
-        if (!Number.isNaN(prevDate.getTime())) {
-          const prevDay = prevDate.getDate();
-          const prevHours = prevDate.getHours();
-          if (prevDay === date.getDate() && prevHours === hours) {
-            return '';
-          }
-        }
-      }
-      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit' });
+    
+    if (timeRange === '6h') {
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
     }
-    return '';
-  }
-  
-  // Pour 30d, afficher le jour toutes les 2 jours
-  if (timeRange === '30d') {
-    const day = date.getDate();
-    if (day % 2 === 0) {
-      // Vérifier les doublons
-      if (index > 0) {
-        const prevDate = new Date(data[index - 1]?.timestamp);
-        if (!Number.isNaN(prevDate.getTime())) {
-          if (prevDate.getDate() === day && prevDate.getMonth() === date.getMonth()) {
-            return '';
-          }
-        }
-      }
-      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    
+    if (timeRange === '24h') {
+      return date.toLocaleTimeString('fr-FR', { 
+        ...options, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
     }
-    return '';
+    
+    if (timeRange === '7d') {
+      return date.toLocaleDateString('fr-FR', { 
+        ...options, 
+        day: 'numeric', 
+        month: 'short', 
+        hour: '2-digit' 
+      });
+    }
+    
+    if (timeRange === '30d') {
+      return date.toLocaleDateString('fr-FR', { 
+        ...options, 
+        day: 'numeric', 
+        month: 'short' 
+      });
+    }
   }
   
-  return tickItem;
+  return date.toLocaleTimeString('fr-FR', { ...options, hour: '2-digit', minute: '2-digit' });
 };
 
 const formatLogTimestamp = (nanoString: string) => {
@@ -453,15 +630,15 @@ export default function AnalyticsPage() {
             return {
               ...prev,
               // Fusion intelligente pour chaque propriété
-              system: data.system ? mergeMetrics(prev.system, data.system) : prev.system,
-              containers: data.containers ? mergeMetrics(prev.containers, data.containers) : prev.containers,
-              network: data.network ? mergeMetrics(prev.network, data.network) : prev.network,
-              responseTime: data.responseTime ? mergeMetrics(prev.responseTime, data.responseTime) : prev.responseTime,
-              errors: data.errors ? mergeMetrics(prev.errors, data.errors) : prev.errors,
-              health: data.health ? mergeMetrics(prev.health, data.health) : prev.health,
-              monitoringC: data.monitoringC ? mergeMetrics(prev.monitoringC, data.monitoringC) : prev.monitoringC,
+              system: data.system ? mergeMetrics(prev.system, data.system, 'system') : prev.system,
+              containers: data.containers ? mergeMetrics(prev.containers, data.containers, 'containers') : prev.containers,
+              network: data.network ? mergeMetrics(prev.network, data.network, 'network') : prev.network,
+              responseTime: data.responseTime ? mergeMetrics(prev.responseTime, data.responseTime, 'responseTime') : prev.responseTime,
+              errors: data.errors ? mergeMetrics(prev.errors, data.errors, 'errors') : prev.errors,
+              health: data.health ? mergeMetrics(prev.health, data.health, 'health') : prev.health,
+              monitoringC: data.monitoringC ? mergeMetrics(prev.monitoringC, data.monitoringC, 'monitoringC') : prev.monitoringC,
               // ✅ OPTIMISATION : Ne mettre à jour services que si nécessaire, mais toujours mettre à jour servicesList
-              services: needsServices && data.services ? mergeMetrics(prev.services, data.services) : prev.services,
+              services: needsServices && data.services ? mergeMetrics(prev.services, data.services, 'services') : prev.services,
               // ✅ CORRECTION : Toujours mettre à jour servicesList si disponible (nécessaire pour aggregatedStats)
               servicesList: data.servicesList && Array.isArray(data.servicesList) && data.servicesList.length > 0 
                 ? data.servicesList 
@@ -487,7 +664,7 @@ export default function AnalyticsPage() {
       try {
         const data = await centralMetricsService.fetchMetrics();
         if (mounted && data) {
-          // Mise à jour progressive sans réinitialiser l'état (les graphiques restent ouverts)
+          // ✅ NOUVEAU : Mise à jour progressive avec merge intelligente pour éviter les "..." temporaires
           setMetrics((prev: any) => {
             if (!prev) {
             // ✅ OPTIMISATION : Ne pas inclure services si pas nécessaire, mais garder servicesList (utilisé dans aggregatedStats)
@@ -500,21 +677,120 @@ export default function AnalyticsPage() {
             return result;
             }
             
+            // ✅ CORRECTION : Utiliser mergeMetrics pour éviter les "..." temporaires
+            const mergeMetrics = (prevValue: any, newValue: any, key?: string) => {
+              if (newValue !== null && newValue !== undefined) {
+                if (typeof newValue === 'number') {
+                  // ✅ CORRECTION : Pour project_cpu_avg et project_memory_mb, ne pas accepter 0 comme valeur valide
+                  if ((key === 'project_cpu_avg' || key === 'project_memory_mb') && newValue === 0) {
+                    if (prevValue !== null && prevValue !== undefined && prevValue > 0) {
+                      return prevValue;
+                    }
+                    return null;
+                  }
+                  // Pour les autres nombres, accepter 0 comme valeur valide seulement si prevValue est aussi 0 ou null/undefined
+                  if (newValue === 0 && prevValue !== null && prevValue !== undefined && prevValue > 0) {
+                    return prevValue;
+                  }
+                  return newValue;
+                }
+                if (typeof newValue === 'object' && !Array.isArray(newValue)) {
+                  if (!prevValue) return newValue;
+                  const merged: any = { ...prevValue };
+                  for (const objKey in newValue) {
+                    merged[objKey] = mergeMetrics(prevValue[objKey], newValue[objKey], objKey);
+                  }
+                  return merged;
+                }
+                return newValue;
+              }
+              return prevValue;
+            };
+            
             return {
               ...prev,
-              ...data,
-              system: data.system ? { ...prev.system, ...data.system } : prev.system,
-              containers: data.containers ? { ...prev.containers, ...data.containers } : prev.containers,
-              network: data.network ? { ...prev.network, ...data.network } : prev.network,
-              responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
-              errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
-              health: data.health ? { ...prev.health, ...data.health } : prev.health,
+              // Fusion intelligente pour chaque propriété
+              system: data.system ? mergeMetrics(prev.system, data.system, 'system') : prev.system,
+              containers: data.containers ? mergeMetrics(prev.containers, data.containers, 'containers') : prev.containers,
+              network: data.network ? mergeMetrics(prev.network, data.network, 'network') : prev.network,
+              responseTime: data.responseTime ? mergeMetrics(prev.responseTime, data.responseTime, 'responseTime') : prev.responseTime,
+              errors: data.errors ? mergeMetrics(prev.errors, data.errors, 'errors') : prev.errors,
+              health: data.health ? mergeMetrics(prev.health, data.health, 'health') : prev.health,
+              monitoringC: data.monitoringC ? mergeMetrics(prev.monitoringC, data.monitoringC, 'monitoringC') : prev.monitoringC,
               // ✅ OPTIMISATION : Ne mettre à jour services que si nécessaire, mais toujours mettre à jour servicesList
-              services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
+              services: needsServices && data.services ? mergeMetrics(prev.services, data.services, 'services') : prev.services,
               // ✅ CORRECTION : Toujours mettre à jour servicesList si disponible (nécessaire pour aggregatedStats)
-              servicesList: data.servicesList ? data.servicesList : prev.servicesList
+              servicesList: data.servicesList && Array.isArray(data.servicesList) && data.servicesList.length > 0 
+                ? data.servicesList 
+                : prev.servicesList
             };
           });
+          
+          // ✅ NOUVEAU : Ajouter le nouveau point à l'historique pour rafraîchir les graphiques en temps réel
+          if (data && data.monitoringC) {
+            const newPoint = {
+              timestamp: new Date().toISOString(),
+              cpu: data.monitoringC.avg_cpu_percent || data.system?.cpu?.usage_percent || 0,
+              memoryPercent: data.system?.memory?.usage_percent || 0,
+              memoryMb: data.system?.memory?.used_mb || 0,
+              project_cpu_avg: data.monitoringC.project_cpu_avg || null,
+              project_memory_mb: data.monitoringC.project_memory_mb || null,
+              project_memory_percent: data.monitoringC.project_memory_mb && data.system?.memory?.total_mb
+                ? (data.monitoringC.project_memory_mb / data.system.memory.total_mb) * 100
+                : null,
+              responseTime: data.monitoringC.avg_response_time_ms || 0,
+              availability: data.monitoringC.availability_percent || data.health?.availability_percent || null,
+              loadScore: data.monitoringC.load_score || 0,
+              load_1: data.monitoringC.load_1 || data.system?.cpu?.load_1 || 0,
+              networkRx: data.network?.total_rx_mb || 0,
+              networkTx: data.network?.total_tx_mb || 0,
+              errorRate: data.monitoringC.error_rate_per_min || 0
+            };
+            
+            setMetricsHistory((prev: any[]) => {
+              // ✅ CORRECTION : Ajouter seulement si le timestamp est nouveau (éviter doublons)
+              // ✅ CORRECTION : Vérifier aussi par uniqueTime pour éviter les doublons
+              const lastTimestamp = prev.length > 0 ? new Date(prev[prev.length - 1].timestamp).getTime() : 0
+              const newTimestamp = new Date(newPoint.timestamp).getTime()
+              const newUniqueTime = newPoint.uniqueTime || newPoint.timestamp
+              
+              // ✅ CORRECTION : Vérifier si le point existe déjà par uniqueTime (tolérance de 1 seconde)
+              const exists = prev.some((p: any) => {
+                const pTimestamp = new Date(p.timestamp || p.uniqueTime).getTime();
+                return Math.abs(pTimestamp - newTimestamp) < 1000 || (p.uniqueTime || p.timestamp) === newUniqueTime;
+              });
+              
+              // ✅ AMÉLIORATION : Toujours ajouter si c'est un nouveau point (même si timestamp légèrement antérieur)
+              // Cela permet d'intégrer les dernières données même si elles arrivent avec un léger retard
+              if (!exists) {
+                const updated = [...prev, newPoint]
+                // ✅ OPTIMISATION : Garder seulement les points nécessaires selon timeRange
+                const maxHistoryPoints = timeRange === '1h' ? 120 : 
+                                      timeRange === '6h' ? 360 : 
+                                      timeRange === '24h' ? 720 : 
+                                      timeRange === '7d' ? 1008 : 2100;
+                // ✅ AMÉLIORATION : Trier par timestamp avant de limiter
+                const sorted = updated.sort((a, b) => {
+                  const aTs = new Date(a.timestamp || a.uniqueTime).getTime();
+                  const bTs = new Date(b.timestamp || b.uniqueTime).getTime();
+                  return aTs - bTs;
+                });
+                return sorted.slice(-maxHistoryPoints);
+              }
+              // ✅ CORRECTION : Si le point existe déjà mais avec des données différentes, le mettre à jour
+              if (exists) {
+                const updated = prev.map((p: any) => {
+                  const pTimestamp = new Date(p.timestamp || p.uniqueTime).getTime();
+                  if (Math.abs(pTimestamp - newTimestamp) < 1000 || (p.uniqueTime || p.timestamp) === newUniqueTime) {
+                    return { ...p, ...newPoint }; // Mettre à jour le point existant avec les nouvelles données
+                  }
+                  return p;
+                });
+                return updated;
+              }
+              return prev
+            });
+          }
         }
       } catch (error) {
         console.error('[ANALYTICS] ⚠️ Erreur actualisation métriques:', error);
@@ -595,10 +871,26 @@ export default function AnalyticsPage() {
         if (isInitial) {
           // ✅ CORRECTION : Vérifier si on a déjà des données en cache (sessionStorage) pour éviter de tout recharger
           const cachedHistoryKey = `analytics_history_${timeRange}`;
-          const cachedHistory = typeof window !== 'undefined' ? sessionStorage.getItem(cachedHistoryKey) : null;
+          // ✅ DEBUG : Vérifier si on doit forcer le nettoyage du cache (vérifier un flag)
+          const forceClearCache = typeof window !== 'undefined' ? sessionStorage.getItem('force_clear_analytics_cache') : null;
+          if (forceClearCache === 'true') {
+            console.log('[ANALYTICS] 🧹 Nettoyage forcé du cache analytics');
+            if (typeof window !== 'undefined') {
+              // Nettoyer tous les caches analytics
+              Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('analytics_history_') || 
+                    key.startsWith('backoffice_services_metrics') || 
+                    key.startsWith('aggregated_logs_')) {
+                  sessionStorage.removeItem(key);
+                }
+              });
+              sessionStorage.removeItem('force_clear_analytics_cache');
+            }
+          }
+          const cachedHistory = typeof window !== 'undefined' && !forceClearCache ? sessionStorage.getItem(cachedHistoryKey) : null;
           let existingHistory: any[] = [];
           
-          if (cachedHistory) {
+          if (cachedHistory && !forceClearCache) {
             try {
               existingHistory = JSON.parse(cachedHistory);
               // Vérifier que les données en cache sont valides (timestamps valides)
@@ -631,7 +923,18 @@ export default function AnalyticsPage() {
             endTime
           });
 
-          if (mounted && history && Array.isArray(history) && history.length > 0) {
+          if (mounted) {
+            // ✅ CORRECTION : Préserver les points existants jusqu'à ce que les nouveaux arrivent
+            // Si history est vide, garder existingHistory
+            if (!history || !Array.isArray(history) || history.length === 0) {
+              if (existingHistory.length > 0) {
+                console.log(`[ANALYTICS] ⚠️ Aucune nouvelle donnée, conservation de ${existingHistory.length} points du cache`);
+                setMetricsHistory(existingHistory);
+                setInitialHistoryLoaded(true);
+              }
+              return;
+            }
+            
             // ✅ CORRECTION : Fusionner avec les données en cache au lieu de les remplacer
             const allHistory = existingHistory.length > 0 
               ? [...existingHistory, ...history]
@@ -708,40 +1011,55 @@ export default function AnalyticsPage() {
 
           if (mounted && incrementalHistory && Array.isArray(incrementalHistory) && incrementalHistory.length > 0) {
             // ✅ OPTIMISATION : Fusionner avec l'historique existant avec vérifications intelligentes
+            // ✅ CORRECTION : Préserver les points existants jusqu'à ce que les nouveaux arrivent
             setMetricsHistory(prev => {
-              // ✅ CORRECTION : Éviter la fusion si prev est déjà à la limite et les nouvelles données sont plus anciennes
+              // ✅ CORRECTION : Ne jamais vider prev, toujours fusionner
+              if (!prev || prev.length === 0) {
+                return incrementalHistory;
+              }
+              
+              // ✅ CORRECTION : Fusionner intelligemment les nouvelles données avec les anciennes
+              // Créer un Map pour dédupliquer par timestamp (tolérance de 1 seconde)
+              const mergedMap = new Map<number, any>();
+              
+              // Ajouter tous les points existants
+              prev.forEach((point: any) => {
+                const ts = new Date(point.timestamp).getTime();
+                if (!isNaN(ts) && ts > 0) {
+                  // Arrondir à la seconde pour dédupliquer
+                  const roundedTs = Math.floor(ts / 1000) * 1000;
+                  mergedMap.set(roundedTs, point);
+                }
+              });
+              
+              // Ajouter les nouveaux points (remplacer les anciens si timestamp identique)
+              incrementalHistory.forEach((point: any) => {
+                const ts = new Date(point.timestamp).getTime();
+                if (!isNaN(ts) && ts > 0) {
+                  const roundedTs = Math.floor(ts / 1000) * 1000;
+                  // Si le point existe déjà, garder le plus récent ou celui avec le meilleur timestamp ISO
+                  const existing = mergedMap.get(roundedTs);
+                  if (!existing || new Date(point.timestamp).getTime() >= new Date(existing.timestamp).getTime()) {
+                    mergedMap.set(roundedTs, point);
+                  }
+                }
+              });
+              
+              // Convertir le Map en array et trier
+              const merged = Array.from(mergedMap.values()).sort((a, b) => {
+                const tsA = new Date(a.timestamp).getTime();
+                const tsB = new Date(b.timestamp).getTime();
+                return tsA - tsB;
+              });
+              
+              // ✅ CORRECTION : Limiter selon timeRange, mais garder tous les points récents
               const maxHistoryPoints = timeRange === '1h' ? 120 : 
                                       timeRange === '6h' ? 360 : 
                                       timeRange === '24h' ? 720 : 
                                       timeRange === '7d' ? 1008 : 2100;
-              if (prev.length >= maxHistoryPoints && incrementalHistory.length > 0) {
-                const newestIncremental = new Date(incrementalHistory[incrementalHistory.length - 1].timestamp).getTime();
-                const oldestInPrev = new Date(prev[0].timestamp).getTime();
-                
-                // Si les nouvelles données sont plus anciennes que les plus anciennes en mémoire, ignorer
-                if (newestIncremental <= oldestInPrev) {
-                  return prev;
-                }
-              }
               
-              const merged = [...prev, ...incrementalHistory];
-              
-              // ✅ OPTIMISATION : Trier seulement si nécessaire (vérifier si déjà trié)
-              let sorted = merged;
-              if (merged.length > 1) {
-                const first = new Date(merged[0].timestamp).getTime();
-                const last = new Date(merged[merged.length - 1].timestamp).getTime();
-                if (first > last || prev.length === 0) {
-                  // Besoin de trier
-                  sorted = merged.sort((a, b) => 
-                    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-                  );
-                }
-              }
-              
-              // ✅ CORRECTION : Limiter selon timeRange pour garder plus de points (réutiliser maxHistoryPoints défini plus haut)
-              // Garder les points les plus récents
-              const limited = sorted.slice(-maxHistoryPoints);
+              // Garder les N derniers points (les plus récents)
+              const limited = merged.slice(-maxHistoryPoints);
               
               // ✅ CORRECTION : Sauvegarder dans le cache pour le prochain rechargement
               if (typeof window !== 'undefined') {
@@ -756,6 +1074,8 @@ export default function AnalyticsPage() {
               // Mettre à jour le dernier timestamp
               const lastTimestamp = new Date(limited[limited.length - 1].timestamp).getTime();
               setLastHistoryTimestamp(lastTimestamp);
+              
+              console.log(`[ANALYTICS] 🔄 Fusion incrémentale: ${prev.length} anciens + ${incrementalHistory.length} nouveaux = ${merged.length} totaux → ${limited.length} après limite`);
               
               return limited;
             });
@@ -1111,6 +1431,19 @@ export default function AnalyticsPage() {
     
     console.log(`[ANALYTICS] 📊 Préparation de chartData depuis ${metricsHistory.length} points d'historique`);
     
+    // ✅ DEBUG : Afficher les premières valeurs de metricsHistory pour diagnostiquer
+    if (metricsHistory.length > 0) {
+      const firstHistoryItem = metricsHistory[0];
+      console.log('[ANALYTICS] 🔍 Premier point de metricsHistory:', {
+        timestamp: firstHistoryItem.timestamp,
+        project_cpu_avg: firstHistoryItem.project_cpu_avg,
+        project_memory_mb: firstHistoryItem.project_memory_mb,
+        cpu: firstHistoryItem.cpu,
+        cpu_percent: firstHistoryItem.cpu_percent,
+        memory_percent: firstHistoryItem.memory_percent
+      });
+    }
+    
     // ✅ NOUVEAU : Récupérer total_memory_mb depuis metrics pour calculer project_memory_percent
     const systemTotalMemoryMb = metrics?.system?.memory?.total_mb 
       ? Number(metrics.system.memory.total_mb) 
@@ -1132,99 +1465,25 @@ export default function AnalyticsPage() {
       }
     }
     
-    // ✅ OPTIMISATION : Limiter la taille de l'historique dès le début pour économiser la mémoire
-    const maxHistorySize = timeRange === '1h' ? 120 : 
-                           timeRange === '6h' ? 360 : 
-                           timeRange === '24h' ? 480 : 
-                           timeRange === '7d' ? 336 : 480; // Limiter à 480 points max
-    
-    let workingHistory = metricsHistory.length > maxHistorySize 
-      ? metricsHistory.slice(-maxHistorySize) // Prendre les N derniers points
-      : metricsHistory;
-    
-    // ✅ CORRECTION : Augmenter le nombre de points pour afficher plus de données
-    const maxPoints = timeRange === '1h' ? 120 : // 1 point toutes les 30 secondes
-                      timeRange === '6h' ? 360 : // 1 point par minute
-                      timeRange === '24h' ? 720 : // 1 point toutes les 2 minutes
-                      timeRange === '7d' ? 1008 : // 1 point toutes les 10 minutes
-                      2100; // 30d - 1 point toutes les 20 minutes
-    
-    // ✅ OPTIMISATION : Sous-échantillonnage plus efficace avec slice au lieu de filter
+    // ✅ CORRECTION : Ne plus créer de points vides artificiels - utiliser directement les données
+    // Seulement limiter si vraiment trop de points (> 2000)
+    const maxPoints = 2000;
     let dataToUse = sortedHistory;
     if (sortedHistory.length > maxPoints) {
-      // Prendre un point tous les N points de manière plus efficace
       const step = Math.ceil(sortedHistory.length / maxPoints);
       const indices: number[] = [];
       for (let i = 0; i < sortedHistory.length; i += step) {
         indices.push(i);
       }
-      // Toujours inclure le dernier point
       if (indices[indices.length - 1] !== sortedHistory.length - 1) {
         indices.push(sortedHistory.length - 1);
       }
       dataToUse = indices.map(i => sortedHistory[i]);
     }
     
-    // ✅ CORRECTION : Créer des points pour tous les timestamps manquants pour cohérence temporelle
-    // Déterminer l'intervalle entre les points selon la plage de temps (plus fréquent pour plus de points)
-    const intervalMs = timeRange === '1h' ? 30000 : // 30 secondes
-                       timeRange === '6h' ? 60000 : // 1 minute
-                       timeRange === '24h' ? 120000 : // 2 minutes
-                       timeRange === '7d' ? 600000 : // 10 minutes
-                       1200000; // 20 minutes pour 30d
+    const filledData = dataToUse;
     
-    // Créer un tableau de timestamps attendus
-    if (dataToUse.length === 0) return [];
-    
-    const firstTimestamp = new Date(dataToUse[0].timestamp).getTime();
-    const lastTimestamp = new Date(dataToUse[dataToUse.length - 1].timestamp).getTime();
-    const expectedTimestamps: number[] = [];
-    for (let ts = firstTimestamp; ts <= lastTimestamp; ts += intervalMs) {
-      expectedTimestamps.push(ts);
-    }
-    
-    // Créer un Map pour accès rapide aux données existantes
-    const dataMap = new Map<number, any>();
-    dataToUse.forEach((item: any) => {
-      const ts = new Date(item.timestamp).getTime();
-      // Trouver le timestamp le plus proche dans expectedTimestamps
-      const closestTs = expectedTimestamps.reduce((prev, curr) => 
-        Math.abs(curr - ts) < Math.abs(prev - ts) ? curr : prev
-      );
-      if (!dataMap.has(closestTs)) {
-        dataMap.set(closestTs, item);
-      }
-    });
-    
-    // ✅ CORRECTION : Créer des points pour tous les timestamps attendus (avec null si pas de données)
-    const filledData = expectedTimestamps.map((expectedTs) => {
-      const existingData = dataMap.get(expectedTs);
-      if (existingData) {
-        // Utiliser les données existantes
-        return existingData;
-      } else {
-        // Créer un point vide pour ce timestamp
-        const timestamp = new Date(expectedTs);
-        return {
-          timestamp: expectedTs,
-          time: formatTimestamp(timestamp.toISOString(), timeRange),
-          uniqueTime: timestamp.toISOString(),
-          cpu: null,
-          memoryPercent: null,
-          memoryMb: null,
-          networkRx: null,
-          networkTx: null,
-          responseTime: null,
-          errorRate: null,
-          availability: null,
-          loadScore: null,
-          project_cpu_avg: null,
-          project_memory_mb: null
-        };
-      }
-    });
-    
-    // ✅ OPTIMISATION : Utiliser map avec réutilisation des valeurs calculées
+    // ✅ OPTIMISATION : Utiliser map avec réutilisation des valeurs calculées, puis filtrer les null
     return filledData.map((item: any) => {
       // ✅ CORRECTION : Convertir le timestamp en Date valide
       let timestamp: Date;
@@ -1242,9 +1501,11 @@ export default function AnalyticsPage() {
         timestamp = new Date();
       }
       
-      // Si c'est un point vide, retourner tel quel
-      if (item.cpu === null && item.memoryPercent === null && item.memoryMb === null) {
-        return item;
+      // ✅ CORRECTION : Ne pas créer de points vides, filtrer les points invalides
+      // Si c'est un point vide (créé artificiellement), ne pas l'inclure
+      if (item.cpu === null && item.memoryPercent === null && item.memoryMb === null && 
+          item.project_cpu_avg === null && item.project_memory_mb === null) {
+        return null; // Filtrer au lieu de retourner
       }
       
       // ✅ CORRECTION : Calculer le trafic réseau global en sommant tous les services
@@ -1280,10 +1541,12 @@ export default function AnalyticsPage() {
       const uniqueTime = timestamp.toISOString();
       
       // S'assurer que toutes les valeurs sont des nombres valides (pas NaN, pas Infinity)
-      // ✅ CORRECTION : Utiliser project_cpu_avg et project_memory_mb si disponibles (plus précis)
-      const cpu = item.project_cpu_avg !== undefined && item.project_cpu_avg !== null
-        ? toNumber(item.project_cpu_avg, 0)
-        : toNumber(item.cpu_percent, 0);
+      // ✅ CORRECTION : CPU Système (utiliser item.cpu ou item.cpu_percent, PAS project_cpu_avg)
+      const cpu = item.cpu !== undefined && item.cpu !== null
+        ? toNumber(item.cpu, null)
+        : item.cpu_percent !== undefined && item.cpu_percent !== null
+        ? toNumber(item.cpu_percent, null)
+        : null;
       
       // ✅ CORRECTION : Séparer mémoire en pourcentage et MB
       // Pour le graphique CPU & Mémoire, on utilise le pourcentage
@@ -1302,31 +1565,54 @@ export default function AnalyticsPage() {
         : null
       const loadScore = toNumber(item.load_score || item.overallLoadScore, 0)
       
-      // ✅ CORRECTION : Utiliser le timestamp directement (déjà en UTC) et formater avec timezone utilisateur
-      // Ne pas convertir le timestamp lui-même, juste le formater pour l'affichage
-      const timestampDate = new Date(item.timestamp);
+      // ✅ CORRECTION : Utiliser le timestamp directement (déjà en UTC depuis PostgreSQL)
+      // Le timestamp est stocké en UTC dans PostgreSQL (format: 2025-12-23 16:37:58 UTC)
+      // On doit le convertir en ISO string avec 'Z' pour garantir l'interprétation UTC
+      let timestampForDisplay = item.timestamp;
+      if (typeof timestampForDisplay === 'string') {
+        // Si c'est une date PostgreSQL (format: "2025-12-23 16:37:58 UTC" ou "2025-12-23T16:37:58.000Z")
+        if (timestampForDisplay.includes(' UTC')) {
+          timestampForDisplay = timestampForDisplay.replace(' UTC', 'Z');
+        } else if (!timestampForDisplay.includes('Z') && !timestampForDisplay.includes('+') && !timestampForDisplay.includes('-', 10)) {
+          // Si c'est une date ISO sans timezone, ajouter 'Z' pour UTC
+          timestampForDisplay = timestampForDisplay + 'Z';
+        }
+      }
+      
+      const timestampDate = new Date(timestampForDisplay);
       
       return {
-        time: formatTimestamp(item.timestamp, timeRange),
+        time: formatTimestamp(timestampForDisplay, timeRange),
         timestamp: timestampDate.getTime(), // Timestamp numérique pour tri (UTC)
         uniqueTime: uniqueTime, // Timestamp ISO unique pour éviter doublons
         cpu: Number.isFinite(cpu) ? cpu : null,
         memoryPercent: Number.isFinite(memoryPercent) ? memoryPercent : null,
         memoryMb: memoryMb !== null && Number.isFinite(memoryMb) ? memoryMb : null,
-        networkRx: Number.isFinite(networkRx) ? networkRx : null,
-        networkTx: Number.isFinite(networkTx) ? networkTx : null,
+        networkRx: Number.isFinite(networkRx) && networkRx > 0 ? networkRx : null,
+        networkTx: Number.isFinite(networkTx) && networkTx > 0 ? networkTx : null,
         responseTime: Number.isFinite(responseTime) ? responseTime : null,
         errorRate: Number.isFinite(errorRate) ? errorRate : null,
         availability: Number.isFinite(availability) ? availability : null,
         loadScore: Number.isFinite(loadScore) ? loadScore : null,
         // ✅ NOUVEAU : Inclure les valeurs brutes pour référence
         // ✅ NOUVEAU : Inclure les valeurs brutes pour référence et affichage dans les graphiques
-        project_cpu_avg: item.project_cpu_avg !== undefined && item.project_cpu_avg !== null
-          ? Number(item.project_cpu_avg)
-          : null,
-        project_memory_mb: item.project_memory_mb !== undefined && item.project_memory_mb !== null
-          ? Number(item.project_memory_mb)
-          : null,
+        // ✅ DEBUG : Vérifier plusieurs formats possibles et accepter 0 comme valeur valide
+        project_cpu_avg: (() => {
+          const value = item.project_cpu_avg !== undefined && item.project_cpu_avg !== null
+            ? item.project_cpu_avg
+            : (item.projectCpuAvg !== undefined && item.projectCpuAvg !== null
+              ? item.projectCpuAvg
+              : null);
+          return value !== null && value !== undefined ? Number(value) : null;
+        })(),
+        project_memory_mb: (() => {
+          const value = item.project_memory_mb !== undefined && item.project_memory_mb !== null
+            ? item.project_memory_mb
+            : (item.projectMemoryMb !== undefined && item.projectMemoryMb !== null
+              ? item.projectMemoryMb
+              : null);
+          return value !== null && value !== undefined ? Number(value) : null;
+        })(),
         // ✅ NOUVEAU : Calculer le pourcentage de mémoire projet si disponible
         project_memory_percent: (() => {
           // Priorité 1 : project_memory_percent directement disponible
@@ -1334,26 +1620,60 @@ export default function AnalyticsPage() {
             return Number(item.project_memory_percent);
           }
           // Priorité 2 : Calculer depuis project_memory_mb et total_memory_mb (depuis item ou metrics)
-          const totalMemory = item.total_memory_mb 
-            ? Number(item.total_memory_mb) 
-            : systemTotalMemoryMb;
-          if (item.project_memory_mb !== undefined && item.project_memory_mb !== null && totalMemory && totalMemory > 0) {
-            const percent = (Number(item.project_memory_mb) / totalMemory) * 100;
-            return Number.isFinite(percent) ? percent : null;
+          // ✅ CORRECTION : Essayer plusieurs sources pour totalMemory (memory_total_mb, total_memory_mb, systemTotalMemoryMb)
+          const totalMemory = (item.memory_total_mb !== undefined && item.memory_total_mb !== null && Number(item.memory_total_mb) > 0)
+            ? Number(item.memory_total_mb)
+            : (item.total_memory_mb !== undefined && item.total_memory_mb !== null && Number(item.total_memory_mb) > 0)
+            ? Number(item.total_memory_mb)
+            : (systemTotalMemoryMb !== null && systemTotalMemoryMb !== undefined && systemTotalMemoryMb > 0)
+            ? systemTotalMemoryMb
+            : null;
+          
+          if (item.project_memory_mb !== undefined && item.project_memory_mb !== null && totalMemory !== null && totalMemory > 0) {
+            const projectMemoryMb = Number(item.project_memory_mb);
+            if (Number.isFinite(projectMemoryMb) && projectMemoryMb >= 0) {
+              const percent = (projectMemoryMb / totalMemory) * 100;
+              return Number.isFinite(percent) && percent >= 0 ? percent : null;
+            }
           }
           return null;
         })()
       };
-    });
+    }).filter((item: any) => item !== null); // Filtrer les points vides
   }, [metricsHistory, timeRange, metrics?.system?.memory?.total_mb]);
   
   // ✅ DEBUG : Logger chartData pour diagnostiquer
   useEffect(() => {
     if (chartData.length > 0) {
       console.log(`[ANALYTICS] ✅ chartData préparé: ${chartData.length} points`, {
-        first: chartData[0],
-        last: chartData[chartData.length - 1],
-        sample: chartData.slice(0, 3).map((d: any) => ({ time: d.time, cpu: d.cpu, memory: d.memory, networkRx: d.networkRx }))
+        first: {
+          ...chartData[0],
+          timestampType: typeof chartData[0].timestamp,
+          timestampValue: chartData[0].timestamp,
+          uniqueTime: chartData[0].uniqueTime,
+          time: chartData[0].time
+        },
+        last: {
+          ...chartData[chartData.length - 1],
+          timestampType: typeof chartData[chartData.length - 1].timestamp,
+          timestampValue: chartData[chartData.length - 1].timestamp,
+          uniqueTime: chartData[chartData.length - 1].uniqueTime,
+          time: chartData[chartData.length - 1].time
+        },
+        sample: chartData.slice(0, 3).map((d: any) => ({ 
+          timestamp: d.timestamp, 
+          timestampType: typeof d.timestamp,
+          uniqueTime: d.uniqueTime,
+          time: d.time,
+          cpu: d.cpu,
+          project_cpu_avg: d.project_cpu_avg,
+          memoryPercent: d.memoryPercent,
+          project_memory_mb: d.project_memory_mb,
+          project_memory_percent: d.project_memory_percent, 
+          cpu: d.cpu, 
+          memory: d.memoryPercent, 
+          networkRx: d.networkRx 
+        }))
       });
     } else {
       console.warn('[ANALYTICS] ⚠️ chartData est vide');
@@ -1806,7 +2126,7 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
     ? currentAvailability - avgAvailability
     : 0
   
-  // ✅ NOUVEAU : Calculer la tendance de charge système
+  // ✅ NOUVEAU : Calculer la tendance de charge système (utiliser load_1, pas loadScore)
   const currentLoad = metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
     ? metrics.system.cpu.load_1
     : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
@@ -1814,304 +2134,315 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
     : metrics?.monitoringC?.load_1 !== undefined && metrics.monitoringC.load_1 > 0
     ? metrics.monitoringC.load_1
     : null
+  // ✅ CORRECTION : Utiliser load_1 historique, pas loadScore
   const avgLoad = last30Points.length > 0
-    ? last30Points.reduce((sum: number, d: any) => sum + (d.loadScore || 0), 0) / last30Points.length
+    ? last30Points.reduce((sum: number, d: any) => {
+        // Chercher load_1 dans les données historiques
+        const load1 = d.load_1 || d.system?.cpu?.load_1 || d.system?.load?.load_1 || 0
+        return sum + load1
+      }, 0) / last30Points.length
     : 0
   const loadTrend = currentLoad !== null && avgLoad > 0
     ? currentLoad - avgLoad
     : 0
   
-  // ✅ NOUVEAU : Fonction pour obtenir les couleurs dynamiques selon le pourcentage
-  const getAvailabilityColor = (percent: number | null) => {
-    if (percent === null || percent === undefined) {
-      return {
-        bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
-        border: 'border-gray-200 dark:border-gray-800',
-        text: 'text-gray-600 dark:text-gray-400'
-      }
-    }
-    if (percent >= 95) {
-      return {
-        bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
-        border: 'border-green-200 dark:border-green-800',
-        text: 'text-green-600 dark:text-green-400'
-      }
-    }
-    if (percent >= 75) {
-      return {
-        bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
-        border: 'border-yellow-200 dark:border-yellow-800',
-        text: 'text-yellow-600 dark:text-yellow-400'
-      }
-    }
-    if (percent >= 50) {
-      return {
-        bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
-        border: 'border-orange-200 dark:border-orange-800',
-        text: 'text-orange-600 dark:text-orange-400'
-      }
-    }
-    return {
-      bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
-      border: 'border-red-200 dark:border-red-800',
-      text: 'text-red-600 dark:text-red-400'
-    }
-  }
-  
-  const getCpuMemoryColor = (percent: number | null, isCpu: boolean = true) => {
-    if (percent === null || percent === undefined) {
-      return {
-        bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
-        border: 'border-gray-200 dark:border-gray-800',
-        text: 'text-gray-600 dark:text-gray-400'
-      }
-    }
-    if (percent <= 50) {
-      return isCpu ? {
-        bg: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
-        border: 'border-blue-200 dark:border-blue-800',
-        text: 'text-blue-600 dark:text-blue-400'
-      } : {
-        bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
-        border: 'border-green-200 dark:border-green-800',
-        text: 'text-green-600 dark:text-green-400'
-      }
-    }
-    if (percent <= 75) {
-      return {
-        bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
-        border: 'border-yellow-200 dark:border-yellow-800',
-        text: 'text-yellow-600 dark:text-yellow-400'
-      }
-    }
-    if (percent <= 90) {
-      return {
-        bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
-        border: 'border-orange-200 dark:border-orange-800',
-        text: 'text-orange-600 dark:text-orange-400'
-      }
-    }
-    return {
-      bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
-      border: 'border-red-200 dark:border-red-800',
-      text: 'text-red-600 dark:text-red-400'
-    }
-  }
-
   return (
     <div className="space-y-6">
-      {/* ✅ CORRECTION : Cartes Projet en premier (style gradient) */}
-      {metrics?.system?.jobbingtrack && (
+      {/* ✅ TEMPORAIRE : Cartes désactivées pour se concentrer sur le graphique DEBUG */}
+      {/* ✅ CORRECTION : Réorganisation des cartes en colonnes (2 cartes par colonne) */}
+      {false && metrics?.system?.jobbingtrack && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(() => {
-            // ✅ NOUVEAU : Calculer le CPU projet et obtenir les couleurs dynamiques
-            const cpuValue = metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
-              ? metrics.system.jobbingtrack.containers.cpu.averagePercent
-              : metrics?.monitoringC?.project_cpu_avg !== undefined
-              ? metrics.monitoringC.project_cpu_avg
-              : null
-            const colors = getCpuMemoryColor(cpuValue, true)
-            
-            return (
-              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
-                  <div className="flex items-center gap-2">
-                    {projectCpuTrend !== 0 && (
-                      <span className={`text-xs font-medium ${projectCpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                        {projectCpuTrend > 0 ? '↗' : '↘'} {Math.abs(projectCpuTrend).toFixed(1)}%
-                      </span>
-                    )}
-                    <Cpu className={`w-5 h-5 ${colors.text}`} />
+          {/* Colonne 1 : CPU Projet, puis CPU Système en dessous */}
+          <div className="flex flex-col gap-4">
+            {(() => {
+              const cpuValue = metrics?.monitoringC?.project_cpu_avg !== undefined && metrics.monitoringC.project_cpu_avg > 0
+                ? metrics.monitoringC.project_cpu_avg
+                : metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined && metrics.system.jobbingtrack.containers.cpu.averagePercent > 0
+                ? metrics.system.jobbingtrack.containers.cpu.averagePercent
+                : null
+              const colors = getCpuMemoryColor(cpuValue, true)
+              
+              return (
+                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
+                    <div className="flex items-center gap-2">
+                      {projectCpuTrend !== 0 && (
+                        <span className={`text-xs font-medium ${projectCpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {projectCpuTrend > 0 ? '↗' : '↘'} {Math.abs(projectCpuTrend).toFixed(1)}%
+                        </span>
+                      )}
+                      <Cpu className={`w-5 h-5 ${colors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${colors.text}`}>
+                    {cpuValue !== null && cpuValue !== undefined 
+                      ? `${cpuValue.toFixed(1)}%` 
+                      : (metrics?.monitoringC?.project_cpu_avg !== undefined
+                        ? `${metrics.monitoringC.project_cpu_avg.toFixed(1)}%`
+                        : projectCpuAvg !== null && projectCpuAvg !== undefined
+                        ? `${projectCpuAvg.toFixed(1)}%`
+                        : '...')}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {(() => {
+                      const jobbingtrackCount = metrics.system.jobbingtrack.containers?.count;
+                      if (jobbingtrackCount && jobbingtrackCount > 30) {
+                        const servicesCount = aggregatedStats.servicesTotal || 0;
+                        return servicesCount > 0 ? `${servicesCount} services` : `${jobbingtrackCount} conteneurs`;
+                      }
+                      return jobbingtrackCount ? `${jobbingtrackCount} conteneurs JobbingTrack` : '...';
+                    })()}
                   </div>
                 </div>
-                <div className={`text-2xl font-bold ${colors.text}`}>
-                  {cpuValue !== null ? `${cpuValue.toFixed(1)}%` : '...'}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {(() => {
-                    // ✅ CORRECTION : Compter uniquement les conteneurs JobbingTrack (pas tous les conteneurs)
-                    const jobbingtrackCount = metrics.system.jobbingtrack.containers?.count;
-                    // Si count est trop élevé (ex: 33), utiliser un calcul plus précis
-                    if (jobbingtrackCount && jobbingtrackCount > 30) {
-                      // Essayer de compter depuis les services ou monitoringC
-                      const servicesCount = aggregatedStats.servicesTotal || 0;
-                      return servicesCount > 0 ? `${servicesCount} services` : `${jobbingtrackCount} conteneurs`;
-                    }
-                    return jobbingtrackCount ? `${jobbingtrackCount} conteneurs JobbingTrack` : '...';
-                  })()}
-                </div>
-              </div>
-            )
-          })()}
-          
-          {(() => {
-            // ✅ NOUVEAU : Calculer la mémoire projet et obtenir les couleurs dynamiques
-            const memoryValue = metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
-              ? metrics.system.jobbingtrack.containers.memory.percent_of_system
-              : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
-              ? metrics.system.jobbingtrack.containers.memory.percent
-              : (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
-                ? (metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100
-                : null)
-            const colors = getCpuMemoryColor(memoryValue, false)
+              )
+            })()}
             
-            return (
-              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
-                  <div className="flex items-center gap-2">
-                    {projectMemoryTrend !== 0 && (
-                      <span className={`text-xs font-medium ${projectMemoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                        {projectMemoryTrend > 0 ? '↗' : '↘'} {Math.abs(projectMemoryTrend).toFixed(1)}%
-                      </span>
-                    )}
-                    <MemoryStick className={`w-5 h-5 ${colors.text}`} />
+            {(() => {
+              const cpuSystemValue = metrics?.system?.cpu?.usage_percent !== undefined && metrics.system.cpu.usage_percent > 0
+                ? metrics.system.cpu.usage_percent
+                : metrics?.monitoringC?.avg_cpu_percent !== undefined && metrics.monitoringC.avg_cpu_percent > 0
+                ? metrics.monitoringC.avg_cpu_percent
+                : aggregatedStats.avgCpuUsage !== null && aggregatedStats.avgCpuUsage > 0
+                ? aggregatedStats.avgCpuUsage
+                : null
+              const cpuSystemColors = getCpuMemoryColor(cpuSystemValue, true)
+              
+              return (
+                <div className={`bg-gradient-to-br ${cpuSystemColors.bg} rounded-lg p-4 ${cpuSystemColors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Système</span>
+                    <div className="flex items-center gap-2">
+                      {cpuTrend !== 0 && (
+                        <span className={`text-xs font-medium ${cpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {cpuTrend > 0 ? '↗' : '↘'} {Math.abs(cpuTrend).toFixed(1)}%
+                        </span>
+                      )}
+                      <Cpu className={`w-5 h-5 ${cpuSystemColors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${cpuSystemColors.text}`}>
+                    {cpuSystemValue !== null && cpuSystemValue > 0 ? `${cpuSystemValue.toFixed(1)}%` : '...'}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A'
+                      ? `${metrics.system.cpu.cores} cores`
+                      : 'Système global'}
                   </div>
                 </div>
-                <div className={`text-2xl font-bold ${colors.text}`}>
-                  {memoryValue !== null ? `${memoryValue.toFixed(1)}%` : '...'}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
-                    ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
-                    : ''}
-                </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
           </div>
           
-          {(() => {
-            // ✅ NOUVEAU : Calculer la disponibilité et obtenir les couleurs dynamiques
-            const availability = metrics?.monitoringC?.availability_percent !== undefined
-              ? metrics.monitoringC.availability_percent
-              : metrics?.health?.availability_percent !== undefined
-              ? metrics.health.availability_percent
-              : (aggregatedStats.servicesTotal > 0
-                ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
-                : null)
-            const colors = getAvailabilityColor(availability)
-            
-            return (
-              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
-                  <div className="flex items-center gap-2">
-                    {availabilityTrend !== 0 && (
-                      <span className={`text-xs font-medium ${availabilityTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {availabilityTrend > 0 ? '↗' : '↘'} {Math.abs(availabilityTrend).toFixed(1)}%
+          {/* Colonne 2 : Mémoire Projet, puis Mémoire Système en dessous */}
+          <div className="flex flex-col gap-4">
+            {(() => {
+              const memoryValue = (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb && metrics.monitoringC.project_memory_mb > 0)
+                ? (metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100
+                : metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined && metrics.system.jobbingtrack.containers.memory.percent_of_system > 0
+                ? metrics.system.jobbingtrack.containers.memory.percent_of_system
+                : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined && metrics.system.jobbingtrack.containers.memory.percent > 0
+                ? metrics.system.jobbingtrack.containers.memory.percent
+                : null
+              const colors = getCpuMemoryColor(memoryValue, false)
+              const projectMemoryMb = metrics?.monitoringC?.project_memory_mb || metrics.system.jobbingtrack.containers?.memory?.used || 0
+              const totalMb = metrics?.system?.memory?.total_mb || 0
+              const freeMb = totalMb > 0 ? totalMb - projectMemoryMb : 0
+              
+              return (
+                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
+                    <div className="flex items-center gap-2">
+                      {projectMemoryTrend !== 0 && (
+                        <span className={`text-xs font-medium ${projectMemoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {projectMemoryTrend > 0 ? '↗' : '↘'} {Math.abs(projectMemoryTrend).toFixed(1)}%
+                        </span>
+                      )}
+                      <MemoryStick className={`w-5 h-5 ${colors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${colors.text}`}>
+                    {memoryValue !== null && memoryValue !== undefined 
+                      ? `${memoryValue.toFixed(1)}%` 
+                      : (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
+                        ? `${((metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100).toFixed(1)}%`
+                        : projectMemoryPercent !== null && projectMemoryPercent !== undefined
+                        ? `${projectMemoryPercent.toFixed(1)}%`
+                        : '...')}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex justify-between">
+                    <span>
+                      {projectMemoryMb > 0 && totalMb > 0 ? `${formatMb(projectMemoryMb)} / ${formatMb(totalMb)}` : ''}
+                    </span>
+                    {freeMb > 0 && totalMb > 0 && (
+                      <span className="text-green-600 dark:text-green-400">
+                        {formatMb(freeMb)} disponible
                       </span>
                     )}
-                    <Activity className={`w-5 h-5 ${colors.text}`} />
                   </div>
                 </div>
-                <div className={`text-2xl font-bold ${colors.text}`}>
-                  {availability !== null ? `${availability.toFixed(1)}%` : '...'}
+              )
+            })()}
+            
+            {(() => {
+              const memorySystemValue = metrics?.system?.memory?.usage_percent !== undefined && metrics.system.memory.usage_percent > 0
+                ? metrics.system.memory.usage_percent
+                : (aggregatedStats.totalMemoryMb !== null && aggregatedStats.totalMemoryMb > 0 && metrics?.system?.memory?.total_mb
+                  ? (aggregatedStats.totalMemoryMb / metrics.system.memory.total_mb) * 100
+                  : null)
+              const memorySystemColors = getCpuMemoryColor(memorySystemValue, false)
+              const usedMb = metrics?.system?.memory?.used_mb || aggregatedStats.totalMemoryMb || 0
+              const totalMb = metrics?.system?.memory?.total_mb || 0
+              const freeMb = totalMb > 0 ? totalMb - usedMb : 0
+              
+              return (
+                <div className={`bg-gradient-to-br ${memorySystemColors.bg} rounded-lg p-4 ${memorySystemColors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Système</span>
+                    <div className="flex items-center gap-2">
+                      {memoryTrend !== 0 && (
+                        <span className={`text-xs font-medium ${memoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {memoryTrend > 0 ? '↗' : '↘'} {Math.abs(memoryTrend).toFixed(1)}%
+                        </span>
+                      )}
+                      <MemoryStick className={`w-5 h-5 ${memorySystemColors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${memorySystemColors.text}`}>
+                    {memorySystemValue !== null && memorySystemValue > 0 ? `${memorySystemValue.toFixed(1)}%` : '...'}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex justify-between">
+                    <span>
+                      {usedMb > 0 && totalMb > 0 ? `${formatMb(usedMb)} / ${formatMb(totalMb)}` : ''}
+                    </span>
+                    {freeMb > 0 && totalMb > 0 && (
+                      <span className="text-green-600 dark:text-green-400">
+                        {formatMb(freeMb)} disponible
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
-                </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
+          </div>
           
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Charge Système</span>
-              <div className="flex items-center gap-2">
-                {loadTrend !== 0 && (
-                  <span className={`text-xs font-medium ${loadTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {loadTrend > 0 ? '↗' : '↘'} {Math.abs(loadTrend).toFixed(2)}
-                  </span>
-                )}
-                <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          {/* Colonne 3 : Disponibilité, puis Temps Réponse Moy. en dessous */}
+          <div className="flex flex-col gap-4">
+            {(() => {
+              const availability = metrics?.monitoringC?.availability_percent !== undefined && metrics.monitoringC.availability_percent > 0
+                ? metrics.monitoringC.availability_percent
+                : metrics?.health?.availability_percent !== undefined && metrics.health.availability_percent > 0
+                ? metrics.health.availability_percent
+                : (aggregatedStats.servicesTotal > 0
+                  ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
+                  : null)
+              const colors = getAvailabilityColor(availability)
+              
+              return (
+                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
+                    <div className="flex items-center gap-2">
+                      {availabilityTrend !== 0 && (
+                        <span className={`text-xs font-medium ${availabilityTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {availabilityTrend > 0 ? '↗' : '↘'} {Math.abs(availabilityTrend).toFixed(1)}%
+                        </span>
+                      )}
+                      <Activity className={`w-5 h-5 ${colors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${colors.text}`}>
+                    {availability !== null && availability > 0 ? `${availability.toFixed(1)}%` : '...'}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
+                  </div>
+                </div>
+              )
+            })()}
+            
+            {(() => {
+              const responseTime = metrics?.monitoringC?.avg_response_time_ms !== undefined && metrics.monitoringC.avg_response_time_ms > 0
+                ? metrics.monitoringC.avg_response_time_ms
+                : aggregatedStats.avgResponseTime !== null && aggregatedStats.avgResponseTime > 0
+                ? aggregatedStats.avgResponseTime
+                : null
+              const responseTimeColors = responseTime !== null && responseTime > 0
+                ? getCpuMemoryColor(responseTime / 10, false)
+                : getCpuMemoryColor(null, false)
+              
+              return (
+                <div className={`bg-gradient-to-br ${responseTimeColors.bg} rounded-lg p-4 ${responseTimeColors.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Temps Réponse Moy.</span>
+                    <div className="flex items-center gap-2">
+                      {responseTimeTrend !== 0 && (
+                        <span className={`text-xs font-medium ${responseTimeTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {responseTimeTrend > 0 ? '↗' : '↘'} {Math.abs(responseTimeTrend).toFixed(1)}ms
+                        </span>
+                      )}
+                      <Clock className={`w-5 h-5 ${responseTimeColors.text}`} />
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${responseTimeColors.text}`}>
+                    {responseTime !== null && responseTime > 0 ? formatMs(responseTime) : '...'}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {aggregatedStats.servicesTotal > 0
+                      ? `${aggregatedStats.servicesHealthy} / ${aggregatedStats.servicesTotal} services`
+                      : ''}
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+          
+          {/* Colonne 4 : Charge Système, puis Services en dessous */}
+          <div className="flex flex-col gap-4">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Charge Système</span>
+                <div className="flex items-center gap-2">
+                  {loadTrend !== 0 && (
+                    <span className={`text-xs font-medium ${loadTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      {loadTrend > 0 ? '↗' : '↘'} {Math.abs(loadTrend).toFixed(2)}
+                    </span>
+                  )}
+                  <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
+                  ? metrics.system.cpu.load_1.toFixed(2)
+                  : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
+                  ? metrics.system.load.load_1.toFixed(2)
+                  : metrics?.monitoringC?.load_1 !== undefined && metrics.monitoringC.load_1 > 0
+                  ? metrics.monitoringC.load_1.toFixed(2)
+                  : '0.00'}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A' && parseInt(metrics.system.cpu.cores) > 0
+                  ? `Sur ${metrics.system.cpu.cores} cores`
+                  : ''}
               </div>
             </div>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
-                ? metrics.system.cpu.load_1.toFixed(2)
-                : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
-                ? metrics.system.load.load_1.toFixed(2)
-                : metrics?.monitoringC?.load_1 !== undefined && metrics.monitoringC.load_1 > 0
-                ? metrics.monitoringC.load_1.toFixed(2)
-                : '0.00'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A' && parseInt(metrics.system.cpu.cores) > 0
-                ? `Sur ${metrics.system.cpu.cores} cores`
-                : ''}
+            
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Services</span>
+                <Server className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {aggregatedStats.servicesTotal || 0}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {aggregatedStats.servicesHealthy || 0} sains
+              </div>
             </div>
           </div>
         </div>
       )}
-      
-      {/* ✅ CORRECTION : Cartes Système en second (style StatCard) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Server className="w-6 h-6" />}
-          title="Services"
-          value={aggregatedStats.servicesTotal || 0}
-          subtitle={`${aggregatedStats.servicesHealthy || 0} sains`}
-          color="blue"
-        />
-        <StatCard
-          icon={<Cpu className="w-6 h-6" />}
-          title="CPU Système"
-          value={metrics?.system?.cpu?.usage_percent !== undefined
-            ? `${metrics.system.cpu.usage_percent.toFixed(1)}%`
-            : metrics?.monitoringC?.avg_cpu_percent !== undefined
-            ? `${metrics.monitoringC.avg_cpu_percent.toFixed(1)}%`
-            : aggregatedStats.avgCpuUsage !== null 
-            ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` 
-            : '...'}
-          subtitle={metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A'
-            ? `${metrics.system.cpu.cores} cores`
-            : 'Système global'}
-          trend={cpuTrend}
-          trendType="positive-is-bad"
-          color="blue"
-          loading={aggregatedStats.avgCpuUsage === null && metrics?.system?.cpu?.usage_percent === undefined && metrics?.monitoringC?.avg_cpu_percent === undefined}
-        />
-        <StatCard
-          icon={<MemoryStick className="w-6 h-6" />}
-          title="Mémoire Système"
-          value={metrics?.system?.memory?.usage_percent !== undefined
-            ? `${metrics.system.memory.usage_percent.toFixed(1)}%`
-            : aggregatedStats.totalMemoryMb !== null 
-            ? formatMb(aggregatedStats.totalMemoryMb) 
-            : '...'}
-          subtitle={metrics?.system?.memory?.used_mb && metrics?.system?.memory?.total_mb
-            ? `${formatMb(metrics.system.memory.used_mb)} / ${formatMb(metrics.system.memory.total_mb)}`
-            : ''}
-          trend={memoryTrend}
-          trendType="positive-is-bad"
-          color="green"
-          loading={aggregatedStats.totalMemoryMb === null && metrics?.system?.memory?.usage_percent === undefined}
-        />
-        <StatCard
-          icon={<Clock className="w-6 h-6" />}
-          title="Temps Réponse Moy."
-          value={(() => {
-            // ✅ CORRECTION : Essayer plusieurs sources pour le temps de réponse
-            const responseTime = metrics?.monitoringC?.avg_response_time_ms !== undefined && metrics.monitoringC.avg_response_time_ms > 0
-              ? metrics.monitoringC.avg_response_time_ms
-              : metrics?.responseTime?.average_ms !== undefined && metrics.responseTime.average_ms > 0
-              ? metrics.responseTime.average_ms
-              : aggregatedStats.avgResponseTime !== null && aggregatedStats.avgResponseTime > 0
-              ? aggregatedStats.avgResponseTime
-              : null
-            
-            return responseTime !== null && responseTime > 0 ? formatMs(responseTime) : '...'
-          })()}
-          trend={responseTimeTrend}
-          trendType="positive-is-bad"
-          color="purple"
-          loading={aggregatedStats.avgResponseTime === null && 
-                  metrics?.monitoringC?.avg_response_time_ms === undefined &&
-                  metrics?.responseTime?.average_ms === undefined}
-        />
-      </div>
 
       {/* Graphiques principaux avec chargement progressif */}
       {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
@@ -2159,60 +2490,699 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
   );
 });
 
+// ✅ NOUVEAU : Variantes d'affichage pour les graphiques
+type ChartLayoutVariant = 'vertical' | 'grid-2cols' | 'grid-1col-wide' | 'tabs';
+
 // ✅ OPTIMISATION : Composant séparé pour les graphiques Overview avec chargement progressif
 const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, timeRange }: any) {
   const [chart1Loaded, setChart1Loaded] = useState(false);
   const [chart2Loaded, setChart2Loaded] = useState(false);
   const [chart3Loaded, setChart3Loaded] = useState(false);
   const [chart4Loaded, setChart4Loaded] = useState(false);
+  const [chart5Loaded, setChart5Loaded] = useState(false); // Pour le graphique de compression DEBUG
+  const [layoutVariant, setLayoutVariant] = useState<ChartLayoutVariant>('vertical');
+  const [xAxisVariant, setXAxisVariant] = useState<'compact' | 'detailed' | 'time-only'>('detailed');
+  const [compressionInterval, setCompressionInterval] = useState<number>(5); // 5 minutes par défaut
+  
+  // ✅ CORRECTION : Calculer uniqueChartDataForCompression avec validation de timestamp (comme pour le graphique de test timestamps)
+  const uniqueChartDataForCompression = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+    
+    // ✅ CORRECTION : Valider et convertir les timestamps correctement (même logique que graphique de test timestamps)
+    const validData = chartData
+      .map((item) => {
+        let timestamp: number | null = null;
+        const tsValue = item.timestamp || item.uniqueTime;
+        
+        if (!tsValue) return null;
+        
+        // Convertir en timestamp numérique
+        if (typeof tsValue === 'string') {
+          let normalizedTs = tsValue;
+          if (normalizedTs.includes(' UTC')) {
+            normalizedTs = normalizedTs.replace(' UTC', 'Z');
+          } else if (!normalizedTs.includes('Z') && !normalizedTs.includes('+') && !normalizedTs.includes('-', 10)) {
+            normalizedTs = normalizedTs + 'Z';
+          }
+          timestamp = new Date(normalizedTs).getTime();
+        } else if (typeof tsValue === 'number') {
+          timestamp = tsValue;
+        }
+        
+        if (!timestamp || Number.isNaN(timestamp) || timestamp <= 0) return null;
+        
+        return { ...item, _parsedTimestamp: timestamp };
+      })
+      .filter((p): p is any => p !== null);
+    
+    if (validData.length === 0) return [];
+    
+    // ✅ CORRECTION : Trier par timestamp validé
+    const sorted = [...validData].sort((a, b) => a._parsedTimestamp - b._parsedTimestamp);
+    
+    // ✅ CORRECTION : Supprimer les doublons basés sur timestamp (tolérance de 1 seconde)
+    return sorted.reduce((acc: any[], item: any) => {
+      const timestamp = item._parsedTimestamp;
+      if (!timestamp) return acc;
+      
+      const exists = acc.find((existing: any) => 
+        Math.abs((existing._parsedTimestamp || 0) - timestamp) < 1000
+      );
+      if (!exists) {
+        acc.push(item);
+      }
+      return acc;
+    }, []);
+  }, [chartData]);
+  
+  // ✅ CORRECTION : Fonction de compression/agrégation des points par intervalle
+  const compressDataPoints = useCallback((data: any[], intervalMinutes: number) => {
+    if (!data || data.length === 0) return [];
+    
+    // ✅ CORRECTION : Convertir et valider les timestamps correctement
+    const validData = data
+      .map((point) => {
+        let timestamp: number | null = null;
+        const tsValue = point.timestamp || point.uniqueTime;
+        
+        if (!tsValue) return null;
+        
+        // Convertir en timestamp numérique
+        if (typeof tsValue === 'string') {
+          // Gérer le format PostgreSQL UTC
+          let normalizedTs = tsValue;
+          if (normalizedTs.includes(' UTC')) {
+            normalizedTs = normalizedTs.replace(' UTC', 'Z');
+          } else if (!normalizedTs.includes('Z') && !normalizedTs.includes('+') && !normalizedTs.includes('-', 10)) {
+            normalizedTs = normalizedTs + 'Z';
+          }
+          timestamp = new Date(normalizedTs).getTime();
+        } else if (typeof tsValue === 'number') {
+          timestamp = tsValue;
+        }
+        
+        if (!timestamp || Number.isNaN(timestamp) || timestamp <= 0) return null;
+        
+        return { ...point, _parsedTimestamp: timestamp };
+      })
+      .filter((p): p is any => p !== null);
+    
+    if (validData.length === 0) return [];
+    
+    // ✅ CORRECTION : Trier par timestamp validé
+    const sorted = [...validData].sort((a, b) => a._parsedTimestamp - b._parsedTimestamp);
+    
+    // ✅ CORRECTION : Ne plus filtrer les points trop éloignés pour éviter les trous
+    // Les nouvelles données qui arrivent avec des timestamps récents doivent être affichées
+    const filtered = sorted;
+    
+    const intervalMs = intervalMinutes * 60 * 1000;
+    const buckets = new Map<number, any[]>();
+    
+    // Grouper les points par intervalle
+    filtered.forEach((point) => {
+      const bucketKey = Math.floor(point._parsedTimestamp / intervalMs) * intervalMs;
+      
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, []);
+      }
+      buckets.get(bucketKey)!.push(point);
+    });
+    
+    // ✅ AMÉLIORATION : Agréger les points en préservant les pics (min/max) au lieu de moyenne
+    const compressed: any[] = [];
+    buckets.forEach((points, bucketKey) => {
+      if (points.length === 0) return;
+      
+      // ✅ CORRECTION : Filtrer les points valides
+      const validPoints = points.filter((p: any) => 
+        p.cpu !== null && p.cpu !== undefined && 
+        p.project_cpu_avg !== null && p.project_cpu_avg !== undefined &&
+        p.memoryPercent !== null && p.memoryPercent !== undefined &&
+        p.project_memory_percent !== null && p.project_memory_percent !== undefined
+      );
+      
+      if (validPoints.length === 0) return;
+      
+      // ✅ AMÉLIORATION : Calculer la moyenne des timestamps
+      const avgTimestamp = validPoints.reduce((sum, p) => sum + p._parsedTimestamp, 0) / validPoints.length;
+      
+      // ✅ AMÉLIORATION : Pour chaque métrique, préserver les pics (min/max) ET la moyenne
+      // CPU Système : min, max, avg
+      const cpuValues = validPoints.map(p => p.cpu || 0).filter(v => v > 0);
+      const cpuMin = cpuValues.length > 0 ? Math.min(...cpuValues) : 0;
+      const cpuMax = cpuValues.length > 0 ? Math.max(...cpuValues) : 0;
+      const cpuAvg = cpuValues.length > 0 ? cpuValues.reduce((sum, v) => sum + v, 0) / cpuValues.length : 0;
+      
+      // CPU Projet : min, max, avg
+      const projectCpuValues = validPoints.map(p => p.project_cpu_avg || 0).filter(v => v > 0);
+      const projectCpuMin = projectCpuValues.length > 0 ? Math.min(...projectCpuValues) : 0;
+      const projectCpuMax = projectCpuValues.length > 0 ? Math.max(...projectCpuValues) : 0;
+      const projectCpuAvg = projectCpuValues.length > 0 ? projectCpuValues.reduce((sum, v) => sum + v, 0) / projectCpuValues.length : 0;
+      
+      // Mémoire Système : min, max, avg
+      const memoryValues = validPoints.map(p => p.memoryPercent || 0).filter(v => v > 0);
+      const memoryMin = memoryValues.length > 0 ? Math.min(...memoryValues) : 0;
+      const memoryMax = memoryValues.length > 0 ? Math.max(...memoryValues) : 0;
+      const memoryAvg = memoryValues.length > 0 ? memoryValues.reduce((sum, v) => sum + v, 0) / memoryValues.length : 0;
+      
+      // Mémoire Projet : min, max, avg
+      const projectMemoryValues = validPoints.map(p => p.project_memory_percent || 0).filter(v => v > 0);
+      const projectMemoryMin = projectMemoryValues.length > 0 ? Math.min(...projectMemoryValues) : 0;
+      const projectMemoryMax = projectMemoryValues.length > 0 ? Math.max(...projectMemoryValues) : 0;
+      const projectMemoryAvg = projectMemoryValues.length > 0 ? projectMemoryValues.reduce((sum, v) => sum + v, 0) / projectMemoryValues.length : 0;
+      
+      // ✅ AMÉLIORATION : Créer 2 points par bucket : max (pic) et avg (tendance)
+      // Point MAX (pour préserver les pics)
+      compressed.push({
+        timestamp: Math.round(avgTimestamp),
+        uniqueTime: new Date(Math.round(avgTimestamp)).toISOString(),
+        time: formatTimestamp(new Date(Math.round(avgTimestamp)).toISOString(), timeRange),
+        cpu: cpuMax,
+        project_cpu_avg: projectCpuMax,
+        memoryPercent: memoryMax,
+        project_memory_percent: projectMemoryMax,
+        pointType: 'max',
+        pointCount: points.length
+      });
+      
+      // Point AVG (pour la tendance générale)
+      compressed.push({
+        timestamp: Math.round(avgTimestamp),
+        uniqueTime: new Date(Math.round(avgTimestamp)).toISOString(),
+        time: formatTimestamp(new Date(Math.round(avgTimestamp)).toISOString(), timeRange),
+        cpu: cpuAvg,
+        project_cpu_avg: projectCpuAvg,
+        memoryPercent: memoryAvg,
+        project_memory_percent: projectMemoryAvg,
+        pointType: 'avg',
+        pointCount: points.length
+      });
+    });
+    
+    // ✅ CORRECTION : Trier par timestamp et supprimer les doublons
+    const sortedCompressed = compressed.sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Supprimer les points avec des timestamps trop proches (moins de 1 minute d'écart)
+    const deduplicated: any[] = [];
+    sortedCompressed.forEach((point, index) => {
+      if (index === 0) {
+        deduplicated.push(point);
+        return;
+      }
+      
+      const prevPoint = deduplicated[deduplicated.length - 1];
+      const timeDiff = Math.abs(point.timestamp - prevPoint.timestamp);
+      
+      // Garder seulement si l'écart est d'au moins 1 minute
+      if (timeDiff >= 60 * 1000) {
+        deduplicated.push(point);
+      }
+    });
+    
+    return deduplicated;
+  }, [timeRange]);
+  
+  // ✅ CORRECTION : Calculer compressedData avec useMemo
+  const compressedData = useMemo(() => {
+    if (!uniqueChartDataForCompression || uniqueChartDataForCompression.length === 0) return [];
+    try {
+      return compressDataPoints(uniqueChartDataForCompression, compressionInterval);
+    } catch (error) {
+      console.error('[DEBUG COMPRESSION] Erreur lors de la compression:', error);
+      return [];
+    }
+  }, [uniqueChartDataForCompression, compressionInterval, compressDataPoints]);
+  
+  // ✅ CORRECTION : Calculer displayData pour le graphique DEBUG - Test Timestamps avec useMemo
+  const debugDisplayData = useMemo(() => {
+    if (!chartData || chartData.length === 0) {
+      console.log('[DEBUG] ⚠️ chartData est vide ou null');
+      return [];
+    }
+    
+    console.log(`[DEBUG] 📊 chartData contient ${chartData.length} points`);
+    
+    // ✅ DEBUG : Afficher les premières valeurs pour diagnostiquer
+    if (chartData.length > 0) {
+      const firstPoint = chartData[0];
+      const lastPoint = chartData[chartData.length - 1];
+      console.log('[DEBUG] 🔍 Premier point de chartData:', {
+        cpu: firstPoint.cpu,
+        project_cpu_avg: firstPoint.project_cpu_avg,
+        memoryPercent: firstPoint.memoryPercent,
+        project_memory_percent: firstPoint.project_memory_percent,
+        timestamp: firstPoint.timestamp,
+        uniqueTime: firstPoint.uniqueTime
+      });
+      console.log('[DEBUG] 🔍 Dernier point de chartData:', {
+        cpu: lastPoint.cpu,
+        project_cpu_avg: lastPoint.project_cpu_avg,
+        memoryPercent: lastPoint.memoryPercent,
+        project_memory_percent: lastPoint.project_memory_percent,
+        timestamp: lastPoint.timestamp,
+        uniqueTime: lastPoint.uniqueTime
+      });
+    }
+    
+    const maxPointsForTimeRange = timeRange === '1h' ? 60 : 
+                                 timeRange === '6h' ? 180 : 
+                                 timeRange === '24h' ? 288 :
+                                 timeRange === '7d' ? 336 : 1008;
+    
+    // ✅ AMÉLIORATION : Calculer le timestamp de début (24h avant maintenant pour timeRange 24h)
+    const now = Date.now();
+    const startTimestamp = timeRange === '1h' ? now - (1 * 60 * 60 * 1000) :
+                          timeRange === '6h' ? now - (6 * 60 * 60 * 1000) :
+                          timeRange === '24h' ? now - (24 * 60 * 60 * 1000) :
+                          timeRange === '7d' ? now - (7 * 24 * 60 * 60 * 1000) :
+                          now - (30 * 24 * 60 * 60 * 1000);
+    
+    // Valider et convertir les timestamps + filtrer ceux qui sont trop anciens
+    const validData = chartData
+      .map((item) => {
+        let timestamp: number | null = null;
+        const tsValue = item.timestamp || item.uniqueTime;
+        
+        if (!tsValue) return null;
+        
+        if (typeof tsValue === 'string') {
+          let normalizedTs = tsValue;
+          if (normalizedTs.includes(' UTC')) {
+            normalizedTs = normalizedTs.replace(' UTC', 'Z');
+          } else if (!normalizedTs.includes('Z') && !normalizedTs.includes('+') && !normalizedTs.includes('-', 10)) {
+            normalizedTs = normalizedTs + 'Z';
+          }
+          timestamp = new Date(normalizedTs).getTime();
+        } else if (typeof tsValue === 'number') {
+          timestamp = tsValue;
+        }
+        
+        if (!timestamp || Number.isNaN(timestamp) || timestamp <= 0) return null;
+        
+        // ✅ AMÉLIORATION : Filtrer les points trop anciens (avant la période sélectionnée)
+        // ✅ CORRECTION : Ne pas filtrer si le timestamp est dans la période (avec une marge de 1h pour éviter les problèmes de timezone)
+        const margin = 60 * 60 * 1000; // 1 heure de marge
+        if (timestamp < (startTimestamp - margin)) return null;
+        
+        // ✅ DEBUG : Préserver toutes les valeurs, même si elles sont null
+        return { ...item, _parsedTimestamp: timestamp };
+      })
+      .filter((p): p is any => p !== null);
+    
+    console.log(`[DEBUG] ✅ ${validData.length} points valides après filtrage`);
+    
+    if (validData.length === 0) return [];
+    
+    // Trier par timestamp
+    const sorted = [...validData].sort((a, b) => a._parsedTimestamp - b._parsedTimestamp);
+    
+    // Supprimer les doublons (tolérance de 1 seconde)
+    // ✅ CORRECTION : Conserver le point le plus récent avec les meilleures valeurs (pas de null)
+    const uniqueChartData = sorted.reduce((acc: any[], item: any) => {
+      const timestamp = item._parsedTimestamp;
+      if (!timestamp) return acc;
+      
+      const existingIndex = acc.findIndex((existing: any) => 
+        Math.abs((existing._parsedTimestamp || 0) - timestamp) < 1000
+      );
+      
+      if (existingIndex === -1) {
+        // Nouveau point, l'ajouter
+        acc.push(item);
+      } else {
+        // Point existant, conserver celui avec le meilleur timestamp ET les meilleures valeurs (non-null)
+        const existing = acc[existingIndex];
+        // Si le nouveau point a un timestamp plus récent OU a des valeurs non-null alors que l'existant a null
+        if (timestamp > existing._parsedTimestamp || 
+            (item.project_cpu_avg !== null && existing.project_cpu_avg === null) ||
+            (item.project_memory_percent !== null && existing.project_memory_percent === null)) {
+          // Merger les valeurs (préférer les non-null)
+          acc[existingIndex] = {
+            ...existing,
+            ...item,
+            // Préserver les valeurs non-null de l'existant si le nouveau est null
+            project_cpu_avg: item.project_cpu_avg !== null && item.project_cpu_avg !== undefined ? item.project_cpu_avg : existing.project_cpu_avg,
+            project_memory_percent: item.project_memory_percent !== null && item.project_memory_percent !== undefined ? item.project_memory_percent : existing.project_memory_percent,
+            cpu: item.cpu !== null && item.cpu !== undefined ? item.cpu : existing.cpu,
+            memoryPercent: item.memoryPercent !== null && item.memoryPercent !== undefined ? item.memoryPercent : existing.memoryPercent,
+          };
+        }
+      }
+      return acc;
+    }, []);
+    
+    // ✅ DEBUG : Logger les valeurs de project_cpu_avg et project_memory_percent dans uniqueChartData
+    if (uniqueChartData.length > 0) {
+      const pointsWithNullProject = uniqueChartData.filter(p => p.project_cpu_avg === null || p.project_memory_percent === null);
+      if (pointsWithNullProject.length > 0) {
+        console.log('[DEBUG] ⚠️ Points avec valeurs projet null dans uniqueChartData:', {
+          total: uniqueChartData.length,
+          withNull: pointsWithNullProject.length,
+          sample: pointsWithNullProject.slice(0, 3).map((p: any) => ({
+            timestamp: p._parsedTimestamp,
+            project_cpu_avg: p.project_cpu_avg,
+            project_memory_percent: p.project_memory_percent,
+            cpu: p.cpu,
+            memoryPercent: p.memoryPercent
+          }))
+        });
+      }
+    }
+    
+    // ✅ AMÉLIORATION : Regrouper les points proches (dans un intervalle de 2-10 minutes) et similaires
+    const grouped: any[] = [];
+    const timeWindow = timeRange === '1h' ? 2 * 60 * 1000 : // 2 minutes pour 1h
+                       timeRange === '6h' ? 5 * 60 * 1000 : // 5 minutes pour 6h
+                       timeRange === '24h' ? 10 * 60 * 1000 : // 10 minutes pour 24h
+                       15 * 60 * 1000; // 15 minutes pour 7d+
+    
+    // ✅ AMÉLIORATION : Seuil de similarité pour regrouper (5% de variation)
+    const similarityThreshold = 0.05;
+    
+    // ✅ AMÉLIORATION : Limiter le nombre max de points pour lisibilité
+    const maxDisplayPoints = timeRange === '1h' ? 30 : 
+                             timeRange === '6h' ? 60 : 
+                             timeRange === '24h' ? 100 :
+                             timeRange === '7d' ? 150 : 200;
+    
+    for (let i = 0; i < uniqueChartData.length; i++) {
+      const currentPoint = uniqueChartData[i];
+      
+      // ✅ DEBUG : Logger si currentPoint a des valeurs projet null
+      if (i < 5 || (currentPoint.project_cpu_avg === null || currentPoint.project_memory_percent === null)) {
+        console.log('[DEBUG GROUPING] currentPoint:', {
+          index: i,
+          timestamp: currentPoint._parsedTimestamp,
+          project_cpu_avg: currentPoint.project_cpu_avg,
+          project_memory_percent: currentPoint.project_memory_percent,
+          cpu: currentPoint.cpu,
+          memoryPercent: currentPoint.memoryPercent,
+          hasProjectCpu: currentPoint.hasOwnProperty('project_cpu_avg'),
+          hasProjectMemory: currentPoint.hasOwnProperty('project_memory_percent')
+        });
+      }
+      
+      const group: any[] = [currentPoint];
+      
+      // Chercher les points proches dans le temps (max 5-10 points par groupe)
+      let j = i + 1;
+      while (j < uniqueChartData.length && 
+             group.length < 10 && // Max 10 points par groupe
+             uniqueChartData[j]._parsedTimestamp - currentPoint._parsedTimestamp <= timeWindow) {
+        // ✅ CORRECTION : Vérifier si les valeurs sont similaires (variation < 5%)
+        // ✅ AMÉLIORATION : Utiliser une valeur de référence valide pour éviter division par 0
+        const currentCpu = currentPoint.cpu ?? 0;
+        const currentMem = currentPoint.memoryPercent ?? 0;
+        const currentProjectCpu = currentPoint.project_cpu_avg ?? 0;
+        
+        const nextCpu = uniqueChartData[j].cpu ?? 0;
+        const nextMem = uniqueChartData[j].memoryPercent ?? 0;
+        const nextProjectCpu = uniqueChartData[j].project_cpu_avg ?? 0;
+        
+        // ✅ CORRECTION : Calculer la différence relative seulement si les valeurs de référence sont > 0
+        const cpuDiff = Math.abs(nextCpu - currentCpu) / Math.max(Math.abs(currentCpu), 1);
+        const memDiff = Math.abs(nextMem - currentMem) / Math.max(Math.abs(currentMem), 1);
+        const projectCpuDiff = Math.abs(nextProjectCpu - currentProjectCpu) / Math.max(Math.abs(currentProjectCpu), 1);
+        
+        // ✅ AMÉLIORATION : Pour les valeurs proches de 0, utiliser une différence absolue (< 1%)
+        const cpuDiffAbsolute = Math.abs(nextCpu - currentCpu) < 1;
+        const memDiffAbsolute = Math.abs(nextMem - currentMem) < 1;
+        const projectCpuDiffAbsolute = Math.abs(nextProjectCpu - currentProjectCpu) < 1;
+        
+        // Si similaire (relatif < 5% OU absolu < 1%), ajouter au groupe
+        if ((cpuDiff < similarityThreshold || cpuDiffAbsolute) && 
+            (memDiff < similarityThreshold || memDiffAbsolute) && 
+            (projectCpuDiff < similarityThreshold || projectCpuDiffAbsolute)) {
+          group.push(uniqueChartData[j]);
+          j++;
+        } else {
+          break; // Arrêter si on trouve un point différent
+        }
+      }
+      
+      // ✅ AMÉLIORATION : Créer un point agrégé (moyenne des valeurs, timestamp moyen)
+      // ✅ CORRECTION : Filtrer les valeurs null/undefined avant de calculer la moyenne
+      if (group.length > 0) {
+        const avgTimestamp = group.reduce((sum, p) => sum + p._parsedTimestamp, 0) / group.length;
+        
+        // ✅ CORRECTION : Filtrer les valeurs valides avant de calculer les moyennes
+        // ✅ AMÉLIORATION : Accepter les valeurs >= 0 (pas seulement > 0) pour CPU et mémoire
+        const validCpuValues = group.map(p => p.cpu).filter(v => v !== null && v !== undefined && !Number.isNaN(v) && Number.isFinite(v));
+        const validProjectCpuValues = group.map(p => p.project_cpu_avg).filter(v => v !== null && v !== undefined && !Number.isNaN(v) && Number.isFinite(v));
+        const validMemoryValues = group.map(p => p.memoryPercent).filter(v => v !== null && v !== undefined && !Number.isNaN(v) && Number.isFinite(v));
+        const validProjectMemoryValues = group.map(p => p.project_memory_percent).filter(v => v !== null && v !== undefined && !Number.isNaN(v) && Number.isFinite(v));
+        
+        // ✅ CORRECTION : Calculer la moyenne seulement si on a des valeurs valides, sinon utiliser la valeur du point courant
+        // ✅ AMÉLIORATION : Ne pas remplacer par 0 si la valeur est null, utiliser null à la place
+        const avgCpu = validCpuValues.length > 0 
+          ? validCpuValues.reduce((sum, v) => sum + v, 0) / validCpuValues.length 
+          : (currentPoint.cpu !== null && currentPoint.cpu !== undefined ? currentPoint.cpu : null);
+        const avgProjectCpu = validProjectCpuValues.length > 0 
+          ? validProjectCpuValues.reduce((sum, v) => sum + v, 0) / validProjectCpuValues.length 
+          : (currentPoint.project_cpu_avg !== null && currentPoint.project_cpu_avg !== undefined ? currentPoint.project_cpu_avg : null);
+        const avgMemory = validMemoryValues.length > 0 
+          ? validMemoryValues.reduce((sum, v) => sum + v, 0) / validMemoryValues.length 
+          : (currentPoint.memoryPercent !== null && currentPoint.memoryPercent !== undefined ? currentPoint.memoryPercent : null);
+        const avgProjectMemory = validProjectMemoryValues.length > 0 
+          ? validProjectMemoryValues.reduce((sum, v) => sum + v, 0) / validProjectMemoryValues.length 
+          : (currentPoint.project_memory_percent !== null && currentPoint.project_memory_percent !== undefined ? currentPoint.project_memory_percent : null);
+        
+        // ✅ DEBUG : Logger si les valeurs projet sont null après regroupement
+        if (avgProjectCpu === null || avgProjectMemory === null) {
+          console.log('[DEBUG GROUPING] ⚠️ Valeurs projet null après regroupement:', {
+            groupSize: group.length,
+            validProjectCpuValues: validProjectCpuValues.length,
+            validProjectMemoryValues: validProjectMemoryValues.length,
+            currentPointProjectCpu: currentPoint.project_cpu_avg,
+            currentPointProjectMemory: currentPoint.project_memory_percent,
+            avgProjectCpu,
+            avgProjectMemory,
+            groupValues: group.map((p: any) => ({
+              project_cpu_avg: p.project_cpu_avg,
+              project_memory_percent: p.project_memory_percent
+            }))
+          });
+        }
+        
+        grouped.push({
+          ...currentPoint,
+          _parsedTimestamp: Math.round(avgTimestamp),
+          cpu: avgCpu,
+          project_cpu_avg: avgProjectCpu,
+          memoryPercent: avgMemory,
+          project_memory_percent: avgProjectMemory,
+          _groupSize: group.length
+        });
+      }
+      
+      // Avancer l'index pour sauter les points déjà regroupés
+      i = j - 1;
+    }
+    
+    // ✅ AMÉLIORATION : Si on a encore trop de points, sous-échantillonner uniformément
+    let result = grouped;
+    if (grouped.length > maxDisplayPoints) {
+      const step = Math.ceil(grouped.length / maxDisplayPoints);
+      result = [];
+      
+      // Toujours inclure le premier point
+      result.push(grouped[0]);
+      
+      // Échantillonner uniformément
+      for (let i = step; i < grouped.length - 1; i += step) {
+        result.push(grouped[i]);
+      }
+      
+      // Toujours inclure le dernier point (le plus récent)
+      if (grouped.length > 1) {
+        result.push(grouped[grouped.length - 1]);
+      }
+    }
+    
+    // Trier par timestamp pour l'affichage
+    result.sort((a, b) => a._parsedTimestamp - b._parsedTimestamp);
+    
+    const finalResult = result.map(item => ({
+      ...item,
+      _isoTime: new Date(item._parsedTimestamp).toISOString()
+    }));
+    
+    // ✅ DEBUG : Afficher les premières valeurs finales pour diagnostiquer
+    if (finalResult.length > 0) {
+      const firstFinal = finalResult[0];
+      console.log('[DEBUG] 🔍 Premier point final de debugDisplayData:', {
+        cpu: firstFinal.cpu,
+        project_cpu_avg: firstFinal.project_cpu_avg,
+        memoryPercent: firstFinal.memoryPercent,
+        project_memory_percent: firstFinal.project_memory_percent,
+        _parsedTimestamp: firstFinal._parsedTimestamp
+      });
+    }
+    
+    return finalResult;
+  }, [chartData, timeRange]);
+  
+  // ✅ CORRECTION : formatXAxisLabel est défini en dehors du composant, donc accessible
 
   useEffect(() => {
     // ✅ CORRECTION : Réinitialiser les états si chartData est vide
     if (!chartData || chartData.length === 0) {
-      setChart1Loaded(false);
-      setChart2Loaded(false);
-      setChart3Loaded(false);
-      setChart4Loaded(false);
+      if (chart1Loaded) {
+        // Seulement réinitialiser si les graphiques étaient chargés
+        setChart1Loaded(false);
+        setChart2Loaded(false);
+        setChart3Loaded(false);
+        setChart4Loaded(false);
+        setChart5Loaded(false);
+      }
       return;
     }
 
-    console.log(`[OVERVIEW CHARTS] 📊 Chargement de ${chartData.length} points de données`);
+    // ✅ NOUVEAU : Charger les graphiques seulement lors du premier chargement
+    // Les mises à jour suivantes (ajout de points) ne réinitialisent pas les graphiques
+    if (!chart1Loaded && chartData.length > 0) {
+      console.log(`[OVERVIEW CHARTS] 📊 Chargement initial de ${chartData.length} points de données`);
+      
+      const timer1 = setTimeout(() => {
+        setChart1Loaded(true);
+        console.log('[OVERVIEW CHARTS] ✅ Graphique 1 (CPU & Mémoire) chargé');
+      }, 50);
+      const timer2 = setTimeout(() => {
+        setChart2Loaded(true);
+        console.log('[OVERVIEW CHARTS] ✅ Graphique 2 (Trafic Réseau) chargé');
+      }, 150);
+      const timer3 = setTimeout(() => {
+        setChart3Loaded(true);
+        console.log('[OVERVIEW CHARTS] ✅ Graphique 3 (Performance) chargé');
+      }, 250);
+      const timer4 = setTimeout(() => {
+        setChart4Loaded(true);
+        console.log('[OVERVIEW CHARTS] ✅ Graphique 4 (Disponibilité) chargé');
+      }, 350);
+      const timer5 = setTimeout(() => {
+        setChart5Loaded(true);
+        console.log('[OVERVIEW CHARTS] ✅ Graphique 5 (Compression DEBUG) chargé');
+      }, 450);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
+        clearTimeout(timer5);
+      };
+    } else if (chart1Loaded && chartData.length > 0) {
+      // ✅ NOUVEAU : Log discret pour les mises à jour incrémentales
+      console.log(`[OVERVIEW CHARTS] 🔄 Mise à jour incrémentale: ${chartData.length} points (ajout de nouveaux points)`);
+    }
+  }, [chartData.length, chart1Loaded]);
 
-    // ✅ CORRECTION : Charger progressivement de haut en bas avec délais échelonnés
-    // Réinitialiser d'abord pour forcer le re-render
-    setChart1Loaded(false);
-    setChart2Loaded(false);
-    setChart3Loaded(false);
-    setChart4Loaded(false);
+  // ✅ NOUVEAU : Sélecteur de variante d'affichage
+  const renderVariantSelector = () => (
+    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Layout:</span>
+          <select
+            value={layoutVariant}
+            onChange={(e) => setLayoutVariant(e.target.value as ChartLayoutVariant)}
+            className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          >
+            <option value="vertical">Vertical (1 colonne)</option>
+            <option value="grid-2cols">Grille 2 colonnes</option>
+            <option value="grid-1col-wide">Large (pleine largeur)</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Axe X:</span>
+          <select
+            value={xAxisVariant}
+            onChange={(e) => setXAxisVariant(e.target.value as 'compact' | 'detailed' | 'time-only')}
+            className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          >
+            <option value="detailed">Détaillé</option>
+            <option value="compact">Compact</option>
+            <option value="time-only">Heure seulement</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ✅ NOUVEAU : Rendu conditionnel selon la variante de layout
+  const renderChart = (chartNumber: number, title: string, icon: string, content: React.ReactNode) => {
+    const isLoaded = chartNumber === 1 ? chart1Loaded 
+                    : chartNumber === 2 ? chart2Loaded 
+                    : chartNumber === 3 ? chart3Loaded 
+                    : chartNumber === 4 ? chart4Loaded
+                    : chartNumber === 5 ? chart5Loaded
+                    : false;
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          {icon} {title}
+        </h3>
+        {isLoaded ? content : <ChartSkeleton height={300} />}
+      </div>
+    );
+  };
+
+  // ✅ NOUVEAU : Composant XAxis réutilisable avec variante
+  const renderXAxis = (chartData: any[]) => {
+    // ✅ CORRECTION : Calculer l'intervalle optimal pour afficher les labels
+    const totalPoints = chartData.length;
+    let targetLabels = 8;
     
-    // Puis charger progressivement (délais réduits pour un chargement plus rapide)
-    const timer1 = setTimeout(() => {
-      setChart1Loaded(true);
-      console.log('[OVERVIEW CHARTS] ✅ Graphique 1 (CPU & Mémoire) chargé');
-    }, 50);
-    const timer2 = setTimeout(() => {
-      setChart2Loaded(true);
-      console.log('[OVERVIEW CHARTS] ✅ Graphique 2 (Trafic Réseau) chargé');
-    }, 150);
-    const timer3 = setTimeout(() => {
-      setChart3Loaded(true);
-      console.log('[OVERVIEW CHARTS] ✅ Graphique 3 (Performance) chargé');
-    }, 250);
-    const timer4 = setTimeout(() => {
-      setChart4Loaded(true);
-      console.log('[OVERVIEW CHARTS] ✅ Graphique 4 (Disponibilité) chargé');
-    }, 350);
+    if (xAxisVariant === 'compact') {
+      targetLabels = Math.floor(targetLabels / 2);
+    } else if (xAxisVariant === 'time-only') {
+      targetLabels = targetLabels * 2;
+    }
     
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
-    };
-  }, [chartData.length]);
+    if (timeRange === '1h') targetLabels = xAxisVariant === 'compact' ? 4 : xAxisVariant === 'time-only' ? 12 : 6;
+    else if (timeRange === '6h') targetLabels = xAxisVariant === 'compact' ? 4 : xAxisVariant === 'time-only' ? 12 : 6;
+    else if (timeRange === '24h') targetLabels = xAxisVariant === 'compact' ? 6 : xAxisVariant === 'time-only' ? 24 : 12;
+    else if (timeRange === '7d') targetLabels = xAxisVariant === 'compact' ? 7 : xAxisVariant === 'time-only' ? 28 : 14;
+    else if (timeRange === '30d') targetLabels = xAxisVariant === 'compact' ? 8 : xAxisVariant === 'time-only' ? 30 : 15;
+    
+    const calculatedInterval = Math.max(0, Math.floor(totalPoints / targetLabels));
+    
+    return (
+      <XAxis 
+        dataKey="uniqueTime" 
+        stroke="#9CA3AF"
+        style={{ fontSize: xAxisVariant === 'compact' ? '10px' : '12px' }}
+        tickFormatter={(value, index) => {
+          // ✅ CORRECTION : Utiliser l'index pour trouver l'item dans chartData
+          const item = chartData[index];
+          if (!item) {
+            // Si l'item n'est pas trouvé par index, chercher par uniqueTime
+            const foundItem = chartData.find((d: any) => d.uniqueTime === value || d.time === value);
+            if (!foundItem) return '';
+            return formatXAxisLabel(foundItem.time || foundItem.uniqueTime || value, index, chartData, timeRange, xAxisVariant);
+          }
+          // ✅ CORRECTION : Toujours afficher le premier et dernier point
+          const isFirst = index === 0;
+          const isLast = index === chartData.length - 1;
+          const shouldShow = isFirst || isLast || (calculatedInterval > 0 && index % calculatedInterval === 0);
+          
+          if (!shouldShow) return '';
+          
+          return formatXAxisLabel(item.time || item.uniqueTime || value, index, chartData, timeRange, xAxisVariant);
+        }}
+        interval={0}
+        angle={xAxisVariant === 'compact' ? -30 : -45}
+        textAnchor="end"
+        height={xAxisVariant === 'compact' ? 60 : 80}
+        allowDuplicatedCategory={false}
+        domain={['dataMin', 'dataMax']}
+      />
+    );
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+    <div className="relative">
       {/* Indicateur de rafraîchissement discret en haut à droite */}
       {refreshing && (
         <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
@@ -2220,49 +3190,37 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
           <span>Actualisation...</span>
         </div>
       )}
-      {/* CPU & Mémoire - Système et Projet */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          💻 CPU & Mémoire
-        </h3>
-        {chart1Loaded ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="uniqueTime" 
-                stroke="#9CA3AF"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value, index) => {
-                  const item = chartData[index];
-                  if (!item) return '';
-                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                }}
-                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
-                         Math.max(0, Math.floor(chartData.length / 30))}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
+      
+      {/* Layout vertical simplifié */}
+      <div className="grid grid-cols-1 gap-6">
+          {/* CPU & Mémoire - Système et Projet */}
+          {renderChart(1, 'CPU & Mémoire', '💻', (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData} margin={{ bottom: xAxisVariant === 'compact' ? 60 : 80, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                {renderXAxis(chartData)}
               <YAxis 
-                yAxisId="cpu"
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
-                domain={[0, 'auto']}
-                label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
-                tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
-              />
-              <YAxis 
-                yAxisId="memory"
-                orientation="right"
-                stroke="#9CA3AF"
-                style={{ fontSize: '12px' }}
-                domain={[0, 'auto']}
-                label={{ value: 'Mémoire (%)', angle: 90, position: 'insideRight' }}
-                tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                domain={(() => {
+                  // ✅ CORRECTION : Calculer le domaine Y dynamiquement avec 5% de marge
+                  const allValues = chartData.flatMap((d: any) => [
+                    d.cpu || 0,
+                    d.project_cpu_avg || 0,
+                    d.memoryPercent || 0,
+                    d.project_memory_percent || 0
+                  ]).filter((v: any) => v !== null && v !== undefined && Number.isFinite(v));
+                  
+                  if (allValues.length === 0) return [0, 100];
+                  
+                  const maxValue = Math.max(...allValues);
+                  const minValue = Math.min(...allValues);
+                  const margin = Math.max(5, maxValue * 0.05); // 5% de marge ou minimum 5
+                  
+                  return [Math.max(0, minValue - margin), Math.min(100, maxValue + margin)];
+                })()}
+                label={{ value: 'Pourcentage (%)', angle: -90, position: 'insideLeft' }}
+                tickFormatter={(value) => `${Number(value).toFixed(1)}%`}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -2302,7 +3260,6 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
               <Line 
                 type="monotone" 
                 dataKey="cpu" 
-                yAxisId="cpu"
                 stroke={COLORS.cpuSystem} 
                 strokeWidth={2}
                 name="CPU Système (%)"
@@ -2313,7 +3270,6 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
               <Line 
                 type="monotone" 
                 dataKey="project_cpu_avg" 
-                yAxisId="cpu"
                 stroke={COLORS.cpuProject} 
                 strokeWidth={2}
                 name="CPU Projet (%)"
@@ -2324,7 +3280,6 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
               <Line 
                 type="monotone" 
                 dataKey="memoryPercent" 
-                yAxisId="memory"
                 stroke={COLORS.memorySystem} 
                 strokeWidth={2}
                 name="Mémoire Système (%)"
@@ -2335,47 +3290,333 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
               <Line 
                 type="monotone" 
                 dataKey="project_memory_percent" 
-                yAxisId="memory"
                 stroke={COLORS.memoryProject} 
                 strokeWidth={2}
                 name="Mémoire Projet (%)"
                 dot={false}
                 connectNulls={false}
               />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartSkeleton height={300} />
-        )}
-      </div>
-
-      {/* Réseau */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          🌐 Trafic Réseau
-        </h3>
-        {chart2Loaded ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="uniqueTime" 
-                stroke="#9CA3AF"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value, index) => {
-                  const item = chartData[index];
-                  if (!item) return '';
-                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                }}
-                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
-                         Math.max(0, Math.floor(chartData.length / 30))}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
+              </LineChart>
+            </ResponsiveContainer>
+          ))}
+          
+          {/* ✅ DEBUG : Graphique de test manuel pour diagnostiquer les timestamps */}
+          {debugDisplayData.length > 0 && renderChart(1, '🔍 DEBUG - Test Timestamps', '🔍', 
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>Nombre de points totaux: {chartData.length}</p>
+                <p>Nombre de points affichés: {debugDisplayData.length}</p>
+                <p>Premier point: {debugDisplayData[0] ? new Date(debugDisplayData[0]._parsedTimestamp).toLocaleString('fr-FR') : 'N/A'}</p>
+                <p>Dernier point: {debugDisplayData[debugDisplayData.length - 1] ? new Date(debugDisplayData[debugDisplayData.length - 1]._parsedTimestamp).toLocaleString('fr-FR') : 'N/A'}</p>
+              </div>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart 
+                    data={debugDisplayData} 
+                    margin={{ bottom: 100, right: 20, left: 20, top: 20 }}
+                  >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="_isoTime"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '10px' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                    tickFormatter={(value) => {
+                      // ✅ CORRECTION : value est maintenant _isoTime (ISO string)
+                      if (!value) return '';
+                      const date = new Date(value);
+                      if (Number.isNaN(date.getTime())) return '';
+                      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                      return date.toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: userTimezone
+                      });
+                    }}
+                  />
+                  <YAxis 
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                    domain={(() => {
+                      // ✅ CORRECTION : Calculer le domaine Y dynamiquement avec 5% de marge sur les points affichés
+                      const allValues = debugDisplayData.flatMap((d: any) => [
+                        d.cpu || 0,
+                        d.project_cpu_avg || 0,
+                        d.memoryPercent || 0,
+                        d.project_memory_percent || 0
+                      ]).filter((v: any) => v !== null && v !== undefined && Number.isFinite(v));
+                      
+                      if (allValues.length === 0) return [0, 100];
+                      
+                      const maxValue = Math.max(...allValues);
+                      const minValue = Math.min(...allValues);
+                      const margin = Math.max(5, maxValue * 0.05); // 5% de marge ou minimum 5
+                      
+                      return [Math.max(0, minValue - margin), maxValue + margin];
+                    })()}
+                    tickFormatter={(value) => `${Number(value).toFixed(1)}%`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                    labelFormatter={(label: any) => {
+                      // ✅ CORRECTION : label est maintenant _isoTime (ISO string)
+                      const date = new Date(label);
+                      if (!Number.isNaN(date.getTime())) {
+                        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        return date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          timeZone: userTimezone
+                        });
+                      }
+                      return label;
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name.includes('CPU')) return [`${Number(value).toFixed(1)}%`, name];
+                      if (name.includes('Mémoire')) return [`${Number(value).toFixed(1)}%`, name];
+                      return [value, name];
+                    }}
+                  />
+                  <Legend />
+                  {/* ✅ CORRECTION : Ajouter CPU Système */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="cpu" 
+                    stroke={COLORS.cpuSystem} 
+                    strokeWidth={2}
+                    name="CPU Système (%)"
+                    dot={{ r: 3 }}
+                    connectNulls={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="project_cpu_avg" 
+                    stroke={COLORS.cpuProject} 
+                    strokeWidth={2}
+                    name="CPU Projet (%)"
+                    dot={{ r: 3 }}
+                    connectNulls={false}
+                  />
+                  {/* ✅ NOUVEAU : Ajouter aussi Mémoire Système et Projet pour debug complet */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="memoryPercent" 
+                    stroke={COLORS.memorySystem} 
+                    strokeWidth={2}
+                    name="Mémoire Système (%)"
+                    dot={{ r: 3 }}
+                    connectNulls={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="project_memory_percent" 
+                    stroke={COLORS.memoryProject} 
+                    strokeWidth={2}
+                    name="Mémoire Projet (%)"
+                    dot={{ r: 3 }}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p>⚠️ Graphique de test - Affiche {debugDisplayData.length} points (sur {chartData.length} totaux) avec timestamps validés</p>
+                <p>Plage de temps: {timeRange}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* ✅ NOUVEAU : Graphique de test pour compression/agrégation des points - TEMPORAIREMENT DÉSACTIVÉ */}
+          {false && compressedData.length > 0 && renderChart(5, '🔍 🔍 DEBUG - Test Compression Points', '🔍',
+            <div className="space-y-4">
+                <div className="flex items-center gap-4 text-sm">
+                  <label className="text-gray-600 dark:text-gray-400">
+                    Intervalle de compression:
+                  </label>
+                  <select
+                    value={compressionInterval}
+                    onChange={(e) => setCompressionInterval(Number(e.target.value))}
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={20}>20 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {uniqueChartDataForCompression.length} points uniques → {compressedData.length} points compressés ({compressionInterval} min)
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>Premier point compressé: {compressedData[0] ? JSON.stringify({
+                    timestamp: compressedData[0].timestamp,
+                    uniqueTime: compressedData[0].uniqueTime,
+                    time: compressedData[0].time,
+                    cpu: compressedData[0].cpu,
+                    pointCount: compressedData[0].pointCount
+                  }, null, 2) : 'N/A'}</p>
+                  <p>Dernier point compressé: {compressedData[compressedData.length - 1] ? JSON.stringify({
+                    timestamp: compressedData[compressedData.length - 1].timestamp,
+                    uniqueTime: compressedData[compressedData.length - 1].uniqueTime,
+                    time: compressedData[compressedData.length - 1].time,
+                    cpu: compressedData[compressedData.length - 1].cpu,
+                    pointCount: compressedData[compressedData.length - 1].pointCount
+                  }, null, 2) : 'N/A'}</p>
+                </div>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart 
+                    data={compressedData} 
+                    margin={{ bottom: 100, right: 20, left: 20, top: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis 
+                      dataKey="uniqueTime"
+                      stroke="#9CA3AF"
+                      style={{ fontSize: '10px' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      interval={0}
+                      tickFormatter={(value) => {
+                        if (!value) return '';
+                        let date: Date;
+                        if (typeof value === 'string') {
+                          if (value.includes(' UTC')) {
+                            value = value.replace(' UTC', 'Z');
+                          } else if (!value.includes('Z') && !value.includes('+') && !value.includes('-', 10)) {
+                            value = value + 'Z';
+                          }
+                          date = new Date(value);
+                        } else if (typeof value === 'number') {
+                          date = new Date(value);
+                        } else {
+                          return '';
+                        }
+                        if (Number.isNaN(date.getTime())) return '';
+                        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        return date.toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          timeZone: userTimezone
+                        });
+                      }}
+                    />
+                    <YAxis 
+                      stroke="#9CA3AF"
+                      style={{ fontSize: '12px' }}
+                      domain={(() => {
+                        const allValues = compressedData.flatMap((d: any) => [
+                          d.cpu || 0,
+                          d.project_cpu_avg || 0,
+                          d.memoryPercent || 0,
+                          d.project_memory_percent || 0
+                        ]).filter((v: any) => v !== null && v !== undefined && Number.isFinite(v));
+                        if (allValues.length === 0) return [0, 100];
+                        const maxValue = Math.max(...allValues);
+                        const minValue = Math.min(...allValues);
+                        const margin = Math.max(5, maxValue * 0.05);
+                        return [Math.max(0, minValue - margin), maxValue + margin];
+                      })()}
+                      tickFormatter={(value) => `${Number(value).toFixed(1)}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#F3F4F6'
+                      }}
+                      labelFormatter={(label: any) => {
+                        // ✅ CORRECTION : label est uniqueTime, chercher l'item correspondant
+                        const item = compressedData.find((d: any) => (d.uniqueTime || d.timestamp) === label);
+                        if (item) {
+                          // Utiliser timestamp si disponible (c'est un nombre dans compressedData)
+                          const date = item.timestamp ? new Date(item.timestamp) : new Date(item.uniqueTime || label);
+                          if (!Number.isNaN(date.getTime())) {
+                            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                            return date.toLocaleString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              timeZone: userTimezone
+                            }) + (item.pointCount ? ` (${item.pointCount} points agrégés)` : '');
+                          }
+                        }
+                        return label;
+                      }}
+                      formatter={(value: any, name: string) => {
+                        if (name.includes('CPU')) return [`${Number(value).toFixed(1)}%`, name];
+                        if (name.includes('Mémoire')) return [`${Number(value).toFixed(1)}%`, name];
+                        return [value, name];
+                      }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="cpu" 
+                      stroke={COLORS.cpuSystem} 
+                      strokeWidth={2}
+                      name="CPU Système (%)"
+                      dot={{ r: 3 }}
+                      connectNulls={false}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="project_cpu_avg" 
+                      stroke={COLORS.cpuProject} 
+                      strokeWidth={2}
+                      name="CPU Projet (%)"
+                      dot={{ r: 3 }}
+                      connectNulls={false}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="memoryPercent" 
+                      stroke={COLORS.memorySystem} 
+                      strokeWidth={2}
+                      name="Mémoire Système (%)"
+                      dot={{ r: 3 }}
+                      connectNulls={false}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="project_memory_percent" 
+                      stroke={COLORS.memoryProject} 
+                      strokeWidth={2}
+                      name="Mémoire Projet (%)"
+                      dot={{ r: 3 }}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <p>⚠️ Graphique de test compression - {compressedData.length} points compressés depuis {uniqueChartDataForCompression.length} points uniques ({chartData.length} totaux)</p>
+                  <p>Compression: moyenne sur {compressionInterval} minutes</p>
+                </div>
+              </div>
+          )}
+          
+          {/* Trafic Réseau - TEMPORAIREMENT DÉSACTIVÉ */}
+          {false && renderChart(2, 'Trafic Réseau', '🌐', (
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={chartData} margin={{ bottom: xAxisVariant === 'compact' ? 60 : 80, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                {renderXAxis(chartData)}
               <YAxis 
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
@@ -2409,40 +3650,16 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                 fillOpacity={0.6}
                 name="TX (MB)"
               />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartSkeleton height={300} />
-        )}
-      </div>
-
-      {/* Performance */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          ⚡ Temps de Réponse & Erreurs
-        </h3>
-        {chart3Loaded ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="uniqueTime" 
-                stroke="#9CA3AF"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value, index) => {
-                  const item = chartData[index];
-                  if (!item) return '';
-                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                }}
-                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
-                         Math.max(0, Math.floor(chartData.length / 30))}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
+              </AreaChart>
+            </ResponsiveContainer>
+          ))}
+          
+          {/* Temps de Réponse & Erreurs - TEMPORAIREMENT DÉSACTIVÉ */}
+          {false && renderChart(3, 'Temps de Réponse & Erreurs', '⚡', (
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart data={chartData} margin={{ bottom: xAxisVariant === 'compact' ? 60 : 80, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                {renderXAxis(chartData)}
               <YAxis 
                 yAxisId="left"
                 stroke="#9CA3AF"
@@ -2482,40 +3699,16 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                 fill={COLORS.danger}
                 name="Taux d'erreur (%)"
               />
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartSkeleton height={300} />
-        )}
-      </div>
-
-      {/* Disponibilité */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          📊 Disponibilité
-        </h3>
-        {chart4Loaded ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="uniqueTime" 
-                stroke="#9CA3AF"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value, index) => {
-                  const item = chartData[index];
-                  if (!item) return '';
-                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                }}
-                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
-                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
-                         Math.max(0, Math.floor(chartData.length / 30))}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ))}
+          
+          {/* Disponibilité - TEMPORAIREMENT DÉSACTIVÉ */}
+          {false && renderChart(4, 'Disponibilité', '📊', (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData} margin={{ bottom: xAxisVariant === 'compact' ? 60 : 80, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                {renderXAxis(chartData)}
               <YAxis 
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
@@ -2555,16 +3748,16 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                 type="monotone" 
                 dataKey="availability" 
                 stroke={COLORS.success} 
-                strokeWidth={3}
+                strokeWidth={2}
                 name="Disponibilité (%)"
                 dot={false}
+                connectNulls={false}
               />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartSkeleton height={300} />
-        )}
-      </div>
+              </LineChart>
+            </ResponsiveContainer>
+          ))}
+        </div>
+      {/* Fin du layout simplifié */}
     </div>
   );
 });
@@ -2755,7 +3948,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               ⚡ Temps de Réponse Moyen - Évolution temporelle
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="uniqueTime" 
@@ -2766,7 +3959,21 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                     if (!item) return '';
                     return formatXAxisLabel(item.time || value, index, chartData, timeRange);
                   }}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -2923,7 +4130,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               ⚠️ Taux d'Erreur - Évolution temporelle
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="uniqueTime" 
@@ -2934,7 +4141,21 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                     if (!item) return '';
                     return formatXAxisLabel(item.time || value, index, chartData, timeRange);
                   }}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -3096,7 +4317,7 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
               🌐 Trafic Réseau Global
             </h3>
             <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="uniqueTime" 
@@ -3107,7 +4328,21 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
                     if (!item) return '';
                     return formatXAxisLabel(item.time || value, index, chartData, timeRange);
                   }}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -3271,62 +4506,113 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
 const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
   return (
     <div className="space-y-6">
-      {/* Métriques système principales */}
+      {/* Métriques système principales - Style gradient comme Synthèse */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Cpu className="w-5 h-5" />}
-          title="CPU Moyen"
-          value={(() => {
-            // ✅ CORRECTION : Utiliser monitoringC.avg_cpu_percent en priorité
-            const cpuUsage = metrics?.monitoringC?.avg_cpu_percent !== undefined && metrics.monitoringC.avg_cpu_percent !== null
-              ? metrics.monitoringC.avg_cpu_percent
-              : aggregatedStats.avgCpuUsage !== null
-              ? aggregatedStats.avgCpuUsage
-              : null
-            return cpuUsage !== null ? `${Math.min(cpuUsage, 100).toFixed(1)}%` : '...'
-          })()}
-          color="blue"
-          loading={aggregatedStats.avgCpuUsage === null && metrics?.monitoringC?.avg_cpu_percent === undefined}
-        />
-        <StatCard
-          icon={<MemoryStick className="w-5 h-5" />}
-          title="Mémoire Moyenne"
-          value={(() => {
-            // ✅ CORRECTION : Afficher le pourcentage de mémoire système si disponible
-            const memoryPercent = metrics?.system?.memory?.usage_percent !== undefined
-              ? metrics.system.memory.usage_percent
-              : (aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
-                ? (aggregatedStats.totalMemoryMb / metrics.system.memory.total_mb) * 100
-                : null)
-            
-            return memoryPercent !== null 
-              ? `${memoryPercent.toFixed(1)}%` 
-              : (aggregatedStats.totalMemoryMb !== null 
-                ? `${aggregatedStats.totalMemoryMb.toFixed(0)} MB` 
-                : '...')
-          })()}
-          subtitle={aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
-            ? `${formatMb(aggregatedStats.totalMemoryMb)} / ${formatMb(metrics.system.memory.total_mb)}`
-            : ''}
-          color="green"
-          loading={aggregatedStats.totalMemoryMb === null && metrics?.system?.memory?.usage_percent === undefined}
-        />
-        <StatCard
-          icon={<Clock className="w-5 h-5" />}
-          title="Temps Réponse Moy."
-          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
-          color="purple"
-          loading={aggregatedStats.avgResponseTime === null}
-        />
-        <StatCard
-          icon={<Activity className="w-5 h-5" />}
-          title="Disponibilité"
-          value={aggregatedStats.servicesTotal > 0 
-            ? `${((aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100).toFixed(1)}%`
-            : '...'}
-          color="green"
-          loading={aggregatedStats.servicesTotal === 0}
-        />
+        {(() => {
+          const cpuUsage = metrics?.monitoringC?.avg_cpu_percent !== undefined && metrics.monitoringC.avg_cpu_percent !== null
+            ? metrics.monitoringC.avg_cpu_percent
+            : aggregatedStats.avgCpuUsage !== null
+            ? aggregatedStats.avgCpuUsage
+            : null
+          const cpuColors = getCpuMemoryColor(cpuUsage, true)
+          
+          return (
+            <div className={`bg-gradient-to-br ${cpuColors.bg} rounded-lg p-4 ${cpuColors.border}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Moyen</span>
+                <Cpu className={`w-5 h-5 ${cpuColors.text}`} />
+              </div>
+              <div className={`text-2xl font-bold ${cpuColors.text}`}>
+                {cpuUsage !== null ? `${Math.min(cpuUsage, 100).toFixed(1)}%` : '...'}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A'
+                  ? `${metrics.system.cpu.cores} cores`
+                  : 'Système global'}
+              </div>
+            </div>
+          )
+        })()}
+        
+        {(() => {
+          const memoryPercent = metrics?.system?.memory?.usage_percent !== undefined
+            ? metrics.system.memory.usage_percent
+            : (aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
+              ? (aggregatedStats.totalMemoryMb / metrics.system.memory.total_mb) * 100
+              : null)
+          const memoryColors = getCpuMemoryColor(memoryPercent, false)
+          const usedMb = metrics?.system?.memory?.used_mb || aggregatedStats.totalMemoryMb || 0
+          const totalMb = metrics?.system?.memory?.total_mb || 0
+          const freeMb = totalMb > 0 ? totalMb - usedMb : 0
+          
+          return (
+            <div className={`bg-gradient-to-br ${memoryColors.bg} rounded-lg p-4 ${memoryColors.border}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Moyenne</span>
+                <MemoryStick className={`w-5 h-5 ${memoryColors.text}`} />
+              </div>
+              <div className={`text-2xl font-bold ${memoryColors.text}`}>
+                {memoryPercent !== null ? `${memoryPercent.toFixed(1)}%` : '...'}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex justify-between">
+                <span>
+                  {usedMb > 0 && totalMb > 0 ? `${formatMb(usedMb)} / ${formatMb(totalMb)}` : ''}
+                </span>
+                {freeMb > 0 && totalMb > 0 && (
+                  <span className="text-green-600 dark:text-green-400">
+                    {formatMb(freeMb)} disponible
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+        
+        {(() => {
+          const responseTime = aggregatedStats.avgResponseTime !== null ? aggregatedStats.avgResponseTime : null
+          const responseTimeColors = responseTime !== null && responseTime > 0
+            ? getCpuMemoryColor(responseTime / 10, false)
+            : getCpuMemoryColor(null, false)
+          
+          return (
+            <div className={`bg-gradient-to-br ${responseTimeColors.bg} rounded-lg p-4 ${responseTimeColors.border}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Temps Réponse Moy.</span>
+                <Clock className={`w-5 h-5 ${responseTimeColors.text}`} />
+              </div>
+              <div className={`text-2xl font-bold ${responseTimeColors.text}`}>
+                {responseTime !== null ? formatMs(responseTime) : '...'}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {aggregatedStats.servicesTotal > 0
+                  ? `${aggregatedStats.servicesHealthy} / ${aggregatedStats.servicesTotal} services`
+                  : ''}
+              </div>
+            </div>
+          )
+        })()}
+        
+        {(() => {
+          const availability = aggregatedStats.servicesTotal > 0 
+            ? ((aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100)
+            : null
+          const availabilityColors = getAvailabilityColor(availability)
+          
+          return (
+            <div className={`bg-gradient-to-br ${availabilityColors.bg} rounded-lg p-4 ${availabilityColors.border}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
+                <Activity className={`w-5 h-5 ${availabilityColors.text}`} />
+              </div>
+              <div className={`text-2xl font-bold ${availabilityColors.text}`}>
+                {availability !== null ? `${availability.toFixed(1)}%` : '...'}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Graphiques système */}
@@ -3346,7 +4632,7 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
               💻 Utilisation CPU
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <defs>
                   <linearGradient id="colorCpuSystem" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.8}/>
@@ -3359,7 +4645,21 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
                   stroke="#9CA3AF" 
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
                 <Tooltip 
@@ -3389,7 +4689,7 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
               🧠 Utilisation Mémoire
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <defs>
                   <linearGradient id="colorMemorySystem" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.secondary} stopOpacity={0.8}/>
@@ -3402,7 +4702,21 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
                   stroke="#9CA3AF" 
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 100]} />
                 <Tooltip 
@@ -3432,27 +4746,43 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
               📊 Charge Système Globale
             </h3>
             <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={chartData}>
+              <ComposedChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="time" 
                   stroke="#9CA3AF" 
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
                   yAxisId="cpu"
-                  stroke="#9CA3AF" 
+                  stroke={COLORS.cpuSystem} 
                   style={{ fontSize: '12px' }}
-                  label={{ value: 'CPU (%) / Score', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
+                  domain={[0, 100]}
                 />
                 <YAxis 
-                  yAxisId="memory"
+                  yAxisId="load"
                   orientation="right"
-                  stroke="#9CA3AF" 
+                  stroke={COLORS.systemLoad} 
                   style={{ fontSize: '12px' }}
-                  label={{ value: 'Mémoire (MB)', angle: 90, position: 'insideRight' }}
+                  label={{ value: 'Charge', angle: 90, position: 'insideRight' }}
+                  domain={[0, 'auto']}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -3461,10 +4791,39 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
                     borderRadius: '8px',
                     color: '#F3F4F6'
                   }}
+                  labelFormatter={(label: any) => {
+                    if (!label) return '';
+                    const item = chartData.find((d: any) => d.time === label);
+                    if (item && item.timestamp) {
+                      return formatTimestamp(new Date(item.timestamp).toISOString(), timeRange);
+                    }
+                    return label;
+                  }}
                 />
                 <Legend />
-                <Bar dataKey="cpu" fill={COLORS.cpuSystem} name="CPU Système (%)" yAxisId="cpu" />
-                <Bar dataKey="memory" fill={COLORS.memorySystem} name="Mémoire Système (%)" yAxisId="cpu" />
+                {/* ✅ CORRECTION : Utiliser des lignes au lieu de barres pour meilleure lisibilité */}
+                <Line 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.cpuSystem}
+                  strokeWidth={2}
+                  name="CPU Système (%)"
+                  yAxisId="cpu"
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="memoryPercent" 
+                  stroke={COLORS.memorySystem}
+                  strokeWidth={2}
+                  name="Mémoire Système (%)"
+                  yAxisId="cpu"
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="project_cpu_avg" 
@@ -3478,22 +4837,22 @@ const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, 
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="project_memory_mb" 
+                  dataKey="project_memory_percent" 
                   stroke={COLORS.memoryProject}
                   strokeWidth={2}
-                  name="Mémoire Projet (MB)"
-                  yAxisId="memory"
+                  name="Mémoire Projet (%)"
+                  yAxisId="cpu"
                   dot={false}
                   isAnimationActive={false}
                   connectNulls={false}
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="loadScore" 
-                  stroke={COLORS.warning}
+                  dataKey="load_1" 
+                  stroke={COLORS.systemLoad}
                   strokeWidth={3}
-                  name="Score de charge"
-                  yAxisId="cpu"
+                  name="Charge Système (load_1)"
+                  yAxisId="load"
                   dot={false}
                   isAnimationActive={false}
                   connectNulls={false}
@@ -3589,7 +4948,7 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
               💻 CPU Moyen Total - Évolution temporelle
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="uniqueTime" 
@@ -3600,7 +4959,21 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
                     if (!item) return '';
                     return formatXAxisLabel(item.time || value, index, chartData, timeRange);
                   }}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis 
                   stroke="#9CA3AF"
@@ -3653,14 +5026,28 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
             </h3>
             {chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
               <ResponsiveContainer width="100%" height={400}>
-                <ComposedChart data={chartData}>
+                <ComposedChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="time" 
                     stroke="#9CA3AF"
                     style={{ fontSize: '12px' }}
                     tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                    interval="preserveStartEnd"
+                    interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                   />
                   <YAxis 
                     yAxisId="left"
@@ -3754,14 +5141,28 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
               💻 CPU Projet
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="time" 
                   stroke="#9CA3AF" 
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 'auto']} />
                 <Tooltip 
@@ -3809,7 +5210,7 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
               🧠 Mémoire Projet
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+              <AreaChart data={chartData} margin={{ bottom: 80, right: 20 }}>
                 <defs>
                   <linearGradient id="colorMemoryProject" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
@@ -3822,7 +5223,21 @@ const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData
                   stroke="#9CA3AF" 
                   style={{ fontSize: '12px' }}
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
-                  interval="preserveStartEnd"
+                  interval={(() => {
+                    // ✅ CORRECTION : Calculer l'intervalle pour afficher un nombre raisonnable de labels
+                    let targetLabels = 8;
+                    if (timeRange === '1h') targetLabels = 6;
+                    else if (timeRange === '6h') targetLabels = 6;
+                    else if (timeRange === '24h') targetLabels = 12;
+                    else if (timeRange === '7d') targetLabels = 14;
+                    else if (timeRange === '30d') targetLabels = 15;
+                    
+                    const calculatedInterval = Math.max(0, Math.floor(chartData.length / targetLabels));
+                    return calculatedInterval;
+                  })()}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                 />
                 <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 'auto']} tickFormatter={(value) => `${Number(value).toFixed(0)} MB`} />
                 <Tooltip 
