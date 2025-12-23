@@ -705,6 +705,15 @@ export default function ServicesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
+                        {/* ✅ NOUVEAU : Bouton "Voir les logs" */}
+                        <Link
+                          href={`/backoffice/services/logs?service=${encodeURIComponent(service.name.replace('jobbingtrack-', ''))}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                          Logs
+                        </Link>
                         {(() => {
                           const serviceName = service.name.replace('jobbingtrack-', '');
                           const isCritical = CRITICAL_SERVICES.includes(serviceName);

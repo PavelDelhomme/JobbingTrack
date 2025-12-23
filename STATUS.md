@@ -42,6 +42,20 @@
 - ✅ **Correction des tests E2E Playwright** : template literals, sélecteurs flexibles, seuils de performance ajustés
 - ✅ **Tests d'intégration** : gestion gracieuse des services manquants
 
+### 📊 Analytics & Graphiques (Décembre 2025)
+- ✅ **Correction du calcul de project_memory_percent** : Vérification de plusieurs sources (memory_total_mb, total_memory_mb, systemTotalMemoryMb) pour garantir des valeurs correctes
+- ✅ **Amélioration de la fusion incrémentale des données** : Utilisation d'un Map pour dédupliquer efficacement par timestamp, préserve les points existants et ajoute les nouveaux sans réécriture complète
+- ✅ **Amélioration de la suppression des doublons** : Conservation des valeurs non-null lors de la fusion des points dupliqués dans uniqueChartData
+- ✅ **Logs de debug améliorés** : Ajout de logs pour identifier où les valeurs projet sont perdues dans le pipeline de données
+- ✅ **Vérification des valeurs système** : Confirmation que les données CPU (32-47%) et mémoire (94%) sont cohérentes avec le système réel
+- ✅ **Tests Playwright pour les graphiques** : Création de tests E2E complets pour vérifier le fonctionnement des graphiques et des timestamps
+
+### 🧹 Scripts de nettoyage
+- ✅ **Scripts de nettoyage des métriques** : 
+  - `make db-clean-metrics` : Supprime toutes les métriques de PostgreSQL
+  - `make db-clean-all-metrics` : Nettoie PostgreSQL + instructions pour le cache frontend
+  - `scripts/db/clean-metrics.sh`, `clean-metrics-cache.sh`, `clean-all-metrics.sh`
+
 ## 🔄 En Cours / À Faire
 
 ### 🐛 Bugs à Corriger

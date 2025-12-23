@@ -10,9 +10,8 @@
 #include <time.h>
 #include <sys/statvfs.h>
 #include <sys/sysinfo.h>
-#include <unistd.h>
+#include <stdbool.h>
 #include <strings.h>
-#include <string.h>
 #include "collector.h"
 #include "proc_reader.h"
 #include "storage.h"
@@ -50,6 +49,15 @@ int collect_system_metrics(void) {
         global_metrics.cpu.load_1 = load1;
         global_metrics.cpu.load_5 = load5;
         global_metrics.cpu.load_15 = load15;
+    }
+    
+    // ✅ CORRECTION : Lire le CPU usage réel depuis /proc/stat
+    double system_cpu_percent = 0.0;
+    if (read_proc_stat_cpu(&system_cpu_percent) == 0) {
+        global_metrics.system_cpu_usage_percent = system_cpu_percent;
+    } else {
+        // Fallback : approximation depuis load_1
+        global_metrics.system_cpu_usage_percent = global_metrics.cpu.load_1 * 100.0 / global_metrics.cpu.cores;
     }
     
     // ✅ CORRECTION : Détecter le nombre de cores CPU
@@ -359,13 +367,34 @@ int collect_container_metrics(void) {
     double total_memory_percent = 0.0;
     int valid_containers = 0;
     
+    // ✅ NOUVEAU : Calculer project_cpu_avg et project_memory_mb pour les conteneurs JobbingTrack uniquement
+    double project_cpu_total = 0.0;
+    unsigned long project_memory_mb = 0;
+    int project_container_count = 0;
+    
     for (int i = 0; i < container_idx && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
             total_cpu_percent += global_metrics.containers[i].cpu_percent;
             total_memory_percent += global_metrics.containers[i].memory_percent;
             valid_containers++;
+            
+            // ✅ NOUVEAU : Calculer les métriques projet (conteneurs JobbingTrack uniquement)
+            if (strstr(global_metrics.containers[i].name, "jobbingtrack-") != NULL) {
+                project_cpu_total += global_metrics.containers[i].cpu_percent;
+                project_memory_mb += global_metrics.containers[i].memory_mb;
+                project_container_count++;
+            }
         }
     }
+    
+    // ✅ NOUVEAU : Stocker les métriques projet dans global_metrics
+    global_metrics.project_cpu_avg = (project_container_count > 0) ? 
+        (project_cpu_total / project_container_count) : 0.0;
+    global_metrics.project_memory_mb = project_memory_mb;
+    
+    // ✅ DEBUG : Afficher les métriques projet calculées
+    printf("[PROJECT] CPU Projet: total=%.2f%%, count=%d, avg=%.2f%%, Memory: %lu MB\n",
+           project_cpu_total, project_container_count, global_metrics.project_cpu_avg, global_metrics.project_memory_mb);
     
     // Mesurer les temps de réponse HTTP pour les services JobbingTrack
     for (int i = 0; i < container_idx && i < 100; i++) {
@@ -527,12 +556,19 @@ int collect_container_metrics(void) {
     // ✅ CORRECTION : Calculer la disponibilité uniquement si total_services > 0, sinon utiliser 100% par défaut
     double availability_percent = total_services > 0 ? (healthy_services * 100.0 / total_services) : 100.0;
     
-    // Calculer le score de charge (formule: CPU * 0.4 + Memory * 0.3 + (100 - Availability) * 0.2 + (ResponseTime/100) * 0.1)
+    // ✅ CORRECTION : Calculer le score de charge en combinant CPU Système, Mémoire Système, Temps Réponse, et Disque
+    // Formule: CPU Système * 0.35 + Mémoire Système * 0.30 + Disque * 0.20 + (ResponseTime/10) * 0.15
     // Score normalisé entre 0 et 100, où 0 = excellent et 100 = surchargé
-    double load_score = (avg_cpu * 0.4) + 
-                        (avg_memory * 0.3) + 
-                        ((100.0 - availability_percent) * 0.2) + 
-                        ((avg_response_time / 10.0) * 0.1); // Normaliser response_time (diviser par 10 pour avoir une valeur entre 0-10)
+    double system_cpu = global_metrics.system_cpu_usage_percent;
+    double system_memory = global_metrics.memory.usage_percent;
+    double disk_usage = global_metrics.disk.usage_percent;
+    double normalized_response_time = (avg_response_time / 10.0); // Normaliser (diviser par 10 pour avoir une valeur entre 0-10)
+    if (normalized_response_time > 10.0) normalized_response_time = 10.0; // Limiter à 10
+    
+    double load_score = (system_cpu * 0.35) + 
+                        (system_memory * 0.30) + 
+                        (disk_usage * 0.20) + 
+                        (normalized_response_time * 0.15);
     
     if (load_score > 100.0) load_score = 100.0;
     if (load_score < 0.0) load_score = 0.0;
@@ -553,7 +589,7 @@ int collect_container_metrics(void) {
     // ✅ NOUVEAU : Calculer le taux d'erreur par minute (approximation basée sur le nombre d'erreurs)
     // On suppose qu'une collecte toutes les 15 secondes = 4 collectes/min, donc on multiplie par 4
     global_metrics.error_rate_per_min = error_services * 4.0;  // Approximation
-    global_metrics.system_cpu_usage_percent = global_metrics.cpu.load_1 * 100.0 / global_metrics.cpu.cores; // Approximation
+    // ✅ CORRECTION : system_cpu_usage_percent est déjà calculé depuis /proc/stat plus haut
     global_metrics.system_memory_usage_percent = global_metrics.memory.usage_percent;
     
     // ✅ NOUVEAU : Calculer les variations si on a des métriques précédentes
@@ -693,10 +729,20 @@ int main(int argc, char *argv[]) {
             fflush(stderr);
         }
         
+        // ✅ CORRECTION : Mettre à jour le timestamp juste avant la sauvegarde
+        global_metrics.timestamp = time(NULL);
+        
         // Sauvegarder en base de données (ne pas crash si erreur)
         if (save_metrics_to_db(&global_metrics) != 0) {
             fprintf(stderr, "⚠️  Erreur sauvegarde DB (continuons)\n");
             fflush(stderr);
+        } else {
+            // ✅ DEBUG : Afficher le timestamp sauvegardé
+            struct tm *tm_info = gmtime(&global_metrics.timestamp);
+            char time_str[64];
+            strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S UTC", tm_info);
+            printf("[STORAGE] ✅ Métriques sauvegardées à %s\n", time_str);
+            fflush(stdout);
         }
         
         // Attendre avant la prochaine collecte

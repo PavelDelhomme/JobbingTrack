@@ -193,26 +193,14 @@ int save_metrics_to_db(const MetricsData *metrics) {
         }
     }
     
-    // Convertir timestamp en format PostgreSQL
-    char timestamp_str[64];
-    struct tm *tm_info = localtime(&metrics->timestamp);
-    strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    // ✅ CORRECTION : Utiliser NOW() de PostgreSQL pour avoir le timestamp exact du serveur
+    // Cela garantit que le timestamp est toujours correct, même si le conteneur a un décalage horaire
+    // On n'utilise plus le timestamp C, mais directement NOW() de PostgreSQL
     
-    // Calculer project_cpu_avg et project_memory_mb
-    double project_cpu_total = 0.0;
-    unsigned long project_memory_mb = 0;
-    int project_container_count = 0;
-    
-    for (int i = 0; i < 100; i++) {
-        if (metrics->containers[i].name[0] != '\0' && 
-            strstr(metrics->containers[i].name, "jobbingtrack-") != NULL) {
-            project_cpu_total += metrics->containers[i].cpu_percent;
-            project_memory_mb += metrics->containers[i].memory_mb;
-            project_container_count++;
-        }
-    }
-    double project_cpu_avg = (project_container_count > 0) ? 
-        (project_cpu_total / project_container_count) : 0.0;
+    // ✅ CORRECTION : Utiliser les métriques projet déjà calculées dans collector.c
+    // (elles sont stockées dans metrics->project_cpu_avg et metrics->project_memory_mb)
+    double project_cpu_avg = metrics->project_cpu_avg;
+    unsigned long project_memory_mb = metrics->project_memory_mb;
     
     // Insérer les métriques système
     char query[2048];
@@ -225,16 +213,15 @@ int save_metrics_to_db(const MetricsData *metrics) {
         "  availability_percent, load_score, total_network_rx_bytes, total_network_tx_bytes,"
         "  project_cpu_avg, project_memory_mb"
         ") VALUES ("
-        "  '%s', %.2f, %.2f, %.2f, %d, %.2f,"
+        "  NOW(), %.2f, %.2f, %.2f, %d, %.2f,"
         "  %lu, %lu, %lu, %.2f,"
         "  %.2f, %.2f, %.2f, %.2f,"
         "  %d, %.2f, %.2f, %.2f,"
         "  %.2f, %.2f, %lu, %lu,"
         "  %.2f, %lu"
         ") RETURNING id;",
-        timestamp_str,
         metrics->cpu.load_1, metrics->cpu.load_5, metrics->cpu.load_15, 
-        metrics->cpu.cores, metrics->cpu.load_1,  // usage_percent approximatif depuis load_1
+        metrics->cpu.cores, metrics->system_cpu_usage_percent,  // ✅ CORRECTION : Utiliser system_cpu_usage_percent au lieu de load_1
         metrics->memory.total_mb, metrics->memory.used_mb, metrics->memory.free_mb,
         metrics->memory.usage_percent,
         metrics->disk.total_gb, metrics->disk.used_gb, metrics->disk.free_gb,
@@ -280,11 +267,11 @@ int save_metrics_to_db(const MetricsData *metrics) {
             "  memory_mb, memory_limit_mb, memory_percent,"
             "  network_rx_bytes, network_tx_bytes, response_time_ms, http_status"
             ") VALUES ("
-            "  %lld, '%s', '%s', %.2f,"
+            "  %lld, NOW(), '%s', %.2f,"
             "  %lu, %lu, %.2f,"
             "  %lu, %lu, %.2f, %d"
             ");",
-            system_id, timestamp_str, escaped_name, metrics->containers[i].cpu_percent,
+            system_id, escaped_name, metrics->containers[i].cpu_percent,
             metrics->containers[i].memory_mb, metrics->containers[i].memory_limit_mb,
             metrics->containers[i].memory_percent,
             metrics->containers[i].network_rx_bytes, metrics->containers[i].network_tx_bytes,

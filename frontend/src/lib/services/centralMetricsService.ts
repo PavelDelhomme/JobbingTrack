@@ -793,17 +793,45 @@ class CentralMetricsService {
     // ✅ CORRECTION : Calculer les métriques agrégées des conteneurs JobbingTrack
     const jobbingtrackContainers = containers.filter((c: any) => c.name?.startsWith('jobbingtrack-'))
     
-    // ✅ CORRECTION : Utiliser project_memory_mb et project_cpu_avg directement depuis monitoring-c
-    // Ces valeurs sont déjà calculées correctement par monitoring-c
-    const projectMemoryMb = typeof data.project_memory_mb === 'number' && data.project_memory_mb > 0
-      ? data.project_memory_mb
-      : jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_mb || 0), 0)
+    // ✅ CORRECTION : Utiliser project_memory_mb directement depuis monitoring-c
+    // ✅ CORRECTION : Ne pas accepter 0 comme valeur valide si aucun conteneur n'est trouvé
+    let projectMemoryMb: number | null = null
+    if (typeof data.project_memory_mb === 'number' && !isNaN(data.project_memory_mb)) {
+      // ✅ CORRECTION : Si project_memory_mb est 0, vérifier s'il y a des conteneurs JobbingTrack
+      // Si oui, 0 est valide (mémoire non utilisée). Si non, c'est "non disponible"
+      if (data.project_memory_mb > 0 || jobbingtrackContainers.length > 0) {
+        projectMemoryMb = data.project_memory_mb
+      } else {
+        // 0 et aucun conteneur = non disponible
+        projectMemoryMb = null
+      }
+    }
+    
+    // Si project_memory_mb n'est pas disponible, calculer depuis les conteneurs
+    if (projectMemoryMb === null && jobbingtrackContainers.length > 0) {
+      projectMemoryMb = jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_mb || 0), 0)
+      console.log(`[CENTRAL METRICS] ⚠️ project_memory_mb non disponible, calculé depuis ${jobbingtrackContainers.length} conteneurs: ${projectMemoryMb}MB`)
+    } else if (projectMemoryMb === null) {
+      projectMemoryMb = null
+      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, project_memory_mb non disponible`)
+    } else {
+      console.log(`[CENTRAL METRICS] ✅ project_memory_mb depuis monitoring-c: ${projectMemoryMb}MB (${jobbingtrackContainers.length} conteneurs)`)
+    }
     
     // ✅ CORRECTION : Utiliser project_cpu_avg directement depuis monitoring-c
-    // Ne pas vérifier si > 0 car 0 peut être une valeur valide (système inactif)
-    let projectCpuAvg = typeof data.project_cpu_avg === 'number' && !isNaN(data.project_cpu_avg)
-      ? data.project_cpu_avg
-      : null
+    // ✅ CORRECTION : Ne pas accepter 0.0 comme valeur valide si aucun conteneur n'est trouvé
+    // monitoring-c retourne 0.0 quand project_container_count == 0, ce qui signifie "non disponible"
+    let projectCpuAvg: number | null = null
+    if (typeof data.project_cpu_avg === 'number' && !isNaN(data.project_cpu_avg)) {
+      // ✅ CORRECTION : Si project_cpu_avg est 0.0, vérifier s'il y a des conteneurs JobbingTrack
+      // Si oui, 0.0 est valide (système inactif). Si non, c'est "non disponible"
+      if (data.project_cpu_avg > 0 || jobbingtrackContainers.length > 0) {
+        projectCpuAvg = data.project_cpu_avg
+      } else {
+        // 0.0 et aucun conteneur = non disponible
+        projectCpuAvg = null
+      }
+    }
     
     // Si project_cpu_avg n'est pas disponible, calculer depuis les conteneurs
     if (projectCpuAvg === null && jobbingtrackContainers.length > 0) {
@@ -814,8 +842,9 @@ class CentralMetricsService {
       projectCpuAvg = totalCpu / jobbingtrackContainers.length
       console.log(`[CENTRAL METRICS] ⚠️ project_cpu_avg non disponible, calculé depuis ${jobbingtrackContainers.length} conteneurs: ${projectCpuAvg.toFixed(2)}%`)
     } else if (projectCpuAvg === null) {
-      projectCpuAvg = avgCpuPercent || 0
-      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, utilisation avgCpuPercent: ${projectCpuAvg}%`)
+      // Ne pas utiliser avgCpuPercent comme fallback car ce n'est pas la même chose
+      projectCpuAvg = null
+      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, project_cpu_avg non disponible`)
     } else {
       console.log(`[CENTRAL METRICS] ✅ project_cpu_avg depuis monitoring-c: ${projectCpuAvg.toFixed(2)}% (${jobbingtrackContainers.length} conteneurs)`)
     }
@@ -998,6 +1027,18 @@ class CentralMetricsService {
       }
 
       console.log(`[CENTRAL METRICS] ✅ ${data.data.length} points d'historique récupérés`)
+      
+      // ✅ DEBUG : Afficher les premières valeurs pour diagnostiquer
+      if (data.data.length > 0) {
+        const firstItem = data.data[0];
+        console.log('[CENTRAL METRICS] 🔍 Premier point de l\'historique:', {
+          timestamp: firstItem.timestamp,
+          project_cpu_avg: firstItem.project_cpu_avg,
+          project_memory_mb: firstItem.project_memory_mb,
+          projectCpuAvg: firstItem.projectCpuAvg,
+          projectMemoryMb: firstItem.projectMemoryMb
+        });
+      }
 
       // ✅ CORRECTION : Formater les données pour correspondre au format attendu par les graphiques
       // Le format Prisma SystemMetricsSnapshot utilise des noms de champs différents
@@ -1019,10 +1060,17 @@ class CentralMetricsService {
         const networkTxMb = networkTxBytes ? (Number(networkTxBytes) / (1024 * 1024)) : 0
 
         // ✅ CORRECTION : Convertir le timestamp en ISO string valide
+        // Les timestamps viennent de PostgreSQL en UTC (format: "2025-12-23 16:37:58 UTC" ou Date object)
         let timestamp = item.timestamp;
         if (timestamp) {
-          // Si c'est déjà une string ISO, la garder
           if (typeof timestamp === 'string') {
+            // ✅ CORRECTION : Si c'est une date PostgreSQL (format: "2025-12-23 16:37:58 UTC")
+            if (timestamp.includes(' UTC')) {
+              timestamp = timestamp.replace(' UTC', 'Z');
+            } else if (!timestamp.includes('Z') && !timestamp.includes('+') && !timestamp.includes('-', 10)) {
+              // Si c'est une date ISO sans timezone, ajouter 'Z' pour UTC
+              timestamp = timestamp + 'Z';
+            }
             // Vérifier que c'est une date valide
             const date = new Date(timestamp);
             if (Number.isNaN(date.getTime())) {
@@ -1046,10 +1094,16 @@ class CentralMetricsService {
           timestamp = new Date().toISOString();
         }
 
+        // ✅ NOUVEAU : Inclure memory_total_mb pour le calcul de project_memory_percent
+        const memoryTotalMb = item.memoryTotalMb !== undefined ? item.memoryTotalMb :
+                             (item.memory_total_mb !== undefined ? item.memory_total_mb :
+                             (item.total_memory_mb !== undefined ? item.total_memory_mb : null));
+        
         return {
           timestamp: timestamp,
           cpu_percent: cpuPercent,
           memory_percent: memoryPercent,
+          memory_total_mb: memoryTotalMb, // ✅ NOUVEAU : Inclure pour calculer project_memory_percent
           network_rx_mb: networkRxMb,
           network_tx_mb: networkTxMb,
           response_time_avg: item.responseTimeAvg !== undefined ? item.responseTimeAvg :
@@ -1061,8 +1115,17 @@ class CentralMetricsService {
           load_score: item.loadScore !== undefined ? item.loadScore :
                      (item.load_score !== undefined ? item.load_score : 0),
           // ✅ CORRECTION : Inclure project_cpu_avg et project_memory_mb si disponibles
-          project_cpu_avg: item.project_cpu_avg !== undefined ? item.project_cpu_avg : undefined,
-          project_memory_mb: item.project_memory_mb !== undefined ? item.project_memory_mb : undefined,
+          // ✅ DEBUG : Vérifier plusieurs formats possibles
+          project_cpu_avg: item.project_cpu_avg !== undefined && item.project_cpu_avg !== null 
+            ? Number(item.project_cpu_avg) 
+            : (item.projectCpuAvg !== undefined && item.projectCpuAvg !== null 
+              ? Number(item.projectCpuAvg) 
+              : undefined),
+          project_memory_mb: item.project_memory_mb !== undefined && item.project_memory_mb !== null 
+            ? Number(item.project_memory_mb) 
+            : (item.projectMemoryMb !== undefined && item.projectMemoryMb !== null 
+              ? Number(item.projectMemoryMb) 
+              : undefined),
           // Inclure les métriques des conteneurs si disponibles
           services: item.containers || []
         }
