@@ -241,7 +241,10 @@ clean-frontend: ## Nettoyer cache et builds
 	@cd $(FRONTEND_DIR) && rm -rf .next node_modules/.cache
 	@echo "✅ Nettoyé"
 
-rebuild-frontend: clean-frontend build-frontend ## Rebuild complet
+rebuild-frontend: ## Rebuild complet via Docker
+	@echo "🔨 Reconstruction du conteneur frontend..."
+	@docker compose build frontend
+	@echo "✅ Reconstruction terminée"
 
 # ============================================================================
 # DIAGNOSTIC

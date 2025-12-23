@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -std=c11 -pthread -D_GNU_SOURCE -I/usr/include/postgresql
-LDFLAGS = -lpq -lm -pthread
+CFLAGS = -Wall -Wextra -O2 -std=c11 -D_GNU_SOURCE -pthread -I/usr/include/postgresql
+LDFLAGS = -lpq -lcurl -lm -pthread
 
 SRCDIR = src
 INCDIR = include
@@ -8,8 +8,8 @@ OBJDIR = obj
 BINDIR = bin
 
 SOURCES = $(wildcard $(SRCDIR)/*.c)
-OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-TARGET = $(BINDIR)/log-collector-c
+OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+TARGET = $(BINDIR)/metrics-aggregator-c
 
 .PHONY: all clean install
 
@@ -35,13 +35,14 @@ install: $(TARGET)
 
 .PHONY: help
 help:
-	@echo "Système de collecte de logs en C"
+	@echo "Metrics Aggregator Service en C"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make          - Compiler le projet"
-	@echo "  make clean    - Nettoyer"
-	@echo "  make install  - Installer"
+	@echo "  make clean    - Nettoyer les fichiers compilés"
+	@echo "  make install  - Installer dans /usr/local/bin"
 	@echo ""
 	@echo "Exécution:"
-	@echo "  ./bin/log-collector-c"
+	@echo "  ./bin/metrics-aggregator-c [port]"
+	@echo "  Exemple: ./bin/metrics-aggregator-c 8014"
 

@@ -38,6 +38,7 @@ help-backend: ## Afficher l'aide backend
 	@echo "  make test-monitoring            - Suite tests complète"
 	@echo "  make test-metrics               - Test complet métriques (reconstruction + persistance)"
 	@echo "  make rebuild-monitoring-c       - Reconstruire conteneur monitoring-c"
+	@echo "  make rebuild-log-collector-c    - Reconstruire conteneur log-collector-c"
 	@echo ""
 	@echo "⚡ PERFORMANCE:"
 	@echo "  make test-performance-backend   - Tests de performance backend"
@@ -238,6 +239,28 @@ rebuild-monitoring-c: ## Reconstruire le conteneur monitoring-c
 	@echo ""
 	@echo "3️⃣ Démarrage..."
 	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d monitoring-c)
+	@echo "✅ Conteneur démarré"
+	@echo ""
+	@echo "⏳ Attente initialisation (5 secondes)..."
+	@sleep 5
+	@echo ""
+	@echo "✅ Reconstruction terminée !"
+	@echo "💡 Pour voir les logs: make monitoring-c-logs"
+
+rebuild-log-collector-c: ## Reconstruire le conteneur log-collector-c
+	@echo "🔨 Reconstruction du conteneur log-collector-c..."
+	@echo ""
+	@echo "1️⃣ Arrêt du conteneur..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop log-collector-c 2>/dev/null || true)
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c rm -f log-collector-c 2>/dev/null || true)
+	@echo "✅ Conteneur arrêté"
+	@echo ""
+	@echo "2️⃣ Reconstruction (sans cache)..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c build --no-cache log-collector-c)
+	@echo "✅ Build terminé"
+	@echo ""
+	@echo "3️⃣ Démarrage..."
+	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d log-collector-c)
 	@echo "✅ Conteneur démarré"
 	@echo ""
 	@echo "⏳ Attente initialisation (5 secondes)..."

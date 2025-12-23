@@ -905,10 +905,12 @@ class CentralMetricsService {
       monitoringC: {
         avg_cpu_percent: avgCpuPercent,
         avg_memory_percent: avgMemoryPercent,
-        avg_response_time_ms: data.avg_response_time_ms,
+        avg_response_time_ms: avgResponseTimeMs, // ✅ CORRECTION : Utiliser avgResponseTimeMs calculé
         container_count: data.container_count,
         load_score: data.load_score,
-        availability_percent: data.availability_percent
+        availability_percent: data.availability_percent,
+        error_rate_per_min: typeof data.error_rate_per_min === 'number' ? data.error_rate_per_min : 0, // ✅ NOUVEAU : Exposer error_rate_per_min
+        services_errors: typeof data.services?.errors === 'number' ? data.services.errors : 0 // ✅ NOUVEAU : Exposer services_errors
       },
       containers: containersMap, 
       timestamp,

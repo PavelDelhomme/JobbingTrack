@@ -41,7 +41,55 @@ export default function SecurityLogsPage() {
         return
       }
       
+      // ✅ NOUVEAU : Essayer d'abord log-collector-c, puis fallback sur security-service
+      const LOG_COLLECTOR_URL = process.env.NEXT_PUBLIC_LOG_COLLECTOR_URL || 'http://localhost:5099';
       const token = localStorage.getItem('token')
+      
+      // Essayer log-collector-c d'abord (logs de sécurité filtrés)
+      try {
+        const logCollectorResponse = await axios.get(`${LOG_COLLECTOR_URL}/api/v1/logs`, {
+          params: { 
+            limit: 50,
+            level: filterLevel !== 'all' ? filterLevel.toUpperCase() : undefined
+          },
+          timeout: 5000
+        })
+        
+        if (logCollectorResponse.data && logCollectorResponse.data.success && logCollectorResponse.data.data) {
+          // Filtrer les logs de sécurité (ERROR, WARN avec patterns de sécurité)
+          const securityLogs = logCollectorResponse.data.data
+            .filter((log: any) => {
+              const msg = (log.message || '').toLowerCase()
+              return log.level === 'ERROR' || log.level === 'WARN' ||
+                     msg.includes('unauthorized') || msg.includes('forbidden') ||
+                     msg.includes('attack') || msg.includes('threat') ||
+                     msg.includes('malicious') || msg.includes('suspicious') ||
+                     msg.includes('security') || msg.includes('firewall')
+            })
+            .map((log: any) => ({
+              id: log.id || `${log.timestamp}-${log.container_name}`,
+              level: log.level?.toLowerCase() || 'info',
+              category: log.source || log.container_name || 'unknown',
+              message: log.message || '',
+              sourceIP: log.source_ip,
+              userAgent: log.user_agent,
+              endpoint: log.endpoint,
+              timestamp: log.timestamp,
+              riskScore: log.is_error ? 80 : log.level === 'WARN' ? 40 : 20
+            }))
+          
+          setLogs(securityLogs)
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            data: securityLogs,
+            timestamp: now
+          }))
+          return
+        }
+      } catch (logCollectorError) {
+        // Fallback sur security-service si log-collector-c n'est pas disponible
+      }
+      
+      // Fallback : utiliser security-service
       const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { limit: 50 }, // ✅ OPTIMISATION : Réduire de 100 à 50

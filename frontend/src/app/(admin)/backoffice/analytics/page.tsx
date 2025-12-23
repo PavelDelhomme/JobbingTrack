@@ -240,19 +240,31 @@ const formatLogTimestamp = (nanoString: string) => {
   return new Date(milliseconds).toLocaleString('fr-FR', { hour12: false });
 };
 
-// Couleurs pour les graphiques
+// ✅ SYSTÈME DE COULEURS COHÉRENT pour tous les graphiques et cartes
 const COLORS = {
-  primary: '#3B82F6',
-  secondary: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#8B5CF6',
-  success: '#22C55E',
-  purple: '#A855F7',
-  cyan: '#06B6D4',
-  pink: '#EC4899',
-  indigo: '#6366F1',
-  orange: '#FB923C'
+  // Couleurs système
+  primary: '#3B82F6',        // Bleu - CPU Système
+  secondary: '#10B981',      // Vert - Mémoire Système
+  warning: '#F59E0B',        // Orange - Mémoire Projet
+  danger: '#EF4444',         // Rouge - Erreurs
+  info: '#8B5CF6',           // Violet - Info
+  success: '#22C55E',        // Vert clair - Disponibilité
+  purple: '#A855F7',         // Violet - Charge système, Temps de réponse
+  cyan: '#06B6D4',           // Cyan - Réseau
+  pink: '#EC4899',           // Rose - CPU Projet
+  indigo: '#6366F1',         // Indigo - Autres
+  orange: '#FB923C',         // Orange clair - Autres
+  
+  // ✅ COULEURS SPÉCIFIQUES pour cohérence
+  cpuSystem: '#3B82F6',      // Bleu - CPU Système
+  cpuProject: '#EC4899',     // Rose - CPU Projet
+  memorySystem: '#10B981',   // Vert - Mémoire Système
+  memoryProject: '#F59E0B',  // Orange - Mémoire Projet
+  availability: '#22C55E',   // Vert clair - Disponibilité
+  systemLoad: '#A855F7',    // Violet - Charge système
+  responseTime: '#A855F7',  // Violet - Temps de réponse
+  network: '#06B6D4',        // Cyan - Réseau
+  errors: '#EF4444'          // Rouge - Erreurs
 };
 
 export default function AnalyticsPage() {
@@ -381,9 +393,16 @@ export default function AnalyticsPage() {
     let mounted = true;
 
     const initializeMetrics = async () => {
+      // ✅ CORRECTION : Charger les données immédiatement pour affichage instantané
       // 1. Charger les données fraîches depuis monitoring-c (uniquement les données essentielles au démarrage)
       try {
-        const data = await centralMetricsService.fetchMetrics();
+        // ✅ OPTIMISATION : Charger en parallèle les métriques et l'historique minimal pour affichage immédiat
+        const [data, minimalHistory] = await Promise.all([
+          centralMetricsService.fetchMetrics(),
+          // Charger seulement les 10 derniers points pour affichage immédiat
+          centralMetricsService.getMetricsHistory({ limit: 10 }).catch(() => [])
+        ]);
+        
         if (mounted && data) {
           setMetrics((prev: any) => {
             if (!prev) {
@@ -395,23 +414,58 @@ export default function AnalyticsPage() {
               // servicesList est nécessaire pour calculer servicesTotal et servicesHealthy
             }
             setInitialMetricsLoaded(true);
+            // ✅ CORRECTION : Précharger l'historique minimal pour affichage immédiat des graphiques
+            if (minimalHistory && Array.isArray(minimalHistory) && minimalHistory.length > 0) {
+              setMetricsHistory(minimalHistory);
+              setInitialHistoryLoaded(true);
+            }
             return result;
             }
             
-            // Ne mettre à jour que si on a de nouvelles données valides
+            // ✅ CORRECTION : Fusion intelligente qui préserve les valeurs précédentes si les nouvelles sont null/undefined/0
+            const mergeMetrics = (prevValue: any, newValue: any) => {
+              // Si la nouvelle valeur est valide (non-null, non-undefined), l'utiliser
+              if (newValue !== null && newValue !== undefined) {
+                if (typeof newValue === 'number') {
+                  // Pour les nombres, accepter 0 comme valeur valide seulement si prevValue est aussi 0 ou null/undefined
+                  // Sinon, préférer la nouvelle valeur si elle est > 0, ou garder l'ancienne si la nouvelle est 0
+                  if (newValue === 0 && prevValue !== null && prevValue !== undefined && prevValue > 0) {
+                    // Si la nouvelle valeur est 0 mais que l'ancienne était > 0, garder l'ancienne (éviter les 0.0% temporaires)
+                    return prevValue;
+                  }
+                  return newValue;
+                }
+                if (typeof newValue === 'object' && !Array.isArray(newValue)) {
+                  // Pour les objets, fusionner récursivement
+                  if (!prevValue) return newValue;
+                  const merged: any = { ...prevValue };
+                  for (const key in newValue) {
+                    merged[key] = mergeMetrics(prevValue[key], newValue[key]);
+                  }
+                  return merged;
+                }
+                return newValue;
+              }
+              // Sinon, garder la valeur précédente
+              return prevValue;
+            };
+            
             return {
               ...prev,
-              ...data,
-              system: data.system ? { ...prev.system, ...data.system } : prev.system,
-              containers: data.containers ? { ...prev.containers, ...data.containers } : prev.containers,
-              network: data.network ? { ...prev.network, ...data.network } : prev.network,
-              responseTime: data.responseTime ? { ...prev.responseTime, ...data.responseTime } : prev.responseTime,
-              errors: data.errors ? { ...prev.errors, ...data.errors } : prev.errors,
-              health: data.health ? { ...prev.health, ...data.health } : prev.health,
+              // Fusion intelligente pour chaque propriété
+              system: data.system ? mergeMetrics(prev.system, data.system) : prev.system,
+              containers: data.containers ? mergeMetrics(prev.containers, data.containers) : prev.containers,
+              network: data.network ? mergeMetrics(prev.network, data.network) : prev.network,
+              responseTime: data.responseTime ? mergeMetrics(prev.responseTime, data.responseTime) : prev.responseTime,
+              errors: data.errors ? mergeMetrics(prev.errors, data.errors) : prev.errors,
+              health: data.health ? mergeMetrics(prev.health, data.health) : prev.health,
+              monitoringC: data.monitoringC ? mergeMetrics(prev.monitoringC, data.monitoringC) : prev.monitoringC,
               // ✅ OPTIMISATION : Ne mettre à jour services que si nécessaire, mais toujours mettre à jour servicesList
-              services: needsServices && data.services ? { ...prev.services, ...data.services } : prev.services,
+              services: needsServices && data.services ? mergeMetrics(prev.services, data.services) : prev.services,
               // ✅ CORRECTION : Toujours mettre à jour servicesList si disponible (nécessaire pour aggregatedStats)
-              servicesList: data.servicesList ? data.servicesList : prev.servicesList
+              servicesList: data.servicesList && Array.isArray(data.servicesList) && data.servicesList.length > 0 
+                ? data.servicesList 
+                : prev.servicesList
             };
           });
         }
@@ -721,14 +775,23 @@ export default function AnalyticsPage() {
       }
     };
 
-    // Chargement initial complet
-    loadHistory(true);
+    // ✅ CORRECTION : Charger l'historique initial seulement si pas déjà chargé
+    if (!initialHistoryLoaded || metricsHistory.length === 0) {
+      loadHistory(true);
+    }
     
-    // Ensuite, chargement incrémental périodique
+    // Ensuite, chargement incrémental périodique (optimisé pour économiser CPU/mémoire)
     const interval = setInterval(() => {
-      // ✅ OPTIMISATION : Ne charger l'historique que si la page est visible
-      if (document.visibilityState === 'visible' && !document.hidden) {
-        loadHistory(false);
+      // ✅ OPTIMISATION : Ne charger l'historique que si la page est visible et si on a besoin de plus de données
+      if (document.visibilityState === 'visible' && !document.hidden && initialHistoryLoaded) {
+        // ✅ OPTIMISATION : Charger seulement si on n'a pas assez de points pour le timeRange actuel
+        const minPointsNeeded = timeRange === '1h' ? 60 : 
+                              timeRange === '6h' ? 180 : 
+                              timeRange === '24h' ? 360 : 
+                              timeRange === '7d' ? 504 : 1050;
+        if (metricsHistory.length < minPointsNeeded) {
+          loadHistory(false);
+        }
       }
     }, metricsRefreshInterval);
 
@@ -751,8 +814,10 @@ export default function AnalyticsPage() {
         setAggregatedLogs(cached);
         setLoadingAggregatedLogs(false);
         
+          // ✅ CORRECTION : Utiliser log-collector-c au lieu de metrics-aggregator
+          const LOG_COLLECTOR_URL = process.env.NEXT_PUBLIC_LOG_COLLECTOR_URL || 'http://localhost:5099';
           // ✅ OPTIMISATION : Rafraîchir en arrière-plan avec limite réduite
-        fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`, {
+        fetch(`${LOG_COLLECTOR_URL}/api/v1/logs?limit=50&level=ERROR`, {
           signal: AbortSignal.timeout(5000)
         })
           .then(async (response) => {
@@ -778,8 +843,10 @@ export default function AnalyticsPage() {
       
       // Pas de cache, faire l'appel API avec gestion d'erreurs complète
       try {
+        // ✅ CORRECTION : Utiliser log-collector-c au lieu de metrics-aggregator
+        const LOG_COLLECTOR_URL = process.env.NEXT_PUBLIC_LOG_COLLECTOR_URL || 'http://localhost:5099';
         // ✅ OPTIMISATION : Réduire la limite de logs de 100 à 50 pour économiser la mémoire
-        const response = await fetch(`${METRICS_URL}/api/v1/persistence/logs?limit=50&level=ERROR`, {
+        const response = await fetch(`${LOG_COLLECTOR_URL}/api/v1/logs?limit=50&level=ERROR`, {
           signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
         });
         
@@ -1035,6 +1102,7 @@ export default function AnalyticsPage() {
   };
 
   // ✅ OPTIMISATION : Préparer les données pour les graphiques avec cache et tri optimisé
+  // ✅ CORRECTION : Utiliser metrics.system.memory.total_mb pour calculer project_memory_percent
   const chartData = useMemo(() => {
     if (!metricsHistory || metricsHistory.length === 0) {
       console.log('[ANALYTICS] ⚠️ metricsHistory est vide, chartData sera vide');
@@ -1042,6 +1110,11 @@ export default function AnalyticsPage() {
     }
     
     console.log(`[ANALYTICS] 📊 Préparation de chartData depuis ${metricsHistory.length} points d'historique`);
+    
+    // ✅ NOUVEAU : Récupérer total_memory_mb depuis metrics pour calculer project_memory_percent
+    const systemTotalMemoryMb = metrics?.system?.memory?.total_mb 
+      ? Number(metrics.system.memory.total_mb) 
+      : null;
     
     // ✅ OPTIMISATION : Vérifier si metricsHistory est déjà trié (éviter le tri si inutile)
     // On suppose que l'historique est déjà trié après chargement, donc on évite le tri si possible
@@ -1222,7 +1295,11 @@ export default function AnalyticsPage() {
       
       const responseTime = toNumber(item.response_time_avg || item.avg_response_time_ms, 0)
       const errorRate = toNumber(item.error_rate, 0)
-      const availability = toNumber(item.availability_percent, 100)
+      // ✅ CORRECTION : Ne pas utiliser 100 comme valeur par défaut pour availability
+      // Utiliser null si pas disponible pour détecter les problèmes de calcul
+      const availability = item.availability_percent !== undefined && item.availability_percent !== null
+        ? toNumber(item.availability_percent, null)
+        : null
       const loadScore = toNumber(item.load_score || item.overallLoadScore, 0)
       
       // ✅ CORRECTION : Utiliser le timestamp directement (déjà en UTC) et formater avec timezone utilisateur
@@ -1249,10 +1326,26 @@ export default function AnalyticsPage() {
           : null,
         project_memory_mb: item.project_memory_mb !== undefined && item.project_memory_mb !== null
           ? Number(item.project_memory_mb)
-          : null
+          : null,
+        // ✅ NOUVEAU : Calculer le pourcentage de mémoire projet si disponible
+        project_memory_percent: (() => {
+          // Priorité 1 : project_memory_percent directement disponible
+          if (item.project_memory_percent !== undefined && item.project_memory_percent !== null) {
+            return Number(item.project_memory_percent);
+          }
+          // Priorité 2 : Calculer depuis project_memory_mb et total_memory_mb (depuis item ou metrics)
+          const totalMemory = item.total_memory_mb 
+            ? Number(item.total_memory_mb) 
+            : systemTotalMemoryMb;
+          if (item.project_memory_mb !== undefined && item.project_memory_mb !== null && totalMemory && totalMemory > 0) {
+            const percent = (Number(item.project_memory_mb) / totalMemory) * 100;
+            return Number.isFinite(percent) ? percent : null;
+          }
+          return null;
+        })()
       };
     });
-  }, [metricsHistory, timeRange]);
+  }, [metricsHistory, timeRange, metrics?.system?.memory?.total_mb]);
   
   // ✅ DEBUG : Logger chartData pour diagnostiquer
   useEffect(() => {
@@ -1379,35 +1472,47 @@ export default function AnalyticsPage() {
     const totalNetworkMb = totalNetworkRxMb + totalNetworkTxMb;
 
     // ✅ CORRECTION : Compter les services sains (healthy, running, online)
-    // Un service est sain s'il a un status running/healthy/online OU un healthStatus online/healthy
-    // OU s'il a un http_status === 200 OU s'il a des métriques CPU/mémoire > 0
-    // OU s'il a un responseTimeMs valide (> 0 et < 10000ms)
-    const healthyCount = servicesList.length > 0 ? servicesList.filter((s: any) => {
-      // Priorité 1 : Status explicite
-      if (s.status === 'healthy' || s.status === 'running' || s.status === 'online' || s.status === 'active') {
-        return true;
-      }
-      // Priorité 2 : HealthStatus
-      if (s.healthStatus === 'online' || s.healthStatus === 'healthy' || s.healthStatus === 'active') {
-        return true;
-      }
-      // Priorité 3 : HTTP status 200
-      if (s.http_status === 200 || s.httpStatus === 200 || s.statusCode === 200) {
-        return true;
-      }
-      // Priorité 4 : Temps de réponse valide (service répond)
-      if (s.responseTimeMs && typeof s.responseTimeMs === 'number' && s.responseTimeMs > 0 && s.responseTimeMs < 10000) {
-        return true;
-      }
-      // Priorité 5 : Métriques disponibles (CPU ou mémoire > 0)
-      if ((s.metrics?.cpu?.percentage && s.metrics.cpu.percentage > 0) ||
-          (s.metrics?.memory?.usageMb && s.metrics.memory.usageMb > 0) ||
-          (s.cpu_percent && s.cpu_percent > 0) ||
-          (s.memory_mb && s.memory_mb > 0)) {
-        return true;
-      }
-      return false;
-    }).length : 0;
+    // Utiliser d'abord les données de monitoringC si disponibles
+    let servicesTotal = 0;
+    let servicesHealthy = 0;
+    
+    if (metrics.monitoringC?.services_total !== undefined && metrics.monitoringC.services_total > 0) {
+      servicesTotal = metrics.monitoringC.services_total;
+      servicesHealthy = metrics.monitoringC.services_healthy || 0;
+    } else if (servicesList.length > 0) {
+      servicesTotal = servicesList.length;
+      // Un service est sain s'il a un status running/healthy/online OU un healthStatus online/healthy
+      // OU s'il a un http_status === 200 OU s'il a des métriques CPU/mémoire > 0
+      // OU s'il a un responseTimeMs valide (> 0 et < 10000ms)
+      servicesHealthy = servicesList.filter((s: any) => {
+        // Priorité 1 : Status explicite
+        if (s.status === 'healthy' || s.status === 'running' || s.status === 'online' || s.status === 'active') {
+          return true;
+        }
+        // Priorité 2 : HealthStatus
+        if (s.healthStatus === 'online' || s.healthStatus === 'healthy' || s.healthStatus === 'active') {
+          return true;
+        }
+        // Priorité 3 : HTTP status 200
+        if (s.http_status === 200 || s.httpStatus === 200 || s.statusCode === 200) {
+          return true;
+        }
+        // Priorité 4 : Temps de réponse valide (service répond)
+        if (s.responseTimeMs && typeof s.responseTimeMs === 'number' && s.responseTimeMs > 0 && s.responseTimeMs < 10000) {
+          return true;
+        }
+        // Priorité 5 : Métriques disponibles (CPU ou mémoire > 0)
+        if ((s.metrics?.cpu?.percentage && s.metrics.cpu.percentage > 0) ||
+            (s.metrics?.memory?.usageMb && s.metrics.memory.usageMb > 0) ||
+            (s.cpu_percent && s.cpu_percent > 0) ||
+            (s.memory_mb && s.memory_mb > 0)) {
+          return true;
+        }
+        return false;
+      }).length;
+    }
+    
+    const healthyCount = servicesHealthy;
     const degradedCount = servicesList.filter((s: any) => 
       s.status === 'degraded' || 
       s.healthStatus === 'degraded'
@@ -1437,14 +1542,19 @@ export default function AnalyticsPage() {
       }
     }
 
-    const totalErrors = servicesList.reduce((sum, s: any) => 
-      sum + toNumber(s.errorCount5m, 0), 0);
-    const avgErrorRate = metrics.errors?.rate_per_min !== undefined
-      ? toNumber(metrics.errors.rate_per_min, 0)
-      : servicesList.reduce((sum, s: any) => sum + toNumber(s.errorRatePerMin, 0), 0);
+    // ✅ CORRECTION : Utiliser error_rate_per_min depuis monitoring-c si disponible
+    const totalErrors = metrics?.monitoringC?.error_rate_per_min !== undefined
+      ? Math.round(metrics.monitoringC.error_rate_per_min * 5) // Approximation sur 5 min
+      : servicesList.reduce((sum, s: any) => 
+          sum + toNumber(s.errorCount5m, 0), 0);
+    const avgErrorRate = metrics?.monitoringC?.error_rate_per_min !== undefined
+      ? metrics.monitoringC.error_rate_per_min
+      : (metrics?.errors?.rate_per_min !== undefined
+        ? toNumber(metrics.errors.rate_per_min, 0)
+        : servicesList.reduce((sum, s: any) => sum + toNumber(s.errorRatePerMin, 0), 0));
 
     return {
-      servicesTotal: servicesList.length,
+      servicesTotal: servicesTotal || servicesList.length,
       servicesHealthy: healthyCount,
       servicesDegraded: degradedCount,
       servicesOffline: offlineCount,
@@ -1624,19 +1734,222 @@ export default function AnalyticsPage() {
 const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
   // Calculer les tendances depuis l'historique
   const last30Points = chartData.slice(-30)
-  const cpuTrend = last30Points.length > 0 
-    ? aggregatedStats.avgCpuUsage - (last30Points.reduce((sum: number, d: any) => sum + d.cpu, 0) / last30Points.length)
+  
+  // ✅ CORRECTION : Calculer les tendances en pourcentage pour éviter NaN
+  const cpuTrend = last30Points.length > 0 && aggregatedStats.avgCpuUsage !== null
+    ? aggregatedStats.avgCpuUsage - (last30Points.reduce((sum: number, d: any) => sum + (d.cpu || 0), 0) / last30Points.length)
     : 0
-  const memoryTrend = last30Points.length > 0
-    ? aggregatedStats.totalMemoryMb - (last30Points.reduce((sum: number, d: any) => sum + d.memory, 0) / last30Points.length)
+  
+  // ✅ CORRECTION : Comparer les pourcentages de mémoire, pas les MB
+  const currentMemoryPercent = metrics?.system?.memory?.usage_percent !== undefined
+    ? metrics.system.memory.usage_percent
+    : (aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
+      ? (aggregatedStats.totalMemoryMb / metrics.system.memory.total_mb) * 100
+      : null)
+  const avgMemoryPercent = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => sum + (d.memoryPercent || d.memory || 0), 0) / last30Points.length
     : 0
-  const responseTimeTrend = last30Points.length > 0
-    ? aggregatedStats.avgResponseTime - (last30Points.reduce((sum: number, d: any) => sum + d.responseTime, 0) / last30Points.length)
+  const memoryTrend = currentMemoryPercent !== null && avgMemoryPercent > 0
+    ? currentMemoryPercent - avgMemoryPercent
+    : 0
+  
+  // ✅ CORRECTION : Calculer la tendance du temps de réponse
+  const avgResponseTimeHistory = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => sum + (d.responseTime || 0), 0) / last30Points.length
+    : 0
+  const responseTimeTrend = aggregatedStats.avgResponseTime !== null && avgResponseTimeHistory > 0
+    ? aggregatedStats.avgResponseTime - avgResponseTimeHistory
+    : 0
+  
+  // ✅ NOUVEAU : Calculer les tendances pour les cartes projet
+  const projectCpuAvg = metrics?.monitoringC?.project_cpu_avg !== undefined
+    ? metrics.monitoringC.project_cpu_avg
+    : metrics?.system?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+    ? metrics.system.jobbingtrack.containers.cpu.averagePercent
+    : null
+  const avgProjectCpu = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => sum + (d.project_cpu_avg || 0), 0) / last30Points.length
+    : 0
+  const projectCpuTrend = projectCpuAvg !== null && avgProjectCpu > 0
+    ? projectCpuAvg - avgProjectCpu
+    : 0
+  
+  const projectMemoryPercent = metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
+    ? (metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100
+    : metrics?.system?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+    ? metrics.system.jobbingtrack.containers.memory.percent_of_system
+    : metrics?.system?.jobbingtrack?.containers?.memory?.percent !== undefined
+    ? metrics.system.jobbingtrack.containers.memory.percent
+    : null
+  const avgProjectMemory = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => {
+        const mem = d.project_memory_percent || (d.project_memory_mb && metrics?.system?.memory?.total_mb ? (d.project_memory_mb / metrics.system.memory.total_mb) * 100 : 0)
+        return sum + (mem || 0)
+      }, 0) / last30Points.length
+    : 0
+  const projectMemoryTrend = projectMemoryPercent !== null && avgProjectMemory > 0
+    ? projectMemoryPercent - avgProjectMemory
+    : 0
+  
+  // ✅ NOUVEAU : Calculer la tendance de disponibilité
+  const currentAvailability = metrics?.monitoringC?.availability_percent !== undefined
+    ? metrics.monitoringC.availability_percent
+    : metrics?.health?.availability_percent !== undefined
+    ? metrics.health.availability_percent
+    : (aggregatedStats.servicesTotal > 0
+      ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
+      : null)
+  const avgAvailability = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => sum + (d.availability || 0), 0) / last30Points.length
+    : 0
+  const availabilityTrend = currentAvailability !== null && avgAvailability > 0
+    ? currentAvailability - avgAvailability
+    : 0
+  
+  // ✅ NOUVEAU : Calculer la tendance de charge système
+  const currentLoad = metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
+    ? metrics.system.cpu.load_1
+    : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
+    ? metrics.system.load.load_1
+    : metrics?.monitoringC?.load_1 !== undefined && metrics.monitoringC.load_1 > 0
+    ? metrics.monitoringC.load_1
+    : null
+  const avgLoad = last30Points.length > 0
+    ? last30Points.reduce((sum: number, d: any) => sum + (d.loadScore || 0), 0) / last30Points.length
+    : 0
+  const loadTrend = currentLoad !== null && avgLoad > 0
+    ? currentLoad - avgLoad
     : 0
 
   return (
     <div className="space-y-6">
-      {/* Cartes de synthèse - Utilisation de monitoring-c */}
+      {/* ✅ CORRECTION : Cartes Projet en premier (style gradient) */}
+      {metrics?.system?.jobbingtrack && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
+              <div className="flex items-center gap-2">
+                {projectCpuTrend !== 0 && (
+                  <span className={`text-xs font-medium ${projectCpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {projectCpuTrend > 0 ? '↗' : '↘'} {Math.abs(projectCpuTrend).toFixed(1)}%
+                  </span>
+                )}
+                <Cpu className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+              {metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
+                ? `${metrics.system.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
+                : metrics?.monitoringC?.project_cpu_avg !== undefined
+                ? `${metrics.monitoringC.project_cpu_avg.toFixed(1)}%`
+                : '...'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {(() => {
+                // ✅ CORRECTION : Compter uniquement les conteneurs JobbingTrack (pas tous les conteneurs)
+                const jobbingtrackCount = metrics.system.jobbingtrack.containers?.count;
+                // Si count est trop élevé (ex: 33), utiliser un calcul plus précis
+                if (jobbingtrackCount && jobbingtrackCount > 30) {
+                  // Essayer de compter depuis les services ou monitoringC
+                  const servicesCount = aggregatedStats.servicesTotal || 0;
+                  return servicesCount > 0 ? `${servicesCount} services` : `${jobbingtrackCount} conteneurs`;
+                }
+                return jobbingtrackCount ? `${jobbingtrackCount} conteneurs JobbingTrack` : '...';
+              })()}
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
+              <div className="flex items-center gap-2">
+                {projectMemoryTrend !== 0 && (
+                  <span className={`text-xs font-medium ${projectMemoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {projectMemoryTrend > 0 ? '↗' : '↘'} {Math.abs(projectMemoryTrend).toFixed(1)}%
+                  </span>
+                )}
+                <MemoryStick className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
+                ? `${metrics.system.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
+                : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
+                ? `${metrics.system.jobbingtrack.containers.memory.percent.toFixed(1)}%`
+                : (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
+                  ? `${((metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100).toFixed(1)}%`
+                  : '...')}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
+                ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
+                : ''}
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
+              <div className="flex items-center gap-2">
+                {availabilityTrend !== 0 && (
+                  <span className={`text-xs font-medium ${availabilityTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {availabilityTrend > 0 ? '↗' : '↘'} {Math.abs(availabilityTrend).toFixed(1)}%
+                  </span>
+                )}
+                <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {(() => {
+                // ✅ CORRECTION : Afficher le pourcentage de disponibilité, pas 0MB
+                const availability = metrics?.monitoringC?.availability_percent !== undefined
+                  ? metrics.monitoringC.availability_percent
+                  : metrics?.health?.availability_percent !== undefined
+                  ? metrics.health.availability_percent
+                  : (aggregatedStats.servicesTotal > 0
+                    ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
+                    : null)
+                
+                return availability !== null ? `${availability.toFixed(1)}%` : '...'
+              })()}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Charge Système</span>
+              <div className="flex items-center gap-2">
+                {loadTrend !== 0 && (
+                  <span className={`text-xs font-medium ${loadTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {loadTrend > 0 ? '↗' : '↘'} {Math.abs(loadTrend).toFixed(2)}
+                  </span>
+                )}
+                <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
+                ? metrics.system.cpu.load_1.toFixed(2)
+                : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
+                ? metrics.system.load.load_1.toFixed(2)
+                : metrics?.monitoringC?.load_1 !== undefined && metrics.monitoringC.load_1 > 0
+                ? metrics.monitoringC.load_1.toFixed(2)
+                : '0.00'}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A' && parseInt(metrics.system.cpu.cores) > 0
+                ? `Sur ${metrics.system.cpu.cores} cores`
+                : ''}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* ✅ CORRECTION : Cartes Système en second (style StatCard) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Server className="w-6 h-6" />}
@@ -1648,20 +1961,20 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
         <StatCard
           icon={<Cpu className="w-6 h-6" />}
           title="CPU Système"
-          value={metrics?.system?.cpu?.load_1 !== undefined 
-            ? `${metrics.system.cpu.load_1.toFixed(1)}%` 
+          value={metrics?.system?.cpu?.usage_percent !== undefined
+            ? `${metrics.system.cpu.usage_percent.toFixed(1)}%`
+            : metrics?.monitoringC?.avg_cpu_percent !== undefined
+            ? `${metrics.monitoringC.avg_cpu_percent.toFixed(1)}%`
             : aggregatedStats.avgCpuUsage !== null 
             ? `${aggregatedStats.avgCpuUsage.toFixed(1)}%` 
             : '...'}
           subtitle={metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A'
             ? `${metrics.system.cpu.cores} cores`
-            : metrics?.system?.jobbingtrack?.containers?.count !== undefined
-            ? `${metrics.system.jobbingtrack.containers.count} conteneurs`
-            : ''}
+            : 'Système global'}
           trend={cpuTrend}
           trendType="positive-is-bad"
-          color="purple"
-          loading={aggregatedStats.avgCpuUsage === null && metrics?.system?.cpu?.load_1 === undefined}
+          color="blue"
+          loading={aggregatedStats.avgCpuUsage === null && metrics?.system?.cpu?.usage_percent === undefined && metrics?.monitoringC?.avg_cpu_percent === undefined}
         />
         <StatCard
           icon={<MemoryStick className="w-6 h-6" />}
@@ -1682,75 +1995,26 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
         <StatCard
           icon={<Clock className="w-6 h-6" />}
           title="Temps Réponse Moy."
-          value={metrics?.monitoringC?.avg_response_time_ms !== undefined
-            ? formatMs(metrics.monitoringC.avg_response_time_ms)
-            : aggregatedStats.avgResponseTime !== null 
-            ? formatMs(aggregatedStats.avgResponseTime) 
-            : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Essayer plusieurs sources pour le temps de réponse
+            const responseTime = metrics?.monitoringC?.avg_response_time_ms !== undefined && metrics.monitoringC.avg_response_time_ms > 0
+              ? metrics.monitoringC.avg_response_time_ms
+              : metrics?.responseTime?.average_ms !== undefined && metrics.responseTime.average_ms > 0
+              ? metrics.responseTime.average_ms
+              : aggregatedStats.avgResponseTime !== null && aggregatedStats.avgResponseTime > 0
+              ? aggregatedStats.avgResponseTime
+              : null
+            
+            return responseTime !== null && responseTime > 0 ? formatMs(responseTime) : '...'
+          })()}
           trend={responseTimeTrend}
           trendType="positive-is-bad"
-          color="orange"
-          loading={aggregatedStats.avgResponseTime === null && metrics?.monitoringC?.avg_response_time_ms === undefined}
+          color="purple"
+          loading={aggregatedStats.avgResponseTime === null && 
+                  metrics?.monitoringC?.avg_response_time_ms === undefined &&
+                  metrics?.responseTime?.average_ms === undefined}
         />
       </div>
-      
-      {/* ✅ NOUVEAU : Métriques projet depuis monitoring-c */}
-      {metrics?.system?.jobbingtrack && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
-              <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
-                ? `${metrics.system.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
-                : '...'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {metrics.system.jobbingtrack.containers?.count || 0} conteneurs JobbingTrack
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
-              <MemoryStick className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
-                ? `${metrics.system.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
-                : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
-                ? `${metrics.system.jobbingtrack.containers.memory.percent.toFixed(1)}%`
-                : '...'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
-                ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
-                : ''}
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Charge Système</span>
-              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {metrics?.system?.cpu?.load_1 !== undefined && metrics.system.cpu.load_1 > 0
-                ? metrics.system.cpu.load_1.toFixed(2)
-                : metrics?.system?.load?.load_1 !== undefined && metrics.system.load.load_1 > 0
-                ? metrics.system.load.load_1.toFixed(2)
-                : '0.00'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {metrics?.system?.cpu?.cores && metrics.system.cpu.cores !== 'N/A' && parseInt(metrics.system.cpu.cores) > 0
-                ? `${metrics.system.cpu.cores} coeurs`
-                : 'N/A'}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Graphiques principaux avec chargement progressif */}
       {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
@@ -1859,7 +2123,7 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
           <span>Actualisation...</span>
         </div>
       )}
-      {/* CPU & Mémoire */}
+      {/* CPU & Mémoire - Système et Projet */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           💻 CPU & Mémoire
@@ -1894,6 +2158,15 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                 label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
                 tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
               />
+              <YAxis 
+                yAxisId="memory"
+                orientation="right"
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                label={{ value: 'Mémoire (%)', angle: 90, position: 'insideRight' }}
+                tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#1F2937', 
@@ -1901,30 +2174,74 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                   borderRadius: '8px',
                   color: '#F3F4F6'
                 }}
+                labelFormatter={(label: any) => {
+                  // ✅ CORRECTION : Convertir le timestamp en heure locale utilisateur
+                  if (!label) return '';
+                  const item = chartData.find((d: any) => d.uniqueTime === label || d.time === label);
+                  if (item && item.timestamp) {
+                    const date = new Date(item.timestamp);
+                    if (!Number.isNaN(date.getTime())) {
+                      return date.toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                      });
+                    }
+                  }
+                  return label;
+                }}
                 formatter={(value: any, name: string) => {
-                  if (name === 'CPU (%)') return [`${Number(value).toFixed(1)}%`, name];
-                  if (name === 'Mémoire (%)') return [`${Number(value).toFixed(1)}%`, name];
+                  if (name.includes('CPU')) return [`${Number(value).toFixed(1)}%`, name];
+                  if (name.includes('Mémoire')) return [`${Number(value).toFixed(1)}%`, name];
                   return [value, name];
                 }}
               />
               <Legend />
+              {/* CPU Système - Bleu */}
               <Line 
                 type="monotone" 
                 dataKey="cpu" 
                 yAxisId="cpu"
-                stroke={COLORS.primary} 
+                stroke={COLORS.cpuSystem} 
                 strokeWidth={2}
-                name="CPU (%)"
+                name="CPU Système (%)"
                 dot={false}
                 connectNulls={false}
               />
+              {/* CPU Projet - Rose */}
+              <Line 
+                type="monotone" 
+                dataKey="project_cpu_avg" 
+                yAxisId="cpu"
+                stroke={COLORS.cpuProject} 
+                strokeWidth={2}
+                name="CPU Projet (%)"
+                dot={false}
+                connectNulls={false}
+              />
+              {/* Mémoire Système - Vert */}
               <Line 
                 type="monotone" 
                 dataKey="memoryPercent" 
-                yAxisId="cpu"
-                stroke={COLORS.secondary} 
+                yAxisId="memory"
+                stroke={COLORS.memorySystem} 
                 strokeWidth={2}
-                name="Mémoire (%)"
+                name="Mémoire Système (%)"
+                dot={false}
+                connectNulls={false}
+              />
+              {/* Mémoire Projet - Orange */}
+              <Line 
+                type="monotone" 
+                dataKey="project_memory_percent" 
+                yAxisId="memory"
+                stroke={COLORS.memoryProject} 
+                strokeWidth={2}
+                name="Mémoire Projet (%)"
                 dot={false}
                 connectNulls={false}
               />
@@ -2105,8 +2422,9 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
               <YAxis 
                 stroke="#9CA3AF"
                 style={{ fontSize: '12px' }}
-                domain={[0, 'auto']}
-                tickFormatter={(value) => `${Number(value).toFixed(0)} MB`}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                label={{ value: 'Disponibilité (%)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -2115,6 +2433,26 @@ const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, tim
                   borderRadius: '8px',
                   color: '#F3F4F6'
                 }}
+                labelFormatter={(label: any) => {
+                  if (!label) return '';
+                  const item = chartData.find((d: any) => d.uniqueTime === label || d.time === label);
+                  if (item && item.timestamp) {
+                    const date = new Date(item.timestamp);
+                    if (!Number.isNaN(date.getTime())) {
+                      return date.toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                      });
+                    }
+                  }
+                  return label;
+                }}
+                formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Disponibilité']}
               />
               <Line 
                 type="monotone" 
@@ -2177,32 +2515,58 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
         <StatCard
           icon={<Clock className="w-5 h-5" />}
           title="Temps Réponse Moy."
-          value={aggregatedStats.avgResponseTime !== null ? formatMs(aggregatedStats.avgResponseTime) : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Utiliser monitoringC.avg_response_time_ms en priorité
+            const responseTime = metrics?.monitoringC?.avg_response_time_ms !== undefined && metrics.monitoringC.avg_response_time_ms > 0
+              ? metrics.monitoringC.avg_response_time_ms
+              : aggregatedStats.avgResponseTime !== null && aggregatedStats.avgResponseTime > 0
+              ? aggregatedStats.avgResponseTime
+              : null
+            return responseTime !== null ? formatMs(responseTime) : '...'
+          })()}
           color="purple"
-          loading={aggregatedStats.avgResponseTime === null}
+          loading={aggregatedStats.avgResponseTime === null && metrics?.monitoringC?.avg_response_time_ms === undefined}
         />
 
         <StatCard
           icon={<AlertTriangle className="w-5 h-5" />}
           title="Erreurs (5 min)"
-          value={aggregatedStats.totalErrors || 0}
+          value={metrics?.monitoringC?.services_errors !== undefined
+            ? metrics.monitoringC.services_errors
+            : aggregatedStats.totalErrors || 0}
           color="orange"
         />
 
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           title="Taux Erreur"
-          value={aggregatedStats.avgErrorRate !== null ? `${aggregatedStats.avgErrorRate.toFixed(2)}/min` : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Utiliser monitoringC.error_rate_per_min en priorité
+            const errorRate = metrics?.monitoringC?.error_rate_per_min !== undefined && metrics.monitoringC.error_rate_per_min !== null
+              ? metrics.monitoringC.error_rate_per_min
+              : aggregatedStats.avgErrorRate !== null
+              ? aggregatedStats.avgErrorRate
+              : null
+            return errorRate !== null ? `${errorRate.toFixed(2)}/min` : '...'
+          })()}
           color="orange"
-          loading={aggregatedStats.avgErrorRate === null}
+          loading={aggregatedStats.avgErrorRate === null && metrics?.monitoringC?.error_rate_per_min === undefined}
         />
 
         <StatCard
           icon={<Cpu className="w-5 h-5" />}
           title="CPU Moyen Total"
-          value={aggregatedStats.avgCpuUsage !== null ? `${Math.min(aggregatedStats.avgCpuUsage, 100).toFixed(1)}%` : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Utiliser monitoringC.avg_cpu_percent en priorité
+            const cpuUsage = metrics?.monitoringC?.avg_cpu_percent !== undefined
+              ? metrics.monitoringC.avg_cpu_percent
+              : aggregatedStats.avgCpuUsage !== null
+              ? aggregatedStats.avgCpuUsage
+              : null
+            return cpuUsage !== null ? `${Math.min(cpuUsage, 100).toFixed(1)}%` : '...'
+          })()}
           color="blue"
-          loading={aggregatedStats.avgCpuUsage === null}
+          loading={aggregatedStats.avgCpuUsage === null && metrics?.monitoringC?.avg_cpu_percent === undefined}
         />
       </div>
 
@@ -2217,140 +2581,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
               <span>Actualisation...</span>
             </div>
           )}
-          {/* CPU Moyen Total dans le temps */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              💻 CPU Moyen Total - Évolution temporelle
-            </h3>
-            {chart1Loaded ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="uniqueTime" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => {
-                    const item = chartData[index];
-                    if (!item) return '';
-                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                  }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  // ✅ CORRECTION : Retirer domain pour éviter les erreurs NaN
-                  // domain={[0, 100]} // Retiré pour permettre auto-scaling
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="cpu" 
-                  stroke={COLORS.primary} 
-                  strokeWidth={3}
-                  name="CPU Moyen (%)"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-            ) : (
-              <ChartSkeleton height={300} />
-            )}
-          </div>
-          {/* Graphique temporel des performances */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              📈 Évolution des Performances
-            </h3>
-            {chart2Loaded && chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <ComposedChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
-                    yAxisId="left"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                    // ✅ CORRECTION : Ne pas forcer domain si les valeurs peuvent être NaN
-                    // domain={[0, 100]} // Retiré pour éviter les erreurs NaN
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="#9CA3AF"
-                    style={{ fontSize: '12px' }}
-                    // ✅ CORRECTION : Laisser Recharts calculer automatiquement le domain
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: '#F3F4F6'
-                    }}
-                    formatter={(value: any, name: string) => {
-                      if (name === 'Temps réponse (ms)') {
-                        return [value > 0 ? `${value.toFixed(0)} ms` : 'N/A', name];
-                      }
-                      return [value > 0 ? `${value.toFixed(1)}%` : 'N/A', name];
-                    }}
-                  />
-                  <Legend />
-                  <Area 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="cpu" 
-                    stroke={COLORS.primary}
-                    fill={COLORS.primary}
-                    fillOpacity={0.3}
-                    name="CPU (%)"
-                  />
-                  <Area 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="memory" 
-                    stroke={COLORS.secondary}
-                    fill={COLORS.secondary}
-                    fillOpacity={0.3}
-                    name="Mémoire (%)"
-                  />
-                  {chartData.some((d: any) => d.responseTime > 0) && (
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="responseTime" 
-                      stroke={COLORS.purple}
-                      strokeWidth={2}
-                      name="Temps réponse (ms)"
-                      dot={false}
-                      connectNulls={false}
-                    />
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
-            ) : chart2Loaded ? (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Chargement des données de performance...</p>
-                <p className="text-xs mt-2">Les données apparaîtront ici une fois collectées</p>
-              </div>
-            ) : (
-              <ChartSkeleton height={400} />
-            )}
-          </div>
+          {/* Note: Les graphiques "CPU Moyen Total - Évolution temporelle" et "Évolution des Performances" ont été déplacés vers l'onglet Système > Projet */}
           {/* CPU par service - État actuel */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
@@ -2365,11 +2596,23 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
                   data={servicesList
-                    .map((s: any) => ({ 
-                      name: s.displayName || s.name,
-                      cpu: Math.min(toNumber(s.metrics?.cpu?.percentage, 0), 100) // Limiter à 100%
-                }))
-                    .filter((item: any) => item.cpu > 0)} // Filtrer après le map
+                    .map((s: any) => {
+                      // ✅ CORRECTION : Essayer plusieurs sources pour le CPU
+                      const cpu = toNumber(
+                        s.metrics?.cpu?.percentage,
+                        s.metrics?.cpu?.usage,
+                        s.cpu_percent,
+                        s.metrics?.cpu?.system,
+                        0
+                      )
+                      return {
+                        name: (s.displayName || s.name || s.rawName || 'Service inconnu').substring(0, 30),
+                        cpu: Math.min(cpu, 100) // Limiter à 100%
+                      }
+                    })
+                    .filter((item: any) => item.cpu > 0) // Filtrer après le map
+                    .sort((a: any, b: any) => b.cpu - a.cpu) // ✅ NOUVEAU : Trier par CPU décroissant
+                    .slice(0, 20)} // ✅ NOUVEAU : Limiter aux 20 services avec le plus de CPU
                 layout="horizontal"
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -2725,19 +2968,15 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {(() => {
-              // ✅ CORRECTION : Calculer la disponibilité depuis les services
-              const availability = metrics?.health?.availability_percent !== undefined
-                ? toNumber(metrics.health.availability_percent, 100)
-                : (servicesList && servicesList.length > 0
-                  ? (servicesList.filter((s: any) => 
-                      s.status === 'running' || 
-                      s.status === 'healthy' || 
-                      s.status === 'online' ||
-                      s.healthStatus === 'online' ||
-                      s.healthStatus === 'healthy'
-                    ).length / servicesList.length) * 100
-                  : 100)
-              return Number.isFinite(availability) ? availability.toFixed(1) : 'N/A'
+              // ✅ CORRECTION : Calculer la disponibilité depuis monitoringC en priorité
+              const availability = metrics?.monitoringC?.availability_percent !== undefined
+                ? metrics.monitoringC.availability_percent
+                : metrics?.health?.availability_percent !== undefined
+                ? metrics.health.availability_percent
+                : (aggregatedStats.servicesTotal > 0
+                  ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
+                  : null)
+              return availability !== null && Number.isFinite(availability) ? availability.toFixed(1) : 'N/A'
             })()}%
           </div>
         </div>
@@ -2817,19 +3056,23 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
               <BarChart 
                 data={servicesList
                   .map((s: any) => {
-                    // Essayer plusieurs sources pour les données réseau
+                    // ✅ AMÉLIORATION : Essayer plusieurs sources pour les données réseau (monitoring-c en priorité)
                     const rx = toNumber(
+                      s.network_rx_mb ||
                       s.networkMb?.rx || 
                       s.networkMb?.rx_mb || 
                       s.metrics?.network?.rx_mb || 
-                      (s.metrics?.network?.rx_bytes ? (s.metrics.network.rx_bytes / 1024 / 1024) : 0), 
+                      (s.metrics?.network?.rx_bytes ? (s.metrics.network.rx_bytes / 1024 / 1024) : 0) ||
+                      (s.network_rx_bytes ? (s.network_rx_bytes / 1024 / 1024) : 0),
                       0
                     )
                     const tx = toNumber(
+                      s.network_tx_mb ||
                       s.networkMb?.tx || 
                       s.networkMb?.tx_mb || 
                       s.metrics?.network?.tx_mb || 
-                      (s.metrics?.network?.tx_bytes ? (s.metrics.network.tx_bytes / 1024 / 1024) : 0), 
+                      (s.metrics?.network?.tx_bytes ? (s.metrics.network.tx_bytes / 1024 / 1024) : 0) ||
+                      (s.network_tx_bytes ? (s.network_tx_bytes / 1024 / 1024) : 0),
                       0
                     )
                     return {
@@ -2839,7 +3082,9 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
                       total: rx + tx
                     }
                   })
-                  .sort((a: any, b: any) => (b.total || 0) - (a.total || 0))}
+                  .filter((item: any) => item.total > 0) // ✅ AMÉLIORATION : Filtrer les services sans trafic
+                  .sort((a: any, b: any) => (b.total || 0) - (a.total || 0))
+                  .slice(0, 20)} // ✅ AMÉLIORATION : Limiter aux 20 services avec le plus de trafic
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
@@ -2886,8 +3131,47 @@ const NetworkTab = memo(function NetworkTab({ metrics, chartData, aggregatedStat
   );
 });
 
-// Composant System Tab
+// Composant System Tab avec sous-onglets Système/Projet
 const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
+  const [systemSubTab, setSystemSubTab] = useState<'system' | 'project'>('system');
+  
+  return (
+    <div className="space-y-6">
+      {/* ✅ NOUVEAU : Sous-onglets Système / Projet */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setSystemSubTab('system')}
+          className={`px-4 py-2 font-medium text-sm transition-colors ${
+            systemSubTab === 'system'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+        >
+          Système
+        </button>
+        <button
+          onClick={() => setSystemSubTab('project')}
+          className={`px-4 py-2 font-medium text-sm transition-colors ${
+            systemSubTab === 'project'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+        >
+          Projet
+        </button>
+      </div>
+      
+      {systemSubTab === 'system' ? (
+        <SystemMetricsView metrics={metrics} chartData={chartData} aggregatedStats={aggregatedStats} loadingHistory={loadingHistory} initialHistoryLoaded={initialHistoryLoaded} refreshing={refreshing} timeRange={timeRange} />
+      ) : (
+        <ProjectMetricsView metrics={metrics} chartData={chartData} aggregatedStats={aggregatedStats} loadingHistory={loadingHistory} initialHistoryLoaded={initialHistoryLoaded} refreshing={refreshing} timeRange={timeRange} />
+      )}
+    </div>
+  );
+});
+
+// Composant pour les métriques Système
+const SystemMetricsView = memo(function SystemMetricsView({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
   return (
     <div className="space-y-6">
       {/* Métriques système principales */}
@@ -2895,16 +3179,40 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
         <StatCard
           icon={<Cpu className="w-5 h-5" />}
           title="CPU Moyen"
-          value={aggregatedStats.avgCpuUsage !== null ? `${Math.min(aggregatedStats.avgCpuUsage, 100).toFixed(1)}%` : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Utiliser monitoringC.avg_cpu_percent en priorité
+            const cpuUsage = metrics?.monitoringC?.avg_cpu_percent !== undefined && metrics.monitoringC.avg_cpu_percent !== null
+              ? metrics.monitoringC.avg_cpu_percent
+              : aggregatedStats.avgCpuUsage !== null
+              ? aggregatedStats.avgCpuUsage
+              : null
+            return cpuUsage !== null ? `${Math.min(cpuUsage, 100).toFixed(1)}%` : '...'
+          })()}
           color="blue"
-          loading={aggregatedStats.avgCpuUsage === null}
+          loading={aggregatedStats.avgCpuUsage === null && metrics?.monitoringC?.avg_cpu_percent === undefined}
         />
         <StatCard
           icon={<MemoryStick className="w-5 h-5" />}
           title="Mémoire Moyenne"
-          value={aggregatedStats.totalMemoryMb !== null ? `${aggregatedStats.totalMemoryMb.toFixed(0)} MB` : '...'}
+          value={(() => {
+            // ✅ CORRECTION : Afficher le pourcentage de mémoire système si disponible
+            const memoryPercent = metrics?.system?.memory?.usage_percent !== undefined
+              ? metrics.system.memory.usage_percent
+              : (aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
+                ? (aggregatedStats.totalMemoryMb / metrics.system.memory.total_mb) * 100
+                : null)
+            
+            return memoryPercent !== null 
+              ? `${memoryPercent.toFixed(1)}%` 
+              : (aggregatedStats.totalMemoryMb !== null 
+                ? `${aggregatedStats.totalMemoryMb.toFixed(0)} MB` 
+                : '...')
+          })()}
+          subtitle={aggregatedStats.totalMemoryMb !== null && metrics?.system?.memory?.total_mb
+            ? `${formatMb(aggregatedStats.totalMemoryMb)} / ${formatMb(metrics.system.memory.total_mb)}`
+            : ''}
           color="green"
-          loading={aggregatedStats.totalMemoryMb === null}
+          loading={aggregatedStats.totalMemoryMb === null && metrics?.system?.memory?.usage_percent === undefined}
         />
         <StatCard
           icon={<Clock className="w-5 h-5" />}
@@ -3058,12 +3366,12 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   }}
                 />
                 <Legend />
-                <Bar dataKey="cpu" fill="#3B82F6" name="CPU Système (%)" yAxisId="cpu" />
-                <Bar dataKey="memory" fill="#10B981" name="Mémoire Système (%)" yAxisId="cpu" />
+                <Bar dataKey="cpu" fill={COLORS.cpuSystem} name="CPU Système (%)" yAxisId="cpu" />
+                <Bar dataKey="memory" fill={COLORS.memorySystem} name="Mémoire Système (%)" yAxisId="cpu" />
                 <Line 
                   type="monotone" 
                   dataKey="project_cpu_avg" 
-                  stroke="#F59E0B"
+                  stroke={COLORS.cpuProject}
                   strokeWidth={2}
                   name="CPU Projet (%)"
                   yAxisId="cpu"
@@ -3074,7 +3382,7 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                 <Line 
                   type="monotone" 
                   dataKey="project_memory_mb" 
-                  stroke="#EF4444"
+                  stroke={COLORS.memoryProject}
                   strokeWidth={2}
                   name="Mémoire Projet (MB)"
                   yAxisId="memory"
@@ -3103,6 +3411,362 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de l'historique...</p>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Composant pour les métriques Projet
+const ProjectMetricsView = memo(function ProjectMetricsView({ metrics, chartData, aggregatedStats, loadingHistory, initialHistoryLoaded = false, refreshing = false, timeRange = '24h' }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Métriques projet principales */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Cpu className="w-5 h-5" />}
+          title="CPU Projet"
+          value={metrics?.system?.jobbingtrack?.containers?.cpu?.averagePercent !== undefined
+            ? `${metrics.system.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
+            : metrics?.monitoringC?.project_cpu_avg !== undefined
+            ? `${metrics.monitoringC.project_cpu_avg.toFixed(1)}%`
+            : (chartData.length > 0 && chartData[chartData.length - 1]?.project_cpu_avg !== undefined
+              ? `${chartData[chartData.length - 1].project_cpu_avg.toFixed(1)}%`
+              : '...')}
+          color="pink"
+          loading={metrics?.system?.jobbingtrack?.containers?.cpu?.averagePercent === undefined && metrics?.monitoringC?.project_cpu_avg === undefined}
+        />
+        <StatCard
+          icon={<MemoryStick className="w-5 h-5" />}
+          title="Mémoire Projet"
+          value={(() => {
+            const memoryPercent = metrics?.system?.jobbingtrack?.containers?.memory?.percent_of_system !== undefined
+              ? metrics.system.jobbingtrack.containers.memory.percent_of_system
+              : (chartData.length > 0 && chartData[chartData.length - 1]?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
+                ? (chartData[chartData.length - 1].project_memory_mb / metrics.system.memory.total_mb) * 100
+                : null)
+            return memoryPercent !== null ? `${memoryPercent.toFixed(1)}%` : '...'
+          })()}
+          subtitle={metrics?.system?.jobbingtrack?.containers?.memory?.used && metrics?.system?.memory?.total_mb
+            ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
+            : ''}
+          color="green"
+          loading={metrics?.system?.jobbingtrack?.containers?.memory?.percent_of_system === undefined}
+        />
+        <StatCard
+          icon={<Activity className="w-5 h-5" />}
+          title="Conteneurs Projet"
+          value={metrics?.system?.jobbingtrack?.containers?.count || 0}
+          subtitle="JobbingTrack"
+          color="purple"
+        />
+        <StatCard
+          icon={<Network className="w-5 h-5" />}
+          title="Réseau Projet"
+          value={(() => {
+            const projectNetwork = metrics?.system?.jobbingtrack?.containers?.network
+            if (projectNetwork?.total_mb !== undefined) {
+              return formatMb(projectNetwork.total_mb)
+            }
+            return '...'
+          })()}
+          subtitle={metrics?.system?.jobbingtrack?.containers?.network
+            ? `RX: ${formatMb(metrics.system.jobbingtrack.containers.network.rx_mb || 0)} / TX: ${formatMb(metrics.system.jobbingtrack.containers.network.tx_mb || 0)}`
+            : ''}
+          color="orange"
+        />
+      </div>
+
+      {/* Graphiques projet */}
+      {chartData.length > 0 && initialHistoryLoaded && (
+        <div className="space-y-6 relative">
+          {refreshing && (
+            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+              <Activity className="w-3 h-3 animate-spin" />
+              <span>Actualisation...</span>
+            </div>
+          )}
+          {/* CPU Moyen Total - Évolution temporelle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              💻 CPU Moyen Total - Évolution temporelle
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="uniqueTime" 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => {
+                    const item = chartData[index];
+                    if (!item) return '';
+                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                  }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis 
+                  stroke="#9CA3AF"
+                  style={{ fontSize: '12px' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  labelFormatter={(label: any) => {
+                    if (!label) return '';
+                    const item = chartData.find((d: any) => d.time === label || d.uniqueTime === label);
+                    if (item && item.timestamp) {
+                      const date = new Date(item.timestamp);
+                      if (!Number.isNaN(date.getTime())) {
+                        return date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                      }
+                    }
+                    return label;
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="cpu" 
+                  stroke={COLORS.primary} 
+                  strokeWidth={3}
+                  name="CPU Moyen (%)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Évolution des Performances */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              📈 Évolution des Performances
+            </h3>
+            {chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                    tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#9CA3AF"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }}
+                    labelFormatter={(label: any) => {
+                      if (!label) return '';
+                      const item = chartData.find((d: any) => d.time === label || d.uniqueTime === label);
+                      if (item && item.timestamp) {
+                        const date = new Date(item.timestamp);
+                        if (!Number.isNaN(date.getTime())) {
+                          return date.toLocaleString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                          });
+                        }
+                      }
+                      return label;
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'Temps réponse (ms)') {
+                        return [value > 0 ? `${value.toFixed(0)} ms` : 'N/A', name];
+                      }
+                      return [value > 0 ? `${value.toFixed(1)}%` : 'N/A', name];
+                    }}
+                  />
+                  <Legend />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="cpu" 
+                    stroke={COLORS.primary}
+                    fill={COLORS.primary}
+                    fillOpacity={0.3}
+                    name="CPU (%)"
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="memory" 
+                    stroke={COLORS.secondary}
+                    fill={COLORS.secondary}
+                    fillOpacity={0.3}
+                    name="Mémoire (%)"
+                  />
+                  {chartData.some((d: any) => d.responseTime > 0) && (
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="responseTime" 
+                      stroke={COLORS.purple}
+                      strokeWidth={2}
+                      name="Temps réponse (ms)"
+                      dot={false}
+                      connectNulls={false}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Chargement des données de performance...</p>
+                <p className="text-xs mt-2">Les données apparaîtront ici une fois collectées</p>
+              </div>
+            )}
+          </div>
+
+          {/* CPU Projet */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              💻 CPU Projet
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
+                />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 'auto']} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  labelFormatter={(label: any) => {
+                    if (!label) return '';
+                    const item = chartData.find((d: any) => d.time === label || d.uniqueTime === label);
+                    if (item && item.timestamp) {
+                      const date = new Date(item.timestamp);
+                      if (!Number.isNaN(date.getTime())) {
+                        return date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                      }
+                    }
+                    return label;
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="project_cpu_avg" 
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  name="CPU Projet (%)"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Mémoire Projet */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              🧠 Mémoire Projet
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorMemoryProject" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
+                  interval="preserveStartEnd"
+                />
+                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} domain={[0, 'auto']} tickFormatter={(value) => `${Number(value).toFixed(0)} MB`} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#F3F4F6'
+                  }}
+                  labelFormatter={(label: any) => {
+                    if (!label) return '';
+                    const item = chartData.find((d: any) => d.time === label || d.uniqueTime === label);
+                    if (item && item.timestamp) {
+                      const date = new Date(item.timestamp);
+                      if (!Number.isNaN(date.getTime())) {
+                        return date.toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        });
+                      }
+                    }
+                    return label;
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="project_memory_mb" 
+                  stroke="#10B981"
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorMemoryProject)"
+                  name="Mémoire Projet (MB)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </div>
@@ -4294,7 +4958,9 @@ const StatCard = memo(function StatCard({ icon, title, value, subtitle, color, l
     blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-    orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+    orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+    pink: 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400',
+    rose: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
   };
 
   // Déterminer la couleur de la tendance selon le type

@@ -44,18 +44,52 @@ int parse_docker_log_line(const char *line, LogEntry *entry) {
         entry->timestamp = time(NULL);
     }
     
-    // Détecter le niveau
+    // ✅ AMÉLIORATION : Détecter le niveau avec plus de patterns
+    // Détecter les erreurs de sécurité
     if (strstr(entry->message, "ERROR") || strstr(entry->message, "error") || 
         strstr(entry->message, "ERR") || strstr(entry->message, "Exception") ||
-        strstr(entry->message, "Failed") || strstr(entry->message, "failed")) {
+        strstr(entry->message, "Failed") || strstr(entry->message, "failed") ||
+        strstr(entry->message, "FATAL") || strstr(entry->message, "fatal") ||
+        strstr(entry->message, "CRITICAL") || strstr(entry->message, "critical") ||
+        strstr(entry->message, "unauthorized") || strstr(entry->message, "Unauthorized") ||
+        strstr(entry->message, "forbidden") || strstr(entry->message, "Forbidden") ||
+        strstr(entry->message, "attack") || strstr(entry->message, "Attack") ||
+        strstr(entry->message, "threat") || strstr(entry->message, "Threat") ||
+        strstr(entry->message, "malicious") || strstr(entry->message, "Malicious")) {
         strcpy(entry->level, "ERROR");
     } else if (strstr(entry->message, "WARN") || strstr(entry->message, "warn") ||
-               strstr(entry->message, "Warning") || strstr(entry->message, "warning")) {
+               strstr(entry->message, "Warning") || strstr(entry->message, "warning") ||
+               strstr(entry->message, "suspicious") || strstr(entry->message, "Suspicious")) {
         strcpy(entry->level, "WARN");
     } else if (strstr(entry->message, "DEBUG") || strstr(entry->message, "debug")) {
         strcpy(entry->level, "DEBUG");
     } else {
         strcpy(entry->level, "INFO");
+    }
+    
+    // ✅ AMÉLIORATION : Extraire le nom du conteneur depuis le message si disponible
+    // Chercher des patterns comme "jobbingtrack-auth-service" ou "auth-service"
+    if (entry->container_name[0] == '\0') {
+        const char *jobbingtrack = strstr(entry->message, "jobbingtrack-");
+        if (jobbingtrack) {
+            const char *name_start = jobbingtrack + 13; // Skip "jobbingtrack-"
+            const char *name_end = name_start;
+            while (*name_end && *name_end != ' ' && *name_end != '\t' && *name_end != '\n' && 
+                   *name_end != ':' && *name_end != '[' && *name_end != '(') {
+                name_end++;
+            }
+            size_t name_len = name_end - name_start;
+            if (name_len > 0 && name_len < sizeof(entry->container_name)) {
+                strncpy(entry->container_name, name_start, name_len);
+                entry->container_name[name_len] = '\0';
+            }
+        }
+    }
+    
+    // ✅ AMÉLIORATION : Extraire le service source depuis le message
+    if (entry->source[0] == '\0' && entry->container_name[0] != '\0') {
+        strncpy(entry->source, entry->container_name, sizeof(entry->source) - 1);
+        entry->source[sizeof(entry->source) - 1] = '\0';
     }
     
     // Initialiser les champs de métriques
