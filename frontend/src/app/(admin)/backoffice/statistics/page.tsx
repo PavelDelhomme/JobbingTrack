@@ -231,25 +231,51 @@ export default function StatisticsPage() {
   // Les onglets qui nécessitent l'historique : overview, security
   const needsHistory = ['overview', 'security'].includes(activeTab);
   const needsServiceHistory = activeTab === 'logs';
+  const needsStats = activeTab !== 'logs'; // Les logs n'ont pas besoin de stats générales
+  
+  // ✅ Charger les préférences de rafraîchissement
+  const [statsRefreshInterval, setStatsRefreshInterval] = useState(60000);
+  
+  useEffect(() => {
+    const loadRefreshInterval = async () => {
+      try {
+        const interval = await preferencesService.getRefreshInterval('dashboard');
+        setStatsRefreshInterval(interval);
+      } catch (error) {
+        console.error('Erreur chargement préférences:', error);
+      }
+    };
+    loadRefreshInterval();
+  }, []);
   
   useEffect(() => {
     if (isAuthenticated) {
-      fetchStatistics()
-      // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire
-      if (needsHistory) {
-        fetchMetricsHistory()
+      // ✅ OPTIMISATION : Charger seulement les données nécessaires selon l'onglet actif
+      if (needsStats) {
+        fetchStatistics(true) // skipHistorical = true pour charger rapidement
       }
-      // Actualiser toutes les 30 secondes (sans recharger l'historique)
+      
+      // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire et avec délai
+      if (needsHistory || needsServiceHistory) {
+        // Délai pour permettre au stats de charger d'abord
+        setTimeout(() => {
+          fetchMetricsHistory()
+        }, 100);
+      }
+      
+      // ✅ Actualiser selon les préférences utilisateur
       const interval = setInterval(() => {
-        fetchStatistics(true) // skipHistorical = true lors des actualisations
+        if (needsStats) {
+          fetchStatistics(true) // skipHistorical = true lors des actualisations
+        }
         // ✅ OPTIMISATION : Charger l'historique UNIQUEMENT si nécessaire
-        if (needsHistory) {
+        if (needsHistory || needsServiceHistory) {
           fetchMetricsHistory()
         }
-      }, 60000) // ✅ OPTIMISATION : 60 secondes pour réduire la charge CPU/mémoire
+      }, statsRefreshInterval)
       return () => clearInterval(interval)
     }
-  }, [isAuthenticated, customization.timeRange, needsHistory]) // ✅ Ajouter needsHistory comme dépendance
+  }, [isAuthenticated, customization.timeRange, activeTab, statsRefreshInterval]) // ✅ Ajouter activeTab comme dépendance
 
   // Sauvegarder les paramètres de personnalisation
   useEffect(() => {

@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Frontend Jest (Unitaires)",
+  "command": "cd frontend && npm test -- --passWithNoTests 2>&1",
+  "timestamp": "2025-12-23T00:09:31+01:00",
+  "duration": 0,
+  "exitCode": 127,
+  "status": "failed",
+  "statistics": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "output": "Erreur : Aucune sortie capturée (code de sortie: 127). Le test a probablement échoué avant de produire une sortie.\n"
+}

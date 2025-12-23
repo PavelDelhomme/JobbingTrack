@@ -24,35 +24,62 @@ export default function SecurityLogsPage() {
   const [filterLevel, setFilterLevel] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
 
-  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  // ✅ OPTIMISATION : useCallback avec cache et timeout
   const fetchLogs = useCallback(async () => {
     try {
+      // ✅ OPTIMISATION : Vérifier le cache d'abord
+      const cacheKey = 'security_logs_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      const cacheTime = cached ? JSON.parse(cached).timestamp : 0
+      const now = Date.now()
+      
+      // Utiliser le cache si moins de 3 secondes
+      if (cached && (now - cacheTime) < 3000) {
+        const cachedData = JSON.parse(cached).data
+        setLogs(cachedData)
+        if (!loading) setLoading(false)
+        return
+      }
+      
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/security/logs`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 100 } // Limiter à 100 logs par défaut
+        params: { limit: 50 }, // ✅ OPTIMISATION : Réduire de 100 à 50
+        timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
       })
       
       if (response.data.success) {
-        // L'API retourne les logs dans response.data.data (array) ou response.data.data.data
         const logsData = response.data.data || response.data.logs || []
-        setLogs(Array.isArray(logsData) ? logsData : [])
+        const logsArray = Array.isArray(logsData) ? logsData : []
+        setLogs(logsArray)
+        // ✅ OPTIMISATION : Mettre en cache
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          data: logsArray,
+          timestamp: now
+        }))
       }
     } catch (error: any) {
       console.error('Error loading security logs:', error)
-      // En cas d'erreur, afficher un message mais ne pas bloquer
+      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
+      const cacheKey = 'security_logs_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const cachedData = JSON.parse(cached).data
+        setLogs(cachedData)
+      }
       if (error.response?.status !== 404) {
         console.warn('Security logs service unavailable:', error.message)
       }
     } finally {
       setLoading(false)
     }
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
+    // ✅ OPTIMISATION : Charger immédiatement puis avec intervalle plus long
     fetchLogs()
-    // Rafraîchir toutes les 5 secondes pour un affichage en temps réel
-    const interval = setInterval(fetchLogs, 5000)
+    // ✅ OPTIMISATION : Rafraîchir toutes les 15 secondes au lieu de 5
+    const interval = setInterval(fetchLogs, 15000)
     return () => clearInterval(interval)
   }, [fetchLogs])
 

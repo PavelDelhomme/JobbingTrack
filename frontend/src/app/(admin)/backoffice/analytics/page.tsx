@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useReducer, useTransition, memo, Suspense
 import { AdminLayout } from '@/components/features';
 import { centralMetricsService } from '@/lib/services/centralMetricsService';
 import preferencesService from '@/lib/services/preferencesService';
+import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { cacheManager } from '@/lib/cache/cacheManager';
 import type { MetricsData, ServiceMetrics } from '@/lib/interfaces';
 import { formatBytes } from '@/lib/utils/metricsUtils';
@@ -273,7 +274,7 @@ export default function AnalyticsPage() {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   // ✅ OPTIMISATION : Augmenter les intervalles pour réduire CPU et mémoire
   const [analyticsRefreshInterval, setAnalyticsRefreshInterval] = useState(30000); // 30s au lieu de 15s
-  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(45000); // 45s au lieu de 30s
+  const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000); // 15s pour rafraîchissement plus fréquent
   
   // ✅ OPTIMISATION : État pour savoir si les métriques initiales sont chargées
   const [initialMetricsLoaded, setInitialMetricsLoaded] = useState(false);
@@ -538,33 +539,115 @@ export default function AnalyticsPage() {
 
         // Si c'est le chargement initial ou si le timeRange a changé, charger tout l'historique
         if (isInitial) {
-          // ✅ OPTIMISATION : Réduire la limite de 1000 à 500 pour économiser la mémoire
+          // ✅ CORRECTION : Vérifier si on a déjà des données en cache (sessionStorage) pour éviter de tout recharger
+          const cachedHistoryKey = `analytics_history_${timeRange}`;
+          const cachedHistory = typeof window !== 'undefined' ? sessionStorage.getItem(cachedHistoryKey) : null;
+          let existingHistory: any[] = [];
+          
+          if (cachedHistory) {
+            try {
+              existingHistory = JSON.parse(cachedHistory);
+              // Vérifier que les données en cache sont valides (timestamps valides)
+              existingHistory = existingHistory.filter((item: any) => {
+                const date = new Date(item.timestamp);
+                return !Number.isNaN(date.getTime());
+              });
+              
+              if (existingHistory.length > 0) {
+                console.log(`[ANALYTICS] 📦 ${existingHistory.length} points récupérés du cache`);
+                // Utiliser les données en cache immédiatement
+                setMetricsHistory(existingHistory);
+                const lastTimestamp = new Date(existingHistory[existingHistory.length - 1].timestamp).getTime();
+                setLastHistoryTimestamp(lastTimestamp);
+                setInitialHistoryLoaded(true);
+              }
+            } catch (e) {
+              console.warn('[ANALYTICS] ⚠️ Erreur parsing cache:', e);
+            }
+          }
+          
+          // ✅ CORRECTION : Augmenter la limite pour récupérer plus de points selon timeRange
+          const limit = timeRange === '1h' ? 120 : 
+                       timeRange === '6h' ? 360 : 
+                       timeRange === '24h' ? 720 : 
+                       timeRange === '7d' ? 1008 : 2100;
           const history = await centralMetricsService.getMetricsHistory({
-            limit: 500,
+            limit,
             startTime,
             endTime
           });
 
           if (mounted && history && Array.isArray(history) && history.length > 0) {
+            // ✅ CORRECTION : Fusionner avec les données en cache au lieu de les remplacer
+            const allHistory = existingHistory.length > 0 
+              ? [...existingHistory, ...history]
+              : history;
+            
             // ✅ OPTIMISATION : Trier par timestamp et limiter immédiatement à 500 points
-            const sortedHistory = [...history].sort((a, b) => 
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-            );
+            const sortedHistory = [...allHistory].sort((a, b) => {
+              const dateA = new Date(a.timestamp);
+              const dateB = new Date(b.timestamp);
+              if (Number.isNaN(dateA.getTime()) || Number.isNaN(dateB.getTime())) return 0;
+              return dateA.getTime() - dateB.getTime();
+            });
             
-            // ✅ OPTIMISATION : Limiter dès le chargement initial pour économiser la mémoire
-            const limitedHistory = sortedHistory.slice(-500);
+            // ✅ CORRECTION : Supprimer les doublons basés sur le timestamp
+            const uniqueHistory = sortedHistory.reduce((acc: any[], item: any) => {
+              const timestamp = new Date(item.timestamp).getTime();
+              if (!Number.isNaN(timestamp)) {
+                const exists = acc.find((existing: any) => 
+                  new Date(existing.timestamp).getTime() === timestamp
+                );
+                if (!exists) {
+                  acc.push(item);
+                }
+              }
+              return acc;
+            }, []);
             
+            // ✅ CORRECTION : Limiter selon timeRange pour garder plus de points
+            const maxHistoryPoints = timeRange === '1h' ? 120 : 
+                                    timeRange === '6h' ? 360 : 
+                                    timeRange === '24h' ? 720 : 
+                                    timeRange === '7d' ? 1008 : 2100;
+            const limitedHistory = uniqueHistory.slice(-maxHistoryPoints);
+            
+            console.log(`[ANALYTICS] ✅ ${limitedHistory.length} points d'historique chargés (${existingHistory.length} du cache + ${history.length} nouveaux)`);
             setMetricsHistory(limitedHistory);
+            
+            // ✅ CORRECTION : Sauvegarder dans le cache pour le prochain rechargement
+            if (typeof window !== 'undefined') {
+              try {
+                sessionStorage.setItem(cachedHistoryKey, JSON.stringify(limitedHistory));
+              } catch (e) {
+                console.warn('[ANALYTICS] ⚠️ Erreur sauvegarde cache:', e);
+              }
+            }
             
             // Stocker le dernier timestamp pour les chargements incrémentaux
             const lastTimestamp = new Date(limitedHistory[limitedHistory.length - 1].timestamp).getTime();
             setLastHistoryTimestamp(lastTimestamp);
             setInitialHistoryLoaded(true);
+            console.log('[ANALYTICS] ✅ initialHistoryLoaded mis à true');
+          } else if (mounted) {
+            // ✅ CORRECTION : Même si l'historique est vide, marquer comme chargé pour éviter le skeleton infini
+            // Mais garder les données en cache si elles existent
+            if (existingHistory.length > 0) {
+              console.log(`[ANALYTICS] ⚠️ Aucune nouvelle donnée, utilisation du cache (${existingHistory.length} points)`);
+            } else {
+              console.warn('[ANALYTICS] ⚠️ Aucune donnée historique disponible (history:', history, ')');
+            }
+            setInitialHistoryLoaded(true);
+            console.log('[ANALYTICS] ✅ initialHistoryLoaded mis à true (historique vide)');
           }
         } else {
-          // ✅ OPTIMISATION : Chargement incrémental avec limite réduite
+          // ✅ CORRECTION : Chargement incrémental avec plus de points selon timeRange
+          const incrementalLimit = timeRange === '1h' ? 60 : 
+                                   timeRange === '6h' ? 120 : 
+                                   timeRange === '24h' ? 180 : 
+                                   timeRange === '7d' ? 252 : 420;
           const incrementalHistory = await centralMetricsService.getMetricsHistory({
-            limit: 50, // ✅ OPTIMISATION : Réduit de 100 à 50 nouvelles entrées max
+            limit: incrementalLimit,
             startTime: lastHistoryTimestamp! + 1, // +1 pour éviter les doublons
             endTime
           });
@@ -572,8 +655,12 @@ export default function AnalyticsPage() {
           if (mounted && incrementalHistory && Array.isArray(incrementalHistory) && incrementalHistory.length > 0) {
             // ✅ OPTIMISATION : Fusionner avec l'historique existant avec vérifications intelligentes
             setMetricsHistory(prev => {
-              // ✅ OPTIMISATION : Éviter la fusion si prev est déjà à la limite et les nouvelles données sont plus anciennes
-              if (prev.length >= 500 && incrementalHistory.length > 0) {
+              // ✅ CORRECTION : Éviter la fusion si prev est déjà à la limite et les nouvelles données sont plus anciennes
+              const maxHistoryPoints = timeRange === '1h' ? 120 : 
+                                      timeRange === '6h' ? 360 : 
+                                      timeRange === '24h' ? 720 : 
+                                      timeRange === '7d' ? 1008 : 2100;
+              if (prev.length >= maxHistoryPoints && incrementalHistory.length > 0) {
                 const newestIncremental = new Date(incrementalHistory[incrementalHistory.length - 1].timestamp).getTime();
                 const oldestInPrev = new Date(prev[0].timestamp).getTime();
                 
@@ -598,9 +685,19 @@ export default function AnalyticsPage() {
                 }
               }
               
-              // ✅ OPTIMISATION : Réduire de 1000 à 500 points max pour économiser la mémoire
+              // ✅ CORRECTION : Limiter selon timeRange pour garder plus de points (réutiliser maxHistoryPoints défini plus haut)
               // Garder les points les plus récents
-              const limited = sorted.slice(-500);
+              const limited = sorted.slice(-maxHistoryPoints);
+              
+              // ✅ CORRECTION : Sauvegarder dans le cache pour le prochain rechargement
+              if (typeof window !== 'undefined') {
+                try {
+                  const cachedHistoryKey = `analytics_history_${timeRange}`;
+                  sessionStorage.setItem(cachedHistoryKey, JSON.stringify(limited));
+                } catch (e) {
+                  console.warn('[ANALYTICS] ⚠️ Erreur sauvegarde cache:', e);
+                }
+              }
               
               // Mettre à jour le dernier timestamp
               const lastTimestamp = new Date(limited[limited.length - 1].timestamp).getTime();
@@ -939,7 +1036,12 @@ export default function AnalyticsPage() {
 
   // ✅ OPTIMISATION : Préparer les données pour les graphiques avec cache et tri optimisé
   const chartData = useMemo(() => {
-    if (!metricsHistory || metricsHistory.length === 0) return [];
+    if (!metricsHistory || metricsHistory.length === 0) {
+      console.log('[ANALYTICS] ⚠️ metricsHistory est vide, chartData sera vide');
+      return [];
+    }
+    
+    console.log(`[ANALYTICS] 📊 Préparation de chartData depuis ${metricsHistory.length} points d'historique`);
     
     // ✅ OPTIMISATION : Vérifier si metricsHistory est déjà trié (éviter le tri si inutile)
     // On suppose que l'historique est déjà trié après chargement, donc on évite le tri si possible
@@ -967,11 +1069,12 @@ export default function AnalyticsPage() {
       ? metricsHistory.slice(-maxHistorySize) // Prendre les N derniers points
       : metricsHistory;
     
-    // ✅ OPTIMISATION : Limiter plus agressivement selon la plage de temps pour réduire la mémoire
-    const maxPoints = timeRange === '1h' ? 60 : 
-                      timeRange === '6h' ? 120 : 
-                      timeRange === '24h' ? 240 : 
-                      timeRange === '7d' ? 280 : 400; // 30d - réduit de 500 à 400
+    // ✅ CORRECTION : Augmenter le nombre de points pour afficher plus de données
+    const maxPoints = timeRange === '1h' ? 120 : // 1 point toutes les 30 secondes
+                      timeRange === '6h' ? 360 : // 1 point par minute
+                      timeRange === '24h' ? 720 : // 1 point toutes les 2 minutes
+                      timeRange === '7d' ? 1008 : // 1 point toutes les 10 minutes
+                      2100; // 30d - 1 point toutes les 20 minutes
     
     // ✅ OPTIMISATION : Sous-échantillonnage plus efficace avec slice au lieu de filter
     let dataToUse = sortedHistory;
@@ -989,23 +1092,114 @@ export default function AnalyticsPage() {
       dataToUse = indices.map(i => sortedHistory[i]);
     }
     
+    // ✅ CORRECTION : Créer des points pour tous les timestamps manquants pour cohérence temporelle
+    // Déterminer l'intervalle entre les points selon la plage de temps (plus fréquent pour plus de points)
+    const intervalMs = timeRange === '1h' ? 30000 : // 30 secondes
+                       timeRange === '6h' ? 60000 : // 1 minute
+                       timeRange === '24h' ? 120000 : // 2 minutes
+                       timeRange === '7d' ? 600000 : // 10 minutes
+                       1200000; // 20 minutes pour 30d
+    
+    // Créer un tableau de timestamps attendus
+    if (dataToUse.length === 0) return [];
+    
+    const firstTimestamp = new Date(dataToUse[0].timestamp).getTime();
+    const lastTimestamp = new Date(dataToUse[dataToUse.length - 1].timestamp).getTime();
+    const expectedTimestamps: number[] = [];
+    for (let ts = firstTimestamp; ts <= lastTimestamp; ts += intervalMs) {
+      expectedTimestamps.push(ts);
+    }
+    
+    // Créer un Map pour accès rapide aux données existantes
+    const dataMap = new Map<number, any>();
+    dataToUse.forEach((item: any) => {
+      const ts = new Date(item.timestamp).getTime();
+      // Trouver le timestamp le plus proche dans expectedTimestamps
+      const closestTs = expectedTimestamps.reduce((prev, curr) => 
+        Math.abs(curr - ts) < Math.abs(prev - ts) ? curr : prev
+      );
+      if (!dataMap.has(closestTs)) {
+        dataMap.set(closestTs, item);
+      }
+    });
+    
+    // ✅ CORRECTION : Créer des points pour tous les timestamps attendus (avec null si pas de données)
+    const filledData = expectedTimestamps.map((expectedTs) => {
+      const existingData = dataMap.get(expectedTs);
+      if (existingData) {
+        // Utiliser les données existantes
+        return existingData;
+      } else {
+        // Créer un point vide pour ce timestamp
+        const timestamp = new Date(expectedTs);
+        return {
+          timestamp: expectedTs,
+          time: formatTimestamp(timestamp.toISOString(), timeRange),
+          uniqueTime: timestamp.toISOString(),
+          cpu: null,
+          memoryPercent: null,
+          memoryMb: null,
+          networkRx: null,
+          networkTx: null,
+          responseTime: null,
+          errorRate: null,
+          availability: null,
+          loadScore: null,
+          project_cpu_avg: null,
+          project_memory_mb: null
+        };
+      }
+    });
+    
     // ✅ OPTIMISATION : Utiliser map avec réutilisation des valeurs calculées
-    return dataToUse.map((item: any) => {
-      const timestamp = new Date(item.timestamp);
+    return filledData.map((item: any) => {
+      // ✅ CORRECTION : Convertir le timestamp en Date valide
+      let timestamp: Date;
+      // Si c'est un point vide créé, item.timestamp est déjà un nombre
+      if (typeof item.timestamp === 'number') {
+        timestamp = new Date(item.timestamp);
+      } else if (item.timestamp) {
+        timestamp = new Date(item.timestamp);
+        // Si le timestamp est invalide, utiliser la date actuelle
+        if (Number.isNaN(timestamp.getTime())) {
+          console.warn('[ANALYTICS] ⚠️ Timestamp invalide:', item.timestamp, 'utilisation de la date actuelle');
+          timestamp = new Date();
+        }
+      } else {
+        timestamp = new Date();
+      }
+      
+      // Si c'est un point vide, retourner tel quel
+      if (item.cpu === null && item.memoryPercent === null && item.memoryMb === null) {
+        return item;
+      }
       
       // ✅ CORRECTION : Calculer le trafic réseau global en sommant tous les services
       // Si network_rx_mb et network_tx_mb ne sont pas disponibles, les calculer depuis les services
       let networkRx = toNumber(item.network_rx_mb, 0);
       let networkTx = toNumber(item.network_tx_mb, 0);
       
-      // Si les valeurs globales sont à 0 ou absentes, essayer de les calculer depuis les services
-      if ((networkRx === 0 && networkTx === 0) && item.services && Array.isArray(item.services)) {
-        networkRx = item.services.reduce((sum: number, s: any) => {
-          return sum + toNumber(s.network_rx_mb || s.network?.rx_mb || (s.network?.rx_bytes ? s.network.rx_bytes / 1024 / 1024 : 0), 0);
-        }, 0);
-        networkTx = item.services.reduce((sum: number, s: any) => {
-          return sum + toNumber(s.network_tx_mb || s.network?.tx_mb || (s.network?.tx_bytes ? s.network.tx_bytes / 1024 / 1024 : 0), 0);
-        }, 0);
+      // ✅ CORRECTION : Si les valeurs globales sont à 0 ou absentes, essayer de les calculer depuis les services
+      // Vérifier d'abord si on a des données de conteneurs dans l'historique
+      if ((networkRx === 0 && networkTx === 0)) {
+        // Essayer depuis item.services (format depuis metrics-aggregator)
+        if (item.services && Array.isArray(item.services)) {
+          networkRx = item.services.reduce((sum: number, s: any) => {
+            return sum + toNumber(s.network_rx_mb || s.network?.rx_mb || (s.network?.rx_bytes ? s.network.rx_bytes / 1024 / 1024 : 0) || (s.network_rx_bytes ? Number(s.network_rx_bytes) / 1024 / 1024 : 0), 0);
+          }, 0);
+          networkTx = item.services.reduce((sum: number, s: any) => {
+            return sum + toNumber(s.network_tx_mb || s.network?.tx_mb || (s.network?.tx_bytes ? s.network.tx_bytes / 1024 / 1024 : 0) || (s.network_tx_bytes ? Number(s.network_tx_bytes) / 1024 / 1024 : 0), 0);
+          }, 0);
+        }
+        // Essayer depuis item.containers (format depuis monitoring-c)
+        else if (item.containers && Array.isArray(item.containers)) {
+          networkRx = item.containers.reduce((sum: number, c: any) => {
+            return sum + toNumber(c.network_rx_mb || (c.network_rx_bytes ? Number(c.network_rx_bytes) / 1024 / 1024 : 0), 0);
+          }, 0);
+          networkTx = item.containers.reduce((sum: number, c: any) => {
+            return sum + toNumber(c.network_tx_mb || (c.network_tx_bytes ? Number(c.network_tx_bytes) / 1024 / 1024 : 0), 0);
+          }, 0);
+        }
       }
       
       // Créer un timestamp unique pour éviter les doublons
@@ -1013,8 +1207,19 @@ export default function AnalyticsPage() {
       const uniqueTime = timestamp.toISOString();
       
       // S'assurer que toutes les valeurs sont des nombres valides (pas NaN, pas Infinity)
-      const cpu = toNumber(item.cpu_percent, 0)
-      const memory = toNumber(item.memory_percent, 0)
+      // ✅ CORRECTION : Utiliser project_cpu_avg et project_memory_mb si disponibles (plus précis)
+      const cpu = item.project_cpu_avg !== undefined && item.project_cpu_avg !== null
+        ? toNumber(item.project_cpu_avg, 0)
+        : toNumber(item.cpu_percent, 0);
+      
+      // ✅ CORRECTION : Séparer mémoire en pourcentage et MB
+      // Pour le graphique CPU & Mémoire, on utilise le pourcentage
+      const memoryPercent = toNumber(item.memory_percent, 0);
+      // Pour un graphique séparé de mémoire en MB, on utilise project_memory_mb
+      const memoryMb = item.project_memory_mb !== undefined && item.project_memory_mb !== null
+        ? toNumber(item.project_memory_mb, 0)
+        : null; // Si pas disponible, null pour ne pas afficher
+      
       const responseTime = toNumber(item.response_time_avg || item.avg_response_time_ms, 0)
       const errorRate = toNumber(item.error_rate, 0)
       const availability = toNumber(item.availability_percent, 100)
@@ -1028,17 +1233,39 @@ export default function AnalyticsPage() {
         time: formatTimestamp(item.timestamp, timeRange),
         timestamp: timestampDate.getTime(), // Timestamp numérique pour tri (UTC)
         uniqueTime: uniqueTime, // Timestamp ISO unique pour éviter doublons
-        cpu: Number.isFinite(cpu) ? cpu : 0,
-        memory: Number.isFinite(memory) ? memory : 0,
-        networkRx: Number.isFinite(networkRx) ? networkRx : 0,
-        networkTx: Number.isFinite(networkTx) ? networkTx : 0,
-        responseTime: Number.isFinite(responseTime) ? responseTime : 0,
-        errorRate: Number.isFinite(errorRate) ? errorRate : 0,
-        availability: Number.isFinite(availability) ? availability : 100,
-        loadScore: Number.isFinite(loadScore) ? loadScore : 0
+        cpu: Number.isFinite(cpu) ? cpu : null,
+        memoryPercent: Number.isFinite(memoryPercent) ? memoryPercent : null,
+        memoryMb: memoryMb !== null && Number.isFinite(memoryMb) ? memoryMb : null,
+        networkRx: Number.isFinite(networkRx) ? networkRx : null,
+        networkTx: Number.isFinite(networkTx) ? networkTx : null,
+        responseTime: Number.isFinite(responseTime) ? responseTime : null,
+        errorRate: Number.isFinite(errorRate) ? errorRate : null,
+        availability: Number.isFinite(availability) ? availability : null,
+        loadScore: Number.isFinite(loadScore) ? loadScore : null,
+        // ✅ NOUVEAU : Inclure les valeurs brutes pour référence
+        // ✅ NOUVEAU : Inclure les valeurs brutes pour référence et affichage dans les graphiques
+        project_cpu_avg: item.project_cpu_avg !== undefined && item.project_cpu_avg !== null
+          ? Number(item.project_cpu_avg)
+          : null,
+        project_memory_mb: item.project_memory_mb !== undefined && item.project_memory_mb !== null
+          ? Number(item.project_memory_mb)
+          : null
       };
     });
   }, [metricsHistory, timeRange]);
+  
+  // ✅ DEBUG : Logger chartData pour diagnostiquer
+  useEffect(() => {
+    if (chartData.length > 0) {
+      console.log(`[ANALYTICS] ✅ chartData préparé: ${chartData.length} points`, {
+        first: chartData[0],
+        last: chartData[chartData.length - 1],
+        sample: chartData.slice(0, 3).map((d: any) => ({ time: d.time, cpu: d.cpu, memory: d.memory, networkRx: d.networkRx }))
+      });
+    } else {
+      console.warn('[ANALYTICS] ⚠️ chartData est vide');
+    }
+  }, [chartData.length]);
 
   // Calculer les statistiques agrégées
   const aggregatedStats = useMemo(() => {
@@ -1525,228 +1752,41 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
         </div>
       )}
 
-      {/* Graphiques principaux */}
+      {/* Graphiques principaux avec chargement progressif */}
       {/* Afficher les graphiques une fois qu'ils sont chargés, même pendant le rafraîchissement */}
-      {chartData.length > 0 && initialHistoryLoaded && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
-          {/* Indicateur de rafraîchissement discret en haut à droite */}
-          {refreshing && (
-            <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
-              <Activity className="w-3 h-3 animate-spin" />
-              <span>Actualisation...</span>
+      {(() => {
+        // ✅ DEBUG : Logger les conditions de rendu
+        console.log('[OVERVIEW TAB] Conditions de rendu:', {
+          chartDataLength: chartData?.length || 0,
+          initialHistoryLoaded,
+          loadingHistory,
+          hasChartData: chartData && chartData.length > 0,
+          shouldShowCharts: chartData && chartData.length > 0 && initialHistoryLoaded
+        });
+        
+        if (chartData && chartData.length > 0 && initialHistoryLoaded) {
+          return <OverviewCharts chartData={chartData} refreshing={refreshing} timeRange={timeRange} />;
+        } else {
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">💻 CPU & Mémoire</h3>
+                <ChartSkeleton height={300} />
+                <div className="text-xs text-gray-500 mt-2">
+                  {!initialHistoryLoaded ? 'Chargement de l\'historique...' : chartData?.length === 0 ? 'Aucune donnée disponible' : 'Préparation des données...'}
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🌐 Trafic Réseau</h3>
+                <ChartSkeleton height={300} />
+                <div className="text-xs text-gray-500 mt-2">
+                  {!initialHistoryLoaded ? 'Chargement de l\'historique...' : chartData?.length === 0 ? 'Aucune donnée disponible' : 'Préparation des données...'}
+                </div>
+              </div>
             </div>
-          )}
-          {/* CPU & Mémoire */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              💻 CPU & Mémoire
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="uniqueTime" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => {
-                    const item = chartData[index];
-                    if (!item) return '';
-                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                  }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="cpu" 
-                  stroke={COLORS.primary} 
-                  strokeWidth={2}
-                  name="CPU (%)"
-                  dot={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="memory" 
-                  stroke={COLORS.secondary} 
-                  strokeWidth={2}
-                  name="Mémoire (%)"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Réseau */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              🌐 Trafic Réseau
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="uniqueTime" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => {
-                    const item = chartData[index];
-                    if (!item) return '';
-                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                  }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="networkRx" 
-                  stackId="1"
-                  stroke={COLORS.info} 
-                  fill={COLORS.info}
-                  fillOpacity={0.6}
-                  name="RX (MB)"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="networkTx" 
-                  stackId="1"
-                  stroke={COLORS.warning} 
-                  fill={COLORS.warning}
-                  fillOpacity={0.6}
-                  name="TX (MB)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Performance */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ⚡ Temps de Réponse & Erreurs
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="uniqueTime" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => {
-                    const item = chartData[index];
-                    if (!item) return '';
-                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                  }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  yAxisId="left"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  stroke={COLORS.purple} 
-                  strokeWidth={2}
-                  name="Temps réponse (ms)"
-                  dot={false}
-                />
-                <Bar 
-                  yAxisId="right"
-                  dataKey="errorRate" 
-                  fill={COLORS.danger}
-                  name="Taux d'erreur (%)"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Disponibilité */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              📊 Disponibilité
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="uniqueTime" 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value, index) => {
-                    const item = chartData[index];
-                    if (!item) return '';
-                    return formatXAxisLabel(item.time || value, index, chartData, timeRange);
-                  }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  style={{ fontSize: '12px' }}
-                  // ✅ CORRECTION : Retirer domain pour éviter les erreurs NaN
-                  // domain={[90, 100]} // Retiré pour permettre auto-scaling
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#F3F4F6'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="availability" 
-                  stroke={COLORS.success} 
-                  strokeWidth={3}
-                  name="Disponibilité (%)"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+          );
+        }
+      })()}
 
       {loadingHistory && !initialHistoryLoaded && (
         <div className="text-center py-8">
@@ -1758,9 +1798,377 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
   );
 });
 
-// Composant Performance Tab
+// ✅ OPTIMISATION : Composant séparé pour les graphiques Overview avec chargement progressif
+const OverviewCharts = memo(function OverviewCharts({ chartData, refreshing, timeRange }: any) {
+  const [chart1Loaded, setChart1Loaded] = useState(false);
+  const [chart2Loaded, setChart2Loaded] = useState(false);
+  const [chart3Loaded, setChart3Loaded] = useState(false);
+  const [chart4Loaded, setChart4Loaded] = useState(false);
+
+  useEffect(() => {
+    // ✅ CORRECTION : Réinitialiser les états si chartData est vide
+    if (!chartData || chartData.length === 0) {
+      setChart1Loaded(false);
+      setChart2Loaded(false);
+      setChart3Loaded(false);
+      setChart4Loaded(false);
+      return;
+    }
+
+    console.log(`[OVERVIEW CHARTS] 📊 Chargement de ${chartData.length} points de données`);
+
+    // ✅ CORRECTION : Charger progressivement de haut en bas avec délais échelonnés
+    // Réinitialiser d'abord pour forcer le re-render
+    setChart1Loaded(false);
+    setChart2Loaded(false);
+    setChart3Loaded(false);
+    setChart4Loaded(false);
+    
+    // Puis charger progressivement (délais réduits pour un chargement plus rapide)
+    const timer1 = setTimeout(() => {
+      setChart1Loaded(true);
+      console.log('[OVERVIEW CHARTS] ✅ Graphique 1 (CPU & Mémoire) chargé');
+    }, 50);
+    const timer2 = setTimeout(() => {
+      setChart2Loaded(true);
+      console.log('[OVERVIEW CHARTS] ✅ Graphique 2 (Trafic Réseau) chargé');
+    }, 150);
+    const timer3 = setTimeout(() => {
+      setChart3Loaded(true);
+      console.log('[OVERVIEW CHARTS] ✅ Graphique 3 (Performance) chargé');
+    }, 250);
+    const timer4 = setTimeout(() => {
+      setChart4Loaded(true);
+      console.log('[OVERVIEW CHARTS] ✅ Graphique 4 (Disponibilité) chargé');
+    }, 350);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+    };
+  }, [chartData.length]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+      {/* Indicateur de rafraîchissement discret en haut à droite */}
+      {refreshing && (
+        <div className="absolute top-0 right-0 z-10 bg-blue-500/80 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1">
+          <Activity className="w-3 h-3 animate-spin" />
+          <span>Actualisation...</span>
+        </div>
+      )}
+      {/* CPU & Mémoire */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          💻 CPU & Mémoire
+        </h3>
+        {chart1Loaded ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="uniqueTime" 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                tickFormatter={(value, index) => {
+                  const item = chartData[index];
+                  if (!item) return '';
+                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                }}
+                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
+                         Math.max(0, Math.floor(chartData.length / 30))}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                yAxisId="cpu"
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                label={{ value: 'CPU (%)', angle: -90, position: 'insideLeft' }}
+                tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+                formatter={(value: any, name: string) => {
+                  if (name === 'CPU (%)') return [`${Number(value).toFixed(1)}%`, name];
+                  if (name === 'Mémoire (%)') return [`${Number(value).toFixed(1)}%`, name];
+                  return [value, name];
+                }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="cpu" 
+                yAxisId="cpu"
+                stroke={COLORS.primary} 
+                strokeWidth={2}
+                name="CPU (%)"
+                dot={false}
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="memoryPercent" 
+                yAxisId="cpu"
+                stroke={COLORS.secondary} 
+                strokeWidth={2}
+                name="Mémoire (%)"
+                dot={false}
+                connectNulls={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <ChartSkeleton height={300} />
+        )}
+      </div>
+
+      {/* Réseau */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          🌐 Trafic Réseau
+        </h3>
+        {chart2Loaded ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="uniqueTime" 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                tickFormatter={(value, index) => {
+                  const item = chartData[index];
+                  if (!item) return '';
+                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                }}
+                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
+                         Math.max(0, Math.floor(chartData.length / 30))}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                tickFormatter={(value) => `${Number(value).toFixed(0)} MB`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+              />
+              <Legend />
+              <Area 
+                type="monotone" 
+                dataKey="networkRx" 
+                stackId="1"
+                stroke={COLORS.info} 
+                fill={COLORS.info}
+                fillOpacity={0.6}
+                name="RX (MB)"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="networkTx" 
+                stackId="1"
+                stroke={COLORS.warning} 
+                fill={COLORS.warning}
+                fillOpacity={0.6}
+                name="TX (MB)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <ChartSkeleton height={300} />
+        )}
+      </div>
+
+      {/* Performance */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          ⚡ Temps de Réponse & Erreurs
+        </h3>
+        {chart3Loaded ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="uniqueTime" 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                tickFormatter={(value, index) => {
+                  const item = chartData[index];
+                  if (!item) return '';
+                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                }}
+                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
+                         Math.max(0, Math.floor(chartData.length / 30))}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                yAxisId="left"
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                tickFormatter={(value) => `${value} ms`}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+              />
+              <Legend />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="responseTime" 
+                stroke={COLORS.purple} 
+                strokeWidth={2}
+                name="Temps réponse (ms)"
+                dot={false}
+              />
+              <Bar 
+                yAxisId="right"
+                dataKey="errorRate" 
+                fill={COLORS.danger}
+                name="Taux d'erreur (%)"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <ChartSkeleton height={300} />
+        )}
+      </div>
+
+      {/* Disponibilité */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          📊 Disponibilité
+        </h3>
+        {chart4Loaded ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="uniqueTime" 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                tickFormatter={(value, index) => {
+                  const item = chartData[index];
+                  if (!item) return '';
+                  return formatXAxisLabel(item.time || value, index, chartData, timeRange);
+                }}
+                interval={timeRange === '1h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '6h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '24h' ? Math.max(0, Math.floor(chartData.length / 24)) : 
+                         timeRange === '7d' ? Math.max(0, Math.floor(chartData.length / 28)) : 
+                         Math.max(0, Math.floor(chartData.length / 30))}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                style={{ fontSize: '12px' }}
+                domain={[0, 'auto']}
+                tickFormatter={(value) => `${Number(value).toFixed(0)} MB`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1F2937', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#F3F4F6'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="availability" 
+                stroke={COLORS.success} 
+                strokeWidth={3}
+                name="Disponibilité (%)"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <ChartSkeleton height={300} />
+        )}
+      </div>
+    </div>
+  );
+});
+
+// Composant Performance Tab avec chargement progressif
 const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggregatedStats, servicesList, loadingHistory, refreshing = false, initialHistoryLoaded = false, timeRange = '24h' }: any) {
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'responseTime' | 'errorRate'>('cpu');
+  // ✅ OPTIMISATION : États pour le chargement progressif des graphiques
+  const [chart1Loaded, setChart1Loaded] = useState(false);
+  const [chart2Loaded, setChart2Loaded] = useState(false);
+  const [chart3Loaded, setChart3Loaded] = useState(false);
+
+  // ✅ OPTIMISATION : Charger les graphiques progressivement
+  useEffect(() => {
+    if (chartData.length > 0 && initialHistoryLoaded) {
+      // Charger le premier graphique immédiatement
+      setChart1Loaded(true);
+      
+      // Charger le deuxième graphique après 300ms
+      const timer2 = setTimeout(() => {
+        setChart2Loaded(true);
+      }, 300);
+      
+      // Charger le troisième graphique après 600ms
+      const timer3 = setTimeout(() => {
+        setChart3Loaded(true);
+      }, 600);
+      
+      return () => {
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
+    } else {
+      // Réinitialiser si les données changent
+      setChart1Loaded(false);
+      setChart2Loaded(false);
+      setChart3Loaded(false);
+    }
+  }, [chartData.length, initialHistoryLoaded]);
 
   return (
     <div className="space-y-6">
@@ -1814,6 +2222,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               💻 CPU Moyen Total - Évolution temporelle
             </h3>
+            {chart1Loaded ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -1853,13 +2262,16 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                 />
               </LineChart>
             </ResponsiveContainer>
+            ) : (
+              <ChartSkeleton height={300} />
+            )}
           </div>
           {/* Graphique temporel des performances */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               📈 Évolution des Performances
             </h3>
-            {chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
+            {chart2Loaded && chartData.length > 0 && chartData.some((d: any) => d.responseTime > 0 || d.cpu > 0 || d.memory > 0) ? (
               <ResponsiveContainer width="100%" height={400}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -1929,12 +2341,14 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                   )}
                 </ComposedChart>
               </ResponsiveContainer>
-            ) : (
+            ) : chart2Loaded ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>Chargement des données de performance...</p>
                 <p className="text-xs mt-2">Les données apparaîtront ici une fois collectées</p>
               </div>
+            ) : (
+              <ChartSkeleton height={400} />
             )}
           </div>
           {/* CPU par service - État actuel */}
@@ -1947,7 +2361,7 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                 Données en temps réel
               </span>
             </div>
-            {servicesList && servicesList.length > 0 ? (
+            {chart3Loaded && servicesList && servicesList.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <BarChart 
                   data={servicesList
@@ -1984,12 +2398,14 @@ const PerformanceTab = memo(function PerformanceTab({ metrics, chartData, aggreg
                 <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
               </BarChart>
             </ResponsiveContainer>
-            ) : (
+            ) : chart3Loaded ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Cpu className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>Aucune donnée CPU disponible pour les services</p>
                 {servicesList && <p className="text-xs mt-2">Services détectés: {servicesList.length}</p>}
               </div>
+            ) : (
+              <BarChartSkeleton height={400} />
             )}
           </div>
 
@@ -2620,7 +3036,19 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   tickFormatter={(value, index) => formatXAxisLabel(value, index, chartData, timeRange)}
                   interval="preserveStartEnd"
                 />
-                <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+                <YAxis 
+                  yAxisId="cpu"
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  label={{ value: 'CPU (%) / Score', angle: -90, position: 'insideLeft' }}
+                />
+                <YAxis 
+                  yAxisId="memory"
+                  orientation="right"
+                  stroke="#9CA3AF" 
+                  style={{ fontSize: '12px' }}
+                  label={{ value: 'Mémoire (MB)', angle: 90, position: 'insideRight' }}
+                />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#1F2937', 
@@ -2630,14 +3058,37 @@ const SystemTab = memo(function SystemTab({ metrics, chartData, aggregatedStats,
                   }}
                 />
                 <Legend />
-                <Bar dataKey="cpu" fill={COLORS.primary} name="CPU (%)" />
-                <Bar dataKey="memory" fill={COLORS.secondary} name="Mémoire (%)" />
+                <Bar dataKey="cpu" fill="#3B82F6" name="CPU Système (%)" yAxisId="cpu" />
+                <Bar dataKey="memory" fill="#10B981" name="Mémoire Système (%)" yAxisId="cpu" />
+                <Line 
+                  type="monotone" 
+                  dataKey="project_cpu_avg" 
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  name="CPU Projet (%)"
+                  yAxisId="cpu"
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="project_memory_mb" 
+                  stroke="#EF4444"
+                  strokeWidth={2}
+                  name="Mémoire Projet (MB)"
+                  yAxisId="memory"
+                  dot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="loadScore" 
                   stroke={COLORS.warning}
                   strokeWidth={3}
                   name="Score de charge"
+                  yAxisId="cpu"
                   dot={false}
                   isAnimationActive={false}
                   connectNulls={false}

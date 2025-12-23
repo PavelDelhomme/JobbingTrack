@@ -21,46 +21,67 @@ export default function SecurityPoliciesPage() {
   const [blockedIPs, setBlockedIPs] = useState<string[]>([])
   const [newIP, setNewIP] = useState('')
 
-  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
+  // ✅ OPTIMISATION : useCallback avec cache
   const fetchPolicies = useCallback(async () => {
     try {
+      // ✅ OPTIMISATION : Vérifier le cache d'abord
+      const cacheKey = 'security_policies_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        const cachedData = JSON.parse(cached)
+        setPolicies(cachedData)
+        setLoading(false)
+        // Rafraîchir en arrière-plan
+      }
+      
       const token = localStorage.getItem('token')
       const response = await axios.get(`${API_URL}/api/v1/security/policies`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
       })
       
       if (response.data.success) {
-        setPolicies(response.data.policies || [])
+        const policiesData = response.data.policies || []
+        setPolicies(policiesData)
+        // ✅ OPTIMISATION : Mettre en cache
+        sessionStorage.setItem(cacheKey, JSON.stringify(policiesData))
       }
     } catch (error) {
       console.error('Erreur chargement politiques:', error)
-      // Politiques par défaut
-      setPolicies([
-        {
-          id: '1',
-          name: 'Blocage IP',
-          description: 'Bloquer les IPs suspectes',
-          enabled: true,
-          type: 'ip_blocking',
-          config: {}
-        },
-        {
-          id: '2',
-          name: 'Rate Limiting',
-          description: 'Limiter le nombre de requêtes par IP',
-          enabled: true,
-          type: 'rate_limiting',
-          config: { maxRequests: 100, windowMinutes: 1 }
-        },
-        {
-          id: '3',
-          name: 'WAF',
-          description: 'Web Application Firewall',
-          enabled: true,
-          type: 'waf',
-          config: {}
-        }
-      ])
+      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
+      const cacheKey = 'security_policies_cache'
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        setPolicies(JSON.parse(cached))
+      } else {
+        // Politiques par défaut
+        setPolicies([
+          {
+            id: '1',
+            name: 'Blocage IP',
+            description: 'Bloquer les IPs suspectes',
+            enabled: true,
+            type: 'ip_blocking',
+            config: {}
+          },
+          {
+            id: '2',
+            name: 'Rate Limiting',
+            description: 'Limiter le nombre de requêtes par IP',
+            enabled: true,
+            type: 'rate_limiting',
+            config: { maxRequests: 100, windowMinutes: 1 }
+          },
+          {
+            id: '3',
+            name: 'WAF',
+            description: 'Web Application Firewall',
+            enabled: true,
+            type: 'waf',
+            config: {}
+          }
+        ])
+      }
     } finally {
       setLoading(false)
     }

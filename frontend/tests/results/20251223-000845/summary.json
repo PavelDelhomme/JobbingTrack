@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-12-23T00:09:40+01:00",
+  "reportDir": "tests/results/20251223-000845",
+  "summary": {
+    "totalCategories": 21,
+    "totalTests": 14,
+    "totalPassed": 12,
+    "totalFailed": 2,
+    "totalSkipped": 0,
+    "passed": 12,
+    "failed": 2,
+    "skipped": 0,
+    "successRate": 85.71
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "failed", "duration": 1},
+    {"name": "Relations BDD", "status": "failed", "duration": 0},
+    {"name": "Enums", "status": "failed", "duration": 0},
+    {"name": "Tests API Complets (Jest)", "status": "failed", "duration": 34},
+    {"name": "Tests Backend Services (Jest)", "status": "success", "duration": 3},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 4},
+    {"name": "Playwright Mobile", "status": "failed", "duration": 3},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "failed", "duration": 0},
+    {"name": "Tests Company Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Contact Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Interview Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Call Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests FollowUp Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Event Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Notification Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Profile Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Security Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Metrics Aggregator Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Workflow Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Deployment Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests API Gateway Health", "status": "failed", "duration": 0}
+  ]
+}

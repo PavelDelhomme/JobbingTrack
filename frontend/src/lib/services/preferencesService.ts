@@ -191,12 +191,12 @@ class PreferencesService {
   private getDefaultPreferences(): UserPreferences {
     return {
       refreshInterval: {
-        logs: 30000,        // 30 secondes
-        analytics: 10000,   // 10 secondes
-        metrics: 15000,     // 15 secondes
-        dashboard: 30000,   // 30 secondes
-        services: 20000,    // 20 secondes
-        notifications: 60000 // 60 secondes
+        logs: 30000,        // 30 secondes (logs de sécurité)
+        analytics: 30000,   // 30 secondes (analytics)
+        metrics: 15000,     // 15 secondes (métriques système/projet)
+        dashboard: 30000,   // 30 secondes (dashboard principal)
+        services: 20000,    // 20 secondes (liste des services)
+        notifications: 60000 // 60 secondes (notifications)
       },
       display: {
         itemsPerPage: 20,
