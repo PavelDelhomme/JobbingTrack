@@ -1820,104 +1820,201 @@ const OverviewTab = memo(function OverviewTab({ metrics, chartData, aggregatedSt
   const loadTrend = currentLoad !== null && avgLoad > 0
     ? currentLoad - avgLoad
     : 0
+  
+  // ✅ NOUVEAU : Fonction pour obtenir les couleurs dynamiques selon le pourcentage
+  const getAvailabilityColor = (percent: number | null) => {
+    if (percent === null || percent === undefined) {
+      return {
+        bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
+        border: 'border-gray-200 dark:border-gray-800',
+        text: 'text-gray-600 dark:text-gray-400'
+      }
+    }
+    if (percent >= 95) {
+      return {
+        bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+        border: 'border-green-200 dark:border-green-800',
+        text: 'text-green-600 dark:text-green-400'
+      }
+    }
+    if (percent >= 75) {
+      return {
+        bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
+        border: 'border-yellow-200 dark:border-yellow-800',
+        text: 'text-yellow-600 dark:text-yellow-400'
+      }
+    }
+    if (percent >= 50) {
+      return {
+        bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
+        border: 'border-orange-200 dark:border-orange-800',
+        text: 'text-orange-600 dark:text-orange-400'
+      }
+    }
+    return {
+      bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
+      border: 'border-red-200 dark:border-red-800',
+      text: 'text-red-600 dark:text-red-400'
+    }
+  }
+  
+  const getCpuMemoryColor = (percent: number | null, isCpu: boolean = true) => {
+    if (percent === null || percent === undefined) {
+      return {
+        bg: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20',
+        border: 'border-gray-200 dark:border-gray-800',
+        text: 'text-gray-600 dark:text-gray-400'
+      }
+    }
+    if (percent <= 50) {
+      return isCpu ? {
+        bg: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+        border: 'border-blue-200 dark:border-blue-800',
+        text: 'text-blue-600 dark:text-blue-400'
+      } : {
+        bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+        border: 'border-green-200 dark:border-green-800',
+        text: 'text-green-600 dark:text-green-400'
+      }
+    }
+    if (percent <= 75) {
+      return {
+        bg: 'from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
+        border: 'border-yellow-200 dark:border-yellow-800',
+        text: 'text-yellow-600 dark:text-yellow-400'
+      }
+    }
+    if (percent <= 90) {
+      return {
+        bg: 'from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20',
+        border: 'border-orange-200 dark:border-orange-800',
+        text: 'text-orange-600 dark:text-orange-400'
+      }
+    }
+    return {
+      bg: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
+      border: 'border-red-200 dark:border-red-800',
+      text: 'text-red-600 dark:text-red-400'
+    }
+  }
 
   return (
     <div className="space-y-6">
       {/* ✅ CORRECTION : Cartes Projet en premier (style gradient) */}
       {metrics?.system?.jobbingtrack && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
-              <div className="flex items-center gap-2">
-                {projectCpuTrend !== 0 && (
-                  <span className={`text-xs font-medium ${projectCpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {projectCpuTrend > 0 ? '↗' : '↘'} {Math.abs(projectCpuTrend).toFixed(1)}%
-                  </span>
-                )}
-                <Cpu className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+          {(() => {
+            // ✅ NOUVEAU : Calculer le CPU projet et obtenir les couleurs dynamiques
+            const cpuValue = metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
+              ? metrics.system.jobbingtrack.containers.cpu.averagePercent
+              : metrics?.monitoringC?.project_cpu_avg !== undefined
+              ? metrics.monitoringC.project_cpu_avg
+              : null
+            const colors = getCpuMemoryColor(cpuValue, true)
+            
+            return (
+              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Projet</span>
+                  <div className="flex items-center gap-2">
+                    {projectCpuTrend !== 0 && (
+                      <span className={`text-xs font-medium ${projectCpuTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                        {projectCpuTrend > 0 ? '↗' : '↘'} {Math.abs(projectCpuTrend).toFixed(1)}%
+                      </span>
+                    )}
+                    <Cpu className={`w-5 h-5 ${colors.text}`} />
+                  </div>
+                </div>
+                <div className={`text-2xl font-bold ${colors.text}`}>
+                  {cpuValue !== null ? `${cpuValue.toFixed(1)}%` : '...'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {(() => {
+                    // ✅ CORRECTION : Compter uniquement les conteneurs JobbingTrack (pas tous les conteneurs)
+                    const jobbingtrackCount = metrics.system.jobbingtrack.containers?.count;
+                    // Si count est trop élevé (ex: 33), utiliser un calcul plus précis
+                    if (jobbingtrackCount && jobbingtrackCount > 30) {
+                      // Essayer de compter depuis les services ou monitoringC
+                      const servicesCount = aggregatedStats.servicesTotal || 0;
+                      return servicesCount > 0 ? `${servicesCount} services` : `${jobbingtrackCount} conteneurs`;
+                    }
+                    return jobbingtrackCount ? `${jobbingtrackCount} conteneurs JobbingTrack` : '...';
+                  })()}
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-              {metrics.system.jobbingtrack.containers?.cpu?.averagePercent !== undefined
-                ? `${metrics.system.jobbingtrack.containers.cpu.averagePercent.toFixed(1)}%`
-                : metrics?.monitoringC?.project_cpu_avg !== undefined
-                ? `${metrics.monitoringC.project_cpu_avg.toFixed(1)}%`
-                : '...'}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {(() => {
-                // ✅ CORRECTION : Compter uniquement les conteneurs JobbingTrack (pas tous les conteneurs)
-                const jobbingtrackCount = metrics.system.jobbingtrack.containers?.count;
-                // Si count est trop élevé (ex: 33), utiliser un calcul plus précis
-                if (jobbingtrackCount && jobbingtrackCount > 30) {
-                  // Essayer de compter depuis les services ou monitoringC
-                  const servicesCount = aggregatedStats.servicesTotal || 0;
-                  return servicesCount > 0 ? `${servicesCount} services` : `${jobbingtrackCount} conteneurs`;
-                }
-                return jobbingtrackCount ? `${jobbingtrackCount} conteneurs JobbingTrack` : '...';
-              })()}
-            </div>
+            )
+          })()}
+          
+          {(() => {
+            // ✅ NOUVEAU : Calculer la mémoire projet et obtenir les couleurs dynamiques
+            const memoryValue = metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
+              ? metrics.system.jobbingtrack.containers.memory.percent_of_system
+              : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
+              ? metrics.system.jobbingtrack.containers.memory.percent
+              : (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
+                ? (metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100
+                : null)
+            const colors = getCpuMemoryColor(memoryValue, false)
+            
+            return (
+              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
+                  <div className="flex items-center gap-2">
+                    {projectMemoryTrend !== 0 && (
+                      <span className={`text-xs font-medium ${projectMemoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                        {projectMemoryTrend > 0 ? '↗' : '↘'} {Math.abs(projectMemoryTrend).toFixed(1)}%
+                      </span>
+                    )}
+                    <MemoryStick className={`w-5 h-5 ${colors.text}`} />
+                  </div>
+                </div>
+                <div className={`text-2xl font-bold ${colors.text}`}>
+                  {memoryValue !== null ? `${memoryValue.toFixed(1)}%` : '...'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
+                    ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
+                    : ''}
+                </div>
+              </div>
+            )
+          })()}
           </div>
           
-          <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mémoire Projet</span>
-              <div className="flex items-center gap-2">
-                {projectMemoryTrend !== 0 && (
-                  <span className={`text-xs font-medium ${projectMemoryTrend > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {projectMemoryTrend > 0 ? '↗' : '↘'} {Math.abs(projectMemoryTrend).toFixed(1)}%
-                  </span>
-                )}
-                <MemoryStick className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+          {(() => {
+            // ✅ NOUVEAU : Calculer la disponibilité et obtenir les couleurs dynamiques
+            const availability = metrics?.monitoringC?.availability_percent !== undefined
+              ? metrics.monitoringC.availability_percent
+              : metrics?.health?.availability_percent !== undefined
+              ? metrics.health.availability_percent
+              : (aggregatedStats.servicesTotal > 0
+                ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
+                : null)
+            const colors = getAvailabilityColor(availability)
+            
+            return (
+              <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-4 ${colors.border}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
+                  <div className="flex items-center gap-2">
+                    {availabilityTrend !== 0 && (
+                      <span className={`text-xs font-medium ${availabilityTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {availabilityTrend > 0 ? '↗' : '↘'} {Math.abs(availabilityTrend).toFixed(1)}%
+                      </span>
+                    )}
+                    <Activity className={`w-5 h-5 ${colors.text}`} />
+                  </div>
+                </div>
+                <div className={`text-2xl font-bold ${colors.text}`}>
+                  {availability !== null ? `${availability.toFixed(1)}%` : '...'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {metrics.system.jobbingtrack.containers?.memory?.percent_of_system !== undefined
-                ? `${metrics.system.jobbingtrack.containers.memory.percent_of_system.toFixed(1)}%`
-                : metrics.system.jobbingtrack.containers?.memory?.percent !== undefined
-                ? `${metrics.system.jobbingtrack.containers.memory.percent.toFixed(1)}%`
-                : (metrics?.monitoringC?.project_memory_mb !== undefined && metrics?.system?.memory?.total_mb
-                  ? `${((metrics.monitoringC.project_memory_mb / metrics.system.memory.total_mb) * 100).toFixed(1)}%`
-                  : '...')}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {metrics.system.jobbingtrack.containers?.memory?.used && metrics?.system?.memory?.total_mb
-                ? `${formatMb(metrics.system.jobbingtrack.containers.memory.used)} / ${formatMb(metrics.system.memory.total_mb)} système`
-                : ''}
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disponibilité</span>
-              <div className="flex items-center gap-2">
-                {availabilityTrend !== 0 && (
-                  <span className={`text-xs font-medium ${availabilityTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {availabilityTrend > 0 ? '↗' : '↘'} {Math.abs(availabilityTrend).toFixed(1)}%
-                  </span>
-                )}
-                <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {(() => {
-                // ✅ CORRECTION : Afficher le pourcentage de disponibilité, pas 0MB
-                const availability = metrics?.monitoringC?.availability_percent !== undefined
-                  ? metrics.monitoringC.availability_percent
-                  : metrics?.health?.availability_percent !== undefined
-                  ? metrics.health.availability_percent
-                  : (aggregatedStats.servicesTotal > 0
-                    ? (aggregatedStats.servicesHealthy / aggregatedStats.servicesTotal) * 100
-                    : null)
-                
-                return availability !== null ? `${availability.toFixed(1)}%` : '...'
-              })()}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              {aggregatedStats.servicesHealthy || 0} / {aggregatedStats.servicesTotal || 0} services sains
-            </div>
-          </div>
+            )
+          })()}
           
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
             <div className="flex items-center justify-between mb-2">
