@@ -17,6 +17,7 @@
 #include "parser.h"
 #include "storage.h"
 #include "filter.h"
+#include "http_server.h"
 
 #define MAX_WATCHES 100
 #define BUFFER_SIZE 8192
@@ -181,11 +182,36 @@ void read_new_log_lines(WatchInfo *watch) {
 /**
  * Boucle principale de collecte
  */
-int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
+int main(int argc, char *argv[]) {
+    int http_port = 5099;
+    
+    if (argc > 1) {
+        http_port = atoi(argv[1]);
+    }
+    
     printf("🚀 Collecteur de logs démarré\n");
+    
+    // ✅ NOUVEAU : Initialiser le stockage PostgreSQL
+    printf("💾 Initialisation du stockage PostgreSQL...\n");
+    if (init_storage() != 0) {
+        fprintf(stderr, "⚠️  Échec initialisation PostgreSQL (les logs seront toujours disponibles via l'API HTTP)\n");
+    } else {
+        printf("✅ Stockage PostgreSQL initialisé\n");
+    }
+    
+    // ✅ NOUVEAU : Démarrer le serveur HTTP
+    printf("🌐 Démarrage du serveur HTTP...\n");
+    if (start_http_server(http_port) != 0) {
+        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n");
+    } else {
+        printf("✅ Serveur HTTP démarré sur le port %d\n", http_port);
+        printf("📊 API disponible sur http://localhost:%d/api/v1/logs\n", http_port);
+    }
     
     if (init_log_collector() != 0) {
         fprintf(stderr, "Erreur initialisation\n");
+        stop_http_server();
+        cleanup_storage();
         return 1;
     }
     
@@ -232,7 +258,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
     }
     
+    // Nettoyage (ne sera jamais atteint, mais bon pour la propreté)
     close(inotify_fd);
+    stop_http_server();
+    cleanup_storage();
     return 0;
 }
 

@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false) // ✅ État pour cacher le drawer sur desktop (visible par défaut)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false) // ✅ État pour le popup des paramètres
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false) // ✅ État pour le menu rapide utilisateur
-  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false) // ✅ État pour le dropdown du thème
+  // ✅ SUPPRIMÉ : isThemeDropdownOpen n'est plus nécessaire (thème switcher simplifié)
   const [isQuickActionsDropdownOpen, setIsQuickActionsDropdownOpen] = useState(false) // ✅ État pour le dropdown des actions rapides
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     dashboard: true,
@@ -651,75 +651,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 )}
               </div>
 
-              {/* Theme Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 lg:px-4 py-2 rounded-lg transition-all ${
-                    actualTheme === 'dark'
-                      ? 'bg-gray-800 text-gray-100 hover:bg-gray-700'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-                >
-                  <span className="text-lg sm:text-xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
-                  <span className="hidden sm:inline text-sm font-medium">
-                    {actualTheme === 'dark' ? 'Sombre' : 'Clair'}
-                  </span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {isThemeDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setIsThemeDropdownOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
-                      <button
-                        onClick={() => {
-                          setThemeMode('light')
-                          setIsThemeDropdownOpen(false)
-                        }}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'light' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        <span>☀️</span>
-                        <span>Mode Clair</span>
-                        {theme === 'light' && <span className="ml-auto">✓</span>}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setThemeMode('dark')
-                          setIsThemeDropdownOpen(false)
-                        }}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'dark' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        <span>🌙</span>
-                        <span>Mode Sombre</span>
-                        {theme === 'dark' && <span className="ml-auto">✓</span>}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setThemeMode('system')
-                          setIsThemeDropdownOpen(false)
-                        }}
-                        className={`w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          theme === 'system' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        <span>💻</span>
-                        <span>Mode Système</span>
-                        {theme === 'system' && <span className="ml-auto">✓</span>}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              {/* ✅ NOUVEAU : Thème switcher simplifié - juste le logo qui change */}
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-10 h-10 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-700"
+                title={actualTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              >
+                <span className="text-2xl">{actualTheme === 'dark' ? '🌙' : '☀️'}</span>
+              </button>
             </div>
           </div>
 

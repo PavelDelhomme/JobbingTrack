@@ -2,10 +2,11 @@
 FROM node:20.18.0-alpine AS base
 # Mettre à jour npm vers la version 11.6.4
 RUN npm install -g npm@11.6.4
-# Installer les dépendances système nécessaires pour Playwright
+# Installer les dépendances système nécessaires pour Playwright et health checks
 RUN apk add --no-cache \
     libc6-compat \
     curl \
+    wget \
     dumb-init \
     chromium \
     nss \

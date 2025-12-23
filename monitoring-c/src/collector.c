@@ -23,6 +23,9 @@
 
 // Structure globale pour les métriques (exportée pour http_server.c)
 MetricsData global_metrics = {0};
+// ✅ NOUVEAU : Métriques précédentes pour calculer les variations
+static MetricsData previous_metrics = {0};
+static bool has_previous_metrics = false;
 
 /**
  * Collecte des métriques système
@@ -485,20 +488,32 @@ int collect_container_metrics(void) {
         }
     }
     
-    // Calculer le temps de réponse moyen et le score de charge
+    // Calculer le temps de réponse moyen, le score de charge et le taux d'erreur
     double total_response_time = 0.0;
     int valid_response_times = 0;
     int healthy_services = 0;
-    int total_services = container_idx;
+    int error_services = 0;  // ✅ NOUVEAU : Compter les services en erreur
+    int total_services = 0;  // ✅ CORRECTION : Compter uniquement les conteneurs valides
     
     for (int i = 0; i < container_idx && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
+            total_services++;  // ✅ CORRECTION : Compter chaque conteneur valide
+            
+            // ✅ CORRECTION : Considérer response_time_ms > 0 comme valide (même si http_status n'est pas 200)
+            // Cela permet de capturer les temps de réponse même pour les services en erreur
             if (global_metrics.containers[i].response_time_ms > 0.0) {
                 total_response_time += global_metrics.containers[i].response_time_ms;
                 valid_response_times++;
             }
-            if (global_metrics.containers[i].http_status == 200) {
+            // ✅ CORRECTION : Considérer comme sain si http_status == 200 OU si response_time_ms > 0 (service répond)
+            if (global_metrics.containers[i].http_status == 200 || 
+                (global_metrics.containers[i].response_time_ms > 0.0 && global_metrics.containers[i].http_status > 0)) {
                 healthy_services++;
+            }
+            // ✅ NOUVEAU : Compter les erreurs (http_status >= 400 ou http_status == 0 avec response_time_ms == 0)
+            if (global_metrics.containers[i].http_status >= 400 || 
+                (global_metrics.containers[i].http_status == 0 && global_metrics.containers[i].response_time_ms == 0.0)) {
+                error_services++;
             }
         }
     }
@@ -509,7 +524,8 @@ int collect_container_metrics(void) {
     double avg_response_time = valid_response_times > 0 ? total_response_time / valid_response_times : 0.0;
     double avg_cpu = valid_containers > 0 ? total_cpu_percent / valid_containers : 0.0;
     double avg_memory = valid_containers > 0 ? total_memory_percent / valid_containers : 0.0;
-    double availability_percent = total_services > 0 ? (healthy_services * 100.0 / total_services) : 0.0;
+    // ✅ CORRECTION : Calculer la disponibilité uniquement si total_services > 0, sinon utiliser 100% par défaut
+    double availability_percent = total_services > 0 ? (healthy_services * 100.0 / total_services) : 100.0;
     
     // Calculer le score de charge (formule: CPU * 0.4 + Memory * 0.3 + (100 - Availability) * 0.2 + (ResponseTime/100) * 0.1)
     // Score normalisé entre 0 et 100, où 0 = excellent et 100 = surchargé
@@ -528,8 +544,73 @@ int collect_container_metrics(void) {
     global_metrics.availability_percent = availability_percent;
     global_metrics.load_score = load_score;
     
+    // ✅ NOUVEAU : Calculer les statistiques détaillées
+    global_metrics.services_healthy = healthy_services;
+    global_metrics.services_total = total_services;
+    global_metrics.services_degraded = 0; // À calculer si nécessaire
+    global_metrics.services_offline = total_services - healthy_services;
+    global_metrics.services_errors = error_services;  // ✅ NOUVEAU : Nombre de services en erreur
+    // ✅ NOUVEAU : Calculer le taux d'erreur par minute (approximation basée sur le nombre d'erreurs)
+    // On suppose qu'une collecte toutes les 15 secondes = 4 collectes/min, donc on multiplie par 4
+    global_metrics.error_rate_per_min = error_services * 4.0;  // Approximation
+    global_metrics.system_cpu_usage_percent = global_metrics.cpu.load_1 * 100.0 / global_metrics.cpu.cores; // Approximation
+    global_metrics.system_memory_usage_percent = global_metrics.memory.usage_percent;
+    
+    // ✅ NOUVEAU : Calculer les variations si on a des métriques précédentes
+    if (has_previous_metrics) {
+        // Variation CPU système
+        if (previous_metrics.system_cpu_usage_percent > 0) {
+            global_metrics.variations.cpu_change_percent = 
+                ((global_metrics.system_cpu_usage_percent - previous_metrics.system_cpu_usage_percent) / 
+                 previous_metrics.system_cpu_usage_percent) * 100.0;
+        } else {
+            global_metrics.variations.cpu_change_percent = 0.0;
+        }
+        
+        // Variation Mémoire système
+        if (previous_metrics.system_memory_usage_percent > 0) {
+            global_metrics.variations.memory_change_percent = 
+                ((global_metrics.system_memory_usage_percent - previous_metrics.system_memory_usage_percent) / 
+                 previous_metrics.system_memory_usage_percent) * 100.0;
+        } else {
+            global_metrics.variations.memory_change_percent = 0.0;
+        }
+        
+        // Variation Temps de réponse
+        if (previous_metrics.avg_response_time_ms > 0) {
+            global_metrics.variations.response_time_change_percent = 
+                ((global_metrics.avg_response_time_ms - previous_metrics.avg_response_time_ms) / 
+                 previous_metrics.avg_response_time_ms) * 100.0;
+        } else {
+            global_metrics.variations.response_time_change_percent = 0.0;
+        }
+        
+        // Variation Disponibilité
+        if (previous_metrics.availability_percent > 0) {
+            global_metrics.variations.availability_change_percent = 
+                global_metrics.availability_percent - previous_metrics.availability_percent;
+        } else {
+            global_metrics.variations.availability_change_percent = 0.0;
+        }
+    } else {
+        // Première collecte, pas de variation
+        global_metrics.variations.cpu_change_percent = 0.0;
+        global_metrics.variations.memory_change_percent = 0.0;
+        global_metrics.variations.response_time_change_percent = 0.0;
+        global_metrics.variations.availability_change_percent = 0.0;
+    }
+    
+    // Sauvegarder les métriques actuelles comme précédentes pour la prochaine fois
+    previous_metrics = global_metrics;
+    has_previous_metrics = true;
+    
     printf("[STATS] Temps réponse moyen: %.2f ms, CPU moyen: %.2f%%, Mémoire moyenne: %.2f%%, Disponibilité: %.2f%%, Score charge: %.2f\n",
            avg_response_time, avg_cpu, avg_memory, availability_percent, load_score);
+    printf("[STATS] Variations - CPU: %.2f%%, Mémoire: %.2f%%, Temps réponse: %.2f%%, Disponibilité: %.2f%%\n",
+           global_metrics.variations.cpu_change_percent,
+           global_metrics.variations.memory_change_percent,
+           global_metrics.variations.response_time_change_percent,
+           global_metrics.variations.availability_change_percent);
     
     return 0;
 }

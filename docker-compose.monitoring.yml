@@ -52,12 +52,20 @@ services:
     container_name: jobbingtrack-log-collector-c
     user: "0:0"
     ports:
-      - "${LOG_COLLECTOR_C_PORT:-5099}:${LOG_COLLECTOR_C_INTERNAL_PORT:-8016}"
+      - "${LOG_COLLECTOR_C_PORT:-5099}:5099"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - jobbingtrack-network
     healthcheck:
@@ -66,8 +74,6 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
-    # Note: depends_on retiré car PostgreSQL est déjà démarré avant dans le Makefile
-    # et cela évite la recréation du conteneur PostgreSQL
     profiles:
       - monitoring-c
       - full

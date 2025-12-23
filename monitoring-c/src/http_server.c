@@ -116,6 +116,24 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         "  },\n"
         "  \"project_memory_mb\": %lu,\n"
         "  \"project_cpu_avg\": %.2f,\n"
+        "  \"variations\": {\n"
+        "    \"cpu_change_percent\": %.2f,\n"
+        "    \"memory_change_percent\": %.2f,\n"
+        "    \"response_time_change_percent\": %.2f,\n"
+        "    \"availability_change_percent\": %.2f\n"
+        "  },\n"
+        "  \"services\": {\n"
+        "    \"healthy\": %d,\n"
+        "    \"total\": %d,\n"
+        "    \"degraded\": %d,\n"
+        "    \"offline\": %d,\n"
+        "    \"errors\": %d\n"
+        "  },\n"
+        "  \"error_rate_per_min\": %.2f,\n"
+        "  \"system\": {\n"
+        "    \"cpu_usage_percent\": %.2f,\n"
+        "    \"memory_usage_percent\": %.2f\n"
+        "  },\n"
         "  \"containers\": [\n",
         (long)global_metrics.timestamp,
         global_metrics.cpu.load_1,
@@ -141,7 +159,19 @@ void generate_json_response(char *buffer, size_t buffer_size) {
         global_metrics.total_network_tx_bytes / (1024.0 * 1024.0),
         (global_metrics.total_network_rx_bytes + global_metrics.total_network_tx_bytes) / (1024.0 * 1024.0),
         project_memory_mb,
-        project_cpu_avg
+        project_cpu_avg,
+        global_metrics.variations.cpu_change_percent,
+        global_metrics.variations.memory_change_percent,
+        global_metrics.variations.response_time_change_percent,
+        global_metrics.variations.availability_change_percent,
+        global_metrics.services_healthy,
+        global_metrics.services_total,
+        global_metrics.services_degraded,
+        global_metrics.services_offline,
+        global_metrics.services_errors,
+        global_metrics.error_rate_per_min,
+        global_metrics.system_cpu_usage_percent,
+        global_metrics.system_memory_usage_percent
     );
     
     const char *msg4 = "[DEBUG] generate_json_response: snprintf terminé, pos=";

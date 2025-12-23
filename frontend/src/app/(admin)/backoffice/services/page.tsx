@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
-import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock, AlertTriangle, RotateCw, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock, AlertTriangle, RotateCw, ArrowUp, ArrowDown, ArrowUpDown, FileText } from 'lucide-react'
+import Link from 'next/link'
 
 // ✅ NOUVEAU : Utiliser monitoring-c (port 5098) au lieu de l'ancien système
 const MONITORING_C_URL = 'http://localhost:5098'
@@ -456,6 +457,14 @@ export default function ServicesPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* ✅ NOUVEAU : Lien vers Services & Logs */}
+            <Link
+              href="/backoffice/services/logs"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              Services & Logs
+            </Link>
             <button
               onClick={loadServices}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"

@@ -41,6 +41,14 @@ typedef struct {
     char health_url[512];     // URL pour health check
 } ContainerMetrics;
 
+// Structure pour les variations (augmentation/diminution)
+typedef struct {
+    double cpu_change_percent;         // Variation CPU en %
+    double memory_change_percent;       // Variation Mémoire en %
+    double response_time_change_percent; // Variation Temps de réponse en %
+    double availability_change_percent;  // Variation Disponibilité en %
+} MetricsVariations;
+
 // Structure complète des métriques
 typedef struct {
     time_t timestamp;
@@ -57,6 +65,17 @@ typedef struct {
     double load_score;                 // Score de charge (0-100)
     unsigned long total_network_rx_bytes;  // Total réseau réception (bytes)
     unsigned long total_network_tx_bytes;   // Total réseau émission (bytes)
+    // ✅ NOUVEAU : Variations calculées
+    MetricsVariations variations;
+    // ✅ NOUVEAU : Statistiques détaillées pour toutes les pages
+    int services_healthy;              // Nombre de services sains
+    int services_total;                 // Nombre total de services
+    int services_degraded;              // Nombre de services dégradés
+    int services_offline;               // Nombre de services offline
+    int services_errors;                // ✅ NOUVEAU : Nombre de services en erreur
+    double error_rate_per_min;          // ✅ NOUVEAU : Taux d'erreur par minute
+    double system_cpu_usage_percent;   // CPU système (pas conteneurs)
+    double system_memory_usage_percent; // Mémoire système (pas conteneurs)
 } MetricsData;
 
 // Fonctions principales
