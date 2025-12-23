@@ -772,6 +772,22 @@ restart-service: ## Redémarrer un service spécifique (SERVICE=nom)
 		echo "✅ auth-service redémarré et prêt"; \
 	fi
 
+# Reconstruire des services spécifiques
+rebuild-notification-service: ## Reconstruire notification-service
+	@echo "🔨 Reconstruction du service: notification-service"
+	@docker compose build notification-service
+	@echo "✅ Reconstruction terminée"
+
+rebuild-profile-service: ## Reconstruire profile-service
+	@echo "🔨 Reconstruction du service: profile-service"
+	@docker compose build profile-service
+	@echo "✅ Reconstruction terminée"
+
+rebuild-workflow-service: ## Reconstruire workflow-service
+	@echo "🔨 Reconstruction du service: workflow-service"
+	@docker compose build workflow-service
+	@echo "✅ Reconstruction terminée"
+
 # Reconstruire un service spécifique
 rebuild-service: ## Reconstruire un service spécifique (SERVICE=nom)
 	@if [ -z "$(SERVICE)" ]; then \
