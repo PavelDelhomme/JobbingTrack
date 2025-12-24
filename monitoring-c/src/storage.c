@@ -294,6 +294,126 @@ int save_metrics_to_db(const MetricsData *metrics) {
 }
 
 /**
+ * Récupère l'historique des métriques système depuis PostgreSQL
+ * Retourne un JSON string alloué dynamiquement (à libérer par l'appelant)
+ */
+char* get_system_metrics_history(int limit, int offset, const char *start_date, const char *end_date) {
+    if (!conn || PQstatus(conn) != CONNECTION_OK) {
+        return NULL;
+    }
+    
+    char query[2048];
+    if (start_date && end_date && strlen(start_date) > 0 && strlen(end_date) > 0) {
+        snprintf(query, sizeof(query),
+            "SELECT timestamp, cpu_usage_percent, cpu_cores, cpu_load_1, cpu_load_5, cpu_load_15, "
+            "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
+            "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
+            "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
+            "FROM system_metrics "
+            "WHERE timestamp >= '%s'::timestamp AND timestamp <= '%s'::timestamp "
+            "ORDER BY timestamp DESC "
+            "LIMIT %d OFFSET %d",
+            start_date, end_date, limit, offset);
+    } else {
+        snprintf(query, sizeof(query),
+            "SELECT timestamp, cpu_usage_percent, cpu_cores, cpu_load_1, cpu_load_5, cpu_load_15, "
+            "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
+            "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
+            "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
+            "FROM system_metrics "
+            "ORDER BY timestamp DESC "
+            "LIMIT %d OFFSET %d",
+            limit, offset);
+    }
+    
+    PGresult *res = PQexec(conn, query);
+    
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        fprintf(stderr, "[STORAGE] ❌ Erreur requête historique: %s\n", PQerrorMessage(conn));
+        PQclear(res);
+        return NULL;
+    }
+    
+    int rows = PQntuples(res);
+    if (rows == 0) {
+        PQclear(res);
+        // Retourner un JSON vide mais valide
+        char *empty_json = (char*)malloc(64);
+        snprintf(empty_json, 64, "{\"success\":true,\"count\":0,\"data\":[]}");
+        return empty_json;
+    }
+    
+    // Allouer un buffer pour le JSON (estimation: ~500 bytes par ligne)
+    size_t json_size = rows * 500 + 1024;
+    char *json = (char*)malloc(json_size);
+    if (!json) {
+        PQclear(res);
+        return NULL;
+    }
+    
+    // Construire le JSON
+    int pos = snprintf(json, json_size, "{\"success\":true,\"count\":%d,\"data\":[", rows);
+    
+    for (int i = 0; i < rows; i++) {
+        if (i > 0) {
+            pos += snprintf(json + pos, json_size - pos, ",");
+        }
+        
+        const char *timestamp = PQgetvalue(res, i, 0);
+        const char *cpu_usage = PQgetvalue(res, i, 1);
+        const char *cpu_cores = PQgetvalue(res, i, 2);
+        const char *cpu_load_1 = PQgetvalue(res, i, 3);
+        const char *cpu_load_5 = PQgetvalue(res, i, 4);
+        const char *cpu_load_15 = PQgetvalue(res, i, 5);
+        const char *memory_total = PQgetvalue(res, i, 6);
+        const char *memory_used = PQgetvalue(res, i, 7);
+        const char *memory_free = PQgetvalue(res, i, 8);
+        const char *memory_usage = PQgetvalue(res, i, 9);
+        const char *disk_usage = PQgetvalue(res, i, 10);
+        const char *container_count = PQgetvalue(res, i, 11);
+        const char *avg_response_time = PQgetvalue(res, i, 12);
+        const char *availability = PQgetvalue(res, i, 13);
+        const char *load_score = PQgetvalue(res, i, 14);
+        const char *network_rx = PQgetvalue(res, i, 15);
+        const char *network_tx = PQgetvalue(res, i, 16);
+        const char *project_cpu_avg = PQgetvalue(res, i, 17);
+        const char *project_memory_mb = PQgetvalue(res, i, 18);
+        
+        // Convertir timestamp PostgreSQL en ISO string
+        char iso_timestamp[64];
+        if (strlen(timestamp) >= 19) {
+            // Format: "2025-12-24 07:18:38" -> "2025-12-24T07:18:38Z"
+            snprintf(iso_timestamp, sizeof(iso_timestamp), "%.10sT%.8sZ", timestamp, timestamp + 11);
+        } else {
+            strncpy(iso_timestamp, timestamp, sizeof(iso_timestamp) - 1);
+            iso_timestamp[sizeof(iso_timestamp) - 1] = '\0';
+        }
+        
+        pos += snprintf(json + pos, json_size - pos,
+            "{\"timestamp\":\"%s\",\"cpuUsagePercent\":%s,\"cpu_usage_percent\":%s,\"cpuCores\":%s,"
+            "\"cpuLoadAverage1m\":%s,\"cpuLoadAverage5m\":%s,\"cpuLoadAverage15m\":%s,"
+            "\"memoryTotalMb\":%s,\"memoryUsedMb\":%s,\"memoryFreeMb\":%s,\"memoryUsagePercent\":%s,"
+            "\"diskUsagePercent\":%s,\"containerCount\":%s,\"responseTimeAvg\":%s,"
+            "\"availabilityPercent\":%s,\"loadScore\":%s,\"networkRxBytes\":%s,\"networkTxBytes\":%s,"
+            "\"project_cpu_avg\":%s,\"project_memory_mb\":%s}",
+            iso_timestamp, cpu_usage, cpu_usage, cpu_cores,
+            cpu_load_1 ? cpu_load_1 : "null", cpu_load_5 ? cpu_load_5 : "null", cpu_load_15 ? cpu_load_15 : "null",
+            memory_total ? memory_total : "null", memory_used ? memory_used : "null", 
+            memory_free ? memory_free : "null", memory_usage ? memory_usage : "null",
+            disk_usage ? disk_usage : "null", container_count ? container_count : "null",
+            avg_response_time ? avg_response_time : "null",
+            availability ? availability : "null", load_score ? load_score : "null",
+            network_rx ? network_rx : "null", network_tx ? network_tx : "null",
+            project_cpu_avg ? project_cpu_avg : "null", project_memory_mb ? project_memory_mb : "null");
+    }
+    
+    pos += snprintf(json + pos, json_size - pos, "]}");
+    PQclear(res);
+    
+    return json;
+}
+
+/**
  * Nettoie les ressources (ferme la connexion)
  */
 void cleanup_storage(void) {

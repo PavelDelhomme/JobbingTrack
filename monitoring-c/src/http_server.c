@@ -322,6 +322,126 @@ void handle_request(int client_fd) {
     fprintf(stderr, "[DEBUG] Requête reçue: %.100s\n", buffer);
     fflush(stderr);
     
+    // Vérifier si c'est une requête GET /api/v1/persistence/system/metrics (historique)
+    if (strstr(buffer, "GET /api/v1/persistence/system/metrics") != NULL) {
+        // Parser les paramètres de requête (limit, offset, startDate, endDate)
+        int limit = 100;
+        int offset = 0;
+        char start_date[64] = {0};
+        char end_date[64] = {0};
+        
+        // Parser limit et offset depuis query string
+        char *limit_str = strstr(buffer, "limit=");
+        if (limit_str) {
+            limit = atoi(limit_str + 6);
+        }
+        char *offset_str = strstr(buffer, "offset=");
+        if (offset_str) {
+            offset = atoi(offset_str + 7);
+        }
+        
+        // Parser startDate et endDate
+        char *start_date_str = strstr(buffer, "startDate=");
+        if (start_date_str) {
+            char *start_end = strchr(start_date_str + 10, '&');
+            if (start_end) {
+                int len = start_end - (start_date_str + 10);
+                if (len < sizeof(start_date)) {
+                    strncpy(start_date, start_date_str + 10, len);
+                    start_date[len] = '\0';
+                }
+            } else {
+                // startDate est le dernier paramètre
+                char *space = strchr(start_date_str + 10, ' ');
+                if (space) {
+                    int len = space - (start_date_str + 10);
+                    if (len < sizeof(start_date)) {
+                        strncpy(start_date, start_date_str + 10, len);
+                        start_date[len] = '\0';
+                    }
+                }
+            }
+        }
+        
+        char *end_date_str = strstr(buffer, "endDate=");
+        if (end_date_str) {
+            char *end_end = strchr(end_date_str + 8, '&');
+            if (end_end) {
+                int len = end_end - (end_date_str + 8);
+                if (len < sizeof(end_date)) {
+                    strncpy(end_date, end_date_str + 8, len);
+                    end_date[len] = '\0';
+                }
+            } else {
+                // endDate est le dernier paramètre
+                char *space = strchr(end_date_str + 8, ' ');
+                if (space) {
+                    int len = space - (end_date_str + 8);
+                    if (len < sizeof(end_date)) {
+                        strncpy(end_date, end_date_str + 8, len);
+                        end_date[len] = '\0';
+                    }
+                }
+            }
+        }
+        
+        // Convertir les dates ISO en format PostgreSQL si nécessaire
+        // Format ISO: "2025-12-24T07:00:00.000Z" -> "2025-12-24 07:00:00"
+        char pg_start_date[64] = {0};
+        char pg_end_date[64] = {0};
+        
+        if (start_date[0] != '\0') {
+            // Remplacer 'T' par ' ' et supprimer '.000Z' ou 'Z'
+            strncpy(pg_start_date, start_date, sizeof(pg_start_date) - 1);
+            char *t_pos = strchr(pg_start_date, 'T');
+            if (t_pos) *t_pos = ' ';
+            char *z_pos = strchr(pg_start_date, 'Z');
+            if (z_pos) *z_pos = '\0';
+            char *dot_pos = strstr(pg_start_date, ".");
+            if (dot_pos) *dot_pos = '\0';
+        }
+        
+        if (end_date[0] != '\0') {
+            strncpy(pg_end_date, end_date, sizeof(pg_end_date) - 1);
+            char *t_pos = strchr(pg_end_date, 'T');
+            if (t_pos) *t_pos = ' ';
+            char *z_pos = strchr(pg_end_date, 'Z');
+            if (z_pos) *z_pos = '\0';
+            char *dot_pos = strstr(pg_end_date, ".");
+            if (dot_pos) *dot_pos = '\0';
+        }
+        
+        // Récupérer l'historique depuis PostgreSQL
+        char *history_json = get_system_metrics_history(limit, offset, 
+            pg_start_date[0] ? pg_start_date : NULL, 
+            pg_end_date[0] ? pg_end_date : NULL);
+        
+        if (history_json) {
+            char response[65536];
+            int len = snprintf(response, sizeof(response),
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Access-Control-Allow-Origin: *\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                "%s", history_json);
+            write(client_fd, response, len);
+            free(history_json);
+        } else {
+            const char *error_response = 
+                "HTTP/1.1 500 Internal Server Error\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                "{\"success\":false,\"error\":\"Failed to retrieve history\"}";
+            write(client_fd, error_response, strlen(error_response));
+        }
+        
+        free(buffer);
+        close(client_fd);
+        return;
+    }
+    
     // Vérifier si c'est une requête GET /api/v1/metrics ou GET /
     if (strstr(buffer, "GET /api/v1/metrics") == NULL && strstr(buffer, "GET / HTTP") == NULL) {
         // Requête non supportée

@@ -58,14 +58,33 @@ export default function AnalyticsPage() {
         offset: '0'
       });
       
-      // Ajouter startDate et endDate si supporté par l'API
-      const endDate = new Date();
-      params.append('startDate', startDate.toISOString());
-      params.append('endDate', endDate.toISOString());
+      // Ne pas envoyer startDate/endDate pour l'instant - tester sans filtres
+      // Le service Node.js semble avoir un problème avec les dates
+      // TODO: Corriger le parsing des dates dans le service Node.js
+      // const endDate = new Date();
+      // params.append('startDate', startDate.toISOString());
+      // params.append('endDate', endDate.toISOString());
       
-      const response = await fetch(
-        `http://localhost:5004/api/v1/persistence/system/metrics?${params.toString()}`
-      );
+      console.log('[CPU TEST] Requête avec params:', {
+        limit: limit.toString(),
+        offset: '0'
+      });
+      
+      // Essayer d'abord monitoring-c (port 5098), puis fallback vers metrics-aggregator (port 5004)
+      let response;
+      try {
+        response = await fetch(
+          `http://localhost:5098/api/v1/persistence/system/metrics?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error(`monitoring-c returned ${response.status}`);
+        }
+      } catch (error) {
+        console.warn('[CPU TEST] monitoring-c non disponible, fallback vers metrics-aggregator:', error);
+        response = await fetch(
+          `http://localhost:5004/api/v1/persistence/system/metrics?${params.toString()}`
+        );
+      }
       
       if (!response.ok) {
         console.error('[CPU TEST] Erreur API:', response.status, response.statusText);
@@ -76,16 +95,36 @@ export default function AnalyticsPage() {
       
       if (result.success && result.data && Array.isArray(result.data)) {
         // Mapper les données pour ne garder que timestamp et cpuUsagePercent
-        // L'API retourne cpuUsagePercent (camelCase)
+        // L'API retourne cpuUsagePercent (camelCase) depuis Prisma
+        console.log('[CPU TEST] Données brutes reçues:', result.data.length, 'points');
+        if (result.data.length > 0) {
+          console.log('[CPU TEST] Premier point brut:', result.data[0]);
+        }
+        
         const mapped = result.data
           .filter((item: any) => {
-            const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : item.cpu_usage_percent;
-            return cpu !== null && cpu !== undefined && !isNaN(Number(cpu));
+            // L'API retourne cpuUsagePercent (camelCase) depuis Prisma
+            const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
+                       (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : null);
+            const isValid = cpu !== null && cpu !== undefined && !isNaN(Number(cpu));
+            if (!isValid && result.data.length > 0) {
+              console.warn('[CPU TEST] Point invalide filtré:', item);
+            }
+            return isValid;
           })
           .map((item: any) => {
-            const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : item.cpu_usage_percent;
+            const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
+                       (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : 0);
+            // Convertir timestamp en ISO string si c'est un objet Date
+            let timestamp = item.timestamp;
+            if (timestamp instanceof Date) {
+              timestamp = timestamp.toISOString();
+            } else if (typeof timestamp === 'string' && !timestamp.includes('T')) {
+              // Si c'est une date PostgreSQL sans timezone, ajouter 'Z'
+              timestamp = timestamp + 'Z';
+            }
             return {
-              timestamp: item.timestamp,
+              timestamp: timestamp,
               cpu_usage_percent: Number(cpu)
             };
           })
