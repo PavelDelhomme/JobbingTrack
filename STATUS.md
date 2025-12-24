@@ -80,6 +80,15 @@
 
 ## 🔄 En Cours / À Faire
 
+### 🎯 Optimisation Graphiques (Priorité Actuelle)
+- 🔄 **Optimisation affichage graphiques CPU système** :
+  - ✅ Compression des points implémentée (60-300 points selon timeRange)
+  - ✅ Génération données de test 48h créée
+  - 🔄 **À faire** : Vérifier et optimiser l'affichage des vraies valeurs sur tous les graphiques
+  - 🔄 **À faire** : Tester avec données réelles demain matin après reprise de la collecte
+  - 🔄 **À faire** : Ajuster compression selon feedback utilisateur
+  - 🔄 **À faire** : Appliquer compression aux autres graphiques (mémoire, réseau, etc.)
+
 ### 🐛 Bugs à Corriger
 - ⚠️ **monitoring-c** : Parfois en mode `starting`, nécessite une surveillance continue
 - ⚠️ **ERR_EMPTY_RESPONSE** : Peut encore survenir occasionnellement depuis monitoring-c (à investiguer)
@@ -97,6 +106,7 @@
 - 📝 **Frontend** :
   - Ajouter retry logic pour les requêtes vers monitoring-c
   - Améliorer l'affichage des erreurs de connexion
+  - Appliquer compression aux autres graphiques
 - 📝 **CI/CD** :
   - Intégrer les tests de performance dans le pipeline CI
   - Ajouter des alertes automatiques pour les services unhealthy
@@ -117,6 +127,18 @@
 ```bash
 # Voir le statut de tous les services avec healthchecks
 make status
+
+# Pauser la collecte de métriques (pour reprendre plus tard)
+./scripts/monitoring/pause-monitoring.sh
+
+# Reprendre la collecte de métriques
+./scripts/monitoring/resume-monitoring.sh
+
+# Générer des données de test sur 24h
+./scripts/db/generate-24h-test-data.sh
+
+# Nettoyer toutes les métriques
+make db-clean-metrics
 
 # Démarrer tous les services
 make up-full
