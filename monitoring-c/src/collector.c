@@ -43,24 +43,7 @@ int collect_system_metrics(void) {
         statvfs("/", &vfs);
     }
     
-    // CPU - lecture depuis /proc/loadavg
-    double load1 = 0.0, load5 = 0.0, load15 = 0.0;
-    if (read_proc_loadavg(&load1, &load5, &load15) == 0) {
-        global_metrics.cpu.load_1 = load1;
-        global_metrics.cpu.load_5 = load5;
-        global_metrics.cpu.load_15 = load15;
-    }
-    
-    // ✅ CORRECTION : Lire le CPU usage réel depuis /proc/stat
-    double system_cpu_percent = 0.0;
-    if (read_proc_stat_cpu(&system_cpu_percent) == 0) {
-        global_metrics.system_cpu_usage_percent = system_cpu_percent;
-    } else {
-        // Fallback : approximation depuis load_1
-        global_metrics.system_cpu_usage_percent = global_metrics.cpu.load_1 * 100.0 / global_metrics.cpu.cores;
-    }
-    
-    // ✅ CORRECTION : Détecter le nombre de cores CPU
+    // ✅ CORRECTION : Détecter le nombre de cores CPU EN PREMIER (nécessaire pour les calculs)
     long cores = sysconf(_SC_NPROCESSORS_ONLN);
     if (cores > 0) {
         global_metrics.cpu.cores = (int)cores;
@@ -80,9 +63,49 @@ int collect_system_metrics(void) {
                 global_metrics.cpu.cores = core_count;
             }
         }
-        // Si toujours 0, utiliser 1 par défaut // TODO: Ajotuer qu'il le fasse par défaut oup passe en exit error
+        // Si toujours 0, utiliser 1 par défaut
         if (global_metrics.cpu.cores == 0) {
             global_metrics.cpu.cores = 1;
+        }
+    }
+    
+    // CPU - lecture depuis /proc/loadavg
+    double load1 = 0.0, load5 = 0.0, load15 = 0.0;
+    if (read_proc_loadavg(&load1, &load5, &load15) == 0) {
+        global_metrics.cpu.load_1 = load1;
+        global_metrics.cpu.load_5 = load5;
+        global_metrics.cpu.load_15 = load15;
+    }
+    
+    // ✅ CORRECTION : Lire le CPU usage réel depuis /proc/stat
+    double system_cpu_percent = 0.0;
+    int proc_stat_ok = (read_proc_stat_cpu(&system_cpu_percent) == 0);
+    
+    // Si read_proc_stat_cpu a réussi ET que la valeur est valide (> 0), l'utiliser
+    // Sinon, utiliser le fallback depuis load_1
+    if (proc_stat_ok && system_cpu_percent > 0.0 && system_cpu_percent <= 100.0) {
+        global_metrics.system_cpu_usage_percent = system_cpu_percent;
+        printf("[CPU] ✅ CPU système depuis /proc/stat: %.2f%%\n", system_cpu_percent);
+    } else {
+        // Fallback : approximation depuis load_1 (MAINTENANT cores est défini)
+        // Note: load_1 peut être > cores si le système est surchargé, donc on limite à 100%
+        double load_based_cpu = 0.0;
+        if (global_metrics.cpu.cores > 0) {
+            load_based_cpu = global_metrics.cpu.load_1 * 100.0 / global_metrics.cpu.cores;
+        } else {
+            // Si cores n'est toujours pas défini (ne devrait pas arriver), utiliser load_1 directement
+            load_based_cpu = global_metrics.cpu.load_1 * 100.0;
+        }
+        if (load_based_cpu > 100.0) load_based_cpu = 100.0;
+        global_metrics.system_cpu_usage_percent = load_based_cpu;
+        
+        // ✅ DEBUG : Logger si on utilise le fallback
+        if (!proc_stat_ok) {
+            printf("[CPU] ⚠️ read_proc_stat_cpu a échoué, utilisation du fallback (load_1=%.2f, cores=%d, cpu=%.2f%%)\n",
+                   global_metrics.cpu.load_1, global_metrics.cpu.cores, load_based_cpu);
+        } else if (system_cpu_percent == 0.0) {
+            printf("[CPU] ⚠️ read_proc_stat_cpu retourne 0.0 (première lecture?), utilisation du fallback (load_1=%.2f, cores=%d, cpu=%.2f%%)\n",
+                   global_metrics.cpu.load_1, global_metrics.cpu.cores, load_based_cpu);
         }
     }
     

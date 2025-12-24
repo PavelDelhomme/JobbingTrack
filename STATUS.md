@@ -50,6 +50,28 @@
 - ✅ **Vérification des valeurs système** : Confirmation que les données CPU (32-47%) et mémoire (94%) sont cohérentes avec le système réel
 - ✅ **Tests Playwright pour les graphiques** : Création de tests E2E complets pour vérifier le fonctionnement des graphiques et des timestamps
 
+### 🎯 Optimisation des Graphiques CPU Système (Décembre 2025 - En Cours)
+- ✅ **Simplification de la page Analytics** : Version ultra-simplifiée avec un seul graphique CPU système pour tester
+- ✅ **Correction du calcul CPU système** : 
+  - Déplacement de la détection des cores AVANT le calcul du CPU pour éviter division par 0
+  - Correction du fallback depuis load_1 (ne plus utiliser si cores=0)
+  - Ajout de logs pour vérifier le calcul
+- ✅ **Génération de données de test** :
+  - Script SQL pour générer 48h de données fictives réalistes (`scripts/db/generate-24h-test-data.sql`)
+  - Script shell pour exécution facile (`scripts/db/generate-24h-test-data.sh`)
+  - Génération de ~2880 points (1 par minute sur 48h)
+- ✅ **Compression des points pour lisibilité** :
+  - Fonction `compressDataPoints` qui groupe les points par intervalles temporels
+  - Calcul de moyenne pondérée pour chaque intervalle
+  - Limite adaptative selon le timeRange :
+    - 1h : 60 points max (1 point/minute)
+    - 6h : 180 points max (1 point/2 minutes)
+    - 24h : 200 points max (~1 point/7-8 minutes)
+    - 3 jours : 300 points max (~1 point/14-15 minutes)
+- ✅ **Affichage dual** : Deux graphiques affichés (avec compression et sans compression) pour comparaison
+- ✅ **Support de multiple timeRanges** : 1h, 6h, 24h, 3 jours avec récupération adaptative des données
+- 🔄 **En cours** : Optimisation pour afficher les vraies valeurs voulues sur tous les graphiques
+
 ### 🧹 Scripts de nettoyage
 - ✅ **Scripts de nettoyage des métriques** : 
   - `make db-clean-metrics` : Supprime toutes les métriques de PostgreSQL
