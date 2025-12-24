@@ -521,9 +521,16 @@ class PersistenceService {
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
       
-      const rawResults = await prisma.$queryRawUnsafe(query);
+      let rawResults;
+      try {
+        rawResults = await prisma.$queryRawUnsafe(query);
+      } catch (error) {
+        console.error('[PERSISTENCE] ❌ Erreur lors de la requête SQL:', error.message);
+        console.error('[PERSISTENCE] ❌ Stack:', error.stack);
+        throw error;
+      }
       
-      console.log(`[PERSISTENCE] ✅ ${rawResults.length} résultats récupérés depuis system_metrics`);
+      console.log(`[PERSISTENCE] ✅ ${rawResults ? rawResults.length : 0} résultats récupérés depuis system_metrics`);
       if (rawResults.length > 0) {
         // Convertir BigInt en Number pour les logs
         const firstRowForLog = { ...rawResults[0] };

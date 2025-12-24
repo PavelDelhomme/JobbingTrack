@@ -17,6 +17,8 @@ router.get('/system/metrics', async (req, res) => {
   try {
     const { limit, offset, startDate, endDate } = req.query;
     
+    console.log('[API] 📊 Requête métriques système:', { limit, offset, startDate, endDate });
+    
     const metrics = await persistenceService.getSystemMetricsHistory({
       limit: parseInt(limit) || 100,
       offset: parseInt(offset) || 0,
@@ -24,13 +26,22 @@ router.get('/system/metrics', async (req, res) => {
       endDate,
     });
 
+    console.log('[API] ✅ Métriques récupérées:', metrics.length, 'points');
+    if (metrics.length > 0) {
+      console.log('[API] 🔍 Premier point:', {
+        timestamp: metrics[0].timestamp,
+        cpuUsagePercent: metrics[0].cpuUsagePercent
+      });
+    }
+
     res.json({
       success: true,
       count: metrics.length,
       data: metrics,
     });
   } catch (error) {
-    console.error('[API] Erreur récupération métriques système:', error);
+    console.error('[API] ❌ Erreur récupération métriques système:', error.message);
+    console.error('[API] ❌ Stack:', error.stack);
     res.status(500).json({
       success: false,
       error: error.message,
