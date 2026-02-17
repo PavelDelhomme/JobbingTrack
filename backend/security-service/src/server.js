@@ -24,8 +24,8 @@ const securityScheduler = require('./services/securityScheduler');
 const app = express();
 const PORT = process.env.PORT || 3017;
 
-// Trust proxy (nécessaire pour express-rate-limit avec API Gateway)
-app.set('trust proxy', true);
+// Trust proxy: 1 = un seul proxy (ex. API Gateway). Évite ERR_ERL_PERMISSIVE_TRUST_PROXY de express-rate-limit.
+app.set('trust proxy', 1);
 
 // Configuration de sécurité renforcée
 app.use(helmet({

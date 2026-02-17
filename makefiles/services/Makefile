@@ -1261,29 +1261,19 @@ ps: ## Liste les conteneurs actifs
 	@echo "================================"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) ps)
 
-# Logs en temps réel (sans metrics-aggregator)
+# Logs en temps réel (sans metrics-aggregator) — via docker compose pour éviter "No such container"
 logs: ## Affiche tous les logs en temps réel (sauf metrics-aggregator)
 	@echo "📋 Logs en temps réel de tous les services (sauf metrics-aggregator)"
 	@echo "========================================================================"
 	@echo "💡 Pour voir les logs de metrics-aggregator: make logs-metrics"
 	@echo ""
-	@docker logs jobbingtrack-api-gateway -f 2>&1 & \
-	docker logs jobbingtrack-frontend -f 2>&1 & \
-	docker logs jobbingtrack-auth-service -f 2>&1 & \
-	docker logs jobbingtrack-dashboard-service -f 2>&1 & \
-	docker logs jobbingtrack-application-service -f 2>&1 & \
-	docker logs jobbingtrack-company-service -f 2>&1 & \
-	docker logs jobbingtrack-contact-service -f 2>&1 & \
-	docker logs jobbingtrack-interview-service -f 2>&1 & \
-	docker logs jobbingtrack-event-service -f 2>&1 & \
-	docker logs jobbingtrack-call-service -f 2>&1 & \
-	docker logs jobbingtrack-followup-service -f 2>&1 & \
-	docker logs jobbingtrack-notification-service -f 2>&1 & \
-	docker logs jobbingtrack-profile-service -f 2>&1 & \
-	docker logs jobbingtrack-workflow-service -f 2>&1 & \
-	docker logs jobbingtrack-security-service -f 2>&1 & \
-	docker logs jobbingtrack-deployment-service -f 2>&1 & \
-	wait
+	@services=$$(cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_FULL) config --services 2>/dev/null | grep -v '^metrics-aggregator$$' | tr '\n' ' '); \
+	if [ -n "$$services" ]; then \
+		cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_FULL) logs -f $$services; \
+	else \
+		echo "⚠️  Aucun service trouvé (vérifiez que les conteneurs sont démarrés: make status)"; \
+		echo "   Ou utilisez: make logs-service SERVICE=api-gateway"; \
+	fi
 
 # Logs de metrics-aggregator uniquement
 logs-metrics: ## Affiche les logs du service metrics-aggregator

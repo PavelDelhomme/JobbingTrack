@@ -143,8 +143,9 @@ export default function ServicesPage() {
               name: serviceName,
               status: status,
               health_status: healthStatus,
-              is_running: status === 'running', // ✅ CORRECTION : Basé sur le statut réel
-              is_healthy: container.http_status === 200,
+              is_running: status === 'running',
+              // Cohérent avec healthStatus : healthy => is_healthy (pas seulement http_status === 200)
+              is_healthy: healthStatus === 'healthy',
               created: '',
               ports: '',
               image: '',

@@ -16,7 +16,8 @@ import { cacheManager } from '@/lib/cache/cacheManager'
 class CentralMetricsService {
   private apiUrl: string
   private prometheusUrl: string
-  private monitoringCUrl: string // ✅ NOUVEAU : URL du monitoring en C
+  private monitoringCUrl: string
+  private metricsAggregatorUrl: string
   private token: string | null = null
   private customization: UserCustomization | null = null
   // ✅ OPTIMISATION : Cache optimisé pour réduire les requêtes et CPU
@@ -35,12 +36,11 @@ class CentralMetricsService {
     // Si on est côté serveur (SSR), utiliser le nom du service Docker
     // Si on est côté client (navigateur), utiliser localhost
     if (typeof window === 'undefined') {
-      // Côté serveur (SSR) - utiliser le nom du service Docker
       this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
     } else {
-      // Côté client (navigateur) - utiliser localhost avec le port mappé
       this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
     }
+    this.metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || (typeof window !== 'undefined' ? 'http://localhost:5004' : 'http://jobbingtrack-metrics-aggregator:3014')
     this.updateToken()
   }
 
@@ -443,43 +443,81 @@ class CentralMetricsService {
     return null
   }
 
-  // Récupération des métriques depuis le service agrégateur
+  /**
+   * Normalise la réponse du metrics-aggregator (une seule source : monitoring-c → aggregator → frontend).
+   * L'aggregator expose lastMetricsData avec responseTime, health, servicesList, system.monitoringC.
+   */
+  private formatMetricsFromAggregator(data: any): MetricsData {
+    const timestamp = data.timestamp || new Date().toISOString()
+    return {
+      system: data.system || {},
+      containers: data.containers || {},
+      services: data.services || {},
+      servicesList: data.servicesList || Object.values(data.services || {}),
+      timestamp,
+      network: data.network,
+      responseTime: data.responseTime,
+      errors: data.errors,
+      health: data.health,
+      overallLoadScore: data.system?.monitoringC?.load_score,
+      monitoringC: data.system?.monitoringC
+        ? {
+            avg_response_time_ms: data.system.monitoringC.avg_response_time_ms ?? data.responseTime?.average_ms,
+            avg_cpu_percent: data.system.monitoringC.avg_cpu_percent,
+            avg_memory_percent: data.system.monitoringC.avg_memory_percent,
+            container_count: data.system.monitoringC.container_count,
+            load_score: data.system.monitoringC.load_score,
+            availability_percent: data.system.monitoringC.availability_percent ?? data.health?.availability_percent,
+            network: data.system.monitoringC.network,
+            error_rate_per_min: data.system.monitoringC.error_rate_per_min,
+            services_errors: data.system.monitoringC.services_errors
+          }
+        : undefined
+    } as MetricsData
+  }
+
+  /**
+   * Récupération des métriques : priorité metrics-aggregator (source centralisée, données depuis monitoring-c + persistance),
+   * puis fallback monitoring-c direct.
+   */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
-    // ✅ UTILISER UNIQUEMENT monitoring-c - Plus de fallback vers l'ancien système
-    try {
-      const metricsUrl = this.monitoringCUrl
-      const endpoint = '/api/v1/metrics'
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
-      
+    const endpoint = '/api/v1/metrics'
+    const headers: HeadersInit = { 'Accept': 'application/json' }
+    if (this.token) (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`
+
+    // 1) Priorité : metrics-aggregator (une seule source, données déjà persistées + temps de réponse)
+    if (this.metricsAggregatorUrl) {
       try {
-        const response = await fetch(`${metricsUrl}${endpoint}`, {
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: controller.signal
-        }).catch(() => null)
-        
-        clearTimeout(timeoutId)
-        
-        if (!response || !response.ok || response.status !== 200) {
-          return null // Retourner null si monitoring-c n'est pas disponible
+        const response = await fetch(`${this.metricsAggregatorUrl}${endpoint}`, {
+          headers,
+          signal: AbortSignal.timeout(5000)
+        })
+        if (response?.ok) {
+          const text = await response.text().catch(() => '')
+          if (text?.trim()) {
+            const data = JSON.parse(text)
+            if (data.responseTime != null || data.health != null || data.servicesList) {
+              return this.formatMetricsFromAggregator(data)
+            }
+            return this.formatMetricsFromAggregator(data)
+          }
         }
-        
-        const text = await response.text().catch(() => '')
-        if (!text || text.trim().length === 0) {
-          return null // Retourner null si réponse vide
-        }
-        
-        const data = JSON.parse(text)
-        return this.formatMetricsFromMonitoringC(data)
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId)
-        return null // Retourner null en cas d'erreur
-      }
-    } catch (error: any) {
-      return null // Retourner null en cas d'erreur générale
+      } catch (_) { /* fallback */ }
+    }
+
+    // 2) Fallback : monitoring-c direct
+    try {
+      const response = await fetch(`${this.monitoringCUrl}${endpoint}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      })
+      if (!response?.ok) return null
+      const text = await response.text().catch(() => '')
+      if (!text?.trim()) return null
+      const data = JSON.parse(text)
+      return this.formatMetricsFromMonitoringC(data)
+    } catch (_) {
+      return null
     }
   }
 
@@ -616,20 +654,15 @@ class CentralMetricsService {
       return cachedMetrics
     }
 
-    // ✅ UTILISER UNIQUEMENT monitoring-c - Plus de fallback
     return this.getWithCache('fetchMetrics', async () => {
       try {
-        const aggregatorMetrics = await this.getAggregatorMetrics()
-        
-        if (aggregatorMetrics) {
-          this.setCachedMetrics(aggregatorMetrics)
-          return aggregatorMetrics
+        const metrics = await this.getAggregatorMetrics()
+        if (!metrics) {
+          console.warn('[CENTRAL METRICS] ⚠️ Metrics-aggregator / monitoring-c non disponible')
+          return null
         }
-
-        // Si monitoring-c n'est pas disponible, retourner null
-        console.warn('[CENTRAL METRICS] ⚠️ Monitoring-c non disponible')
-        return null
-
+        this.setCachedMetrics(metrics)
+        return metrics
       } catch (error) {
         console.error('[CENTRAL METRICS] ❌ Erreur lors de la récupération des métriques:', error)
         this.clearCache()
@@ -742,8 +775,8 @@ class CentralMetricsService {
       ? data.network.total_tx_mb
       : servicesList.reduce((sum, service) => sum + (service.networkMb?.tx ?? 0), 0)
 
-    // Utiliser les statistiques calculées par monitoring-c si disponibles
-    const avgResponseTimeMs = typeof data.avg_response_time_ms === 'number' && data.avg_response_time_ms > 0
+    // Utiliser les statistiques calculées par monitoring-c si disponibles (accepter 0 pour affichage)
+    const avgResponseTimeMs = typeof data.avg_response_time_ms === 'number' && !Number.isNaN(data.avg_response_time_ms)
       ? parseFloat(data.avg_response_time_ms.toFixed(2))
       : (servicesList.length > 0 && servicesList.some(s => s.responseTimeMs) 
         ? servicesList.filter(s => s.responseTimeMs).reduce((sum, s) => sum + (s.responseTimeMs || 0), 0) / servicesList.filter(s => s.responseTimeMs).length

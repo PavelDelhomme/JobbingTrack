@@ -51,9 +51,8 @@ const validateJwtToken = (token: string): boolean => {
       return false
     }
 
-    // Vérifier la date d'expiration si elle existe
+    // Vérifier la date d'expiration si elle existe (nettoyage silencieux, pas d'erreur console)
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      console.error('Token expiré')
       return false
     }
 
@@ -124,8 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Vérifier rapidement la validité du token avant de charger le profil
           if (!validateJwtToken(storedToken) && !storedToken.startsWith('mock-jwt-token')) {
-            console.warn('⚠️ Token expiré ou invalide, nettoyage...');
-            // Nettoyer le token invalide mais ne pas bloquer l'application
+            // Nettoyer le token invalide silencieusement (pas d'erreur console)
             localStorage.removeItem('token');
             document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
             setToken(null);

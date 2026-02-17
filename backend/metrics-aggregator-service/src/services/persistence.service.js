@@ -169,8 +169,10 @@ class PersistenceService {
       const savedLogs = [];
       
       for (const logEntry of logs) {
-        // Parser le log pour extraire le niveau si possible
-        const { level, message } = this.parseLogEntry(logEntry.log || logEntry);
+        // ✅ Le champ Prisma "log" attend une String ; logEntry peut être un objet (ex. { timestamp, log: "" })
+        const rawLog = logEntry.log ?? logEntry;
+        const logString = typeof rawLog === 'string' ? rawLog : (rawLog && typeof rawLog === 'object' && rawLog.log != null ? String(rawLog.log) : JSON.stringify(logEntry));
+        const { level, message } = this.parseLogEntry(logString);
         
         const saved = await prisma.containerLog.create({
           data: {
@@ -178,7 +180,7 @@ class PersistenceService {
             containerName,
             containerId,
             stream: logEntry.stream || 'stdout',
-            log: logEntry.log || logEntry,
+            log: logString,
             parsedLevel: level,
             parsedMessage: message,
           },
@@ -206,6 +208,7 @@ class PersistenceService {
    * Parser une ligne de log pour extraire le niveau et le message
    */
   parseLogEntry(logLine) {
+    const str = typeof logLine === 'string' ? logLine : (logLine != null ? String(logLine) : '');
     // Patterns communs pour détecter le niveau de log
     const patterns = {
       ERROR: /\b(ERROR|error|Error|ERR)\b/,
@@ -216,12 +219,12 @@ class PersistenceService {
     };
 
     for (const [level, pattern] of Object.entries(patterns)) {
-      if (pattern.test(logLine)) {
-        return { level, message: logLine };
+      if (pattern.test(str)) {
+        return { level, message: str };
       }
     }
 
-    return { level: null, message: logLine };
+    return { level: null, message: str };
   }
 
   /**
@@ -296,6 +299,13 @@ class PersistenceService {
       
       return record;
     } catch (error) {
+      // Table service_availability_history peut ne pas exister si migration non exécutée
+      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[PERSISTENCE] Échec disponibilité ${serviceName}: table service_availability_history absente (migration Prisma à exécuter)`);
+        }
+        return null;
+      }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde disponibilité ${serviceName}:`, error.message);
       throw error;
     }

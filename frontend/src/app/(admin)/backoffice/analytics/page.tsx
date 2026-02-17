@@ -10,41 +10,73 @@ interface CPUMetric {
   cpu_usage_percent: number;
 }
 
+type TimeRangeOption = '1h' | '6h' | '24h' | '3d' | '7d' | '14d' | '21d' | '30d' | 'custom';
+
 export default function AnalyticsPage() {
   const [cpuData, setCpuData] = useState<CPUMetric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '3d'>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const [customStart, setCustomStart] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
-  // Calculer la limite et la date de début basées sur le timeRange
+  // Calculer la limite et la date de début (plage personnalisée = date picker)
   const getTimeRangeParams = useCallback(() => {
     const now = new Date();
     let startDate: Date;
     let limit: number;
     
-    switch (timeRange) {
-      case '1h':
-        startDate = new Date(now.getTime() - 1 * 60 * 60 * 1000);
-        limit = 60;
-        break;
-      case '6h':
-        startDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-        limit = 360;
-        break;
-      case '24h':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        limit = 1440;
-        break;
-      case '3d':
-        startDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-        limit = 4320; // 3 jours * 24h * 60 minutes
-        break;
-      default:
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        limit = 1440;
+    if (timeRange === 'custom') {
+      startDate = new Date(customStart + 'T00:00:00.000Z');
+      const endDate = new Date(customEnd + 'T23:59:59.999Z');
+      const durationMs = Math.max(0, endDate.getTime() - startDate.getTime());
+      limit = Math.ceil(durationMs / (60 * 1000)); // 1 point par minute max
+      limit = Math.min(limit, 43200); // plafonner à 30 jours
+    } else {
+      switch (timeRange) {
+        case '1h':
+          startDate = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+          limit = 60;
+          break;
+        case '6h':
+          startDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          limit = 360;
+          break;
+        case '24h':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          limit = 1440;
+          break;
+        case '3d':
+          startDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+          limit = 4320;
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          limit = 10080;
+          break;
+        case '14d':
+          startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+          limit = 20160;
+          break;
+        case '21d':
+          startDate = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
+          limit = 30240;
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          limit = 43200;
+          break;
+        default:
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          limit = 1440;
+      }
     }
     
     return { startDate, limit };
-  }, [timeRange]);
+  }, [timeRange, customStart, customEnd]);
 
   // Fonction pour récupérer les données CPU depuis metrics-aggregator-c
   const fetchCPUData = useCallback(async () => {
@@ -162,13 +194,25 @@ export default function AnalyticsPage() {
   // Fonction pour compresser/agréger les points de données
   const compressDataPoints = useCallback((data: CPUMetric[], targetMaxPoints: number = 200) => {
     if (data.length === 0) return [];
-    if (data.length <= targetMaxPoints) return data; // Pas besoin de compression
+    
+    // ✅ CORRECTION : Toujours compresser si on a plus de points que targetMaxPoints
+    // Mais aussi compresser même avec moins de points si c'est pour améliorer la lisibilité
+    const shouldCompress = data.length > targetMaxPoints;
+    
+    if (!shouldCompress) {
+      console.log(`[COMPRESSION] Pas de compression nécessaire: ${data.length} points <= ${targetMaxPoints} max`);
+      return data; // Pas besoin de compression
+    }
+    
+    console.log(`[COMPRESSION] Début compression: ${data.length} points → ${targetMaxPoints} max`);
     
     // Calculer l'intervalle de compression (en millisecondes)
     const firstTimestamp = new Date(data[0].timestamp).getTime();
     const lastTimestamp = new Date(data[data.length - 1].timestamp).getTime();
     const totalDuration = lastTimestamp - firstTimestamp;
     const intervalMs = Math.ceil(totalDuration / targetMaxPoints);
+    
+    console.log(`[COMPRESSION] Durée totale: ${totalDuration}ms, Intervalle: ${intervalMs}ms`);
     
     // Grouper les points par intervalle et calculer la moyenne
     const compressed: CPUMetric[] = [];
@@ -210,6 +254,8 @@ export default function AnalyticsPage() {
       });
     }
     
+    console.log(`[COMPRESSION] Compression terminée: ${data.length} points → ${compressed.length} points (réduction: ${((1 - compressed.length / data.length) * 100).toFixed(1)}%)`);
+    
     return compressed;
   }, []);
 
@@ -217,17 +263,22 @@ export default function AnalyticsPage() {
   const chartData = useMemo(() => {
     if (cpuData.length === 0) return [];
 
-    // Définir le nombre maximum de points selon le timeRange
+    // Définir le nombre maximum de points selon le timeRange (compression pour lisibilité)
     let targetMaxPoints = 200;
-    if (timeRange === '1h') targetMaxPoints = 60;       // 1 point par minute
-    else if (timeRange === '6h') targetMaxPoints = 180;  // 1 point par 2 minutes
-    else if (timeRange === '24h') targetMaxPoints = 200; // ~1 point par 7-8 minutes
-    else if (timeRange === '3d') targetMaxPoints = 300;  // ~1 point par 14-15 minutes
+    if (timeRange === '1h') targetMaxPoints = 30;
+    else if (timeRange === '6h') targetMaxPoints = 90;
+    else if (timeRange === '24h') targetMaxPoints = 100;
+    else if (timeRange === '3d') targetMaxPoints = 150;
+    else if (timeRange === '7d') targetMaxPoints = 200;   // 7 jours
+    else if (timeRange === '14d') targetMaxPoints = 250; // 2 semaines
+    else if (timeRange === '21d') targetMaxPoints = 300; // 3 semaines
+    else if (timeRange === '30d') targetMaxPoints = 350;
+    else if (timeRange === 'custom') targetMaxPoints = 350; // plage personnalisée
 
-    // Compresser les données si nécessaire
+    // ✅ CORRECTION : Compresser les données (la fonction gère déjà le cas où compression n'est pas nécessaire)
     const compressedData = compressDataPoints(cpuData, targetMaxPoints);
     
-    console.log(`[CPU TEST] Données: ${cpuData.length} points bruts → ${compressedData.length} points compressés (max: ${targetMaxPoints})`);
+    console.log(`[CPU TEST] Données pour graphique compressé: ${cpuData.length} points bruts → ${compressedData.length} points compressés (max: ${targetMaxPoints}, compression: ${cpuData.length > targetMaxPoints ? 'OUI' : 'NON'})`);
 
     return compressedData.map((item) => {
       const date = new Date(item.timestamp);
@@ -254,6 +305,8 @@ export default function AnalyticsPage() {
   // Préparer les données pour le graphique SANS compression (brutes)
   const chartDataRaw = useMemo(() => {
     if (cpuData.length === 0) return [];
+
+    console.log(`[CPU TEST] Données pour graphique brut: ${cpuData.length} points (PAS de compression)`);
 
     return cpuData.map((item) => {
       const date = new Date(item.timestamp);
@@ -286,16 +339,45 @@ export default function AnalyticsPage() {
             Test CPU Système
           </h1>
           
+          <div className="flex flex-wrap items-center gap-3">
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as '1h' | '6h' | '24h' | '3d')}
+            onChange={(e) => setTimeRange(e.target.value as TimeRangeOption)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
           >
             <option value="1h">Dernière heure</option>
-            <option value="6h">Dernières 6 heures</option>
-            <option value="24h">Dernières 24 heures</option>
+            <option value="6h">Dernières 6 h</option>
+            <option value="24h">Dernières 24 h</option>
             <option value="3d">Derniers 3 jours</option>
+            <option value="7d">Derniers 7 jours</option>
+            <option value="14d">Dernières 2 semaines</option>
+            <option value="21d">Dernières 3 semaines</option>
+            <option value="30d">Dernier mois</option>
+            <option value="custom">Plage personnalisée</option>
           </select>
+          {timeRange === 'custom' && (
+            <>
+              <label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                Du
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 text-sm"
+                />
+              </label>
+              <label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                au
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 text-sm"
+                />
+              </label>
+            </>
+          )}
+        </div>
         </div>
 
         {/* Information sur les données */}
@@ -306,9 +388,13 @@ export default function AnalyticsPage() {
               <>
                 <p><strong>Dernière valeur:</strong> {cpuData[cpuData.length - 1]?.cpu_usage_percent.toFixed(2)}%</p>
                 <p><strong>Dernière mise à jour:</strong> {cpuData[cpuData.length - 1]?.timestamp}</p>
-                {cpuData.length > chartData.length && (
+                {cpuData.length > chartData.length ? (
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    ⚡ Les données sont compressées pour améliorer la lisibilité ({((cpuData.length - chartData.length) / cpuData.length * 100).toFixed(1)}% de réduction)
+                    ⚡ <strong>Compression active:</strong> Les données sont compressées pour améliorer la lisibilité ({((cpuData.length - chartData.length) / cpuData.length * 100).toFixed(1)}% de réduction: {cpuData.length} → {chartData.length} points)
+                  </p>
+                ) : (
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    ℹ️ <strong>Pas de compression:</strong> Les données ({cpuData.length} points) sont déjà inférieures au maximum recommandé. Les deux graphiques afficheront les mêmes données.
                   </p>
                 )}
               </>
@@ -319,7 +405,7 @@ export default function AnalyticsPage() {
         {/* Graphique CPU avec compression */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            CPU Système (%) - Avec Compression ({chartData.length} points)
+            CPU Système (%) - {cpuData.length > chartData.length ? 'AVEC Compression' : 'Sans compression'} ({chartData.length} points)
           </h2>
           
           {loading && cpuData.length === 0 ? (
@@ -382,7 +468,7 @@ export default function AnalyticsPage() {
         {/* Graphique CPU SANS compression (brut) */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            CPU Système (%) - Données Brutes (SANS compression)
+            CPU Système (%) - Données Brutes - SANS Compression ({chartDataRaw.length} points)
           </h2>
           
           {loading && cpuData.length === 0 ? (

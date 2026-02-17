@@ -1,11 +1,24 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useMemo, memo, Suspense } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import { Settings, BarChart3, PieChart, TrendingUp, Eye, EyeOff } from 'lucide-react'
+import {
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { useMetrics } from '@/lib/hooks/useMetrics'
 import { DataSourceBadge } from '@/components/ui'
@@ -109,14 +122,157 @@ const DEFAULT_CUSTOMIZATION: CustomizationSettings = {
   chartType: 'bar'
 }
 
+/** Graphiques Recharts réutilisables (stable, pas de scintillement) */
+
+const CHART_COLORS = { stroke: '#3B82F6', stroke2: '#10B981', tooltipBg: '#1f2937', tooltipText: '#f9fafb' }
+
+const CpuSystemChart = memo(function CpuSystemChart({ data }: { data: any[] }) {
+  const chartData = useMemo(() => {
+    return data.slice(-80).map((point: any) => {
+      const cpu = typeof point.cpu_percent === 'number' ? point.cpu_percent : (point.cpuUsagePercent ?? 0)
+      const ts = point.timestamp ? new Date(point.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
+      return {
+        time: ts,
+        cpu: Math.round(cpu * 10) / 10,
+        full: point.timestamp ? new Date(point.timestamp).toLocaleString('fr-FR') : ts,
+      }
+    })
+  }, [data])
+
+  if (chartData.length === 0) return null
+
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <defs>
+            <linearGradient id="analytics-cpu-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={CHART_COLORS.stroke} stopOpacity={0.8} />
+              <stop offset="95%" stopColor={CHART_COLORS.stroke} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" strokeOpacity={0.25} vertical={false} />
+          <XAxis
+            dataKey="time"
+            tick={{ fontSize: 11 }}
+            stroke="#9ca3af"
+            interval="preserveStartEnd"
+            minTickGap={24}
+          />
+          <YAxis
+            domain={[0, 100]}
+            tick={{ fontSize: 11 }}
+            stroke="#9ca3af"
+            unit="%"
+            width={32}
+          />
+          <Tooltip
+            contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: 'none', borderRadius: '8px', color: CHART_COLORS.tooltipText }}
+            formatter={(value: number) => [`${value}%`, 'CPU']}
+            labelFormatter={(_, payload) => (Array.isArray(payload) && payload[0]?.payload?.full) ? payload[0].payload.full : ''}
+          />
+          <Area type="monotone" dataKey="cpu" stroke={CHART_COLORS.stroke} strokeWidth={2} fill="url(#analytics-cpu-gradient)" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+})
+
+function buildChartData(data: any[], timeKey: string, valueKey: string, valueLabel: string) {
+  return data.slice(-80).map((p: any) => {
+    const ts = p.timestamp ? new Date(p.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
+    const val = (p[valueKey] ?? p[valueKey.replace(/_/g, '')] ?? 0)
+    return { time: ts, value: Math.round(Number(val) * 10) / 10, full: p.timestamp ? new Date(p.timestamp).toLocaleString('fr-FR') : ts }
+  })
+}
+
+const MemoryChart = memo(function MemoryChart({ data }: { data: any[] }) {
+  const chartData = useMemo(() => buildChartData(data, 'time', 'memory_percent', 'Mémoire'), [data])
+  if (chartData.length === 0) return null
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <defs>
+            <linearGradient id="analytics-mem-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={CHART_COLORS.stroke2} stopOpacity={0.8} />
+              <stop offset="95%" stopColor={CHART_COLORS.stroke2} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" strokeOpacity={0.25} vertical={false} />
+          <XAxis dataKey="time" tick={{ fontSize: 11 }} stroke="#9ca3af" interval="preserveStartEnd" minTickGap={24} />
+          <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="#9ca3af" unit="%" width={32} />
+          <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: 'none', borderRadius: '8px', color: CHART_COLORS.tooltipText }} formatter={(v: number) => [`${v}%`, 'Mémoire']} labelFormatter={(_, p) => (Array.isArray(p) && p[0]?.payload?.full) ? p[0].payload.full : ''} />
+          <Area type="monotone" dataKey="value" stroke={CHART_COLORS.stroke2} strokeWidth={2} fill="url(#analytics-mem-gradient)" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+})
+
+const NetworkChart = memo(function NetworkChart({ data }: { data: any[] }) {
+  const chartData = useMemo(() => {
+    return data.slice(-80).map((p: any) => {
+      const ts = p.timestamp ? new Date(p.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
+      const rx = Number(p.network_rx_mb ?? p.networkRxMb ?? 0)
+      const tx = Number(p.network_tx_mb ?? p.networkTxMb ?? 0)
+      return { time: ts, rx: Math.round(rx * 100) / 100, tx: Math.round(tx * 100) / 100, full: p.timestamp ? new Date(p.timestamp).toLocaleString('fr-FR') : ts }
+    })
+  }, [data])
+  if (chartData.length === 0) return null
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" strokeOpacity={0.25} vertical={false} />
+          <XAxis dataKey="time" tick={{ fontSize: 11 }} stroke="#9ca3af" interval="preserveStartEnd" minTickGap={24} />
+          <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" unit=" Mo" width={40} />
+          <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: 'none', borderRadius: '8px', color: CHART_COLORS.tooltipText }} labelFormatter={(_, p) => (Array.isArray(p) && p[0]?.payload?.full) ? p[0].payload.full : ''} />
+          <Line type="monotone" dataKey="rx" stroke={CHART_COLORS.stroke} strokeWidth={2} name="Rx (Mo)" dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="tx" stroke={CHART_COLORS.stroke2} strokeWidth={2} name="Tx (Mo)" dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+})
+
+const AvailabilityChart = memo(function AvailabilityChart({ data }: { data: any[] }) {
+  const chartData = useMemo(() => buildChartData(data, 'time', 'availability_percent', 'Disponibilité'), [data])
+  if (chartData.length === 0) return null
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+          <defs>
+            <linearGradient id="analytics-avail-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" strokeOpacity={0.25} vertical={false} />
+          <XAxis dataKey="time" tick={{ fontSize: 11 }} stroke="#9ca3af" interval="preserveStartEnd" minTickGap={24} />
+          <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="#9ca3af" unit="%" width={32} />
+          <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: 'none', borderRadius: '8px', color: CHART_COLORS.tooltipText }} formatter={(v: number) => [`${v}%`, 'Disponibilité']} labelFormatter={(_, p) => (Array.isArray(p) && p[0]?.payload?.full) ? p[0].payload.full : ''} />
+          <Area type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={2} fill="url(#analytics-avail-gradient)" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+})
+
 function AnalyticsContent() {
   const { token, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { metrics, isConnected, error, isLoading, refreshMetrics } = useMetrics()
 
-  const [activeTab, setActiveTab] = useState<'performance' | 'errors' | 'timeline' | 'developer' | 'security'>('performance')
-  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h')
+  const [activeTab, setActiveTab] = useState<'cpu-system' | 'memory' | 'network' | 'availability' | 'by-service' | 'performance' | 'errors' | 'timeline' | 'developer' | 'security'>('cpu-system')
+  const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d' | 'custom'>('24h')
+  const [dateRangeStart, setDateRangeStart] = useState<string>(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 16)
+  })
+  const [dateRangeEnd, setDateRangeEnd] = useState<string>(() => new Date().toISOString().slice(0, 16))
+  const [servicesSnapshot, setServicesSnapshot] = useState<any[]>([])
 
   // États pour la personnalisation
   const [showCustomization, setShowCustomization] = useState(false)
@@ -128,12 +284,10 @@ function AnalyticsContent() {
     return DEFAULT_CUSTOMIZATION
   })
 
-  // ✅ Gérer l'onglet depuis l'URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab')
-    if (tabFromUrl && ['performance', 'errors', 'timeline', 'developer', 'security'].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl as any)
-    }
+    const tabs = ['cpu-system', 'memory', 'network', 'availability', 'by-service', 'performance', 'errors', 'timeline', 'developer', 'security']
+    if (tabFromUrl && tabs.includes(tabFromUrl)) setActiveTab(tabFromUrl as any)
   }, [searchParams])
 
   // Sauvegarder les paramètres de personnalisation
@@ -224,23 +378,36 @@ function AnalyticsContent() {
   const [metricsHistory, setMetricsHistory] = useState<any[]>([])
   const [metricsStats, setMetricsStats] = useState<any>(null)
 
-  useEffect(() => {
-    if (token) {
-      loadAnalytics()
+  const getRangeMs = useMemo(() => {
+    if (timeRange === 'custom') {
+      const start = new Date(dateRangeStart).getTime()
+      const end = new Date(dateRangeEnd).getTime()
+      return { startTime: isNaN(start) ? undefined : start, endTime: isNaN(end) ? undefined : end }
     }
-  }, [token, timeRange])
+    const end = Date.now()
+    const hour = 60 * 60 * 1000
+    const day = 24 * hour
+    const start = timeRange === '1h' ? end - hour : timeRange === '24h' ? end - day : timeRange === '7d' ? end - 7 * day : end - 30 * day
+    return { startTime: start, endTime: end }
+  }, [timeRange, dateRangeStart, dateRangeEnd])
+
+  useEffect(() => {
+    if (token) loadAnalytics()
+  }, [token, getRangeMs])
 
   const loadAnalytics = async () => {
     setLoading(true)
     try {
-      // ✅ Charger l'historique des métriques depuis le nouveau système
+      const limit = 200
+      const { startTime, endTime } = getRangeMs
       const [history, stats] = await Promise.all([
-        centralMetricsService.getMetricsHistory({ limit: 100 }).catch(() => []),
+        centralMetricsService.getMetricsHistory({ limit, startTime, endTime }).catch(() => []),
         centralMetricsService.getMetricsStats().catch(() => null)
       ])
-      
       setMetricsHistory(history)
       setMetricsStats(stats)
+      const metrics = await centralMetricsService.fetchMetrics().catch(() => null)
+      setServicesSnapshot(metrics?.servicesList ?? [])
       
       // ✅ Charger les erreurs D'ABORD pour calculer les métriques cohérentes
       const errors = await loadErrorLogs().catch(() => [])
@@ -260,27 +427,28 @@ function AnalyticsContent() {
 
   const loadPerformanceMetrics = async (errorCount: number) => {
     try {
-      // ✅ Utiliser les stats de l'historique si disponibles
+      // ✅ Temps de réponse : priorité fetchMetrics (monitoring-c / metrics-aggregator)
+      const allMetrics = await centralMetricsService.fetchMetrics().catch(() => null)
+      const avgResponseTimeMs = allMetrics?.monitoringC?.avg_response_time_ms ?? allMetrics?.responseTime?.average_ms ?? null
+      const avgResponseTime = typeof avgResponseTimeMs === 'number' && !Number.isNaN(avgResponseTimeMs) ? avgResponseTimeMs : null
+
       const systemMetrics = await centralMetricsService.getSystemMetrics().catch(() => null)
       const serviceMetrics = await centralMetricsService.getServiceMetrics().catch(() => null)
       const maintenanceMetrics = await centralMetricsService.getMaintenanceMetrics().catch(() => null)
 
-      // Calculer les métriques de performance à partir des vraies données
       const totalServices = serviceMetrics ? Object.keys(serviceMetrics).length : 0
-      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter(s => s.status === 'up' || s.status === 'healthy').length : 0
+      const healthyServices = serviceMetrics ? Object.values(serviceMetrics).filter((s: any) => s.status === 'up' || s.status === 'healthy' || s.healthStatus === 'online').length : 0
       const uptime = totalServices > 0 ? (healthyServices / totalServices * 100) : 0
 
-      // Utiliser les stats de l'historique si disponibles, sinon les métriques en temps réel
       const cpuUsage = metricsStats?.cpu?.avg ? parseFloat(metricsStats.cpu.avg) : systemMetrics?.cpu?.usage || 0
       const memoryUsage = metricsStats?.memory?.avg ? parseFloat(metricsStats.memory.avg) : systemMetrics?.memory?.usage || 0
-      const avgResponseTime = systemMetrics?.load?.average || 0
 
       setDevMetrics(prev => ({
         ...prev,
         totalRequests: maintenanceMetrics?.requests?.total || 'N/A',
         successfulRequests: maintenanceMetrics?.requests?.successful || 'N/A',
         failedRequests: maintenanceMetrics?.requests?.failed || 'N/A',
-        averageResponseTime: typeof avgResponseTime === 'number' ? `${avgResponseTime.toFixed(0)}ms` : 'N/A',
+        averageResponseTime: avgResponseTime != null ? `${Math.round(avgResponseTime)}` : 'N/A',
         errorRate: errorCount > 0 ? `${((errorCount / (errorCount + 100)) * 100).toFixed(2)}%` : '0%',
         successRate: uptime > 0 ? `${uptime.toFixed(2)}%` : '100%',
         uptime: `${uptime.toFixed(2)}%`,
@@ -289,15 +457,16 @@ function AnalyticsContent() {
       }))
     } catch (error) {
       console.error('Erreur chargement métriques performance:', error)
-      // Fallback vers les vraies données système si disponibles
+      const fallbackMetrics = await centralMetricsService.fetchMetrics().catch(() => null)
+      const fallbackMs = fallbackMetrics?.monitoringC?.avg_response_time_ms ?? fallbackMetrics?.responseTime?.average_ms
       const systemMetrics = await centralMetricsService.getSystemMetrics()
-      if (systemMetrics) {
+      if (systemMetrics || fallbackMetrics) {
         setDevMetrics(prev => ({
           ...prev,
           totalRequests: 'N/A',
           successfulRequests: 'N/A',
           failedRequests: 'N/A',
-          averageResponseTime: systemMetrics.load?.average ? `${systemMetrics.load.average}ms` : 'N/A',
+          averageResponseTime: typeof fallbackMs === 'number' ? `${Math.round(fallbackMs)}` : (systemMetrics?.load?.average ? `${systemMetrics.load.average}` : 'N/A'),
           errorRate: 'N/A',
           successRate: 'N/A',
           uptime: 'N/A',
@@ -580,7 +749,7 @@ function AnalyticsContent() {
                 Surveillance détaillée des performances et métriques système
               </p>
             </div>
-            <div className="flex space-x-2 sm:space-x-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as any)}
@@ -590,7 +759,30 @@ function AnalyticsContent() {
                 <option value="24h">Dernières 24h</option>
                 <option value="7d">7 derniers jours</option>
                 <option value="30d">30 derniers jours</option>
+                <option value="custom">Plage personnalisée</option>
               </select>
+              {timeRange === 'custom' && (
+                <>
+                  <label className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    Du
+                    <input
+                      type="datetime-local"
+                      value={dateRangeStart}
+                      onChange={(e) => setDateRangeStart(e.target.value)}
+                      className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    Au
+                    <input
+                      type="datetime-local"
+                      value={dateRangeEnd}
+                      onChange={(e) => setDateRangeEnd(e.target.value)}
+                      className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
+                    />
+                  </label>
+                </>
+              )}
               <button
                 onClick={() => setShowCustomization(!showCustomization)}
                 className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center text-xs sm:text-sm md:text-base whitespace-nowrap"
@@ -611,6 +803,11 @@ function AnalyticsContent() {
           <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <nav className="-mb-px flex space-x-4 sm:space-x-6 md:space-x-8">
               {[
+                { id: 'cpu-system', label: '🖥️ CPU', count: metricsHistory.length > 0 ? metricsHistory.length : null },
+                { id: 'memory', label: '🧠 Mémoire', count: null },
+                { id: 'network', label: '📡 Réseau', count: null },
+                { id: 'availability', label: '✅ Disponibilité', count: null },
+                { id: 'by-service', label: '📦 Par service', count: servicesSnapshot.length > 0 ? servicesSnapshot.length : null },
                 { id: 'performance', label: '📈 Performances', count: null },
                 { id: 'errors', label: '❌ Erreurs', count: errorLogs.length },
                 { id: 'timeline', label: '📅 Timeline', count: null },
@@ -642,6 +839,85 @@ function AnalyticsContent() {
           </div>
 
           {/* Contenu des onglets */}
+          {activeTab === 'cpu-system' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">CPU Système – Historique</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Données enregistrées par monitoring-c et metrics-aggregator (PostgreSQL). Période : {timeRange}.
+                </p>
+                {metricsHistory.length > 0 ? (
+                  <>
+                    <CpuSystemChart data={metricsHistory} />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                      ✅ Enregistrement : {metricsHistory.length} point(s) – Dernier : {metricsHistory[metricsHistory.length - 1]?.timestamp ? new Date(metricsHistory[metricsHistory.length - 1].timestamp).toLocaleString('fr-FR') : 'N/A'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400 py-8 text-center">
+                    Aucune donnée historique pour le moment. Vérifiez que monitoring-c et metrics-aggregator enregistrent bien (make db-push-metrics, tables Prisma).
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'memory' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Mémoire système – Historique</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Période : {timeRange === 'custom' ? `${dateRangeStart} → ${dateRangeEnd}` : timeRange}.</p>
+                {metricsHistory.length > 0 ? <MemoryChart data={metricsHistory} /> : <p className="text-gray-500 dark:text-gray-400 py-8 text-center">Aucune donnée pour cette plage.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'network' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Réseau – Rx / Tx (Mo)</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Période : {timeRange === 'custom' ? `${dateRangeStart} → ${dateRangeEnd}` : timeRange}.</p>
+                {metricsHistory.length > 0 ? <NetworkChart data={metricsHistory} /> : <p className="text-gray-500 dark:text-gray-400 py-8 text-center">Aucune donnée pour cette plage.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'availability' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Disponibilité – Historique</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Période : {timeRange === 'custom' ? `${dateRangeStart} → ${dateRangeEnd}` : timeRange}.</p>
+                {metricsHistory.length > 0 ? <AvailabilityChart data={metricsHistory} /> : <p className="text-gray-500 dark:text-gray-400 py-8 text-center">Aucune donnée pour cette plage.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'by-service' && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Services & Docker</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">État et temps de réponse par service (instantané).</p>
+                {servicesSnapshot.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-gray-700 dark:text-gray-300">
+                      <thead><tr className="border-b border-gray-200 dark:border-gray-700"><th className="py-2 pr-4">Service</th><th className="py-2 pr-4">Statut</th><th className="py-2 pr-4">Temps réponse</th><th className="py-2">CPU / Mémoire</th></tr></thead>
+                      <tbody>
+                        {servicesSnapshot.map((s: any) => (
+                          <tr key={s.rawName || s.name || s.id} className="border-b border-gray-100 dark:border-gray-700/50">
+                            <td className="py-2 pr-4 font-medium">{s.displayName || s.rawName || s.name}</td>
+                            <td className="py-2 pr-4"><span className={s.healthStatus === 'online' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>{s.healthStatus || s.status || '—'}</span></td>
+                            <td className="py-2 pr-4">{typeof s.responseTimeMs === 'number' ? `${Math.round(s.responseTimeMs)} ms` : 'N/A'}</td>
+                            <td className="py-2">{s.metrics?.cpu?.percentage != null ? `${s.metrics.cpu.percentage}%` : '—'} / {s.metrics?.memory?.percentage != null ? `${s.metrics.memory.percentage}%` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="text-gray-500 dark:text-gray-400 py-8 text-center">Aucun service chargé. Actualisez la page.</p>}
+              </div>
+            </div>
+          )}
+
           {activeTab === 'performance' && (
             <div className="space-y-6">
               {/* Métriques principales de performance */}
@@ -665,7 +941,9 @@ function AnalyticsContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temps de réponse</p>
-                      <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{devMetrics.averageResponseTime}ms</p>
+                      <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        {devMetrics.averageResponseTime !== 'N/A' ? `${devMetrics.averageResponseTime} ms` : 'N/A'}
+                      </p>
                     </div>
                     <div className="text-blue-500">
                       <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
