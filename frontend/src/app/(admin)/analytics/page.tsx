@@ -5,7 +5,7 @@ import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
-import { Settings, BarChart3, PieChart, TrendingUp, Eye, EyeOff } from 'lucide-react'
+import { Settings, BarChart3, PieChart, TrendingUp, Eye, EyeOff, Calendar } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -762,26 +762,30 @@ function AnalyticsContent() {
                 <option value="custom">Plage personnalisée</option>
               </select>
               {timeRange === 'custom' && (
-                <>
-                  <label className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Du
-                    <input
-                      type="datetime-local"
-                      value={dateRangeStart}
-                      onChange={(e) => setDateRangeStart(e.target.value)}
-                      className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
-                    />
-                  </label>
-                  <label className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Au
-                    <input
-                      type="datetime-local"
-                      value={dateRangeEnd}
-                      onChange={(e) => setDateRangeEnd(e.target.value)}
-                      className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
-                    />
-                  </label>
-                </>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-600 shadow-md ring-1 ring-gray-200/50 dark:ring-gray-700/50">
+                  <Calendar className="h-5 w-5 text-blue-500 dark:text-blue-400 shrink-0" aria-hidden />
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Début</span>
+                      <input
+                        type="datetime-local"
+                        value={dateRangeStart}
+                        onChange={(e) => setDateRangeStart(e.target.value)}
+                        className="px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition shadow-inner"
+                      />
+                    </label>
+                    <span className="text-gray-400 dark:text-gray-500 self-end pb-2 font-medium" aria-hidden>→</span>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Fin</span>
+                      <input
+                        type="datetime-local"
+                        value={dateRangeEnd}
+                        onChange={(e) => setDateRangeEnd(e.target.value)}
+                        className="px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition shadow-inner"
+                      />
+                    </label>
+                  </div>
+                </div>
               )}
               <button
                 onClick={() => setShowCustomization(!showCustomization)}

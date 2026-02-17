@@ -12,6 +12,9 @@
 - **Erreur de syntaxe au source du .env (ligne 44)** — `SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>` provoquait une erreur shell à cause de `<` et `>`. **Correction** : mettre la valeur entre guillemets : `SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"`.
 - **P1001 « Can't reach database server »** — Vérifier que Postgres est démarré (`docker compose up -d postgres`) et que `DATABASE_URL` utilise le bon port (celui exposé sur l’hôte, ex. 5000).
 
+### Table User manquante (auth-service)
+- **« The table `public.User` does not exist in the current database »** — L'auth-service utilise la même base PostgreSQL ; si les tables du schéma auth n'ont jamais été créées, cette erreur apparaît. **Correction** : exécuter **`make db-push-auth`** (crée les tables User, etc.) ou **`make db-push-all`** (tous les schémas). Postgres doit être démarré avant.
+
 ### Services et frontend
 - **security-service** : `ValidationError: ERR_ERL_PERMISSIVE_TRUST_PROXY` — `trust proxy` passé de `true` à `1`.
 - **Frontend – Token expiré** : Nettoyage silencieux (plus de messages console).

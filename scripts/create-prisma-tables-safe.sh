@@ -49,7 +49,7 @@ echo ""
 
 # 3. Recréer les tables de monitoring-c
 echo "3️⃣  Recréation des tables de monitoring-c..."
-docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack < monitoring-c/sql/init_metrics_tables.sql > /dev/null 2>&1
+docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack < ex-systems/monitoring-c/sql/init_metrics_tables.sql > /dev/null 2>&1
 echo "✅ Tables de monitoring-c recréées"
 echo ""
 
