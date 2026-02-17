@@ -531,16 +531,24 @@ class PersistenceService {
       console.log('[PERSISTENCE] 🔍 Requête SQL complète:', query);
       console.log('[PERSISTENCE] 🔍 Paramètres: limit=', limit, 'offset=', offset, 'startDate=', startDate, 'endDate=', endDate);
       
-      let rawResults;
+      let rawResults = [];
       try {
         rawResults = await prisma.$queryRawUnsafe(query);
       } catch (error) {
+        if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('system_metrics')) {
+          console.warn('[PERSISTENCE] ⚠️ Table system_metrics absente ou erreur, fallback sur SystemMetricsSnapshot (Prisma)');
+          return this.getSystemMetricsHistoryFromSnapshot(options);
+        }
         console.error('[PERSISTENCE] ❌ Erreur lors de la requête SQL:', error.message);
-        console.error('[PERSISTENCE] ❌ Stack:', error.stack);
         throw error;
       }
-      
-      console.log(`[PERSISTENCE] ✅ ${rawResults ? rawResults.length : 0} résultats récupérés depuis system_metrics`);
+
+      if (rawResults.length === 0) {
+        console.warn('[PERSISTENCE] ⚠️ Aucune donnée dans system_metrics, fallback sur SystemMetricsSnapshot');
+        return this.getSystemMetricsHistoryFromSnapshot(options);
+      }
+
+      console.log(`[PERSISTENCE] ✅ ${rawResults.length} résultats récupérés depuis system_metrics`);
       if (rawResults.length > 0) {
         // Convertir BigInt en Number pour les logs
         const firstRowForLog = { ...rawResults[0] };
@@ -597,6 +605,52 @@ class PersistenceService {
       }
       console.error('[PERSISTENCE] ❌ Erreur récupération métriques système:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Fallback : récupérer l'historique depuis SystemMetricsSnapshot (Prisma)
+   * utilisé quand system_metrics (monitoring-c) n'existe pas ou est vide
+   */
+  async getSystemMetricsHistoryFromSnapshot(options = {}) {
+    if (!this.isDatabaseEnabled()) return [];
+    const { limit = 100, offset = 0, startDate = null, endDate = null } = options;
+    const where = {};
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = new Date(startDate);
+      if (endDate) where.timestamp.lte = new Date(endDate);
+    }
+    try {
+      const rows = await prisma.systemMetricsSnapshot.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        cpuUsagePercent: row.cpuUsagePercent ?? 0,
+        cpu_percent: row.cpuUsagePercent ?? 0,
+        cpuCores: row.cpuCores ?? 0,
+        memoryUsagePercent: row.memoryUsagePercent ?? 0,
+        memory_usage_percent: row.memoryUsagePercent ?? 0,
+        memoryUsedBytes: row.memoryUsedBytes != null ? Number(row.memoryUsedBytes) : 0,
+        memoryTotalBytes: row.memoryTotalBytes != null ? Number(row.memoryTotalBytes) : 0,
+        memoryFreeBytes: row.memoryFreeBytes != null ? Number(row.memoryFreeBytes) : 0,
+        networkRxBytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
+        networkTxBytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
+        total_network_rx_bytes: row.networkRxBytes != null ? Number(row.networkRxBytes) : null,
+        total_network_tx_bytes: row.networkTxBytes != null ? Number(row.networkTxBytes) : null,
+        availabilityPercent: row.availabilityPercent ?? null,
+        loadScore: row.loadScore ?? null,
+        responseTimeAvg: row.responseTimeAvg ?? null,
+        createdAt: row.timestamp,
+      }));
+    } catch (e) {
+      console.warn('[PERSISTENCE] ⚠️ Fallback SystemMetricsSnapshot échoué:', e.message);
+      return [];
     }
   }
 

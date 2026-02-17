@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth
 
 # ============================================================================
 # AIDE
@@ -18,6 +18,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "🔄 MIGRATIONS & DONNÉES:"
 	@echo "  make db-migrate            - Appliquer migrations Prisma"
 	@echo "  make db-push-all           - Synchroniser schémas Prisma (db push)"
+	@echo "  make db-push-auth          - Créer tables auth (User, etc.) si erreur 'User does not exist'"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
 	@echo "  make migrate-all           - Alias rapide pour db-migrate"
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
@@ -165,7 +166,10 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 				echo "  🔍 Vérification de $$service (hors conteneur)..."; \
 				if [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
 					echo "  📦 Prisma db push sur $$service (local, Prisma 6.x requis)..."; \
-					cd backend/metrics-aggregator-service && npm install --no-save 2>/dev/null || true && npx prisma db push --accept-data-loss 2>&1 | head -8 && cd ../.. || true; \
+					[ -f "$(ROOT_DIR)/.env" ] && set -a && . "$(ROOT_DIR)/.env" && set +a; \
+					export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
+					cd backend/metrics-aggregator-service && (npm install --no-save 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -12; \
+					cd ../.. 2>/dev/null || true; \
 					echo "  ✅ $$service - Schéma synchronisé (local)"; \
 					PUSHED=$$((PUSHED + 1)); \
 				else \
@@ -182,6 +186,22 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	echo "✅ Synchronisation terminée !"; \
 	echo "   📦 Services synchronisés: $$PUSHED"; \
 	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"
+
+# Créer les tables auth (User, etc.) – à utiliser si erreur "The table public.User does not exist"
+# Utilise le conteneur auth-service si démarré, sinon Prisma local avec DATABASE_URL du .env
+db-push-auth: ## Prisma db push pour auth-service (tables User, Application, etc.)
+	@echo "📦 Prisma db push - auth-service (tables User, etc.)"
+	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' ou démarrez postgres." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
+		echo "  Via conteneur auth-service..."; \
+		docker exec -w /app jobbingtrack-auth-service npx prisma db push --accept-data-loss 2>&1 | head -15; \
+		echo "✅ auth-service : schéma synchronisé (conteneur)"; \
+	else \
+		echo "  Via backend/auth-service (DATABASE_URL depuis .env)..."; \
+		if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi; \
+		export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
+		cd backend/auth-service && (npm install 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -15 && cd ../.. && echo "✅ auth-service : schéma synchronisé (local)"; \
+	fi
 
 # Synchroniser uniquement le schéma Prisma du metrics-aggregator (Prisma 6.x requis, pas 7)
 # DATABASE_URL : chargé depuis $(ROOT_DIR)/.env (port = POSTGRES_PORT de ton .env, ex: 5000)

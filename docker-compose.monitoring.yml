@@ -11,7 +11,7 @@ services:
   # Nouveau système de monitoring en C (ultra-léger)
   monitoring-c:
     build:
-      context: ./monitoring-c
+      context: ./ex-systems/monitoring-c
       dockerfile: Dockerfile
     container_name: jobbingtrack-monitoring-c
     user: "0:0"

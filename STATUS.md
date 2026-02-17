@@ -31,7 +31,7 @@
 - **Firewall** : moteur iptables avec fallback en développement.
 
 ### 📊 Monitoring et métriques
-- **monitoring-c** : collecteur C, endpoint `/api/v1/metrics`, persistance PostgreSQL (system_metrics, container_metrics).
+- **monitoring-c** : collecteur C, endpoint `/api/v1/metrics`, persistance PostgreSQL (system_metrics, container_metrics). Code source déplacé dans **`ex-systems/monitoring-c`** (avec `ex-systems/metrics-aggregator-c` et `ex-systems/log-collector-c`). Docker build : `context: ./ex-systems/monitoring-c`.
 - **metrics-aggregator-service** : agrégation, persistance Prisma (snapshots, logs conteneurs, disponibilité services). Tables créées via `make db-push-metrics` (voir ci‑dessous).
 - **Frontend backoffice** : Vue d’ensemble (CPU système/projet, mémoire, temps de réponse), Statistiques, Analytics avec graphiques et compression.
 
@@ -59,6 +59,18 @@
 ---
 
 ## 🔄 En cours / À faire
+
+### Prioritaire (fait / en place)
+- **make db-push-all** : charge le `.env` (DATABASE_URL) avant le Prisma db push du metrics-aggregator en local.
+- **Historique Analytics** : fallback sur **SystemMetricsSnapshot** (Prisma) si `system_metrics` vide.
+- **make git-checkout** : menu interactif Git (script `scripts/git-interactive-checkout.sh`).
+- **TESTS_END.md** : checklist des tests de fin de projet.
+
+### Structure frontend
+- Dashboard : **/backoffice**. Analytics : **/analytics** et **/backoffice/analytics** (à unifier ou documenter).
+
+### Sécurité (FIREWALL_PLAN.md)
+- En place : security-service, WAF, firewall engine. À faire : Network Monitor (C), routes firewall/threats, modèles Prisma, détection attaques.
 
 ### Graphiques et Analytics
 - Étendre la **compression** aux graphiques **mémoire** et **réseau**.
@@ -91,8 +103,13 @@ make status
 make up-full
 docker compose up -d postgres   # si besoin
 
-# Créer / synchroniser les tables Prisma du metrics-aggregator (historique, logs, etc.)
-make db-push-metrics
+# Créer / synchroniser les tables Prisma (auth + metrics-aggregator, etc.)
+make db-push-all
+make db-push-metrics   # metrics-aggregator uniquement
+make db-push-auth      # auth (User, etc.) uniquement
+
+# Navigation Git interactive (retour à un commit ou branche)
+make git-checkout
 
 # Logs
 make logs
@@ -109,7 +126,7 @@ make db-clean-metrics
 make down
 ```
 
-**Note db-push-metrics** : utilise le `.env` à la racine pour `DATABASE_URL`. Si erreur « Environment variable not found: DATABASE_URL », vérifier que `.env` contient bien `DATABASE_URL=postgresql://...@localhost:PORT/jobbingtrack?schema=public` (PORT = `POSTGRES_PORT`, ex. 5000). La cible doit être lancée **depuis la racine** (`make db-push-metrics`), pas depuis `backend/metrics-aggregator-service`.
+**Note db-push** : `make db-push-all` et `make db-push-metrics` chargent le `.env` à la racine pour `DATABASE_URL` (metrics-aggregator en local). Vérifier que `.env` contient `DATABASE_URL=postgresql://...@localhost:PORT/jobbingtrack?schema=public` (PORT = `POSTGRES_PORT`). Lancer depuis la **racine** du repo.
 
 ---
 

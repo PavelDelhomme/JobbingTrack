@@ -4,7 +4,7 @@
 # Utilitaires divers (monitoring quick access, scripts, etc.)
 # ============================================================================
 
-.PHONY: metrics logs-metrics mon mon-save mon-watch mon-quick mon-history mon-last mon-clean help-utils
+.PHONY: metrics logs-metrics mon mon-save mon-watch mon-quick mon-history mon-last mon-clean help-utils git-checkout
 
 # ============================================================================
 # AIDE
@@ -44,6 +44,17 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo ""
 	@echo "📖 Documentation: docs/administration/README.md"
 	@echo ""
+	@echo "🔀 GIT:"
+	@echo "  make git-checkout         - Navigation interactive (retour à un commit ou branche)"
+	@echo ""
+
+# ============================================================================
+# GIT - Navigation interactive
+# ============================================================================
+
+git-checkout: ## Revenir à un commit ou une branche de manière interactive
+	@chmod +x $(ROOT_DIR)/scripts/git-interactive-checkout.sh 2>/dev/null || true
+	@$(ROOT_DIR)/scripts/git-interactive-checkout.sh
 
 # ============================================================================
 # ACCÈS RAPIDE MONITORING
