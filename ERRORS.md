@@ -1,97 +1,56 @@
-# 🔍 RAPPORT D'ANALYSE DES ERREURS - MISE À JOUR FINALE
+# 🔍 Rapport d’analyse des erreurs
 
-**Date**: 2025-12-23 00:15  
-**Statut**: Corrections en cours
+**Dernière mise à jour** : Février 2026
 
-## 📊 RÉSUMÉ EXÉCUTIF
+---
 
-### ✅ Points positifs
-1. **Persistance PostgreSQL de monitoring-c** : ✅ FONCTIONNE
-   - Les logs `[STORAGE] ✅ Métriques sauvegardées dans PostgreSQL` sont présents
-   - Les tables `system_metrics` et `container_metrics` sont recréées automatiquement
+## ✅ Erreurs corrigées (Février 2026)
 
-2. **monitoring-c fonctionne** : ✅ FONCTIONNE
-   - `project_memory_mb`: 1151 MB
-   - `project_cpu_avg`: 0.24%
-   - Endpoint `/api/v1/metrics` répond correctement
+### Prisma et base de données (metrics-aggregator)
+- **P1012 « The datasource property `url` is no longer supported »** — Le projet utilise **Prisma 6.x** (6.7.0) dans `backend/metrics-aggregator-service`. Ne pas utiliser Prisma 7 en global ; les versions `prisma` et `@prisma/client` sont fixées en 6.7.0 dans le `package.json`.
+- **P1012 « Environment variable not found: DATABASE_URL »** — `make db-push-metrics` charge désormais le `.env` à la racine (`$(ROOT_DIR)/.env`). Le fichier `.env` doit contenir `DATABASE_URL=postgresql://...@localhost:PORT/jobbingtrack?schema=public` (PORT = `POSTGRES_PORT`, ex. 5000).
+- **Erreur de syntaxe au source du .env (ligne 44)** — `SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>` provoquait une erreur shell à cause de `<` et `>`. **Correction** : mettre la valeur entre guillemets : `SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"`.
+- **P1001 « Can't reach database server »** — Vérifier que Postgres est démarré (`docker compose up -d postgres`) et que `DATABASE_URL` utilise le bon port (celui exposé sur l’hôte, ex. 5000).
 
-3. **Services démarrés** : ✅ La plupart fonctionnent
-   - monitoring-c, auth-service, postgres sont healthy
+### Services et frontend
+- **security-service** : `ValidationError: ERR_ERL_PERMISSIVE_TRUST_PROXY` — `trust proxy` passé de `true` à `1`.
+- **Frontend – Token expiré** : Nettoyage silencieux (plus de messages console).
+- **Page Statistiques** : `ReferenceError: preferencesService is not defined` — import `preferencesService` ajouté.
+- **Vue d’ensemble – Temps Réponse** : Affichage « N/A » ou « X ms » (y compris 0 ms).
+- **make logs** : « No such container » — utilisation de `docker compose config --services` puis `docker compose logs -f`.
+- **metrics-aggregator** : Champ `log` (Object au lieu de String) — sérialisation en string avant `ContainerLog.create()`. Table `service_availability_history` absente — gérée par un warning en dev.
+- **Backoffice – 6 services unhealthy** : `is_healthy` aligné sur `health_status === 'healthy'`.
 
-### ❌ Problèmes détectés
+---
 
-#### 1. **Tables Prisma partiellement créées** (EN COURS)
-- **Symptôme** : Certaines tables Prisma créées (User, Application, Deployment, SecurityLog), mais pas toutes
-- **Cause** : Erreurs lors de `prisma db push` pour certains services (company-service, contact-service, interview-service, call-service, followup-service, event-service, workflow-service)
-- **Impact** : 
-  - Les erreurs Prisma dans les logs pour User sont résolues (table créée)
-  - Mais EmailLog et autres tables peuvent manquer
-  - Les tests échouent car les tables ne sont pas complètes
-- **Statut** : ⏳ EN COURS DE RÉSOLUTION
+## 📊 Résumé (état actuel)
 
-#### 2. **Tests échouent** (ATTENDU)
-- **Symptôme** : `make test-all` montre plusieurs tests échoués
-- **Cause** : Tables Prisma manquantes, services non démarrés, erreurs de connexion
-- **Impact** : Les tests ne peuvent pas s'exécuter correctement
-- **Statut** : ⏳ ATTENDU - Les tests échoueront jusqu'à ce que toutes les tables soient créées
+### ✅ Résolu
+- Erreurs Prisma P1012 (datasource url / DATABASE_URL) et chargement `.env` pour `db-push-metrics`.
+- Syntaxe `.env` (SMTP_FROM entre guillemets).
+- security-service, token expiré, Statistiques, Temps Réponse, make logs, metrics-aggregator persistence, compteur unhealthy.
 
-#### 3. **Frontend affiche "N/A" et "..."** (CORRIGÉ)
-- **Symptôme** : Le frontend affiche "N/A" et "..." pour certaines métriques
-- **Cause** : Les données ne sont pas disponibles ou mal formatées
-- **Fix appliqué** : Utilisation directe de `project_memory_mb` et `project_cpu_avg` depuis monitoring-c
-- **Statut** : ✅ CORRIGÉ - Devrait fonctionner maintenant que monitoring-c répond correctement
+### ⚠️ À surveiller
+- **monitoring-c** : parfois en mode `starting` ; **ERR_EMPTY_RESPONSE** occasionnel.
+- **Tables Prisma** : certains services peuvent encore avoir des tables manquantes (company, contact, etc.) ; créer les schémas / migrations si besoin.
 
-#### 4. **Erreurs Prisma dans les logs** (PARTIELLEMENT RÉSOLU)
-- **Symptôme** : Erreurs `Invalid prisma.user.findUnique()` et `The table public.User does not exist`
-- **Cause** : La table User n'existait pas
-- **Fix appliqué** : Tables Prisma créées (au moins User, Application, Deployment, SecurityLog)
-- **Statut** : ✅ PARTIELLEMENT RÉSOLU - La table User existe maintenant, mais d'autres tables peuvent encore manquer
+### ⏳ En attente / non bloquant
+- Tests (`make test-all`) peuvent échouer tant que toutes les tables et services ne sont pas en place.
+- deployment-service : « Table Deployment non trouvée » en dev — à traiter si le service est utilisé.
 
-#### 5. **make start ne démarre pas tous les services** (NORMAL)
-- **Symptôme** : `make start` ne démarre que les services de base
-- **Cause** : `make start` est un alias de `make up-full`, qui devrait démarrer tous les services
-- **Vérification** : `make up-full` démarre bien tous les services avec le profil `full`
-- **Statut** : ✅ NORMAL - Les services sont démarrés progressivement
+### 🔧 Correctifs récents (temps de réponse et Analytics)
+- **Carte temps de réponse à 0 ms** : monitoring-c utilisait le port hôte pour les health checks depuis le conteneur ; correction en utilisant le **port interne** du conteneur (docker inspect) pour construire l’URL de health check sur le réseau Docker. La carte Vue d’ensemble et Performances utilise `monitoringC.avg_response_time_ms` / `responseTime.average_ms` depuis `fetchMetrics()`.
+- **Performance & Analytics** : premier onglet **CPU Système** avec graphique historique et vérification de l’enregistrement (nombre de points, dernier timestamp). Onglets **Mémoire** et **Réseau** prévus (placeholders). Temps de réponse dans l’onglet Performances alimenté par `fetchMetrics()` (monitoring-c / metrics-aggregator).
 
-## 🔧 ACTIONS CORRECTIVES APPLIQUÉES
+### 📋 À faire plus tard (dashboard admin)
+- Panneau complet : **logs de sécurité**, **politiques de sécurité**, **firewall**, **réseau**, **menaces** dans l’interface dashboard admin (à brancher sur security-service et API existantes).
 
-### Action 1 : Suppression et recréation des tables de monitoring-c ✅
-- Suppression des tables `container_metrics` et `system_metrics` pour permettre la création des tables Prisma
-- Recréation des tables de monitoring-c après la création des tables Prisma
+---
 
-### Action 2 : Création des tables Prisma ✅ (partiel)
-- Tables créées : User, Application, Deployment, SecurityLog (et tables associées)
-- Tables en échec : Certains services (company-service, contact-service, etc.) échouent encore
+## 🎯 Prochaines vérifications
 
-### Action 3 : Recréation des tables de monitoring-c ✅
-- Tables `system_metrics` et `container_metrics` recréées avec leurs contraintes
+1. Exécuter `make db-push-metrics` depuis la racine avec Postgres démarré et `.env` correct.
+2. Vérifier que le frontend affiche bien les métriques et que les graphiques Analytics chargent les données.
+3. Surveiller les logs monitoring-c (ERR_EMPTY_RESPONSE, starting).
 
-## 📋 VÉRIFICATIONS POST-CORRECTION
-
-1. ✅ **Tables Prisma principales créées** : User, Application, Deployment existent
-2. ⏳ **Tables Prisma secondaires** : Certaines tables manquent encore (company-service, contact-service, etc.)
-3. ✅ **Tables monitoring-c** : Présentes et fonctionnelles
-4. ✅ **monitoring-c fonctionne** : project_memory_mb et project_cpu_avg disponibles
-5. ✅ **Services démarrés** : monitoring-c, auth-service, postgres sont healthy
-
-## 🎯 PROCHAINES ÉTAPES
-
-1. ⏳ Créer les tables Prisma manquantes (company-service, contact-service, etc.)
-2. ⏳ Vérifier que toutes les tables sont présentes
-3. ⏳ Redémarrer les services concernés
-4. ⏳ Vérifier que les erreurs Prisma disparaissent
-5. ⏳ Vérifier que le frontend affiche correctement les métriques
-6. ⏳ Exécuter `make test-all` pour vérifier que les tests passent
-
-## 💡 RECOMMANDATIONS
-
-1. ✅ **monitoring-c fonctionne** : Les métriques sont disponibles
-2. ⚠️ **Tables Prisma** : Certaines tables manquent encore - à créer
-3. 💡 **Tests** : Les tests échoueront jusqu'à ce que toutes les tables soient créées
-4. 💡 **Frontend** : Devrait maintenant afficher les métriques correctement une fois que monitoring-c répond
-
-## 📊 STATUT FINAL
-
-- **Problèmes critiques** : ⏳ 1 EN COURS (tables Prisma manquantes)
-- **Problèmes résolus** : ✅ 4 (monitoring-c, User table, frontend corrections, services démarrés)
-- **Système opérationnel** : ✅ OUI (partiellement)
+Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**.

@@ -138,6 +138,8 @@ const KNOWN_SERVICES = {
 let servicesMetrics = {}
 let systemMetrics = {}
 let containerMetrics = {}
+// Payload complet pour le backoffice (une seule source : monitoring-c → aggregator → frontend)
+let lastMetricsData = null
 
 // Fonction pour découvrir automatiquement les conteneurs
 async function discoverServices() {
@@ -858,6 +860,8 @@ async function collectAllMetrics() {
       timestamp: new Date().toISOString()
     }
     
+    lastMetricsData = metricsData
+
     // Exporter vers /tmp/metrics/latest.json (partage avec l'hôte)
     try {
       const fs = require('fs').promises
@@ -867,7 +871,7 @@ async function collectAllMetrics() {
     } catch (err) {
       console.error('[EXPORT] Erreur export /tmp/metrics:', err.message)
     }
-    
+
     // ✅ PERSISTANCE : Sauvegarder dans la base de données
     try {
       // ✅ PRIORITÉ : Utiliser les données de monitoring C si disponibles
@@ -1051,6 +1055,9 @@ app.use('/api/v1/docker', dockerRoutes)
 app.use('/api/v1/persistence', persistenceRoutes)
 
 app.get('/api/v1/metrics', authenticateMetrics, (req, res) => {
+  if (lastMetricsData) {
+    return res.json(lastMetricsData)
+  }
   res.json({
     services: servicesMetrics,
     system: systemMetrics,

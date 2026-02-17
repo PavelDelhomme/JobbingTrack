@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics
 
 # ============================================================================
 # AIDE
@@ -18,6 +18,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "🔄 MIGRATIONS & DONNÉES:"
 	@echo "  make db-migrate            - Appliquer migrations Prisma"
 	@echo "  make db-push-all           - Synchroniser schémas Prisma (db push)"
+	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
 	@echo "  make migrate-all           - Alias rapide pour db-migrate"
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
@@ -163,8 +164,8 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 			if [ "$$service" = "metrics-aggregator-service" ]; then \
 				echo "  🔍 Vérification de $$service (hors conteneur)..."; \
 				if [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
-					echo "  📦 Prisma db push sur $$service (local)..."; \
-					cd backend/metrics-aggregator-service && (npm list prisma 2>/dev/null || npm install --yes --legacy-peer-deps prisma@latest 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -5 && cd ../.. || true; \
+					echo "  📦 Prisma db push sur $$service (local, Prisma 6.x requis)..."; \
+					cd backend/metrics-aggregator-service && npm install --no-save 2>/dev/null || true && npx prisma db push --accept-data-loss 2>&1 | head -8 && cd ../.. || true; \
 					echo "  ✅ $$service - Schéma synchronisé (local)"; \
 					PUSHED=$$((PUSHED + 1)); \
 				else \
@@ -181,6 +182,24 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	echo "✅ Synchronisation terminée !"; \
 	echo "   📦 Services synchronisés: $$PUSHED"; \
 	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"
+
+# Synchroniser uniquement le schéma Prisma du metrics-aggregator (Prisma 6.x requis, pas 7)
+# DATABASE_URL : chargé depuis $(ROOT_DIR)/.env (port = POSTGRES_PORT de ton .env, ex: 5000)
+db-push-metrics: ## Prisma db push pour metrics-aggregator-service uniquement
+	@echo "📦 Prisma db push - metrics-aggregator-service"
+	@if [ ! -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
+		echo "❌ backend/metrics-aggregator-service/prisma/schema.prisma introuvable"; exit 1; \
+	fi
+	@if [ -f "$(ROOT_DIR)/.env" ]; then \
+		echo "   Chargement .env depuis $(ROOT_DIR)/.env"; \
+		set -a && . "$(ROOT_DIR)/.env" && set +a; \
+	fi; \
+	export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
+	export DATABASE_URL; \
+	cd backend/metrics-aggregator-service && \
+		(npm install 2>/dev/null || true) && \
+		npx prisma db push --accept-data-loss && \
+		cd ../.. && echo "✅ metrics-aggregator-service : schéma synchronisé"
 
 # Seed de données de test
 db-seed: ## Insérer des données de test

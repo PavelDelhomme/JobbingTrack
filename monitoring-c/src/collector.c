@@ -437,33 +437,53 @@ int collect_container_metrics(void) {
                 pclose(inspect_fp);
             }
             
-            // Obtenir le port exposé (chercher le port principal)
+            // Obtenir le port INTERNE du conteneur (pour requêtes depuis le réseau Docker)
+            // docker inspect donne "3001/tcp" ; on prend le premier port exposé
             char port_cmd[512];
             snprintf(port_cmd, sizeof(port_cmd),
-                "docker port %s 2>/dev/null | head -1 | cut -d: -f2",
+                "docker inspect --format '{{range $p,$c := .NetworkSettings.Ports}}{{$p}}{{end}}' %s 2>/dev/null | head -1",
                 global_metrics.containers[i].name);
-            
             FILE *port_fp = popen(port_cmd, "r");
+            char container_port_raw[32] = {0};
             char container_port[16] = {0};
-            if (port_fp) {
-                if (fgets(container_port, sizeof(container_port), port_fp)) {
-                    container_port[strcspn(container_port, "\n")] = '\0';
+            if (port_fp && fgets(container_port_raw, sizeof(container_port_raw), port_fp)) {
+                container_port_raw[strcspn(container_port_raw, "\n")] = '\0';
+                // Format "3001/tcp" -> extraire "3001"
+                char *slash = strchr(container_port_raw, '/');
+                if (slash) {
+                    size_t len = (size_t)(slash - container_port_raw);
+                    if (len >= sizeof(container_port)) len = sizeof(container_port) - 1;
+                    strncpy(container_port, container_port_raw, len);
+                    container_port[len] = '\0';
+                } else {
+                    strncpy(container_port, container_port_raw, sizeof(container_port) - 1);
+                    container_port[sizeof(container_port) - 1] = '\0';
                 }
                 pclose(port_fp);
+                port_fp = NULL;
+            }
+            if (port_fp) pclose(port_fp);
+            /* Fallback: port hôte (docker port) si pas de port interne trouvé */
+            if (strlen(container_port) == 0) {
+                snprintf(port_cmd, sizeof(port_cmd),
+                    "docker port %s 2>/dev/null | head -1 | cut -d: -f2",
+                    global_metrics.containers[i].name);
+                port_fp = popen(port_cmd, "r");
+                if (port_fp && fgets(container_port, sizeof(container_port), port_fp)) {
+                    container_port[strcspn(container_port, "\n")] = '\0';
+                    pclose(port_fp);
+                } else if (port_fp) pclose(port_fp);
             }
             
-            // Construire l'URL de health check
+            // Construire l'URL de health check (IP réseau Docker + port interne, ou nom:port)
             char health_url[512];
             if (strlen(container_ip) > 0 && strlen(container_port) > 0) {
                 snprintf(health_url, sizeof(health_url), "http://%s:%s/health", container_ip, container_port);
+            } else if (strlen(container_port) > 0) {
+                snprintf(health_url, sizeof(health_url), "http://localhost:%s/health", container_port);
             } else {
-                // Fallback: utiliser localhost avec le port ou le nom du service
-                if (strlen(container_port) > 0) {
-                    snprintf(health_url, sizeof(health_url), "http://localhost:%s/health", container_port);
-                } else {
-                    // Dernier fallback: utiliser le nom du conteneur (fonctionne dans Docker network)
-                    snprintf(health_url, sizeof(health_url), "http://%s/health", global_metrics.containers[i].name);
-                }
+                /* Nom du conteneur seul = port 80 par défaut ; tenter nom:port connu pour JobbingTrack */
+                snprintf(health_url, sizeof(health_url), "http://%s/health", global_metrics.containers[i].name);
             }
             
             // ✅ CORRECTION : Mesurer le temps de réponse avec curl (amélioré)

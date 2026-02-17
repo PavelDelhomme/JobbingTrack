@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { useAuth } from '@/lib/hooks/auth'
 import { useRouter } from 'next/navigation'
 import { centralMetricsService } from '@/lib/services/centralMetricsService'
+import { preferencesService } from '@/lib/services/preferencesService'
 import { statisticsService, type ApplicationStatistics } from '@/lib/services/statisticsService'
 import { cacheManager } from '@/lib/cache/cacheManager'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
