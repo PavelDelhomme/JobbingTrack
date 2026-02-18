@@ -9,6 +9,15 @@ function extractReportId(stdout: string): string | null {
   return match ? match[0] : null
 }
 
+/** URL de l’API pour les scripts de test. En Docker (frontend), utiliser le service api-gateway sur le réseau interne. */
+function getApiUrlForTests(): string {
+  const envUrl = process.env.API_GATEWAY_URL || process.env.API_URL
+  if (envUrl && envUrl.trim()) return envUrl.trim()
+  const root = process.env.PROJECT_ROOT || ''
+  if (root === '/app') return 'http://api-gateway:3000'
+  return 'http://localhost:5002'
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
@@ -22,8 +31,14 @@ export async function POST(request: NextRequest) {
       const testTypes = tests.join(',')
       testCommand = `sh "${scriptDir}/test-api-specific.sh" "${testTypes}"`
     }
+    // Passer la commande entre guillemets simples pour que le shell transmette un seul argument à generate-test-report.sh
+    const safeCommand = testCommand.replace(/'/g, "'\"'\"'")
+    const safeName = (testName || '').toString().replace(/"/g, '\\"')
 
-    const command = `cd "${projectRoot}" && sh "${scriptDir}/generate-test-report.sh" api "${testCommand}" "${testName}"`
+    const command = `cd "${projectRoot}" && sh "${scriptDir}/generate-test-report.sh" api '${safeCommand}' "${safeName}"`
+
+    const apiUrl = getApiUrlForTests()
+    const env = { ...process.env, API_URL: apiUrl }
 
     let stdout = ''
     let reportId: string | null = null
@@ -32,16 +47,28 @@ export async function POST(request: NextRequest) {
         encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024,
         timeout: RUN_TIMEOUT_MS,
+        env,
       })
       reportId = extractReportId(stdout)
     } catch (err: unknown) {
-      const execErr = err as { stdout?: string; stderr?: string; message?: string }
+      const execErr = err as { stdout?: string; stderr?: string; message?: string; status?: number }
       stdout = execErr.stdout || ''
       reportId = extractReportId(stdout)
+      const errorMessage = execErr.message || 'Erreur lors de l’exécution des tests'
+      // Si un rapport a tout de même été généré (script a écrit le rapport puis exit 1), retourner 200 pour permettre de l’ouvrir
+      if (reportId) {
+        return NextResponse.json({
+          success: false,
+          error: errorMessage,
+          reportId,
+          reportLocation: 'tests/results/',
+          selectedTests: tests,
+        }, { status: 200 })
+      }
       return NextResponse.json({
         success: false,
-        error: execErr.message || 'Erreur lors de l’exécution des tests',
-        reportId: reportId || undefined,
+        error: errorMessage,
+        reportId: undefined,
         selectedTests: tests,
       }, { status: 500 })
     }

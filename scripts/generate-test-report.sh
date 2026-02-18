@@ -72,39 +72,51 @@ else
     output="Aucune sortie disponible"
 fi
 
-# Extraire les statistiques
+# Extraire les statistiques (plusieurs patterns pour couvrir test-api-specific.sh et autres)
 passed=0
 failed=0
 total=0
 skipped=0
 
-# Pattern 1: "Total de tests : X", "Tests réussis : Y", "Tests échoués : Z"
+# Pattern 1: Résumé explicite "Total de tests : X", "Tests réussis : Y", "Tests échoués : Z"
 if echo "$output" | grep -q "Total de tests\|Tests réussis\|Tests échoués"; then
-    total=$(echo "$output" | grep -i "Total de tests" | grep -oE "[0-9]+" | head -1)
-    passed=$(echo "$output" | grep -i "Tests réussis" | grep -oE "[0-9]+" | head -1)
-    failed=$(echo "$output" | grep -i "Tests échoués" | grep -oE "[0-9]+" | head -1)
-    skipped=$(echo "$output" | grep -i "Tests ignorés\|Tests skipped" | grep -oE "[0-9]+" | head -1)
+    total=$(echo "$output" | grep -i "Total de tests" | tail -1 | grep -oE "[0-9]+" | head -1)
+    passed=$(echo "$output" | grep -i "Tests réussis" | tail -1 | grep -oE "[0-9]+" | head -1)
+    failed=$(echo "$output" | grep -i "Tests échoués" | tail -1 | grep -oE "[0-9]+" | head -1)
+    skipped=$(echo "$output" | grep -i "Tests ignorés\|Tests skipped" | tail -1 | grep -oE "[0-9]+" | head -1)
+fi
+
 # Pattern 2: "Total: X tests", "X tests réussis", "X tests échoués"
-elif echo "$output" | grep -qE "Total: [0-9]+ tests"; then
-    total=$(echo "$output" | grep -oE "Total: [0-9]+ tests" | grep -oE "[0-9]+" | head -1)
-    passed=$(echo "$output" | grep -oE "[0-9]+ tests réussis" | grep -oE "^[0-9]+" | head -1)
-    if [ -z "$passed" ]; then
-        passed=$(echo "$output" | grep -oE "✅ [0-9]+ tests réussis" | grep -oE "[0-9]+" | head -1)
+if [ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null; then
+    if echo "$output" | grep -qE "Total: [0-9]+ tests"; then
+        total=$(echo "$output" | grep -oE "Total: [0-9]+ tests" | grep -oE "[0-9]+" | head -1)
+        passed=$(echo "$output" | grep -oE "[0-9]+ tests réussis" | grep -oE "^[0-9]+" | head -1)
+        [ -z "$passed" ] && passed=$(echo "$output" | grep -oE "✅ [0-9]+ tests réussis" | grep -oE "[0-9]+" | head -1)
+        failed=$(echo "$output" | grep -oE "[0-9]+ tests échoués" | grep -oE "^[0-9]+" | head -1)
+        [ -z "$failed" ] && failed=$(echo "$output" | grep -oE "❌ [0-9]+ tests échoués" | grep -oE "[0-9]+" | head -1)
+        skipped=$(echo "$output" | grep -oE "[0-9]+ tests.*(ignorés|skipped)" | grep -oE "^[0-9]+" | head -1)
     fi
-    failed=$(echo "$output" | grep -oE "[0-9]+ tests échoués" | grep -oE "^[0-9]+" | head -1)
-    if [ -z "$failed" ]; then
-        failed=$(echo "$output" | grep -oE "❌ [0-9]+ tests échoués" | grep -oE "[0-9]+" | head -1)
-    fi
-    skipped=$(echo "$output" | grep -oE "[0-9]+ tests.*(ignorés|skipped)" | grep -oE "^[0-9]+" | head -1)
-# Pattern 3: Compter les PASS et FAIL
-else
-    passed=$(echo "$output" | grep -cE "(✓ PASS|PASS|✓|réussis|✅|passed)" 2>/dev/null || echo "0")
-    failed=$(echo "$output" | grep -cE "(✗ FAIL|FAIL|✗|échoué|❌|failed)" 2>/dev/null || echo "0")
-    skipped=$(echo "$output" | grep -cE "(⊘ SKIP|SKIP|⊘|ignoré|skipped)" 2>/dev/null || echo "0")
-    if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
-    if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
-    if [ -z "$skipped" ] || ! [ "$skipped" -ge 0 ] 2>/dev/null; then skipped=0; fi
-    total=$((passed + failed + skipped))
+fi
+
+# Pattern 3: Compter les lignes "✓ PASS" et "✗ FAIL" (priorité si on a des lignes de résultat)
+p3_passed=$(echo "$output" | grep -cE "✓ PASS|PASS - Status:" 2>/dev/null || echo "0")
+p3_failed=$(echo "$output" | grep -cE "✗ FAIL|FAIL - Status:" 2>/dev/null || echo "0")
+p3_skipped=$(echo "$output" | grep -cE "⊘ SKIP|SKIP|ignoré|skipped" 2>/dev/null || echo "0")
+[ -z "$p3_passed" ] || ! [ "$p3_passed" -ge 0 ] 2>/dev/null && p3_passed=0
+[ -z "$p3_failed" ] || ! [ "$p3_failed" -ge 0 ] 2>/dev/null && p3_failed=0
+[ -z "$p3_skipped" ] || ! [ "$p3_skipped" -ge 0 ] 2>/dev/null && p3_skipped=0
+p3_total=$((p3_passed + p3_failed + p3_skipped))
+# Utiliser les comptages réels (pattern 3) si on a au moins un test et que le résumé texte est vide ou incohérent
+if [ "$p3_total" -ge 1 ] && ([ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null); then
+    total=$p3_total
+    passed=$p3_passed
+    failed=$p3_failed
+    skipped=$p3_skipped
+elif [ "$p3_total" -ge 1 ] && [ "$total" -eq 0 ]; then
+    total=$p3_total
+    passed=$p3_passed
+    failed=$p3_failed
+    skipped=$p3_skipped
 fi
 
 # S'assurer que toutes les variables sont des nombres valides
@@ -113,7 +125,7 @@ if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
 if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
 if [ -z "$skipped" ] || ! [ "$skipped" -ge 0 ] 2>/dev/null; then skipped=0; fi
 
-# Si total est 0, on compte 1 test (la catégorie elle-même)
+# Fallback uniquement si vraiment aucune donnée (éviter "1 total, 1 échoué" à tort)
 if [ "$total" -eq 0 ]; then
     if [ "$exit_code" -eq 0 ]; then
         total=1

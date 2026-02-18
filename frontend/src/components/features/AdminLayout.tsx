@@ -155,20 +155,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📊',
       isCollapsible: true,
       items: [
-        { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
-        /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
-        { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
         {
-          name: 'Performances & Analytics',
-          href: '/backoffice/analytics',
-          icon: '⚡',
+          name: 'Tableau de bord',
+          href: '/backoffice',
+          icon: '📊',
           subItems: [
-            { name: 'Vue d\'ensemble', href: '/backoffice/analytics', icon: '📊' },
+            { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
+            { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
+            { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
             { name: 'Performances complètes', href: '/backoffice/analytics/performances', icon: '📈' },
             { name: 'Performances réseau', href: '/backoffice/analytics/network', icon: '🌐' },
             { name: 'Performances applicatives', href: '/backoffice/analytics/application', icon: '📱' },
             { name: 'Analytics conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
-            { name: 'Analytics Utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
+            { name: 'Analytics utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
           ]
         },
       ]
@@ -184,7 +183,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: '/backoffice/security/logs',
           icon: '🔒',
           subItems: [
-            { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
+            { name: 'Logs de sécurité', href: '/backoffice/security/logs', icon: '📋' },
             { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
             { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
             { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
@@ -201,7 +200,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         {
-          name: 'Gestion des Services',
+          name: 'Gestion des services',
           href: '/backoffice/services',
           icon: '🔧',
           subItems: [
@@ -209,9 +208,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Services & Logs', href: '/backoffice/services/logs', icon: '📜' },
           ]
         },
-        { 
-          name: 'Gestion des Données', 
-          href: '/backoffice/data', 
+        {
+          name: 'Gestion des données',
+          href: '/backoffice/data',
           icon: '💾',
           subItems: [
             { name: 'Archives', href: '/backoffice/archives', icon: '📦' },
@@ -227,54 +226,47 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🛠️',
       isCollapsible: true,
       items: [
-        { name: 'Testeur API', href: '/backoffice/api-tester', icon: '🧪' },
-        { name: 'Données de Test', href: '/backoffice/test-data', icon: '🎲' },
-        { name: 'Émulateur Mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
-        { 
-          name: 'Tests', 
-          href: '/backoffice/playwright-tests', 
+        { name: 'Testeur d’API (manuel)', href: '/backoffice/api-tester', icon: '🧪' },
+        { name: 'Données de test', href: '/backoffice/test-data', icon: '🎲' },
+        { name: 'Émulateur mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
+        {
+          name: 'Tests',
+          href: '/backoffice/playwright-tests',
           icon: '🧪',
           subItems: [
             { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
-            { name: 'Tests API', href: '/backoffice/tests-api', icon: '🔌' },
+            { name: 'Lancer les tests API', href: '/backoffice/tests-api', icon: '🔌' },
             { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
             { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
             { name: 'Tests Backoffice', href: '/backoffice/tests-backoffice', icon: '🛡️' },
             { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
-            { name: 'Programmer Tests', href: '/backoffice/performance-tests/schedule', icon: '📅' },
-            { name: 'Rapports de Tests', href: '/backoffice/test-reports', icon: '📊' },
+            { name: 'Programmer tests', href: '/backoffice/performance-tests/schedule', icon: '📅' },
+            { name: 'Rapports de tests', href: '/backoffice/test-reports', icon: '📊' },
           ]
         },
-        { 
-          name: 'Parcours Utilisateur', 
-          href: '/backoffice/user-journey', 
+        {
+          name: 'Parcours utilisateur',
+          href: '/backoffice/user-journey',
           icon: '🚶',
           subItems: [
-            { name: 'Parcours Prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
-            { name: 'Parcours Personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
+            { name: 'Parcours prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
+            { name: 'Parcours personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
           ]
         },
       ]
     },
     {
       id: 'emails',
-      label: 'Gestion des Emails',
+      label: 'Gestion des emails',
       icon: '📧',
       isCollapsible: true,
       items: [
-        {
-          name: 'Gestion des Emails',
-          href: '/backoffice/emails',
-          icon: '📧',
-          subItems: [
-            { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
-            { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
-            { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
-            { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
-            { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
-            { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
-          ]
-        },
+        { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
+        { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
+        { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
+        { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
+        { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
+        { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
       ]
     },
   ]

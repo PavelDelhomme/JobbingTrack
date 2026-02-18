@@ -13,26 +13,28 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 2. **Ensuite** : corriger les erreurs restantes (SMTP 503, logs emails 404, API versions 404).
 3. **Puis** : sécurité (firewall, politiques, menaces), emails (templates, config), tests Playwright/Backend/etc., reste de la liste.
 
+**Comportement connu après `make up-full`** : la base peut être recréée vide. Le backoffice peut encore vous afficher comme « connecté » (JWT en session) alors que la page **Utilisateurs** affiche « Aucun utilisateur trouvé » : la nouvelle BDD n’a pas d’utilisateurs. Créer à nouveau un compte admin (inscription ou script de seed) dans ce cas.
+
 ---
 
 ### 1. Erreurs à résoudre en premier
 
 **Corrigé (à retester) :**
-- **Tests API depuis Docker** : (1) **`sh`** + chemins absolus, (2) **`PROJECT_ROOT=/app`** et volume **`./scripts:/app/scripts:ro`**, (3) **Permission denied** sur `/app/tests/results` corrigée en utilisant **`TESTS_RESULTS_DIR=/tmp/tests/results`** dans le conteneur frontend. Le script `generate-test-report.sh` et les routes list/view/download/delete/all utilisent cette variable pour écrire/lire les rapports (écriture possible par l’utilisateur nextjs). **À faire** : redémarrer le frontend pour charger `TESTS_RESULTS_DIR`, puis lancer les tests API depuis Backoffice > Tests > Tests API.
+- **Tests API depuis Docker** : (1) **`sh`** + chemins absolus, (2) **`PROJECT_ROOT=/app`** et volume **`./scripts:/app/scripts:ro`**, (3) **Permission denied** sur `/app/tests/results` → **`TESTS_RESULTS_DIR=/tmp/tests/results`** dans le conteneur frontend, (4) **passage de la commande** : la commande de test est maintenant passée à `generate-test-report.sh` entre **guillemets simples** (plus d’échappement par backslashes) pour que le 2ᵉ argument soit correctement reçu. Redémarrer le frontend puis lancer les tests API depuis Backoffice > Développement > Tests > Tests API.
 
 **Encore à faire :**
-- **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503**. Rendre le service email / test SMTP opérationnel ou gérer l’indisponibilité côté front.
-- **Logs emails** : requête vers `http://localhost:5003/backoffice/emails/logs` → **404**. Corriger l’URL (API Gateway ou bon service/port).
-- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions?days=7` → **404**. Implémenter la route backend ou adapter le front.
+- **Configuration emails – test SMTP** : ~~503~~ **Géré côté front** — messages clairs sur Configuration SMTP et Déliverabilité (« Service SMTP indisponible… »). Pour rendre le test opérationnel : configurer le service Python SMTP dans auth-service ou remplacer par un test Node.
+- **Logs emails** : ~~404 sur /backoffice/emails/logs~~ **Corrigé** — page **Historique des emails** créée (`/backoffice/emails/logs`) ; elle appelle `GET /api/v1/emails/logs` (API Gateway → auth-service). Lien vers Email Monitor pour le détail.
+- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions` — la route existe dans dashboard-service ; le front gère déjà un 404 (données vides). Si 404 persiste, vérifier que le gateway envoie bien vers dashboard-service et que l’auth est transmise.
 - **Tables manquantes** (si erreurs Postgres) : `firewall_rules`, `security_alerts`, `vulnerabilities`, `security_metrics`, `deployments`, etc. — s’assurer que `make db-push-all` crée toutes les tables nécessaires (auth-service schéma étendu).
 
 ### 2. Tests (complets et opérationnels)
-- **Tests API** : **d’abord valider** que l’exécution depuis backoffice (Docker) fonctionne après la correction ci‑dessus ; puis vérifier make, scripts dans /workspace, lien « Voir le rapport ».
+- **Lancer les tests API** (`/backoffice/tests-api`, sous Développement > Tests) : exécution depuis backoffice (Docker), génération de rapport, lien « Voir le rapport ». Les rapports affichent désormais le bon total / réussis / échoués (parsing corrigé). **À améliorer plus tard** : couverture des endpoints, stabilité en Docker, assertions.
+- **Testeur d’API (manuel)** (`/backoffice/api-tester`) : tester les endpoints à la main (URL, méthode, headers, historique, clés). Distinct de « Lancer les tests API » qui lance le script de tests automatiques.
 - **Tests Playwright** : exécution et liens depuis `/backoffice/playwright-tests`.
 - **Tests Backend / Frontend / Backoffice / Performance** : pages opérationnelles ; exécution synchrone + rapport.
 - **Programmation de tests** : `/backoffice/performance-tests/schedule` — vérifier et compléter.
 - **Rapports de tests** : filtre par catégorie, ouverture via `?open=ID` ; rapports de **sécurité** si prévus.
-- **Testeur API** (`/backoffice/api-tester`) : vérifier endpoints, auth, exemples.
 - **Tests de sécurité** : à définir et exécuter (sécurité réseau, WAF, firewall, etc.).
 
 ### 3. Sécurité (firewall, politique, réseau, menaces – pas encore opérationnel)
@@ -78,6 +80,9 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **centralLogger / logger-filter** : déployer dans tous les services ; documenter ; garder logger-filter en sync.
 - **Événements & rappels** : backoffice OK ; app mobile — connecter API + rappels locaux/push.
 - **monitoring-c** : stabilité (ERR_EMPTY_RESPONSE, starting) ; tests de charge, CI performance.
+- **Health check 404** : **log-collector-c** et **metrics-aggregator** renvoient HTTP 404 sur `/health` (monitoring-c les appelle pour le health check). Soit ajouter une route `/health` sur ces deux services, soit adapter monitoring-c pour considérer 404 comme « pas d’endpoint health » sans le compter en échec.
+- **Sécurité des conteneurs** : revue des services exposés sur l’hôte (ports mappés dans docker-compose). Limiter l’exposition aux seuls services qui doivent être accessibles depuis l’extérieur (frontend, API gateway, etc.).
+- **Métriques / health en inter-conteneurs** : s’assurer que les appels métriques (metrics-aggregator → monitoring-c, frontend → metrics-aggregator) et health checks restent sur le réseau Docker (noms de services), pas exposés inutilement sur localhost. Vérifier que le frontend en Docker appelle bien l’API gateway / metrics-aggregator via le réseau interne (variables d’environnement) et non localhost.
 
 ### 10. Documentation et cohérence
 - **ERRORS.md** : tenir à jour (erreurs connues, corrigées, en attente).
@@ -112,7 +117,10 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 ## ✅ Résolu / Fait (ce qui a été fait)
 
 ### Derniers faits (Février 2026)
-- **Tests API depuis Docker** : (1) **`sh`** au lieu de `bash` dans toutes les routes run-*. (2) **Chemins absolus** pour les scripts. (3) **Racine = `/app`** : `PROJECT_ROOT=/app` dans docker-compose et volume **`./scripts:/app/scripts:ro`** pour que les scripts soient disponibles sans dépendre de `.:/workspace` (qui n’existait pas dans ton environnement). Rapports dans `/app/tests/results`. **À valider** : redémarrer le frontend puis lancer les tests API depuis le backoffice.
+- **Metrics-aggregator – persistance JobbingTrack uniquement** : en plus du filtre à la collecte Docker, les conteneurs issus de **monitoring C** sont filtrés avant sauvegarde (`isJobbingTrackContainer`). Log : « Préparation de 21 conteneurs depuis monitoring C pour sauvegarde (X reçus, filtre JobbingTrack) » et « Sauvegarde de 21 conteneurs en BDD » (plus de 31).
+- **Navigation backoffice** : **Testeur d’API (manuel)** = `/backoffice/api-tester` (tests manuels, endpoints, historique). **Lancer les tests API** = `/backoffice/tests-api` (sous Tests) = lancement du script et rapports. Tableau de bord et Sécurité en sous-catégories (bloc parent + subItems).
+- **Rapports tests API** : parsing des statistiques amélioré — priorité au comptage des lignes « ✓ PASS » / « ✗ FAIL » (pattern 3) quand le résumé texte est vide ou incohérent, pour afficher le vrai total / réussis / échoués au lieu de « 1 total, 1 échoué ». Pattern 1 utilise `tail -1` pour prendre la dernière ligne de résumé.
+- **Tests API depuis Docker** : `sh` + chemins absolus, `PROJECT_ROOT=/app`, volume `./scripts`, `TESTS_RESULTS_DIR`, passage de la commande en guillemets simples, `API_URL` (ex. `http://api-gateway:3000`) pour atteindre l’API depuis le conteneur frontend.
 - **Page backoffice/analytics (vue d’ensemble)** : chargement accéléré — `startDate`/`endDate`, `limit` 500, rafraîchissement 60 s ; suppression des `console.log`.
 - **Bouton retour et plage de dates** : sur Performances complètes, réseau, applicatives, Analytics conteneurs : bouton « ← Retour à la vue d’ensemble » puis titre et période ; **TimeRangeSelector** : « Plage personnalisée » dans `<details>`.
 - **Drawer** : **Sécurité** avec item parent + subItems (Logs, Politiques, Analyse, Firewall, Réseau, Menaces). **Gestion des Emails** : un item parent « Gestion des Emails » avec **subItems décalés** (Dashboard, Email Monitor, Historique, Templates, Configuration, Déliverabilité) — même rendu que Tests. **Développement** : Tests et Parcours Utilisateur avec subItems.
