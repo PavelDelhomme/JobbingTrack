@@ -471,7 +471,8 @@ export default function UsersManagementPage() {
                 {pagination.paginatedItems.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                      Aucun utilisateur trouvé
+                      <p>Aucun utilisateur trouvé</p>
+                      <p className="text-sm mt-1">Après un <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">make up-full</code>, la base peut être vide : créez un compte admin si besoin.</p>
                     </td>
                   </tr>
                 )}

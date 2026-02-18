@@ -407,9 +407,13 @@ async function collectContainerMetrics() {
     // ✅ OPTIMISATION: Utiliser l'instance Docker réutilisable au lieu d'en créer une nouvelle
     const fs = require('fs').promises
     
-    // Lister tous les conteneurs
-    const containers = await docker.listContainers({ all: false })
-    console.log(`[PROC] ${containers.length} conteneurs en cours d'exécution`)
+    // Lister uniquement les conteneurs du projet JobbingTrack (exclure lab-*, etc.)
+    const allContainers = await docker.listContainers({ all: false })
+    const containers = allContainers.filter(c => {
+      const name = (c.Names && c.Names[0]) ? c.Names[0].replace(/^\//, '') : ''
+      return isJobbingTrackContainer(name)
+    })
+    console.log(`[PROC] ${containers.length} conteneurs en cours d'exécution (${allContainers.length} total sur l'hôte, filtre JobbingTrack)`)
     
     // ✅ OPTIMISATION: Collecte parallèle avec limite de concurrence (max 5 conteneurs à la fois)
     const MAX_CONCURRENT = 5
@@ -1000,8 +1004,9 @@ async function collectAllMetrics() {
       
       // Si on a des données de monitoring C, les utiliser en priorité
       if (monitoringCData && monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
-        console.log(`[PERSISTENCE] Préparation de ${monitoringCData.containers.length} conteneurs depuis monitoring C pour sauvegarde`)
-        monitoringCData.containers.forEach(container => {
+        const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
+        console.log(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        toSave.forEach(container => {
           const containerName = container.name || 'unknown'
           const memMb = Number(container.memory_mb) || 0
           const limitMb = Number(container.memory_limit_mb) || 0
@@ -1024,8 +1029,10 @@ async function collectAllMetrics() {
         })
       }
       
-      // Fusionner avec les métriques collectées classiquement (si disponibles)
-      Object.assign(containersForDb, containerMetrics)
+      // Fusionner avec les métriques collectées classiquement (si disponibles), uniquement JobbingTrack
+      Object.keys(containerMetrics).forEach(name => {
+        if (isJobbingTrackContainer(name)) containersForDb[name] = containerMetrics[name]
+      })
       
       console.log(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
       await persistenceService.saveMultipleContainerMetrics(containersForDb)

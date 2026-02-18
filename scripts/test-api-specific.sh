@@ -68,13 +68,12 @@ test_endpoint() {
     fi
 }
 
-# Obtenir un token
+# Obtenir un token (ne pas faire quitter le script si le login échoue)
 get_token() {
     echo -e "${YELLOW}Authentification...${NC}"
     
-    # Essayer de se connecter avec admin
     LOGIN_DATA="{\"email\":\"admin@jobbingtrack.com\",\"password\":\"password123\"}"
-    test_endpoint "Login" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200"
+    test_endpoint "Login" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
     
     if [ -f /tmp/response.txt ]; then
         TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
@@ -90,22 +89,23 @@ get_token() {
 # Tests par type
 test_health() {
     echo -e "\n${YELLOW}═══ Health Checks ═══${NC}"
-    test_endpoint "API Gateway Health" "$API_URL/health"
-    test_endpoint "API Gateway Metrics" "$API_URL/metrics"
+    test_endpoint "API Gateway Health" "$API_URL/health" || true
+    test_endpoint "API Gateway Metrics" "$API_URL/metrics" || true
 }
 
 test_services() {
     echo -e "\n${YELLOW}═══ Services Backend ═══${NC}"
-    test_endpoint "Auth Service" "$API_URL/api/v1/auth/health" "GET" "" "200" "$TOKEN"
-    test_endpoint "Company Service" "http://localhost:5007/health"
-    test_endpoint "Application Service" "http://localhost:5006/health"
-    test_endpoint "Contact Service" "http://localhost:5008/health"
-    test_endpoint "Interview Service" "http://localhost:5009/health"
-    test_endpoint "Call Service" "http://localhost:5010/health"
-    test_endpoint "Event Service" "http://localhost:5011/health"
-    test_endpoint "FollowUp Service" "http://localhost:5012/health"
-    test_endpoint "Profile Service" "http://localhost:5013/health"
-    test_endpoint "Notification Service" "http://localhost:5014/health"
+    test_endpoint "Auth Service" "$API_URL/api/v1/auth/health" "GET" "" "200" "$TOKEN" || true
+    # En Docker, les URLs localhost ne sont pas joignables ; on tente quand même pour rapport complet
+    test_endpoint "Company Service" "${SERVICES_COMPANY_URL:-http://localhost:5007}/health" || true
+    test_endpoint "Application Service" "${SERVICES_APP_URL:-http://localhost:5006}/health" || true
+    test_endpoint "Contact Service" "${SERVICES_CONTACT_URL:-http://localhost:5008}/health" || true
+    test_endpoint "Interview Service" "${SERVICES_INTERVIEW_URL:-http://localhost:5009}/health" || true
+    test_endpoint "Call Service" "${SERVICES_CALL_URL:-http://localhost:5010}/health" || true
+    test_endpoint "Event Service" "${SERVICES_EVENT_URL:-http://localhost:5011}/health" || true
+    test_endpoint "FollowUp Service" "${SERVICES_FOLLOWUP_URL:-http://localhost:5012}/health" || true
+    test_endpoint "Profile Service" "${SERVICES_PROFILE_URL:-http://localhost:5013}/health" || true
+    test_endpoint "Notification Service" "${SERVICES_NOTIF_URL:-http://localhost:5014}/health" || true
 }
 
 test_auth() {
@@ -198,6 +198,15 @@ test_metrics() {
     test_endpoint "Get Dashboard Statistics" "$API_URL/api/v1/dashboard/statistics" "GET" "" "200" "$TOKEN" || true
 }
 
+# Afficher le résumé à la sortie (même en cas d'échec prématuré) pour que generate-test-report.sh puisse parser
+show_summary_on_exit() {
+    echo ""
+    echo -e "Total de tests    : ${BLUE}$TOTAL_TESTS${NC}"
+    echo -e "Tests réussis     : ${GREEN}$PASSED_TESTS${NC}"
+    echo -e "Tests échoués     : ${RED}$FAILED_TESTS${NC}"
+}
+trap show_summary_on_exit EXIT
+
 # Exécuter les tests selon les types sélectionnés
 echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║     Tests API Spécifiques - JobbingTrack              ║${NC}"
@@ -244,7 +253,7 @@ else
     test_metrics
 fi
 
-# Résumé
+# Résumé (le trap EXIT affiche aussi ces lignes en sortie anticipée)
 echo ""
 echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║                      RÉSUMÉ                            ║${NC}"
@@ -255,7 +264,7 @@ echo -e "Tests réussis     : ${GREEN}$PASSED_TESTS${NC}"
 echo -e "Tests échoués     : ${RED}$FAILED_TESTS${NC}"
 echo ""
 
-if [ $FAILED_TESTS -eq 0 ]; then
+if [ "$FAILED_TESTS" -eq 0 ]; then
     echo -e "${GREEN}✓ TOUS LES TESTS SONT PASSÉS !${NC}"
     exit 0
 else

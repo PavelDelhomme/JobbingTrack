@@ -122,7 +122,10 @@ export default function EmailDeliverabilityPage() {
         })
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Erreur lors du test SMTP'
+      const status = error.response?.status
+      const errorMessage = status === 503
+        ? 'Service SMTP indisponible (non configuré ou erreur). Vérifiez la configuration SMTP du serveur.'
+        : (error.response?.data?.error || error.response?.data?.message || error.message || 'Erreur lors du test SMTP')
       setSmtpResult({
         success: false,
         message: errorMessage,

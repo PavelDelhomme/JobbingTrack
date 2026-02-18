@@ -22,9 +22,14 @@ export default function EmailSettingsPage() {
       })
       setSmtpStatus(response.data)
     } catch (error: any) {
+      const status = error.response?.status
+      const msg = error.response?.data?.error || error.response?.data?.message || error.message
       setSmtpStatus({
         success: false,
-        message: error.response?.data?.error || 'Erreur lors de la vérification SMTP'
+        message: status === 503
+          ? 'Service SMTP indisponible (non configuré ou erreur). Vérifiez la configuration ou réessayez plus tard.'
+          : (msg || 'Erreur lors de la vérification SMTP'),
+        data: error.response?.data?.details
       })
     } finally {
       setChecking(false)
