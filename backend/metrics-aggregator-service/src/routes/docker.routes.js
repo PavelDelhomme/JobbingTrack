@@ -368,22 +368,7 @@ router.get('/jobbingtrack/aggregated', async (req, res) => {
       diskStats = [];
     }
     
-    // ✅ Ajouter les métriques de disque Docker dans la réponse
-    const response = {
-      success: true,
-      timestamp: new Date().toISOString(),
-      containers_count: jobbingtrackContainers.length,
-      cpu_percent: Math.round(totalCpuPercent * 10) / 10,
-      cpu_percent_per_core: Math.round(cpuPerCore * 10) / 10,
-      cpu_average_percent: jobbingtrackContainers.length > 0 ? Math.round((totalCpuPercent / jobbingtrackContainers.length) * 10) / 10 : 0,
-      memory_percent: Math.round(memoryPercentOfSystem * 10) / 10,
-      memory_usage_mb: Math.round(totalMemoryUsage / (1024 * 1024)),
-      memory_limit_mb: Math.round(systemMemoryTotal / (1024 * 1024)),
-      total_cpus: totalCpus,
-      load_average: parseFloat(loadAverage),
-      disk: diskStats
-    };
-    
+    // ✅ Métriques de disque Docker - la réponse complète est construite après serviceInsights
     const serviceInsights = await Promise.all(jobbingtrackContainers.map(async stat => {
       const serviceType = stat.name.replace(/^jobbingtrack-/, '');
       // Passer les stats du conteneur pour une détermination plus intelligente du statut

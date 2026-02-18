@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const METRICS_API_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:3014';
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const METRICS_API_URL = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export class AnalyticsService {
   /**
@@ -151,9 +151,10 @@ export class AnalyticsService {
    */
   async getSecuritySummary(hours: number = 24) {
     try {
-      // Appeler le security-service via l'API Gateway
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
       const response = await axios.get(
-        `${API_GATEWAY_URL}/api/v1/security/stats?days=${Math.ceil(hours / 24)}`
+        `${API_GATEWAY_URL}/api/v1/security/stats?days=${Math.ceil(hours / 24)}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
 
       if (response.data.success) {
@@ -195,6 +196,28 @@ export class AnalyticsService {
     } catch (error) {
       console.error(`Erreur stats ${containerName}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Récupérer la liste des conteneurs (depuis metrics-aggregator aggregated)
+   */
+  async getContainersList(): Promise<{ name: string; service_type?: string; [key: string]: unknown }[]> {
+    try {
+      const response = await axios.get(
+        `${METRICS_API_URL}/api/v1/docker/jobbingtrack/aggregated`,
+        { timeout: 10000 }
+      );
+      if (response.data?.containers && Array.isArray(response.data.containers)) {
+        return response.data.containers;
+      }
+      if (response.data?.services && Array.isArray(response.data.services)) {
+        return response.data.services.map((s: { name: string }) => ({ name: s.name }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Erreur récupération liste conteneurs:', error);
+      return [];
     }
   }
 

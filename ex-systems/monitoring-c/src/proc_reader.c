@@ -1,16 +1,38 @@
 /**
- * Lecteur de fichiers /proc
+ * Lecteur de fichiers /proc (ou /host/proc en Docker)
+ * Utiliser PROCFS_PATH=/host/proc pour lire le /proc de l'hôte.
  */
 
 #include "proc_reader.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#define PROC_PATH_DEFAULT "/proc"
+#define PROC_PATH_MAX 32
+
+static char proc_path_buf[PROC_PATH_MAX] = {0};
+
+const char* get_procfs_path(void) {
+    if (proc_path_buf[0] != '\0')
+        return proc_path_buf;
+    const char *env = getenv("PROCFS_PATH");
+    if (env && env[0] != '\0') {
+        strncpy(proc_path_buf, env, PROC_PATH_MAX - 1);
+        proc_path_buf[PROC_PATH_MAX - 1] = '\0';
+        return proc_path_buf;
+    }
+    strcpy(proc_path_buf, PROC_PATH_DEFAULT);
+    return proc_path_buf;
+}
+
 /**
- * Lit /proc/loadavg
+ * Lit /proc/loadavg (ou PROCFS_PATH/loadavg)
  */
 int read_proc_loadavg(double *load1, double *load5, double *load15) {
-    FILE *fp = fopen("/proc/loadavg", "r");
+    char path[64];
+    snprintf(path, sizeof(path), "%s/loadavg", get_procfs_path());
+    FILE *fp = fopen(path, "r");
     if (!fp) return -1;
     
     if (fscanf(fp, "%lf %lf %lf", load1, load5, load15) != 3) {
@@ -23,10 +45,12 @@ int read_proc_loadavg(double *load1, double *load5, double *load15) {
 }
 
 /**
- * Lit /proc/meminfo
+ * Lit /proc/meminfo (ou PROCFS_PATH/meminfo)
  */
 int read_proc_meminfo(unsigned long *total, unsigned long *free) {
-    FILE *fp = fopen("/proc/meminfo", "r");
+    char path[64];
+    snprintf(path, sizeof(path), "%s/meminfo", get_procfs_path());
+    FILE *fp = fopen(path, "r");
     if (!fp) return -1;
     
     char line[256];
@@ -47,12 +71,14 @@ int read_proc_meminfo(unsigned long *total, unsigned long *free) {
 }
 
 /**
- * Lit /proc/stat pour calculer le CPU usage réel
+ * Lit /proc/stat pour calculer le CPU usage réel (ou PROCFS_PATH/stat)
  * Retourne le pourcentage d'utilisation CPU (0-100)
  */
 int read_proc_stat_cpu(double *cpu_percent) {
     static unsigned long long last_idle = 0, last_total = 0;
-    FILE *fp = fopen("/proc/stat", "r");
+    char path[64];
+    snprintf(path, sizeof(path), "%s/stat", get_procfs_path());
+    FILE *fp = fopen(path, "r");
     if (!fp) return -1;
     
     char line[256];

@@ -2,7 +2,7 @@
 # Test simple pour voir ce qui se passe
 
 echo "Test 1: Vérification connexion PostgreSQL"
-docker exec jobbingtrack-postgres pg_isready -U postgres 2>&1
+docker exec jobbingtrack-postgres pg_isready -U jobbingtrack 2>&1
 echo ""
 
 echo "Test 2: Liste des tables"

@@ -91,6 +91,11 @@ class AppDrawer extends StatelessWidget {
                 title: 'Relances',
                 route: '/followups',
               ),
+              _DrawerItem(
+                icon: Icons.calendar_month,
+                title: 'Événements & Rappels',
+                route: '/events',
+              ),
             ],
           ),
 

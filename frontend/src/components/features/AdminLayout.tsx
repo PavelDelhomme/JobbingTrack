@@ -147,8 +147,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
         /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
-        { name: 'Statistiques', href: '/backoffice/statistics', icon: '📈' },
-        { name: 'Performances & Analytics', href: '/backoffice/analytics', icon: '⚡' },
+        {
+          name: 'Statistiques & Monitoring',
+          href: '/backoffice/statistics',
+          icon: '📈',
+          subItems: [
+            { name: 'Vue d\'ensemble', href: '/backoffice/statistics', icon: '📊' },
+            { name: 'Logs des conteneurs', href: '/backoffice/services/logs', icon: '📜' },
+          ]
+        },
+        {
+          name: 'Performances & Analytics',
+          href: '/backoffice/analytics',
+          icon: '⚡',
+          subItems: [
+            { name: 'Vue d\'ensemble', href: '/backoffice/analytics', icon: '📊' },
+            { name: 'Performances complètes', href: '/backoffice/analytics/performances', icon: '📈' },
+            { name: 'Performances réseau', href: '/backoffice/analytics/network', icon: '🌐' },
+            { name: 'Performances applicatives', href: '/backoffice/analytics/application', icon: '📱' },
+            { name: 'Analytics conteneurs', href: '/backoffice/analytics/containers', icon: '🐳' },
+            { name: 'Analytics Utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
+          ]
+        },
       ]
     },
     {
@@ -158,8 +178,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       isCollapsible: true,
       items: [
         { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
-        { name: 'Politiques de Sécurité', href: '/backoffice/security/policies', icon: '⚙️' },
-        { name: 'Analyse de Sécurité', href: '/backoffice/security/analysis', icon: '🛡️' },
+        { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
+        { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
         { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
         { name: 'Réseau', href: '/backoffice/security/network', icon: '🌐' },
         { name: 'Menaces', href: '/backoffice/security/threats', icon: '⚠️' },
@@ -171,7 +191,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '⚙️',
       isCollapsible: true,
       items: [
-        { name: 'Gestion des Services', href: '/backoffice/services', icon: '🔧' },
+        {
+          name: 'Gestion des Services',
+          href: '/backoffice/services',
+          icon: '🔧',
+          subItems: [
+            { name: 'Liste des services', href: '/backoffice/services', icon: '📋' },
+            { name: 'Services & Logs', href: '/backoffice/services/logs', icon: '📜' },
+          ]
+        },
         { 
           name: 'Gestion des Données', 
           href: '/backoffice/data', 
@@ -182,7 +210,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ]
         },
         { name: 'Utilisateurs', href: '/backoffice/users', icon: '👥' },
-        { name: 'Analytics Utilisateur', href: '/backoffice/user-analytics', icon: '📊' },
       ]
     },
     {

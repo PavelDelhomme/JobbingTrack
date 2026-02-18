@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 // ✅ NOUVEAU : Utiliser monitoring-c (port 5098) au lieu de l'ancien système
 const MONITORING_C_URL = 'http://localhost:5098'
-const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004'
 
 // Services critiques qui ne doivent pas être redémarrés/arrêtés depuis l'interface
 const CRITICAL_SERVICES = [
@@ -203,6 +203,39 @@ export default function ServicesPage() {
           }
           
           data = { services: loadedServices }
+        }
+        // Si monitoring-c a répondu mais avec 0 conteneurs, essayer metrics-aggregator pour avoir une liste
+        if (response?.ok && (!data?.services || (data.services as any[]).length === 0)) {
+          try {
+            const aggResponse = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
+              signal: AbortSignal.timeout(8000)
+            })
+            if (aggResponse.ok) {
+              const aggData = await aggResponse.json()
+              const list = aggData.services || []
+              if (list.length > 0) {
+                const fromAgg = list.map((s: any) => ({
+                  name: (s.name || '').replace(/^jobbingtrack-/, ''),
+                  status: s.status || (s.is_running ? 'running' : 'stopped'),
+                  health_status: s.health_status || (s.is_healthy ? 'healthy' : 'unknown'),
+                  is_running: Boolean(s.is_running),
+                  is_healthy: Boolean(s.is_healthy),
+                  created: s.created || '',
+                  ports: s.ports || '',
+                  image: s.image || '',
+                  metrics: s.metrics ? {
+                    cpu_percent: Number(s.metrics.cpu_percent) || 0,
+                    memory_percent: Number(s.metrics.memory_percent) || 0,
+                    memory_usage_mb: Number(s.metrics.memory_usage_mb) || 0,
+                    pids: s.metrics.pids ?? null
+                  } : null
+                }))
+                data = { services: fromAgg }
+              }
+            }
+          } catch (_) {
+            // garder data tel quel (vide)
+          }
         }
       } catch (monitoringCError) {
         // Fallback vers l'ancien système

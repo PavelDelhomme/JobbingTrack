@@ -29,9 +29,12 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo "  make mon-clean             - Nettoyer vieux logs (garde 30)"
 	@echo ""
 	@echo "🌍 URLS DISPONIBLES:"
-	@echo "  Frontend:          http://localhost:8080"
-	@echo "  API Gateway:       http://localhost:3000"
-	@echo "  Metrics Service:   http://localhost:8014"
+	@echo "  Backoffice:        http://localhost:5003"
+	@echo "  API Gateway:       http://localhost:5002"
+	@echo "  Metrics Aggregator: http://localhost:5004"
+	@echo ""
+	@echo "🔧 CONFIGURATION:"
+	@echo "  make setup-ports   - Mettre à jour .env avec les ports cohérents"
 	@echo "  Prometheus:        http://localhost:9090"
 	@echo "  Grafana:           http://localhost:3013"
 	@echo "  Loki:              http://localhost:3100"
@@ -47,6 +50,16 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo "🔀 GIT:"
 	@echo "  make git-checkout         - Navigation interactive (retour à un commit ou branche)"
 	@echo ""
+
+# ============================================================================
+# CONFIGURATION PORTS
+# ============================================================================
+
+setup-ports: ## Mettre à jour .env avec les ports cohérents (5000-5019)
+	@chmod +x $(ROOT_DIR)/scripts/setup-ports.sh 2>/dev/null || true
+	@$(ROOT_DIR)/scripts/setup-ports.sh
+
+setup-port: setup-ports ## Alias : même chose que setup-ports
 
 # ============================================================================
 # GIT - Navigation interactive

@@ -1,201 +1,267 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { AdminLayout } from '@/components/features'
-import axios from 'axios'
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { AdminLayout } from '@/components/features';
+import axios from 'axios';
 
-interface SecurityPolicy {
-  id: string
-  name: string
-  description: string
-  enabled: boolean
-  type: 'ip_blocking' | 'rate_limiting' | 'waf' | 'authentication'
-  config: any
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
+interface WafConfig {
+  enabled: boolean;
+  rules: Array<{ name: string; enabled: boolean; severity: string; description: string; patternsCount: number }>;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+interface FirewallRule {
+  id: string;
+  name: string;
+  action: string;
+  protocol: string;
+  enabled: boolean;
+}
 
 export default function SecurityPoliciesPage() {
-  const [policies, setPolicies] = useState<SecurityPolicy[]>([])
-  const [loading, setLoading] = useState(true)
-  const [blockedIPs, setBlockedIPs] = useState<string[]>([])
-  const [newIP, setNewIP] = useState('')
+  const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
+  const [wafSaving, setWafSaving] = useState(false);
+  const [firewallRules, setFirewallRules] = useState<FirewallRule[]>([]);
+  const [blockedIPs, setBlockedIPs] = useState<string[]>([]);
+  const [newIP, setNewIP] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // ✅ OPTIMISATION : useCallback avec cache
-  const fetchPolicies = useCallback(async () => {
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  });
+
+  const fetchWafConfig = useCallback(async () => {
     try {
-      // ✅ OPTIMISATION : Vérifier le cache d'abord
-      const cacheKey = 'security_policies_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        const cachedData = JSON.parse(cached)
-        setPolicies(cachedData)
-        setLoading(false)
-        // Rafraîchir en arrière-plan
+      const res = await axios.get(`${API_URL}/api/v1/security/waf/config`, {
+        headers: getAuthHeaders(),
+        timeout: 5000,
+      });
+      if (res.data?.success && res.data?.data) {
+        setWafConfig(res.data.data);
       }
-      
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_URL}/api/v1/security/policies`, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 5000 // ✅ OPTIMISATION : Timeout de 5 secondes
-      })
-      
-      if (response.data.success) {
-        const policiesData = response.data.policies || []
-        setPolicies(policiesData)
-        // ✅ OPTIMISATION : Mettre en cache
-        sessionStorage.setItem(cacheKey, JSON.stringify(policiesData))
+    } catch (e) {
+      console.error('Erreur config WAF:', e);
+    }
+  }, []);
+
+  const fetchFirewallRules = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/v1/security/firewall/rules`, {
+        headers: getAuthHeaders(),
+        timeout: 5000,
+      });
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setFirewallRules(res.data.data);
       }
-    } catch (error) {
-      console.error('Erreur chargement politiques:', error)
-      // ✅ OPTIMISATION : Utiliser le cache en cas d'erreur
-      const cacheKey = 'security_policies_cache'
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        setPolicies(JSON.parse(cached))
-      } else {
-        // Politiques par défaut
-        setPolicies([
-          {
-            id: '1',
-            name: 'Blocage IP',
-            description: 'Bloquer les IPs suspectes',
-            enabled: true,
-            type: 'ip_blocking',
-            config: {}
-          },
-          {
-            id: '2',
-            name: 'Rate Limiting',
-            description: 'Limiter le nombre de requêtes par IP',
-            enabled: true,
-            type: 'rate_limiting',
-            config: { maxRequests: 100, windowMinutes: 1 }
-          },
-          {
-            id: '3',
-            name: 'WAF',
-            description: 'Web Application Firewall',
-            enabled: true,
-            type: 'waf',
-            config: {}
-          }
-        ])
-      }
-    } finally {
-      setLoading(false)
+    } catch (e) {
+      console.error('Erreur règles firewall:', e);
     }
   }, []);
 
   const fetchBlockedIPs = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get(`${API_URL}/api/v1/security/blocked-ips`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
-      if (response.data.success) {
-        setBlockedIPs(response.data.ips || [])
+      const res = await axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setBlockedIPs(res.data.data);
+      } else if (res.data?.ips) {
+        setBlockedIPs(res.data.ips);
       }
-    } catch (error) {
-      console.error('Erreur chargement IPs bloquées:', error)
+    } catch (e) {
+      console.error('Erreur IPs bloquées:', e);
     }
   }, []);
 
   useEffect(() => {
-    fetchPolicies()
-    fetchBlockedIPs()
-  }, [fetchPolicies, fetchBlockedIPs])
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      await Promise.all([fetchWafConfig(), fetchFirewallRules(), fetchBlockedIPs()]);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [fetchWafConfig, fetchFirewallRules, fetchBlockedIPs]);
+
+  const handleWafToggle = async (enabled: boolean) => {
+    setWafSaving(true);
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/v1/security/waf/toggle`,
+        { enabled },
+        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      );
+      if (res.data?.success && wafConfig) setWafConfig({ ...wafConfig, enabled });
+    } catch (e) {
+      console.error('Erreur toggle WAF:', e);
+      alert('Impossible de modifier l\'état du WAF');
+    } finally {
+      setWafSaving(false);
+    }
+  };
+
+  const handleWafRuleToggle = async (ruleName: string, enabled: boolean) => {
+    if (!wafConfig) return;
+    setWafSaving(true);
+    try {
+      const res = await axios.put(
+        `${API_URL}/api/v1/security/waf/rules/${encodeURIComponent(ruleName)}`,
+        { enabled },
+        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      );
+      if (res.data?.success) {
+        setWafConfig({
+          ...wafConfig,
+          rules: wafConfig.rules.map((r) => (r.name === ruleName ? { ...r, enabled } : r)),
+        });
+      }
+    } catch (e) {
+      console.error('Erreur toggle règle WAF:', e);
+      alert('Impossible de modifier la règle');
+    } finally {
+      setWafSaving(false);
+    }
+  };
 
   const handleBlockIP = async () => {
-    if (!newIP) return
-
+    if (!newIP.trim()) return;
     try {
-      const token = localStorage.getItem('token')
-      await axios.post(`${API_URL}/api/v1/security/block-ip`, 
-        { ip: newIP },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      setNewIP('')
-      fetchBlockedIPs()
-    } catch (error) {
-      console.error('Erreur blocage IP:', error)
-      alert('Erreur lors du blocage de l\'IP')
+      await axios.post(
+        `${API_URL}/api/v1/security/firewall/block-ip`,
+        { ip: newIP.trim() },
+        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      );
+      setNewIP('');
+      fetchBlockedIPs();
+    } catch (e) {
+      console.error('Erreur blocage IP:', e);
+      alert('Erreur lors du blocage de l\'IP');
     }
-  }
+  };
 
   const handleUnblockIP = async (ip: string) => {
     try {
-      const token = localStorage.getItem('token')
-      await axios.delete(`${API_URL}/api/v1/security/blocked-ips/${ip}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      fetchBlockedIPs()
-    } catch (error) {
-      console.error('Erreur déblocage IP:', error)
-      alert('Erreur lors du déblocage de l\'IP')
+      await axios.post(
+        `${API_URL}/api/v1/security/firewall/unblock-ip`,
+        { ip },
+        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      );
+      fetchBlockedIPs();
+    } catch (e) {
+      console.error('Erreur déblocage IP:', e);
+      alert('Erreur lors du déblocage');
     }
-  }
+  };
 
   if (loading) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
         </div>
       </AdminLayout>
-    )
+    );
   }
 
   return (
     <AdminLayout>
-      <div>
-        <div className="mb-6">
+      <div className="space-y-8">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            ⚙️ Politiques de Sécurité
+            Politiques de sécurité
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Configurez les politiques de sécurité de votre application
+            Paramétrage détaillé : WAF, règles firewall, blocage IP.
           </p>
         </div>
 
-        {/* Politiques */}
-        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Politiques Actives
+        {/* WAF */}
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Web Application Firewall (WAF)
           </h2>
-          <div className="space-y-4">
-            {policies.map((policy) => (
-              <div key={policy.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">{policy.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{policy.description}</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={policy.enabled}
-                    onChange={() => {
-                      setPolicies(policies.map(p => 
-                        p.id === policy.id ? { ...p, enabled: !p.enabled } : p
-                      ))
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-            ))}
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Activer ou désactiver le WAF globalement et choisir les règles à appliquer.
+          </p>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg mb-4">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">WAF global</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Protection contre injections (SQL, XSS, etc.)</p>
+            </div>
+            <button
+              onClick={() => wafConfig && handleWafToggle(!wafConfig.enabled)}
+              disabled={wafSaving}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${wafConfig?.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${wafConfig?.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+            </button>
           </div>
-        </div>
+          {wafConfig && wafConfig.rules?.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Règles WAF</p>
+              <ul className="space-y-2">
+                {wafConfig.rules.map((rule) => (
+                  <li key={rule.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                      <span className="font-mono text-sm text-gray-900 dark:text-gray-100">{rule.name}</span>
+                      <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${rule.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : rule.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300'}`}>
+                        {rule.severity}
+                      </span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{rule.description}</p>
+                    </div>
+                    <button
+                      onClick={() => handleWafRuleToggle(rule.name, !rule.enabled)}
+                      disabled={wafSaving}
+                      className={`text-sm px-3 py-1 rounded ${rule.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400'}`}
+                    >
+                      {rule.enabled ? 'Activée' : 'Désactivée'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
 
-        {/* Gestion IPs bloquées */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            IPs Bloquées
-          </h2>
-          
-          <div className="mb-4 flex gap-2">
+        {/* Firewall */}
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Règles firewall</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {firewallRules.length} règle(s) configurée(s). Gestion détaillée dans l’onglet Firewall.
+              </p>
+            </div>
+            <Link
+              href="/backoffice/security/firewall"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+            >
+              Ouvrir Firewall
+            </Link>
+          </div>
+          {firewallRules.length > 0 && (
+            <ul className="space-y-2">
+              {firewallRules.slice(0, 5).map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                  <span className="text-gray-900 dark:text-gray-100">{r.name}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{r.action} / {r.protocol}</span>
+                </li>
+              ))}
+              {firewallRules.length > 5 && (
+                <li className="text-sm text-gray-500 dark:text-gray-400 pt-2">
+                  + {firewallRules.length - 5} autre(s) règle(s) — voir onglet Firewall
+                </li>
+              )}
+            </ul>
+          )}
+        </section>
+
+        {/* IPs bloquées */}
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">IPs bloquées</h2>
+          <div className="flex gap-2 mb-4">
             <input
               type="text"
               value={newIP}
@@ -203,35 +269,34 @@ export default function SecurityPoliciesPage() {
               placeholder="Adresse IP à bloquer (ex: 192.168.1.100)"
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
-            <button
-              onClick={handleBlockIP}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-            >
+            <button onClick={handleBlockIP} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
               Bloquer IP
             </button>
           </div>
-
-          <div className="space-y-2">
+          <ul className="space-y-2">
             {blockedIPs.map((ip) => (
-              <div key={ip} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="text-gray-900 dark:text-gray-100 font-mono">{ip}</span>
-                <button
-                  onClick={() => handleUnblockIP(ip)}
-                  className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
-                >
+              <li key={ip} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="font-mono text-gray-900 dark:text-gray-100">{ip}</span>
+                <button onClick={() => handleUnblockIP(ip)} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">
                   Débloquer
                 </button>
-              </div>
+              </li>
             ))}
             {blockedIPs.length === 0 && (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                Aucune IP bloquée
-              </p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4">Aucune IP bloquée</p>
             )}
-          </div>
+          </ul>
+        </section>
+
+        {/* Rappel autres onglets */}
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          Voir aussi : <Link href="/backoffice/security/firewall" className="text-blue-600 dark:text-blue-400 hover:underline">Firewall</Link>
+          {' · '}
+          <Link href="/backoffice/security/logs" className="text-blue-600 dark:text-blue-400 hover:underline">Logs de sécurité</Link>
+          {' · '}
+          <Link href="/backoffice/security/threats" className="text-blue-600 dark:text-blue-400 hover:underline">Menaces</Link>
         </div>
       </div>
     </AdminLayout>
-  )
+  );
 }
-

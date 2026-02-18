@@ -4,6 +4,22 @@ const persistenceService = require('../services/persistence.service');
 const dockerLogsService = require('../services/docker-logs.service');
 
 /**
+ * Convertit récursivement les BigInt (et Dates) pour que JSON.stringify ne plante pas.
+ */
+function serializeForJson(val) {
+  if (val === null) return null;
+  if (typeof val === 'bigint') return Number(val);
+  if (typeof val !== 'object') return val;
+  if (val instanceof Date) return val.toISOString();
+  if (Array.isArray(val)) return val.map(serializeForJson);
+  const out = {};
+  for (const [k, v] of Object.entries(val)) {
+    out[k] = serializeForJson(v);
+  }
+  return out;
+}
+
+/**
  * Routes pour l'accès aux données persistées
  */
 
@@ -37,7 +53,7 @@ router.get('/system/metrics', async (req, res) => {
     res.json({
       success: true,
       count: metrics.length,
-      data: metrics,
+      data: serializeForJson(metrics),
     });
   } catch (error) {
     console.error('[API] ❌ Erreur récupération métriques système:', error.message);

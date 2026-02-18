@@ -122,7 +122,42 @@ services:
       retries: 3
       start_period: 90s
   
-  # Metrics Aggregator (monitoring essentiel)
+  # Collecteur de métriques en C (ex-systems) – CPU, mémoire, réseau, health checks
+  monitoring-c:
+    build:
+      context: ./ex-systems/monitoring-c
+      dockerfile: Dockerfile
+    image: jobbingtrack-monitoring-c
+    container_name: jobbingtrack-monitoring-c
+    user: "0:0"
+    ports:
+      - "${MONITORING_C_PORT:-5098}:8015"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - COLLECTION_INTERVAL=${METRICS_COLLECTION_INTERVAL_SEC:-15}
+      - PROCFS_PATH=/host/proc
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-jobbingtrack}
+      - POSTGRES_USER=${POSTGRES_USER:-jobbingtrack}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobbingtrack123}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    networks:
+      - jobbingtrack-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "monitoring-c"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Metrics Aggregator – API unique pour le backoffice (s’alimente depuis monitoring-c ou fallback Node)
   jobbingtrack-metrics-aggregator:
     image: jobbingtrack-metrics-aggregator
     build:
@@ -132,6 +167,12 @@ services:
     user: "0:0"
     ports:
       - "${METRICS_AGGREGATOR_PORT:-5004}:${METRICS_AGGREGATOR_INTERNAL_PORT:-3014}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3014/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     environment:
       - NODE_ENV=development
       - PORT=3014
@@ -150,10 +191,13 @@ services:
       - jobbingtrack_metrics_data:/tmp/metrics
     networks:
       - jobbingtrack-network
-    profiles:
-      - monitoring-old  # ⚠️ ANCIEN SYSTÈME - Ne démarre PAS avec 'full'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      monitoring-c:
+        condition: service_started
     restart: unless-stopped
-  
+
   # =====================================
   # SERVICES OPTIONNELS (avec profiles)
   # =====================================
@@ -467,7 +511,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3009/api/v1/profile/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3009/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -499,7 +543,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3008/api/v1/notifications/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3008/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -568,7 +612,7 @@ services:
       - full
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3013/api/v1/workflow/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3013/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

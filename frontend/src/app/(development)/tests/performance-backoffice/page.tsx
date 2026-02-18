@@ -116,7 +116,7 @@ import { Switch } from '@/components/ui';
 import { Separator } from '@/components/ui';
 import { Progress } from '@/components/ui';
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 // Types pour l'interface des tests de performance
 interface PerformanceTest {

@@ -8,7 +8,7 @@ echo "🔍 Génération de menaces de test pour le système de sécurité..."
 echo ""
 
 # Vérifier que PostgreSQL est disponible
-if ! docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1; then
+if ! docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1; then
     echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord."
     exit 1
 fi

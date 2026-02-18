@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/features';
+import Link from 'next/link';
 import { 
   Server, Activity, TrendingUp, Database, Clock, 
   AlertCircle, CheckCircle, XCircle, ArrowLeft,
@@ -61,22 +62,23 @@ export default function ServiceDetailPage() {
     try {
       if (showRefreshing) setRefreshing(true);
       
-      // ✅ NOUVEAU : Utiliser monitoring-c d'abord, puis fallback vers ancien système
       const monitoringCUrl = 'http://localhost:5098';
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
-      
-      // Récupérer les métriques depuis monitoring-c
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      let merged: any = null;
+
+      // 1) Récupérer les métriques depuis monitoring-c
       try {
         const monitoringCResponse = await fetch(`${monitoringCUrl}/api/v1/metrics`);
         if (monitoringCResponse.ok) {
           const monitoringCData = await monitoringCResponse.json();
           const containers = Array.isArray(monitoringCData.containers) ? monitoringCData.containers : [];
-          const container = containers.find((c: any) => c.name === fullServiceName);
-          
+          const container = containers.find((c: any) => {
+            const n = (c.name || '').trim();
+            return n === fullServiceName || n === serviceName || n.replace(/^jobbingtrack-/, '') === serviceName;
+          });
           if (container) {
-            // Convertir les données de monitoring-c au format attendu
-            const serviceData = {
-              name: container.name,
+            merged = {
+              name: container.name || fullServiceName,
               cpu_percent: typeof container.cpu_percent === 'number' ? container.cpu_percent : 0,
               memory_percent: typeof container.memory_percent === 'number' ? container.memory_percent : 0,
               memory_usage_mb: typeof container.memory_mb === 'number' ? container.memory_mb : 0,
@@ -85,86 +87,86 @@ export default function ServiceDetailPage() {
               network_tx_mb: typeof container.network_tx_bytes === 'number' ? container.network_tx_bytes / (1024 * 1024) : 0,
               response_time_ms: typeof container.response_time_ms === 'number' ? container.response_time_ms : null,
               health_status_http: container.http_status === 200 ? 'healthy' : (container.http_status >= 400 ? 'unhealthy' : 'unknown'),
-              health_status_docker: 'none', // Sera rempli par l'ancien système si disponible
-              pids: null // Sera rempli par l'ancien système si disponible
+              health_status_docker: 'none',
+              pids: null
             };
-            setServiceMetrics(serviceData);
           }
         }
-      } catch (monitoringCError) {
-        console.warn('[SERVICE DETAIL] Monitoring-c non disponible, fallback vers ancien système');
+      } catch {
+        // ignore
       }
-      
-      // Fallback : Récupérer les métriques du service depuis l'ancien système (pour enrichir)
-      try {
-        const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}`);
-        if (metricsResponse.ok) {
-          const data = await metricsResponse.json();
-          // Fusionner avec les données de monitoring-c si disponibles
-          if (serviceMetrics) {
-            setServiceMetrics({
-              ...serviceMetrics,
-              health_status_docker: data.service?.health_status_docker || serviceMetrics.health_status_docker,
-              pids: data.service?.pids || serviceMetrics.pids,
-              created: data.service?.created,
-              image: data.service?.image,
-              ports: data.service?.ports
-            });
-          } else {
-            setServiceMetrics(data.service);
-          }
-        }
-      } catch (error) {
-        // Ignorer si monitoring-c a déjà fourni les données
-        if (!serviceMetrics) {
-          console.error('[SERVICE DETAIL] Erreur métriques:', error);
-        }
-      }
-      
-      // Récupérer les logs depuis l'ancien système (log-collector-c n'a pas encore d'API)
-      try {
-        // ✅ CORRECTION : Utiliser l'API gateway pour les logs au lieu de metrics-aggregator
-        const apiGatewayUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
+
+      // 2) Enrichir ou remplacer avec metrics-aggregator (docker service)
+      for (const nameToTry of [fullServiceName, serviceName]) {
         try {
-          const logsResponse = await fetch(`${apiGatewayUrl}/api/v1/logs/${serviceName}?limit=100`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-            }
-          });
-          if (logsResponse.ok) {
-            const logsData = await logsResponse.json();
-            // Adapter le format si nécessaire
-            if (logsData.success && logsData.data) {
-              setServiceLogs({
-                lines: Array.isArray(logsData.data) ? logsData.data.map((log: any) => log.message || log) : [],
-                errorLines: Array.isArray(logsData.data) ? logsData.data.filter((log: any) => log.level === 'error' || log.level === 'ERROR') : []
-              });
-            } else {
-              setServiceLogs(logsData);
+          const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${encodeURIComponent(nameToTry)}`);
+          if (metricsResponse.ok) {
+            const data = await metricsResponse.json();
+            const s = data.service;
+            if (s) {
+              if (!merged) {
+                merged = {
+                  name: s.name || fullServiceName,
+                  cpu_percent: s.cpu_percent ?? 0,
+                  memory_percent: s.memory_percent ?? 0,
+                  memory_usage_mb: s.memory_usage_mb ?? 0,
+                  memory_limit_mb: s.memory_limit_mb ?? 0,
+                  network_rx_mb: s.network_rx_mb ?? 0,
+                  network_tx_mb: s.network_tx_mb ?? 0,
+                  response_time_ms: s.response_time_ms ?? null,
+                  health_status_http: s.health_status_http ?? s.health ?? 'unknown',
+                  health_status_docker: s.health_status_docker ?? 'none',
+                  pids: s.pids ?? null,
+                  image: s.image,
+                  ports: s.ports,
+                  created: s.created
+                };
+              } else {
+                merged.health_status_docker = s.health_status_docker ?? merged.health_status_docker;
+                merged.pids = s.pids ?? merged.pids;
+                merged.image = s.image ?? merged.image;
+                merged.ports = s.ports ?? merged.ports;
+                merged.created = s.created ?? merged.created;
+                if (s.cpu_percent != null) merged.cpu_percent = s.cpu_percent;
+                if (s.memory_percent != null) merged.memory_percent = s.memory_percent;
+                if (s.memory_usage_mb != null) merged.memory_usage_mb = s.memory_usage_mb;
+                if (s.response_time_ms != null) merged.response_time_ms = s.response_time_ms;
+              }
+              break;
             }
           }
-        } catch (logsError) {
-          console.warn('[SERVICE DETAIL] Erreur récupération logs depuis API gateway, fallback vers metrics-aggregator');
-          // Fallback vers l'ancien système
-          try {
-            const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
-            if (logsResponse.ok) {
-              const logsData = await logsResponse.json();
-              setServiceLogs(logsData);
-            }
-          } catch (fallbackError) {
-            console.error('[SERVICE DETAIL] Erreur récupération logs:', fallbackError);
-          }
+        } catch {
+          // try next name
         }
-      } catch (error) {
-        console.warn('[SERVICE DETAIL] Erreur logs:', error);
+      }
+
+      if (merged) {
+        setServiceMetrics(merged);
+      }
+      
+      // Récupérer les logs : metrics-aggregator (docker service logs) — l'API gateway n'expose pas /api/v1/logs/:service
+      try {
+        const logsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/logs?lines=100`);
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json();
+          const lines = Array.isArray(logsData?.lines) ? logsData.lines : [];
+          setServiceLogs({
+            lines,
+            errorLines: Array.isArray(logsData?.errorLines) ? logsData.errorLines : lines.filter((l: string) => /error|exception|fatal/i.test(l)),
+            total: logsData?.total ?? lines.length,
+            errors: logsData?.errors ?? 0,
+            warnings: logsData?.warnings ?? 0
+          });
+        }
+      } catch (logsErr) {
+        // Ne pas faire planter la page
       }
       
       // ✅ NOUVEAU : Récupérer l'historique depuis monitoring-c (via centralMetricsService)
       try {
         const metrics = await centralMetricsService.getAggregatorMetrics(true);
         if (metrics && metrics.servicesList) {
-          const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName);
+          const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName || s.name === serviceName || s.rawName === serviceName);
           if (service && metrics.chartData) {
             // Construire l'historique depuis chartData pour ce service
             const history = metrics.chartData
@@ -252,20 +254,20 @@ export default function ServiceDetailPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title="Retour"
+            <Link
+              href="/backoffice/services"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
+              title="Retour à la liste des services"
             >
-              <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
                 <Server className="h-8 w-8 mr-3 text-blue-600" />
                 {serviceName}
               </h1>
               <p className="text-gray-500 dark:text-gray-400 mt-1">
-                Monitoring détaillé du service
+                {serviceMetrics ? 'Monitoring détaillé du service' : 'Service non détecté — vérifiez que le conteneur est démarré et que metrics-aggregator est accessible'}
               </p>
             </div>
           </div>
@@ -563,7 +565,7 @@ export default function ServiceDetailPage() {
               <Terminal className="h-6 w-6 mr-2" />
               Logs du Service (Temps Réel)
             </h2>
-            {serviceLogs && serviceLogs.lines && serviceLogs.lines.length > 0 && (
+            {serviceLogs?.lines && serviceLogs.lines.length > 0 && (
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setAutoScroll(!autoScroll)}
@@ -576,18 +578,18 @@ export default function ServiceDetailPage() {
                   {autoScroll ? '✓ Auto-Scroll Actif' : 'Auto-Scroll Désactivé'}
                 </button>
                 <span className="text-sm text-gray-500">
-                  {serviceLogs.total} lignes
+                  {serviceLogs?.total ?? serviceLogs?.lines?.length ?? 0} lignes
                 </span>
-                {serviceLogs.errors > 0 && (
+                {(serviceLogs?.errors ?? 0) > 0 && (
                   <span className="flex items-center text-sm font-medium text-red-600">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    {serviceLogs.errors} erreurs
+                    {serviceLogs?.errors} erreurs
                   </span>
                 )}
-                {serviceLogs.warnings > 0 && (
+                {(serviceLogs?.warnings ?? 0) > 0 && (
                   <span className="flex items-center text-sm font-medium text-yellow-600">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    {serviceLogs.warnings} warnings
+                    {serviceLogs?.warnings} warnings
                   </span>
                 )}
               </div>
@@ -595,7 +597,7 @@ export default function ServiceDetailPage() {
           </div>
             
             {/* Error Lines Summary */}
-            {serviceLogs.errorLines && serviceLogs.errorLines.length > 0 && (
+            {serviceLogs?.errorLines && serviceLogs.errorLines.length > 0 && (
               <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <h3 className="text-sm font-bold text-red-800 dark:text-red-300 mb-2 flex items-center">
                   <AlertCircle className="h-4 w-4 mr-2" />
@@ -612,7 +614,7 @@ export default function ServiceDetailPage() {
             )}
             
           {/* All Logs - Affichage Terminal Style */}
-          {serviceLogs && serviceLogs.lines && serviceLogs.lines.length > 0 ? (
+          {serviceLogs?.lines && serviceLogs.lines.length > 0 ? (
             <>
               <div className="relative">
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs max-h-[500px] overflow-y-auto">
