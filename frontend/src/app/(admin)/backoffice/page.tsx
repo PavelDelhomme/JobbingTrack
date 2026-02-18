@@ -892,7 +892,7 @@ export default function BackofficePage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Activity className="h-5 w-5 text-blue-600" />
               État du système
-              <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ monitoring-c</span>
+              <span className="ml-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded">⚡ metrics-aggregator</span>
             </h2>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${

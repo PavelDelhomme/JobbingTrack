@@ -94,19 +94,15 @@ export default function AnalyticsPage() {
       const { startDate, limit } = getTimeRangeParams();
       
       // Construire l'URL avec startDate et endDate
+      const endDate = new Date();
       const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: '0'
+        limit: Math.min(limit, 500).toString(),
+        offset: '0',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
       
-      // Ne pas envoyer startDate/endDate pour l'instant - tester sans filtres
-      // Le service Node.js semble avoir un problème avec les dates
-      // TODO: Corriger le parsing des dates dans le service Node.js
-      // const endDate = new Date();
-      // params.append('startDate', startDate.toISOString());
-      // params.append('endDate', endDate.toISOString());
-      
-      // L'API historique est UNIQUEMENT sur metrics-aggregator (5004). monitoring-c (5098) n'expose pas /persistence.
+      // L'API historique est sur metrics-aggregator (5004).
       const metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
       const url = `${metricsAggregatorUrl}/api/v1/persistence/system/metrics?${params.toString()}`;
       
@@ -115,31 +111,16 @@ export default function AnalyticsPage() {
         signal: AbortSignal.timeout(10000),
       });
       
-      if (!response.ok) {
-        console.error('[CPU TEST] Erreur API:', response.status, response.statusText);
-        return;
-      }
+      if (!response.ok) return;
 
       const result = await response.json();
       
       if (result.success && result.data && Array.isArray(result.data)) {
-        // Mapper les données pour ne garder que timestamp et cpuUsagePercent
-        // L'API retourne cpuUsagePercent (camelCase) depuis Prisma
-        console.log('[CPU TEST] Données brutes reçues:', result.data.length, 'points');
-        if (result.data.length > 0) {
-          console.log('[CPU TEST] Premier point brut:', result.data[0]);
-        }
-        
         const mapped = result.data
           .filter((item: any) => {
-            // L'API retourne cpuUsagePercent (camelCase) depuis Prisma
             const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
                        (item.cpu_usage_percent !== undefined ? item.cpu_usage_percent : null);
-            const isValid = cpu !== null && cpu !== undefined && !isNaN(Number(cpu));
-            if (!isValid && result.data.length > 0) {
-              console.warn('[CPU TEST] Point invalide filtré:', item);
-            }
-            return isValid;
+            return cpu !== null && cpu !== undefined && !isNaN(Number(cpu));
           })
           .map((item: any) => {
             const cpu = item.cpuUsagePercent !== undefined ? item.cpuUsagePercent : 
@@ -161,31 +142,19 @@ export default function AnalyticsPage() {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
         
-        console.log('[CPU TEST] Données récupérées:', mapped.length, 'points');
-        if (mapped.length > 0) {
-          console.log('[CPU TEST] Premier point:', mapped[0]);
-          console.log('[CPU TEST] Dernier point:', mapped[mapped.length - 1]);
-        }
-        
         setCpuData(mapped);
         if (mapped.length > 0) hasDataRef.current = true;
-      } else {
-        console.warn('[CPU TEST] Format de réponse inattendu:', result);
       }
-    } catch (error) {
-      console.error('[CPU TEST] Erreur lors de la récupération des données:', error);
+    } catch {
+      // Erreur silencieuse (réseau ou API)
     } finally {
       setLoading(false);
     }
   }, [getTimeRangeParams]);
 
-  // Charger les données au montage et lors du changement de timeRange
   useEffect(() => {
     fetchCPUData();
-    
-    // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchCPUData, 30000);
-    
+    const interval = setInterval(fetchCPUData, 60000);
     return () => clearInterval(interval);
   }, [fetchCPUData]);
 
@@ -197,20 +166,12 @@ export default function AnalyticsPage() {
     // Mais aussi compresser même avec moins de points si c'est pour améliorer la lisibilité
     const shouldCompress = data.length > targetMaxPoints;
     
-    if (!shouldCompress) {
-      console.log(`[COMPRESSION] Pas de compression nécessaire: ${data.length} points <= ${targetMaxPoints} max`);
-      return data; // Pas besoin de compression
-    }
+    if (!shouldCompress) return data;
     
-    console.log(`[COMPRESSION] Début compression: ${data.length} points → ${targetMaxPoints} max`);
-    
-    // Calculer l'intervalle de compression (en millisecondes)
     const firstTimestamp = new Date(data[0].timestamp).getTime();
     const lastTimestamp = new Date(data[data.length - 1].timestamp).getTime();
     const totalDuration = lastTimestamp - firstTimestamp;
     const intervalMs = Math.ceil(totalDuration / targetMaxPoints);
-    
-    console.log(`[COMPRESSION] Durée totale: ${totalDuration}ms, Intervalle: ${intervalMs}ms`);
     
     // Grouper les points par intervalle et calculer la moyenne
     const compressed: CPUMetric[] = [];
@@ -247,12 +208,10 @@ export default function AnalyticsPage() {
       const avgTimestamp = currentGroup[Math.floor(currentGroup.length / 2)].timestamp;
       
       compressed.push({
-        timestamp: avgTimestamp,
-        cpu_usage_percent: avgCpu
-      });
+            timestamp: avgTimestamp,
+            cpu_usage_percent: avgCpu
+          });
     }
-    
-    console.log(`[COMPRESSION] Compression terminée: ${data.length} points → ${compressed.length} points (réduction: ${((1 - compressed.length / data.length) * 100).toFixed(1)}%)`);
     
     return compressed;
   }, []);
@@ -274,10 +233,7 @@ export default function AnalyticsPage() {
     else if (timeRange === '30d') targetMaxPoints = 350;
     else if (timeRange === 'custom') targetMaxPoints = 350; // plage personnalisée
 
-    // ✅ CORRECTION : Compresser les données (la fonction gère déjà le cas où compression n'est pas nécessaire)
     const compressedData = compressDataPoints(cpuData, targetMaxPoints);
-    
-    console.log(`[CPU TEST] Données pour graphique compressé: ${cpuData.length} points bruts → ${compressedData.length} points compressés (max: ${targetMaxPoints}, compression: ${cpuData.length > targetMaxPoints ? 'OUI' : 'NON'})`);
 
     return compressedData.map((item) => {
       const date = new Date(item.timestamp);
@@ -304,9 +260,6 @@ export default function AnalyticsPage() {
   // Préparer les données pour le graphique SANS compression (brutes)
   const chartDataRaw = useMemo(() => {
     if (cpuData.length === 0) return [];
-
-    console.log(`[CPU TEST] Données pour graphique brut: ${cpuData.length} points (PAS de compression)`);
-
     return cpuData.map((item) => {
       const date = new Date(item.timestamp);
       return {

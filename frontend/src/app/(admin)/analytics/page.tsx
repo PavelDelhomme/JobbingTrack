@@ -427,7 +427,7 @@ function AnalyticsContent() {
 
   const loadPerformanceMetrics = async (errorCount: number) => {
     try {
-      // ✅ Temps de réponse : priorité fetchMetrics (monitoring-c / metrics-aggregator)
+      // Temps de réponse : fetchMetrics (metrics-aggregator)
       const allMetrics = await centralMetricsService.fetchMetrics().catch(() => null)
       const avgResponseTimeMs = allMetrics?.monitoringC?.avg_response_time_ms ?? allMetrics?.responseTime?.average_ms ?? null
       const avgResponseTime = typeof avgResponseTimeMs === 'number' && !Number.isNaN(avgResponseTimeMs) ? avgResponseTimeMs : null
@@ -848,7 +848,7 @@ function AnalyticsContent() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">CPU Système – Historique</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Données enregistrées par monitoring-c et metrics-aggregator (PostgreSQL). Période : {timeRange}.
+                  Données enregistrées par metrics-aggregator (PostgreSQL). Période : {timeRange}.
                 </p>
                 {metricsHistory.length > 0 ? (
                   <>
@@ -859,7 +859,7 @@ function AnalyticsContent() {
                   </>
                 ) : (
                   <p className="text-gray-500 dark:text-gray-400 py-8 text-center">
-                    Aucune donnée historique pour le moment. Vérifiez que monitoring-c et metrics-aggregator enregistrent bien (make db-push-metrics, tables Prisma).
+                    Aucune donnée historique pour le moment. Vérifiez que metrics-aggregator enregistre bien (make db-push-all, tables Prisma).
                   </p>
                 )}
               </div>

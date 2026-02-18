@@ -6,8 +6,7 @@ import { AdminLayout } from '@/components/features'
 import { Activity, Server, Play, Square, RefreshCw, Cpu, MemoryStick, Network, Clock, AlertTriangle, RotateCw, ArrowUp, ArrowDown, ArrowUpDown, FileText } from 'lucide-react'
 import Link from 'next/link'
 
-// ✅ NOUVEAU : Utiliser monitoring-c (port 5098) au lieu de l'ancien système
-const MONITORING_C_URL = 'http://localhost:5098'
+// Une seule source : metrics-aggregator (récupère les données depuis monitoring-c, persiste en BDD)
 const METRICS_URL = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004'
 
 // Services critiques qui ne doivent pas être redémarrés/arrêtés depuis l'interface
@@ -62,194 +61,76 @@ export default function ServicesPage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
       
-      // ✅ NOUVEAU : Essayer d'abord monitoring-c, puis fallback vers l'ancien système
-      let response: Response | null = null
-      let data: any = null
-      
+      let data: { services?: Service[] } | null = null
+
+      const mapAggToServices = (list: any[]): Service[] =>
+        list.map((s: any) => ({
+          name: (s.name || '').replace(/^jobbingtrack-/, ''),
+          status: s.status || (s.is_running ? 'running' : 'stopped'),
+          health_status: s.health_status || (s.is_healthy ? 'healthy' : 'unknown'),
+          is_running: Boolean(s.is_running),
+          is_healthy: Boolean(s.is_healthy),
+          created: s.created || '',
+          ports: s.ports || '',
+          image: s.image || '',
+          metrics: s.metrics ? {
+            cpu_percent: Number(s.metrics.cpu_percent) || 0,
+            memory_percent: Number(s.metrics.memory_percent) || 0,
+            memory_usage_mb: Number(s.metrics.memory_usage_mb) || 0,
+            pids: s.metrics.pids ?? null
+          } : null
+        }))
+
       try {
-        // Tenter monitoring-c d'abord
-        response = await fetch(`${MONITORING_C_URL}/api/v1/metrics`, {
+        const res = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' }
         })
-        
-        if (response.ok) {
-          const monitoringCData = await response.json()
-          // Convertir les conteneurs en format services
-          const containers = Array.isArray(monitoringCData.containers) ? monitoringCData.containers : []
-          const loadedServices: Service[] = containers.map((container: any) => {
-            const rawName = container.name || 'unknown-service'
-            const serviceName = rawName.replace(/^jobbingtrack-/, '')
-            
-            // ✅ CORRECTION : Déterminer le statut de santé correctement
-            // Si le conteneur existe dans les métriques, il est probablement running
-            // http_status === 0 peut signifier que le health check n'a pas encore été fait ou a échoué
-            // mais si le conteneur existe et a des métriques CPU/mémoire, il est running
-            let healthStatus = 'unknown'
-            let status = 'running' // Par défaut, si le conteneur existe, il est running
-            
-            if (container.http_status === 200) {
-              healthStatus = 'healthy'
-              status = 'running'
-            } else if (container.http_status && container.http_status >= 400) {
-              healthStatus = 'degraded'
-              status = 'degraded'
-            } else if (container.http_status === 0) {
-              // http_status === 0 peut signifier :
-              // 1. Le service n'a pas d'endpoint health check (normal pour certains services)
-              // 2. Le health check n'a pas encore été fait (starting)
-              // 3. Le service est vraiment arrêté
-              // Si on a des métriques CPU/mémoire, le conteneur est probablement running
-              if (container.cpu_percent !== undefined || container.memory_mb !== undefined) {
-                healthStatus = 'healthy' // Si on a des métriques, le service fonctionne
-                status = 'running'
-              } else {
-                healthStatus = 'unknown'
-                status = 'starting' // Pas encore de métriques, peut-être en démarrage
-              }
-            }
-            
-            // ✅ CORRECTION : S'assurer que les valeurs sont des nombres valides
-            // CPU peut être une chaîne comme "0.00%" ou un nombre
-            let cpuPercent = 0
-            if (typeof container.cpu_percent === 'number' && !Number.isNaN(container.cpu_percent)) {
-              cpuPercent = parseFloat(container.cpu_percent.toFixed(2))
-            } else if (typeof container.cpu_percent === 'string') {
-              // Enlever le % si présent
-              const cleaned = container.cpu_percent.replace('%', '').trim()
-              cpuPercent = parseFloat(cleaned) || 0
-            }
-            
-            // Memory percent
-            let memoryPercent = 0
-            if (typeof container.memory_percent === 'number' && !Number.isNaN(container.memory_percent)) {
-              memoryPercent = parseFloat(container.memory_percent.toFixed(2))
-            } else if (typeof container.memory_percent === 'string') {
-              const cleaned = container.memory_percent.replace('%', '').trim()
-              memoryPercent = parseFloat(cleaned) || 0
-            }
-            
-            // Memory MB
-            let memoryMb = 0
-            if (typeof container.memory_mb === 'number' && !Number.isNaN(container.memory_mb)) {
-              memoryMb = parseFloat(container.memory_mb.toFixed(2))
-            } else if (typeof container.memory_mb === 'string') {
-              // Enlever "MB" si présent
-              const cleaned = container.memory_mb.replace(/MB/i, '').trim()
-              memoryMb = parseFloat(cleaned) || 0
-            }
-            
-            return {
-              name: serviceName,
-              status: status,
-              health_status: healthStatus,
-              is_running: status === 'running',
-              // Cohérent avec healthStatus : healthy => is_healthy (pas seulement http_status === 200)
-              is_healthy: healthStatus === 'healthy',
-              created: '',
-              ports: '',
-              image: '',
-              metrics: {
-                cpu_percent: cpuPercent,
-                memory_percent: memoryPercent,
-                memory_usage_mb: memoryMb,
-                pids: null
-              }
-            }
+        if (res.ok) {
+          const json = await res.json()
+          const list = json.services || []
+          if (list.length > 0) {
+            data = { services: mapAggToServices(list) }
+          }
+        }
+      } catch (_) {
+        // continuer
+      }
+
+      if (!data?.services?.length) {
+        try {
+          const res2 = await fetch(`${METRICS_URL}/api/v1/metrics`, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
           })
-          
-          // Enrichir avec les données Docker depuis l'ancien système pour ports, image, etc.
-          try {
-            const dockerResponse = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
-              signal: AbortSignal.timeout(5000)
-            })
-            if (dockerResponse.ok) {
-              const dockerData = await dockerResponse.json()
-              const dockerServices = dockerData.services || []
-              
-              // Fusionner les métriques C avec les données Docker
-              loadedServices.forEach((service: Service) => {
-                const dockerService = dockerServices.find((ds: Service) => 
-                  ds.name === service.name || 
-                  ds.name === `jobbingtrack-${service.name}` ||
-                  ds.name.replace(/^jobbingtrack-/, '') === service.name
-                )
-                if (dockerService) {
-                  service.ports = dockerService.ports || ''
-                  service.image = dockerService.image || ''
-                  service.created = dockerService.created || ''
-                  // ✅ CORRECTION : Utiliser le statut Docker pour is_running et status aussi
-                  if (dockerService.is_running !== undefined) {
-                    service.is_running = dockerService.is_running
-                  }
-                  if (dockerService.status) {
-                    service.status = dockerService.status
-                  }
-                  // Utiliser le statut Docker si disponible (plus fiable)
-                  if (dockerService.health_status) {
-                    service.health_status = dockerService.health_status
-                    service.is_healthy = dockerService.is_healthy
-                  }
-                  // Garder les métriques C (CPU/mémoire) mais utiliser les PIDs de Docker si disponibles
-                  if (dockerService.metrics?.pids) {
-                    service.metrics = service.metrics ? { ...service.metrics, pids: dockerService.metrics.pids } : null
-                  }
-                }
-              })
-            }
-          } catch (dockerError) {
-            // Ignorer l'erreur Docker, on a déjà les métriques C
-            console.log('[SERVICES] Métriques Docker non disponibles, utilisation uniquement des métriques C')
-          }
-          
-          data = { services: loadedServices }
-        }
-        // Si monitoring-c a répondu mais avec 0 conteneurs, essayer metrics-aggregator pour avoir une liste
-        if (response?.ok && (!data?.services || (data.services as any[]).length === 0)) {
-          try {
-            const aggResponse = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
-              signal: AbortSignal.timeout(8000)
-            })
-            if (aggResponse.ok) {
-              const aggData = await aggResponse.json()
-              const list = aggData.services || []
-              if (list.length > 0) {
-                const fromAgg = list.map((s: any) => ({
-                  name: (s.name || '').replace(/^jobbingtrack-/, ''),
-                  status: s.status || (s.is_running ? 'running' : 'stopped'),
-                  health_status: s.health_status || (s.is_healthy ? 'healthy' : 'unknown'),
-                  is_running: Boolean(s.is_running),
-                  is_healthy: Boolean(s.is_healthy),
-                  created: s.created || '',
-                  ports: s.ports || '',
-                  image: s.image || '',
-                  metrics: s.metrics ? {
-                    cpu_percent: Number(s.metrics.cpu_percent) || 0,
-                    memory_percent: Number(s.metrics.memory_percent) || 0,
-                    memory_usage_mb: Number(s.metrics.memory_usage_mb) || 0,
-                    pids: s.metrics.pids ?? null
-                  } : null
-                }))
-                data = { services: fromAgg }
+          if (res2.ok) {
+            const json = await res2.json()
+            const servicesList = json.servicesList || (json.services ? Object.values(json.services) : [])
+            const containers = json.containers && typeof json.containers === 'object' ? Object.entries(json.containers) : []
+            if (servicesList.length > 0) {
+              data = { services: mapAggToServices(servicesList) }
+            } else if (containers.length > 0) {
+              data = {
+                services: mapAggToServices(containers.map(([name, m]: [string, any]) => ({
+                  name: name.replace(/^jobbingtrack-/, ''),
+                  status: m.status || 'running',
+                  health_status: m.health?.status || 'unknown',
+                  is_running: m.status !== 'stopped',
+                  is_healthy: m.health?.status === 'healthy',
+                  created: '',
+                  ports: '',
+                  image: '',
+                  metrics: m.metrics || (m.cpu ? { cpu_percent: m.cpu.percentage || 0, memory_percent: m.memory?.percentage || 0, memory_usage_mb: m.memory?.usage || 0, pids: null } : null)
+                })))
               }
             }
-          } catch (_) {
-            // garder data tel quel (vide)
           }
+        } catch (_) {
+          // garder data vide
         }
-      } catch (monitoringCError) {
-        // Fallback vers l'ancien système
-        console.log('[SERVICES] Monitoring-c non disponible, fallback vers ancien système')
-        response = await fetch(`${METRICS_URL}/api/v1/docker/services/all`, {
-          signal: controller.signal
-        })
       }
-      
+
       clearTimeout(timeoutId)
-      
-      if (!data && response && response.ok) {
-        data = await response.json()
-      }
       
       if (data && data.services) {
         // Charger progressivement : d'abord les services actifs, puis les autres

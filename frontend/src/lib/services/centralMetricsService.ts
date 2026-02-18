@@ -16,34 +16,23 @@ import { cacheManager } from '@/lib/cache/cacheManager'
 class CentralMetricsService {
   private apiUrl: string
   private prometheusUrl: string
-  private monitoringCUrl: string
   private metricsAggregatorUrl: string
   private token: string | null = null
   private customization: UserCustomization | null = null
-  // ✅ OPTIMISATION : Cache optimisé pour réduire les requêtes et CPU
-  // Le cache est maintenant limité en taille et durée
+  // Cache pour réduire les requêtes
   private metricsCache: MetricsData | null = null
   private cacheTimestamp: number = 0
-  private cacheDuration: number = 5000 // 5 secondes (métriques plus réactives)
-  private maxCacheSize: number = 50 // Limite en MB (environ)
+  private cacheDuration: number = 5000 // 5 secondes
+  private maxCacheSize: number = 50
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
-  /** Si l'aggregator est injoignable, on évite de le re-tenter pendant ce délai (évite spam ERR_CONNECTION_REFUSED) */
   private aggregatorUnavailableUntil: number = 0
   private static readonly AGGREGATOR_BACKOFF_MS = 30000 // 30 secondes
 
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
-    // ✅ NOUVEAU : Monitoring en C (port 5098) au lieu de l'ancien système
-    // Si on est côté serveur (SSR), utiliser le nom du service Docker
-    // Si on est côté client (navigateur), utiliser localhost
-    if (typeof window === 'undefined') {
-      this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || process.env.MONITORING_C_URL || 'http://monitoring-c:8015'
-    } else {
-      this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
-    }
-    // Port 5004 = métriques agrégées (docker-compose expose 5004:3014). En SSR utiliser le nom du service.
+    // Une seule source : metrics-aggregator (récupère les données depuis monitoring-c, persiste en BDD, expose au frontend).
     this.metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || (typeof window !== 'undefined' ? 'http://localhost:5004' : 'http://jobbingtrack-metrics-aggregator:3014')
     this.updateToken()
   }
@@ -220,16 +209,10 @@ class CentralMetricsService {
     }
 
     try {
-      // Endpoint de monitoring système non disponible, utiliser le service de métriques
-      console.log('[SYSTEM] Endpoint non disponible, utilisation du service de métriques')
-
-      // ✅ Utiliser uniquement monitoring-c
-      const metricsUrl = this.monitoringCUrl
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000) // Augmenté à 10s
+      // Métriques système via metrics-aggregator uniquement (aggregator récupère depuis monitoring-c + BDD)
+      const response = await fetch(`${this.metricsAggregatorUrl}/api/v1/metrics`, {
+        headers: { 'Accept': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
+        signal: AbortSignal.timeout(10000)
       })
 
       if (response.ok) {
@@ -298,31 +281,18 @@ class CentralMetricsService {
     }
 
     try {
-      console.log('[CONTAINERS] Récupération des métriques depuis Prometheus...')
-
-      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-      const metricsUrl = this.monitoringCUrl
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000) // Augmenté à 10s
+      // Métriques conteneurs via metrics-aggregator uniquement
+      const response = await fetch(`${this.metricsAggregatorUrl}/api/v1/metrics`, {
+        headers: { 'Accept': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
+        signal: AbortSignal.timeout(10000)
       })
 
       if (response.ok) {
         const data = await response.json()
         if (data.containers && Object.keys(data.containers).length > 0) {
-          console.log('[CONTAINERS] ✅ Métriques conteneurs récupérées depuis Prometheus')
           return data.containers
         }
       }
-
-      // NOTE: cAdvisor n'est pas accessible directement depuis le frontend
-      // Le frontend doit utiliser uniquement l'API metrics-aggregator (port 8014)
-      // qui se charge de récupérer les données depuis Prometheus/cAdvisor en interne
-
-      // Retourner un objet vide si aucune source n'est disponible
-      console.log('[CONTAINERS] Aucune source de métriques conteneurs disponible')
       return {}
     } catch (error) {
       console.error('Erreur récupération métriques conteneurs:', error)
@@ -341,29 +311,17 @@ class CentralMetricsService {
     }
 
     try {
-      // Utiliser le service de métriques agrégateur
-      console.log('[SERVICES] Récupération depuis le service de métriques')
-
-      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-      const metricsUrl = this.monitoringCUrl
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
-        // Note: monitoring-c retourne les services dans la réponse /api/v1/metrics
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(10000) // Augmenté à 10s
+      // Métriques Docker via metrics-aggregator uniquement
+      const response = await fetch(`${this.metricsAggregatorUrl}/api/v1/metrics`, {
+        headers: { 'Accept': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
+        signal: AbortSignal.timeout(10000)
       })
 
       if (response.ok) {
         const data = await response.json()
-        if (data.containers && Array.isArray(data.containers)) {
-          // Convertir le tableau en objet avec name comme clé
-          const servicesMap: any = {}
-          data.containers.forEach((container: any) => {
-            servicesMap[container.name] = container
-          })
-          return servicesMap
-        }
+        const containers = data.containers && typeof data.containers === 'object' ? data.containers : {}
+        if (Object.keys(containers).length > 0) return containers
+        if (data.services && typeof data.services === 'object') return data.services
       }
 
       // Fallback vers la liste des services depuis Docker
@@ -481,8 +439,8 @@ class CentralMetricsService {
   }
 
   /**
-   * Récupération des métriques : priorité metrics-aggregator (source centralisée, monitoring-c → aggregator → frontend),
-   * puis fallback monitoring-c direct. En cas d'échec aggregator, backoff 30s pour éviter le spam ERR_CONNECTION_REFUSED.
+   * Récupération des métriques : uniquement via metrics-aggregator.
+   * L'aggregator récupère les données depuis monitoring-c et les persiste en BDD ; le frontend ne parle qu'à l'aggregator.
    */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     const endpoint = '/api/v1/metrics'
@@ -490,45 +448,23 @@ class CentralMetricsService {
     if (this.token) (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`
 
     const now = Date.now()
-    const skipAggregator = now < this.aggregatorUnavailableUntil
+    if (now < this.aggregatorUnavailableUntil) return null
 
-    // 1) Priorité : metrics-aggregator (une seule source, données depuis monitoring-c + persistance)
-    if (this.metricsAggregatorUrl && !skipAggregator) {
-      try {
-        const response = await fetch(`${this.metricsAggregatorUrl}${endpoint}`, {
-          headers,
-          signal: AbortSignal.timeout(5000)
-        })
-        if (response?.ok) {
-          const text = await response.text().catch(() => '')
-          if (text?.trim()) {
-            const data = JSON.parse(text)
-            if (data.responseTime != null || data.health != null || data.servicesList) {
-              return this.formatMetricsFromAggregator(data)
-            }
-            return this.formatMetricsFromAggregator(data)
-          }
-        }
-      } catch (e) {
-        this.aggregatorUnavailableUntil = now + CentralMetricsService.AGGREGATOR_BACKOFF_MS
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[CENTRAL METRICS] metrics-aggregator injoignable (fallback monitoring-c), retry dans 30s')
-        }
-      }
-    }
-
-    // 2) Fallback : monitoring-c direct
     try {
-      const response = await fetch(`${this.monitoringCUrl}${endpoint}`, {
-        headers: { 'Accept': 'application/json' },
+      const response = await fetch(`${this.metricsAggregatorUrl}${endpoint}`, {
+        headers,
         signal: AbortSignal.timeout(5000)
       })
       if (!response?.ok) return null
       const text = await response.text().catch(() => '')
       if (!text?.trim()) return null
       const data = JSON.parse(text)
-      return this.formatMetricsFromMonitoringC(data)
-    } catch (_) {
+      return this.formatMetricsFromAggregator(data)
+    } catch (e) {
+      this.aggregatorUnavailableUntil = now + CentralMetricsService.AGGREGATOR_BACKOFF_MS
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[CENTRAL METRICS] metrics-aggregator injoignable, retry dans 30s')
+      }
       return null
     }
   }
@@ -544,32 +480,32 @@ class CentralMetricsService {
     ]
 
     try {
-      // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-      // Les services sont inclus dans la réponse /api/v1/metrics
-      const metricsUrl = this.monitoringCUrl
-      const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(20000) // 20s au lieu de 10s
+      // Liste des services : metrics-aggregator (docker/services/all ou /api/v1/metrics)
+      const dockerRes = await fetch(`${this.metricsAggregatorUrl}/api/v1/docker/services/all`, {
+        headers: { 'Accept': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
+        signal: AbortSignal.timeout(20000)
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Log désactivé pour réduire la pollution de la console (réactiver en mode debug)
-        // console.log('[SERVICES] ✅ Services récupérés depuis l\'agrégateur:', data.total, 'services')
-        return data.services || []
+      if (dockerRes.ok) {
+        const dockerData = await dockerRes.json()
+        const list = dockerData.services || []
+        if (list.length > 0) return list
+      }
+      const metricsRes = await fetch(`${this.metricsAggregatorUrl}/api/v1/metrics`, {
+        headers: { 'Accept': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
+        signal: AbortSignal.timeout(15000)
+      })
+      if (metricsRes.ok) {
+        const data = await metricsRes.json()
+        if (data.servicesList && data.servicesList.length > 0) return data.servicesList
+        if (data.services && typeof data.services === 'object') return Object.values(data.services)
       }
     } catch (error: any) {
-      // Logger silencieusement les timeouts uniquement en développement
       if (error.name === 'TimeoutError' && process.env.NODE_ENV === 'development') {
-        console.warn('[SERVICES] ⏱️ Timeout lors de la récupération des services depuis Docker (20s)')
-      } else if (error.name !== 'TimeoutError') {
-        console.warn('[SERVICES] ⚠️ Agrégateur inaccessible:', error.message)
+        console.warn('[SERVICES] Timeout récupération services (metrics-aggregator)')
       }
     }
 
-    // Priorité 2 : API Gateway (si disponible)
+    // Fallback : API Gateway (si disponible)
     try {
       const response = await fetch(`${this.apiUrl}/api/v1/services`, {
         headers: {
@@ -595,17 +531,24 @@ class CentralMetricsService {
     return defaultServices
   }
 
-  // Récupération des logs d'un service spécifique
+  // Récupération des logs d'un service : via metrics-aggregator (page détail service ou Services & Logs)
   async getServiceLogs(serviceName: string, options?: { lines?: number }): Promise<any | null> {
-    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-    // Note: monitoring-c ne gère pas encore les logs, retourner null
-    return null
+    try {
+      const name = serviceName.startsWith('jobbingtrack-') ? serviceName : `jobbingtrack-${serviceName}`
+      const res = await fetch(`${this.metricsAggregatorUrl}/api/v1/docker/service/${encodeURIComponent(name)}/logs?lines=${options?.lines ?? 100}`, {
+        headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+        signal: AbortSignal.timeout(8000)
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      return data
+    } catch {
+      return null
+    }
   }
 
   async getAggregatorLogs(containerName: string, options?: { limit?: number; start?: number; end?: number }): Promise<any | null> {
-    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-    // Note: monitoring-c ne gère pas encore les logs, retourner null
-    return null
+    return this.getServiceLogs(containerName, { lines: options?.limit ?? 100 })
   }
 
   // Redémarrage d'un service
@@ -670,7 +613,7 @@ class CentralMetricsService {
       try {
         const metrics = await this.getAggregatorMetrics()
         if (!metrics) {
-          console.warn('[CENTRAL METRICS] ⚠️ Metrics-aggregator / monitoring-c non disponible')
+          console.warn('[CENTRAL METRICS] metrics-aggregator non disponible')
           return null
         }
         this.setCachedMetrics(metrics)
@@ -1034,7 +977,6 @@ class CentralMetricsService {
       if (endTime) params.append('endDate', endTime)
 
       const url = `${metricsAggregatorUrl}/api/v1/persistence/system/metrics?${params.toString()}`
-      console.log(`[CENTRAL METRICS] 🔍 Requête historique: ${url}`)
       
       const response = await fetch(url, {
         method: 'GET',
@@ -1058,26 +1000,9 @@ class CentralMetricsService {
         return []
       }
 
-      if (data.data.length === 0) {
-        console.warn('[CENTRAL METRICS] ⚠️ Aucune donnée historique disponible')
-        return []
-      }
+      if (data.data.length === 0) return []
 
-      console.log(`[CENTRAL METRICS] ✅ ${data.data.length} points d'historique récupérés`)
-      
-      // ✅ DEBUG : Afficher les premières valeurs pour diagnostiquer
-      if (data.data.length > 0) {
-        const firstItem = data.data[0];
-        console.log('[CENTRAL METRICS] 🔍 Premier point de l\'historique:', {
-          timestamp: firstItem.timestamp,
-          project_cpu_avg: firstItem.project_cpu_avg,
-          project_memory_mb: firstItem.project_memory_mb,
-          projectCpuAvg: firstItem.projectCpuAvg,
-          projectMemoryMb: firstItem.projectMemoryMb
-        });
-      }
-
-      // ✅ CORRECTION : Formater les données pour correspondre au format attendu par les graphiques
+      // Formater les données pour correspondre au format attendu par les graphiques
       // Le format Prisma SystemMetricsSnapshot utilise des noms de champs différents
       return data.data.map((item: any) => {
         // ✅ CORRECTION : Mapper depuis le format Prisma SystemMetricsSnapshot
@@ -1177,8 +1102,7 @@ class CentralMetricsService {
    * Récupère les statistiques sur une période
    */
   async getMetricsStats(options?: { startTime?: number; endTime?: number }) {
-    // ✅ Utiliser uniquement monitoring-c (pas de fallback)
-    // Note: monitoring-c ne gère pas encore les stats, retourner null
+    // Stats sur période : à implémenter côté metrics-aggregator si besoin
     return null
   }
 }

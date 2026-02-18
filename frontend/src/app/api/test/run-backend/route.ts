@@ -1,36 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { execSync } from 'child_process'
+import { getProjectRoot } from '../testRunnerUtils'
 
-const execAsync = promisify(exec)
+const RUN_TIMEOUT_MS = 120000
+
+function extractReportId(stdout: string): string | null {
+  const match = stdout.match(/\d{8}-\d{6}/)
+  return match ? match[0] : null
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Backend'
-    
-    // Lancer les tests backend avec génération automatique de rapport
-    const command = 'cd /home/pactivisme/Documents/Dev/Perso/JobbingTrack && bash scripts/generate-test-report.sh backend "make test-backend" "' + testName + '"'
-    
-    // Exécuter en arrière-plan mais capturer le résultat
-    exec(command, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Erreur exécution tests backend:', error)
-        console.error('stderr:', stderr)
-      } else {
-        console.log('Tests backend terminés avec rapport généré')
-        console.log('stdout:', stdout.substring(0, 500)) // Limiter la sortie
-      }
-    })
-    
+    const projectRoot = getProjectRoot()
+    const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
+    const command = `cd "${projectRoot}" && sh "${scriptPath}" backend "make test-backend" "${testName}"`
+
+    let stdout = ''
+    let reportId: string | null = null
+    try {
+      stdout = execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, timeout: RUN_TIMEOUT_MS })
+      reportId = extractReportId(stdout)
+    } catch (err: unknown) {
+      const execErr = err as { stdout?: string; message?: string }
+      reportId = execErr.stdout ? extractReportId(execErr.stdout) : null
+      return NextResponse.json({
+        success: false,
+        error: (err as Error).message || 'Erreur exécution tests backend',
+        reportId: reportId || undefined,
+      }, { status: 500 })
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Tests backend lancés avec génération automatique de rapport',
-      reportLocation: 'tests/results/'
+      message: 'Rapport généré',
+      reportId,
+      reportLocation: 'tests/results/',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }
     )
   }

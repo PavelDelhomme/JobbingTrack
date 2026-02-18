@@ -22,7 +22,7 @@ const REPORT_DIRS = {
     ? '/app/frontend/playwright-report'
     : join(PROJECT_ROOT, 'frontend', 'playwright-report'),
   'tests-results': IS_DOCKER
-    ? '/app/tests/results'
+    ? (process.env.TESTS_RESULTS_DIR || '/app/tests/results')
     : join(PROJECT_ROOT, 'tests', 'results'),
   'user-journey': IS_DOCKER
     ? '/app/tests/user-journey-reports'

@@ -22,9 +22,13 @@ if [ -z "$TEST_COMMAND" ]; then
     exit 1
 fi
 
-# Répertoires
+# Répertoires (en Docker : TESTS_RESULTS_DIR peut être /tmp/tests/results pour éviter Permission denied sur /app)
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-RESULTS_DIR="$PROJECT_ROOT/tests/results"
+if [ -n "$TESTS_RESULTS_DIR" ]; then
+  RESULTS_DIR="$TESTS_RESULTS_DIR"
+else
+  RESULTS_DIR="$PROJECT_ROOT/tests/results"
+fi
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="$RESULTS_DIR/$TIMESTAMP"
 mkdir -p "$REPORT_DIR" || {

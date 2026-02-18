@@ -584,21 +584,20 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 # ARRÊT DES SERVICES
 # ============================================================================
 
-# Arrêter tous les services
+# Arrêter tous les services (COMPOSE_FILES_ESSENTIAL uniquement : monitoring.yml redéfinit monitoring-c avec profil → "depends on undefined service")
 down: ## Arrêter tous les services
 	@echo "🛑 Arrêt de tous les services JobbingTrack..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans --volumes)
-	# Arrêter conteneurs restants
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans --volumes)
+	# Arrêter conteneurs restants (ex. log-collector-c si démarré avec monitoring)
 	@docker ps -q --filter "name=jobbingtrack-*" | xargs -r docker stop || true
 	@docker ps -aq --filter "name=jobbingtrack-*" | xargs -r docker rm || true
-	# Nettoyer réseaux orphelins
 	@docker network prune -f || true
 	@echo "✅ Tous les services arrêtés"
 
 # Arrêter en conservant les volumes (DB, Redis)
 down-keep-data: ## Arrêter les services SANS supprimer les volumes (données conservées)
 	@echo "🛑 Arrêt des services (volumes conservés)..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) down --remove-orphans)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down --remove-orphans)
 	@docker network prune -f || true
 	@echo "✅ Services arrêtés (données intactes)"
 
@@ -631,7 +630,7 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs
 		fi; \
 	fi
 	@echo "🔄 Redémarrage de $$ACTIVE_CONTAINERS conteneur(s)..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) restart)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) restart)
 	@echo "⏳ Attente que les services redémarrent..."
 	@sleep 10
 	@echo "📊 État des services après redémarrage:"
@@ -641,7 +640,7 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs
 # Recréer les conteneurs notification, profile, workflow pour appliquer les healthchecks corrigés (/health)
 fix-unhealthy-healthchecks: ## Recréer notification, profile, workflow pour appliquer les healthchecks (après correction /health)
 	@echo "🔧 Recréation des conteneurs (healthcheck corrigé: /health)..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) up -d --force-recreate notification-service profile-service workflow-service)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d --force-recreate notification-service profile-service workflow-service)
 	@echo "⏳ Attente du start_period des healthchecks (~45s)..."
 	@sleep 45
 	@echo "📊 État des services:"

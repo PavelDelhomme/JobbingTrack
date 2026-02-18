@@ -4,6 +4,17 @@
 
 ---
 
+## ⏳ À traiter en priorité (erreurs connues)
+
+- **Tests API depuis Docker** : ~~`/bin/sh: bash: not found`~~ → **Corrigé** : les routes d’exécution de tests utilisent désormais **`sh`** au lieu de `bash` (run-api, run-backend, run-frontend, run-backoffice, run-performance-backend, run-performance-frontend). Si les scripts échouent sous `sh`, les rendre POSIX ou installer `bash` dans l’image frontend.
+- **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503 (Service Unavailable)**. Rendre le service opérationnel ou gérer côté front.
+- **Logs emails** : requête vers `http://localhost:5003/backoffice/emails/logs` → **404**. Corriger l’URL (API Gateway ou bon service/port).
+- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions?days=7` → **404**. Implémenter la route backend ou adapter le front.
+
+Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches priorisées.
+
+---
+
 ## ✅ Erreurs corrigées (Février 2026)
 
 ### Prisma et base de données (metrics-aggregator)
@@ -42,18 +53,20 @@
 - deployment-service : « Table Deployment non trouvée » en dev — à traiter si le service est utilisé.
 
 ### 🔧 Correctifs récents (temps de réponse et Analytics)
-- **Carte temps de réponse à 0 ms** : monitoring-c utilisait le port hôte pour les health checks depuis le conteneur ; correction en utilisant le **port interne** du conteneur (docker inspect) pour construire l’URL de health check sur le réseau Docker. La carte Vue d’ensemble et Performances utilise `monitoringC.avg_response_time_ms` / `responseTime.average_ms` depuis `fetchMetrics()`.
-- **Performance & Analytics** : premier onglet **CPU Système** avec graphique historique et vérification de l’enregistrement (nombre de points, dernier timestamp). Onglets **Mémoire** et **Réseau** prévus (placeholders). Temps de réponse dans l’onglet Performances alimenté par `fetchMetrics()` (monitoring-c / metrics-aggregator).
-
-### 📋 À faire plus tard (dashboard admin)
-- Panneau complet : **logs de sécurité**, **politiques de sécurité**, **firewall**, **réseau**, **menaces** dans l’interface dashboard admin (à brancher sur security-service et API existantes).
+- **Carte temps de réponse à 0 ms** : monitoring-c utilise le port interne pour les health checks (docker inspect). Vue d’ensemble et Performances utilisent `monitoringC.avg_response_time_ms` / `responseTime.average_ms` depuis `fetchMetrics()`.
+- **Performance & Analytics** : CPU Système avec graphique historique ; Mémoire et Réseau en place. Temps de réponse alimenté par fetchMetrics() (monitoring-c / metrics-aggregator).
+- **Backoffice Analytics** : chargement accéléré (startDate/endDate, limit 500, refresh 60 s), suppression des console.log ([CPU TEST], [COMPRESSION], [CENTRAL METRICS], [STATISTICS]).
+- **Drawer** : Gestion des Emails avec **subItems décalés** (Dashboard, Email Monitor, Historique, Templates, Configuration, Déliverabilité) comme Tests ; Sécurité avec subItems.
+- **Tests API (Docker)** : erreur « bash: not found » — corrigée en utilisant **`sh`** dans toutes les routes run-* (run-api, run-backend, run-frontend, run-backoffice, run-performance-backend, run-performance-frontend).
 
 ---
 
 ## 🎯 Prochaines vérifications
 
-1. Exécuter `make db-push-metrics` depuis la racine avec Postgres démarré et `.env` correct.
+1. Exécuter `make db-push-all` depuis la racine avec Postgres démarré et `.env` correct.
 2. Vérifier que le frontend affiche bien les métriques et que les graphiques Analytics chargent les données.
 3. Surveiller les logs monitoring-c (ERR_EMPTY_RESPONSE, starting).
+4. Corriger les URLs / services pour **logs emails** (404) et **test SMTP** (503).
+5. Implémenter ou adapter **API versions** (analytics utilisateur) si l’onglet « Versions & App mobile » est utilisé.
 
-Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**.
+Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**. Pour la liste consolidée des tâches (à faire en priorité puis fait), voir **STATUS.md** (section « À FAIRE » en premier).

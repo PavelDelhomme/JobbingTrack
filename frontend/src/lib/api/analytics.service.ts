@@ -200,19 +200,20 @@ export class AnalyticsService {
   }
 
   /**
-   * Récupérer la liste des conteneurs (depuis metrics-aggregator aggregated)
+   * Récupérer la liste des conteneurs (depuis metrics-aggregator docker/services/all)
    */
-  async getContainersList(): Promise<{ name: string; service_type?: string; [key: string]: unknown }[]> {
+  async getContainersList(): Promise<{ name: string; service_type?: string; health_status?: string; [key: string]: unknown }[]> {
     try {
       const response = await axios.get(
-        `${METRICS_API_URL}/api/v1/docker/jobbingtrack/aggregated`,
-        { timeout: 10000 }
+        `${METRICS_API_URL}/api/v1/docker/services/all`,
+        { timeout: 15000 }
       );
-      if (response.data?.containers && Array.isArray(response.data.containers)) {
-        return response.data.containers;
-      }
       if (response.data?.services && Array.isArray(response.data.services)) {
-        return response.data.services.map((s: { name: string }) => ({ name: s.name }));
+        return response.data.services.map((s: { name: string; health_status?: string }) => ({
+          name: s.name,
+          health_status: s.health_status,
+          service_type: s.name?.replace(/^jobbingtrack-/, ''),
+        }));
       }
       return [];
     } catch (error) {

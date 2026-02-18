@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { 
   Play, Square, Loader2, CheckCircle, XCircle, 
-  Server, Activity, Clock, Zap, RefreshCw, CheckCircle2
+  Server, Activity, Clock, Zap, RefreshCw, CheckCircle2, FileText
 } from '@/lib/icons'
 
 interface TestItem {
@@ -29,6 +30,7 @@ export default function APITestsPage() {
   const [logs, setLogs] = useState<string[]>([])
   const [testStatuses, setTestStatuses] = useState<TestStatus[]>([])
   const [currentTest, setCurrentTest] = useState<string>('')
+  const [lastReportId, setLastReportId] = useState<string | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
@@ -152,15 +154,7 @@ export default function APITestsPage() {
   }
 
   const startAPITests = async () => {
-    if (isRunning) {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
-      }
-      setIsRunning(false)
-      setProgress(0)
-      addLog('⏹️ Tests arrêtés')
-      return
-    }
+    if (isRunning) return
 
     const selectedTests = availableTests.filter(t => t.enabled)
     if (selectedTests.length === 0) {
@@ -171,83 +165,50 @@ export default function APITestsPage() {
     setIsRunning(true)
     setProgress(0)
     setLogs([])
-    setCurrentTest('')
+    setCurrentTest('Exécution en cours...')
+    setLastReportId(null)
+    setTestStatuses(selectedTests.map(test => ({ name: test.name, status: 'pending', progress: 0 })))
 
-    // Initialiser les statuts des tests sélectionnés
-    setTestStatuses(selectedTests.map(test => ({
-      name: test.name,
-      status: 'pending',
-      progress: 0
-    })))
-
-    addLog(`🚀 Démarrage des tests API...`)
+    addLog('🚀 Lancement des tests API...')
     addLog(`📋 ${selectedTests.length} test(s) sélectionné(s)`)
 
     try {
-      // Lancer les tests API via make
       const response = await fetch('/api/test/run-api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          tests: selectedTests.map(t => t.id)
-        })
+        body: JSON.stringify({ tests: selectedTests.map(t => t.id) }),
       })
 
-      if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status}`)
-      }
-
       const data = await response.json()
-      addLog(`✅ Tests API lancés: ${data.message || 'En cours...'}`)
 
-      // Simuler la progression pour chaque test
-      let currentTestIndex = 0
-      for (let i = 0; i < selectedTests.length; i++) {
-        const test = selectedTests[i]
-        setCurrentTest(test.name)
-        setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'running', progress: 0 } : t
-        ))
-        addLog(`▶️ Démarrage: ${test.name}`)
-
-        // Simuler la progression
-        let testProgress = 0
-        const testInterval = setInterval(() => {
-          testProgress = Math.min(testProgress + 10, 100)
-          setTestStatuses(prev => prev.map((t, idx) => {
-            if (idx === i && t.status === 'running') {
-              return { ...t, progress: testProgress }
-            }
-            return t
-          }))
-          setProgress(((i + testProgress / 100) * 100) / selectedTests.length)
-        }, 100)
-
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        clearInterval(testInterval)
-
-        setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'completed', progress: 100 } : t
-        ))
-        addLog(`✅ Terminé: ${test.name}`)
+      if (!response.ok) {
+        addLog(`❌ Erreur: ${data.error || response.statusText}`)
+        if (data.reportId) setLastReportId(data.reportId)
+        setTestStatuses(prev => prev.map(t => ({ ...t, status: 'error', progress: 0 })))
+        setIsRunning(false)
+        setCurrentTest('')
+        return
       }
 
-      setCurrentTest('')
-      setIsRunning(false)
       setProgress(100)
-      addLog('🎉 Tous les tests API sont terminés !')
-      addLog('📊 Consultez les rapports dans "Rapports de Tests"')
-
-    } catch (error: any) {
-      addLog(`❌ Erreur: ${error.message}`)
-      setIsRunning(false)
-      setProgress(0)
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
+      setTestStatuses(prev => prev.map(t => ({ ...t, status: 'completed', progress: 100 })))
+      setCurrentTest('')
+      addLog(`✅ ${data.message || 'Rapport généré.'}`)
+      if (data.reportId) {
+        setLastReportId(data.reportId)
+        addLog('📊 Voir le rapport ci‑dessous.')
+      } else {
+        addLog('📊 Consultez « Rapports de Tests » pour le rapport.')
       }
+    } catch (error: unknown) {
+      addLog(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur réseau'}`)
+      setTestStatuses(prev => prev.map(t => ({ ...t, status: 'error', progress: 0 })))
+    } finally {
+      setIsRunning(false)
+      setCurrentTest('')
     }
   }
 
@@ -422,6 +383,29 @@ export default function APITestsPage() {
               ))}
               <div ref={logsEndRef} />
             </div>
+            {lastReportId && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <Link
+                  href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
+                >
+                  <FileText className="w-4 h-4" />
+                  Voir le rapport généré
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {lastReportId && logs.length === 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <Link
+              href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}
+              className="inline-flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:underline font-medium"
+            >
+              <FileText className="w-4 h-4" />
+              Voir le dernier rapport généré
+            </Link>
           </div>
         )}
       </div>

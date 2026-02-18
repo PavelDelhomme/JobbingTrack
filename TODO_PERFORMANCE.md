@@ -1,5 +1,7 @@
 # 📋 TODO - Optimisations Performance
 
+**Contexte** : Pour la liste globale des tâches du projet (tests, sécurité, emails, etc.) et l’ordre de priorité, voir **STATUS.md** (section « À FAIRE »). Les tests de performance depuis le backoffice (Docker) s’exécutent avec **`sh`** (plus `bash`).
+
 ## 🎯 Objectifs
 - **Frontend**: Réduire la mémoire de 1073MB à ~500MB (50%)
 - **Backend (metrics-aggregator)**: Réduire CPU de 11.42% à ~5-7% et mémoire de 89MB à ~50-60MB

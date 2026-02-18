@@ -2,6 +2,8 @@
 
 **Objectif** : Liste exhaustive des vérifications à réaliser avant livraison / mise en production.
 
+**État et priorités** : Pour savoir **ce qu’il reste à faire** et dans quel ordre, voir **STATUS.md** (section « À FAIRE (priorisé) »). Les tests API depuis Docker utilisent désormais `sh` au lieu de `bash` pour éviter « bash: not found » dans le conteneur.
+
 ---
 
 ## 1. Authentification et utilisateurs

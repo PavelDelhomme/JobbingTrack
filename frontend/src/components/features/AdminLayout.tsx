@@ -53,14 +53,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     cleanup: false,
   })
 
-  // Charger l'état des sections depuis localStorage
+  // Charger l'état des sections (et items dépliables) depuis localStorage, en fusionnant avec les défauts
   useEffect(() => {
     const savedSections = localStorage.getItem('expandedSections')
+    const defaults: Record<string, boolean> = {
+      dashboard: true,
+      security: true,
+      emails: true,
+      admin: true,
+      dev: true,
+      cleanup: false,
+    }
     if (savedSections) {
       try {
-        setExpandedSections(JSON.parse(savedSections))
+        const parsed = JSON.parse(savedSections) as Record<string, boolean>
+        setExpandedSections({ ...defaults, ...parsed })
       } catch (error) {
         console.error('Erreur chargement état sections:', error)
+        setExpandedSections(defaults)
       }
     }
   }, [])
@@ -147,15 +157,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { name: 'Vue d\'ensemble', href: '/backoffice', icon: '📊' },
         /*{ name: '🔍 Recherche Optimisée', href: '/backoffice/search', icon: '⚡' },*/
-        {
-          name: 'Statistiques & Monitoring',
-          href: '/backoffice/statistics',
-          icon: '📈',
-          subItems: [
-            { name: 'Vue d\'ensemble', href: '/backoffice/statistics', icon: '📊' },
-            { name: 'Logs des conteneurs', href: '/backoffice/services/logs', icon: '📜' },
-          ]
-        },
+        { name: 'Statistiques & Monitoring', href: '/backoffice/statistics', icon: '📈' },
         {
           name: 'Performances & Analytics',
           href: '/backoffice/analytics',
@@ -177,12 +179,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '🔒',
       isCollapsible: true,
       items: [
-        { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
-        { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
-        { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
-        { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
-        { name: 'Réseau', href: '/backoffice/security/network', icon: '🌐' },
-        { name: 'Menaces', href: '/backoffice/security/threats', icon: '⚠️' },
+        {
+          name: 'Sécurité',
+          href: '/backoffice/security/logs',
+          icon: '🔒',
+          subItems: [
+            { name: 'Logs de Sécurité', href: '/backoffice/security/logs', icon: '📋' },
+            { name: 'Politiques', href: '/backoffice/security/policies', icon: '⚙️' },
+            { name: 'Analyse', href: '/backoffice/security/analysis', icon: '🛡️' },
+            { name: 'Firewall', href: '/backoffice/security/firewall', icon: '🔥' },
+            { name: 'Réseau', href: '/backoffice/security/network', icon: '🌐' },
+            { name: 'Menaces', href: '/backoffice/security/threats', icon: '⚠️' },
+          ]
+        },
       ]
     },
     {
@@ -253,12 +262,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: '📧',
       isCollapsible: true,
       items: [
-        { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
-        { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
-        { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
-        { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
-        { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
-        { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
+        {
+          name: 'Gestion des Emails',
+          href: '/backoffice/emails',
+          icon: '📧',
+          subItems: [
+            { name: 'Dashboard', href: '/backoffice/emails', icon: '📊' },
+            { name: 'Email Monitor', href: '/backoffice/email-monitor', icon: '📈' },
+            { name: 'Historique', href: '/backoffice/emails/logs', icon: '📋' },
+            { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
+            { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
+            { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
+          ]
+        },
       ]
     },
   ]
@@ -374,7 +390,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       const hasSubItems = item.subItems && item.subItems.length > 0
                       const isSubItemActive = hasSubItems && item.subItems?.some(subItem => pathname === subItem.href)
                       const itemKey = `item-${item.name}-${section.id}`
-                      const isItemExpanded = expandedSections[itemKey] ?? false
+                      // Expanded par défaut si on est sur cette page ou un sous-item ; sinon état sauvegardé
+                      const isItemExpanded = expandedSections[itemKey] ?? (hasSubItems && (isSubItemActive || isActive))
                       const activeItem = getActiveItemInSection(section)
 
                       const content = (

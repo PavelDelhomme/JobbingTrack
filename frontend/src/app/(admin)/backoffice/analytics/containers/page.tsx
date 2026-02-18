@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
-import { ChevronLeft, ChevronRight } from '@/lib/icons';
+import { TimeRangeSelector, type TimeRangeOption } from '@/components/analytics';
+import { getPeriodMs, formatRangeLabel } from '@/components/analytics/timeRangeUtils';
 import {
   LineChart,
   Line,
@@ -17,7 +18,6 @@ import {
 import { analyticsService } from '@/lib/api/analytics.service';
 
 const ALL_CONTAINERS_VALUE = '__all__';
-type TimeRangeOption = '24h' | '7d' | '30d';
 
 interface ContainerInfo {
   name: string;
@@ -61,30 +61,6 @@ function compressData<T extends { timestamp: string }>(
   return out;
 }
 
-function getPeriodForRange(range: TimeRangeOption, windowEnd: Date) {
-  const end = new Date(windowEnd);
-  let start: Date;
-  let limit: number;
-  switch (range) {
-    case '24h':
-      start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-      limit = 1440;
-      break;
-    case '7d':
-      start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
-      limit = 10080;
-      break;
-    case '30d':
-      start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-      limit = 43200;
-      break;
-    default:
-      start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-      limit = 1440;
-  }
-  return { start, end, limit };
-}
-
 export default function ContainersAnalyticsPage() {
   const [containers, setContainers] = useState<ContainerInfo[]>([]);
   const [selectedContainer, setSelectedContainer] = useState<string>('');
@@ -116,7 +92,7 @@ export default function ContainersAnalyticsPage() {
         rangeEnd: end,
       };
     }
-    const { start, end, limit } = getPeriodForRange(timeRange, windowEnd);
+    const { start, end, limit } = getPeriodMs(timeRange, windowEnd);
     return {
       startDate: start.toISOString(),
       endDate: end.toISOString(),
@@ -222,7 +198,7 @@ export default function ContainersAnalyticsPage() {
   const { rangeStart, rangeEnd } = getParams();
   const rangeLabel = useCustomRange
     ? `Du ${new Date(customStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${new Date(customEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
-    : `Du ${rangeStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${rangeEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    : formatRangeLabel(rangeStart, rangeEnd, timeRange);
 
   const goPrev = useCallback(() => {
     if (useCustomRange) {
@@ -235,7 +211,7 @@ export default function ContainersAnalyticsPage() {
       setCustomEnd(end.toISOString().slice(0, 10));
       return;
     }
-    const { start } = getPeriodForRange(timeRange, windowEnd);
+    const { start } = getPeriodMs(timeRange, windowEnd);
     const period = windowEnd.getTime() - start.getTime();
     setWindowEnd(new Date(windowEnd.getTime() - period));
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
@@ -258,7 +234,7 @@ export default function ContainersAnalyticsPage() {
       return;
     }
     const now = new Date();
-    const { start } = getPeriodForRange(timeRange, windowEnd);
+    const { start } = getPeriodMs(timeRange, windowEnd);
     const period = windowEnd.getTime() - start.getTime();
     const nextEnd = new Date(windowEnd.getTime() + period);
     setWindowEnd(nextEnd <= now ? nextEnd : now);
@@ -319,36 +295,39 @@ export default function ContainersAnalyticsPage() {
     : [];
   const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
 
+  const handlePeriodNow = useCallback(() => {
+    setUseCustomRange(false);
+    setWindowEnd(new Date());
+  }, []);
+
   return (
     <AdminLayout>
-      <div className="p-6 max-w-6xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Analytics conteneurs
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Métriques par conteneur (CPU, mémoire) dans le temps.
-            </p>
-          </div>
-        </div>
-
+      <div className="p-6 space-y-6 w-full">
         <Link
           href="/backoffice/analytics"
-          className="text-primary-600 hover:underline dark:text-primary-400 text-sm"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
-          ← Retour à la vue d&apos;ensemble Analytics
+          <span aria-hidden>←</span>
+          Retour à la vue d&apos;ensemble
         </Link>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Analytics conteneurs
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+            Métriques par conteneur (CPU, mémoire) dans le temps.
+          </p>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2">
-            <span className="text-gray-700 dark:text-gray-300 text-sm">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+          <label className="flex items-center gap-2 min-w-0">
+            <span className="text-gray-700 dark:text-gray-300 text-sm shrink-0">
               Conteneur
             </span>
             <select
               value={selectedContainer}
               onChange={(e) => setSelectedContainer(e.target.value)}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 min-w-[240px]"
+              className="px-3 py-2 sm:px-4 sm:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 min-w-0 w-full sm:min-w-[240px] sm:w-auto text-sm"
               disabled={loadingList}
             >
               {loadingList ? (
@@ -368,61 +347,22 @@ export default function ContainersAnalyticsPage() {
               )}
             </select>
           </label>
-          <label className="flex items-center gap-2">
-            <span className="text-gray-700 dark:text-gray-300 text-sm">
-              Période
-            </span>
-            <select
-              value={timeRange}
-              onChange={(e) => {
-                setTimeRange(e.target.value as TimeRangeOption);
-                if (!useCustomRange) setWindowEnd(new Date());
-              }}
-              disabled={useCustomRange}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 disabled:opacity-60"
-            >
-              <option value="24h">24 h</option>
-              <option value="7d">7 jours</option>
-              <option value="30d">30 jours</option>
-            </select>
-          </label>
-          <div className="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1">
-            <button type="button" onClick={goPrev} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" aria-label="Période précédente">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <span className="min-w-[180px] text-center text-sm text-gray-700 dark:text-gray-300">{rangeLabel}</span>
-            <button type="button" onClick={goNext} disabled={!canGoNext} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Période suivante">
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setUseCustomRange(false);
-              setWindowEnd(new Date());
-            }}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Période actuelle
-          </button>
-        </div>
-
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Plage personnalisée</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            Définir une plage de dates. Cochez « Utiliser cette plage » pour l&apos;appliquer à la vue actuelle.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              Du <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="px-2 py-1.5 bg-white dark:bg-gray-800 border rounded text-sm" />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              au <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="px-2 py-1.5 bg-white dark:bg-gray-800 border rounded text-sm" />
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={useCustomRange} onChange={(e) => setUseCustomRange(e.target.checked)} className="rounded border-gray-300 dark:border-gray-600" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Utiliser cette plage pour la vue actuelle</span>
-            </label>
+          <div className="flex flex-col gap-3 w-full sm:w-auto">
+            <TimeRangeSelector
+              timeRange={timeRange}
+              setTimeRange={setTimeRange}
+              useCustomRange={useCustomRange}
+              setUseCustomRange={setUseCustomRange}
+              customStart={customStart}
+              setCustomStart={setCustomStart}
+              customEnd={customEnd}
+              setCustomEnd={setCustomEnd}
+              rangeLabel={rangeLabel}
+              goPrev={goPrev}
+              goNext={goNext}
+              canGoNext={canGoNext}
+              onPeriodNow={handlePeriodNow}
+            />
           </div>
         </div>
 
@@ -441,11 +381,12 @@ export default function ContainersAnalyticsPage() {
           </div>
         ) : isAllContainers && containerNamesForChart.length > 0 ? (
           <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Tous les conteneurs — CPU (%)
               </h2>
-              <ResponsiveContainer width="100%" height={400}>
+              <div className="w-full min-h-[260px] sm:min-h-[400px]">
+              <ResponsiveContainer width="100%" height={400} minHeight={260}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
@@ -466,12 +407,14 @@ export default function ContainersAnalyticsPage() {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Tous les conteneurs — Mémoire (%)
               </h2>
-              <ResponsiveContainer width="100%" height={400}>
+              <div className="w-full min-h-[260px] sm:min-h-[400px]">
+              <ResponsiveContainer width="100%" height={400} minHeight={260}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                   <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
@@ -492,17 +435,19 @@ export default function ContainersAnalyticsPage() {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {containerNamesForChart.length} conteneur(s) · {chartData.length} points affichés
             </p>
           </>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {selectedContainer} — CPU et mémoire (%)
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {selectedContainer.replace(/^jobbingtrack-/, '')} — CPU et mémoire (%)
             </h2>
-            <ResponsiveContainer width="100%" height={400}>
+            <div className="w-full min-h-[260px] sm:min-h-[400px]">
+            <ResponsiveContainer width="100%" height={400} minHeight={260}>
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                 <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
@@ -519,6 +464,7 @@ export default function ContainersAnalyticsPage() {
                 <Line type="monotone" dataKey="memory" stroke="#10B981" strokeWidth={2} name="Mémoire %" dot={false} connectNulls />
               </LineChart>
             </ResponsiveContainer>
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               {rawMetrics.length} points → {chartData.length} affichés
             </p>
