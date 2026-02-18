@@ -3,44 +3,22 @@ import { readdir, stat, readFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { existsSync } from 'fs'
 
-// ✅ Détecter si on est dans Docker ou sur l'hôte
+// Racine projet : en Docker avec volume monté (PROJECT_ROOT=/workspace) ou en local
+const PROJECT_ROOT = process.env.PROJECT_ROOT
+  || (process.cwd().includes('frontend') ? join(process.cwd(), '..') : process.cwd())
 const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
-const PROJECT_ROOT = IS_DOCKER
-  ? '/app'
-  : (process.cwd().includes('frontend') 
-      ? join(process.cwd(), '..')
-      : process.cwd())
 
-// Dossiers de rapports à scanner
-// ✅ Utiliser les chemins Docker si dans Docker, sinon chemins hôte
+// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR peut être /tmp/tests/results)
 const REPORT_DIRS = {
-  'performance-backend': IS_DOCKER 
-    ? '/app/backend-performance-reports'
-    : join(PROJECT_ROOT, 'backend-performance-reports'),
-  'performance-frontend': IS_DOCKER
-    ? '/app/frontend/performance-reports'
-    : join(PROJECT_ROOT, 'frontend', 'performance-reports'),
-  'playwright': IS_DOCKER
-    ? '/app/frontend/playwright-report'
-    : join(PROJECT_ROOT, 'frontend', 'playwright-report'),
-  'tests-results': IS_DOCKER
-    ? '/app/tests/results'
-    : join(PROJECT_ROOT, 'tests', 'results'),
-  'tests-reports': IS_DOCKER
-    ? '/app/tests/reports'
-    : join(PROJECT_ROOT, 'tests', 'reports'),
-  'coverage': IS_DOCKER
-    ? '/app/tests/coverage'
-    : join(PROJECT_ROOT, 'tests', 'coverage'),
-  'coverage-frontend': IS_DOCKER
-    ? '/app/frontend/coverage'
-    : join(PROJECT_ROOT, 'frontend', 'coverage'),
-  'user-journey': IS_DOCKER
-    ? '/app/tests/user-journey-reports'
-    : join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
-  'analytics': IS_DOCKER
-    ? '/app/tests/analytics-reports'
-    : join(PROJECT_ROOT, 'tests', 'analytics-reports'),
+  'performance-backend': join(PROJECT_ROOT, 'backend-performance-reports'),
+  'performance-frontend': join(PROJECT_ROOT, 'frontend', 'performance-reports'),
+  'playwright': join(PROJECT_ROOT, 'frontend', 'playwright-report'),
+  'tests-results': process.env.TESTS_RESULTS_DIR || join(PROJECT_ROOT, 'tests', 'results'),
+  'tests-reports': join(PROJECT_ROOT, 'tests', 'reports'),
+  'coverage': join(PROJECT_ROOT, 'tests', 'coverage'),
+  'coverage-frontend': join(PROJECT_ROOT, 'frontend', 'coverage'),
+  'user-journey': join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
+  'analytics': join(PROJECT_ROOT, 'tests', 'analytics-reports'),
 }
 
 interface TestReport {
@@ -322,25 +300,29 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
         status = 'unknown'
       }
       
-      // Déterminer le type de test
+      // Catégorie et type depuis summary.json (généré par generate-test-report.sh)
       let type: 'unitaire' | 'e2e' | 'other' = 'other'
-      let category = 'Tests'
-      
-      // Vérifier le contenu pour déterminer le type
+      let category = (summary && typeof summary.category === 'string') ? summary.category : 'Tests'
+      const testNameFromSummary = summary && typeof summary.testName === 'string' ? summary.testName : null
+
       if (summary) {
         if (summary.testType === 'e2e' || summary.testType === 'playwright') {
           type = 'e2e'
-          category = 'E2E / Playwright'
+          if (!summary.category) category = 'E2E / Playwright'
         } else if (summary.testType === 'unit' || summary.testType === 'unitaire') {
           type = 'unitaire'
-          category = 'Tests Unitaires'
+          if (!summary.category) category = 'Tests Unitaires'
         }
       }
-      
+
+      const reportName = testNameFromSummary
+        ? `${testNameFromSummary} - ${date} ${time}`
+        : `${category} - ${date} ${time}`
+
       reports.push({
         id: dirEntry.name,
         category,
-        name: `Tests - ${date} ${time}`,
+        name: reportName,
         timestamp: dirEntry.name,
         date,
         time,

@@ -447,10 +447,9 @@ export default function StatisticsPage() {
         }
         
         setStats(historicalStats)
-        console.log('[STATISTICS] ✅ Dernières données connues chargées depuis l\'historique')
       }
     } catch (error) {
-      console.error('[STATISTICS] ⚠️ Erreur chargement dernières données:', error)
+      console.error('[STATISTICS] Erreur chargement dernières données:', error)
     }
   }
 
@@ -543,7 +542,6 @@ export default function StatisticsPage() {
           appStats = await statisticsService.getCurrentStatistics()
           if (appStats) {
             await cacheManager.set(appStatsCacheKey, appStats, { ttl: 30000 })
-            console.log('[STATISTICS] ✅ Statistiques applicatives récupérées:', appStats)
           }
         }
       } catch (error) {

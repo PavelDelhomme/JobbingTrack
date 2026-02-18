@@ -103,8 +103,11 @@ services:
       - WATCHPACK_POLLING=true
       - HOSTNAME=0.0.0.0
       - PORT=3000
+      - PROJECT_ROOT=/app
+      - TESTS_RESULTS_DIR=/tmp/tests/results
     volumes:
       - ./frontend:/app
+      - ./scripts:/app/scripts:ro
       - /app/node_modules
       - /app/.next
     user: "1001:1001"

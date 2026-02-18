@@ -62,41 +62,10 @@ export default function ServiceDetailPage() {
     try {
       if (showRefreshing) setRefreshing(true);
       
-      const monitoringCUrl = 'http://localhost:5098';
       const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
       let merged: any = null;
 
-      // 1) Récupérer les métriques depuis monitoring-c
-      try {
-        const monitoringCResponse = await fetch(`${monitoringCUrl}/api/v1/metrics`);
-        if (monitoringCResponse.ok) {
-          const monitoringCData = await monitoringCResponse.json();
-          const containers = Array.isArray(monitoringCData.containers) ? monitoringCData.containers : [];
-          const container = containers.find((c: any) => {
-            const n = (c.name || '').trim();
-            return n === fullServiceName || n === serviceName || n.replace(/^jobbingtrack-/, '') === serviceName;
-          });
-          if (container) {
-            merged = {
-              name: container.name || fullServiceName,
-              cpu_percent: typeof container.cpu_percent === 'number' ? container.cpu_percent : 0,
-              memory_percent: typeof container.memory_percent === 'number' ? container.memory_percent : 0,
-              memory_usage_mb: typeof container.memory_mb === 'number' ? container.memory_mb : 0,
-              memory_limit_mb: typeof container.memory_limit_mb === 'number' ? container.memory_limit_mb : 0,
-              network_rx_mb: typeof container.network_rx_bytes === 'number' ? container.network_rx_bytes / (1024 * 1024) : 0,
-              network_tx_mb: typeof container.network_tx_bytes === 'number' ? container.network_tx_bytes / (1024 * 1024) : 0,
-              response_time_ms: typeof container.response_time_ms === 'number' ? container.response_time_ms : null,
-              health_status_http: container.http_status === 200 ? 'healthy' : (container.http_status >= 400 ? 'unhealthy' : 'unknown'),
-              health_status_docker: 'none',
-              pids: null
-            };
-          }
-        }
-      } catch {
-        // ignore
-      }
-
-      // 2) Enrichir ou remplacer avec metrics-aggregator (docker service)
+      // Métriques : uniquement via metrics-aggregator (docker service + /api/v1/metrics en fallback)
       for (const nameToTry of [fullServiceName, serviceName]) {
         try {
           const metricsResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${encodeURIComponent(nameToTry)}`);
@@ -140,6 +109,36 @@ export default function ServiceDetailPage() {
         }
       }
 
+      if (!merged) {
+        try {
+          const metricsRes = await fetch(`${metricsUrl}/api/v1/metrics`);
+          if (metricsRes.ok) {
+            const metricsData = await metricsRes.json();
+            const containers = metricsData.containers && typeof metricsData.containers === 'object' ? metricsData.containers : {};
+            const raw = containers[fullServiceName] || containers[serviceName];
+            if (raw) {
+              const c = raw.cpu || {};
+              const m = raw.memory || {};
+              merged = {
+                name: fullServiceName,
+                cpu_percent: c.percentage ?? 0,
+                memory_percent: m.percentage ?? 0,
+                memory_usage_mb: m.usage ?? 0,
+                memory_limit_mb: m.limit ?? 0,
+                network_rx_mb: (raw.network?.rx ?? 0) / (1024 * 1024),
+                network_tx_mb: (raw.network?.tx ?? 0) / (1024 * 1024),
+                response_time_ms: null,
+                health_status_http: 'unknown',
+                health_status_docker: 'none',
+                pids: null
+              };
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       if (merged) {
         setServiceMetrics(merged);
       }
@@ -162,9 +161,9 @@ export default function ServiceDetailPage() {
         // Ne pas faire planter la page
       }
       
-      // ✅ NOUVEAU : Récupérer l'historique depuis monitoring-c (via centralMetricsService)
+      // Historique : via metrics-aggregator (centralMetricsService ou docker/service/:name/history)
       try {
-        const metrics = await centralMetricsService.getAggregatorMetrics(true);
+        const metrics = await centralMetricsService.getAggregatorMetrics();
         if (metrics && metrics.servicesList) {
           const service = metrics.servicesList.find((s: any) => s.rawName === fullServiceName || s.name === fullServiceName || s.name === serviceName || s.rawName === serviceName);
           if (service && metrics.chartData) {
@@ -183,8 +182,7 @@ export default function ServiceDetailPage() {
             setServiceHistory(history);
           }
         }
-      } catch (historyError) {
-        // Fallback vers l'ancien système pour l'historique
+      } catch {
         try {
           const historyResponse = await fetch(`${metricsUrl}/api/v1/docker/service/${fullServiceName}/history?limit=50`);
           if (historyResponse.ok) {

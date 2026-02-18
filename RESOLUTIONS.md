@@ -4,6 +4,16 @@
 
 ---
 
+## Février 2026 – Tests API depuis Docker (bash: not found)
+
+- **Problème** : Lancement des tests API depuis le backoffice en Docker échouait avec `Command failed: ... /bin/sh: bash: not found`. Le conteneur frontend (Node) n’inclut pas `bash`.
+- **Solution** : Remplacer **`bash`** par **`sh`** dans toutes les routes d’exécution de tests :
+  - `frontend/src/app/api/test/run-api/route.ts` : `sh scripts/test-api-specific.sh`, `sh scripts/generate-test-report.sh`
+  - `run-backend`, `run-frontend`, `run-backoffice`, `run-performance-backend`, **`run-performance-frontend`** : idem, `sh scripts/generate-test-report.sh ...`
+- **Note** : Si `generate-test-report.sh` ou `test-api-specific.sh` échouent sous `sh` (p. ex. `echo -e` non POSIX), rendre les scripts POSIX ou installer `bash` dans le Dockerfile frontend.
+
+---
+
 ## Février 2026 – Temps de réponse et Performance & Analytics
 
 1. **monitoring-c – Health check et temps de réponse**  
@@ -59,4 +69,4 @@
 - **Services** : security-service, auth, frontend (token, Statistiques, Temps Réponse, unhealthy) corrigés.  
 - **Monitoring** : monitoring-c + metrics-aggregator opérationnels ; persistance et historique en place.
 
-Voir **STATUS.md** pour la vue d’ensemble et **ERRORS.md** pour le détail des erreurs et leur statut.
+Voir **STATUS.md** pour la vue d’ensemble (section « À FAIRE » en premier, puis « Résolu / Fait ») et **ERRORS.md** pour le détail des erreurs et leur statut.

@@ -4,13 +4,141 @@
 
 ---
 
+## ⏳ À FAIRE (priorisé – par où commencer)
+
+Cette section liste **tout ce qu’il reste à faire** pour que le projet soit pleinement opérationnel. Traiter dans l’ordre des priorités ci‑dessous.
+
+### Comment commencer (ordre conseillé)
+1. **Tester tout de suite** : redémarrer le frontend pour appliquer le volume **`./scripts:/app/scripts`** et **`PROJECT_ROOT=/app`**, puis lancer les **tests API** depuis Backoffice > Développement > Tests > Tests API. Si ça passe → OK ; sinon vérifier les logs du conteneur `jobbingtrack-frontend`.
+2. **Ensuite** : corriger les erreurs restantes (SMTP 503, logs emails 404, API versions 404).
+3. **Puis** : sécurité (firewall, politiques, menaces), emails (templates, config), tests Playwright/Backend/etc., reste de la liste.
+
+---
+
+### 1. Erreurs à résoudre en premier
+
+**Corrigé (à retester) :**
+- **Tests API depuis Docker** : (1) **`sh`** + chemins absolus, (2) **`PROJECT_ROOT=/app`** et volume **`./scripts:/app/scripts:ro`**, (3) **Permission denied** sur `/app/tests/results` corrigée en utilisant **`TESTS_RESULTS_DIR=/tmp/tests/results`** dans le conteneur frontend. Le script `generate-test-report.sh` et les routes list/view/download/delete/all utilisent cette variable pour écrire/lire les rapports (écriture possible par l’utilisateur nextjs). **À faire** : redémarrer le frontend pour charger `TESTS_RESULTS_DIR`, puis lancer les tests API depuis Backoffice > Tests > Tests API.
+
+**Encore à faire :**
+- **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503**. Rendre le service email / test SMTP opérationnel ou gérer l’indisponibilité côté front.
+- **Logs emails** : requête vers `http://localhost:5003/backoffice/emails/logs` → **404**. Corriger l’URL (API Gateway ou bon service/port).
+- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions?days=7` → **404**. Implémenter la route backend ou adapter le front.
+- **Tables manquantes** (si erreurs Postgres) : `firewall_rules`, `security_alerts`, `vulnerabilities`, `security_metrics`, `deployments`, etc. — s’assurer que `make db-push-all` crée toutes les tables nécessaires (auth-service schéma étendu).
+
+### 2. Tests (complets et opérationnels)
+- **Tests API** : **d’abord valider** que l’exécution depuis backoffice (Docker) fonctionne après la correction ci‑dessus ; puis vérifier make, scripts dans /workspace, lien « Voir le rapport ».
+- **Tests Playwright** : exécution et liens depuis `/backoffice/playwright-tests`.
+- **Tests Backend / Frontend / Backoffice / Performance** : pages opérationnelles ; exécution synchrone + rapport.
+- **Programmation de tests** : `/backoffice/performance-tests/schedule` — vérifier et compléter.
+- **Rapports de tests** : filtre par catégorie, ouverture via `?open=ID` ; rapports de **sécurité** si prévus.
+- **Testeur API** (`/backoffice/api-tester`) : vérifier endpoints, auth, exemples.
+- **Tests de sécurité** : à définir et exécuter (sécurité réseau, WAF, firewall, etc.).
+
+### 3. Sécurité (firewall, politique, réseau, menaces – pas encore opérationnel)
+- **Firewall** : règles, statut, logs — rendre pleinement opérationnel (backend + backoffice).
+- **Politique de sécurité** : WAF global, règles, IPs bloquées — compléter et tester.
+- **Réseau** : métriques RX/TX, connexions, menaces — interfaces et données.
+- **Menaces** : détection, logs, alertes — brancher données réelles et rapports.
+- **Analyse sécurité** : graphiques dans le temps (disponibilité, taux d’erreur, DNS).
+- **Logs de sécurité** : temps réel + persistance BDD, par conteneur.
+- **Rapport de sécurité** : génération et affichage (stats globales, données sécurité).
+- **Stats globales sécurité** : tableau de bord dédié si prévu.
+
+### 4. Gestion des Emails (pas opérationnel)
+- **Templates** : création, édition, liste.
+- **Configuration** : SMTP, expéditeur, options — et test SMTP (503 à corriger).
+- **Déliverabilité** : suivi, stats, alertes.
+- **Historique / logs** : URL 404 à corriger ; afficher les envois et statuts.
+
+### 5. Parcours utilisateur
+- **Parcours prédéfinis** (`/backoffice/user-journey`) : vérifier données et navigation.
+- **Parcours personnalisé** (`/backoffice/user-journey/custom`) : création, édition, exécution.
+
+### 6. Gestion des services & données
+- **Gestion des services** : liste complète, détail service (métriques, logs), management (redémarrage, config).
+- **Logs des services** : centralisation, filtres, persistance.
+- **Données utilisateur** : export, suppression, récupération — conformité RGPD.
+- **Récupérer stats utilisateur** : API et écrans backoffice.
+- **Comptes, abonnement, paiement, facturation** : si prévus — implémenter ou documenter « hors scope ».
+- **Corbeille / archives** : restauration, purge, politique de rétention.
+
+### 7. Application mobile & outils dev
+- **Émulateur mobile** : `/backoffice/mobile-emulator` — rendre opérationnel (connexion, prévisualisation).
+- **Génération de données de test** : interface `/backoffice/test-data` — génération depuis l’UI (appels API ou scripts).
+- **Personnalisation / création** : parcours personnalisés, templates, etc. — vérifier que tout est créable/éditable comme prévu.
+
+### 8. Performances & Analytics
+- **Analytics** : enrichir stats (agrégations, tendances, comparaisons, exports).
+- **Analytics conteneurs** : données et graphiques cohérents.
+- **Performances** : onglet Performance (métriques réelles), alertes/seuils optionnels.
+- **Analytics utilisateur** : onglet « Versions & App mobile » — API versions à implémenter (404).
+
+### 9. Monitoring, centralLogger, événements
+- **centralLogger / logger-filter** : déployer dans tous les services ; documenter ; garder logger-filter en sync.
+- **Événements & rappels** : backoffice OK ; app mobile — connecter API + rappels locaux/push.
+- **monitoring-c** : stabilité (ERR_EMPTY_RESPONSE, starting) ; tests de charge, CI performance.
+
+### 10. Documentation et cohérence
+- **ERRORS.md** : tenir à jour (erreurs connues, corrigées, en attente).
+- **RESOLUTIONS.md**, **TESTS_END.md**, **TODO_PERFORMANCE.md** : alignés avec STATUS (à faire vs fait).
+
+**Prochaine étape suggérée** : 1) **Tester** les tests API depuis le backoffice (Docker) pour valider la correction ; 2) Corriger SMTP (503) et logs emails (404) ; 3) Sécurité (firewall, politiques, menaces) ; 4) Emails (templates, config, délivrabilité).
+
+---
+
+## 🔐 Migration et sécurisation complète (à faire en dernier)
+
+**À réaliser après** : finalisation du backoffice, tests complets, API complète et tout ce qui est listé dans les sections « À FAIRE » ci-dessus. Ne pas démarrer cette phase tant que l’API et les fonctionnalités métier ne sont pas stables.
+
+### Objectifs
+- **Authentification** : migrer le service d’authentification vers **Go** (ou Rust si possible) pour des perfs et une maintenabilité maximales, avec une sécurité renforcée.
+- **Chiffrement et données** : module dédié pour le chiffrement des données en transit (API), hash forts, salage, paramètres de travail (coût) adaptés.
+- **Sessions et JWT** : TTL courts, refresh token stocké côté serveur, blacklist, rotation, tokens de vérification / reset **aléatoires non prédictibles**, TTL limité, usage one-shot, **aucun secret en clair dans l’URL**.
+- **Protection brute force** : rate limiting, lockout temporaire, CAPTCHA si possible.
+- **Transport** : HTTPS partout (TLS).
+- **Validation** : validation stricte des entrées (inputs) côté API.
+- **Stack cible** : Go (ou Rust) pour le service auth et les briques sensibles, ultra performant et sécurisé.
+
+### À planifier quand l’API sera complète
+- Migration progressive du service auth (Node → Go/Rust).
+- Module de chiffrement (données en transit, at-rest si besoin).
+- Refonte JWT + refresh (stockage serveur, blacklist, rotation).
+- Rate limiting, lockout, CAPTCHA.
+- Audit et durcissement global (HTTPS, headers, validation stricte).
+
+---
+
+## ✅ Résolu / Fait (ce qui a été fait)
+
+### Derniers faits (Février 2026)
+- **Tests API depuis Docker** : (1) **`sh`** au lieu de `bash` dans toutes les routes run-*. (2) **Chemins absolus** pour les scripts. (3) **Racine = `/app`** : `PROJECT_ROOT=/app` dans docker-compose et volume **`./scripts:/app/scripts:ro`** pour que les scripts soient disponibles sans dépendre de `.:/workspace` (qui n’existait pas dans ton environnement). Rapports dans `/app/tests/results`. **À valider** : redémarrer le frontend puis lancer les tests API depuis le backoffice.
+- **Page backoffice/analytics (vue d’ensemble)** : chargement accéléré — `startDate`/`endDate`, `limit` 500, rafraîchissement 60 s ; suppression des `console.log`.
+- **Bouton retour et plage de dates** : sur Performances complètes, réseau, applicatives, Analytics conteneurs : bouton « ← Retour à la vue d’ensemble » puis titre et période ; **TimeRangeSelector** : « Plage personnalisée » dans `<details>`.
+- **Drawer** : **Sécurité** avec item parent + subItems (Logs, Politiques, Analyse, Firewall, Réseau, Menaces). **Gestion des Emails** : un item parent « Gestion des Emails » avec **subItems décalés** (Dashboard, Email Monitor, Historique, Templates, Configuration, Déliverabilité) — même rendu que Tests. **Développement** : Tests et Parcours Utilisateur avec subItems.
+- **Tests API et rapports** : PROJECT_ROOT (`/workspace`), volume `.:/workspace` ; routes run-* synchrones avec **reportId** ; lien « Voir le rapport généré » ; Rapports de tests avec catégorie (badge) et `?open=ID` ; summary.json pour catégorie/nom.
+
+### Modifications récentes (layout, Analytics conteneurs)
+
+- **Layout** : les pages **Performances complètes**, **Analytics conteneurs**, **Performances réseau**, **Performances applicatives** utilisent la pleine largeur (`p-6 space-y-6 w-full`), comme Analytics utilisateur.
+- **Analytics conteneurs** : liste des conteneurs via **`/api/v1/docker/services/all`** (metrics-aggregator). L’historique par conteneur dépend de la persistance BDD (persistence/containers/:name/metrics).
+
+---
+
+## ✅ Flux métriques : une seule source (metrics-aggregator)
+
+- **Architecture** : le **frontend** ne parle qu’au **metrics-aggregator** (port 5004). L’aggregator récupère les données depuis **monitoring-c** (en interne), les persiste en BDD et les expose au frontend. **monitoring-c** n’est plus appelé directement par le frontend.
+- **Modifications** : `centralMetricsService` utilise uniquement `metricsAggregatorUrl` (plus de fallback monitoring-c). Liste des services, détail service, métriques système/conteneurs, historique et logs passent tous par metrics-aggregator (`/api/v1/metrics`, `/api/v1/docker/services/all`, `/api/v1/docker/service/:name`, `/api/v1/docker/service/:name/logs`, etc.). Port par défaut 5004 (plus 8014). Ancien `metricsService.ts` (Prometheus/ancien système) supprimé.
+
+---
+
 ## ✅ Modifications récentes (db-push-all, navigation, Services & Logs, liste services)
 
-- **`make db-push-all`** : le script `scripts/db/db-push-all.sh` fait (1) Prisma db push sur tous les services (auth, application, etc.), (2) `init-system-metrics.sql` (system_metrics, container_metrics, service_availability_history), (3) **`init-key-tables.sql`** (security_logs, system_metrics_snapshots, network_connections, **network_threats**). Les tables clés sont bien créées par `make db-push-all`. Commentaire en tête du script.
-- **Navigation** : section **Sécurité** sans doublon (items plats : Logs de Sécurité, Politiques, Analyse, Firewall, Réseau, Menaces). Sous **Statistiques & Monitoring** : lien **« Logs des conteneurs »** vers `/backoffice/services/logs`.
-- **Services & Logs** : appel d’abord à l’API Gateway (`/api/v1/security/logs`, `/api/v1/logs`) pour afficher les logs sécurité même si log-collector (5099) renvoie 500 ; puis tentative log-collector pour enrichir.
-- **Liste des services** : si monitoring-c répond avec 0 conteneurs, fallback vers **metrics-aggregator** (`/api/v1/docker/services/all`) pour afficher la liste au lieu de « Aucun service disponible ».
-- **Détail service** : logs via metrics-aggregator ; affichage null-safe. À faire : graphiques sécurité dans le temps, logs par conteneur en BDD + temps réel.
+- **`make db-push-all`** : le script fait (1) Prisma db push, (2) `init-system-metrics.sql`, (3) **`init-key-tables.sql`** (security_logs, system_metrics_snapshots, network_connections, **network_threats**). Commentaire en tête du script.
+- **Navigation** : section **Sécurité** sans doublon. **Statistiques & Monitoring** : uniquement « Vue d'ensemble » (suppression du doublon « Logs des conteneurs » ; les logs conteneurs restent sous **Gestion des services** > **Services & Logs**).
+- **Services & Logs** : API Gateway d’abord (logs sécurité), puis log-collector pour enrichir si dispo.
+- **Liste des services** : uniquement **metrics-aggregator** (`/api/v1/docker/services/all` puis `/api/v1/metrics` en fallback).
+- **Détail service** : métriques et logs via metrics-aggregator uniquement.
 
 ---
 
@@ -64,25 +192,6 @@
 - **Erreurs Postgres « relation … does not exist » en masse** : les tables (service_availability_history, system_metrics_snapshots, container_logs, **security_logs**, **network_connections**, **UserCustomization**, etc.) sont créées par **auth-service** lors de `make db-push-all`. **À faire** : 1) Démarrer Postgres et auth-service (`docker compose up -d postgres auth-service` ou `make up-full`), 2) **`make db-push-all`** (à lancer depuis la racine du projet). Si les erreurs persistent : **`make rebuild-service SERVICE=auth-service`** puis **`make db-push-all`**.
 - **metrics-aggregator [unhealthy]** : souvent lié aux tables absentes. Après `make db-push-all` (et éventuellement `make rebuild-metrics-aggregator`), le service devrait repasser healthy.
 
-## ⏳ Ce qu’il reste à faire (suite roadmap)
-
-- **centralLogger** : déployé dans auth-service, application-service et security-service. **logger-filter** : copies locales conservées (build Docker n’inclut pas `shared`) ; garder en sync avec `backend/shared/logger-filter.js`.
-- **Interfaces sécurité/réseau** : opérationnelles — backoffice sécurité utilise l’API Gateway (5002) pour logs, analyse, firewall, menaces, tableau réseau. Analyse de sécurité via `getSecuritySummary` (security-service).
-- **Événements & rappels** : backoffice en place (liste, calendrier, CRUD, filtres, type « Rappel »). App mobile : écran « Événements & Rappels » ajouté (route `/events`) ; à connecter à l’API `GET/POST /api/v1/events` et rappels locaux/push.
-- **Flux métriques** : **Frontend** appelle **metrics-aggregator** (port 5004, `GET /api/v1/metrics`) en priorité ; l’aggregator récupère les métriques depuis **monitoring-c** (toutes les 10 s) et les expose. Si l’aggregator est down, le frontend bascule sur monitoring-c (fallback). À terme, le **security-service** (et d’autres) pourront alimenter l’aggregator pour un tableau de bord unifié (métriques + sécurité). Un « super-aggregator » au-dessus de tout est optionnel plus tard.
-- **Organisation métriques type ex-systems** : compression graphiques mémoire/réseau en place (page Performances complètes). **Divers** : monitoring-c (stabilité, ERR_EMPTY_RESPONSE), tests de charge, CI/docs performance.
-- **Statistiques & Monitoring / Sécurité** : graphiques navigables dans le temps (disponibilité, taux d'erreur, DNS) pour l'onglet Sécurité ; logs par conteneur en temps réel + persistance BDD pour consultation dans le temps et combinaison multi-conteneurs.
-
-### À faire – Analytics, stats utilisateurs et application mobile
-- **Analytics** : récupérer et afficher plus de stats (données agrégées par utilisateur, par période, par type d’événement). Enrichir les tableaux de bord (tendances, comparaisons, exports).
-- **Données utilisateurs** : stats détaillées par utilisateur (sessions, appareils, versions d’app, métriques d’usage). Croisement avec les données métier (candidatures, événements, erreurs).
-- **Application mobile** : remonter et afficher les métriques spécifiques (version app, OS, device, crashs, temps de chargement, événements in-app). S’assurer que l’app envoie bien `platform`, `appVersion`, `deviceId` (sessions, événements, `POST /api/v1/analytics/device`). Exploiter l’onglet « Versions & App mobile » dans Analytics utilisateur.
-- **Performances & Analytics** : compléter l’onglet Performance (métriques réelles), lier les métriques mobile aux graphiques, alertes ou seuils optionnels.
-
-**Fait (sécurité, analytics)** : Logs de sécurité (backoffice) via gateway 5002. Analyse de sécurité (résumé 24h). Firewall, menaces, tableau réseau (pages dédiées). — **Performances complètes** : page enrichie (CPU, mémoire, réseau système), plage personnalisée séparée, affichage de la plage avec flèches, **bouton « Période actuelle »**. **Analytics conteneurs** : option **« Tous les conteneurs »** avec graphiques combinés (CPU et mémoire par conteneur), sélecteur + plage + bouton Période actuelle. **Sécurité > Réseau** : libellé « Statistiques réseau orientées sécurité ». **Nouvelles pages** sous Performances & Analytics : **Performances réseau** (RX/TX système), **Performances applicatives** (temps de réponse, disponibilité, totaux utilisateurs/candidatures depuis l’app).
-
----
-
 ## 🎯 Vue d’ensemble de l’application
 
 | Domaine | Description | Statut |
@@ -91,7 +200,7 @@
 | **Monitoring** | monitoring-c (C), log-collector-c, métriques temps réel | ✅ Opérationnel |
 | **Collecteur de statistiques** | metrics-aggregator-service (Node), persistance Prisma/PostgreSQL, snapshots système et conteneurs | ✅ Opérationnel (tables créées via `make db-push-all`) |
 | **Historique des métriques** | PostgreSQL (system_metrics, container_metrics, tables Prisma metrics-aggregator), Analytics backoffice, périodes 1h → 30j + plage personnalisée | ✅ En place |
-| **Sécurité / Firewall** | security-service, WAF dans l’API Gateway, firewall engine (iptables, fallback en dev) | ✅ Opérationnel |
+| **Sécurité / Firewall** | security-service, WAF dans l’API Gateway, firewall engine (iptables, fallback en dev) ; interfaces et flux complets à finaliser | ⏳ Partiel (à finaliser) |
 | **Système de comptes** | auth-service (JWT, refresh, inscriptions, rôles) | ✅ Opérationnel |
 | **Application mobile** | Flutter (mobile/) ; écran Événements & Rappels ajouté (/events) ; à connecter à l’API événements | ⏳ En cours |
 
@@ -150,39 +259,7 @@
 
 ---
 
-## ⏳ À faire (suite)
-
-### Priorité
-- **centralLogger / logger-filter** : déployé dans auth, application et security ; étendre aux autres services si besoin. Copies locales du logger-filter conservées (Docker).
-- **Événements & rappels** : backoffice fait (CRUD, liste, calendrier, type rappel). Mobile : écran /events en place ; brancher API + rappels/notifications.
-
-### Graphiques, monitoring, structure
-- **Compression** : étendre aux graphiques mémoire et réseau ; startDate/endDate plage personnalisée.
-- **monitoring-c** : réduire ERR_EMPTY_RESPONSE / mode starting ; retry frontend si besoin.
-- **Temps de réponse** : vérifier /health et avg_response_time_ms. **Frontend** : unifier /analytics vs /backoffice/analytics.
-- **Références** : make git-checkout, TESTS_END.md, FIREWALL_PLAN.md. Tests de charge, CI performance.
-
-
----
-
-## 📋 Modifications prévues / Roadmap (suite)
-
-### Déjà en place
-- **Status (backoffice)** : 21/21 services actifs ; tables créées via db-push-all ; sources (monitoring-c + metrics-aggregator) branchées.
-- **Sécurité** : Tables security_logs, firewall_rules, network_connections créées ; interfaces backoffice à rendre pleinement opérationnelles si besoin.
-
-### À faire (priorité)
-- **centralLogger / logger-filter** : déployer partout ; documenter ; supprimer copies locales.
-- **Événements & rappels** : backoffice (CRUD, filtres) + app mobile (calendrier, notifications).
-- **Réseau** : Métriques RX/TX, menaces ; interfaces associées ; ex-systems stables et documentés.
-- **Gestion des services** : liste complète (tous les services connus visibles même si monitoring-c n’en remonte qu’une partie) ; détail service stable pour tous les conteneurs (metrics-aggregator, api-gateway, etc.).
-- **Analytics & mobile** : stats utilisateur enrichies, métriques app mobile (versions, crashs, perfs), tableau de bord unifié.
-- **Gestion des services** : liste complète (tous les services connus visibles même si monitoring-c n’en remonte qu’une partie) ; détail service stable pour tous les conteneurs (metrics-aggregator, api-gateway, etc.).
-- **Analytics & mobile** : stats utilisateur enrichies, métriques app mobile (versions, crashs, perfs), tableau de bord unifié.
-
-### Collecte et ex-systems
-- **Collecte** : CPU Projet / Mémoire Projet en continu (déjà fallback Docker + percent_of_system).
-- **ex-systems** : Améliorer monitoring-c et log-collector-c (stabilité, healthchecks) ; documenter les flux ; Network Monitor en C selon FIREWALL_PLAN.md si prévu.
+## 📋 Détails techniques (référence)
 
 ### centralLogger et logger-filter (backend shared)
 - **centralLogger.js** (`backend/shared/utils/centralLogger.js`) : Envoi des logs ERROR/WARN/FATAL vers le metrics-aggregator (`POST /api/v1/persistence/logs`). URL par défaut : `http://jobbingtrack-metrics-aggregator:3014` (ou `METRICS_SERVICE_URL` / `METRICS_AGGREGATOR_URL`). À utiliser dans les microservices pour centraliser les logs côté agrégateur.
@@ -207,11 +284,31 @@
 
 ## 🚀 Commandes utiles
 
+### Arrêt et redémarrage complet (tout arrêter puis tout relancer)
 ```bash
 # Depuis la racine du repo
 
+# 1) Tout arrêter (volumes supprimés)
+make down
+
+# 2) Tout redémarrer
+make up-full
+
+# 3) Si besoin : recréer uniquement le frontend (ex. après modif volume scripts)
+docker compose -f docker-compose.yml up -d --force-recreate frontend
+```
+**Note** : `make down` utilise uniquement `docker-compose.yml` (pas le fichier monitoring) pour éviter l’erreur « depends on undefined service monitoring-c ». Les conteneurs restants (ex. log-collector) sont stoppés par la ligne suivante dans le Makefile.
+
+### Autres commandes
+```bash
 # Statut de tous les services
 make status
+
+# Arrêter SANS supprimer les volumes (garder la DB)
+make down-keep-data
+
+# Redémarrage complet en gardant les données (down-keep-data + up-full)
+make restart-full
 
 # Démarrer tous les services (Postgres doit tourner pour db-push-metrics)
 make up-full
@@ -240,9 +337,6 @@ make rebuild-metrics-aggregator
 # Nettoyer les métriques
 make db-push-metrics
 make db-clean-metrics
-
-# Arrêter
-make down
 ```
 
 **Note db-push** : `make db-push-all` exécute le push dans chaque conteneur (auth, application, company, etc.) ; les tables security/deployment/metrics sont créées par le schéma auth-service. Postgres et les conteneurs listés doivent être démarrés. Lancer depuis la **racine** du repo. `.env` doit contenir `DATABASE_URL=postgresql://...@localhost:PORT/jobbingtrack?schema=public` (PORT = `POSTGRES_PORT`) si besoin de Prisma en local.

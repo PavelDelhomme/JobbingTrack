@@ -45,7 +45,7 @@ export default function ServiceDetailPage() {
       setError(null);
 
       // Récupérer les métriques du service
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014';
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
       const metricsRes = await fetch(`${metricsUrl}/api/v1/container/jobbingtrack-${serviceName}`);
       
       if (metricsRes.ok) {

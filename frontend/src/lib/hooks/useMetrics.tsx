@@ -99,11 +99,11 @@ export function useMetrics() {
 
   const initSocket = () => {
     try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004'
       console.log('[METRICS] Connexion à:', metricsUrl)
 
       // Créer une connexion WebSocket avec timeout
-      const socket = new WebSocket(`ws://localhost:8014`)
+      const socket = new WebSocket(metricsUrl.replace(/^http/, 'ws'))
 
       // Timeout de connexion
       const connectionTimeout = setTimeout(() => {
@@ -243,7 +243,7 @@ export function useMetrics() {
 
   const refreshMetrics = async () => {
     try {
-      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:8014'
+      const metricsUrl = process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004'
       const response = await fetch(`${metricsUrl}/api/v1/metrics`, {
         signal: AbortSignal.timeout(5000) // Timeout de 5 secondes
       })

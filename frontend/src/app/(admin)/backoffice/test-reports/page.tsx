@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X } from 'lucide-react'
@@ -30,6 +31,9 @@ interface TestReport {
 }
 
 export default function TestReportsPage() {
+  const searchParams = useSearchParams()
+  const openReportId = searchParams.get('open')
+  const hasOpenedRef = useRef(false)
   const { user, loading: authLoading, isAuthenticated, token } = useAuth()
   const [reports, setReports] = useState<TestReport[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,35 +54,23 @@ export default function TestReportsPage() {
     }
   }, [authLoading, isAuthenticated])
 
-  // Gérer la touche Escape pour fermer le plein écran
+  // Ouvrir automatiquement le rapport si ?open=ID est dans l'URL
+  useEffect(() => {
+    if (!openReportId || reports.length === 0 || hasOpenedRef.current) return
+    const found = reports.some(r => r.id === openReportId)
+    if (found) {
+      hasOpenedRef.current = true
+      loadReportContent(openReportId)
+    }
+  }, [openReportId, reports])
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false)
-      }
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false)
     }
-
     if (isFullscreen) {
       window.addEventListener('keydown', handleEscape)
-      return () => {
-        window.removeEventListener('keydown', handleEscape)
-      }
-    }
-  }, [isFullscreen])
-
-  // Gérer la touche Escape pour fermer le plein écran
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false)
-      }
-    }
-
-    if (isFullscreen) {
-      window.addEventListener('keydown', handleEscape)
-      return () => {
-        window.removeEventListener('keydown', handleEscape)
-      }
+      return () => window.removeEventListener('keydown', handleEscape)
     }
   }, [isFullscreen])
 
@@ -444,6 +436,11 @@ export default function TestReportsPage() {
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getStatusIcon(report.status)}
                         <div className="flex-1 min-w-0">
+                          {report.category && (
+                            <span className="inline-block text-xs font-medium px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mb-1">
+                              {report.category}
+                            </span>
+                          )}
                           <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                             {report.name || `Rapport du ${report.date}`}
                           </h3>
