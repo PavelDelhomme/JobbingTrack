@@ -90,17 +90,26 @@ interface Statistics {
     byType: Record<string, number>
     thisMonth: number
     thisWeek: number
+    today?: number
   }
   users: {
     total: number
     byRole: Record<string, number>
     activeUsers: number
     newThisMonth: number
+    newThisWeek?: number
   }
   companies: {
     total: number
     byIndustry: Record<string, number>
     bySize: Record<string, number>
+    thisMonth?: number
+    thisWeek?: number
+  }
+  contacts?: {
+    total: number
+    thisMonth?: number
+    thisWeek?: number
   }
   performance: {
     averageResponseTime: number
@@ -556,19 +565,28 @@ export default function StatisticsPage() {
           byStatus: appStats?.applications?.by_status || {},
           byType: appStats?.applications?.by_type || {},
           thisMonth: appStats?.applications?.this_month || 0,
-          thisWeek: appStats?.applications?.this_week || 0
+          thisWeek: appStats?.applications?.this_week || 0,
+          today: appStats?.applications?.today
         },
         users: {
           total: appStats?.users?.total || 0,
           byRole: appStats?.users?.by_role || {},
           activeUsers: appStats?.users?.active || 0,
-          newThisMonth: appStats?.users?.new_this_month || 0
+          newThisMonth: appStats?.users?.new_this_month || 0,
+          newThisWeek: appStats?.users?.new_this_week ?? 0
         },
         companies: {
           total: appStats?.companies?.total || 0,
           byIndustry: appStats?.companies?.by_industry || {},
-          bySize: appStats?.companies?.by_size || {}
+          bySize: appStats?.companies?.by_size || {},
+          thisMonth: appStats?.companies?.this_month,
+          thisWeek: appStats?.companies?.this_week
         },
+        contacts: appStats?.contacts ? {
+          total: appStats.contacts.total || 0,
+          thisMonth: appStats.contacts.this_month,
+          thisWeek: appStats.contacts.this_week
+        } : undefined,
         performance: {
           averageResponseTime: averageResponseTime,
           successRate: 100 - parseFloat(metricsStats?.errors?.rate || '0.0'),
@@ -846,6 +864,89 @@ const OverviewTab = memo(function OverviewTab({ stats, previousStats, chartData,
 
   return (
     <div className="space-y-6">
+      {/* Statistiques des données : totaux + évolution */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          📋 Statistiques des données
+        </h2>
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+              Totaux globaux
+            </h3>
+            <ul className="space-y-2 text-gray-900 dark:text-gray-100">
+              <li className="flex justify-between items-baseline">
+                <span>Utilisateurs</span>
+                <span className="text-xl font-bold">{stats.users.total.toLocaleString()}</span>
+              </li>
+              <li className="flex justify-between items-baseline">
+                <span>Candidatures</span>
+                <span className="text-xl font-bold">{stats.applications.total.toLocaleString()}</span>
+              </li>
+              <li className="flex justify-between items-baseline">
+                <span>Entreprises</span>
+                <span className="text-xl font-bold">{stats.companies.total.toLocaleString()}</span>
+              </li>
+              <li className="flex justify-between items-baseline">
+                <span>Contacts</span>
+                <span className="text-xl font-bold">{(stats.contacts?.total ?? 0).toLocaleString()}</span>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+              Évolution (nouveaux par période)
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-700 dark:text-gray-300">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-600">
+                    <th className="py-2 pr-4 font-medium"></th>
+                    <th className="py-2 px-2 font-medium text-center">Cette semaine</th>
+                    <th className="py-2 px-2 font-medium text-center">Ce mois</th>
+                    {(stats.applications.today !== undefined && stats.applications.today !== null) && (
+                      <th className="py-2 px-2 font-medium text-center">Aujourd&apos;hui</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="py-2 pr-4">Nouveaux utilisateurs</td>
+                    <td className="py-2 px-2 text-center font-semibold">{stats.users.newThisWeek ?? 0}</td>
+                    <td className="py-2 px-2 text-center font-semibold">{stats.users.newThisMonth ?? 0}</td>
+                    {(stats.applications.today !== undefined && stats.applications.today !== null) && <td className="py-2 px-2 text-center">—</td>}
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="py-2 pr-4">Nouvelles candidatures</td>
+                    <td className="py-2 px-2 text-center font-semibold">{stats.applications.thisWeek ?? 0}</td>
+                    <td className="py-2 px-2 text-center font-semibold">{stats.applications.thisMonth ?? 0}</td>
+                    {(stats.applications.today !== undefined && stats.applications.today !== null) && (
+                      <td className="py-2 px-2 text-center font-semibold">{stats.applications.today}</td>
+                    )}
+                  </tr>
+                  {(stats.companies?.thisWeek !== undefined || stats.companies?.thisMonth !== undefined) && (
+                    <tr className="border-b border-gray-100 dark:border-gray-700">
+                      <td className="py-2 pr-4">Nouvelles entreprises</td>
+                      <td className="py-2 px-2 text-center font-semibold">{stats.companies.thisWeek ?? 0}</td>
+                      <td className="py-2 px-2 text-center font-semibold">{stats.companies.thisMonth ?? 0}</td>
+                      {(stats.applications.today !== undefined && stats.applications.today !== null) && <td className="py-2 px-2 text-center">—</td>}
+                    </tr>
+                  )}
+                  {(stats.contacts?.thisWeek !== undefined || stats.contacts?.thisMonth !== undefined) && (
+                    <tr className="border-b border-gray-100 dark:border-gray-700">
+                      <td className="py-2 pr-4">Nouveaux contacts</td>
+                      <td className="py-2 px-2 text-center font-semibold">{stats.contacts.thisWeek ?? 0}</td>
+                      <td className="py-2 px-2 text-center font-semibold">{stats.contacts.thisMonth ?? 0}</td>
+                      {(stats.applications.today !== undefined && stats.applications.today !== null) && <td className="py-2 px-2 text-center">—</td>}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Cartes de résumé - Statistiques métier */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

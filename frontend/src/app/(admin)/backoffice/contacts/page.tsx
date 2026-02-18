@@ -10,7 +10,7 @@ import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 interface Contact {
   id: string;

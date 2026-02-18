@@ -77,12 +77,12 @@ export default function SystemMetricsWidget({ metrics, className = '' }: SystemM
 
         <MetricCard
           title="Disque"
-          value={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? `${metrics.disk[0].usage}%` : 'N/A') : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
+          value={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? `${metrics.disk[0].usage}%` : typeof (metrics.disk[0] as any).usage_percent === 'number' ? `${(metrics.disk[0] as any).usage_percent}%` : 'N/A') : typeof metrics.diskUsage === 'number' ? `${metrics.diskUsage}%` : 'N/A'}
           change={{
             value: 0, // TODO: Calculer le vrai changement
             label: 'vs hier'
           }}
-          trend={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : 'neutral') : 'neutral'}
+          trend={metrics.disk && metrics.disk.length > 0 ? (typeof metrics.disk[0].usage === 'number' ? (metrics.disk[0].usage > 90 ? 'up' : 'neutral') : typeof (metrics.disk[0] as any).usage_percent === 'number' ? ((metrics.disk[0] as any).usage_percent > 90 ? 'up' : 'neutral') : 'neutral') : 'neutral'}
           icon={<span className="text-purple-500">💾</span>}
         />
 

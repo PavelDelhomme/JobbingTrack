@@ -1,0 +1,530 @@
+'use client';
+
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { AdminLayout } from '@/components/features';
+import { ChevronLeft, ChevronRight } from '@/lib/icons';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { analyticsService } from '@/lib/api/analytics.service';
+
+const ALL_CONTAINERS_VALUE = '__all__';
+type TimeRangeOption = '24h' | '7d' | '30d';
+
+interface ContainerInfo {
+  name: string;
+  service_type?: string;
+  cpu_percent?: number;
+  memory_percent?: number;
+  health_status?: string;
+  [key: string]: unknown;
+}
+
+interface ContainerMetric {
+  timestamp: string;
+  cpuUsagePercent?: number | null;
+  memoryUsagePercent?: number | null;
+}
+
+function compressData<T extends { timestamp: string }>(
+  data: T[],
+  targetMax: number,
+  valueKeys: (keyof T)[]
+): T[] {
+  if (data.length <= targetMax) return data;
+  const step = data.length / targetMax;
+  const out: T[] = [];
+  for (let i = 0; i < targetMax; i++) {
+    const start = Math.floor(i * step);
+    const end = Math.min(Math.floor((i + 1) * step), data.length);
+    const slice = data.slice(start, end);
+    if (slice.length === 0) continue;
+    const mid = slice[Math.floor(slice.length / 2)];
+    const avg: Record<string, number> = {};
+    valueKeys.forEach((k) => {
+      const key = String(k);
+      const nums = slice
+        .map((s) => (s as Record<string, unknown>)[key] as number)
+        .filter((n) => typeof n === 'number' && !Number.isNaN(n));
+      avg[key] = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+    });
+    out.push({ ...mid, ...avg } as T);
+  }
+  return out;
+}
+
+function getPeriodForRange(range: TimeRangeOption, windowEnd: Date) {
+  const end = new Date(windowEnd);
+  let start: Date;
+  let limit: number;
+  switch (range) {
+    case '24h':
+      start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+      limit = 1440;
+      break;
+    case '7d':
+      start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+      limit = 10080;
+      break;
+    case '30d':
+      start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+      limit = 43200;
+      break;
+    default:
+      start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+      limit = 1440;
+  }
+  return { start, end, limit };
+}
+
+export default function ContainersAnalyticsPage() {
+  const [containers, setContainers] = useState<ContainerInfo[]>([]);
+  const [selectedContainer, setSelectedContainer] = useState<string>('');
+  const [rawMetrics, setRawMetrics] = useState<ContainerMetric[]>([]);
+  const [rawMetricsByContainer, setRawMetricsByContainer] = useState<Record<string, ContainerMetric[]>>({});
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [customStart, setCustomStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const getParams = useCallback(() => {
+    if (useCustomRange) {
+      const start = new Date(customStart + 'T00:00:00.000Z');
+      const end = new Date(customEnd + 'T23:59:59.999Z');
+      const durationMs = Math.max(0, end.getTime() - start.getTime());
+      const limit = Math.min(Math.ceil(durationMs / (60 * 1000)), 43200);
+      return {
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        limit,
+        rangeStart: start,
+        rangeEnd: end,
+      };
+    }
+    const { start, end, limit } = getPeriodForRange(timeRange, windowEnd);
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      limit,
+      rangeStart: start,
+      rangeEnd: end,
+    };
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingList(true);
+      try {
+        const list = await analyticsService.getContainersList();
+        if (!cancelled) {
+          setContainers(list);
+          if (list.length > 0 && selectedContainer === '') {
+            setSelectedContainer(ALL_CONTAINERS_VALUE);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) setContainers([]);
+      } finally {
+        if (!cancelled) setLoadingList(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedContainer) {
+      setRawMetrics([]);
+      setRawMetricsByContainer({});
+      return;
+    }
+    const { startDate, endDate, limit } = getParams();
+    const opts = { startDate, endDate, limit, offset: 0 };
+
+    const normalize = (data: Record<string, unknown>[]) =>
+      (data || [])
+        .map((d) => ({
+          timestamp:
+            typeof d.timestamp === 'string'
+              ? d.timestamp
+              : (d.timestamp as Date)?.toISOString?.() ?? '',
+          cpuUsagePercent:
+            d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : d.cpu_usage_percent != null ? Number(d.cpu_usage_percent) : null,
+          memoryUsagePercent:
+            d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : d.memory_usage_percent != null ? Number(d.memory_usage_percent) : null,
+        }))
+        .filter((d) => d.timestamp)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    if (selectedContainer === ALL_CONTAINERS_VALUE) {
+      if (containers.length === 0) {
+        setRawMetricsByContainer({});
+        setLoadingMetrics(false);
+        return;
+      }
+      let cancelled = false;
+      setLoadingMetrics(true);
+      Promise.all(
+        containers.map((c) =>
+          analyticsService.getContainerMetricsHistory(c.name, opts).then((data: Record<string, unknown>[]) => ({ name: c.name, data: normalize(data) }))
+        )
+      )
+        .then((results) => {
+          if (cancelled) return;
+          const byName: Record<string, ContainerMetric[]> = {};
+          results.forEach((r) => { byName[r.name] = r.data; });
+          setRawMetricsByContainer(byName);
+        })
+        .catch(() => {
+          if (!cancelled) setRawMetricsByContainer({});
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingMetrics(false);
+        });
+      return () => { cancelled = true; };
+    }
+
+    let cancelled = false;
+    setLoadingMetrics(true);
+    setRawMetricsByContainer({});
+    analyticsService
+      .getContainerMetricsHistory(selectedContainer, opts)
+      .then((data: Record<string, unknown>[]) => {
+        if (cancelled) return;
+        setRawMetrics(normalize(data));
+      })
+      .catch(() => {
+        if (!cancelled) setRawMetrics([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMetrics(false);
+      });
+    return () => { cancelled = true; };
+  }, [selectedContainer, getParams, containers]);
+
+  const { rangeStart, rangeEnd } = getParams();
+  const rangeLabel = useCustomRange
+    ? `Du ${new Date(customStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${new Date(customEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : `Du ${rangeStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} au ${rangeEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+  const goPrev = useCallback(() => {
+    if (useCustomRange) {
+      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
+      const start = new Date(customStart);
+      const end = new Date(customEnd);
+      start.setDate(start.getDate() - days);
+      end.setDate(end.getDate() - days);
+      setCustomStart(start.toISOString().slice(0, 10));
+      setCustomEnd(end.toISOString().slice(0, 10));
+      return;
+    }
+    const { start } = getPeriodForRange(timeRange, windowEnd);
+    const period = windowEnd.getTime() - start.getTime();
+    setWindowEnd(new Date(windowEnd.getTime() - period));
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  const goNext = useCallback(() => {
+    if (useCustomRange) {
+      const days = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / (24 * 60 * 60 * 1000)) || 1;
+      const start = new Date(customStart);
+      const end = new Date(customEnd);
+      start.setDate(start.getDate() + days);
+      end.setDate(end.getDate() + days);
+      const today = new Date().toISOString().slice(0, 10);
+      if (end.toISOString().slice(0, 10) > today) {
+        setCustomEnd(today);
+        setCustomStart(new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+      } else {
+        setCustomStart(start.toISOString().slice(0, 10));
+        setCustomEnd(end.toISOString().slice(0, 10));
+      }
+      return;
+    }
+    const now = new Date();
+    const { start } = getPeriodForRange(timeRange, windowEnd);
+    const period = windowEnd.getTime() - start.getTime();
+    const nextEnd = new Date(windowEnd.getTime() + period);
+    setWindowEnd(nextEnd <= now ? nextEnd : now);
+  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
+
+  const canGoNext = useMemo(() => {
+    if (useCustomRange) return new Date(customEnd).toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
+    return windowEnd.getTime() < Date.now();
+  }, [useCustomRange, customEnd, windowEnd]);
+
+  const chartData = useMemo(() => {
+    if (selectedContainer !== ALL_CONTAINERS_VALUE) {
+      if (rawMetrics.length === 0) return [];
+      const keys: (keyof ContainerMetric)[] = ['cpuUsagePercent', 'memoryUsagePercent'];
+      const compressed = compressData(rawMetrics, 200, keys);
+      return compressed.map((d) => {
+        const date = new Date(d.timestamp);
+        return {
+          time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          datetime: date.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+          cpu: d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : null,
+          memory: d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : null,
+        };
+      });
+    }
+    const names = Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0);
+    if (names.length === 0) return [];
+    const toKey = (n: string) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_');
+    const allTs = new Set<string>();
+    names.forEach((n) => rawMetricsByContainer[n].forEach((m) => allTs.add(m.timestamp)));
+    const sortedTs = Array.from(allTs).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    const target = 200;
+    const step = sortedTs.length <= target ? 1 : Math.ceil(sortedTs.length / target);
+    const sampledTs = sortedTs.filter((_, i) => i % step === 0);
+    const getVal = (arr: ContainerMetric[], ts: string, key: 'cpuUsagePercent' | 'memoryUsagePercent') => {
+      const m = arr.find((x) => x.timestamp === ts);
+      if (!m || m[key] == null) return null;
+      return Number(m[key]);
+    };
+    return sampledTs.map((ts) => {
+      const date = new Date(ts);
+      const point: Record<string, string | number | null> = {
+        time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        datetime: date.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      };
+      names.forEach((n) => {
+        const k = toKey(n);
+        point[`cpu_${k}`] = getVal(rawMetricsByContainer[n], ts, 'cpuUsagePercent');
+        point[`memory_${k}`] = getVal(rawMetricsByContainer[n], ts, 'memoryUsagePercent');
+      });
+      return point;
+    });
+  }, [rawMetrics, rawMetricsByContainer, selectedContainer]);
+
+  const isAllContainers = selectedContainer === ALL_CONTAINERS_VALUE;
+  const containerNamesForChart = isAllContainers
+    ? Object.keys(rawMetricsByContainer).filter((n) => rawMetricsByContainer[n].length > 0).map((n) => n.replace(/^jobbingtrack-/, '').replace(/-/g, '_'))
+    : [];
+  const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
+
+  return (
+    <AdminLayout>
+      <div className="p-6 max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Analytics conteneurs
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Métriques par conteneur (CPU, mémoire) dans le temps.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/backoffice/analytics"
+          className="text-primary-600 hover:underline dark:text-primary-400 text-sm"
+        >
+          ← Retour à la vue d&apos;ensemble Analytics
+        </Link>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2">
+            <span className="text-gray-700 dark:text-gray-300 text-sm">
+              Conteneur
+            </span>
+            <select
+              value={selectedContainer}
+              onChange={(e) => setSelectedContainer(e.target.value)}
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 min-w-[240px]"
+              disabled={loadingList}
+            >
+              {loadingList ? (
+                <option value="">Chargement…</option>
+              ) : containers.length === 0 ? (
+                <option value="">Aucun conteneur</option>
+              ) : (
+                <>
+                  <option value={ALL_CONTAINERS_VALUE}>Tous les conteneurs (combiné)</option>
+                  {containers.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                      {c.health_status ? ` (${c.health_status})` : ''}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="text-gray-700 dark:text-gray-300 text-sm">
+              Période
+            </span>
+            <select
+              value={timeRange}
+              onChange={(e) => {
+                setTimeRange(e.target.value as TimeRangeOption);
+                if (!useCustomRange) setWindowEnd(new Date());
+              }}
+              disabled={useCustomRange}
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 disabled:opacity-60"
+            >
+              <option value="24h">24 h</option>
+              <option value="7d">7 jours</option>
+              <option value="30d">30 jours</option>
+            </select>
+          </label>
+          <div className="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1">
+            <button type="button" onClick={goPrev} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" aria-label="Période précédente">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="min-w-[180px] text-center text-sm text-gray-700 dark:text-gray-300">{rangeLabel}</span>
+            <button type="button" onClick={goNext} disabled={!canGoNext} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Période suivante">
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setUseCustomRange(false);
+              setWindowEnd(new Date());
+            }}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Période actuelle
+          </button>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Plage personnalisée</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Définir une plage de dates. Cochez « Utiliser cette plage » pour l&apos;appliquer à la vue actuelle.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              Du <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="px-2 py-1.5 bg-white dark:bg-gray-800 border rounded text-sm" />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              au <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="px-2 py-1.5 bg-white dark:bg-gray-800 border rounded text-sm" />
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={useCustomRange} onChange={(e) => setUseCustomRange(e.target.checked)} className="rounded border-gray-300 dark:border-gray-600" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Utiliser cette plage pour la vue actuelle</span>
+            </label>
+          </div>
+        </div>
+
+        {!selectedContainer && !loadingList ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+            Aucun conteneur disponible. Vérifiez que le metrics-aggregator et
+            Docker exposent les conteneurs JobbingTrack.
+          </div>
+        ) : loadingMetrics && (isAllContainers ? Object.keys(rawMetricsByContainer).length === 0 : rawMetrics.length === 0) && chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+            Chargement des métriques…
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
+            Aucune métrique persistée pour {isAllContainers ? 'ces conteneurs' : 'ce conteneur'} sur cette période.
+          </div>
+        ) : isAllContainers && containerNamesForChart.length > 0 ? (
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Tous les conteneurs — CPU (%)
+              </h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
+                  <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''} />
+                  <Legend />
+                  {containerNamesForChart.map((shortName, i) => (
+                    <Line
+                      key={`cpu_${shortName}`}
+                      type="monotone"
+                      dataKey={`cpu_${shortName}`}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                      strokeWidth={2}
+                      name={shortName}
+                      dot={false}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Tous les conteneurs — Mémoire (%)
+              </h2>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                  <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
+                  <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''} />
+                  <Legend />
+                  {containerNamesForChart.map((shortName, i) => (
+                    <Line
+                      key={`memory_${shortName}`}
+                      type="monotone"
+                      dataKey={`memory_${shortName}`}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                      strokeWidth={2}
+                      name={shortName}
+                      dot={false}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {containerNamesForChart.length} conteneur(s) · {chartData.length} points affichés
+            </p>
+          </>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {selectedContainer} — CPU et mémoire (%)
+            </h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                <XAxis dataKey="time" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 12 }} />
+                <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.datetime ?? ''}
+                  formatter={(value: number | null, name: string) => [
+                    value != null ? `${Number(value).toFixed(2)}%` : '—',
+                    name === 'cpu' ? 'CPU' : 'Mémoire',
+                  ]}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="cpu" stroke="#3B82F6" strokeWidth={2} name="CPU %" dot={false} connectNulls />
+                <Line type="monotone" dataKey="memory" stroke="#10B981" strokeWidth={2} name="Mémoire %" dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              {rawMetrics.length} points → {chartData.length} affichés
+            </p>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}

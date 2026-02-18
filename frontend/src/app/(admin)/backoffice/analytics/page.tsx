@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Cpu } from '@/lib/icons';
@@ -10,12 +10,13 @@ interface CPUMetric {
   cpu_usage_percent: number;
 }
 
-type TimeRangeOption = '1h' | '6h' | '24h' | '3d' | '7d' | '14d' | '21d' | '30d' | 'custom';
+type TimeRangeOption = 'today' | '1h' | '6h' | '24h' | '3d' | '7d' | '14d' | '21d' | '30d' | 'custom';
 
 export default function AnalyticsPage() {
   const [cpuData, setCpuData] = useState<CPUMetric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>('24h');
+  const hasDataRef = useRef(false);
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>('today');
   const [customStart, setCustomStart] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -37,6 +38,13 @@ export default function AnalyticsPage() {
       limit = Math.min(limit, 43200); // plafonner à 30 jours
     } else {
       switch (timeRange) {
+        case 'today': {
+          const startOfDay = new Date(now);
+          startOfDay.setHours(0, 0, 0, 0);
+          startDate = startOfDay;
+          limit = Math.min(1440, Math.ceil((now.getTime() - startOfDay.getTime()) / (60 * 1000)));
+          break;
+        }
         case '1h':
           startDate = new Date(now.getTime() - 1 * 60 * 60 * 1000);
           limit = 60;
@@ -81,7 +89,8 @@ export default function AnalyticsPage() {
   // Fonction pour récupérer les données CPU depuis metrics-aggregator-c
   const fetchCPUData = useCallback(async () => {
     try {
-      setLoading(true);
+      // Ne passer en chargement que si on n'a pas encore de données (évite N/A qui clignote au refetch)
+      if (!hasDataRef.current) setLoading(true);
       const { startDate, limit } = getTimeRangeParams();
       
       // Construire l'URL avec startDate et endDate
@@ -97,26 +106,14 @@ export default function AnalyticsPage() {
       // params.append('startDate', startDate.toISOString());
       // params.append('endDate', endDate.toISOString());
       
-      console.log('[CPU TEST] Requête avec params:', {
-        limit: limit.toString(),
-        offset: '0'
-      });
+      // L'API historique est UNIQUEMENT sur metrics-aggregator (5004). monitoring-c (5098) n'expose pas /persistence.
+      const metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || 'http://localhost:5004';
+      const url = `${metricsAggregatorUrl}/api/v1/persistence/system/metrics?${params.toString()}`;
       
-      // Essayer d'abord monitoring-c (port 5098), puis fallback vers metrics-aggregator (port 5004)
-      let response;
-      try {
-        response = await fetch(
-          `http://localhost:5098/api/v1/persistence/system/metrics?${params.toString()}`
-        );
-        if (!response.ok) {
-          throw new Error(`monitoring-c returned ${response.status}`);
-        }
-      } catch (error) {
-        console.warn('[CPU TEST] monitoring-c non disponible, fallback vers metrics-aggregator:', error);
-        response = await fetch(
-          `http://localhost:5004/api/v1/persistence/system/metrics?${params.toString()}`
-        );
-      }
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      });
       
       if (!response.ok) {
         console.error('[CPU TEST] Erreur API:', response.status, response.statusText);
@@ -171,6 +168,7 @@ export default function AnalyticsPage() {
         }
         
         setCpuData(mapped);
+        if (mapped.length > 0) hasDataRef.current = true;
       } else {
         console.warn('[CPU TEST] Format de réponse inattendu:', result);
       }
@@ -265,7 +263,8 @@ export default function AnalyticsPage() {
 
     // Définir le nombre maximum de points selon le timeRange (compression pour lisibilité)
     let targetMaxPoints = 200;
-    if (timeRange === '1h') targetMaxPoints = 30;
+    if (timeRange === 'today') targetMaxPoints = 100;
+    else if (timeRange === '1h') targetMaxPoints = 30;
     else if (timeRange === '6h') targetMaxPoints = 90;
     else if (timeRange === '24h') targetMaxPoints = 100;
     else if (timeRange === '3d') targetMaxPoints = 150;
@@ -345,6 +344,7 @@ export default function AnalyticsPage() {
             onChange={(e) => setTimeRange(e.target.value as TimeRangeOption)}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
           >
+            <option value="today">Aujourd'hui</option>
             <option value="1h">Dernière heure</option>
             <option value="6h">Dernières 6 h</option>
             <option value="24h">Dernières 24 h</option>

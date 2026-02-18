@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics
 
 # ============================================================================
 # AIDE
@@ -20,6 +20,9 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-push-all           - Synchroniser schémas Prisma (db push)"
 	@echo "  make db-push-auth          - Créer tables auth (User, etc.) si erreur 'User does not exist'"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
+	@echo "  make db-init-system-metrics - Créer system_metrics/container_metrics (monitoring-c) si absentes"
+	@echo "  make db-push-security      - Créer tables security (security_logs, firewall_rules, etc.)"
+	@echo "  make db-push-deployment    - Créer tables deployment (deployments)"
 	@echo "  make migrate-all           - Alias rapide pour db-migrate"
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
@@ -66,7 +69,7 @@ db-migrate: ## Appliquer les migrations Prisma sur tous les services
 	@echo "📦 Application des migrations Prisma..."
 	@echo ""
 	@echo "🔍 Vérification de la disponibilité de PostgreSQL..."
-	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
 	@echo "✅ PostgreSQL est disponible"
 	@echo ""
 	@echo "📂 Recherche des services avec Prisma..."
@@ -112,86 +115,23 @@ migrate-restart: ## Appliquer les migrations puis redémarrer les services actif
 	@echo "✅ Migrations appliquées et services redémarrés !"
 
 db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push)
-	@echo "🛠️  Synchronisation des schémas Prisma (db push)..."
-	@echo ""
-	@echo "🔍 Vérification de la disponibilité de PostgreSQL..."
-	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' d'abord." && exit 1)
-	@echo "✅ PostgreSQL est disponible"
-	@echo ""
 	@echo "📦 Services avec schémas Prisma à synchroniser:"
-	@echo "   - auth-service (tables principales: User, Application, Company, etc.)"
-	@echo "   - application-service (tables: Application, Platform, etc.)"
-	@echo "   - company-service (tables: Company, etc.)"
-	@echo "   - contact-service (tables: Contact, ContactCompany, ContactApplication, etc.)"
-	@echo "   - interview-service (tables: Interview, InterviewContact, etc.)"
-	@echo "   - call-service (tables: Call, etc.)"
-	@echo "   - followup-service (tables: FollowUp, FollowUpContact, etc.)"
-	@echo "   - event-service (tables: Event, etc.)"
-	@echo "   - metrics-aggregator (tables: SystemMetricsSnapshot, ContainerLog avec stream)"
-	@echo "   - security-service (tables: SecurityLog, Vulnerability, etc.)"
+	@echo "   - auth-service, application-service, company-service, contact-service,"
+	@echo "   - interview-service, call-service, followup-service, event-service,"
+	@echo "   - security-service, deployment-service, workflow-service, metrics-aggregator"
 	@echo ""
-	@PUSHED=0; \
-	SKIPPED=0; \
-	SERVICES="auth-service application-service company-service contact-service interview-service call-service followup-service event-service metrics-aggregator-service security-service deployment-service workflow-service"; \
-	for service in $$SERVICES; do \
-		CONTAINER="jobbingtrack-$$service"; \
-		if docker ps --format '{{.Names}}' | grep -q "^$$CONTAINER$$"; then \
-			echo "  🔍 Vérification de $$service..."; \
-			if docker exec $$CONTAINER test -f /app/prisma/schema.prisma 2>/dev/null; then \
-				echo "  📦 Prisma db push sur $$service..."; \
-				# ✅ OPTIMISATION : Ignorer les erreurs d'enums déjà existants (schémas partagés) \
-				PUSH_OUTPUT=$$(docker exec -w /app $$CONTAINER npx prisma db push --accept-data-loss 2>&1); \
-				PUSH_EXIT=$$?; \
-				if [ $$PUSH_EXIT -eq 0 ] || echo "$$PUSH_OUTPUT" | grep -q "already exists\|in sync\|Done in"; then \
-					echo "  ✅ $$service - Schéma synchronisé"; \
-					PUSHED=$$((PUSHED + 1)); \
-				else \
-					# Filtrer les erreurs d'enums déjà existants (non bloquantes) \
-					if echo "$$PUSH_OUTPUT" | grep -q "type.*already exists"; then \
-						echo "  ⚠️  $$service - Enums déjà existants (ignoré)"; \
-						PUSHED=$$((PUSHED + 1)); \
-					else \
-						echo "  ❌ $$service - Échec de prisma db push"; \
-						echo "     Erreur: $$PUSH_OUTPUT" | head -3; \
-						SKIPPED=$$((SKIPPED + 1)); \
-					fi; \
-				fi; \
-			else \
-				echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
-				SKIPPED=$$((SKIPPED + 1)); \
-			fi; \
-		else \
-			# Pour metrics-aggregator, essayer même si le conteneur n'est pas démarré (peut être dans un autre profil) \
-			if [ "$$service" = "metrics-aggregator-service" ]; then \
-				echo "  🔍 Vérification de $$service (hors conteneur)..."; \
-				if [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
-					echo "  📦 Prisma db push sur $$service (local, Prisma 6.x requis)..."; \
-					[ -f "$(ROOT_DIR)/.env" ] && set -a && . "$(ROOT_DIR)/.env" && set +a; \
-					export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
-					cd backend/metrics-aggregator-service && (npm install --no-save 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -12; \
-					cd ../.. 2>/dev/null || true; \
-					echo "  ✅ $$service - Schéma synchronisé (local)"; \
-					PUSHED=$$((PUSHED + 1)); \
-				else \
-					echo "  ⏭️  $$service - Pas de Prisma (ignoré)"; \
-					SKIPPED=$$((SKIPPED + 1)); \
-				fi; \
-			else \
-				echo "  ⚠️  $$service - Conteneur non démarré (ignoré)"; \
-				SKIPPED=$$((SKIPPED + 1)); \
-			fi; \
-		fi; \
-		echo ""; \
-	done; \
-	echo "✅ Synchronisation terminée !"; \
-	echo "   📦 Services synchronisés: $$PUSHED"; \
-	echo "   ⏭️  Ignorés/erreurs: $$SKIPPED"
+	@ROOT_DIR="$(ROOT_DIR)" bash "$(ROOT_DIR)/scripts/db/db-push-all.sh"
+
+# Créer les tables system_metrics et container_metrics (monitoring-c) si absentes
+db-init-system-metrics: ## Créer system_metrics + container_metrics pour monitoring-c
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré." && exit 1)
+	@docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "$(ROOT_DIR)/scripts/db/init-system-metrics.sql" && echo "✅ Tables system_metrics / container_metrics créées ou déjà présentes"
 
 # Créer les tables auth (User, etc.) – à utiliser si erreur "The table public.User does not exist"
 # Utilise le conteneur auth-service si démarré, sinon Prisma local avec DATABASE_URL du .env
 db-push-auth: ## Prisma db push pour auth-service (tables User, Application, etc.)
 	@echo "📦 Prisma db push - auth-service (tables User, etc.)"
-	@docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' ou démarrez postgres." && exit 1)
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' ou démarrez postgres." && exit 1)
 	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
 		echo "  Via conteneur auth-service..."; \
 		docker exec -w /app jobbingtrack-auth-service npx prisma db push --accept-data-loss 2>&1 | head -15; \
@@ -203,23 +143,47 @@ db-push-auth: ## Prisma db push pour auth-service (tables User, Application, etc
 		cd backend/auth-service && (npm install 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -15 && cd ../.. && echo "✅ auth-service : schéma synchronisé (local)"; \
 	fi
 
-# Synchroniser uniquement le schéma Prisma du metrics-aggregator (Prisma 6.x requis, pas 7)
-# DATABASE_URL : chargé depuis $(ROOT_DIR)/.env (port = POSTGRES_PORT de ton .env, ex: 5000)
-db-push-metrics: ## Prisma db push pour metrics-aggregator-service uniquement
-	@echo "📦 Prisma db push - metrics-aggregator-service"
-	@if [ ! -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
+# Créer les tables security-service (security_logs, firewall_rules, network_connections, etc.)
+db-push-security: ## Prisma db push pour security-service
+	@echo "📦 Prisma db push - security-service (security_logs, firewall_rules, network_connections, network_threats, etc.)"
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-security-service$$'; then \
+		docker exec -w /app jobbingtrack-security-service npx prisma db push --accept-data-loss 2>&1 | head -25; \
+		echo "✅ security-service : schéma synchronisé"; \
+	else \
+		echo "⚠️  Conteneur jobbingtrack-security-service non démarré. Lancez 'make up' puis réessayez."; \
+		exit 1; \
+	fi
+
+# Créer les tables deployment-service (deployments)
+db-push-deployment: ## Prisma db push pour deployment-service
+	@echo "📦 Prisma db push - deployment-service (deployments)"
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-deployment-service$$'; then \
+		docker exec -w /app jobbingtrack-deployment-service npx prisma db push --accept-data-loss 2>&1 | head -25; \
+		echo "✅ deployment-service : schéma synchronisé"; \
+	else \
+		echo "⚠️  Conteneur jobbingtrack-deployment-service non démarré. Lancez 'make up' puis réessayez."; \
+		exit 1; \
+	fi
+
+# Synchroniser uniquement le schéma Prisma du metrics-aggregator (même DB que le conteneur)
+# Préfère l'exécution dans le conteneur jobbingtrack-metrics-aggregator s'il est démarré
+db-push-metrics: ## Prisma db push pour metrics-aggregator uniquement
+	@echo "📦 Prisma db push - metrics-aggregator"
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full' ou 'docker compose up -d postgres'." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-metrics-aggregator$$'; then \
+		echo "  Via conteneur jobbingtrack-metrics-aggregator (même DB)..."; \
+		docker exec -w /app jobbingtrack-metrics-aggregator npx prisma db push --accept-data-loss 2>&1 | head -20; \
+		echo "✅ metrics-aggregator : schéma synchronisé (conteneur)"; \
+	elif [ -f "backend/metrics-aggregator-service/prisma/schema.prisma" ]; then \
+		echo "  Via local (DATABASE_URL depuis .env, utilisez le même port que Postgres, ex: POSTGRES_PORT=5000)"; \
+		if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi; \
+		export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
+		cd backend/metrics-aggregator-service && (npm install 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -20 && cd ../.. && echo "✅ metrics-aggregator : schéma synchronisé (local)"; \
+	else \
 		echo "❌ backend/metrics-aggregator-service/prisma/schema.prisma introuvable"; exit 1; \
 	fi
-	@if [ -f "$(ROOT_DIR)/.env" ]; then \
-		echo "   Chargement .env depuis $(ROOT_DIR)/.env"; \
-		set -a && . "$(ROOT_DIR)/.env" && set +a; \
-	fi; \
-	export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
-	export DATABASE_URL; \
-	cd backend/metrics-aggregator-service && \
-		(npm install 2>/dev/null || true) && \
-		npx prisma db push --accept-data-loss && \
-		cd ../.. && echo "✅ metrics-aggregator-service : schéma synchronisé"
 
 # Seed de données de test
 db-seed: ## Insérer des données de test
@@ -245,9 +209,9 @@ db-restore: ## Restaurer depuis un fichier (file=nom_du_fichier.sql)
 # Réparer rôle/DB Postgres
 db-fix-role: ## Créer le rôle et la base 'jobbingtrack' si manquants
 	@echo "🔧 Vérification/Création du rôle et de la DB 'jobbingtrack'..."
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "CREATE USER jobbingtrack WITH PASSWORD 'jobbingtrack123';" 2>/dev/null || echo "  Rôle jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;" 2>/dev/null || echo "  Base jobbingtrack existe déjà"
-	@docker-compose -f docker-compose.yml exec -T postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE USER jobbingtrack WITH PASSWORD 'jobbingtrack123';" 2>/dev/null || echo "  Rôle jobbingtrack existe déjà"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "CREATE DATABASE jobbingtrack OWNER jobbingtrack;" 2>/dev/null || echo "  Base jobbingtrack existe déjà"
+	@docker-compose -f docker-compose.yml exec -T postgres psql -U jobbingtrack -c "GRANT ALL PRIVILEGES ON DATABASE jobbingtrack TO jobbingtrack;" 2>/dev/null || true
 	@echo "✅ Rôle et base de données vérifiés"
 
 create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur

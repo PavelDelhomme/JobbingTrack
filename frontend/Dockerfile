@@ -73,7 +73,7 @@ ENV NODE_ENV=development
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_METRICS_URL=http://localhost:8014
+ENV NEXT_PUBLIC_METRICS_URL=http://localhost:5004
 
 # Changer vers utilisateur nextjs
 USER nextjs

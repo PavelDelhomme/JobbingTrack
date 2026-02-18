@@ -23,10 +23,10 @@ import { centralMetricsService } from '@/lib/services/centralMetricsService'
 import { useMetrics } from '@/lib/hooks/useMetrics'
 import { DataSourceBadge } from '@/components/ui'
 
-const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // Interfaces pour les vraies données système
 interface PerformanceMetrics {

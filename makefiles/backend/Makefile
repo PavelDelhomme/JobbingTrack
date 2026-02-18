@@ -5,7 +5,7 @@
 # Les commandes génériques sont dans makefiles/services/, tests/, etc.
 # ============================================================================
 
-.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics rebuild-monitoring-c
+.PHONY: monitoring-up monitoring-down monitoring-restart monitoring-ps monitoring-logs monitoring-logs-service monitoring-test monitoring-test-auth test-monitoring backend-help help-backend test-performance-backend check-memory-backend analyze-metrics-aggregator monitoring-ancien-down monitoring-c-up monitoring-c-down monitoring-c-restart monitoring-c-logs monitoring-c-debug monitoring-c-shell log-collector-c-shell up-monitoring security-generate-threats test-metrics
 
 # ============================================================================
 # AIDE
@@ -225,27 +225,7 @@ test-monitoring: ## Suite de tests complète du monitoring
 	@echo ""
 	@echo "✅ Tests terminés"
 
-rebuild-monitoring-c: ## Reconstruire le conteneur monitoring-c
-	@echo "🔨 Reconstruction du conteneur monitoring-c..."
-	@echo ""
-	@echo "1️⃣ Arrêt du conteneur..."
-	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c stop monitoring-c 2>/dev/null || true)
-	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c rm -f monitoring-c 2>/dev/null || true)
-	@echo "✅ Conteneur arrêté"
-	@echo ""
-	@echo "2️⃣ Reconstruction (sans cache)..."
-	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c build --no-cache monitoring-c)
-	@echo "✅ Build terminé"
-	@echo ""
-	@echo "3️⃣ Démarrage..."
-	@$(call docker_compose, -f docker-compose.yml -f docker-compose.monitoring.yml --profile monitoring-c up -d monitoring-c)
-	@echo "✅ Conteneur démarré"
-	@echo ""
-	@echo "⏳ Attente initialisation (5 secondes)..."
-	@sleep 5
-	@echo ""
-	@echo "✅ Reconstruction terminée !"
-	@echo "💡 Pour voir les logs: make monitoring-c-logs"
+# rebuild-monitoring-c est défini dans makefiles/services/Makefile (rebuild-service SERVICE=monitoring-c)
 
 rebuild-log-collector-c: ## Reconstruire le conteneur log-collector-c
 	@echo "🔨 Reconstruction du conteneur log-collector-c..."

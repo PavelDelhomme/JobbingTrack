@@ -52,8 +52,10 @@ const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [
   // Anciens ports (compatibilité)
   'http://localhost:8080',
   'http://localhost:3000',
+  'http://localhost:5003',  // Frontend backoffice
   'http://127.0.0.1:8080',
-  'http://127.0.0.1:3000'
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5003'
 ]
 const corsOptions = {
   origin: function (origin, callback) {
@@ -79,34 +81,30 @@ app.use(helmet({
 app.use(morgan('combined'))
 app.use(express.json())
 
-// Middleware d'authentification pour les métriques
+// Middleware d'authentification pour les métriques (activé si ENABLE_METRICS_AUTH=true ou NODE_ENV=production)
+const metricsAuthEnabled = process.env.ENABLE_METRICS_AUTH === 'true' || process.env.NODE_ENV === 'production'
+let metricsAuthLoggedOnce = false
 const authenticateMetrics = (req, res, next) => {
-  // ✅ DÉSACTIVER L'AUTHENTIFICATION POUR LES MÉTRIQUES
-  // Les métriques sont des données de monitoring internes, pas besoin d'auth stricte
-  // Dans un environnement de production réel, utiliser un réseau privé ou un VPN
-  console.log('[AUTH] Authentification désactivée pour les métriques - accès libre')
-    return next()
-  
-  /* Code d'authentification désactivé - à réactiver pour la production avec réseau public
-  const authHeader = req.headers.authorization
-  const apiKey = req.headers['x-api-key']
-  
-  // Vérifier API Key ou Bearer token
-  const validApiKey = process.env.METRICS_API_KEY || 'jobbingtrack-metrics-secret-key'
-  
-  if (apiKey === validApiKey) {
+  if (!metricsAuthEnabled) {
+    if (!metricsAuthLoggedOnce) {
+      metricsAuthLoggedOnce = true
+      console.log('[AUTH] Métriques en mode accès libre (ENABLE_METRICS_AUTH non activé)')
+    }
     return next()
   }
-  
+  const authHeader = req.headers.authorization
+  const apiKey = req.headers['x-api-key']
+  const validApiKey = process.env.METRICS_API_KEY
+  if (validApiKey && apiKey === validApiKey) {
+    return next()
+  }
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
     if (token && token.length > 10) {
       return next()
     }
   }
-  
-  res.status(401).json({ error: 'Unauthorized', message: 'API key or token required' })
-  */
+  res.status(401).json({ success: false, error: 'Unauthorized', message: 'API key (X-API-Key) or Bearer token required for metrics' })
 }
 
 // Docker non accessible depuis les conteneurs
@@ -127,6 +125,10 @@ const KNOWN_SERVICES = {
   'jobbingtrack-profile-service': { port: 3011, healthPath: '/api/v1/profile/health' },
   'jobbingtrack-workflow-service': { port: 3013, healthPath: '/api/v1/workflow/health' },
   'jobbingtrack-metrics-aggregator': { port: 3014, healthPath: '/api/v1/health' },
+  'jobbingtrack-security-service': { port: 3017, healthPath: '/api/v1/security/health' },
+  'jobbingtrack-deployment-service': { port: 3016, healthPath: '/api/v1/health' },
+  'jobbingtrack-monitoring-c': { port: 8015, healthPath: '/api/v1/health' },
+  'jobbingtrack-log-collector-c': { port: 5099, healthPath: '/health' },
   'jobbingtrack-frontend': { port: 3000, healthPath: '/health' },
   'jobbingtrack-postgres': { port: 5432, type: 'database' },
   'jobbingtrack-redis': { port: 6379, type: 'cache' },
@@ -138,6 +140,17 @@ const KNOWN_SERVICES = {
 let servicesMetrics = {}
 let systemMetrics = {}
 let containerMetrics = {}
+
+// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source Docker / monitoring-c)
+function isJobbingTrackContainer(name) {
+  if (!name || typeof name !== 'string') return false
+  const n = name.toLowerCase().trim()
+  if (n.includes('jobbingtrack')) return true
+  if (KNOWN_SERVICES[n]) return true
+  const withPrefix = 'jobbingtrack-' + n.replace(/^\//, '')
+  if (KNOWN_SERVICES[withPrefix]) return true
+  return false
+}
 // Payload complet pour le backoffice (une seule source : monitoring-c → aggregator → frontend)
 let lastMetricsData = null
 
@@ -245,6 +258,7 @@ async function collectSystemMetrics() {
     systemMetrics = {
       cpu: {
         usage: Math.round(load.currentLoad || cpu.usage || 0),
+        usage_percent: Math.round(load.currentLoad || cpu.usage || 0), // frontend attend usage_percent
         cores: cpu.cores || 1,
         model: cpu.brand || 'Unknown',
         per_core: cpu.cores ? Math.round((load.currentLoad || 0) / cpu.cores * 10) / 10 : 0
@@ -254,6 +268,10 @@ async function collectSystemMetrics() {
         used: Math.round(mem.used / 1024 / 1024),   // MB
         free: Math.round(mem.free / 1024 / 1024),   // MB
         usage: Math.round((mem.used / mem.total) * 100),
+        usage_percent: Math.round((mem.used / mem.total) * 100), // frontend attend usage_percent
+        total_mb: Math.round(mem.total / 1024 / 1024),
+        used_mb: Math.round(mem.used / 1024 / 1024),
+        free_mb: Math.round(mem.free / 1024 / 1024),
         // Format lisible pour l'affichage
         total_human: `${Math.round(mem.total / 1024 / 1024 / 1024)} GB`,
         used_human: `${Math.round(mem.used / 1024 / 1024 / 1024)} GB`
@@ -272,6 +290,7 @@ async function collectSystemMetrics() {
         used: Math.round(mainDisk.used / 1024 / 1024 / 1024),  // GB
         available: Math.round((mainDisk.size - mainDisk.used) / 1024 / 1024 / 1024), // GB
         usage_percent: Math.round((mainDisk.used / mainDisk.size) * 100),
+        usage: Math.round((mainDisk.used / mainDisk.size) * 100), // alias pour frontend
         // Format lisible
         total_human: `${Math.round(mainDisk.size / 1024 / 1024 / 1024)} GB`,
         used_human: `${Math.round(mainDisk.used / 1024 / 1024 / 1024)} GB`,
@@ -368,7 +387,10 @@ async function getContainerNetworkStats(pid) {
       tx_mb: totalTx / 1024 / 1024,
     }
   } catch (error) {
-    console.error(`[NETWORK] Erreur lecture réseau pour PID ${pid}:`, error.message)
+    // ENOENT = /host/proc non monté (ex: dev hors Docker), pas de log bruyant
+    if (error.code !== 'ENOENT') {
+      console.error(`[NETWORK] Erreur lecture réseau pour PID ${pid}:`, error.message)
+    }
     return { rx: 0, tx: 0, rx_mb: 0, tx_mb: 0 }
   }
 }
@@ -421,56 +443,47 @@ async function collectContainerMetrics() {
           }
         }
         
-        // ✅ OPTIMISATION: Lire /host/proc/[pid]/status avec streaming pour extraire uniquement les lignes nécessaires
-        const statusPath = `/host/proc/${pid}/status`
-        const readline = require('readline')
-        const fsSync = require('fs')
-        
-        let memoryKB = 0
-        let vmsizeKB = 0
-        
-        // ✅ OPTIMISATION: Utiliser streaming pour lire uniquement les lignes VmRSS et VmSize
-        const fileStream = fsSync.createReadStream(statusPath, { encoding: 'utf8' })
-        const rl = readline.createInterface({
-          input: fileStream,
-          crlfDelay: Infinity
-        })
-        
-        for await (const line of rl) {
-          // Extraire VmRSS (Resident Set Size = mémoire physique utilisée)
-          const vmrssMatch = line.match(/^VmRSS:\s+(\d+)\s+kB/)
-          if (vmrssMatch) {
-            memoryKB = parseInt(vmrssMatch[1])
-            // Si on a trouvé les deux, on peut arrêter la lecture
-            if (vmsizeKB > 0) {
-              rl.close()
-              fileStream.close()
-              break
-            }
-            continue
-          }
-          
-          // Extraire VmSize (taille virtuelle totale)
-          const vmsizeMatch = line.match(/^VmSize:\s+(\d+)\s+kB/)
-          if (vmsizeMatch) {
-            vmsizeKB = parseInt(vmsizeMatch[1])
-            // Si on a trouvé les deux, on peut arrêter la lecture
-            if (memoryKB > 0) {
-              rl.close()
-              fileStream.close()
-              break
-            }
-          }
-        }
-        
-        const memoryMB = Math.round(memoryKB / 1024)
-        const vmsizeMB = Math.round(vmsizeKB / 1024)
-        
-        // Obtenir les limites de mémoire du conteneur depuis Docker
+        // Mémoire : /host/proc si disponible, sinon fallback sur Docker stats
+        let memoryMB = 0
+        let memoryLimitMB = 2048
         const memoryLimit = inspect.HostConfig.Memory || 0
-        const memoryLimitMB = memoryLimit > 0 ? Math.round(memoryLimit / 1024 / 1024) : vmsizeMB || 2048
-        
-        // Calculer le pourcentage de mémoire
+        const memoryLimitFromDocker = memoryLimit > 0 ? Math.round(memoryLimit / 1024 / 1024) : 2048
+
+        try {
+          const statusPath = `/host/proc/${pid}/status`
+          const readline = require('readline')
+          const fsSync = require('fs')
+          let memoryKB = 0
+          let vmsizeKB = 0
+          const fileStream = fsSync.createReadStream(statusPath, { encoding: 'utf8' })
+          const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity })
+          for await (const line of rl) {
+            const vmrssMatch = line.match(/^VmRSS:\s+(\d+)\s+kB/)
+            if (vmrssMatch) {
+              memoryKB = parseInt(vmrssMatch[1])
+              if (vmsizeKB > 0) break
+              continue
+            }
+            const vmsizeMatch = line.match(/^VmSize:\s+(\d+)\s+kB/)
+            if (vmsizeMatch) vmsizeKB = parseInt(vmsizeMatch[1])
+            if (memoryKB > 0 && vmsizeKB > 0) break
+          }
+          fileStream.destroy()
+          memoryMB = Math.round(memoryKB / 1024)
+          const vmsizeMB = Math.round(vmsizeKB / 1024)
+          memoryLimitMB = memoryLimitFromDocker || vmsizeMB || 2048
+        } catch (procErr) {
+          // /host/proc non monté ou PID invalide : utiliser les stats Docker
+          if (procErr.code !== 'ENOENT') {
+            console.error(`[PROC] ${containerName}: lecture /host/proc:`, procErr.message)
+          }
+          const mem = stats.memory_stats || {}
+          const usage = mem.usage != null ? Number(mem.usage) : 0
+          const limit = mem.limit != null ? Number(mem.limit) : memoryLimit
+          memoryMB = Math.round(usage / 1024 / 1024)
+          memoryLimitMB = limit > 0 ? Math.round(limit / 1024 / 1024) : memoryLimitFromDocker
+        }
+
         const memoryPercent = memoryLimitMB > 0 ? (memoryMB / memoryLimitMB) * 100 : 0
         
         // ✅ Récupérer les statistiques réseau
@@ -497,6 +510,11 @@ async function collectContainerMetrics() {
         return { containerName, metrics }
         
       } catch (err) {
+        if (err.statusCode === 404 || (err.message && err.message.includes('no such container'))) {
+          return null
+        }
+        // ENOENT = /host/proc non monté ou PID invalide (ex: dev hors Docker), pas de log
+        if (err.code === 'ENOENT') return null
         console.error(`[PROC] Erreur pour ${containerName}:`, err.message)
         return null
       }
@@ -525,25 +543,29 @@ async function collectContainerMetrics() {
   }
 }
 
+// Throttle: ne loguer l'indisponibilité de monitoring-c qu'au plus toutes les 5 min
+let lastMonitoringCUnavailableLog = 0
+const MONITORING_C_LOG_INTERVAL_MS = 5 * 60 * 1000
+
 // ✅ NOUVEAU : Récupérer les métriques depuis monitoring C (port interne 8015)
 async function collectMetricsFromMonitoringC() {
-  // Essayer d'abord l'URL depuis l'env, puis fallback vers le nom du service Docker
-  // Port interne: 8015, port externe: 5098
   const monitoringCUrl = process.env.MONITORING_C_URL || 'http://jobbingtrack-monitoring-c:8015'
   try {
-    console.log('[MONITORING-C] Récupération des métriques depuis monitoring C...')
     const response = await axios.get(`${monitoringCUrl}/api/v1/metrics`, {
       timeout: 5000
     })
-    
     if (response.data) {
       const containerCount = response.data.containers?.length || 0
-      console.log(`[MONITORING-C] ✅ Métriques récupérées depuis monitoring C: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
+      console.log(`[MONITORING-C] ✅ Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
       return response.data
     }
     return null
   } catch (error) {
-    console.warn('[MONITORING-C] ⚠️ Monitoring C non disponible:', error.message)
+    const now = Date.now()
+    if (now - lastMonitoringCUnavailableLog >= MONITORING_C_LOG_INTERVAL_MS) {
+      lastMonitoringCUnavailableLog = now
+      console.warn('[MONITORING-C] ⚠️ Non disponible (fallback Node actif):', error.message)
+    }
     return null
   }
 }
@@ -567,10 +589,11 @@ async function collectAllMetrics() {
 
     // Collecter métriques système et conteneurs (fallback si monitoring C non disponible)
     if (!monitoringCData) {
-      await Promise.all([
-        collectSystemMetrics(),
-        collectContainerMetrics()
-      ])
+      await collectSystemMetrics()
+      const collected = await collectContainerMetrics()
+      if (collected && typeof collected === 'object') {
+        Object.assign(containerMetrics, collected)
+      }
     } else {
       // ✅ Utiliser les données de monitoring C pour enrichir les métriques
       console.log('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
@@ -579,7 +602,8 @@ async function collectAllMetrics() {
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         console.log(`[COLLECTOR] Conversion de ${monitoringCData.containers.length} conteneurs depuis monitoring C`)
         monitoringCData.containers.forEach(container => {
-          const containerName = container.name || 'unknown'
+          const rawName = container.name || 'unknown'
+          const containerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`
           if (!containerMetrics[containerName]) {
             containerMetrics[containerName] = {}
           }
@@ -607,6 +631,12 @@ async function collectAllMetrics() {
             httpStatus: container.http_status || 0
           }
         })
+      }
+      
+      // ✅ Fallback: si on a utilisé monitoring C, compléter avec la collecte Docker pour les noms "jobbingtrack-*" (éviter 0 conteneurs)
+      const dockerCollected = await collectContainerMetrics()
+      if (dockerCollected && typeof dockerCollected === 'object') {
+        Object.assign(containerMetrics, dockerCollected)
       }
       
       // Enrichir systemMetrics avec les données de monitoring C
@@ -698,16 +728,16 @@ async function collectAllMetrics() {
       }
     })
 
-    // ✅ OPTIMISATION : Calculer les métriques agrégées pour les conteneurs JobbingTrack avec moyennes
+    // ✅ OPTIMISATION : Calculer les métriques agrégées pour les conteneurs JobbingTrack (nom complet ou court)
     const jobbingtrackContainers = Object.entries(containerMetrics)
-      .filter(([name]) => name.toLowerCase().includes('jobbingtrack'))
+      .filter(([name]) => isJobbingTrackContainer(name))
     
     let totalCpuPercent = 0
     let totalMemoryUsed = 0
     let totalMemoryLimit = 0
     let containerCount = 0
-    const cpuValues: number[] = []
-    const memoryValues: number[] = []
+    const cpuValues = []
+    const memoryValues = []
 
     jobbingtrackContainers.forEach(([name, metrics]) => {
       if (metrics.cpu?.percentage) {
@@ -771,6 +801,8 @@ async function collectAllMetrics() {
         }
       }
       
+      const systemMemoryMb = (systemMetrics.memory?.total_mb ?? systemMetrics.memory?.total ?? (Number(systemMetrics.memory?.used) + Number(systemMetrics.memory?.free))) || 0
+      const percentOfSystem = systemMemoryMb > 0 ? Math.round((totalMemoryUsed / systemMemoryMb) * 100) : 0
       systemMetrics.jobbingtrack = {
         containers: {
           count: jobbingtrackContainers.length,
@@ -784,6 +816,7 @@ async function collectAllMetrics() {
             used: Math.round(totalMemoryUsed),
             limit: Math.round(totalMemoryLimit),
             percent: totalMemoryLimit > 0 ? Math.round((totalMemoryUsed / totalMemoryLimit) * 100) : 0,
+            percent_of_system: percentOfSystem,
             averageUsed: Math.round(avgMemoryUsed),
             maxUsed: Math.round(maxMemoryUsed),
             minUsed: memoryValues.length > 0 ? Math.round(Math.min(...memoryValues)) : 0
@@ -813,6 +846,26 @@ async function collectAllMetrics() {
     console.log(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
     console.log(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
     console.log(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
+    
+    // Normaliser les champs attendus par le frontend (usage_percent, disk[0].usage)
+    if (systemMetrics.cpu && systemMetrics.cpu.usage !== undefined && systemMetrics.cpu.usage_percent === undefined) {
+      systemMetrics.cpu.usage_percent = systemMetrics.cpu.usage
+    }
+    if (systemMetrics.memory && systemMetrics.memory.usage !== undefined && systemMetrics.memory.usage_percent === undefined) {
+      systemMetrics.memory.usage_percent = systemMetrics.memory.usage
+    }
+    if (systemMetrics.memory && (systemMetrics.memory.used !== undefined || systemMetrics.memory.used_mb !== undefined)) {
+      systemMetrics.memory.used_mb = systemMetrics.memory.used_mb ?? systemMetrics.memory.used
+      systemMetrics.memory.total_mb = systemMetrics.memory.total_mb ?? systemMetrics.memory.total
+    }
+    if (systemMetrics.disk && systemMetrics.disk[0]) {
+      if (systemMetrics.disk[0].usage_percent !== undefined && systemMetrics.disk[0].usage === undefined) {
+        systemMetrics.disk[0].usage = systemMetrics.disk[0].usage_percent
+      }
+      if (systemMetrics.disk[0].usage !== undefined && systemMetrics.disk[0].usage_percent === undefined) {
+        systemMetrics.disk[0].usage_percent = systemMetrics.disk[0].usage
+      }
+    }
     
     // Construire l'objet de métriques complet
     const metricsData = {
@@ -899,7 +952,10 @@ async function collectAllMetrics() {
                                  systemMetrics.monitoringC?.availability_percent ||
                                  stackAvailability;
       
-      // Préparer les métriques système pour la sauvegarde
+      // Préparer les métriques système pour la sauvegarde (entiers pour BigInt)
+      const memUsed = Math.round(Number(systemMetrics.memory?.used_mb ?? systemMetrics.memory?.used ?? 0));
+      const memTotal = Math.round(Number(systemMetrics.memory?.total_mb ?? systemMetrics.memory?.total ?? 0));
+      const memFree = Math.round(Number(systemMetrics.memory?.free_mb ?? systemMetrics.memory?.free ?? 0));
       const systemMetricsForDb = {
         ...systemMetrics,
         cpu: {
@@ -913,9 +969,9 @@ async function collectAllMetrics() {
           usage: memoryPercent,
           percent: memoryPercent,
           usagePercent: memoryPercent,
-          used: systemMetrics.memory?.used_mb || 0,
-          total: systemMetrics.memory?.total_mb || 0,
-          free: systemMetrics.memory?.free_mb || 0
+          used: memUsed,
+          total: memTotal,
+          free: memFree
         },
         load: {
           average: systemMetrics.cpu?.load_1 || 0,
@@ -924,8 +980,8 @@ async function collectAllMetrics() {
           [2]: systemMetrics.cpu?.load_15 || 0
         },
         network: {
-          rx: metricsData.network?.total_rx_mb ? metricsData.network.total_rx_mb * 1024 * 1024 : 0,
-          tx: metricsData.network?.total_tx_mb ? metricsData.network.total_tx_mb * 1024 * 1024 : 0
+          rx: Math.round(Number(metricsData.network?.total_rx_mb ?? 0) * 1024 * 1024) || 0,
+          tx: Math.round(Number(metricsData.network?.total_tx_mb ?? 0) * 1024 * 1024) || 0
         }
       }
       
@@ -947,19 +1003,21 @@ async function collectAllMetrics() {
         console.log(`[PERSISTENCE] Préparation de ${monitoringCData.containers.length} conteneurs depuis monitoring C pour sauvegarde`)
         monitoringCData.containers.forEach(container => {
           const containerName = container.name || 'unknown'
+          const memMb = Number(container.memory_mb) || 0
+          const limitMb = Number(container.memory_limit_mb) || 0
           containersForDb[containerName] = {
             cpu: {
               percentage: container.cpu_percent || 0,
               usage: container.cpu_percent || 0
             },
             memory: {
-              usage: container.memory_mb ? container.memory_mb * 1024 * 1024 : 0, // Convertir MB en bytes
-              limit: container.memory_limit_mb ? container.memory_limit_mb * 1024 * 1024 : 0,
+              usage: Math.round(memMb * 1024 * 1024),
+              limit: Math.round(limitMb * 1024 * 1024),
               percentage: container.memory_percent || 0
             },
             network: {
-              rx: container.network_rx_bytes || 0,
-              tx: container.network_tx_bytes || 0
+              rx: Math.round(Number(container.network_rx_bytes) || 0),
+              tx: Math.round(Number(container.network_tx_bytes) || 0)
             },
             status: container.http_status === 200 ? 'running' : 'unknown'
           }
@@ -972,14 +1030,19 @@ async function collectAllMetrics() {
       console.log(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
       await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
-      // Sauvegarder la disponibilité des services
+      // Sauvegarder la disponibilité des services (silencieux si table absente)
       for (const [serviceName, serviceData] of Object.entries(servicesMetrics)) {
         await persistenceService.saveServiceAvailability(serviceName, {
           isAvailable: serviceData.health?.status === 'healthy',
           responseTimeMs: serviceData.health?.responseTime || null,
           statusCode: serviceData.health?.statusCode || null,
           errorMessage: serviceData.health?.error || null,
-        }).catch(err => console.error(`[PERSISTENCE] Échec disponibilité ${serviceName}:`, err.message))
+        }).catch(err => {
+          const msg = (err && err.message) ? String(err.message) : '';
+          if (msg && !msg.includes('does not exist') && !msg.includes('service_availability_history')) {
+            console.error(`[PERSISTENCE] Échec disponibilité ${serviceName}:`, msg);
+          }
+        });
       }
       
       console.log('[PERSISTENCE] ✅ Métriques persistées avec succès')
@@ -1098,6 +1161,12 @@ io.on('connection', (socket) => {
 
 // Démarrer la collecte périodique
 console.log('[SERVER] Démarrage du Metrics Aggregator Service...')
+try {
+  const fs = require('fs')
+  const procMounted = fs.existsSync('/host/proc/self')
+  console.log('[SERVER] /host/proc monté:', procMounted ? 'oui (métriques par conteneur depuis /proc)' : 'non (fallback Docker stats)')
+} catch (e) { console.log('[SERVER] /host/proc: non disponible') }
+console.log('[SERVER] Source prioritaire: monitoring-c →', process.env.MONITORING_C_URL || 'http://monitoring-c:8015')
 
 // Collecte immédiate au démarrage
 collectAllMetrics()

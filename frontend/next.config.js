@@ -38,8 +38,8 @@ const nextConfig = {
     },
     env: {
         // Ports externes
-        NEXT_PUBLIC_FRONTEND_PORT: process.env.FRONTEND_PORT || '8080',
-        NEXT_PUBLIC_API_GATEWAY_PORT: process.env.API_GATEWAY_PORT || '3000',
+        NEXT_PUBLIC_FRONTEND_PORT: process.env.FRONTEND_PORT || '5003',
+        NEXT_PUBLIC_API_GATEWAY_PORT: process.env.API_GATEWAY_PORT || '5002',
         NEXT_PUBLIC_AUTH_SERVICE_PORT: process.env.AUTH_SERVICE_PORT || '8001',
         NEXT_PUBLIC_APPLICATION_SERVICE_PORT: process.env.APPLICATION_SERVICE_PORT || '8002',
         NEXT_PUBLIC_COMPANY_SERVICE_PORT: process.env.COMPANY_SERVICE_PORT || '8003',
@@ -48,13 +48,13 @@ const nextConfig = {
         NEXT_PUBLIC_CALL_SERVICE_PORT: process.env.CALL_SERVICE_PORT || '8006',
         NEXT_PUBLIC_EVENT_SERVICE_PORT: process.env.EVENT_SERVICE_PORT || '8007',
         NEXT_PUBLIC_FOLLOWUP_SERVICE_PORT: process.env.FOLLOWUP_SERVICE_PORT || '8008',
-        NEXT_PUBLIC_METRICS_AGGREGATOR_PORT: process.env.METRICS_AGGREGATOR_PORT || '8014',
+        NEXT_PUBLIC_METRICS_AGGREGATOR_PORT: process.env.METRICS_AGGREGATOR_PORT || '5004',
         NEXT_PUBLIC_DASHBOARD_SERVICE_PORT: process.env.DASHBOARD_SERVICE_PORT || '8012',
         // URLs complètes
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.API_GATEWAY_PORT || '3000'}`,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.API_GATEWAY_PORT || '5002'}`,
         NEXT_PUBLIC_AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || `http://localhost:${process.env.AUTH_SERVICE_PORT || '8001'}`,
-        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || `http://localhost:${process.env.METRICS_AGGREGATOR_PORT || '8014'}`,
-        NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '8080'}`,
+        NEXT_PUBLIC_METRICS_URL: process.env.NEXT_PUBLIC_METRICS_URL || `http://localhost:${process.env.METRICS_AGGREGATOR_PORT || '5004'}`,
+        NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '5003'}`,
         NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET: process.env.NEXT_PUBLIC_DISABLE_METRICS_WEBSOCKET || 'false',
     },
     // ✅ Désactiver les messages de développement React DevTools
@@ -74,6 +74,8 @@ const nextConfig = {
                 source: '/api/health',
                 destination: 'http://api-gateway:3000/health',
             },
+            // /health pour healthchecks (monitoring-c) → même réponse que /api/health
+            { source: '/health', destination: '/api/health' },
         ];
     },
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {

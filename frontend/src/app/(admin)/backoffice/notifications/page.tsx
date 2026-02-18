@@ -8,7 +8,7 @@ import { AdminLayout } from '@/components/features';
 import { Bell, Search, Plus, Edit, Calendar, RefreshCw } from '@/lib/icons';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export default function NotificationsPage() {
   const router = useRouter();

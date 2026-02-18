@@ -25,6 +25,7 @@ import 'package:jobbingtrack_mobile/screens/test_data_screen.dart';
 import 'package:jobbingtrack_mobile/screens/trash_screen.dart';
 import 'package:jobbingtrack_mobile/screens/users_screen.dart';
 import 'package:jobbingtrack_mobile/screens/followups_screen.dart';
+import 'package:jobbingtrack_mobile/screens/events_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +79,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/trash': (context) => const TrashScreen(),
           '/users': (context) => const UsersScreen(),
           '/followups': (context) => const FollowUpsScreen(),
+          '/events': (context) => const EventsScreen(),
         },
       ),
     );

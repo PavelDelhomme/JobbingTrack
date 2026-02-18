@@ -28,9 +28,12 @@ class CentralMetricsService {
   private maxCacheSize: number = 50 // Limite en MB (environ)
   private isLoading: boolean = false
   private loadingPromises: Map<string, Promise<any>> = new Map()
+  /** Si l'aggregator est injoignable, on évite de le re-tenter pendant ce délai (évite spam ERR_CONNECTION_REFUSED) */
+  private aggregatorUnavailableUntil: number = 0
+  private static readonly AGGREGATOR_BACKOFF_MS = 30000 // 30 secondes
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
     this.prometheusUrl = process.env.NEXT_PUBLIC_PROMETHEUS_URL || 'http://localhost:9090'
     // ✅ NOUVEAU : Monitoring en C (port 5098) au lieu de l'ancien système
     // Si on est côté serveur (SSR), utiliser le nom du service Docker
@@ -40,6 +43,7 @@ class CentralMetricsService {
     } else {
       this.monitoringCUrl = process.env.NEXT_PUBLIC_MONITORING_C_URL || 'http://localhost:5098'
     }
+    // Port 5004 = métriques agrégées (docker-compose expose 5004:3014). En SSR utiliser le nom du service.
     this.metricsAggregatorUrl = process.env.NEXT_PUBLIC_METRICS_AGGREGATOR_URL || process.env.NEXT_PUBLIC_METRICS_URL || (typeof window !== 'undefined' ? 'http://localhost:5004' : 'http://jobbingtrack-metrics-aggregator:3014')
     this.updateToken()
   }
@@ -477,16 +481,19 @@ class CentralMetricsService {
   }
 
   /**
-   * Récupération des métriques : priorité metrics-aggregator (source centralisée, données depuis monitoring-c + persistance),
-   * puis fallback monitoring-c direct.
+   * Récupération des métriques : priorité metrics-aggregator (source centralisée, monitoring-c → aggregator → frontend),
+   * puis fallback monitoring-c direct. En cas d'échec aggregator, backoff 30s pour éviter le spam ERR_CONNECTION_REFUSED.
    */
   async getAggregatorMetrics(): Promise<MetricsData | null> {
     const endpoint = '/api/v1/metrics'
     const headers: HeadersInit = { 'Accept': 'application/json' }
     if (this.token) (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`
 
-    // 1) Priorité : metrics-aggregator (une seule source, données déjà persistées + temps de réponse)
-    if (this.metricsAggregatorUrl) {
+    const now = Date.now()
+    const skipAggregator = now < this.aggregatorUnavailableUntil
+
+    // 1) Priorité : metrics-aggregator (une seule source, données depuis monitoring-c + persistance)
+    if (this.metricsAggregatorUrl && !skipAggregator) {
       try {
         const response = await fetch(`${this.metricsAggregatorUrl}${endpoint}`, {
           headers,
@@ -502,7 +509,12 @@ class CentralMetricsService {
             return this.formatMetricsFromAggregator(data)
           }
         }
-      } catch (_) { /* fallback */ }
+      } catch (e) {
+        this.aggregatorUnavailableUntil = now + CentralMetricsService.AGGREGATOR_BACKOFF_MS
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[CENTRAL METRICS] metrics-aggregator injoignable (fallback monitoring-c), retry dans 30s')
+        }
+      }
     }
 
     // 2) Fallback : monitoring-c direct
@@ -525,10 +537,10 @@ class CentralMetricsService {
   async getAllServices(): Promise<any[] | null> {
     // Données de test par défaut pour éviter les erreurs 404
     const defaultServices = [
-      { name: 'auth-service', status: 'running', url: 'http://localhost:3001', health: { status: 'online' } },
-      { name: 'api-gateway', status: 'running', url: 'http://localhost:3000', health: { status: 'online' } },
-      { name: 'dashboard-service', status: 'running', url: 'http://localhost:3007', health: { status: 'online' } },
-      { name: 'frontend', status: 'running', url: 'http://localhost:8080', health: { status: 'online' } }
+      { name: 'auth-service', status: 'running', url: 'http://localhost:5005', health: { status: 'online' } },
+      { name: 'api-gateway', status: 'running', url: 'http://localhost:5002', health: { status: 'online' } },
+      { name: 'dashboard-service', status: 'running', url: 'http://localhost:5015', health: { status: 'online' } },
+      { name: 'frontend', status: 'running', url: 'http://localhost:5003', health: { status: 'online' } }
     ]
 
     try {
@@ -843,13 +855,10 @@ class CentralMetricsService {
     // Si project_memory_mb n'est pas disponible, calculer depuis les conteneurs
     if (projectMemoryMb === null && jobbingtrackContainers.length > 0) {
       projectMemoryMb = jobbingtrackContainers.reduce((sum: number, c: any) => sum + (c.memory_mb || 0), 0)
-      console.log(`[CENTRAL METRICS] ⚠️ project_memory_mb non disponible, calculé depuis ${jobbingtrackContainers.length} conteneurs: ${projectMemoryMb}MB`)
     } else if (projectMemoryMb === null) {
       projectMemoryMb = null
-      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, project_memory_mb non disponible`)
-    } else {
-      console.log(`[CENTRAL METRICS] ✅ project_memory_mb depuis monitoring-c: ${projectMemoryMb}MB (${jobbingtrackContainers.length} conteneurs)`)
     }
+    // Logs désactivés en prod pour éviter le spam (réactiver en debug si besoin)
     
     // ✅ CORRECTION : Utiliser project_cpu_avg directement depuis monitoring-c
     // ✅ CORRECTION : Ne pas accepter 0.0 comme valeur valide si aucun conteneur n'est trouvé
@@ -873,13 +882,8 @@ class CentralMetricsService {
         return sum + cpu
       }, 0)
       projectCpuAvg = totalCpu / jobbingtrackContainers.length
-      console.log(`[CENTRAL METRICS] ⚠️ project_cpu_avg non disponible, calculé depuis ${jobbingtrackContainers.length} conteneurs: ${projectCpuAvg.toFixed(2)}%`)
     } else if (projectCpuAvg === null) {
-      // Ne pas utiliser avgCpuPercent comme fallback car ce n'est pas la même chose
       projectCpuAvg = null
-      console.log(`[CENTRAL METRICS] ⚠️ Aucun conteneur JobbingTrack trouvé, project_cpu_avg non disponible`)
-    } else {
-      console.log(`[CENTRAL METRICS] ✅ project_cpu_avg depuis monitoring-c: ${projectCpuAvg.toFixed(2)}% (${jobbingtrackContainers.length} conteneurs)`)
     }
     
     // ✅ CORRECTION : Calculer avgCpuPercentContainers (moyenne CPU des conteneurs JobbingTrack)

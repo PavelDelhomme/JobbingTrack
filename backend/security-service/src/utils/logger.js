@@ -29,21 +29,32 @@ winston.addColors(colors);
 // Importer le filtre partagé
 const { filterP2021Errors, filterP2021InPrintf } = require('./logger-filter');
 
-const logger = winston.createLogger({
-  levels,
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    filterP2021Errors(), // Filtrer les erreurs P2021
-    winston.format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss'
-    }),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'security-service' },
-  transports: [
-    // Logs de sécurité séparés
-    new winston.transports.File({
+let centralLogger;
+try {
+  centralLogger = require('./centralLogger');
+} catch (e) {
+  centralLogger = null;
+}
+
+class CentralLoggerTransport extends winston.Transport {
+  log(info, callback) {
+    setImmediate(() => this.emit('logged', info));
+    if (centralLogger && ['error', 'warn'].includes(info.level)) {
+      const level = info.level.toUpperCase();
+      if (level === 'ERROR' || level === 'WARN' || level === 'FATAL') {
+        centralLogger.addLog(level, info.message, {
+          stackTrace: info.stack || (info.error && info.error.stack),
+          ...info,
+        });
+      }
+    }
+    callback();
+  }
+}
+
+const transports = [
+  // Logs de sécurité séparés
+  new winston.transports.File({
       filename: path.join(__dirname, '../../logs/security.log'),
       level: 'info',
       format: winston.format.combine(
@@ -60,15 +71,32 @@ const logger = winston.createLogger({
         winston.format.json()
       )
     }),
-    // Logs généraux
-    new winston.transports.File({
-      filename: path.join(__dirname, '../../logs/combined.log'),
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      )
+  // Logs généraux
+  new winston.transports.File({
+    filename: path.join(__dirname, '../../logs/combined.log'),
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.json()
+    )
+  }),
+];
+if (centralLogger) {
+  transports.push(new CentralLoggerTransport());
+}
+
+const logger = winston.createLogger({
+  levels,
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    filterP2021Errors(),
+    winston.format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss'
     }),
-  ],
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'security-service' },
+  transports,
 });
 
 // Si nous ne sommes pas en production, ajouter également la sortie console

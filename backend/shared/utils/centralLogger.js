@@ -10,7 +10,7 @@
 
 const axios = require('axios');
 
-const METRICS_SERVICE_URL = process.env.METRICS_SERVICE_URL || 'http://metrics-aggregator-service:8014';
+const METRICS_SERVICE_URL = process.env.METRICS_SERVICE_URL || process.env.METRICS_AGGREGATOR_URL || 'http://jobbingtrack-metrics-aggregator:3014';
 const SERVICE_NAME = process.env.SERVICE_NAME || process.env.npm_package_name || 'unknown-service';
 
 class CentralLogger {

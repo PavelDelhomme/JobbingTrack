@@ -15,7 +15,7 @@ import { Activity, TrendingUp, Users, Building2, FileText, Phone, Calendar, Sett
 import axios from 'axios'
 import { useTracking } from '@/components/tracking/TrackingProvider'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 // ✅ Fonction utilitaire pour formater les nombres en toute sécurité
 const safeToFixed = (value: any, decimals: number = 2, fallback: string = 'N/A'): string => {
@@ -62,7 +62,7 @@ export default function BackofficePage() {
   const [metricsRefreshInterval, setMetricsRefreshInterval] = useState(15000) // Valeur par défaut, sera remplacée par les préférences
   const [servicesRefreshInterval, setServicesRefreshInterval] = useState(20000) // Valeur par défaut
 
-  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
   // Charger les maintenances
   const loadMaintenances = async () => {
@@ -918,31 +918,35 @@ export default function BackofficePage() {
             {/* Ligne 1 : CPU Système | Mémoire Système — Ligne 2 : CPU Projet | Mémoire Projet */}
             <div className="text-center">
               <div className={`text-3xl font-bold ${
-                systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0
-                  ? (systemMetrics.cpu.usage_percent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.cpu.usage_percent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
+                (systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0) || (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
+                  ? ((systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-600 dark:text-red-400' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
                   : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
                   ? (systemMetrics.monitoringC.avg_cpu_percent > 80 ? 'text-red-600 dark:text-red-400' : systemMetrics.monitoringC.avg_cpu_percent > 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400')
                   : 'text-blue-600 dark:text-blue-400'
               }`}>
-                {systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0
+                {(systemMetrics?.cpu?.usage_percent !== undefined && systemMetrics.cpu.usage_percent > 0)
                   ? `${safeToFixed(systemMetrics.cpu.usage_percent, 1)}%`
+                  : (typeof systemMetrics?.cpu?.usage === 'number' && systemMetrics.cpu.usage > 0)
+                  ? `${safeToFixed(systemMetrics.cpu.usage, 1)}%`
                   : systemMetrics?.monitoringC?.avg_cpu_percent !== undefined && systemMetrics.monitoringC.avg_cpu_percent > 0
                   ? `${safeToFixed(systemMetrics.monitoringC.avg_cpu_percent, 1)}%`
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <span>CPU Système</span>
-                {systemMetrics?.cpu?.usage_percent !== undefined && (
-                  <span className={`text-xs ${systemMetrics.cpu.usage_percent > 80 ? 'text-red-500' : systemMetrics.cpu.usage_percent > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.cpu.usage_percent > 80 ? '🔴' : systemMetrics.cpu.usage_percent > 60 ? '🟡' : '🟢'}
+                {((systemMetrics?.cpu?.usage_percent !== undefined) || (typeof systemMetrics?.cpu?.usage === 'number')) && (
+                  <span className={`text-xs ${(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? 'text-red-500' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {(systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 80 ? '🔴' : (systemMetrics.cpu.usage_percent ?? systemMetrics.cpu.usage) > 60 ? '🟡' : '🟢'}
                   </span>
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {systemMetrics?.cpu?.cores && systemMetrics.cpu.cores !== 'N/A'
                   ? `${systemMetrics.cpu.cores} cores`
-                  : systemMetrics?.jobbingtrack?.containers?.count !== undefined
+                  : (systemMetrics?.jobbingtrack?.containers?.count !== undefined && systemMetrics.jobbingtrack.containers.count > 0)
                   ? `${systemMetrics.jobbingtrack.containers.count} conteneurs`
+                  : systemMetrics?.monitoringC?.container_count !== undefined
+                  ? `${systemMetrics.monitoringC.container_count} conteneurs`
                   : '...'}
               </div>
             </div>
@@ -1121,29 +1125,31 @@ export default function BackofficePage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {/* ✅ CORRECTION : Afficher l'usage disque depuis monitoring-c */}
-                {systemMetrics?.disk?.[0]?.usage_percent_number !== undefined
-                  ? `${safeToFixed(systemMetrics.disk[0].usage_percent_number, 1)}%`
-                  : systemMetrics?.disk?.[0]?.usage !== undefined
-                  ? `${safeToFixed(parseFloat(systemMetrics.disk[0].usage.toString().replace('%', '')), 1)}%`
+                {/* Usage disque : usage_percent ou usage (API metrics-aggregator) */}
+                {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
+                  ? `${safeToFixed(Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage), 1)}%`
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <span>Disque</span>
-                {systemMetrics?.disk?.[0]?.usage_percent_number !== undefined && (
-                  <span className={`text-xs ${systemMetrics.disk[0].usage_percent_number > 90 ? 'text-red-500' : systemMetrics.disk[0].usage_percent_number > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {systemMetrics.disk[0].usage_percent_number > 90 ? '🔴' : systemMetrics.disk[0].usage_percent_number > 80 ? '🟡' : '🟢'}
-                  </span>
+                {(typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number') && (
+                  (() => {
+                    const pct = Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage)
+                    return (
+                      <span className={`text-xs ${pct > 90 ? 'text-red-500' : pct > 80 ? 'text-yellow-500' : 'text-green-500'}`}>
+                        {pct > 90 ? '🔴' : pct > 80 ? '🟡' : '🟢'}
+                      </span>
+                    )
+                  })()
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {/* ✅ Afficher l'espace disque système */}
-                {systemMetrics?.disk?.[0]?.used && systemMetrics?.disk?.[0]?.total ? 
-                  `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total}` : 
-                  systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human ? 
-                  `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}` : 
-                  systemMetrics?.disk?.[0]?.usage_percent_number !== undefined
-                  ? (systemMetrics.disk[0].usage_percent_number > 90 ? '⚠️ Critique' : systemMetrics.disk[0].usage_percent_number > 80 ? '⚠️ Attention' : '✅ OK')
+                {systemMetrics?.disk?.[0]?.used != null && systemMetrics?.disk?.[0]?.total != null
+                  ? `${systemMetrics.disk[0].used} / ${systemMetrics.disk[0].total} GB`
+                  : systemMetrics?.jobbingtrack?.disk?.[0]?.used_human && systemMetrics?.jobbingtrack?.disk?.[0]?.total_human
+                  ? `${systemMetrics.jobbingtrack.disk[0].used_human} / ${systemMetrics.jobbingtrack.disk[0].total_human}`
+                  : (typeof systemMetrics?.disk?.[0]?.usage_percent === 'number' || typeof systemMetrics?.disk?.[0]?.usage === 'number')
+                  ? (Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage) > 90 ? '⚠️ Critique' : Number(systemMetrics.disk[0].usage_percent ?? systemMetrics.disk[0].usage) > 80 ? '⚠️ Attention' : '✅ OK')
                   : loadingSystemMetrics ? '...' : 'N/A'}
               </div>
             </div>

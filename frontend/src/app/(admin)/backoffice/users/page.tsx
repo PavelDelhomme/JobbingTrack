@@ -12,7 +12,7 @@ import axios from 'axios';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 interface User {
   id: string;

@@ -6,7 +6,7 @@ import axios from 'axios';
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { Lock, CheckCircle, XCircle, Eye, EyeOff, AlertCircle } from '@/lib/icons';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 export default function ResetPasswordPage() {
   const router = useRouter();

@@ -10,9 +10,7 @@ import {
   Zap, 
   Users, 
   Activity,
-  TrendingUp,
-  Clock,
-  Globe
+  Smartphone
 } from 'lucide-react'
 import axios from 'axios'
 
@@ -48,6 +46,25 @@ interface UserError {
   resolved: boolean
 }
 
+interface DeviceInfo {
+  id: string
+  deviceId: string
+  platform: string
+  deviceModel?: string
+  appVersion?: string
+  osName?: string
+  osVersion?: string
+  firstSeen: string
+  lastSeen: string
+  totalSessions: number
+}
+
+interface VersionsData {
+  devices: DeviceInfo[]
+  versionsByPlatform: Record<string, Array<{ appVersion: string; count: number }>>
+  performances: Array<{ metricType?: string; metricName?: string; value?: number; timestamp: string }>
+}
+
 export default function UserAnalyticsPage() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -55,7 +72,8 @@ export default function UserAnalyticsPage() {
   const [events, setEvents] = useState<UserEvent[]>([])
   const [errors, setErrors] = useState<UserError[]>([])
   const [selectedDays, setSelectedDays] = useState(7)
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'errors' | 'performance'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'errors' | 'performance' | 'mobile'>('overview')
+  const [versionsData, setVersionsData] = useState<VersionsData | null>(null)
 
   useEffect(() => {
     loadData()
@@ -69,10 +87,12 @@ export default function UserAnalyticsPage() {
       const token = localStorage.getItem('token')
       const headers = { Authorization: `Bearer ${token}` }
 
-      const [statsRes, eventsRes, errorsRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'}/api/v1/analytics/stats/${user.id}?days=${selectedDays}`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'}/api/v1/analytics/events?limit=50`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'}/api/v1/analytics/errors?limit=50`, { headers })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+      const [statsRes, eventsRes, errorsRes, versionsRes] = await Promise.all([
+        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}?days=${selectedDays}`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/events?limit=50`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/errors?limit=50`, { headers }),
+        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}/versions?days=${selectedDays}`, { headers }).catch(() => ({ data: { success: false } }))
       ])
 
       if (statsRes.data.success) {
@@ -83,6 +103,11 @@ export default function UserAnalyticsPage() {
       }
       if (errorsRes.data.success) {
         setErrors(errorsRes.data.data || [])
+      }
+      if (versionsRes?.data?.success && versionsRes.data?.data) {
+        setVersionsData(versionsRes.data.data)
+      } else {
+        setVersionsData(null)
       }
     } catch (error) {
       console.error('[ANALYTICS] Erreur chargement données:', error)
@@ -122,7 +147,8 @@ export default function UserAnalyticsPage() {
               { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
               { id: 'events', label: 'Événements', icon: MousePointer },
               { id: 'errors', label: 'Erreurs', icon: AlertTriangle },
-              { id: 'performance', label: 'Performance', icon: Zap }
+              { id: 'performance', label: 'Performance', icon: Zap },
+              { id: 'mobile', label: 'Versions & App mobile', icon: Smartphone }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -376,6 +402,101 @@ export default function UserAnalyticsPage() {
                 <p className="text-gray-600 dark:text-gray-400">
                   Les métriques de performance seront affichées ici une fois collectées.
                 </p>
+              </div>
+            )}
+
+            {activeTab === 'mobile' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                    <Smartphone className="w-5 h-5" />
+                    Appareils enregistrés
+                  </h3>
+                  {versionsData?.devices?.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Plateforme</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Modèle / OS</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Version app</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Sessions</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Dernière activité</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {versionsData.devices.map((d) => (
+                            <tr key={d.id}>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{d.platform}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{d.deviceModel || d.osName || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{d.appVersion || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{d.totalSessions}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{new Date(d.lastSeen).toLocaleString('fr-FR')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">Aucun appareil enregistré. Les appareils sont enregistrés lorsque vous utilisez l’app mobile (ou le web avec envoi de device).</p>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    Versions utilisées par plateforme
+                  </h3>
+                  {versionsData?.versionsByPlatform && Object.keys(versionsData.versionsByPlatform).length > 0 ? (
+                    <div className="space-y-4">
+                      {Object.entries(versionsData.versionsByPlatform).map(([platform, versions]) => (
+                        <div key={platform}>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{platform}</p>
+                          <ul className="flex flex-wrap gap-2">
+                            {versions.map((v, i) => (
+                              <li key={i} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm">
+                                {v.appVersion} <span className="text-gray-500 dark:text-gray-400">({v.count} événements)</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">Aucune version enregistrée. La version est envoyée avec les événements (app mobile ou web).</p>
+                  )}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                    Métriques performance (app / web)
+                  </h3>
+                  {versionsData?.performances?.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Type</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Métrique</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Valeur</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {versionsData.performances.map((p: any, i: number) => (
+                            <tr key={i}>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{p.metricType || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{p.metricName || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{p.value != null ? p.value : '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{new Date(p.timestamp).toLocaleString('fr-FR')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">Aucune métrique de performance enregistrée.</p>
+                  )}
+                </div>
               </div>
             )}
           </>

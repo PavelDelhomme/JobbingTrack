@@ -48,8 +48,10 @@ int collect_system_metrics(void) {
     if (cores > 0) {
         global_metrics.cpu.cores = (int)cores;
     } else {
-        // Fallback : lire depuis /proc/cpuinfo
-        FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+        // Fallback : lire depuis /proc/cpuinfo (ou PROCFS_PATH/cpuinfo)
+        char cpuinfo_path[64];
+        snprintf(cpuinfo_path, sizeof(cpuinfo_path), "%s/cpuinfo", get_procfs_path());
+        FILE *cpuinfo = fopen(cpuinfo_path, "r");
         if (cpuinfo) {
             int core_count = 0;
             char line[256];
@@ -422,6 +424,13 @@ int collect_container_metrics(void) {
     // Mesurer les temps de réponse HTTP pour les services JobbingTrack
     for (int i = 0; i < container_idx && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
+            /* Ne pas faire de health check HTTP sur postgres/redis (protocole non-HTTP) */
+            if (strstr(global_metrics.containers[i].name, "postgres") != NULL ||
+                strstr(global_metrics.containers[i].name, "redis") != NULL) {
+                global_metrics.containers[i].response_time_ms = 0.0;
+                global_metrics.containers[i].http_status = 0;
+                continue;
+            }
             // Obtenir l'IP du conteneur via docker inspect
             char inspect_cmd[512];
             snprintf(inspect_cmd, sizeof(inspect_cmd),

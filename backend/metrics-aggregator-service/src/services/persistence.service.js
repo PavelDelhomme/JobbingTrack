@@ -21,7 +21,35 @@ try {
  * Gère l'enregistrement de toutes les données de monitoring dans la base de données
  */
 class PersistenceService {
-  
+  constructor() {
+    // Tables dont on a détecté l'absence (pour ne plus envoyer de requêtes = pas de spam Postgres)
+    this._missingTables = new Set();
+  }
+
+  _isTableMissing(error, tableKey) {
+    if (!error) return false;
+    const msg = String(error.message || error || '');
+    const code = error.code;
+    const missing = code === 'P2021' || msg.includes('does not exist') || msg.includes('relation ') || msg.includes('does not exist in the current database');
+    if (missing && tableKey) this._missingTables.add(tableKey);
+    return missing;
+  }
+
+  _warnOnceMissing(tableKey, label) {
+    this._warnedMissing = this._warnedMissing || {};
+    if (this._warnedMissing[tableKey]) return;
+    this._warnedMissing[tableKey] = true;
+    console.warn(`[PERSISTENCE] Table ${label || tableKey} absente. Lancer: make db-push-all (si besoin: make rebuild-service SERVICE=auth-service avant)`);
+  }
+
+  /** Convertit une valeur numérique en BigInt (évite "cannot be converted to a BigInt because it is not an integer"). */
+  _safeBigInt(val) {
+    if (val == null || val === '') return BigInt(0);
+    const n = Number(val);
+    if (Number.isNaN(n)) return BigInt(0);
+    return BigInt(Math.round(n));
+  }
+
   /**
    * Vérifier si la base de données est disponible
    */
@@ -33,10 +61,11 @@ class PersistenceService {
    * Sauvegarder un snapshot de métriques système
    */
   async saveSystemMetricsSnapshot(metricsData, additionalMetrics = {}) {
-    if (!this.isDatabaseEnabled()) {
+    if (!this.isDatabaseEnabled()) return null;
+    if (this._missingTables.has('system_metrics_snapshots')) {
+      this._warnOnceMissing('system_metrics_snapshots', 'system_metrics_snapshots');
       return null;
     }
-    
     try {
       const snapshot = await prisma.systemMetricsSnapshot.create({
         data: {
@@ -47,17 +76,17 @@ class PersistenceService {
           cpuLoadAverage5m: metricsData.load?.[1] || null,
           cpuLoadAverage15m: metricsData.load?.[2] || null,
           memoryUsagePercent: metricsData.memory?.usage || metricsData.memory?.percent || 0,
-          memoryUsedBytes: BigInt(metricsData.memory?.used || 0) * BigInt(1024 * 1024), // MB to Bytes
-          memoryTotalBytes: BigInt(metricsData.memory?.total || 0) * BigInt(1024 * 1024),
-          memoryFreeBytes: BigInt(metricsData.memory?.free || 0) * BigInt(1024 * 1024),
+          memoryUsedBytes: this._safeBigInt(metricsData.memory?.used) * BigInt(1024 * 1024), // MB to Bytes
+          memoryTotalBytes: this._safeBigInt(metricsData.memory?.total) * BigInt(1024 * 1024),
+          memoryFreeBytes: this._safeBigInt(metricsData.memory?.free) * BigInt(1024 * 1024),
           diskUsagePercent: metricsData.disk?.[0]?.usage || null,
-          diskUsedBytes: metricsData.disk?.[0]?.used ? BigInt(metricsData.disk[0].used) * BigInt(1024 * 1024 * 1024) : null,
-          diskTotalBytes: metricsData.disk?.[0]?.total ? BigInt(metricsData.disk[0].total) * BigInt(1024 * 1024 * 1024) : null,
-          diskFreeBytes: metricsData.disk?.[0]?.total && metricsData.disk?.[0]?.used 
-            ? BigInt(metricsData.disk[0].total - metricsData.disk[0].used) * BigInt(1024 * 1024 * 1024) 
+          diskUsedBytes: metricsData.disk?.[0]?.used != null ? this._safeBigInt(metricsData.disk[0].used) * BigInt(1024 * 1024 * 1024) : null,
+          diskTotalBytes: metricsData.disk?.[0]?.total != null ? this._safeBigInt(metricsData.disk[0].total) * BigInt(1024 * 1024 * 1024) : null,
+          diskFreeBytes: metricsData.disk?.[0]?.total != null && metricsData.disk?.[0]?.used != null
+            ? this._safeBigInt(Number(metricsData.disk[0].total) - Number(metricsData.disk[0].used)) * BigInt(1024 * 1024 * 1024)
             : null,
-          networkRxBytes: metricsData.network?.rx ? BigInt(metricsData.network.rx) : null,
-          networkTxBytes: metricsData.network?.tx ? BigInt(metricsData.network.tx) : null,
+          networkRxBytes: metricsData.network?.rx != null ? this._safeBigInt(metricsData.network.rx) : null,
+          networkTxBytes: metricsData.network?.tx != null ? this._safeBigInt(metricsData.network.tx) : null,
           // Nouvelles métriques calculées
           availabilityPercent: additionalMetrics.availabilityPercent || null,
           loadScore: additionalMetrics.loadScore || null,
@@ -70,12 +99,9 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ Snapshot système sauvegardé: ${snapshot.id} (availability: ${snapshot.availabilityPercent}%, load: ${snapshot.loadScore})`);
       return snapshot;
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[PERSISTENCE] ⚠️ Table SystemMetricsSnapshot non trouvée, sauvegarde ignorée (mode développement)');
-          return null;
-        }
+      if (this._isTableMissing(error, 'system_metrics_snapshots')) {
+        this._warnOnceMissing('system_metrics_snapshots', 'system_metrics_snapshots');
+        return null;
       }
       console.error('[PERSISTENCE] ❌ Erreur sauvegarde snapshot système:', error.message);
       throw error;
@@ -86,10 +112,11 @@ class PersistenceService {
    * Sauvegarder les métriques d'un conteneur
    */
   async saveContainerMetricsSnapshot(containerName, metricsData) {
-    if (!this.isDatabaseEnabled()) {
+    if (!this.isDatabaseEnabled()) return null;
+    if (this._missingTables.has('container_metrics_snapshot')) {
+      this._warnOnceMissing('container_metrics_snapshot', 'container_metrics_snapshot');
       return null;
     }
-    
     try {
       const snapshot = await prisma.containerMetricsSnapshot.create({
         data: {
@@ -98,21 +125,22 @@ class PersistenceService {
           containerId: metricsData.containerId || null,
           status: metricsData.status || 'running',
           cpuUsagePercent: metricsData.cpu?.percentage || metricsData.cpu?.usage || null,
-          cpuUsageNano: metricsData.cpu?.usage ? BigInt(metricsData.cpu.usage) : null,
+          cpuUsageNano: metricsData.cpu?.usage != null ? this._safeBigInt(metricsData.cpu.usage) : null,
           memoryUsagePercent: metricsData.memory?.percentage || null,
-          // ✅ CORRECTION : Gérer les valeurs en MB (monitoring C) et bytes (collecte classique)
-          memoryUsageBytes: metricsData.memory?.usage ? 
-            (typeof metricsData.memory.usage === 'number' && metricsData.memory.usage > 1000000 ? 
-              BigInt(Math.round(metricsData.memory.usage)) : 
-              BigInt(Math.round(metricsData.memory.usage * 1024 * 1024))) : null,
-          memoryLimitBytes: metricsData.memory?.limit ? 
-            (typeof metricsData.memory.limit === 'number' && metricsData.memory.limit > 1000000 ? 
-              BigInt(Math.round(metricsData.memory.limit)) : 
-              BigInt(Math.round(metricsData.memory.limit * 1024 * 1024))) : null,
-          networkRxBytes: metricsData.network?.rx ? BigInt(Math.round(metricsData.network.rx)) : null,
-          networkTxBytes: metricsData.network?.tx ? BigInt(Math.round(metricsData.network.tx)) : null,
-          blockReadBytes: metricsData.blockIO?.read ? BigInt(metricsData.blockIO.read) : null,
-          blockWriteBytes: metricsData.blockIO?.write ? BigInt(metricsData.blockIO.write) : null,
+          memoryUsageBytes: metricsData.memory?.usage != null
+            ? (typeof metricsData.memory.usage === 'number' && metricsData.memory.usage > 1000000
+              ? this._safeBigInt(metricsData.memory.usage)
+              : this._safeBigInt(metricsData.memory.usage * 1024 * 1024))
+            : null,
+          memoryLimitBytes: metricsData.memory?.limit != null
+            ? (typeof metricsData.memory.limit === 'number' && metricsData.memory.limit > 1000000
+              ? this._safeBigInt(metricsData.memory.limit)
+              : this._safeBigInt(metricsData.memory.limit * 1024 * 1024))
+            : null,
+          networkRxBytes: metricsData.network?.rx != null ? this._safeBigInt(metricsData.network.rx) : null,
+          networkTxBytes: metricsData.network?.tx != null ? this._safeBigInt(metricsData.network.tx) : null,
+          blockReadBytes: metricsData.blockIO?.read != null ? this._safeBigInt(metricsData.blockIO.read) : null,
+          blockWriteBytes: metricsData.blockIO?.write != null ? this._safeBigInt(metricsData.blockIO.write) : null,
           image: metricsData.image || null,
           labels: metricsData.labels || null,
         },
@@ -120,12 +148,9 @@ class PersistenceService {
       
       return snapshot;
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`[PERSISTENCE] ⚠️ Table ContainerMetricsSnapshot non trouvée, sauvegarde ignorée (mode développement)`);
-          return null;
-        }
+      if (this._isTableMissing(error, 'container_metrics_snapshot')) {
+        this._warnOnceMissing('container_metrics_snapshot', 'container_metrics_snapshot');
+        return null;
       }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde métriques ${containerName}:`, error.message);
       throw error;
@@ -157,22 +182,22 @@ class PersistenceService {
    * Sauvegarder les logs d'un conteneur
    */
   async saveContainerLogs(containerName, containerId, logs) {
-    if (!this.isDatabaseEnabled()) {
+    if (!this.isDatabaseEnabled()) return [];
+    if (this._missingTables.has('container_logs')) {
+      this._warnOnceMissing('container_logs', 'container_logs');
       return [];
     }
-    
     try {
-      if (!Array.isArray(logs) || logs.length === 0) {
-        return [];
-      }
+      if (!Array.isArray(logs) || logs.length === 0) return [];
 
       const savedLogs = [];
-      
       for (const logEntry of logs) {
         // ✅ Le champ Prisma "log" attend une String ; logEntry peut être un objet (ex. { timestamp, log: "" })
-        const rawLog = logEntry.log ?? logEntry;
-        const logString = typeof rawLog === 'string' ? rawLog : (rawLog && typeof rawLog === 'object' && rawLog.log != null ? String(rawLog.log) : JSON.stringify(logEntry));
+        const rawLog = logEntry && (logEntry.log !== undefined ? logEntry.log : logEntry);
+        let logString = typeof rawLog === 'string' ? rawLog : (rawLog && typeof rawLog === 'object' && rawLog.log != null ? String(rawLog.log) : JSON.stringify(logEntry ?? ''));
+        if (typeof logString !== 'string') logString = JSON.stringify(logEntry ?? '');
         const { level, message } = this.parseLogEntry(logString);
+        const messageStr = message != null && typeof message === 'string' ? message : (message != null ? JSON.stringify(message) : logString);
         
         const saved = await prisma.containerLog.create({
           data: {
@@ -182,7 +207,7 @@ class PersistenceService {
             stream: logEntry.stream || 'stdout',
             log: logString,
             parsedLevel: level,
-            parsedMessage: message,
+            parsedMessage: messageStr,
           },
         });
         
@@ -192,12 +217,9 @@ class PersistenceService {
       console.log(`[PERSISTENCE] ✅ ${savedLogs.length} logs sauvegardés pour ${containerName}`);
       return savedLogs;
     } catch (error) {
-      // Gérer les erreurs P2021 (table non trouvée) gracieusement
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`[PERSISTENCE] ⚠️ Table ContainerLog non trouvée, sauvegarde ignorée (mode développement)`);
-          return [];
-        }
+      if (this._isTableMissing(error, 'container_logs')) {
+        this._warnOnceMissing('container_logs', 'container_logs');
+        return [];
       }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde logs ${containerName}:`, error.message);
       throw error;
@@ -248,8 +270,8 @@ class PersistenceService {
           maxResponseTimeMs: networkData.maxResponseTimeMs || null,
           p95ResponseTimeMs: networkData.p95ResponseTimeMs || null,
           p99ResponseTimeMs: networkData.p99ResponseTimeMs || null,
-          bytesReceived: networkData.bytesReceived ? BigInt(networkData.bytesReceived) : BigInt(0),
-          bytesSent: networkData.bytesSent ? BigInt(networkData.bytesSent) : BigInt(0),
+          bytesReceived: this._safeBigInt(networkData.bytesReceived),
+          bytesSent: this._safeBigInt(networkData.bytesSent),
           topEndpoints: networkData.topEndpoints || null,
         },
       });
@@ -265,12 +287,12 @@ class PersistenceService {
    * Sauvegarder la disponibilité d'un service
    */
   async saveServiceAvailability(serviceName, availabilityData) {
-    if (!this.isDatabaseEnabled()) {
+    if (!this.isDatabaseEnabled()) return null;
+    if (this._missingTables.has('service_availability_history')) {
+      this._warnOnceMissing('service_availability_history', 'service_availability_history');
       return null;
     }
-    
     try {
-      // Calculer l'uptime (basé sur l'historique des dernières 24h)
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const history = await prisma.serviceAvailabilityHistory.findMany({
         where: {
@@ -299,14 +321,11 @@ class PersistenceService {
       
       return record;
     } catch (error) {
-      // Table service_availability_history peut ne pas exister si migration non exécutée
-      if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`[PERSISTENCE] Échec disponibilité ${serviceName}: table service_availability_history absente (migration Prisma à exécuter)`);
-        }
+      if (this._isTableMissing(error, 'service_availability_history')) {
+        this._warnOnceMissing('service_availability_history', 'service_availability_history');
         return null;
       }
-      console.error(`[PERSISTENCE] ❌ Erreur sauvegarde disponibilité ${serviceName}:`, error.message);
+      console.error(`[PERSISTENCE] ❌ Erreur sauvegarde disponibilité ${serviceName}:`, (error && error.message) || error);
       throw error;
     }
   }
@@ -878,27 +897,35 @@ class PersistenceService {
    * Récupérer les statistiques de disponibilité d'un service
    */
   async getServiceAvailabilityStats(serviceName, hours = 24) {
+    const defaultStats = {
+      serviceName,
+      uptimePercent: 100,
+      totalChecks: 0,
+      availableChecks: 0,
+      avgResponseTime: 0,
+      maxResponseTime: 0,
+      minResponseTime: 0,
+    };
     if (!this.isDatabaseEnabled()) {
-      return {
-        serviceName,
-        uptimePercent: 100,
-        totalChecks: 0,
-        availableChecks: 0,
-        avgResponseTime: 0,
-        maxResponseTime: 0,
-        minResponseTime: 0,
-      };
+      return defaultStats;
     }
     
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    
-    const history = await prisma.serviceAvailabilityHistory.findMany({
-      where: {
-        serviceName,
-        timestamp: { gte: since },
-      },
-      orderBy: { timestamp: 'asc' },
-    });
+    let history;
+    try {
+      history = await prisma.serviceAvailabilityHistory.findMany({
+        where: {
+          serviceName,
+          timestamp: { gte: since },
+        },
+        orderBy: { timestamp: 'asc' },
+      });
+    } catch (error) {
+      if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+        return defaultStats;
+      }
+      throw error;
+    }
 
     if (history.length === 0) {
       return {

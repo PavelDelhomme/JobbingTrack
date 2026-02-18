@@ -64,9 +64,9 @@ int init_storage(void) {
         return -1;
     }
     
-    // Créer la table si elle n'existe pas
+    /* Table dédiée au log-collector (évite conflit avec Prisma container_logs) */
     const char *create_table = 
-        "CREATE TABLE IF NOT EXISTS container_logs ("
+        "CREATE TABLE IF NOT EXISTS log_collector_logs ("
         "  id BIGSERIAL PRIMARY KEY,"
         "  timestamp TIMESTAMP NOT NULL,"
         "  container_id VARCHAR(64),"
@@ -78,10 +78,10 @@ int init_storage(void) {
         "  http_status INTEGER DEFAULT 0,"
         "  is_error BOOLEAN DEFAULT FALSE"
         ");"
-        "CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON container_logs(timestamp DESC);"
-        "CREATE INDEX IF NOT EXISTS idx_logs_level ON container_logs(level);"
-        "CREATE INDEX IF NOT EXISTS idx_logs_container ON container_logs(container_name);"
-        "CREATE INDEX IF NOT EXISTS idx_logs_error ON container_logs(is_error) WHERE is_error = TRUE;";
+        "CREATE INDEX IF NOT EXISTS idx_log_collector_timestamp ON log_collector_logs(timestamp DESC);"
+        "CREATE INDEX IF NOT EXISTS idx_log_collector_level ON log_collector_logs(level);"
+        "CREATE INDEX IF NOT EXISTS idx_log_collector_container ON log_collector_logs(container_name);"
+        "CREATE INDEX IF NOT EXISTS idx_log_collector_error ON log_collector_logs(is_error) WHERE is_error = TRUE;";
     
     PGresult *res = PQexec(conn, create_table);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -114,7 +114,7 @@ int save_log_to_db(const LogEntry *entry) {
     
     // Préparer la requête SQL avec paramètres
     const char *query = 
-        "INSERT INTO container_logs (timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error) "
+        "INSERT INTO log_collector_logs (timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error) "
         "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
     
     const char *values[9];

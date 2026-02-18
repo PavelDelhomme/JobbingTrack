@@ -9,7 +9,7 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 # Vérifier si PostgreSQL est accessible
-if ! docker exec jobbingtrack-postgres pg_isready -U postgres > /dev/null 2>&1; then
+if ! docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1; then
   # PostgreSQL n'est pas accessible, on sort silencieusement
   exit 0
 fi

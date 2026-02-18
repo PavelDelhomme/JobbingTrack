@@ -682,6 +682,103 @@ class AnalyticsController {
   }
 
   /**
+   * Récupérer versions app et appareils pour un utilisateur (analytics utilisateur - onglet Versions & Mobile)
+   * GET /api/v1/analytics/stats/:userId/versions
+   */
+  async getUserVersionsAndDevices(req, res) {
+    try {
+      const userId = req.params.userId || req.user?.id;
+      const { days = 90 } = req.query;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days));
+
+      try {
+        const hasDeviceInfo = prisma.deviceInfo && typeof prisma.deviceInfo.findMany === 'function';
+        const hasUserEvent = prisma.userEvent && typeof prisma.userEvent.groupBy === 'function';
+        const hasUserPerformance = prisma.userPerformance && typeof prisma.userPerformance.findMany === 'function';
+
+        const [devices, versionsFromEvents, performances] = await Promise.all([
+          hasDeviceInfo
+            ? prisma.deviceInfo.findMany({
+                where: { userId: userId || undefined },
+                orderBy: { lastSeen: 'desc' }
+              }).catch(() => [])
+            : [],
+          hasUserEvent
+            ? prisma.userEvent.groupBy({
+                by: ['platform', 'appVersion'],
+                where: {
+                  userId: userId || undefined,
+                  timestamp: { gte: startDate },
+                  appVersion: { not: null }
+                },
+                _count: true
+              }).catch(() => [])
+            : [],
+          hasUserPerformance
+            ? prisma.userPerformance.findMany({
+                where: { userId: userId || undefined, timestamp: { gte: startDate } },
+                orderBy: { timestamp: 'desc' },
+                take: 50
+              }).catch(() => [])
+            : []
+        ]);
+
+        const countFor = (c) => (typeof c === 'number' ? c : (c && (c._all ?? Object.values(c)[0])) || 0);
+        const versionsByPlatform = (versionsFromEvents || []).reduce((acc, v) => {
+          const key = v.platform || 'web';
+          if (!acc[key]) acc[key] = [];
+          acc[key].push({
+            appVersion: v.appVersion || 'N/A',
+            count: countFor(v._count)
+          });
+          return acc;
+        }, {});
+
+        res.json({
+          success: true,
+          data: {
+            devices: (devices || []).map(d => ({
+              id: d.id,
+              deviceId: d.deviceId,
+              platform: d.platform,
+              deviceModel: d.deviceModel,
+              appVersion: d.appVersion,
+              osName: d.osName,
+              osVersion: d.osVersion,
+              firstSeen: d.firstSeen,
+              lastSeen: d.lastSeen,
+              totalSessions: d.totalSessions
+            })),
+            versionsByPlatform: versionsByPlatform || {},
+            performances: (performances || []).slice(0, 20)
+          }
+        });
+      } catch (dbError) {
+        if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+          res.json({
+            success: true,
+            data: {
+              devices: [],
+              versionsByPlatform: {},
+              performances: []
+            }
+          });
+        } else {
+          throw dbError;
+        }
+      }
+    } catch (error) {
+      console.error('[ANALYTICS] Erreur récupération versions/appareils:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de la récupération des données versions et appareils',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
    * Récupérer les événements d'un utilisateur
    * GET /api/v1/analytics/events
    */

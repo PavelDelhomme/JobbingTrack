@@ -103,10 +103,10 @@ export default function NetworkStatsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Network className="h-8 w-8" />
-              Sécurité Réseau
+              Réseau (sécurité)
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Statistiques réseau en temps réel
+              Statistiques réseau orientées sécurité : connexions, IPs, ports, conteneurs.
             </p>
           </div>
           <button

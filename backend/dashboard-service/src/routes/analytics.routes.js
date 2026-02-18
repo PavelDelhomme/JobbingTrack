@@ -70,7 +70,8 @@ router.post('/performance', optionalAuth, analyticsController.trackPerformance);
 // Appareils
 router.post('/device', optionalAuth, analyticsController.registerDevice);
 
-// Statistiques
+// Statistiques (route la plus spécifique en premier)
+router.get('/stats/:userId/versions', authenticate, analyticsController.getUserVersionsAndDevices);
 router.get('/stats/:userId?', authenticate, analyticsController.getUserStats);
 
 module.exports = router;
