@@ -76,22 +76,22 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Performances** : onglet Performance (métriques réelles), alertes/seuils optionnels.
 - **Analytics utilisateur** : onglet « Versions & App mobile » — API versions à implémenter (404).
 
-### 9. Monitoring, centralLogger, événements
+### 9. Observabilité, centralLogger, événements
+- **Rôles et flux** : voir la section **« Observabilité : rôles et flux (agrégateur d'observabilité) »** pour le détail des trois briques (monitoring-c, log-collector-c, agrégateur d'observabilité / metrics-aggregator) et les choses à faire (log-collector-c, cyber/sécurité, renommage optionnel).
 - **centralLogger / logger-filter** : déployer dans tous les services ; documenter ; garder logger-filter en sync.
 - **Événements & rappels** : backoffice OK ; app mobile — connecter API + rappels locaux/push.
-- **monitoring-c** : stabilité (ERR_EMPTY_RESPONSE, starting) ; tests de charge, CI performance.
+- **monitoring-c** : ne doit **pas** disparaître — utilisé **en interne** par l'**agrégateur d'observabilité** (metrics-aggregator) pour la collecte métriques. Le **backoffice n'appelle jamais monitoring-c** (uniquement l'agrégateur). Stabilité (ERR_EMPTY_RESPONSE, starting) ; tests de charge, CI performance.
 - **Health check 404** : **log-collector-c** et **metrics-aggregator** renvoient HTTP 404 sur `/health` (monitoring-c les appelle pour le health check). Soit ajouter une route `/health` sur ces deux services, soit adapter monitoring-c pour considérer 404 comme « pas d’endpoint health » sans le compter en échec.
 - **Sécurité des conteneurs** : revue des services exposés sur l’hôte (ports mappés dans docker-compose). Limiter l’exposition aux seuls services qui doivent être accessibles depuis l’extérieur (frontend, API gateway, etc.).
 - **Métriques / health en inter-conteneurs** : s’assurer que les appels métriques (metrics-aggregator → monitoring-c, frontend → metrics-aggregator) et health checks restent sur le réseau Docker (noms de services), pas exposés inutilement sur localhost. Vérifier que le frontend en Docker appelle bien l’API gateway / metrics-aggregator via le réseau interne (variables d’environnement) et non localhost.
 
-- **Requêtes logs en C (injection SQL)** : sécuriser les requêtes SQL dans log-collector-c et monitoring-c (échappement des paramètres, prepared statements libpq, validation des entrées). Fichiers : log-collector-c/src/http_server.c, log-collector-c/src/storage.c, monitoring-c/src/storage.c.
 - **APIs logs / métriques en inter-conteneurs uniquement** : s'assurer que les endpoints de logs et métriques (log-collector-c, monitoring-c, metrics-aggregator) ne soient accessibles que depuis le réseau Docker (conteneurs internes). Éviter d'exposer ces ports sur l'hôte ou les restreindre via la config réseau.
 
 ### 10. Documentation et cohérence
 - **ERRORS.md** : tenir à jour (erreurs connues, corrigées, en attente).
 - **RESOLUTIONS.md**, **TESTS_END.md**, **TODO_PERFORMANCE.md** : alignés avec STATUS (à faire vs fait).
 
-**Prochaine étape suggérée** : 1) **Tester** les tests API depuis le backoffice (Docker) pour valider la correction ; 2) Corriger SMTP (503) et logs emails (404) ; 3) Sécurité (firewall, politiques, menaces) ; 4) Emails (templates, config, délivrabilité).
+**Prochaine étape suggérée** : 1) **Tester** les tests API depuis le backoffice (Docker) pour valider la correction ; 2) Corriger SMTP (503) et logs emails (404) ; 3) Sécurité (firewall, politiques, menaces) ; 4) Emails (templates, config, délivrabilité). Requêtes SQL en C (log-collector-c, monitoring-c) : **fait** (prepared statements + validation).
 
 ---
 
@@ -120,6 +120,7 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 ## ✅ Résolu / Fait (ce qui a été fait)
 
 ### Derniers faits (Février 2026)
+- **Sécurisation SQL en C (log-collector-c, monitoring-c)** : requêtes passées en **prepared statements** (libpq `PQexecParams`) et validation des entrées. **log-collector-c** (`http_server.c`) : GET /api/v1/logs avec paramètres `$1`–`$4` (errors_only, level, container, limit), whitelist level (info/warn/error/debug), container alphanum + `-_.`, limit 1–2000. **monitoring-c** (`storage.c`) : `get_system_metrics_history` avec `PQexecParams` (start_date, end_date, limit, offset), limit 1–5000, offset 0–100000. Plus d'injection SQL sur ces chemins.
 - **Metrics-aggregator – persistance JobbingTrack uniquement** : en plus du filtre à la collecte Docker, les conteneurs issus de **monitoring C** sont filtrés avant sauvegarde (`isJobbingTrackContainer`). Log : « Préparation de 21 conteneurs depuis monitoring C pour sauvegarde (X reçus, filtre JobbingTrack) » et « Sauvegarde de 21 conteneurs en BDD » (plus de 31).
 - **Navigation backoffice** : **Testeur d’API (manuel)** = `/backoffice/api-tester` (tests manuels, endpoints, historique). **Lancer les tests API** = `/backoffice/tests-api` (sous Tests) = lancement du script et rapports. Tableau de bord et Sécurité en sous-catégories (bloc parent + subItems).
 - **Rapports tests API** : parsing des statistiques amélioré — priorité au comptage des lignes « ✓ PASS » / « ✗ FAIL » (pattern 3) quand le résumé texte est vide ou incohérent, pour afficher le vrai total / réussis / échoués au lieu de « 1 total, 1 échoué ». Pattern 1 utilise `tail -1` pour prendre la dernière ligne de résumé.
@@ -136,10 +137,30 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 
 ---
 
-## ✅ Flux métriques : une seule source (metrics-aggregator)
+## ✅ Observabilité : rôles et flux (agrégateur d'observabilité)
 
-- **Architecture** : le **frontend** ne parle qu’au **metrics-aggregator** (port 5004). L’aggregator récupère les données depuis **monitoring-c** (en interne), les persiste en BDD et les expose au frontend. **monitoring-c** n’est plus appelé directement par le frontend.
-- **Modifications** : `centralMetricsService` utilise uniquement `metricsAggregatorUrl` (plus de fallback monitoring-c). Liste des services, détail service, métriques système/conteneurs, historique et logs passent tous par metrics-aggregator (`/api/v1/metrics`, `/api/v1/docker/services/all`, `/api/v1/docker/service/:name`, `/api/v1/docker/service/:name/logs`, etc.). Port par défaut 5004 (plus 8014). Ancien `metricsService.ts` (Prometheus/ancien système) supprimé.
+### Nom de concept vs nom technique
+- **Agrégateur d'observabilité** (ou *Observability aggregator*) : nom de **concept** pour le service qui regroupe, traite et enregistre toutes les données d'observabilité (monitoring, logs, réseau, santé, et à terme cyber/sécurité) dans des **tables distinctes** (meilleure définition et traçabilité), puis expose au backoffice ce qu'il faut (métriques, logs, historique).
+- **Nom technique** (conteneur / code) : **metrics-aggregator** (répertoire `backend/metrics-aggregator-service`, conteneur `jobbingtrack-metrics-aggregator`). Conservé pour compatibilité ; renommage optionnel plus tard en `observability-aggregator` si souhaité.
+
+### Rôles des trois briques
+| Composant | Rôle | Exemple de données | Appelé par |
+|-----------|------|--------------------|------------|
+| **monitoring-c** (ex-systems, C) | Collecte **métriques** système et conteneurs (CPU, mémoire, disque, réseau, load, santé des services). | `/api/v1/metrics`, historique `system_metrics` (PostgreSQL). | Agrégateur d'observabilité uniquement (pas le backoffice). |
+| **log-collector-c** (ex-systems, C) | Collecte **logs** des conteneurs (stdout/stderr, niveau, message). | `/api/v1/logs`, table `container_logs`. | Peut être interrogé par l'agrégateur ou le backoffice ; souvent l'agrégateur centralise puis expose. |
+| **Agrégateur d'observabilité** (Node, metrics-aggregator) | **Regroupe** les données (monitoring-c + Docker + centralLogger), **traite** (filtre JobbingTrack, normalise), **enregistre** dans des tables **distinctes** (system_metrics, container_metrics, container_logs, service_availability, security_metrics…), **expose** au backoffice (une seule API). | `/api/v1/metrics`, `/api/v1/docker/*`, `/api/v1/persistence/*`, `POST /api/v1/persistence/logs`. | **Backoffice uniquement** (frontend ne parle qu'à cet agrégateur). |
+
+### Flux actuel
+1. **monitoring-c** → agrégateur (métriques système + conteneurs).
+2. **Docker** (socket) → agrégateur (liste conteneurs, logs, stats).
+3. **centralLogger** (auth, application, security…) → `POST /api/v1/persistence/logs` → agrégateur → BDD.
+4. **Agrégateur** → persistance dans tables distinctes (system_metrics_snapshots, container_metrics, container_logs, service_availability_history, security_metrics…).
+5. **Backoffice** → uniquement **agrégateur** (port 5004) pour tout : vue d'ensemble, services, logs, historique, analytics.
+
+### À faire (observabilité)
+- Unifier / documenter l'usage de **log-collector-c** : soit l'agrégateur interroge log-collector-c pour enrichir les logs, soit les logs passent uniquement par Docker + centralLogger ; éviter doublons.
+- Étendre l'agrégateur aux données **cyber / sécurité** (déjà `saveSecurityMetrics` côté persistence) : s'assurer que les flux WAF, firewall, menaces remontent vers les bonnes tables et sont exposés au backoffice.
+- Optionnel : renommer le service/conteneur **metrics-aggregator** en **observability-aggregator** pour cohérence avec le rôle (docker-compose, env, frontend).
 
 ---
 
@@ -148,8 +169,8 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **`make db-push-all`** : le script fait (1) Prisma db push, (2) `init-system-metrics.sql`, (3) **`init-key-tables.sql`** (security_logs, system_metrics_snapshots, network_connections, **network_threats**). Commentaire en tête du script.
 - **Navigation** : section **Sécurité** sans doublon. **Statistiques & Monitoring** : uniquement « Vue d'ensemble » (suppression du doublon « Logs des conteneurs » ; les logs conteneurs restent sous **Gestion des services** > **Services & Logs**).
 - **Services & Logs** : API Gateway d’abord (logs sécurité), puis log-collector pour enrichir si dispo.
-- **Liste des services** : uniquement **metrics-aggregator** (`/api/v1/docker/services/all` puis `/api/v1/metrics` en fallback).
-- **Détail service** : métriques et logs via metrics-aggregator uniquement.
+- **Liste des services** : uniquement **agrégateur d'observabilité** (metrics-aggregator) : `/api/v1/docker/services/all` puis `/api/v1/metrics` en fallback.
+- **Détail service** : métriques et logs via agrégateur d'observabilité uniquement.
 
 ---
 
@@ -158,7 +179,7 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Administration > Gestion des Services** :
   - **Services & Logs** : le bouton et la page fonctionnent. Correction du bug (variable `normalizedServiceFilter` non définie qui faisait planter le filtre par service). Fallback logs via API Gateway (`/api/v1/security/logs`) avec URL `NEXT_PUBLIC_API_URL` (5002). Liste de services enrichie avec des noms connus pour le filtre même sans logs.
   - **Navigation** : « Services & Logs » est un sous-élément de « Gestion des Services » dans le menu (Liste des services, Services & Logs). Bouton « Retour » (flèche) sur la page Services & Logs vers `/backoffice/services`.
-  - **Détail d’un service** (ex. metrics-aggregator) : fusion correcte des données (monitoring-c + metrics-aggregator) en un seul état ; recherche du conteneur avec ou sans préfixe `jobbingtrack-` ; appel à l’API docker du metrics-aggregator avec les deux noms si besoin ; lien « Retour » explicite vers la liste des services ; message clair si le service n’est pas détecté.
+  - **Détail d'un service** (ex. agrégateur d'observabilité / metrics-aggregator) : fusion correcte des données (monitoring-c + agrégateur) en un seul état ; recherche du conteneur avec ou sans préfixe `jobbingtrack-` ; appel à l'API docker de l'agrégateur avec les deux noms si besoin ; lien « Retour » explicite vers la liste des services ; message clair si le service n'est pas détecté.
 - **Sécurité** : Politiques de sécurité (WAF global + règles, firewall, IPs bloquées) branchées sur les APIs ; architecture documentée dans `backend/security-service/ARCHITECTURE.md`. Analytics utilisateur : onglet « Versions & App mobile » (appareils, versions par plateforme, métriques performance) avec API `GET /api/v1/analytics/stats/:userId/versions`.
 
 ---
@@ -208,8 +229,8 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 | Domaine | Description | Statut |
 |--------|-------------|--------|
 | **API REST** | API Gateway + microservices (auth, application, company, contact, interview, call, event, followup, profile, notification, workflow, deployment, dashboard) | ✅ Opérationnel |
-| **Monitoring** | monitoring-c (C), log-collector-c, métriques temps réel | ✅ Opérationnel |
-| **Collecteur de statistiques** | metrics-aggregator-service (Node), persistance Prisma/PostgreSQL, snapshots système et conteneurs | ✅ Opérationnel (tables créées via `make db-push-all`) |
+| **Observabilité (collecte)** | **monitoring-c** (C) : métriques système/conteneurs ; **log-collector-c** (C) : logs conteneurs | ✅ Opérationnel |
+| **Agrégateur d'observabilité** | metrics-aggregator (Node) : regroupe monitoring + logs + Docker + centralLogger, traite, enregistre en tables distinctes (system_metrics, container_metrics, container_logs, etc.), expose au backoffice (une seule API) | ✅ Opérationnel (tables via `make db-push-all`) |
 | **Historique des métriques** | PostgreSQL (system_metrics, container_metrics, tables Prisma metrics-aggregator), Analytics backoffice, périodes 1h → 30j + plage personnalisée | ✅ En place |
 | **Sécurité / Firewall** | security-service, WAF dans l’API Gateway, firewall engine (iptables, fallback en dev) ; interfaces et flux complets à finaliser | ⏳ Partiel (à finaliser) |
 | **Système de comptes** | auth-service (JWT, refresh, inscriptions, rôles) | ✅ Opérationnel |
@@ -273,7 +294,7 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 ## 📋 Détails techniques (référence)
 
 ### centralLogger et logger-filter (backend shared)
-- **centralLogger.js** (`backend/shared/utils/centralLogger.js`) : Envoi des logs ERROR/WARN/FATAL vers le metrics-aggregator (`POST /api/v1/persistence/logs`). URL par défaut : `http://jobbingtrack-metrics-aggregator:3014` (ou `METRICS_SERVICE_URL` / `METRICS_AGGREGATOR_URL`). À utiliser dans les microservices pour centraliser les logs côté agrégateur.
+- **centralLogger.js** (`backend/shared/utils/centralLogger.js`) : Envoi des logs ERROR/WARN/FATAL vers l'**agrégateur d'observabilité** (metrics-aggregator) via `POST /api/v1/persistence/logs`. URL par défaut : `http://jobbingtrack-metrics-aggregator:3014` (ou `METRICS_SERVICE_URL` / `METRICS_AGGREGATOR_URL`). À utiliser dans les microservices pour centraliser les logs côté agrégateur.
 - **logger-filter.js** (`backend/shared/logger-filter.js`) : Filtre Winston pour supprimer le spam des erreurs P2021 (table non trouvée) en développement. Tous les services devraient importer depuis `backend/shared/logger-filter.js` (ou un chemin relatif cohérent) pour éviter les copies locales et garder un comportement unique.
 - **À faire** : Vérifier que chaque service (auth, application, company, security, etc.) utilise soit le centralLogger pour les logs critiques, soit au minimum le logger-filter dans son logger Winston ; documenter l’usage dans un README shared ou dans la doc projet.
 
@@ -283,9 +304,9 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Application mobile** : intégrer la **création et la gestion des événements / rappels** (calendrier, notifications, liste). Rappels locaux ou push selon la stack mobile.
 - **À faire** : modèles (event-service ou module dédié), API (CRUD événements + rappels), backoffice (écrans), app mobile (écrans + rappels). Vérifier si event-service existant couvre déjà une partie et l’étendre.
 
-### Interface Status (backoffice) et organisation des métriques
-- **Status** : Vue d’ensemble avec **tous les champs alimentés** (CPU système/projet, mémoire système/projet, temps de réponse, santé des services). Vérifier que les sources (monitoring-c + metrics-aggregator) remontent bien jusqu’au frontend et qu’aucun bloc ne reste en N/A sans raison.
-- **Organisation type ex-systems** : structurer le **nouveau système de métriques** comme dans ex-systems : une source claire (monitoring-c pour la collecte bas niveau, metrics-aggregator pour l’agrégation et la persistance), des endpoints documentés, des flux explicites (qui appelle qui, quels ports). Documenter dans STATUS ou un doc dédié (ex. `docs/metrics-flow.md`) : monitoring-c (5098) → metrics-aggregator (5004) → frontend (5003 backoffice). Compléter les parties manquantes (métriques réseau, santé des services, logs centralisés) pour avoir un système cohérent.
+### Interface Status (backoffice) et organisation de l'observabilité
+- **Status** : Vue d'ensemble avec **tous les champs alimentés** (CPU système/projet, mémoire système/projet, temps de réponse, santé des services). Les sources remontent ainsi : **monitoring-c** → **agrégateur d'observabilité** (metrics-aggregator) → frontend ; vérifier qu'aucun bloc ne reste en N/A sans raison.
+- **Organisation** : **Trois briques** (voir section « Observabilité : rôles et flux ») : (1) **monitoring-c** = collecte métriques bas niveau ; (2) **log-collector-c** = collecte logs conteneurs ; (3) **agrégateur d'observabilité** (metrics-aggregator) = regroupement, traitement, persistance en tables distinctes, exposition backoffice. Flux : monitoring-c (8015) → agrégateur (5004) → frontend (5003). Documenter dans `docs/metrics-flow.md` ou STATUS les flux complets (métriques réseau, santé, logs centralisés).
 
 ### centralLogger et consolidation
 - **centralLogger** : déployé dans auth-service, application-service et security-service (transport Winston → `POST /api/v1/persistence/logs`). À étendre aux autres services si besoin (voir backend/shared/README.md).
@@ -356,9 +377,9 @@ make db-clean-metrics
 
 ## 📊 Statistiques projet
 
-- **Services** : 21+ avec healthchecks (API Gateway, auth, microservices métier, security, metrics-aggregator, monitoring-c, log-collector, postgres, redis, frontend).
-- **Monitoring** : monitoring-c (C) + log-collector-c ; ancien stack Prometheus/Grafana/Loki supprimé.
-- **Persistance métriques** : PostgreSQL (monitoring-c + metrics-aggregator Prisma).
+- **Services** : 21+ avec healthchecks (API Gateway, auth, microservices métier, security, **agrégateur d'observabilité** [metrics-aggregator], monitoring-c, log-collector, postgres, redis, frontend).
+- **Observabilité** : **monitoring-c** (C, métriques) + **log-collector-c** (C, logs) ; **agrégateur d'observabilité** (Node) regroupe, traite, persiste en tables distinctes, expose au backoffice. Ancien stack Prometheus/Grafana/Loki supprimé.
+- **Persistance** : PostgreSQL (tables distinctes : system_metrics, container_metrics, container_logs, service_availability, security_metrics… via agrégateur + auth-service schéma).
 
 ---
 
@@ -381,6 +402,7 @@ make db-clean-metrics
 - [x] **Gestion des services** : page Services & Logs corrigée (normalizedServiceFilter, API Gateway pour logs), sous-navigation (Liste des services, Services & Logs), bouton Retour. Détail service (ex. metrics-aggregator) : fusion monitoring-c + metrics-aggregator, recherche par nom avec/sans préfixe, lien Retour liste.
 - [x] **Politiques de sécurité** : paramétrage WAF (toggle global + règles), section firewall (lien vers onglet Firewall), IPs bloquées (block/unblock). Architecture sécurité documentée (backend/security-service/ARCHITECTURE.md).
 - [x] **Analytics utilisateur** : onglet « Versions & App mobile » (appareils, versions par plateforme, métriques performance) ; API `GET /api/v1/analytics/stats/:userId/versions`.
+- [x] **Requêtes SQL en C (log-collector-c, monitoring-c)** : prepared statements (PQexecParams), validation des entrées (limit, level, container, start_date/end_date) ; plus d'injection SQL sur ces chemins.
 
 ## 📝 Références
 
