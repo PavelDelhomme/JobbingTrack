@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
     const command = `cd "${projectRoot}" && sh "${scriptDir}/generate-test-report.sh" api '${safeCommand}' "${safeName}"`
 
     const apiUrl = getApiUrlForTests()
-    const env = { ...process.env, API_URL: apiUrl }
+    const metricsAggregatorUrl = process.env.METRICS_AGGREGATOR_URL || (process.env.PROJECT_ROOT === '/app' ? 'http://jobbingtrack-metrics-aggregator:3014' : 'http://localhost:5004')
+    const env = { ...process.env, API_URL: apiUrl, METRICS_AGGREGATOR_URL: metricsAggregatorUrl }
 
     let stdout = ''
     let reportId: string | null = null

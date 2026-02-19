@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
-import { getProjectRoot } from '../testRunnerUtils'
+import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils'
 
 const RUN_TIMEOUT_MS = 120000
 
@@ -15,20 +15,36 @@ export async function POST(request: NextRequest) {
     const testName = body.testName || 'Tests Backend'
     const projectRoot = getProjectRoot()
     const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
-    const command = `cd "${projectRoot}" && sh "${scriptPath}" backend "make test-backend" "${testName}"`
+    const inContainer = isRunningInFrontendContainer()
+    const testCommand = inContainer ? 'cd /app/tests && npm run test:backend' : 'make test-backend'
+    const command = `cd "${projectRoot}" && sh "${scriptPath}" backend "${testCommand}" "${testName}"`
 
     let stdout = ''
     let reportId: string | null = null
     try {
-      stdout = execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, timeout: RUN_TIMEOUT_MS })
+      stdout = execSync(command, {
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: RUN_TIMEOUT_MS,
+        env: { ...process.env, TESTS_RESULTS_DIR: process.env.TESTS_RESULTS_DIR || undefined },
+      })
       reportId = extractReportId(stdout)
     } catch (err: unknown) {
       const execErr = err as { stdout?: string; message?: string }
       reportId = execErr.stdout ? extractReportId(execErr.stdout) : null
+      if (reportId) {
+        return NextResponse.json({
+          success: false,
+          message: 'Tests terminés avec des échecs',
+          reportId,
+          reportLocation: 'tests/results/',
+          error: (err as Error).message || 'Erreur exécution tests backend',
+        })
+      }
       return NextResponse.json({
         success: false,
         error: (err as Error).message || 'Erreur exécution tests backend',
-        reportId: reportId || undefined,
+        reportId: undefined,
       }, { status: 500 })
     }
 

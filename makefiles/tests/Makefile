@@ -579,3 +579,34 @@ test-backend: ## Tests services backend (Jest - dans conteneur ou local)
 	@echo "║                ✅ TEST TERMINÉ                         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
+
+# ================================================================
+# 🎨 TEST FRONTEND - Tests unitaires frontend (Jest)
+# ================================================================
+test-frontend: ## Tests frontend (Jest - délègue à test-unit-frontend)
+	$(call check_help_read,test-frontend)
+	@$(MAKE) test-unit-frontend
+
+# ================================================================
+# 🎭 TEST E2E - Tests E2E Playwright
+# ================================================================
+test-e2e: ## Tests E2E Playwright (délègue à test-e2e-frontend)
+	$(call check_help_read,test-e2e)
+	@$(MAKE) test-e2e-frontend
+
+# ================================================================
+# 🔒 TEST SÉCURITÉ - Tests de sécurité (WAF, auth, injection, etc.)
+# ================================================================
+test-security: ## Tests de sécurité (scripts dans tests/security/)
+	$(call check_help_read,test-security)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🔒 TESTS SÉCURITÉ - JobbingTrack               ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@if [ -f "tests/security/test-security.js" ]; then \
+		cd tests && node security/test-security.js 2>&1 || exit 1; \
+	else \
+		echo "⚠️  tests/security/test-security.js non trouvé"; exit 1; \
+	fi
+	@echo ""
+	@echo "✅ Tests sécurité terminés"
