@@ -28,6 +28,12 @@ Appliqué selon **docs/tests/ECHECS_TESTS_API_2026-02-19.md** :
 
 **Reste à valider en conditions réelles** : Create Company/Application/Contact (JWT avec userId admin réel après db-push-all), Events 403 (token bien transmis).
 
+**Après modification des schémas Prisma : reconstruire puis db-push-all**  
+Les conteneurs utilisent le code présent dans l’image. Après changement de `backend/*/prisma/schema.prisma` ou du code des services : (1) **`make build`** pour reconstruire les images, (2) **`make down && make up-full`** (ou redémarrage des services concernés), (3) **`make db-push-all`** pour pousser le nouveau schéma. Sinon les erreurs User.verificationToken, Application.status, dev_user_1 peuvent persister. Détail : **docs/tests/ECHECS_TESTS_API_2026-02-19.md** (§ « Après modification des schémas Prisma »).
+
+**Marqueurs logs Tests API**  
+Pour repérer le début et la fin d’un run depuis les logs : `[TESTS API] Démarrage des Tests API depuis le backoffice`, `[TESTS API] Lancement de la suite Tests API`, `[TESTS API] Début exécution des tests`, `[TESTS API] Exécution des tests terminée`, `[TESTS API] Fin de la génération du rapport`, `[TESTS API] Fin des Tests API` (frontend). Filtrer avec : `grep "[TESTS API]"` ou `grep "TESTS API"`.
+
 **Conformité BDD (complément 2026-02-19)** :  
 - **User** : colonnes `verificationToken`, `verificationTokenExpiry`, `loginCount` ajoutées aux schémas `backend/application-service/prisma/schema.prisma` et `backend/prisma/schema.prisma` pour que le login auth-service trouve l'utilisateur en BDD (plus d'erreur « column User.verificationToken does not exist ») et renvoie le vrai id admin au lieu de dev_user_1.  
 - **Application / Interview** : schémas **interview-service**, **call-service**, **followup-service** alignés sur la BDD : `Application.status` remplacé par `statusId` + relation vers modèle `ApplicationStatus` ; `Interview.status` remplacé par `statusId` + relation vers modèle `InterviewStatus` ; `ApplicationStatusHistory` avec `previousStatusId`/`newStatusId`. Contrôleur interview-service : création d'entretien utilise `statusId` (résolution du code statut, ex. SCHEDULED). Après **`make db-push-all`**, les erreurs « column Application.status does not exist » et « column Interview.status does not exist » sont résolues.
