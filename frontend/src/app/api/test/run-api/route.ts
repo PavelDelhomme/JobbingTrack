@@ -19,6 +19,10 @@ function getApiUrlForTests(): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Log visible dans les logs du conteneur frontend quand on lance les Tests API depuis le backoffice
+  const startLabel = `[TESTS API] Démarrage des Tests API depuis le backoffice — ${new Date().toISOString()}`
+  console.log(startLabel)
+
   try {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests API'

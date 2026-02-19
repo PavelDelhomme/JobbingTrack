@@ -12,48 +12,52 @@
 
 ## À FAIRE (par priorité)
 
-### Priorité 1 – Immédiat
+### Priorité 1 – Immédiat ✅ (validée 2026-02-19)
 
-1. Vérifier que l’admin existe (voir message après `make up-full` ; si doute : `make create-admin-user`).
-2. Se connecter au backoffice avec admin@jobbingtrack.com / password123.
-3. Lancer les tests API depuis le backoffice (Tests > Tests API) et vérifier le rapport ; si login 401, vérifier l’admin (étape 1).
+1. ~~Vérifier que l’admin existe~~ — **Fait** : `make up-full` crée l’admin automatiquement ; connexion admin@jobbingtrack.com OK.
+2. ~~Se connecter au backoffice~~ — **Fait**.
+3. ~~Lancer les tests API depuis le backoffice~~ — **Fait** : rapport généré (21/36 passent, 15 échecs). Voir **docs/tests/ECHECS_TESTS_API_2026-02-19.md** pour le détail des échecs et les actions à faire.
+
+**Logs** : au lancement des Tests API depuis le backoffice, un message explicite apparaît dans les logs : `[TESTS API] Démarrage des Tests API depuis le backoffice` (frontend) et `[TESTS API] Lancement de la suite Tests API` (script).
 
 ### Priorité 2 – Erreurs à corriger
 
-4. SMTP 503 : configurer SMTP (auth-service ou service dédié), test opérationnel, écrans backoffice Configuration SMTP et Déliverabilité.
-5. Logs emails 404 : brancher page Historique des emails (`/backoffice/emails/logs`) et API `GET /api/v1/emails/logs`.
-6. API versions 404 : exposer `GET /api/v1/analytics/stats/:userId/versions` via le gateway et corriger le front.
+4. **Tables BDD manquantes** (erreurs dans les logs au démarrage) : lancer **`make db-push-all`** une fois Postgres et les conteneurs démarrés pour créer `deployments`, `container_logs`, `system_metrics_snapshots`, `service_availability_history`, etc. Réduit les 500 sur metrics-aggregator et deployment-service.
+5. **Tests API – 15 échecs** : corriger selon **docs/tests/ECHECS_TESTS_API_2026-02-19.md** (profile-service 404, notification 200 vs 401, script `dev_user_1`, schéma Application/Interview statusId, dashboard stats, champs requis Call/Followup).
+6. SMTP 503 : configurer SMTP (auth-service ou service dédié), test opérationnel, écrans backoffice Configuration SMTP et Déliverabilité.
+7. Logs emails 404 : brancher page Historique des emails (`/backoffice/emails/logs`) et API `GET /api/v1/emails/logs`.
+8. API versions 404 : exposer `GET /api/v1/analytics/stats/:userId/versions` via le gateway et corriger le front.
 
 ### Priorité 3 – Tests à valider
 
-7. Lancer et valider (ou documenter les échecs) : `make test-api`, `make test-security`, `make test-frontend`, `make test-backend`, `make test-e2e`, `make test-performance`, `make tests-user-journey`.
-8. Compléter les tests unitaires (frontend, backend, tests/unit) ; aligner avec TESTS_END.md et docs/tests/TESTS_COMPLETS_RAPPORT.md.
+9. Lancer et valider (ou documenter les échecs) : `make test-api`, `make test-security`, `make test-frontend`, `make test-backend`, `make test-e2e`, `make test-performance`, `make tests-user-journey`.
+10. Compléter les tests unitaires (frontend, backend, tests/unit) ; aligner avec TESTS_END.md et docs/tests/TESTS_COMPLETS_RAPPORT.md.
 
 ### Priorité 4 – Sécurité
 
-9. Remplacer la config WAF et la détection actuelles (faux/mock) par une vraie config WAF et une vraie détection (APIs + BDD).
+11. Remplacer la config WAF et la détection actuelles (faux/mock) par une vraie config WAF et une vraie détection (APIs + BDD).
 
 ### Priorité 5 – Gestion des données
 
-10. Onglet Données test : implémenter le filtre API (isTestData ou utilisateur de test) pour une table « données test uniquement ».
-11. Abonnement & facturation : implémenter ou documenter hors scope.
+12. Onglet Données test : implémenter le filtre API (isTestData ou utilisateur de test) pour une table « données test uniquement ».
+13. Abonnement & facturation : implémenter ou documenter hors scope.
 
 ### Priorité 6 – Design et UX
 
-12. Design unifié des pages de test (Tests API, Frontend, Backoffice) : reprendre le design Tests Backend (progression, logs) ; voir TESTS_END.md § 13.
-13. Depuis le backoffice : création automatique d’un utilisateur de test et des données de test au clic « Lancer les tests » (sans `make create-admin-user` à la main).
+14. Design unifié des pages de test (Tests API, Frontend, Backoffice) : reprendre le design Tests Backend (progression, logs) ; voir TESTS_END.md § 13.
+15. Depuis le backoffice : création automatique d’un utilisateur de test et des données de test au clic « Lancer les tests » (sans `make create-admin-user` à la main).
 
 ### Priorité 7 – Métier et scénarios
 
-14. APIs métier complètes (entretiens, appels, sync, candidatures, relances, entreprises, contacts, événements, calendrier, utilisateurs, paramètres) ; voir docs/database/ (schema, ACTIONS_ET_MODIFICATIONS).
-15. Scénarios Playwright, API et parcours utilisateur opérationnels (dépendent des APIs métier).
-16. Worker/cron pour exécuter les tests programmés (plannings backoffice).
+16. APIs métier complètes (entretiens, appels, sync, candidatures, relances, entreprises, contacts, événements, calendrier, utilisateurs, paramètres) ; voir docs/database/ (schema, ACTIONS_ET_MODIFICATIONS).
+17. Scénarios Playwright, API et parcours utilisateur opérationnels (dépendent des APIs métier).
+18. Worker/cron pour exécuter les tests programmés (plannings backoffice).
 
 ### Priorité 8 – Suite
 
-17. Application mobile : connecter à l’API fonctionnelle et sécurisée (section métier stable).
-18. Observabilité : tout le trafic (API, mobile, mails, user journey, tests) répertorié dans log-collector + metrics-aggregator.
-19. Documentation : tenir à jour ERRORS.md, aligner RESOLUTIONS.md / TESTS_END.md avec STATUS.
+19. Application mobile : connecter à l’API fonctionnelle et sécurisée (section métier stable).
+20. Observabilité : tout le trafic (API, mobile, mails, user journey, tests) répertorié dans log-collector + metrics-aggregator.
+21. Documentation : tenir à jour ERRORS.md, aligner RESOLUTIONS.md / TESTS_END.md avec STATUS.
 
 ---
 
@@ -71,6 +75,7 @@
 - **RESOLUTIONS.md** — Ce qui est résolu ou validé (résolutions appliquées, checklist).
 - **docs/COMMANDES_UTILES.md** — Commandes make utiles et ce que vous pouvez tester.
 - **docs/STATISTIQUES_PROJET.md** — Statistiques projet (services, observabilité, persistance).
+- **docs/tests/ECHECS_TESTS_API_2026-02-19.md** — Analyse des 15 échecs du rapport Tests API (2026-02-19) et actions à faire.
 - **ERRORS.md** — Erreurs connues et statut.
 - **TESTS_END.md** — Synthèse des tests et validation via make.
 
@@ -85,6 +90,7 @@
 - Tests API depuis Docker : `sh` + chemins absolus, PROJECT_ROOT, volume scripts, TESTS_RESULTS_DIR, syntaxe POSIX (test-api-specific.sh, generate-test-report.sh).
 - Persistance agrégateur : filtre JobbingTrack → 21 conteneurs ; rebuild metrics-aggregator si besoin.
 - Tables manquantes : `make db-push-all` crée toutes les tables (Prisma 9 services + init-system-metrics.sql + init-key-tables.sql). Ne pas lancer db-push-security / db-push-deployment seuls.
+- **Rapport Tests API (2026-02-19)** : 21/36 passent, 15 échecs (profile 404, notification 200 vs 401, dev_user_1, schéma statusId, dashboard count, etc.) — détail et ordre des corrections dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**.
 
 ### Emails
 

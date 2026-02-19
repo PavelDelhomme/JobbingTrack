@@ -6,7 +6,9 @@
 
 ## ⏳ À traiter en priorité (erreurs connues)
 
-- **Tests API depuis Docker** : ~~`/bin/sh: bash: not found`~~ → **Corrigé** : les routes d’exécution de tests utilisent désormais **`sh`** au lieu de `bash` (run-api, run-backend, run-frontend, run-backoffice, run-performance-backend, run-performance-frontend). Si les scripts échouent sous `sh`, les rendre POSIX ou installer `bash` dans l’image frontend.
+- **Tests API – 15 échecs (rapport 2026-02-19)** : 21/36 tests passent. Les 15 échecs sont listés et analysés dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md** : profile-service 404 (pas de route `/api/v1/profile/me`), notification-service 200 au lieu de 401 sans token, script de test qui utilise `userId=dev_user_1` (absent en BDD), schéma Application/Interview (status vs statusId), dashboard statistics (reading 'count' undefined), champs requis manquants (Call, Followup). Actions : `make db-push-all`, implémenter profile/me, utiliser userId admin dans les tests, aligner schémas Prisma, sécuriser notification-service, corriger dashboard.
+- **Tables BDD manquantes au démarrage** : logs Postgres indiquent `deployments`, `container_logs`, `system_metrics_snapshots`, `service_availability_history` absentes. **Action** : lancer **`make db-push-all`** après démarrage des services.
+- **Tests API depuis Docker** : ~~`/bin/sh: bash: not found`~~ → **Corrigé** : les routes d’exécution de tests utilisent désormais **`sh`** au lieu de `bash`. Si les scripts échouent sous `sh`, les rendre POSIX ou installer `bash` dans l’image frontend.
 - **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503 (Service Unavailable)**. Rendre le service opérationnel ou gérer côté front.
 - **Logs emails** : requête vers `http://localhost:5003/backoffice/emails/logs` → **404**. Corriger l’URL (API Gateway ou bon service/port).
 - **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions?days=7` → **404**. Implémenter la route backend ou adapter le front.

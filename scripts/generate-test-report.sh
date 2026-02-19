@@ -44,6 +44,10 @@ echo -e "${CYAN}╔════════════════════�
 echo -e "${CYAN}║     🧪 GÉNÉRATION RAPPORT : $TEST_NAME${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
+# Marqueur visible dans les logs (grep "TESTS API" ou "Lancement test") quand un run de test démarre
+if [ "$TEST_TYPE" = "api" ]; then
+  echo "[TESTS API] Lancement de la suite Tests API — $(date '+%Y-%m-%dT%H:%M:%S%z')"
+fi
 echo -e "${BLUE}📁 Répertoire des résultats : $REPORT_DIR${NC}"
 echo ""
 
