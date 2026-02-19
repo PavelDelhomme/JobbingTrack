@@ -13,6 +13,23 @@
 
 ---
 
+## Priorité 2 – Résolution des 15 échecs Tests API (2026-02-19)
+
+Appliqué selon **docs/tests/ECHECS_TESTS_API_2026-02-19.md** :
+
+1. **profile-service** : ajout des routes **GET** et **PUT** `/api/v1/profile/me` avec middleware `requireAuth` (401 sans token). Réponses mock pour le profil connecté.
+2. **notification-service** : routes **GET** et **POST** `/api/v1/notifications` protégées par `requireAuth` → **401** sans token.
+3. **dashboard-service** : les routes **GET** `/api/v1/dashboard/stats` et `/api/v1/dashboard/statistics` utilisent désormais **statistics.controller.getAggregatedStatistics** (agrégation HTTP vers les services) au lieu de **dashboard.controller.getStats** (Prisma sans modèle Application/Company dans ce service), ce qui supprime l'erreur « Cannot read properties of undefined (reading 'count') ».
+4. **Script test-api-specific.sh** :
+   - **Get User Profile** : URL corrigée en **GET /api/v1/auth/profile** (profil de l'utilisateur connecté) au lieu de `/api/v1/users/profile` (qui interprétait « profile » comme un id utilisateur → 404).
+   - **Create Call** : envoi de **applicationId** (récupéré via liste des applications), **subject** et **callDate** pour satisfaire la validation du call-service.
+   - **Create Followup** : envoi de **followUpDate** (requis) et **applicationId** récupéré depuis la liste des applications.
+5. **Tables BDD (priorité 2)** : après **make db-push-all**, la création des tables manquantes est considérée OK. Les logs peuvent être filtrés avec le marqueur **`[DB-PUSH-ALL]`** (déjà ajouté dans `scripts/db/db-push-all.sh`).
+
+**Reste à valider en conditions réelles** : Create Company/Application/Contact (JWT avec userId admin réel après db-push-all), Create Interview (schéma Prisma interview-service aligné avec statusId si besoin), Events 403 (token bien transmis).
+
+---
+
 ## Février 2026 – Tests API depuis Docker (bash: not found)
 
 - **Problème** : Lancement des tests API depuis le backoffice en Docker échouait avec `Command failed: ... /bin/sh: bash: not found`. Le conteneur frontend (Node) n’inclut pas `bash`.

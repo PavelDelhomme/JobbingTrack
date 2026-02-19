@@ -1,5 +1,7 @@
 # Échecs Tests API – Rapport 2026-02-19
 
+**Résolutions appliquées** : voir **RESOLUTIONS.md** (Priorité 2 – Résolution des 15 échecs Tests API). Corrections effectuées : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate).
+
 **Rapport** : 36 tests, 21 réussis, 15 échoués (58 % opérationnel).  
 **Runs** : lancés depuis le backoffice (Tests > Tests API). Les rapports sont enregistrés dans `tests/results/<timestamp>/` (ex. `20260219-191835`) ou en Docker dans `TESTS_RESULTS_DIR` (ex. `/tmp/tests/results`).
 
