@@ -179,6 +179,27 @@ app.get('/health', (req, res) => {
     version: '1.0.0'
   });
 });
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    service: 'api-gateway',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
+
+// ✅ Proxy métriques vers metrics-aggregator (pour tests et backoffice)
+app.get('/api/v1/metrics', async (req, res) => {
+  const metricsUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';
+  try {
+    const response = await axios.get(`${metricsUrl}/api/v1/metrics`, { timeout: 10000, validateStatus: () => true });
+    res.status(response.status).json(response.data);
+  } catch (err) {
+    logger.error('Proxy /api/v1/metrics:', err.message);
+    res.status(503).json({ success: false, error: 'Service métriques indisponible' });
+  }
+});
 
 // ✅ Routes d'authentification spécifiques (MODE DÉVELOPPEMENT)
 // ⚠️ DÉSACTIVÉ - Laisser le vrai auth-service gérer le login
@@ -544,11 +565,11 @@ const services = {
   '/api/v1/companies': { url: process.env.COMPANY_SERVICE_URL || 'http://company-service:3003', serviceName: 'company-service' },
   '/api/v1/contacts': { url: process.env.CONTACT_SERVICE_URL || 'http://contact-service:3004', serviceName: 'contact-service' },
   '/api/v1/interviews': { url: process.env.INTERVIEW_SERVICE_URL || 'http://interview-service:3005', serviceName: 'interview-service' },
-  '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3006', serviceName: 'notification-service' },
+  '/api/v1/notifications': { url: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3008', serviceName: 'notification-service' },
   '/api/v1/dashboard': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3000', serviceName: 'dashboard-service' },
   '/api/v1/statistics': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3000', serviceName: 'dashboard-service' },
   '/api/v1/analytics': { url: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard-service:3000', serviceName: 'dashboard-service' },
-  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3006', serviceName: 'call-service' },
+  '/api/v1/calls': { url: process.env.CALL_SERVICE_URL || 'http://call-service:3008', serviceName: 'call-service' },
   '/api/v1/profile': { url: process.env.PROFILE_SERVICE_URL || 'http://profile-service:3009', serviceName: 'profile-service' },
   '/api/v1/events': { url: process.env.EVENT_SERVICE_URL || 'http://event-service:3011', serviceName: 'event-service' },
       '/api/v1/followups': { url: process.env.FOLLOWUP_SERVICE_URL || 'http://followup-service:3012', serviceName: 'followup-service' },

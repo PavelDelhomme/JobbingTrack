@@ -108,6 +108,7 @@ services:
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
+      - ./tests:/app/tests:ro
       - /app/node_modules
       - /app/.next
     user: "1001:1001"

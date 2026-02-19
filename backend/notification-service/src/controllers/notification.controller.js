@@ -17,7 +17,7 @@ const getNotifications = async (req, res, next) => {
     const where = {
       userId,
       ...(type && { type }),
-      ...(isRead !== undefined && { isRead: isRead === 'true' })
+      ...(isRead !== undefined && { read: isRead === 'true' })
     };
 
     // Vérifier si la table existe
@@ -45,9 +45,10 @@ const getNotifications = async (req, res, next) => {
         prisma.notification.count({ where })
       ]);
     } catch (error) {
-      // Fallback si table Notification n'existe pas (P2021) - Mode développement
-      if ((error.code === 'P2021' || error.message?.includes('does not exist')) && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table Notification non trouvée, retour de données vides (mode développement)');
+      const isTableMissing = error.code === 'P2021';
+      const isSchemaError = error.message?.includes('does not exist') || error.code === 'P2022';
+      if (isTableMissing || isSchemaError || process.env.NODE_ENV !== 'production') {
+        logger.warn('Notifications: retour vide (table ou schéma)', { code: error.code, message: error.message?.slice(0, 80) });
         return res.json({
           success: true,
           notifications: [],
@@ -185,10 +186,7 @@ const markAsRead = async (req, res, next) => {
     try {
       updatedNotification = await prisma.notification.update({
         where: { id },
-        data: {
-          isRead: true,
-          readAt: new Date()
-        }
+        data: { read: true }
       });
     } catch (error) {
       // Fallback si table Notification n'existe pas (P2021) - Mode développement
@@ -228,12 +226,9 @@ const markAllAsRead = async (req, res, next) => {
       result = await prisma.notification.updateMany({
         where: {
           userId,
-          isRead: false
+          read: false
         },
-        data: {
-          isRead: true,
-          readAt: new Date()
-        }
+        data: { read: true }
       });
     } catch (error) {
       // Fallback si table Notification n'existe pas (P2021) - Mode développement
@@ -543,7 +538,7 @@ const getStats = async (req, res, next) => {
       activeReminders
     ] = await Promise.all([
       prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, isRead: false } }),
+      prisma.notification.count({ where: { userId, read: false } }),
       prisma.emailLog.count({ where: { userId } }),
       prisma.emailLog.count({ where: { userId, status: 'SENT' } }),
       prisma.emailLog.count({ where: { userId, status: 'FAILED' } }),

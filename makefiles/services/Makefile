@@ -496,6 +496,12 @@ _up-full-internal:
 	@echo "⏳ Attente que les services soient prêts (5s)..."
 	@sleep 5
 	
+	# Synchro Prisma sur tous les services maintenant démarrés (premier passage n'avait que auth-service)
+	@echo "📊 Synchronisation des schémas Prisma sur tous les microservices..."
+	@$(MAKE) db-push-all || echo "⚠️  db-push-all (second passage) a échoué ou partiel, les tables auth existent déjà"
+	@echo "⏳ Attente finalisation (3s)..."
+	@sleep 3
+	
 	# Vérification
 	@echo "✅ Tous les services ont été démarrés"
 	@echo ""
@@ -509,27 +515,28 @@ _up-full-internal:
 	
 	# Note: La vérification Prisma est faite après le démarrage complet dans up-full
 	
-	# Vérification utilisateur admin
+	# Vérification utilisateur admin (résultat trimmé pour éviter faux négatifs)
 	@echo "🔍 Vérification de l'utilisateur administrateur..."
 	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
 	if [ -n "$$POSTGRES_CONTAINER" ]; then \
-		if docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.test';" 2>/dev/null | grep -q "^\\s*0"; then \
-			echo "⚠️  ATTENTION: L'utilisateur administrateur n'existe pas !"; \
-			echo ""; \
-			echo "💡 Pour créer l'utilisateur admin, lancez:"; \
-			echo "    make create-admin-user"; \
-			echo ""; \
-			echo "🔑 Identifiants qui seront créés:"; \
-			echo "    Email:    admin@jobbingtrack.test"; \
-			echo "    Password: password123"; \
-			echo ""; \
+		ADMIN_COUNT=$$(docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.test';" 2>/dev/null | tr -d ' \n\r\t' || echo ""); \
+		if [ -z "$$ADMIN_COUNT" ]; then \
+			echo "⚠️  Impossible de vérifier l'admin (table User ou PostgreSQL non prêt)"; \
+			echo "   💡 Si besoin: make create-admin-user"; \
+		elif [ "$$ADMIN_COUNT" = "0" ]; then \
+			echo "⚠️  L'utilisateur administrateur n'existe pas."; \
+			if [ "$${CREATE_ADMIN_IF_MISSING:-1}" = "1" ]; then \
+				echo "   🔧 Création automatique de l'admin..."; \
+				$(MAKE) create-admin-user || true; \
+			else \
+				echo ""; \
+				echo "💡 Pour créer l'admin: make create-admin-user"; \
+				echo "   (désactiver auto-création: CREATE_ADMIN_IF_MISSING=0 make up-full)"; \
+				echo "🔑 Identifiants: admin@jobbingtrack.test / password123"; \
+			fi; \
 		else \
 			echo "✅ Utilisateur administrateur existe"; \
-			echo ""; \
-			echo "🔑 Identifiants Admin:"; \
-			echo "    Email:    admin@jobbingtrack.test"; \
-			echo "    Password: password123"; \
-			echo ""; \
+			echo "   🔑 admin@jobbingtrack.test / password123"; \
 		fi; \
 	else \
 		echo "⚠️  Conteneur PostgreSQL non trouvé"; \

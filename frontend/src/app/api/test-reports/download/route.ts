@@ -86,6 +86,10 @@ export async function GET(request: NextRequest) {
       } else if (id.startsWith('playwright-')) {
         fullPath = join(REPORT_DIRS['playwright'], 'index.html')
         fileName = `playwright-report-${id.replace('playwright-', '')}.html`
+      } else if (id.startsWith('user-journey-')) {
+        const suffix = id.replace('user-journey-', '')
+        fullPath = join(REPORT_DIRS['user-journey'], `user-journey-${suffix}.json`)
+        fileName = `parcours-${suffix}.json`
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')

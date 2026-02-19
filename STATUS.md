@@ -4,15 +4,49 @@
 
 ---
 
+## 📌 Résumé rapide
+
+| Fait / validé | À faire en priorité |
+|---------------|---------------------|
+| Admin créé automatiquement par `make up-full` (ou `make create-admin-user` si besoin), rapport tests API, tests sécurité, synchro Prisma (up-full), db-push-all (9 services + init-system-metrics + init-key-tables), relances/événements/notifications (onglets data), export données (gateway branché), firewall (règles/statut/logs en BDD + backoffice), **navigation** Tableau de bord et Sécurité simplifiée (plus de double entrée), **onglet Stats utilisateur** branché sur API analytics | SMTP 503, logs emails 404, API versions 404 ; import/cleanup données (501) ; tests unitaires à compléter ; **validation de tous les tests via make** ; **sécurité : vraie config WAF et vraie détection** (actuellement faux/mock) ; design pages test ; abonnement/facturation (non implémenté) ; onglet Données test (filtre API à ajouter) |
+
+Les éléments **déjà corrigés ou en place** sont détaillés dans la section **« ✅ DÉJÀ CORRIGÉ / EN PLACE »** ci-dessous. Les **actions immédiates** sont dans **« 🔴 À FAIRE MAINTENANT »**.
+
+---
+
 ## 🔴 À FAIRE MAINTENANT (actionnable)
 
 | Priorité | Action | Détail |
 |----------|--------|--------|
-| 1 | **Créer l’admin après `make up-full`** | Lancer **`make create-admin-user`** (ou relancer `make up-full` : la création auto est activée). L’INSERT utilisait pas la colonne `id` → **corrigé** : `backend/scripts/database/create-admin-user.sh` inclut maintenant `id` (CUID-like : `'c' \|\| substr(md5(...), 1, 24)`). |
-| 2 | **Valider les tests API** | Backoffice > Tests > Tests API. Vérifier le rapport (table détaillée + logs services). Si login 401 : s’assurer que l’admin existe (étape 1). |
+| 1 | **Vérifier l’admin (déjà créé par `make up-full`)** | L’admin est **créé automatiquement** à la fin de **`make up-full`** si absent (`CREATE_ADMIN_IF_MISSING=1` par défaut). Vous n’avez **pas besoin** de lancer `make create-admin-user` sauf si la création auto a échoué ou si vous avez fait `CREATE_ADMIN_IF_MISSING=0 make up-full`. Vérification : `docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT email FROM \"User\" WHERE email = 'admin@jobbingtrack.test';"` — si vide, lancer **`make create-admin-user`**. Identifiants : `admin@jobbingtrack.test` / `password123`. |
+| 2 | **Valider les tests API** | Backoffice > Tests > Tests API. Vérifier le rapport (table détaillée + logs services). Si login 401 : vérifier que l’admin existe (étape 1). |
 | 3 | **Corriger les erreurs restantes** | SMTP 503, logs emails 404, API versions 404 (voir section 1 ci‑dessous). À traiter en priorité après validation des corrections ci‑dessous. |
 
-**Comportement connu** : après `make up-full`, la BDD peut être vide. La création automatique de l’admin est activée par défaut ; si elle échouait (ex. colonne `id` manquante dans l’INSERT), c’est corrigé. Sinon lancer **`make create-admin-user`** puis se connecter avec `admin@jobbingtrack.test` / `password123`.
+**Comportement connu** : après `make up-full`, l’admin est en principe **déjà créé** (message « ✅ Utilisateur administrateur existe » ou création auto). Si la création auto avait échoué (ex. colonne `id` manquante), c’est corrigé dans `create-admin-user.sh`. En cas de doute : **`make create-admin-user`** (idempotent), puis connexion avec `admin@jobbingtrack.test` / `password123`.
+
+---
+
+## 🧪 Ce que vous pouvez tester (commandes make)
+
+Toutes les commandes ci-dessous sont à lancer depuis la **racine du projet**. Les tests doivent être **validés via le Makefile** (pas de commandes manuelles sauf si indiqué).
+
+| Commande | Description |
+|----------|-------------|
+| **`make help`** | Aide complète + liste des aides par catégorie |
+| **`make help-db`** | Aide base de données (db-push-all, migrations, admin) |
+| **`make help-tests`** | Aide globale tests (workflow, tests-reset, tests-user-journey) |
+| **`make help-test`** | Aide détaillée des commandes make test-* |
+| **`make tests-help`** | Guide des tests (makefiles/tests) |
+| **`make test-api`** | Tests API (gateway, services) — en Docker : variables MONITORING_C_URL, API_GATEWAY_URL passées |
+| **`make test-security`** | Tests sécurité (backoffice ou script) |
+| **`make test-frontend`** | Tests frontend (Jest unit) |
+| **`make test-backend`** | Tests backend (services) |
+| **`make test-e2e`** | Tests E2E Playwright |
+| **`make test-performance`** | Tests performance |
+| **`make tests-user-journey`** | Parcours utilisateur via API |
+| **`make db-push-all`** | Synchroniser schémas Prisma + tables monitoring/sécurité |
+
+**À valider en fin de session** : lancer les cibles ci-dessus et confirmer que celles attendues passent (ou documenter les échecs dans STATUS / TESTS_END). Les **tests unitaires** et la **suite de tests** restent **non à jour / à compléter** (voir section 2 Tests).
 
 ---
 
@@ -27,6 +61,11 @@
 - **Vérification admin dans `make up-full`** : Comptage trimmé (`psql -t -A` + `tr`), création auto si absent (`CREATE_ADMIN_IF_MISSING=1`). Désactiver avec `CREATE_ADMIN_IF_MISSING=0 make up-full`.
 - **Script `create-admin-user`** : INSERT inclut la colonne **`id`** (CUID-like) pour respecter la contrainte NOT NULL sur `User.id`. Plus d’erreur « null value in column "id" ».
 - **Tests API (gateway + script)** : Routes `/api/v1/health` et proxy `/api/v1/metrics` ; tests services via gateway (401 sans token) ; profils en `/api/v1/profile/me` ; date événement POSIX.
+- **Gestion des données – Export** : L’onglet « Gestion Données » (Export/Import) utilisait une mauvaise URL (8080). **Correction** : `DataManagementTab` appelle désormais l’API Gateway (5002). Routes **`GET /api/v1/admin/export/:type`** (applications, companies, contacts, all) branchées dans le gateway (data-management.controller) ; **import** et **cleanup** renvoient 501 (non implémentés) avec message clair.
+- **Gestion des données – Onglets** : **Stats utilisateur** : branché sur `GET /api/v1/analytics/stats/:userId` (dashboard-service), affichage sessions/événements/erreurs + lien vers Analytics utilisateur. **Abonnement & facturation** : placeholder (non implémenté, hors scope ou à prévoir). **Données test** : placeholder avec bouton « Générer des données de test » (lien `/backoffice/test-data`) ; filtre API isTestData à implémenter pour table dédiée.
+- **Navigation backoffice** : **Tableau de bord** et **Sécurité** : suppression de la double entrée (un item parent « Tableau de bord » / « Sécurité » qui dupliquait la section). Les sections affichent maintenant directement les liens (Vue d’ensemble, Statistiques, Performances… ; Logs, Politiques, Firewall, Réseau, Menaces) sans sous-menu redondant.
+- **Commandes make d'aide** : **Toutes opérationnelles.** `make help` affiche l’aide complète et une section **« Aide par catégorie »** listant : `make help-db` (alias `help-database`), `make help-tests`, `make help-test`, `make help-migrate`, `make help-frontend`, `make help-backend`, `make help-services`, `make help-utils`, `make help-diagnostic`, `make help-compilation`, `make help-documentation`, `make help-mobile`. Chaque sous-Makefile (database, tests, frontend, etc.) définit sa cible `help-*` ; tout est inclus depuis le Makefile racine.
+- **db-push-all (affichage)** : L’affichage est **cohérent** : une ligne intro indique que db-push-all comporte **3 parties** (1 = Prisma db push, 2 = tables monitoring, 3 = tables sécurité). Les parties 2 et 3 ne sont pas des « étapes optionnelles » : ce sont les **parties 2 et 3 de la même commande** (init-system-metrics.sql puis init-key-tables.sql). Libellés : « Partie 1/3 », « Partie 2/3 », « Partie 3/3 » pour éviter toute confusion.
 
 ---
 
@@ -35,11 +74,18 @@
 Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre ci‑dessous.
 
 ### Ordre conseillé
-1. **Vérifier l’admin** : `make create-admin-user` (si pas déjà fait par up-full), puis tests API depuis le backoffice.
+1. **Vérifier l’admin** : normalement **déjà créé** par `make up-full`. Si besoin : `make create-admin-user`, puis tests API depuis le backoffice.
 2. **Erreurs restantes** : SMTP 503, logs emails 404, API versions 404 (section 1).
 3. **Sécurité, emails, tests Playwright/Backend**, puis le reste de la liste.
-4. **Métier, scénarios, mobile** : sections **11** (APIs + workflows métier : candidature → à relancer après X jours, statuts auto, relances auto, etc.), **12** (scénarios Playwright/API/parcours opérationnels), **13** (application mobile).
+4. **Métier, scénarios, mobile** : sections **11** (APIs + workflows : candidature → à relancer, statuts auto, relances ; statuts Application, Interview, Relance, etc. — **docs/database/** : schema, ACTIONS_ET_MODIFICATIONS, relations), **12** (scénarios Playwright/API/parcours), **13** (application mobile).
 5. **Observabilité** : section **9** — tout le trafic (API, mobile, backend, émulateur, mails, user journey, tests) répertorié dans log-collector + monitoring + metrics-aggregator ; **Sécurité** (section 3), **Gestion mail** (section 4), **Redémarrage / config / logs** (section 6) restent à finaliser.
+6. **Design pages de test + Firewall** : reprendre le design Tests Backend (progression, logs) pour Tests API, Frontend, Backoffice (TESTS_END.md § 13) ; finaliser Firewall (section 3).
+
+**Récap à faire (avancer le projet)** :
+- **Tests** : Compléter et mettre à jour les tests unitaires (frontend, backend, tests/unit). Valider que **toutes les commandes make test-*** (test-api, test-security, test-frontend, test-backend, test-e2e, test-performance) s’exécutent et passent (ou documenter les échecs). Voir TESTS_END.md et docs/tests/TESTS_COMPLETS_RAPPORT.md.
+- **Sécurité** : Remplacer la **config WAF et la détection actuelles (faux/mock)** par une **vraie configuration WAF** et une **vraie détection** (intrusions, menaces) branchées sur les APIs et la BDD.
+- **Gestion des données** : Onglet **Données test** : implémenter le filtre API (isTestData ou utilisateur de test) pour afficher une table « données test uniquement ». **Abonnement & facturation** : implémenter ou documenter hors scope.
+- **Lancer les tests** : Utiliser la section **« Ce que vous pouvez tester (commandes make) »** ci-dessus ; en fin de session, lancer les make test-* et valider ou noter les échecs.
 
 ---
 
@@ -53,7 +99,25 @@ Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre c
 - **Configuration des emails** : **Rien de fait côté backend/front.** Configurer SMTP (auth-service ou service dédié), test SMTP opérationnel, écrans Configuration SMTP et Déliverabilité dans le backoffice. Actuellement le front peut afficher un message « Service SMTP indisponible » mais le flux n’est pas implémenté.
 - **Logs emails** : **À faire.** Page Historique des emails (`/backoffice/emails/logs`) et API `GET /api/v1/emails/logs` à brancher et vérifier ; afficher les envois et statuts.
 - **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions` — vérifier que la route est exposée par le gateway et que le front reçoit les données (404 = à corriger).
-- **Tables manquantes** (si erreurs Postgres) : `firewall_rules`, `security_alerts`, `vulnerabilities`, `security_metrics`, `deployments`, etc. — s’assurer que `make db-push-all` crée toutes les tables (auth-service schéma étendu).
+- **Tables manquantes** (si erreurs Postgres) : `firewall_rules` et `security_alerts` sont créées dans **`scripts/db/init-key-tables.sql`** (exécuté par `make db-push-all`) — relancer **`make db-push-all`** pour les créer. Autres tables via auth-service schéma étendu.
+
+
+**Gestion des données — onglet Relances / Événements / Notifications** :
+- **Relances** : `GET /api/v1/followups` pouvait renvoyer **500** (schéma BDD incohérent, ex. relations Application/Company). **Correction** : fallback dans followup-service (sans `include` application/company) pour renvoyer **200** avec les relances ou tableau vide + message d’avertissement. Aligner la BDD avec **`make db-push-all`** pour retrouver les données enrichies (candidature, entreprise).
+- **Événements et Notifications** : onglets « Événements » et « Notifications » de la page Gestion des données (**/backoffice/data**) étaient en placeholder. **Correction** : appels réels à `GET /api/v1/events` et `GET /api/v1/notifications`, affichage en table, gestion d’erreur (message si service indisponible). event-service et notification-service : fallback 200 + tableau vide en cas de table/schéma manquant (éviter 500).
+
+**Travail en cours (tests, BDD, emails)** :
+- **Monitoring-c « non disponible » dans `make test-api`** : en Docker les tests appelaient localhost:5098 (depuis le conteneur, localhost ≠ hôte). **Correction** : Makefile passe **`MONITORING_C_URL=http://monitoring-c:8015`** et **`API_GATEWAY_URL=http://api-gateway:5002`** au conteneur. Le système de métriques n'a pas été migré : monitoring-c est toujours utilisé par l'agrégateur.
+- **Tests email (timeout)** : POST /emails/test et GET /emails/test-smtp bloquaient si SMTP indisponible. **Correction** : timeout axios 5 s, skip gracieux en cas de timeout/ECONNREFUSED.
+- **Erreurs BDD (tests API / user journey)** : (1) **User.verificationToken does not exist** — relancer **`make db-push-all`**. (2) **Application.status / Interview.status does not exist** (hint statusId) — aligner schémas Prisma avec la BDD si migration statusId. (3) **userId=dev_user_1 absent** — scripts de test à faire utiliser un utilisateur réel (admin ou token login) pour Company/Contact/Application.
+- **Historique des mails** : toujours à résoudre (section 4).
+- **Design unifié des pages de test** : reprendre le design Tests Backend (progression, logs) pour Tests API, Frontend, etc. — voir TESTS_END.md section 13.
+
+**`make db-push-all` — ce qu'il fait (tout en une commande)** : (1) **Prisma db push** sur les 9 services (auth, application, company, contact, interview, call, followup, event, workflow) — tables métier + schéma partagé. (2) **init-system-metrics.sql** — tables system_metrics, container_metrics, service_availability_history. (3) **init-key-tables.sql** — security_logs, system_metrics_snapshots, network_connections, network_threats, **security_alerts**, **firewall_rules**. Aucune étape de vérification ou second db push à faire après : la synchro est complète. Si des tables manquent encore, relancer **`make db-push-all`** (Postgres et conteneurs doivent être démarrés).
+
+**Base de données stats / analytics (par utilisateur)** : Les tables **UserSession**, **UserEvent**, **UserError**, **UserPerformance**, **DeviceInfo** servent à collecter les stats d'usage par utilisateur (dashboard-service, schéma auth étendu). Voir **docs/TRACKING_UTILISATEUR.md** ; anonymisation et vie privée : **docs/mobile/analytics/PRIVACY.md**. Créées par le push auth-service (schéma partagé).
+
+**Tests — tout depuis l'interface, sans modifier les scripts** : À faire : depuis le backoffice (Tests API, Tests Backend, User journey, etc.), **création automatique** d'un utilisateur de test et des données de test si besoin (compte de test, BDD de test ou seed), sans que l'utilisateur ait à lancer `make create-admin-user` ou à modifier les scripts. Tout doit être géré dans l'interface (bouton « Lancer les tests » → préparation env de test si nécessaire → exécution). Voir TESTS_END.md § 13.
 
 ### 2. Tests (complets et opérationnels)
 
@@ -71,11 +135,14 @@ Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre c
 - **Tests Playwright** (`/backoffice/playwright-tests`) : **`make test-e2e`** / **`make test-mobile`** ; page avec scénarios ; l’exécution réelle Playwright doit être branchée et les rapports visibles (ex. playwright-report).
 - **Programmation de tests** (`/backoffice/performance-tests/schedule`) : **pas opérationnel.** L’API `/api/test-reports/schedule` gère CRUD des plannings ; il manque un **worker/cron** qui exécute les tests selon l’intervalle (hourly, daily, weekly). À implémenter : job planifié qui lit les schedules actifs et lance les runs (run-api, run-backend, run-performance-*, etc.) et remonte métriques (backend, mémoire) vers l’agrégateur.
 
+**Tests unitaires et suite de tests — non à jour / à compléter** : Les **tests unitaires** ne sont pas à jour ni tous ajoutés. **Frontend** : peu de tests unitaires (quelques `__tests__` analytics, une page backoffice) ; `npm run test:unit` / `make test-frontend` à aligner avec une couverture réelle des composants et pages. **Répertoire central** `tests/unit` : contenu minimal (ex. test-utils), à compléter. **Backend** : tests dispersés par service (auth, api-gateway, profile, etc.), pas de suite unitaire centralisée et à jour. **En résumé** : l’ensemble de la partie test (unitaires, intégration, E2E, rapports backoffice) reste à finaliser et à mettre à jour. Voir TESTS_END.md § 12–13 et `docs/tests/TESTS_COMPLETS_RAPPORT.md`.
+
 **Rapports** : Filtre par catégorie, `?open=ID`, section Logs des services en `<details>` (dépliable) pour ne pas masquer la fin du rapport. Faciliter l’ajout de nouveaux tests (scripts + entrées backoffice) quand de nouvelles fonctionnalités sont développées.
 
-### 3. Sécurité (firewall, politique, réseau, menaces – pas encore opérationnel)
-- **Firewall** : règles, statut, logs — rendre pleinement opérationnel (backend + backoffice).
-- **Politique de sécurité** : WAF global, règles, IPs bloquées — compléter et tester.
+### 3. Sécurité (firewall, politique, réseau, menaces)
+- **Firewall (règles, statut, logs)** : Les **tables BDD** sont créées par **`make db-push-all`** : **`firewall_rules`**, **`security_alerts`**, **`security_logs`**, **`network_connections`**, **`network_threats`** (voir `scripts/db/init-key-tables.sql`). Le **backend** (security-service) expose règles (CRUD), IPs bloquées, logs ; le **frontend** (`/backoffice/security/firewall`) affiche règles et IPs. **À vérifier** : que toutes les données (logs en temps réel, statut firewall) sont bien persistées en BDD et reflétées dans l’UI.
+- **WAF et détection** : **Actuellement ce sont des faux / mock.** Il faut implémenter une **vraie configuration WAF** (règles applicatives, blocage par pattern, IP, etc.) et une **vraie détection** (intrusions, menaces, anomalies) branchée sur les données et la BDD. À faire : remplacer les données de démo par des flux réels (API Gateway + security-service).
+- **Politique de sécurité** : WAF global, règles, IPs bloquées — compléter et tester (avec vraie config).
 - **Réseau** : métriques RX/TX, connexions, menaces — interfaces et données.
 - **Menaces** : détection, logs, alertes — brancher données réelles et rapports.
 - **Analyse sécurité** : graphiques dans le temps (disponibilité, taux d’erreur, DNS).
@@ -96,9 +163,10 @@ Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre c
 ### 6. Gestion des services & données
 - **Gestion des services** : liste complète, détail service (métriques, logs), **redémarrage** (restart), **config** (configuration par service) — rendre pleinement opérationnels.
 - **Logs des services** : centralisation, filtres, persistance ; tout doit remonter vers log-collector / agrégateur (section 9).
-- **Données utilisateur** : export, suppression, récupération — conformité RGPD.
-- **Récupérer stats utilisateur** : API et écrans backoffice.
-- **Comptes, abonnement, paiement, facturation** : si prévus — implémenter ou documenter « hors scope ».
+- **Données utilisateur** : **Export** — branché (GET `/api/v1/admin/export/:type` via gateway, onglet Gestion Données, API 5002). **Import** et **cleanup** — 501 (non implémentés), message clair dans l’UI. Suppression, récupération — conformité RGPD à compléter.
+- **Récupérer stats utilisateur** : onglet **Stats utilisateur** (Gestion des données) branché sur `GET /api/v1/analytics/stats/:userId` ; affiche sessions, événements, erreurs + lien vers Analytics utilisateur.
+- **Comptes, abonnement, paiement, facturation** : onglet **Abonnement & facturation** (non implémenté). Si prévus — implémenter ; sinon documenter « hors scope ».
+- **Données test** : onglet **Données test** avec lien « Générer des données de test » vers `/backoffice/test-data` ; affichage d’une table « données test uniquement » à implémenter (filtre API ou flag isTestData).
 - **Corbeille / archives** : restauration, purge, politique de rétention.
 
 ### 7. Application mobile & outils dev
@@ -173,7 +241,7 @@ Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre c
 - **Sécurisation** : HTTPS, JWT, rate limiting, validation des entrées.
 - **Stats et monitoring** : métriques d’usage, erreurs, performances côté mobile et API.
 
-**Prochaine étape suggérée** : 1) **Admin** : `make create-admin-user` si besoin ; 2) **Tests API** : lancer depuis le backoffice, vérifier le rapport ; 3) **Config emails + logs emails** (à faire) ; 4) **Tests** : valider Frontend, Backend, Backoffice, Sécurité, Performance depuis le backoffice ; 5) **Programmation de tests** : ajouter un worker qui exécute les schedules ; 6) **Sécurité** (firewall, politiques, menaces) ; 7) **Partie métier** (section 11 : APIs entretiens, appels, sync, candidatures, relances, entreprises, contacts, événements, calendrier, utilisateurs, paramètres) ; 8) **Scénarios** (Playwright, API, parcours utilisateur) ; 9) **Application mobile** (API fonctionnelle et sécurisée).
+**Prochaine étape suggérée** : 1) **Admin** : déjà créé par `make up-full` ; `make create-admin-user` si besoin ; 2) **Tests API** : lancer depuis le backoffice, vérifier le rapport ; 3) **Config emails + logs emails** (à faire) ; 4) **Tests** : valider Frontend, Backend, Backoffice, Sécurité, Performance depuis le backoffice ; 5) **Programmation de tests** : ajouter un worker qui exécute les schedules ; 6) **Sécurité** (firewall, politiques, menaces) ; 7) **Partie métier** (section 11 : APIs entretiens, appels, sync, candidatures, relances, entreprises, contacts, événements, calendrier, utilisateurs, paramètres) ; 8) **Scénarios** (Playwright, API, parcours utilisateur) ; 9) **Application mobile** (API fonctionnelle et sécurisée).
 
 ---
 

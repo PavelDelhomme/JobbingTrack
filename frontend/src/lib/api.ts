@@ -287,7 +287,8 @@ export const interviewService = {
 };
 
 export const followUpService = {
-    getAll: () => apiClient.get('/followups'),
+    getAll: (params?: { page?: number; limit?: number; status?: string }) =>
+      apiClient.get('/followups', { params }),
     getById: (id: string) => apiClient.get(`/followups/${id}`),
     create: (data: any) => apiClient.post('/followups', data),
     update: (id: string, data: any) => apiClient.put(`/followups/${id}`, data),
@@ -314,7 +315,8 @@ export const calendarService = {
 };
 
 export const eventService = {
-    getAll: () => apiClient.get('/events'),
+    getAll: (params?: { page?: number; limit?: number }) =>
+      apiClient.get('/events', { params }),
     getById: (id: string) => apiClient.get(`/events/${id}`),
     create: (data: any) => apiClient.post('/events', data),
     update: (id: string, data: any) => apiClient.put(`/events/${id}`, data),
@@ -332,7 +334,8 @@ export const testService = {
 };
 
 export const notificationService = {
-    getAll: () => apiClient.get('/notifications'),
+    getAll: (params?: { page?: number; limit?: number; type?: string; isRead?: boolean }) =>
+      apiClient.get('/notifications', { params }),
     getById: (id: string) => apiClient.get(`/notifications/${id}`),
     create: (data: any) => apiClient.post('/notifications', data),
     update: (id: string, data: any) => apiClient.put(`/notifications/${id}`, data),

@@ -127,14 +127,25 @@ if command -v docker &> /dev/null; then
         fi
     fi
     
-    # Vérifier si l'utilisateur existe déjà
-    EXISTS=$(docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$ADMIN_EMAIL';" 2>/dev/null || echo "0")
+    # Vérifier si l'utilisateur existe déjà (trim pour éviter faux positifs)
+    EXISTS=$(docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$ADMIN_EMAIL';" 2>/dev/null | tr -d ' \n\r\t' || echo "0")
 
-    if [ "$EXISTS" = "0" ]; then
+    if [ -z "$EXISTS" ] || [ "$EXISTS" = "0" ]; then
         echo "🔧 Création de l'utilisateur administrateur..."
+        # id obligatoire (Prisma @id @default(cuid())) : CUID-like = 'c' + 24 caractères (compatible toutes versions PG)
         docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
-        INSERT INTO \"User\" (email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
-        VALUES ('$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
+        INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
+        VALUES (
+          'c' || substr(md5(random()::text || now()::text), 1, 24),
+          '$ADMIN_EMAIL',
+          '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi',
+          '$ADMIN_FIRST_NAME',
+          '$ADMIN_LAST_NAME',
+          'SUPER_ADMIN',
+          true,
+          NOW(),
+          NOW()
+        );
         " 2>&1 || {
             echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
             echo -e "${YELLOW}💡 La table User existe-t-elle ? Lancez 'make db-migrate' si nécessaire${NC}"
@@ -169,13 +180,13 @@ else
     if command -v psql &> /dev/null; then
         echo "🔧 Création de l'utilisateur administrateur (connexion directe)..."
 
-        # Vérifier si l'utilisateur existe déjà
-        EXISTS=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$ADMIN_EMAIL';" 2>/dev/null || echo "0")
+        # Vérifier si l'utilisateur existe déjà (trim)
+        EXISTS=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$ADMIN_EMAIL';" 2>/dev/null | tr -d ' \n\r\t' || echo "0")
 
-        if [ "$EXISTS" = "0" ]; then
+        if [ -z "$EXISTS" ] || [ "$EXISTS" = "0" ]; then
             PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
-            INSERT INTO \"User\" (email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
-            VALUES ('$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
+            INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
+            VALUES ('c' || substr(md5(random()::text || now()::text), 1, 24), '$ADMIN_EMAIL', '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi', '$ADMIN_FIRST_NAME', '$ADMIN_LAST_NAME', 'SUPER_ADMIN', true, NOW(), NOW());
             " 2>/dev/null || {
                 echo -e "${RED}❌ Erreur lors de la création de l'utilisateur${NC}"
                 exit 1

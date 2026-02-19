@@ -532,8 +532,8 @@ test-api: ## Tests API complets (Jest - dans conteneur ou local)
 	@echo ""
 	@if docker ps | grep -q jobbingtrack-frontend; then \
 		echo "🐳 Exécution des tests dans le conteneur jobbingtrack-frontend..."; \
-		docker exec -w /app/tests jobbingtrack-frontend sh -c "npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
-		docker exec -w /app jobbingtrack-frontend sh -c "cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
+		docker exec -e API_GATEWAY_URL=http://api-gateway:5002 -e MONITORING_C_URL=http://monitoring-c:8015 -w /app/tests jobbingtrack-frontend sh -c "npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
+		docker exec -e API_GATEWAY_URL=http://api-gateway:5002 -e MONITORING_C_URL=http://monitoring-c:8015 -w /app jobbingtrack-frontend sh -c "cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1" || \
 		(cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1); \
 	else \
 		echo "💻 Exécution des tests en local..."; \

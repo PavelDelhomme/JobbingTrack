@@ -31,7 +31,7 @@ const getFollowups = async (req, res, next) => {
       ...(status && { status: sanitizeStatus(status) })
     };
 
-    let followups, total;
+    let followups, total, usedFallback = false;
     try {
       [followups, total] = await Promise.all([
         prisma.followUp.findMany({
@@ -52,16 +52,36 @@ const getFollowups = async (req, res, next) => {
         prisma.followUp.count({ where })
       ]);
     } catch (error) {
-      // Fallback si table FollowUp n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table FollowUp non trouvée, retour de données vides (mode développement)');
-        followups = [];
-        total = 0;
+      // Fallback : table manquante (P2021) ou schéma incohérent (ex. Application.status vs statusId)
+      const isTableMissing = error.code === 'P2021';
+      const isSchemaError = error.message?.includes('does not exist') || error.code === 'P2022';
+      if (isTableMissing || isSchemaError || process.env.NODE_ENV !== 'production') {
+        logger.warn('Relances: fallback sans include (table ou schéma)', { code: error.code, message: error.message?.slice(0, 120) });
+        usedFallback = true;
+        try {
+          [followups, total] = await Promise.all([
+            prisma.followUp.findMany({
+              where,
+              orderBy: { followUpDate: 'desc' },
+              skip,
+              take: limitNum
+            }),
+            prisma.followUp.count({ where })
+          ]);
+        } catch (fallbackErr) {
+          logger.warn('Relances: retour vide (mode développement)', { message: fallbackErr.message?.slice(0, 80) });
+          followups = [];
+          total = 0;
+        }
       } else {
         logger.error('Erreur récupération relances:', error);
         return next(error);
       }
     }
+
+    const warning = usedFallback
+      ? 'Données partiellement chargées (schéma BDD à aligner avec "make db-push-all").'
+      : (total === 0 && followups.length === 0 ? 'Table FollowUp non trouvée. Exécutez "make db-push-all" pour créer les tables.' : null);
 
     res.json({
       success: true,
@@ -72,9 +92,7 @@ const getFollowups = async (req, res, next) => {
         total,
         pages: Math.ceil(total / limitNum)
       },
-      ...(total === 0 && followups.length === 0 ? {
-        warning: 'Table FollowUp non trouvée. Exécutez "make db-push-all" pour créer les tables.'
-      } : {})
+      ...(warning ? { warning } : {})
     });
   } catch (error) {
     logger.error('Erreur récupération relances:', error);
@@ -87,18 +105,23 @@ const getFollowup = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const followup = await prisma.followUp.findFirst({
-      where: { id, userId },
-      include: {
-        application: {
-          include: {
-            company: true
-          }
-        },
-        company: true,
-        contact: true
+    let followup;
+    try {
+      followup = await prisma.followUp.findFirst({
+        where: { id, userId },
+        include: {
+          application: { include: { company: true } },
+          company: true,
+          contact: true
+        }
+      });
+    } catch (err) {
+      if (err.message?.includes('does not exist') || err.code === 'P2021' || err.code === 'P2022') {
+        followup = await prisma.followUp.findFirst({ where: { id, userId } }).catch(() => null);
+      } else {
+        throw err;
       }
-    });
+    }
 
     if (!followup) {
       return res.status(404).json({ success: false, error: 'Relance non trouvée' });

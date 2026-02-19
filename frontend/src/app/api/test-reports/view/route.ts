@@ -68,6 +68,10 @@ export async function GET(request: NextRequest) {
       } else if (id.startsWith('playwright-')) {
         // Rapport Playwright
         fullPath = join(REPORT_DIRS['playwright'], 'index.html')
+      } else if (id.startsWith('user-journey-')) {
+        // Rapport parcours utilisateur (JSON)
+        const suffix = id.replace('user-journey-', '')
+        fullPath = join(REPORT_DIRS['user-journey'], `user-journey-${suffix}.json`)
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
         fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')

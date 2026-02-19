@@ -115,10 +115,9 @@ migrate-restart: ## Appliquer les migrations puis redémarrer les services actif
 	@echo "✅ Migrations appliquées et services redémarrés !"
 
 db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push)
-	@echo "📦 Services avec schémas Prisma à synchroniser:"
-	@echo "   - auth-service, application-service, company-service, contact-service,"
-	@echo "   - interview-service, call-service, followup-service, event-service,"
-	@echo "   - security-service, deployment-service, workflow-service, metrics-aggregator"
+	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables"
+	@echo "   Services poussés : auth, application, company, contact, interview, call, followup, event, workflow"
+	@echo "   Tables security/deployment/metrics : via schéma auth ou init-key-tables (pas de push séparé)"
 	@echo ""
 	@ROOT_DIR="$(ROOT_DIR)" bash "$(ROOT_DIR)/scripts/db/db-push-all.sh"
 

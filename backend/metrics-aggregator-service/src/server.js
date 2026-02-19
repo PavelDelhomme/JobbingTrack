@@ -602,10 +602,11 @@ async function collectAllMetrics() {
       // ✅ Utiliser les données de monitoring C pour enrichir les métriques
       console.log('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
       
-      // Convertir les conteneurs de monitoring C en format attendu
+      // Convertir les conteneurs de monitoring C en format attendu (JobbingTrack uniquement, pas lab-*)
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
-        console.log(`[COLLECTOR] Conversion de ${monitoringCData.containers.length} conteneurs depuis monitoring C`)
-        monitoringCData.containers.forEach(container => {
+        const filtered = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
+        console.log(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis monitoring C (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        filtered.forEach(container => {
           const rawName = container.name || 'unknown'
           const containerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`
           if (!containerMetrics[containerName]) {

@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { 
   Database, FileText, Building2, Users, Calendar, 
-  Phone, Mail, Bell, Download, Upload
+  Phone, Mail, Bell, Download, Upload, PieChart, FileBarChart, TestTube
 } from '@/lib/icons'
 
 // ✅ OPTIMISATION : Chargement lazy des composants d'onglets
@@ -20,6 +20,9 @@ const CallsTab = lazy(() => import('./components/CallsTab'))
 const FollowupsTab = lazy(() => import('./components/FollowupsTab'))
 const EventsTab = lazy(() => import('./components/EventsTab'))
 const NotificationsTab = lazy(() => import('./components/NotificationsTab'))
+const UserStatsTab = lazy(() => import('./components/UserStatsTab'))
+const BillingTab = lazy(() => import('./components/BillingTab'))
+const TestDataTab = lazy(() => import('./components/TestDataTab'))
 
 const TABS = [
   { id: 'management', label: 'Gestion Données', icon: Database },
@@ -31,6 +34,9 @@ const TABS = [
   { id: 'followups', label: 'Relances', icon: Mail },
   { id: 'events', label: 'Événements', icon: Calendar },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'user-stats', label: 'Stats utilisateur', icon: PieChart },
+  { id: 'billing', label: 'Abonnement & facturation', icon: FileBarChart },
+  { id: 'test-data', label: 'Données test', icon: TestTube },
 ]
 
 export default function DataPage() {
@@ -150,6 +156,21 @@ export default function DataPage() {
           {activeTab === 'notifications' && (
             <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
               <NotificationsTab />
+            </Suspense>
+          )}
+          {activeTab === 'user-stats' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <UserStatsTab />
+            </Suspense>
+          )}
+          {activeTab === 'billing' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <BillingTab />
+            </Suspense>
+          )}
+          {activeTab === 'test-data' && (
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div></div>}>
+              <TestDataTab />
             </Suspense>
           )}
         </div>

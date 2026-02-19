@@ -1,23 +1,46 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { eventService } from '@/lib/api'
 
 interface Event {
   id: string
   title: string
-  date: string
-  type: string
+  description?: string
+  startDate: string
+  endDate?: string
+  date?: string
+  type?: string
   createdAt: string
 }
 
 export default function EventsTab() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [warning, setWarning] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // TODO: Implémenter fetchEvents avec eventService
-    setLoading(false)
+    fetchEvents()
   }, [])
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true)
+      setWarning(null)
+      setError(null)
+      const response = await eventService.getAll({ limit: 100 })
+      const list = response.data.events || []
+      if (response.data.warning) setWarning(response.data.warning)
+      setEvents(list)
+    } catch (err) {
+      console.error('Erreur chargement événements:', err)
+      setEvents([])
+      setError('Impossible de charger les événements. Vérifiez que le service est disponible.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -38,10 +61,61 @@ export default function EventsTab() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <p className="text-gray-600 dark:text-gray-400">
-          Fonctionnalité en cours de développement
-        </p>
+      {warning && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm">
+          {warning}
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Titre
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Date début
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Date fin
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {events.map((event) => (
+                <tr key={event.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                    {event.title}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {event.startDate
+                      ? new Date(event.startDate).toLocaleString('fr-FR')
+                      : new Date(event.createdAt).toLocaleString('fr-FR')}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {event.endDate
+                      ? new Date(event.endDate).toLocaleString('fr-FR')
+                      : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {events.length === 0 && !error && (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            Aucun événement trouvé
+          </div>
+        )}
       </div>
     </div>
   )
