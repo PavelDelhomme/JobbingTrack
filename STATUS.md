@@ -84,6 +84,9 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Sécurité des conteneurs** : revue des services exposés sur l’hôte (ports mappés dans docker-compose). Limiter l’exposition aux seuls services qui doivent être accessibles depuis l’extérieur (frontend, API gateway, etc.).
 - **Métriques / health en inter-conteneurs** : s’assurer que les appels métriques (metrics-aggregator → monitoring-c, frontend → metrics-aggregator) et health checks restent sur le réseau Docker (noms de services), pas exposés inutilement sur localhost. Vérifier que le frontend en Docker appelle bien l’API gateway / metrics-aggregator via le réseau interne (variables d’environnement) et non localhost.
 
+- **Requêtes logs en C (injection SQL)** : sécuriser les requêtes SQL dans log-collector-c et monitoring-c (échappement des paramètres, prepared statements libpq, validation des entrées). Fichiers : log-collector-c/src/http_server.c, log-collector-c/src/storage.c, monitoring-c/src/storage.c.
+- **APIs logs / métriques en inter-conteneurs uniquement** : s'assurer que les endpoints de logs et métriques (log-collector-c, monitoring-c, metrics-aggregator) ne soient accessibles que depuis le réseau Docker (conteneurs internes). Éviter d'exposer ces ports sur l'hôte ou les restreindre via la config réseau.
+
 ### 10. Documentation et cohérence
 - **ERRORS.md** : tenir à jour (erreurs connues, corrigées, en attente).
 - **RESOLUTIONS.md**, **TESTS_END.md**, **TODO_PERFORMANCE.md** : alignés avec STATUS (à faire vs fait).
