@@ -1,9 +1,22 @@
 # Échecs Tests API – Rapport 2026-02-19
 
-**Résolutions appliquées** : voir **RESOLUTIONS.md** (Priorité 2 – Résolution des 15 échecs Tests API). Corrections effectuées : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate).
+**Résolutions appliquées** : voir **RESOLUTIONS.md**. Corrections : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate), schémas Prisma alignés BDD (User.verificationToken/loginCount ; Application/Interview.statusId dans interview-, call-, followup-service).
 
 **Rapport** : 36 tests, 21 réussis, 15 échoués (58 % opérationnel).  
 **Runs** : lancés depuis le backoffice (Tests > Tests API). Les rapports sont enregistrés dans `tests/results/<timestamp>/` (ex. `20260219-191835`) ou en Docker dans `TESTS_RESULTS_DIR` (ex. `/tmp/tests/results`).
+
+---
+
+## État des résolutions (appliquées)
+
+- **#12, #13, #32–33** : profile-service GET/PUT `/api/v1/profile/me` ajoutés ; notification-service 401 sans token.
+- **#17** : script utilise GET `/api/v1/auth/profile` pour le profil connecté.
+- **#25, #30** : schémas Prisma interview-service, call-service, followup-service alignés sur la BDD (`Application.statusId`, `Interview.statusId`, modèles ApplicationStatus/InterviewStatus) ; contrôleur interview utilise `statusId`.
+- **#27, #31** : script envoie `applicationId`, `subject`, `callDate` pour Create Call ; `followUpDate`, `applicationId` pour Create Followup.
+- **#36** : dashboard stats/statistics utilisent `getAggregatedStatistics` (agrégation HTTP).
+- **User (auth)** : colonnes `verificationToken`, `verificationTokenExpiry`, `loginCount` ajoutées aux schémas partagés (application-service, backend/prisma) pour que le login trouve l’admin en BDD après **`make db-push-all`** (et renvoie le vrai userId au lieu de dev_user_1 → #19, #21, #23).
+
+**À valider après `make db-push-all`** : Create Company, Create Application, Create Contact. **À vérifier** : Events 403 (token transmis par le script).
 
 ---
 
@@ -49,4 +62,4 @@
 6. **dashboard-service** : corriger l’erreur « reading 'count' » (vérifier l’objet avant accès).
 7. **Tests Create Call / Create Followup** : envoyer les champs requis (applicationId, subject ; followUpDate).
 
-Voir **STATUS.md** (Priorité 2 et section Tests API) et **ERRORS.md** pour le suivi.
+Voir **STATUS.md** (Priorité 2) et **RESOLUTIONS.md** pour le détail. Les actions listées ci-dessus ont été appliquées (profile, notification, dashboard, script, schémas statusId/User).
