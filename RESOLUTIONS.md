@@ -63,6 +63,41 @@
 
 ---
 
+## ✅ Fait (résolutions CORS, tables, métriques, healthchecks)
+
+**Tables, db-push, CORS, Analytics (fait)**  
+- db-push-all : crée toutes les tables via auth-service ; 21/21 services actifs ; ne pas lancer db-push-security/deployment seuls.  
+- Frontend Analytics : API sur metrics-aggregator (5004) ; BigInt sérialisé ; CORS OK. Postgres « relation … does not exist » : résolu via db-push-all.
+
+**CPU Projet, persistence, healthchecks (fait)**  
+- CPU Projet / Mémoire Projet : fallback collectContainerMetrics + percent_of_system ; frontend reçoit system.jobbingtrack.containers (API 5004).  
+- Persistence logs : log et parsedMessage coercés en string. 404 : ignoré. Healthcheck metrics-aggregator : [healthy]. Auth métriques : configurable ; make logs-metrics + Ctrl+C OK.  
+- Sécurité : tables via db-push-all ; FIREWALL_PLAN.md en place. deployment : table deployments via db-push-all.
+
+---
+
+## ✅ Vérifications validées (checklist)
+
+- make restart-service SERVICE=metrics-aggregator : nom Compose géré dans le Makefile.  
+- BigInt sur /api/v1/persistence/system/metrics : sérialisation en Number.  
+- CPU Projet / Mémoire Projet : fallback containerMetrics + percent_of_system.  
+- make logs-metrics : Ctrl+C arrête la commande.  
+- Authentification métriques : configurable.  
+- Tables & db-push : 21/21 services actifs ; security_logs, network_connections, deployments créées via auth-service.  
+- Interface Status : 21/21 services ; champs alimentés (CPU, mémoire, temps de réponse, santé).  
+- Événements / rappels : backoffice (CRUD, calendrier) opérationnel ; app mobile écran /events (à brancher API).  
+- Erreur BigInt 447.27 : server.js + persistence.service.js _safeBigInt ; rebuild requis.  
+- Table network_connections : créée dans init-key-tables.sql (db-push-all).  
+- Analytics : période par défaut "Aujourd’hui" ; sous-pages Performances & Analytics (complètes, réseau, applicatives, conteneurs, utilisateur).  
+- Interfaces sécurité, réseau : opérationnelles (logs, analyse, firewall, menaces via gateway 5002).  
+- centralLogger : auth, application, security ; logger-filter en copies locales.  
+- Gestion des services : Services & Logs corrigée ; détail service (fusion monitoring-c + metrics-aggregator).  
+- Politiques de sécurité : WAF, firewall, IPs bloquées ; ARCHITECTURE.md.  
+- Analytics utilisateur : onglet Versions & App mobile ; API versions.  
+- Requêtes SQL en C (log-collector-c, monitoring-c) : prepared statements, plus d’injection SQL.
+
+---
+
 ## État actuel (résumé)
 
 - **Prisma / DB** : metrics-aggregator en Prisma 6.7.0 ; `make db-push-metrics` fonctionne avec `.env` à la racine (DATABASE_URL + SMTP_FROM quoté).  
