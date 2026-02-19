@@ -30,6 +30,13 @@ const createInterview = async (req, res, next) => {
     }
 
     const interviewDate = req.body.interviewDate || req.body.scheduledAt;
+    const statusCode = (req.body.status || 'SCHEDULED').toUpperCase();
+    const statusRow = await prisma.interviewStatus.findFirst({ where: { code: statusCode } })
+      ?? await prisma.interviewStatus.findFirst();
+    const statusId = statusRow?.id;
+    if (!statusId) {
+      return res.status(400).json({ success: false, error: 'Aucun statut Interview trouvé en BDD. Exécutez make db-push-all.' });
+    }
 
     const interview = await prisma.interview.create({
       data: {
@@ -41,7 +48,7 @@ const createInterview = async (req, res, next) => {
         location: req.body.location || null,
         videoLink: req.body.videoLink || null,
         notes: req.body.notes || null,
-        status: (req.body.status || 'SCHEDULED').toUpperCase()
+        statusId
       },
       include: {
         application: {

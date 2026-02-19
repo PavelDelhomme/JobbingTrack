@@ -26,7 +26,11 @@ Appliqué selon **docs/tests/ECHECS_TESTS_API_2026-02-19.md** :
    - **Create Followup** : envoi de **followUpDate** (requis) et **applicationId** récupéré depuis la liste des applications.
 5. **Tables BDD (priorité 2)** : après **make db-push-all**, la création des tables manquantes est considérée OK. Les logs peuvent être filtrés avec le marqueur **`[DB-PUSH-ALL]`** (déjà ajouté dans `scripts/db/db-push-all.sh`).
 
-**Reste à valider en conditions réelles** : Create Company/Application/Contact (JWT avec userId admin réel après db-push-all), Create Interview (schéma Prisma interview-service aligné avec statusId si besoin), Events 403 (token bien transmis).
+**Reste à valider en conditions réelles** : Create Company/Application/Contact (JWT avec userId admin réel après db-push-all), Events 403 (token bien transmis).
+
+**Conformité BDD (complément 2026-02-19)** :  
+- **User** : colonnes `verificationToken`, `verificationTokenExpiry`, `loginCount` ajoutées aux schémas `backend/application-service/prisma/schema.prisma` et `backend/prisma/schema.prisma` pour que le login auth-service trouve l'utilisateur en BDD (plus d'erreur « column User.verificationToken does not exist ») et renvoie le vrai id admin au lieu de dev_user_1.  
+- **Application / Interview** : schémas **interview-service**, **call-service**, **followup-service** alignés sur la BDD : `Application.status` remplacé par `statusId` + relation vers modèle `ApplicationStatus` ; `Interview.status` remplacé par `statusId` + relation vers modèle `InterviewStatus` ; `ApplicationStatusHistory` avec `previousStatusId`/`newStatusId`. Contrôleur interview-service : création d'entretien utilise `statusId` (résolution du code statut, ex. SCHEDULED). Après **`make db-push-all`**, les erreurs « column Application.status does not exist » et « column Interview.status does not exist » sont résolues.
 
 ---
 

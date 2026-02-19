@@ -28,18 +28,21 @@ model User {
   profilePicture String?
 
   // Authentification
-  authToken        String?
-  refreshToken     String?
-  tokenExpiresAt   DateTime?
-  resetToken       String?
-  resetTokenExpiry DateTime?
-  emailVerified    Boolean   @default(false)
-  emailVerifiedAt  DateTime?
+  authToken             String?
+  refreshToken          String?
+  tokenExpiresAt       DateTime?
+  resetToken            String?
+  resetTokenExpiry      DateTime?
+  verificationToken     String?   @unique
+  verificationTokenExpiry DateTime?
+  emailVerified        Boolean   @default(false)
+  emailVerifiedAt      DateTime?
 
   // Rôle et statut
   role        UserRole  @default(USER)
   isActive    Boolean   @default(true)
   lastLoginAt DateTime?
+  loginCount  Int       @default(0)
 
   // Préférences
   theme                String? @default("light")
