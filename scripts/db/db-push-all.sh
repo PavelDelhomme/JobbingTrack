@@ -3,10 +3,12 @@
 # Utilisé par: make db-push-all
 # À exécuter depuis la racine du projet (ou avec ROOT_DIR défini).
 #
-# Ce que fait make db-push-all :
-# 1) Prisma db push sur auth-service, application-service, etc. (tables métier + schéma partagé).
+# Ce que fait make db-push-all (tout en une commande, pas d'étape de vérification séparée) :
+# 1) Prisma db push sur auth-service, application-service, company-service, contact-service, interview-service,
+#    call-service, followup-service, event-service, workflow-service (tables métier + schéma partagé).
 # 2) scripts/db/init-system-metrics.sql → tables system_metrics, container_metrics, service_availability_history.
-# 3) scripts/db/init-key-tables.sql → security_logs, system_metrics_snapshots, network_connections, network_threats.
+# 3) scripts/db/init-key-tables.sql → security_logs, system_metrics_snapshots, network_connections, network_threats,
+#    security_alerts, firewall_rules.
 # Les tables security/deployment ne sont PAS poussées depuis security/deployment (schéma partiel) ;
 # elles sont créées via le schéma auth-service (étendu) ou par init-key-tables.sql.
 
@@ -34,7 +36,9 @@ SERVICES=(
 PUSHED=0
 SKIPPED=0
 
-echo "🛠️  Synchronisation des schémas Prisma (db push)..."
+echo "🛠️  db-push-all comporte 3 parties : (1) Prisma db push, (2) tables monitoring, (3) tables sécurité"
+echo ""
+echo "━━━ Partie 1/3 – Prisma db push (9 services) ━━━"
 echo ""
 echo "🔍 Vérification de la disponibilité de PostgreSQL..."
 if ! docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1; then
@@ -77,21 +81,25 @@ done
 # security-service, deployment-service et metrics-aggregator ne font PAS de db push ici :
 # leur schéma ne contient qu’une partie des tables ; un push supprimerait les autres.
 # Leurs tables sont créées par le push auth-service (schéma partagé étendu).
-echo "  ⏭️  security/deployment tables créées via auth-service (schéma partagé)"
+echo "  ⏭️  security / deployment / metrics-aggregator : tables via auth-service ou init-key-tables (pas de push)"
 echo ""
 
-# Créer system_metrics + container_metrics + service_availability_history si absentes (pour monitoring-c)
+# Partie 2/3 : system_metrics, container_metrics, service_availability_history
 if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
-  echo "📊 Création des tables system_metrics / container_metrics si nécessaire..."
+  echo "━━━ Partie 2/3 – Tables monitoring (init-system-metrics.sql) ━━━"
+  echo "  system_metrics, container_metrics, service_availability_history"
   docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" > /dev/null 2>&1 && echo "  ✅ Tables system_metrics / service_availability_history OK" || true
+  echo ""
 fi
 
-# Garantir les tables requises par make status + security-service (network_connections)
+# Partie 3/3 : security_logs, network_*, firewall_rules, security_alerts
 if [ -f "${ROOT_DIR}/scripts/db/init-key-tables.sql" ]; then
-  echo "📊 Vérification des tables monitoring/sécurité (security_logs, system_metrics_snapshots, network_connections)..."
-  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql" > /dev/null 2>&1 && echo "  ✅ Tables security_logs / system_metrics_snapshots / network_connections / network_threats OK" || true
+  echo "━━━ Partie 3/3 – Tables sécurité / monitoring (init-key-tables.sql) ━━━"
+  echo "  security_logs, network_*, firewall_rules, security_alerts"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql" > /dev/null 2>&1 && echo "  ✅ Tables security_logs / system_metrics_snapshots / network_connections / network_threats / security_alerts / firewall_rules OK" || true
+  echo ""
 fi
 
-echo "✅ Synchronisation terminée !"
-echo "   📦 Services synchronisés: $PUSHED"
-echo "   ⏭️  Ignorés/erreurs: $SKIPPED"
+echo "✅ db-push-all terminé"
+echo "   📦 Prisma db push : $PUSHED service(s)"
+echo "   ⏭️  Ignorés / erreurs : $SKIPPED"

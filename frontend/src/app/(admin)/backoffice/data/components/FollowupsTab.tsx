@@ -5,8 +5,9 @@ import { followUpService } from '@/lib/api'
 
 interface FollowUp {
   id: string
-  type: string
+  type?: string
   scheduledAt?: string
+  followUpDate?: string
   status: string
   notes?: string
   createdAt: string
@@ -15,6 +16,7 @@ interface FollowUp {
 export default function FollowupsTab() {
   const [followups, setFollowups] = useState<FollowUp[]>([])
   const [loading, setLoading] = useState(true)
+  const [warning, setWarning] = useState<string | null>(null)
 
   useEffect(() => {
     fetchFollowups()
@@ -23,32 +25,31 @@ export default function FollowupsTab() {
   const fetchFollowups = async () => {
     try {
       setLoading(true)
-      // ✅ OPTIMISATION : Utiliser le cache et limiter à 100
+      setWarning(null)
       const cacheKey = 'data_followups_list'
       const { cacheManager } = await import('@/lib/cache/cacheManager')
-      const cached = await cacheManager.get(cacheKey, { ttl: 30000 }) // Cache 30 secondes
-      
+      const cached = await cacheManager.get(cacheKey, { ttl: 30000 })
+
       if (cached) {
         setFollowups(cached)
         setLoading(false)
-        // Rafraîchir en arrière-plan
         followUpService.getAll({ limit: 100 }).then(response => {
-          const followups = response.data.followups || []
-          cacheManager.set(cacheKey, followups, { ttl: 30000 })
-          setFollowups(followups)
-        }).catch(() => {}) // Ignorer les erreurs
+          const list = response.data.followups || []
+          if (response.data.warning) setWarning(response.data.warning)
+          cacheManager.set(cacheKey, list, { ttl: 30000 })
+          setFollowups(list)
+        }).catch(() => {})
         return
       }
-      
-      // ✅ OPTIMISATION : Limiter à 100 relances par défaut
+
       const response = await followUpService.getAll({ limit: 100 })
-      const followups = response.data.followups || []
-      setFollowups(followups)
-      
-      // Mettre en cache
-      await cacheManager.set(cacheKey, followups, { ttl: 30000 })
+      const list = response.data.followups || []
+      if (response.data.warning) setWarning(response.data.warning)
+      setFollowups(list)
+      await cacheManager.set(cacheKey, list, { ttl: 30000 })
     } catch (error) {
       console.error('Erreur chargement relances:', error)
+      setFollowups([])
     } finally {
       setLoading(false)
     }
@@ -73,6 +74,12 @@ export default function FollowupsTab() {
         </p>
       </div>
 
+      {warning && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm">
+          {warning}
+        </div>
+      )}
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -93,11 +100,11 @@ export default function FollowupsTab() {
               {followups.map((followup) => (
                 <tr key={followup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                    {followup.type}
+                    {followup.type ?? 'Relance'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {followup.scheduledAt 
-                      ? new Date(followup.scheduledAt).toLocaleDateString('fr-FR')
+                    {(followup.followUpDate ?? followup.scheduledAt)
+                      ? new Date(followup.followUpDate ?? followup.scheduledAt!).toLocaleDateString('fr-FR')
                       : new Date(followup.createdAt).toLocaleDateString('fr-FR')
                     }
                   </td>

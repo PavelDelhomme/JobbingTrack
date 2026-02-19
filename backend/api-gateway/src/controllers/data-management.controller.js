@@ -339,6 +339,41 @@ const exportTable = async (req, res) => {
 };
 
 /**
+ * Exporter toutes les tables (type = 'all')
+ */
+const exportAllTables = async (req, res) => {
+  try {
+    if (req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'Accès refusé' });
+    }
+    const result = { exportedAt: new Date().toISOString(), tables: {} };
+    for (const tableName of Object.keys(TABLE_SERVICE_MAP)) {
+      const tableConfig = TABLE_SERVICE_MAP[tableName];
+      const serviceUrl = SERVICE_URLS[tableConfig.service];
+      if (!serviceUrl) continue;
+      try {
+        const url = `${serviceUrl}${tableConfig.endpoint}?limit=10000`;
+        const response = await axios.get(url, {
+          headers: { 'Authorization': req.headers.authorization },
+          timeout: 15000
+        });
+        const dataKey = tableName.toLowerCase() + 's';
+        const items = response.data[dataKey] || response.data.data || [];
+        result.tables[tableName] = items;
+      } catch (err) {
+        result.tables[tableName] = { _error: err.message || 'Erreur' };
+      }
+    }
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="export-all_${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json(result);
+  } catch (error) {
+    logger.error('Erreur export global:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
  * Lister toutes les tables disponibles
  */
 const listTables = async (req, res) => {
@@ -456,6 +491,7 @@ module.exports = {
   updateRecord,
   deleteRecord,
   exportTable,
+  exportAllTables,
   listTables,
   bulkOperation
 };

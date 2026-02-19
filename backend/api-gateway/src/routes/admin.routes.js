@@ -4,6 +4,7 @@ const advancedController = require('../controllers/admin-advanced.controller');
 const adminController = require('../controllers/admin.controller');
 const archiveController = require('../controllers/archive.controller');
 const trashController = require('../controllers/trash.controller');
+const dataManagementController = require('../controllers/data-management.controller');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -70,6 +71,33 @@ router.get('/trash', authenticate, trashController.getAllDeletedItems);
 router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
 router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
 router.post('/trash/empty', authenticate, trashController.emptyTrash);
+
+// ✅ Export / Import / Cleanup (gestion des données)
+// Type frontend : applications, companies, contacts, all -> tableName backend (Application, Company, Contact)
+router.get('/export/:type', authenticate, (req, res, next) => {
+  const typeMap = { applications: 'Application', companies: 'Company', contacts: 'Contact' };
+  const type = req.params.type;
+  if (type === 'all') {
+    return dataManagementController.exportAllTables(req, res).catch(next);
+  }
+  const tableName = typeMap[type];
+  if (!tableName) {
+    return res.status(400).json({ success: false, error: 'Type d\'export inconnu. Utilisez: applications, companies, contacts, all' });
+  }
+  req.params.tableName = tableName;
+  return dataManagementController.exportTable(req, res).catch(next);
+});
+router.post('/import', authenticate, (req, res) => {
+  res.status(501).json({ success: false, error: 'Import non implémenté côté gateway. À brancher sur les services métier.' });
+});
+router.post('/cleanup', authenticate, (req, res) => {
+  res.status(501).json({ success: false, error: 'Nettoyage (cleanup) non implémenté. À définir (quel service, quelles tables, rétention).' });
+});
+
+// Tables (data-management) : liste et export par tableName
+router.get('/tables', authenticate, dataManagementController.listTables);
+router.get('/tables/:tableName/data', authenticate, dataManagementController.getTableData);
+router.get('/tables/:tableName/export', authenticate, dataManagementController.exportTable);
 
 // Debug: ajouter une route de test
 router.get('/test', authenticate, (req, res) => {

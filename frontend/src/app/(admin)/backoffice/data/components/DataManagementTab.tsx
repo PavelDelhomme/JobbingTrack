@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 export default function DataManagementTab() {
   const { token } = useAuth()
@@ -38,9 +38,12 @@ export default function DataManagementTab() {
       link.remove()
       
       setMessage({ type: 'success', text: `Export ${type} réussi !` })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur export:', error)
-      setMessage({ type: 'error', text: `Erreur lors de l'export ${type}` })
+      const msg = error.response?.status === 501
+        ? 'Export non disponible (route à brancher).'
+        : error.response?.data?.error || `Erreur lors de l'export ${type}. Vérifiez que l\'API Gateway (port 5002) est démarrée.`
+      setMessage({ type: 'error', text: msg })
     } finally {
       setLoading(false)
     }
@@ -72,9 +75,12 @@ export default function DataManagementTab() {
       
       setMessage({ type: 'success', text: 'Import réussi !' })
       setSelectedFile(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur import:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de l\'import' })
+      const msg = error.response?.status === 501
+        ? 'Import non implémenté côté gateway (à brancher sur les services métier).'
+        : error.response?.data?.error || 'Erreur lors de l\'import. Vérifiez que l\'API Gateway (port 5002) est démarrée.'
+      setMessage({ type: 'error', text: msg })
     } finally {
       setLoading(false)
     }
@@ -96,9 +102,12 @@ export default function DataManagementTab() {
       )
       
       setMessage({ type: 'success', text: `Nettoyage effectué avec succès` })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur nettoyage:', error)
-      setMessage({ type: 'error', text: 'Erreur lors du nettoyage' })
+      const msg = error.response?.status === 501
+        ? 'Nettoyage non implémenté (à définir : service, tables, rétention).'
+        : error.response?.data?.error || 'Erreur lors du nettoyage.'
+      setMessage({ type: 'error', text: msg })
     } finally {
       setLoading(false)
     }

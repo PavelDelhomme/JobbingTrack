@@ -82,9 +82,10 @@ const getAllEvents = async (req, res, next) => {
         prisma.event.count({ where: { userId } })
       ]);
     } catch (error) {
-      // Fallback si table Event n'existe pas (P2021) - Mode développement
-      if (error.code === 'P2021' && process.env.NODE_ENV !== 'production') {
-        logger.warn('Table Event non trouvée, retour de données vides (mode développement)');
+      const isTableMissing = error.code === 'P2021';
+      const isSchemaError = error.message?.includes('does not exist') || error.code === 'P2022';
+      if (isTableMissing || isSchemaError || process.env.NODE_ENV !== 'production') {
+        logger.warn('Événements: retour vide (table ou schéma)', { code: error.code, message: error.message?.slice(0, 80) });
         events = [];
         total = 0;
       } else {
