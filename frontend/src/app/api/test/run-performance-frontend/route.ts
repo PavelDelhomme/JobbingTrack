@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
-import { getProjectRoot } from '../testRunnerUtils'
+import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils'
 
 const RUN_TIMEOUT_MS = 120000
 function extractReportId(stdout: string): string | null {
@@ -14,16 +14,34 @@ export async function POST(request: NextRequest) {
     const testName = body.testName || 'Tests Performance Frontend'
     const projectRoot = getProjectRoot()
     const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
-    const command = `cd "${projectRoot}" && sh "${scriptPath}" performance-frontend "make test-performance-frontend" "${testName}"`
+    const inContainer = isRunningInFrontendContainer()
+    const perfCommand = inContainer
+      ? 'sh /app/scripts/run-performance-frontend-in-container.sh'
+      : 'make test-performance-frontend'
+    const command = `cd "${projectRoot}" && sh "${scriptPath}" performance-frontend "${perfCommand}" "${testName}"`
     let stdout = ''
     let reportId: string | null = null
     try {
-      stdout = execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, timeout: RUN_TIMEOUT_MS })
+      stdout = execSync(command, {
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: RUN_TIMEOUT_MS,
+        env: { ...process.env, TESTS_RESULTS_DIR: process.env.TESTS_RESULTS_DIR || undefined },
+      })
       reportId = extractReportId(stdout)
     } catch (err: unknown) {
       const execErr = err as { stdout?: string }
       reportId = execErr.stdout ? extractReportId(execErr.stdout) : null
-      return NextResponse.json({ success: false, error: (err as Error).message, reportId: reportId || undefined }, { status: 500 })
+      if (reportId) {
+        return NextResponse.json({
+          success: false,
+          message: 'Tests terminés avec des échecs',
+          reportId,
+          reportLocation: 'tests/results/',
+          error: (err as Error).message,
+        })
+      }
+      return NextResponse.json({ success: false, error: (err as Error).message, reportId: undefined }, { status: 500 })
     }
     return NextResponse.json({ success: true, message: 'Rapport généré', reportId, reportLocation: 'tests/results/' })
   } catch (error: unknown) {

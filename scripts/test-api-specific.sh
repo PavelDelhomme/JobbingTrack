@@ -1,8 +1,7 @@
 #!/bin/bash
 # Script pour tester des endpoints API spécifiques
 # Usage: ./scripts/test-api-specific.sh <test_type> [endpoint1] [endpoint2] ...
-
-set -e
+# Pas de set -e : on exécute tous les tests même si certains échouent, pour un rapport complet (total / réussis / échoués).
 
 # Couleurs
 RED='\033[0;31m'
@@ -23,6 +22,10 @@ SPECIFIC_TESTS="$@"
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
+
+# Fichier de résultats structurés pour le rapport (env exporté par generate-test-report.sh)
+RESULTS_FILE="${TEST_RESULTS_FILE:-}"
+[ -n "$RESULTS_FILE" ] && : > "$RESULTS_FILE"
 
 # Fonction pour tester un endpoint
 test_endpoint() {
@@ -57,6 +60,7 @@ test_endpoint() {
     if [[ "$status_code" =~ ^$expected_status ]]; then
         echo -e "${GREEN}   ✓ PASS - Status: $status_code${NC}"
         PASSED_TESTS=$((PASSED_TESTS + 1))
+        [ -n "$RESULTS_FILE" ] && echo "TEST|$TOTAL_TESTS|$name|pass|$expected_status|$status_code||" >> "$RESULTS_FILE"
         return 0
     else
         echo -e "${RED}   ✗ FAIL - Status: $status_code (attendu: $expected_status)${NC}"
@@ -64,6 +68,8 @@ test_endpoint() {
             echo -e "${YELLOW}   Réponse: ${response:0:200}${NC}"
         fi
         FAILED_TESTS=$((FAILED_TESTS + 1))
+        resp_escaped=$(echo "$response" | head -c 500 | tr '\n' ' ' | tr '|' ' ' | tr '\r' ' ')
+        [ -n "$RESULTS_FILE" ] && echo "TEST|$TOTAL_TESTS|$name|fail|$expected_status|$status_code|$resp_escaped" >> "$RESULTS_FILE"
         return 1
     fi
 }
@@ -89,23 +95,24 @@ get_token() {
 # Tests par type
 test_health() {
     echo -e "\n${YELLOW}═══ Health Checks ═══${NC}"
-    test_endpoint "API Gateway Health" "$API_URL/health" || true
-    test_endpoint "API Gateway Metrics" "$API_URL/metrics" || true
+    test_endpoint "API Gateway Health" "$API_URL/health" "GET" "" "200" || true
+    test_endpoint "API Gateway /api/health" "$API_URL/api/v1/health" "GET" "" "200" || true
+    test_endpoint "API Gateway Metrics" "$API_URL/metrics" "GET" "" "200" || true
 }
 
 test_services() {
     echo -e "\n${YELLOW}═══ Services Backend ═══${NC}"
-    test_endpoint "Auth Service" "$API_URL/api/v1/auth/health" "GET" "" "200" "$TOKEN" || true
-    # En Docker, les URLs localhost ne sont pas joignables ; on tente quand même pour rapport complet
-    test_endpoint "Company Service" "${SERVICES_COMPANY_URL:-http://localhost:5007}/health" || true
-    test_endpoint "Application Service" "${SERVICES_APP_URL:-http://localhost:5006}/health" || true
-    test_endpoint "Contact Service" "${SERVICES_CONTACT_URL:-http://localhost:5008}/health" || true
-    test_endpoint "Interview Service" "${SERVICES_INTERVIEW_URL:-http://localhost:5009}/health" || true
-    test_endpoint "Call Service" "${SERVICES_CALL_URL:-http://localhost:5010}/health" || true
-    test_endpoint "Event Service" "${SERVICES_EVENT_URL:-http://localhost:5011}/health" || true
-    test_endpoint "FollowUp Service" "${SERVICES_FOLLOWUP_URL:-http://localhost:5012}/health" || true
-    test_endpoint "Profile Service" "${SERVICES_PROFILE_URL:-http://localhost:5013}/health" || true
-    test_endpoint "Notification Service" "${SERVICES_NOTIF_URL:-http://localhost:5014}/health" || true
+    test_endpoint "Auth Service" "$API_URL/api/v1/auth/health" "GET" "" "200" || true
+    # Via API Gateway : routes protégées → 401 sans token = service joignable
+    test_endpoint "Company Service" "$API_URL/api/v1/companies" "GET" "" "401" || true
+    test_endpoint "Application Service" "$API_URL/api/v1/applications" "GET" "" "401" || true
+    test_endpoint "Contact Service" "$API_URL/api/v1/contacts" "GET" "" "401" || true
+    test_endpoint "Interview Service" "$API_URL/api/v1/interviews" "GET" "" "401" || true
+    test_endpoint "Call Service" "$API_URL/api/v1/calls" "GET" "" "401" || true
+    test_endpoint "Event Service" "$API_URL/api/v1/events" "GET" "" "401" || true
+    test_endpoint "FollowUp Service" "$API_URL/api/v1/followups" "GET" "" "401" || true
+    test_endpoint "Profile Service" "$API_URL/api/v1/profile/me" "GET" "" "401" || true
+    test_endpoint "Notification Service" "$API_URL/api/v1/notifications" "GET" "" "401" || true
 }
 
 test_auth() {
@@ -165,7 +172,7 @@ test_events() {
     echo -e "\n${YELLOW}═══ Événements ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Events" "$API_URL/api/v1/events" "GET" "" "200" "$TOKEN"
-    EVENT_DATA="{\"title\":\"Test Event\",\"startDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"endDate\":\"$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)\"}"
+    EVENT_DATA="{\"title\":\"Test Event\",\"startDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"endDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
     test_endpoint "Create Event" "$API_URL/api/v1/events" "POST" "$EVENT_DATA" "201" "$TOKEN" || true
 }
 
@@ -180,9 +187,9 @@ test_followups() {
 test_profiles() {
     echo -e "\n${YELLOW}═══ Profils ═══${NC}"
     [ -z "$TOKEN" ] && get_token
-    test_endpoint "Get Profile" "$API_URL/api/v1/profiles/me" "GET" "" "200" "$TOKEN"
+    test_endpoint "Get Profile" "$API_URL/api/v1/profile/me" "GET" "" "200" "$TOKEN"
     PROFILE_DATA="{\"firstName\":\"Updated\",\"lastName\":\"Name\"}"
-    test_endpoint "Update Profile" "$API_URL/api/v1/profiles/me" "PUT" "$PROFILE_DATA" "200" "$TOKEN" || true
+    test_endpoint "Update Profile" "$API_URL/api/v1/profile/me" "PUT" "$PROFILE_DATA" "200" "$TOKEN" || true
 }
 
 test_notifications() {
@@ -213,10 +220,11 @@ echo -e "${CYAN}║     Tests API Spécifiques - JobbingTrack              ║${
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Si des tests spécifiques sont demandés, les exécuter
+# Si des tests spécifiques sont demandés, les exécuter (syntaxe POSIX pour sh, pas de <<<)
 if [ -n "$TEST_TYPES" ]; then
-    IFS=',' read -ra TYPES <<< "$TEST_TYPES"
-    for type in "${TYPES[@]}"; do
+    for type in $(echo "$TEST_TYPES" | tr ',' ' '); do
+        type=$(echo "$type" | tr -d ' ')
+        [ -z "$type" ] && continue
         case "$type" in
             health) test_health ;;
             services) test_services ;;

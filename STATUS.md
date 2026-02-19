@@ -4,38 +4,74 @@
 
 ---
 
+## 🔴 À FAIRE MAINTENANT (actionnable)
+
+| Priorité | Action | Détail |
+|----------|--------|--------|
+| 1 | **Créer l’admin après `make up-full`** | Lancer **`make create-admin-user`** (ou relancer `make up-full` : la création auto est activée). L’INSERT utilisait pas la colonne `id` → **corrigé** : `backend/scripts/database/create-admin-user.sh` inclut maintenant `id` (CUID-like : `'c' \|\| substr(md5(...), 1, 24)`). |
+| 2 | **Valider les tests API** | Backoffice > Tests > Tests API. Vérifier le rapport (table détaillée + logs services). Si login 401 : s’assurer que l’admin existe (étape 1). |
+| 3 | **Corriger les erreurs restantes** | SMTP 503, logs emails 404, API versions 404 (voir section 1 ci‑dessous). À traiter en priorité après validation des corrections ci‑dessous. |
+
+**Comportement connu** : après `make up-full`, la BDD peut être vide. La création automatique de l’admin est activée par défaut ; si elle échouait (ex. colonne `id` manquante dans l’INSERT), c’est corrigé. Sinon lancer **`make create-admin-user`** puis se connecter avec `admin@jobbingtrack.test` / `password123`.
+
+---
+
+## ✅ DÉJÀ CORRIGÉ / EN PLACE (à valider)
+
+- **Rapport de tests API** : Résumé, table « Résultats détaillés par test », section « Logs des services » en bloc **dépliable** (`<details>`) pour ne pas masquer la fin du rapport ; libellé « Détail de l’exécution · Fin du rapport » ; échappement des guillemets dans les logs pour éviter les erreurs d’affichage ; 50 lignes max par service. Cibles Make **test-frontend** et **test-e2e** ajoutées (makefiles/tests/Makefile) pour le backoffice.
+- **Tests Frontend/Backend/Backoffice (500)** : En Docker, run-frontend/run-backend/run-backoffice exécutent des commandes in-container : `npm run test:unit`, `cd /app/tests && npm run test:backend`, `npm run test:e2e`. Volume `./tests:/app/tests:ro` ajouté au frontend.
+- **Synchro Prisma (up-full)** : Second `db-push-all` après démarrage de tous les services (profil full) pour que les conteneurs microservices soient démarrés au moment de la synchro.
+- **Tests Sécurité** : Nav backoffice « Tests Sécurité » → `/backoffice/tests-security` ; API `POST /api/test/run-security` ; cible Make `test-security` (makefiles/tests/Makefile).
+- **Persistance agrégateur** : 21 conteneurs (filtre JobbingTrack). Logs « Sauvegarde de 21 conteneurs en BDD » attendus.
+- **Ports call / notification** : API Gateway utilise bien **3008** pour call-service et notification-service (plus 3006).
+- **Vérification admin dans `make up-full`** : Comptage trimmé (`psql -t -A` + `tr`), création auto si absent (`CREATE_ADMIN_IF_MISSING=1`). Désactiver avec `CREATE_ADMIN_IF_MISSING=0 make up-full`.
+- **Script `create-admin-user`** : INSERT inclut la colonne **`id`** (CUID-like) pour respecter la contrainte NOT NULL sur `User.id`. Plus d’erreur « null value in column "id" ».
+- **Tests API (gateway + script)** : Routes `/api/v1/health` et proxy `/api/v1/metrics` ; tests services via gateway (401 sans token) ; profils en `/api/v1/profile/me` ; date événement POSIX.
+
+---
+
 ## ⏳ À FAIRE (priorisé – par où commencer)
 
-Cette section liste **tout ce qu’il reste à faire** pour que le projet soit pleinement opérationnel. Traiter dans l’ordre des priorités ci‑dessous.
+Cette section liste **tout ce qu’il reste à faire**. Traiter dans l’ordre ci‑dessous.
 
-### Comment commencer (ordre conseillé)
-1. **Tester tout de suite** : redémarrer le frontend pour appliquer le volume **`./scripts:/app/scripts`** et **`PROJECT_ROOT=/app`**, puis lancer les **tests API** depuis Backoffice > Développement > Tests > Tests API. Si ça passe → OK ; sinon vérifier les logs du conteneur `jobbingtrack-frontend`.
-2. **Ensuite** : corriger les erreurs restantes (SMTP 503, logs emails 404, API versions 404).
-3. **Puis** : sécurité (firewall, politiques, menaces), emails (templates, config), tests Playwright/Backend/etc., reste de la liste.
-
-**Comportement connu après `make up-full`** : la base peut être recréée vide. Le backoffice peut encore vous afficher comme « connecté » (JWT en session) alors que la page **Utilisateurs** affiche « Aucun utilisateur trouvé » : la nouvelle BDD n’a pas d’utilisateurs. Créer à nouveau un compte admin (inscription ou script de seed) dans ce cas.
+### Ordre conseillé
+1. **Vérifier l’admin** : `make create-admin-user` (si pas déjà fait par up-full), puis tests API depuis le backoffice.
+2. **Erreurs restantes** : SMTP 503, logs emails 404, API versions 404 (section 1).
+3. **Sécurité, emails, tests Playwright/Backend**, puis le reste de la liste.
+4. **Métier, scénarios, mobile** : sections **11** (APIs + workflows métier : candidature → à relancer après X jours, statuts auto, relances auto, etc.), **12** (scénarios Playwright/API/parcours opérationnels), **13** (application mobile).
+5. **Observabilité** : section **9** — tout le trafic (API, mobile, backend, émulateur, mails, user journey, tests) répertorié dans log-collector + monitoring + metrics-aggregator ; **Sécurité** (section 3), **Gestion mail** (section 4), **Redémarrage / config / logs** (section 6) restent à finaliser.
 
 ---
 
 ### 1. Erreurs à résoudre en premier
 
 **Corrigé (à retester) :**
-- **Tests API depuis Docker** : (1) **`sh`** + chemins absolus, (2) **`PROJECT_ROOT=/app`** et volume **`./scripts:/app/scripts:ro`**, (3) **Permission denied** sur `/app/tests/results` → **`TESTS_RESULTS_DIR=/tmp/tests/results`** dans le conteneur frontend, (4) **passage de la commande** : la commande de test est maintenant passée à `generate-test-report.sh` entre **guillemets simples** (plus d’échappement par backslashes) pour que le 2ᵉ argument soit correctement reçu. Redémarrer le frontend puis lancer les tests API depuis Backoffice > Développement > Tests > Tests API.
+- **Tests API depuis Docker** : (1) **`sh`** + chemins absolus, (2) **`PROJECT_ROOT=/app`** et volume **`./scripts:/app/scripts:ro`**, (3) **Permission denied** → **`TESTS_RESULTS_DIR=/tmp/tests/results`**, (4) **passage de la commande** en guillemets simples à `generate-test-report.sh`. (5) **Rapport** : `test-api-specific.sh` sans `set -e` + syntaxe POSIX (plus de `<<<`, script invoqué en `sh`) → plus d'erreur « unexpected redirection » → tous les tests exécutés, rapport avec vrai total. Libellés rapport : « Tests exécutés », « Statistiques: Tests exécutés: X | Réussis: Y | Échoués: Z ».
+- **Persistance agrégateur** : filtre JobbingTrack appliqué dès la conversion monitoring C → `containerMetrics` → « Sauvegarde de 21 conteneurs en BDD » (plus 31). Rebuild metrics-aggregator conseillé.
 
 **Encore à faire :**
-- **Configuration emails – test SMTP** : ~~503~~ **Géré côté front** — messages clairs sur Configuration SMTP et Déliverabilité (« Service SMTP indisponible… »). Pour rendre le test opérationnel : configurer le service Python SMTP dans auth-service ou remplacer par un test Node.
-- **Logs emails** : ~~404 sur /backoffice/emails/logs~~ **Corrigé** — page **Historique des emails** créée (`/backoffice/emails/logs`) ; elle appelle `GET /api/v1/emails/logs` (API Gateway → auth-service). Lien vers Email Monitor pour le détail.
-- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions` — la route existe dans dashboard-service ; le front gère déjà un 404 (données vides). Si 404 persiste, vérifier que le gateway envoie bien vers dashboard-service et que l’auth est transmise.
-- **Tables manquantes** (si erreurs Postgres) : `firewall_rules`, `security_alerts`, `vulnerabilities`, `security_metrics`, `deployments`, etc. — s’assurer que `make db-push-all` crée toutes les tables nécessaires (auth-service schéma étendu).
+- **Configuration des emails** : **Rien de fait côté backend/front.** Configurer SMTP (auth-service ou service dédié), test SMTP opérationnel, écrans Configuration SMTP et Déliverabilité dans le backoffice. Actuellement le front peut afficher un message « Service SMTP indisponible » mais le flux n’est pas implémenté.
+- **Logs emails** : **À faire.** Page Historique des emails (`/backoffice/emails/logs`) et API `GET /api/v1/emails/logs` à brancher et vérifier ; afficher les envois et statuts.
+- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions` — vérifier que la route est exposée par le gateway et que le front reçoit les données (404 = à corriger).
+- **Tables manquantes** (si erreurs Postgres) : `firewall_rules`, `security_alerts`, `vulnerabilities`, `security_metrics`, `deployments`, etc. — s’assurer que `make db-push-all` crée toutes les tables (auth-service schéma étendu).
 
 ### 2. Tests (complets et opérationnels)
-- **Lancer les tests API** (`/backoffice/tests-api`, sous Développement > Tests) : exécution depuis backoffice (Docker), génération de rapport, lien « Voir le rapport ». Les rapports affichent désormais le bon total / réussis / échoués (parsing corrigé). **À améliorer plus tard** : couverture des endpoints, stabilité en Docker, assertions.
-- **Testeur d’API (manuel)** (`/backoffice/api-tester`) : tester les endpoints à la main (URL, méthode, headers, historique, clés). Distinct de « Lancer les tests API » qui lance le script de tests automatiques.
-- **Tests Playwright** : exécution et liens depuis `/backoffice/playwright-tests`.
-- **Tests Backend / Frontend / Backoffice / Performance** : pages opérationnelles ; exécution synchrone + rapport.
-- **Programmation de tests** : `/backoffice/performance-tests/schedule` — vérifier et compléter.
-- **Rapports de tests** : filtre par catégorie, ouverture via `?open=ID` ; rapports de **sécurité** si prévus.
-- **Tests de sécurité** : à définir et exécuter (sécurité réseau, WAF, firewall, etc.).
+
+**Validation via Makefile (prioritaire)** : Tous les tests opérationnels doivent être **validés via le Makefile** (pas de commandes manuelles sauf si pas le choix). Cibles : `make test-api`, `make test-frontend`, `make test-backend`, `make test-e2e`, `make test-security`, `make test-performance`, `make tests-user-journey`. Voir `make tests-help` et `makefiles/tests/Makefile`. Pour une validation reproductible et CI, privilégier les cibles Make ; les exécutions programmées (section 12) et les scénarios (Playwright, user journey) doivent aussi remonter métriques backend (CPU, mémoire) vers l’agrégateur (section 9).
+
+**Opérationnel :**
+- **Tests API** (`/backoffice/tests-api`) : lancement depuis le backoffice (Docker), rapport HTML avec Résumé, table « Résultats détaillés par test », section « Logs des services » (dépliable), capture terminal. Cibles `make test-frontend` et `make test-e2e` ajoutées (délèguent à test-unit-frontend et test-e2e-frontend).
+
+**Opérationnel (à valider) :**
+- **Tests Backend** (`/backoffice/tests-backend`) : **`make test-backend`** ; en Docker `cd /app/tests && npm run test:backend` ; rapport généré. À valider : tests s’exécutent correctement depuis le conteneur frontend.
+- **Tests Frontend** (`/backoffice/tests-frontend`) : **`make test-frontend`** ; en Docker exécute `npm run test:unit`. Rapport généré.
+- **Tests Backoffice / E2E** (`/backoffice/tests-backoffice`) : **`make test-e2e`** ; en Docker exécute `npm run test:e2e`. Rapport généré.
+- **Tests Sécurité** (`/backoffice/tests-security`) : **`make test-security`** ; page + API run-security, rapports dans Rapports de tests.
+- **Tests Performance** (`/backoffice/performance-tests`) : **`make test-performance`** (ou cibles dédiées) ; run-performance-backend / run-performance-frontend. Vérifier scripts et rapports.
+- **Tests Playwright** (`/backoffice/playwright-tests`) : **`make test-e2e`** / **`make test-mobile`** ; page avec scénarios ; l’exécution réelle Playwright doit être branchée et les rapports visibles (ex. playwright-report).
+- **Programmation de tests** (`/backoffice/performance-tests/schedule`) : **pas opérationnel.** L’API `/api/test-reports/schedule` gère CRUD des plannings ; il manque un **worker/cron** qui exécute les tests selon l’intervalle (hourly, daily, weekly). À implémenter : job planifié qui lit les schedules actifs et lance les runs (run-api, run-backend, run-performance-*, etc.) et remonte métriques (backend, mémoire) vers l’agrégateur.
+
+**Rapports** : Filtre par catégorie, `?open=ID`, section Logs des services en `<details>` (dépliable) pour ne pas masquer la fin du rapport. Faciliter l’ajout de nouveaux tests (scripts + entrées backoffice) quand de nouvelles fonctionnalités sont développées.
 
 ### 3. Sécurité (firewall, politique, réseau, menaces – pas encore opérationnel)
 - **Firewall** : règles, statut, logs — rendre pleinement opérationnel (backend + backoffice).
@@ -54,12 +90,12 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Historique / logs** : URL 404 à corriger ; afficher les envois et statuts.
 
 ### 5. Parcours utilisateur
-- **Parcours prédéfinis** (`/backoffice/user-journey`) : vérifier données et navigation.
+- **Parcours prédéfinis** (`/backoffice/user-journey`) : vérifier données et navigation. **Dépendent des APIs métier** (inscription, connexion, candidatures, contacts, entretiens, relances, appels) — voir section 11 ; scénarios pas tous opérationnels — voir section 12.
 - **Parcours personnalisé** (`/backoffice/user-journey/custom`) : création, édition, exécution.
 
 ### 6. Gestion des services & données
-- **Gestion des services** : liste complète, détail service (métriques, logs), management (redémarrage, config).
-- **Logs des services** : centralisation, filtres, persistance.
+- **Gestion des services** : liste complète, détail service (métriques, logs), **redémarrage** (restart), **config** (configuration par service) — rendre pleinement opérationnels.
+- **Logs des services** : centralisation, filtres, persistance ; tout doit remonter vers log-collector / agrégateur (section 9).
 - **Données utilisateur** : export, suppression, récupération — conformité RGPD.
 - **Récupérer stats utilisateur** : API et écrans backoffice.
 - **Comptes, abonnement, paiement, facturation** : si prévus — implémenter ou documenter « hors scope ».
@@ -77,6 +113,9 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **Analytics utilisateur** : onglet « Versions & App mobile » — API versions à implémenter (404).
 
 ### 9. Observabilité, centralLogger, événements
+
+**À faire – Tout doit passer par log-collector + monitoring + metrics-aggregator** : Toute l’activité doit être **répertoriée** et **centralisée** dans le log-collector, le monitoring et l’agrégateur d’observabilité (metrics-aggregator), puis exposée au backoffice. À brancher / vérifier : **API REST** (requêtes, transit, codes, latence) ; **backend** (tous les microservices, centralLogger → agrégateur) ; **application mobile** (requêtes, erreurs, perfs → agrégateur) ; **émulateur mobile** (`/backoffice/mobile-emulator`, usage, requêtes, erreurs) ; **historique des mails** (envois, transit, statuts → logs + agrégateur si besoin) ; **parcours utilisateur** (user journey : exécution des scénarios, étapes, succès/échec, durée → logs + métriques) ; **tests** (Playwright, API, programmation : en plus des rapports, détecter et remonter utilisation backend, CPU, mémoire, latence vers l’agrégateur pour analyse).
+
 - **Rôles et flux** : voir la section **« Observabilité : rôles et flux (agrégateur d'observabilité) »** pour le détail des trois briques (monitoring-c, log-collector-c, agrégateur d'observabilité / metrics-aggregator) et les choses à faire (log-collector-c, cyber/sécurité, renommage optionnel).
 - **centralLogger / logger-filter** : déployer dans tous les services ; documenter ; garder logger-filter en sync.
 - **Événements & rappels** : backoffice OK ; app mobile — connecter API + rappels locaux/push.
@@ -91,7 +130,50 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 - **ERRORS.md** : tenir à jour (erreurs connues, corrigées, en attente).
 - **RESOLUTIONS.md**, **TESTS_END.md**, **TODO_PERFORMANCE.md** : alignés avec STATUS (à faire vs fait).
 
-**Prochaine étape suggérée** : 1) **Tester** les tests API depuis le backoffice (Docker) pour valider la correction ; 2) Corriger SMTP (503) et logs emails (404) ; 3) Sécurité (firewall, politiques, menaces) ; 4) Emails (templates, config, délivrabilité). Requêtes SQL en C (log-collector-c, monitoring-c) : **fait** (prepared statements + validation).
+### 11. Fonctionnalités métier / données – non implémentées (à faire)
+
+**Référence** : `docs/database/` (relations.md, STRUCTURE_ACTUELLE.md), schémas Prisma. La BDD et les modèles existent ; les **flux complets API + backoffice + scénarios** ne sont pas en place. Tout ce qui suit doit être géré via **API et backend**, puis exposé au backoffice, aux **parcours utilisateur** et à l’**application mobile**.
+
+| Domaine | À faire | Détail |
+|--------|---------|--------|
+| **Entretiens** | ❌ Non opérationnel | CRUD entretiens, statuts (SCHEDULED, COMPLETED, CANCELLED…), liaison Application/Contact/Event. API + backoffice + scénarios. |
+| **Appels** | ❌ Non opérationnel | Gestion des appels (Call), liaison Contact/Company/Application/FollowUp. API + backoffice + scénarios. |
+| **Synchronisation** | ❌ Non opérationnel | Sync client/serveur (SyncQueue, syncHash, lastSyncAt). Voir `docs/database/STRUCTURE_ACTUELLE.md` (Système de synchronisation). API + mobile. |
+| **Candidatures** | ❌ Partiel | Workflow complet : création → relances → entretiens → décision. Statuts (ApplicationStatus), pièces jointes, historique. API + backoffice + scénarios. |
+| **Relances** | ❌ Non opérationnel | CRUD relances (FollowUp), statuts, liaison Application/Contact. API + backoffice + scénarios. |
+| **Entreprises** | ❌ Partiel | CRUD entreprises (Company), liaison User/Application/Contact. Compléter API + backoffice + scénarios. |
+| **Contacts** | ❌ Partiel | CRUD contacts (Contact), relations M:N (ContactCompany, ContactApplication). API + backoffice + scénarios. |
+| **Événements** | ❌ Non opérationnel | CRUD événements (Event), liaison Interview/Call/Application. API + backoffice + scénarios. |
+| **Calendrier** | ❌ Non opérationnel | Vue calendrier (événements, entretiens, rappels). Dépend des événements et entretiens. |
+| **Utilisateurs** | ⚠️ Partiel | **Inscription** (register), **connexion** (login), **reset mot de passe** : à finaliser (emails, tokens, UX). Auth-service + backoffice. |
+| **Paramètres utilisateur** | ❌ Non opérationnel | Préférences, personnalisation (UserCustomization si prévu). API + backoffice + mobile. |
+
+**Données et stats** : agrégations, tableaux de bord métier, exports. Une fois cette partie stable et sécurisée, l’API pourra servir les **parcours utilisateur** (scénarios de test) et l’**application mobile**.
+
+**Workflows métier / logiques en chaîne (à implémenter)** — Référence : `docs/database/ACTIONS_ET_MODIFICATIONS.md`, `docs/database/analysis/comprehensive-project-audit`. Ces logiques doivent s’enchaîner côté backend (workflow-service ou services métier) et être paramétrables (délais, activation/désactivation) :
+- **Candidature** : après X jours (ex. 7) sans action ni mise à jour → proposer ou passer le statut en « À relancer » si aucun autre paramètre ne s’y oppose (ex. `isManualStatus`, statut final rejeté/accepté). Délai et règles à documenter et implémenter (status.service.js ou équivalent).
+- **Gestion automatique des statuts** : proposition automatique de statuts selon l’état de la candidature ; option « Forcer le statut manuellement » (`isManualStatus`) pour désactiver l’automatisme sur une candidature ; arrêt des automatismes si candidature rejetée/acceptée ou si l’utilisateur n’est plus en recherche active (`isActiveSearch`).
+- **Relances automatiques** : création/suggestion de relances selon règles métier (délais, types).
+- **Rappels et événements** : création automatique d’événements (entretien prévu, relance planifiée, etc.) dans le calendrier.
+- **Création automatique** : entreprise si nom saisi n’existe pas ; contact avec entreprise ; règles déjà partiellement décrites dans ACTIONS_ET_MODIFICATIONS.md.
+
+### 12. Scénarios de test – pas tous opérationnels
+
+- **Playwright** : scénarios E2E (backoffice, parcours) : **pas tous opérationnels** ; exécution et rapports à brancher/valider.
+- **API** : tests API (health, services, login, CRUD) : **partiellement opérationnels** ; dépend des endpoints métier (candidatures, contacts, etc.) à implémenter.
+- **Parcours utilisateur** : prédéfinis et personnalisés (`/backoffice/user-journey`) : **dépendent des APIs métier** (inscription, connexion, candidatures, contacts, entretiens, relances, appels) ; tant que celles-ci ne sont pas complètes, les parcours ne peuvent pas couvrir tout le flux.
+- **Programmation de tests** : CRUD des plannings OK ; **worker/cron manquant** pour exécuter automatiquement les tests selon les plannings.
+
+À faire : implémenter les APIs métier (section 11), puis valider et compléter les scénarios Playwright, API et parcours utilisateur.
+
+### 13. Application mobile (après métier + scénarios)
+
+- **Référence** : `docs/mobile/README.md`, Flutter existant.
+- **Développement app mobile** : connecter à l’API fonctionnelle et sécurisée (auth, candidatures, événements, rappels, **synchronisation**, **paramètres utilisateur**). Toutes les fonctionnalités listées en section 11 (entretiens, appels, candidatures, relances, entreprises, contacts, événements, calendrier, inscription/connexion/reset, paramètres) devront être exposées et consommées par l’app mobile.
+- **Sécurisation** : HTTPS, JWT, rate limiting, validation des entrées.
+- **Stats et monitoring** : métriques d’usage, erreurs, performances côté mobile et API.
+
+**Prochaine étape suggérée** : 1) **Admin** : `make create-admin-user` si besoin ; 2) **Tests API** : lancer depuis le backoffice, vérifier le rapport ; 3) **Config emails + logs emails** (à faire) ; 4) **Tests** : valider Frontend, Backend, Backoffice, Sécurité, Performance depuis le backoffice ; 5) **Programmation de tests** : ajouter un worker qui exécute les schedules ; 6) **Sécurité** (firewall, politiques, menaces) ; 7) **Partie métier** (section 11 : APIs entretiens, appels, sync, candidatures, relances, entreprises, contacts, événements, calendrier, utilisateurs, paramètres) ; 8) **Scénarios** (Playwright, API, parcours utilisateur) ; 9) **Application mobile** (API fonctionnelle et sécurisée).
 
 ---
 
@@ -188,7 +270,8 @@ Cette section liste **tout ce qu’il reste à faire** pour que le projet soit p
 
 | Erreur | Cause | Correction |
 |--------|--------|------------|
-| `[PERSISTENCE] The number 447.27 cannot be converted to a BigInt` | Valeurs mémoire/disque/réseau en float passées à `BigInt()` sans arrondi | **server.js** : `systemMetricsForDb.memory` (used/total/free) et `network` (rx/tx) arrondis avant envoi ; conteneurs monitoring-C : bytes arrondis. **persistence.service.js** : helper `_safeBigInt(val)` utilisé pour tous les champs BigInt (système, conteneurs, réseau). Après modif : **`make rebuild-metrics-aggregator`**. |
+| **`null value in column "id" of relation "User"`** (create-admin-user) | L’INSERT dans `create-admin-user.sh` ne fournissait pas la colonne `id`, obligatoire (Prisma `@id @default(cuid())`). | **create-admin-user.sh** : l’INSERT inclut maintenant `id` avec une valeur CUID-like : `'c' \|\| substr(md5(random()::text \|\| now()::text), 1, 24)`. À relancer : **`make create-admin-user`** (ou `make up-full` qui appelle la création auto). |
+| `[PERSISTENCE] The number 447.27 cannot be converted to a BigInt` | Valeurs mémoire/disque/réseau en float passées à `BigInt()` sans arrondi | **server.js** : `systemMetricsForDb.memory` (used/total/free) et `network` (rx/tx) arrondis avant envoi ; conteneurs monitoring-C : bytes arrondis. **persistence.service.js** : helper `_safeBigInt(val)` utilisé pour tous les champs BigInt. Après modif : **`make rebuild-metrics-aggregator`**. |
 | `relation "public.network_connections" does not exist` | Table créée uniquement par push Prisma auth-service (parfois absent) | `scripts/db/init-key-tables.sql` : `CREATE TABLE IF NOT EXISTS network_connections` ; exécuté dans `db-push-all.sh`. |
 | Health check **HTTP 404** (metrics-aggregator, monitoring-c, log-collector-c) | Ces services n’exposent pas `/health` (ou route différente) | Comportement attendu ; la disponibilité est calculée sur réponse HTTP (200 = up). Pas de changement requis. |
 | `runtime.lastError` / `message channel closed` (navigateur) | Extension de navigateur (ex. Cursor), pas le code front | À ignorer côté projet. |

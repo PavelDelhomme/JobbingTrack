@@ -239,6 +239,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
             { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
             { name: 'Tests Backoffice', href: '/backoffice/tests-backoffice', icon: '🛡️' },
+            { name: 'Tests Sécurité', href: '/backoffice/tests-security', icon: '🔒' },
             { name: 'Tests Performance', href: '/backoffice/performance-tests', icon: '⚡' },
             { name: 'Programmer tests', href: '/backoffice/performance-tests/schedule', icon: '📅' },
             { name: 'Rapports de tests', href: '/backoffice/test-reports', icon: '📊' },
@@ -251,6 +252,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           subItems: [
             { name: 'Parcours prédéfinis', href: '/backoffice/user-journey', icon: '📋' },
             { name: 'Parcours personnalisé', href: '/backoffice/user-journey/custom', icon: '🎯' },
+            { name: 'Rapports de parcours', href: '/backoffice/user-journey/reports', icon: '📄' },
           ]
         },
       ]
