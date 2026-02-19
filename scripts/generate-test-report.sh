@@ -44,7 +44,7 @@ echo -e "${CYAN}╔════════════════════�
 echo -e "${CYAN}║     🧪 GÉNÉRATION RAPPORT : $TEST_NAME${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
-# Marqueur visible dans les logs (grep "TESTS API" ou "Lancement test") quand un run de test démarre
+# Marqueurs visibles dans les logs (grep "[TESTS API]") pour repérer début / fin du run
 if [ "$TEST_TYPE" = "api" ]; then
   echo "[TESTS API] Lancement de la suite Tests API — $(date '+%Y-%m-%dT%H:%M:%S%z')"
 fi
@@ -54,6 +54,9 @@ echo ""
 # Exécuter le test (exporter le fichier de résultats pour le script de test)
 export TEST_RESULTS_FILE="$REPORT_DIR/test-results.txt"
 echo -e "${YELLOW}🚀 Exécution du test...${NC}"
+if [ "$TEST_TYPE" = "api" ]; then
+  echo "[TESTS API] Début exécution des tests — $(date '+%Y-%m-%dT%H:%M:%S%z')"
+fi
 echo ""
 
 start_time=$(date +%s)
@@ -69,6 +72,10 @@ fi
 
 end_time=$(date +%s)
 duration=$((end_time - start_time))
+
+if [ "$TEST_TYPE" = "api" ]; then
+  echo "[TESTS API] Exécution des tests terminée — $(date '+%Y-%m-%dT%H:%M:%S%z') — durée ${duration}s — exit $exit_code"
+fi
 
 # Lire les résultats et nettoyer les codes ANSI
 if [ -f "$RESULT_FILE.tmp" ]; then
@@ -398,6 +405,9 @@ EOHTML
 # Nettoyer
 rm -f "$RESULT_FILE.tmp"
 
+if [ "$TEST_TYPE" = "api" ]; then
+  echo "[TESTS API] Fin de la génération du rapport — $(date '+%Y-%m-%dT%H:%M:%S%z') — $REPORT_DIR"
+fi
 echo ""
 echo -e "${GREEN}✅ Rapport généré avec succès !${NC}"
 echo -e "${BLUE}📁 Répertoire : $REPORT_DIR${NC}"

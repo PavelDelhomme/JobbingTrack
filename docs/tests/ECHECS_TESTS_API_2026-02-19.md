@@ -20,6 +20,39 @@
 
 ---
 
+## Après modification des schémas Prisma : reconstruire les images
+
+Les conteneurs utilisent le **code et le schéma Prisma présents dans l’image**. Si tu as modifié des fichiers (par ex. `backend/*/prisma/schema.prisma` ou `backend/*/src/**`) **sans reconstruire**, les conteneurs tournent encore avec l’ancien code. Du coup :
+
+- **`make db-push-all`** exécuté avec les **anciens** conteneurs pousse l’ancien schéma (ou un autre service écrase des colonnes).
+- Les erreurs **User.verificationToken does not exist**, **Application.status / Interview.status does not exist**, **userId=dev_user_1** peuvent rester.
+
+**Ordre recommandé :**
+
+1. **Reconstruire les images** (pour embarquer les nouveaux schémas et le nouveau code) :
+   ```bash
+   make build
+   ```
+2. **Redémarrer la stack** pour utiliser les nouvelles images :
+   ```bash
+   make down && make up-full
+   ```
+   (ou au minimum redémarrer les services concernés : auth, application, company, contact, interview, call, followup, event, workflow.)
+3. **Ensuite** lancer **`make db-push-all`** : les conteneurs à jour pousseront le bon schéma (User.verificationToken, Application.statusId, Interview.statusId, etc.).
+4. Relancer les **Tests API** depuis le backoffice et vérifier les logs (marqueurs `[TESTS API] Démarrage` / `[TESTS API] Fin`).
+
+---
+
+## Où ont été ajoutées les routes (vérification)
+
+| Correction | Fichier | Détail |
+|------------|---------|--------|
+| GET/PUT `/api/v1/profile/me` | `backend/profile-service/src/server.js` | Lignes ~25–62 : middleware `requireAuth`, puis `app.get('/api/v1/profile/me', requireAuth, ...)` et `app.put('/api/v1/profile/me', requireAuth, ...)`. |
+| 401 sans token sur notifications | `backend/notification-service/src/server.js` | Lignes ~24–50 : `requireAuth` puis `app.get('/api/v1/notifications', requireAuth, ...)` et `app.post('/api/v1/notifications', requireAuth, ...)`. |
+| Dashboard statistics (agrégation HTTP) | `backend/dashboard-service/src/routes/dashboard.routes.js` | Routes `/stats` et `/statistics` utilisent `statistics.controller.getAggregatedStatistics` au lieu de `dashboard.controller.getStats`. |
+
+---
+
 ## Résumé des 15 échecs
 
 | # | Test | Statut obtenu | Attendu | Cause / action |

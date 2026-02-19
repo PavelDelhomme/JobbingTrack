@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       const errorMessage = execErr.message || 'Erreur lors de l’exécution des tests'
       // Si un rapport a tout de même été généré (script a écrit le rapport puis exit 1), retourner 200 pour permettre de l’ouvrir
       if (reportId) {
+        console.log(`[TESTS API] Fin des Tests API (échec partiel) — ${new Date().toISOString()} — rapport: ${reportId}`)
         return NextResponse.json({
           success: false,
           error: errorMessage,
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
           selectedTests: tests,
         }, { status: 200 })
       }
+      console.log(`[TESTS API] Fin des Tests API (erreur) — ${new Date().toISOString()}`)
       return NextResponse.json({
         success: false,
         error: errorMessage,
@@ -77,6 +79,9 @@ export async function POST(request: NextRequest) {
         selectedTests: tests,
       }, { status: 500 })
     }
+
+    const endLabel = `[TESTS API] Fin des Tests API — ${new Date().toISOString()} — rapport: ${reportId ?? 'N/A'}`
+    console.log(endLabel)
 
     return NextResponse.json({
       success: true,
@@ -87,6 +92,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'
+    const endLabel = `[TESTS API] Fin des Tests API (erreur) — ${new Date().toISOString()}`
+    console.log(endLabel)
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }
