@@ -4,6 +4,15 @@
 
 ---
 
+## Priorité 1 validée (2026-02-19)
+
+- **make up-full** : l’admin est créé automatiquement à la fin du démarrage (message « ✅ Utilisateur administrateur existe » ou « 🔧 Création automatique de l’admin... »).
+- **Connexion backoffice** : admin@jobbingtrack.test / password123 OK.
+- **Tests API depuis le backoffice** : lancement OK, rapport généré. Résultat : 21/36 tests passent, 15 échecs documentés dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md** (profile 404, notification 200 vs 401, script dev_user_1, schéma BDD, dashboard, etc.).
+- **Visibilité dans les logs** : au clic « Lancer les tests API », les logs affichent désormais `[TESTS API] Démarrage des Tests API depuis le backoffice` (frontend) et `[TESTS API] Lancement de la suite Tests API` (script), pour repérer facilement le début d’un run.
+
+---
+
 ## Février 2026 – Tests API depuis Docker (bash: not found)
 
 - **Problème** : Lancement des tests API depuis le backoffice en Docker échouait avec `Command failed: ... /bin/sh: bash: not found`. Le conteneur frontend (Node) n’inclut pas `bash`.
