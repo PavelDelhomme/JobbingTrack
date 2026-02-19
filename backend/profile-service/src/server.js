@@ -21,6 +21,48 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Middleware : exiger un token pour les routes protégées
+const requireAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !/^Bearer\s+.+/.test(authHeader)) {
+    return res.status(401).json({ success: false, error: 'Token d\'authentification manquant' });
+  }
+  next();
+};
+
+// GET /api/v1/profile/me — profil de l'utilisateur connecté (protégé)
+app.get('/api/v1/profile/me', requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    profile: {
+      id: 'profile-me',
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@jobbingtrack.com',
+      role: 'SUPER_ADMIN',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  });
+});
+
+// PUT /api/v1/profile/me — mise à jour du profil (protégé)
+app.put('/api/v1/profile/me', requireAuth, (req, res) => {
+  const { firstName, lastName } = req.body || {};
+  res.json({
+    success: true,
+    profile: {
+      id: 'profile-me',
+      firstName: firstName ?? 'Admin',
+      lastName: lastName ?? 'User',
+      email: 'admin@jobbingtrack.com',
+      role: 'SUPER_ADMIN',
+      updatedAt: new Date().toISOString()
+    },
+    message: 'Profil mis à jour'
+  });
+});
+
 // API routes avec données mockées
 app.get('/api/v1/profile-service', (req, res) => {
   // Données mockées pour l'interface d'administration

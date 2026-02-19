@@ -125,7 +125,8 @@ test_users() {
     echo -e "\n${YELLOW}═══ Utilisateurs ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Users" "$API_URL/api/v1/users" "GET" "" "200" "$TOKEN"
-    test_endpoint "Get User Profile" "$API_URL/api/v1/users/profile" "GET" "" "200" "$TOKEN"
+    # Profil de l'utilisateur connecté (auth-service), pas GET /users/:id avec id=profile
+    test_endpoint "Get User Profile" "$API_URL/api/v1/auth/profile" "GET" "" "200" "$TOKEN"
 }
 
 test_companies() {
@@ -164,7 +165,14 @@ test_calls() {
     echo -e "\n${YELLOW}═══ Appels ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Calls" "$API_URL/api/v1/calls" "GET" "" "200" "$TOKEN"
-    CALL_DATA="{\"contactId\":\"test-id\",\"type\":\"outbound\",\"duration\":30,\"notes\":\"Test call\"}"
+    # Récupérer un applicationId valide pour Create Call (requis par le backend)
+    APPLICATION_ID=""
+    if [ -n "$TOKEN" ]; then
+        APPLICATION_ID=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/applications" --max-time 10 | python3 -c "import sys, json; d=json.load(sys.stdin); apps=d.get('applications',[]) or d.get('data',[]); print(apps[0]['id'] if apps else '')" 2>/dev/null || echo "")
+    fi
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
+    CALL_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    CALL_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"subject\":\"Appel de suivi test\",\"callDate\":\"$CALL_DATE\",\"duration\":30,\"notes\":\"Test call\"}"
     test_endpoint "Create Call" "$API_URL/api/v1/calls" "POST" "$CALL_DATA" "201" "$TOKEN" || true
 }
 
@@ -180,7 +188,11 @@ test_followups() {
     echo -e "\n${YELLOW}═══ Relances ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Followups" "$API_URL/api/v1/followups" "GET" "" "200" "$TOKEN"
-    FOLLOWUP_DATA="{\"applicationId\":\"test-id\",\"type\":\"email\",\"dueDate\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"notes\":\"Test followup\"}"
+    # followUpDate requis par le backend (message "Date de relance requise" sinon)
+    FOLLOWUP_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    APPLICATION_ID=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/applications" --max-time 10 | python3 -c "import sys, json; d=json.load(sys.stdin); apps=d.get('applications',[]) or d.get('data',[]); print(apps[0]['id'] if apps else '')" 2>/dev/null || echo "")
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
+    FOLLOWUP_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"type\":\"email\",\"followUpDate\":\"$FOLLOWUP_DATE\",\"notes\":\"Test followup\"}"
     test_endpoint "Create Followup" "$API_URL/api/v1/followups" "POST" "$FOLLOWUP_DATA" "201" "$TOKEN" || true
 }
 

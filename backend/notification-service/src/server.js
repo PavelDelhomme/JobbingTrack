@@ -21,28 +21,29 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes avec données mockées
-app.get('/api/v1/notifications', (req, res) => {
-  // Données mockées pour l'interface d'administration
-  const mockData = {
-    contact: { contacts: [], total: 0 },
-    interview: { interviews: [], total: 0 },
-    notification: { notifications: [], total: 0 },
-    dashboard: { stats: { totalUsers: 1, totalApplications: 0, totalCompanies: 0 } },
-    call: { calls: [], total: 0 },
-    profile: { profiles: [], total: 0 },
-    event: { events: [], total: 0 },
-    followup: { followups: [], total: 0 }
-  };
+// Middleware : exiger un token pour les routes protégées
+const requireAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !/^Bearer\s+.+/.test(authHeader)) {
+    return res.status(401).json({ success: false, error: 'Token d\'authentification manquant' });
+  }
+  next();
+};
 
+// API routes protégées (401 sans token)
+app.get('/api/v1/notifications', requireAuth, (req, res) => {
+  const mockData = {
+    notifications: [],
+    total: 0
+  };
   res.json({
     success: true,
-    ...mockData.notification,
+    ...mockData,
     message: 'Données de démonstration'
   });
 });
 
-app.post('/api/v1/notifications', (req, res) => {
+app.post('/api/v1/notifications', requireAuth, (req, res) => {
   res.json({
     success: true,
     message: 'Fonctionnalité en cours d\'implémentation'
