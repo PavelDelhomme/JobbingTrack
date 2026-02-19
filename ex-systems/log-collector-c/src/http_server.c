@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -53,76 +54,66 @@ static void handle_request(int client_fd) {
     if (strstr(buffer, "GET /api/v1/health") != NULL) {
         send_json_response(client_fd, 200, "{\"status\":\"ok\",\"service\":\"log-collector-c\"}");
     } else if (strstr(buffer, "GET /api/v1/logs") != NULL) {
-        // Récupérer les paramètres de la requête
+        // Récupérer et valider les paramètres (anti-injection + bornes)
         int limit = 100;
-        const char *level_filter = NULL;
-        const char *container_filter = NULL;
+        char level_buf[16] = "";
+        char container_buf[260] = "";
         bool errors_only = false;
-        
-        // Parser les paramètres de requête (simplifié)
+
         if (strstr(buffer, "limit=") != NULL) {
-            sscanf(strstr(buffer, "limit="), "limit=%d", &limit);
+            int l = 0;
+            sscanf(strstr(buffer, "limit="), "limit=%d", &l);
+            if (l > 0 && l <= 2000) limit = l;
         }
         if (strstr(buffer, "level=") != NULL) {
-            char level_buf[16];
-            if (sscanf(strstr(buffer, "level="), "level=%15s", level_buf) == 1) {
-                level_filter = strdup(level_buf);
-            }
+            sscanf(strstr(buffer, "level="), "level=%15s", level_buf);
         }
         if (strstr(buffer, "container=") != NULL) {
-            char container_buf[256];
-            if (sscanf(strstr(buffer, "container="), "container=%255s", container_buf) == 1) {
-                container_filter = strdup(container_buf);
-            }
+            sscanf(strstr(buffer, "container="), "container=%255s", container_buf);
         }
         if (strstr(buffer, "errors_only=true") != NULL || strstr(buffer, "errors_only=1") != NULL) {
             errors_only = true;
         }
-        
-        // ✅ CORRECTION : Construire la requête SQL avec échappement des paramètres (PQexec ne supporte pas $1, $2)
-        char query[2048];
-        char where_clause[512] = "";
-        int where_pos = 0;
-        
-        // Construire la clause WHERE dynamiquement
-        if (errors_only) {
-            where_pos += snprintf(where_clause + where_pos, sizeof(where_clause) - where_pos, "is_error = true");
-        }
-        if (level_filter) {
-            if (where_pos > 0) {
-                where_pos += snprintf(where_clause + where_pos, sizeof(where_clause) - where_pos, " AND ");
+
+        // Validation : level autorisés uniquement (whitelist)
+        const char *allowed_levels[] = { "info", "warn", "error", "debug", "" };
+        bool level_ok = false;
+        if (level_buf[0] == '\0') level_ok = true;
+        else {
+            for (size_t k = 0; k < sizeof(allowed_levels)/sizeof(allowed_levels[0]); k++) {
+                if (strcasecmp(level_buf, allowed_levels[k]) == 0) { level_ok = true; break; }
             }
-            char level_escaped[32];
-            snprintf(level_escaped, sizeof(level_escaped), "'%s'", level_filter);
-            where_pos += snprintf(where_clause + where_pos, sizeof(where_clause) - where_pos, "level = %s", level_escaped);
         }
-        if (container_filter) {
-            if (where_pos > 0) {
-                where_pos += snprintf(where_clause + where_pos, sizeof(where_clause) - where_pos, " AND ");
+        if (!level_ok) level_buf[0] = '\0';
+
+        // Validation : container_name = alphanum, tiret, underscore, point uniquement
+        for (char *p = container_buf; *p; p++) {
+            if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '-' || *p == '_' || *p == '.')) {
+                *p = '\0';
+                break;
             }
-            char container_escaped[256];
-            snprintf(container_escaped, sizeof(container_escaped), "'%s'", container_filter);
-            where_pos += snprintf(where_clause + where_pos, sizeof(where_clause) - where_pos, "container_name = %s", container_escaped);
         }
-        
-        if (where_pos > 0) {
-            snprintf(query, sizeof(query),
-                "SELECT timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error "
-                "FROM container_logs "
-                "WHERE %s "
-                "ORDER BY timestamp DESC "
-                "LIMIT %d",
-                where_clause, limit);
-        } else {
-            snprintf(query, sizeof(query),
-                "SELECT timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error "
-                "FROM container_logs "
-                "ORDER BY timestamp DESC "
-                "LIMIT %d",
-                limit);
-        }
-        
-        // ✅ CORRECTION : Utiliser les variables d'environnement pour la connexion
+
+        // ✅ Requête paramétrée (prepared params) pour éviter toute injection SQL
+        const char *param_values[4];
+        char limit_str[16];
+        snprintf(limit_str, sizeof(limit_str), "%d", limit);
+        param_values[0] = errors_only ? "t" : "f";
+        param_values[1] = level_buf[0] ? level_buf : "";
+        param_values[2] = container_buf[0] ? container_buf : "";
+        param_values[3] = limit_str;
+        int param_lengths[4] = { 0, 0, 0, 0 };
+        int param_formats[4] = { 0, 0, 0, 0 };
+
+        const char *query = 
+            "SELECT timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error "
+            "FROM container_logs "
+            "WHERE ($1::boolean = false OR is_error = true) "
+            "AND ($2::text = '' OR level = $2) "
+            "AND ($3::text = '' OR container_name = $3) "
+            "ORDER BY timestamp DESC "
+            "LIMIT $4::integer";
+
         const char *db_host = getenv("POSTGRES_HOST") ? getenv("POSTGRES_HOST") : "postgres";
         const char *db_port = getenv("POSTGRES_PORT") ? getenv("POSTGRES_PORT") : "5432";
         const char *db_name = getenv("POSTGRES_DB") ? getenv("POSTGRES_DB") : "jobbingtrack";
@@ -134,11 +125,10 @@ static void handle_request(int client_fd) {
             "host=%s port=%s dbname=%s user=%s password=%s",
             db_host, db_port, db_name, db_user, db_password);
         
-        // Exécuter la requête
         PGconn *conn = PQconnectdb(conninfo);
         
         if (PQstatus(conn) == CONNECTION_OK) {
-            PGresult *res = PQexec(conn, query);
+            PGresult *res = PQexecParams(conn, query, 4, NULL, param_values, param_lengths, param_formats, 0);
             
             if (PQresultStatus(res) == PGRES_TUPLES_OK) {
                 int rows = PQntuples(res);
@@ -175,9 +165,6 @@ static void handle_request(int client_fd) {
         } else {
             send_json_response(client_fd, 500, "{\"success\":false,\"error\":\"Database connection failed\"}");
         }
-        
-        if (level_filter) free((void*)level_filter);
-        if (container_filter) free((void*)container_filter);
     } else {
         send_json_response(client_fd, 404, "{\"error\":\"Not found\"}");
     }

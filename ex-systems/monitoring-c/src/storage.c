@@ -295,38 +295,40 @@ int save_metrics_to_db(const MetricsData *metrics) {
 
 /**
  * Récupère l'historique des métriques système depuis PostgreSQL
+ * Utilise des paramètres préparés pour éviter l'injection SQL (start_date, end_date).
  * Retourne un JSON string alloué dynamiquement (à libérer par l'appelant)
  */
 char* get_system_metrics_history(int limit, int offset, const char *start_date, const char *end_date) {
     if (!conn || PQstatus(conn) != CONNECTION_OK) {
         return NULL;
     }
-    
-    char query[2048];
-    if (start_date && end_date && strlen(start_date) > 0 && strlen(end_date) > 0) {
-        snprintf(query, sizeof(query),
-            "SELECT timestamp, cpu_usage_percent, cpu_cores, cpu_load_1, cpu_load_5, cpu_load_15, "
-            "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
-            "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
-            "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
-            "FROM system_metrics "
-            "WHERE timestamp >= '%s'::timestamp AND timestamp <= '%s'::timestamp "
-            "ORDER BY timestamp DESC "
-            "LIMIT %d OFFSET %d",
-            start_date, end_date, limit, offset);
-    } else {
-        snprintf(query, sizeof(query),
-            "SELECT timestamp, cpu_usage_percent, cpu_cores, cpu_load_1, cpu_load_5, cpu_load_15, "
-            "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
-            "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
-            "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
-            "FROM system_metrics "
-            "ORDER BY timestamp DESC "
-            "LIMIT %d OFFSET %d",
-            limit, offset);
-    }
-    
-    PGresult *res = PQexec(conn, query);
+
+    /* Validation des entrées : bornes pour limit/offset */
+    if (limit <= 0) limit = 100;
+    if (limit > 5000) limit = 5000;
+    if (offset < 0) offset = 0;
+    if (offset > 100000) offset = 100000;
+
+    const char *query =
+        "SELECT timestamp, cpu_usage_percent, cpu_cores, cpu_load_1, cpu_load_5, cpu_load_15, "
+        "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
+        "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
+        "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
+        "FROM system_metrics "
+        "WHERE ($1::text = '' OR timestamp >= $1::timestamp) AND ($2::text = '' OR timestamp <= $2::timestamp) "
+        "ORDER BY timestamp DESC "
+        "LIMIT $3 OFFSET $4";
+
+    const char *param_values[4];
+    char limit_str[16], offset_str[16];
+    snprintf(limit_str, sizeof(limit_str), "%d", limit);
+    snprintf(offset_str, sizeof(offset_str), "%d", offset);
+    param_values[0] = (start_date && start_date[0]) ? start_date : "";
+    param_values[1] = (end_date && end_date[0]) ? end_date : "";
+    param_values[2] = limit_str;
+    param_values[3] = offset_str;
+
+    PGresult *res = PQexecParams(conn, query, 4, NULL, param_values, NULL, NULL, 0);
     
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         fprintf(stderr, "[STORAGE] ❌ Erreur requête historique: %s\n", PQerrorMessage(conn));
