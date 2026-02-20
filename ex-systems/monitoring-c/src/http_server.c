@@ -322,6 +322,17 @@ void handle_request(int client_fd) {
     fprintf(stderr, "[DEBUG] Requête reçue: %.100s\n", buffer);
     fflush(stderr);
     
+    // Health check (GET /health) pour le collecteur monitoring-c
+    if (strstr(buffer, "GET /health") != NULL) {
+        const char *health_body = "{\"status\":\"ok\",\"service\":\"jobbingtrack-monitoring-c\"}";
+        const char *response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n";
+        write(client_fd, response, strlen(response));
+        write(client_fd, health_body, strlen(health_body));
+        free(buffer);
+        close(client_fd);
+        return;
+    }
+    
     // Vérifier si c'est une requête GET /api/v1/persistence/system/metrics (historique)
     if (strstr(buffer, "GET /api/v1/persistence/system/metrics") != NULL) {
         // Parser les paramètres de requête (limit, offset, startDate, endDate)

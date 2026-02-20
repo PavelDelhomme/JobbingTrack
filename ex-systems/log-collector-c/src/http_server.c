@@ -50,8 +50,8 @@ static void handle_request(int client_fd) {
     
     buffer[bytes_read] = '\0';
     
-    // Parser la requête (simplifié)
-    if (strstr(buffer, "GET /api/v1/health") != NULL) {
+    // Parser la requête (simplifié) — /health et /api/v1/health pour compatibilité monitoring-c
+    if (strstr(buffer, "GET /health") != NULL || strstr(buffer, "GET /api/v1/health") != NULL) {
         send_json_response(client_fd, 200, "{\"status\":\"ok\",\"service\":\"log-collector-c\"}");
     } else if (strstr(buffer, "GET /api/v1/logs") != NULL) {
         // Récupérer et valider les paramètres (anti-injection + bornes)

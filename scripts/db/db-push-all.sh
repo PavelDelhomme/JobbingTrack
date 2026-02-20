@@ -108,7 +108,7 @@ fi
 if [ -f "${ROOT_DIR}/scripts/db/init-key-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 3/3 – Tables sécurité / monitoring (init-key-tables.sql)"
   echo "━━━ Partie 3/3 – Tables sécurité / monitoring (init-key-tables.sql) ━━━"
-  echo "  security_logs, network_*, firewall_rules, security_alerts"
+  echo "  security_logs, network_*, firewall_rules, security_alerts, vulnerabilities, security_metrics, deployments (+ deployment_metrics, rollbacks)"
   docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql" > /dev/null 2>&1 && echo "  ✅ Tables security_logs / system_metrics_snapshots / network_connections / network_threats / security_alerts / firewall_rules OK" || true
   echo ""
 fi
