@@ -20,6 +20,12 @@ Les **Tests API** lancés depuis le backoffice (Tests → Tests API → Lancer) 
 
 ---
 
+## CI/CD Pipeline (à remettre en place)
+
+La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **« Validation de la structure de base de données »** échoue (les autres jobs sont en skipped car ils en dépendent). Cause probable : le workflow s’appuie sur `backend/prisma` et `backend/package-lock.json` alors que le projet est en **microservices** (un Prisma par service : auth-service, application-service, etc.) ; à adapter (ex. valider un schéma de référence ou chaque service, ou unifier le job sur un seul schéma partagé). **À faire plus tard** : remettre la pipeline en place et, si possible, **intégrer les tests actuels** (Tests API 36, tests backend, frontend, backoffice, Playwright) dans la CI/CD. Très utile pour la suite.
+
+---
+
 ## Validé récemment (état actuel)
 
 - **Stack** : `make up-full` → **21/21 services UP**, **41 tables** (Prisma + init-system-metrics + init-key-tables).
@@ -43,6 +49,14 @@ Les **Tests API** lancés depuis le backoffice (Tests → Tests API → Lancer) 
 
 ---
 
+## Travail en cours : SMTP, logs emails, API versioning
+
+**Doc dédiée** : **`docs/emails/EMAILS.md`** — quoi faire, comment (SMTP, logs emails, API versioning), étapes et dépannage.
+
+En bref : configurer les variables SMTP → tester via backoffice (Déliverabilité) ou `GET /api/v1/emails/test-smtp` ; vérifier que `/backoffice/emails/logs` et la route versions analytics répondent (rebuild auth-service / dashboard-service si 404).
+
+---
+
 ## À FAIRE (par priorité)
 
 ### Priorité 1 – Immédiat ✅ (validée 2026-02-20)
@@ -59,8 +73,8 @@ Les **Tests API** lancés depuis le backoffice (Tests → Tests API → Lancer) 
 5. **Tests API – suite (Priorité 2)** : **List Applications 500** : fallback raw SQL sur colonne **archived** si Prisma lève « isArchived does not exist » (condition assouplie : `isArchived` + `does not exist`). **Create Interview/Call/Followup 404** : le script réutilise l’ID de la candidature créée (Create Application) ou le premier id de GET /applications ; parsing de `application` ou `data.id` dans la réponse. **Dates** : TZ (défaut Europe/Paris) pour rapports ; `summary.generatedAtISO` (UTC) dans le rapport ; UI backoffice utilise `formatReportDateLocal(..., generatedAtISO)` partout pour afficher en heure locale navigateur. Dernier run **32/36 passent, 4 échecs** (Company.isTestData ; corrigé dans application-service). **Corrections 2026-02-20** : Application.archived (application-service code + interview/call/followup Prisma), FollowUp.statusId (followup-service), JWT_SECRET pour event-service (docker-compose). **Important** : les erreurs Postgres « Application.isArchived does not exist » et « FollowUp.status does not exist » viennent des **images Docker** qui n’ont pas été reconstruites après les changements. **Corrections supplémentaires** : Application et Company sans isTestData/syncHash/entityHash/lastSyncAt (application-service) ; Event create sans contactId/companyId (event-service). **Workflow simple** : après changement code/schéma → `make build` puis `make up-full` ; relancer les Tests API. Causes principales : (1) **Login 401** — le script utilise `admin@jobbingtrack.test` / `password123` mais l’admin en BDD pouvait avoir été créé avec le hash pour « secret » (script SQL). **Correction** : `backend/scripts/database/create-admin-user.sh` privilégie désormais la création via **auth-service** (Node + bcrypt pour `ADMIN_PASSWORD`) ; si auth-service est indisponible, fallback hash « secret » (message indique de relancer avec auth up pour password123). (2) **Profile 404** — GET/PUT `/api/v1/profile/me` renvoient 404 (réponse HTML « Cannot GET/PUT ») : routes présentes dans le code profile-service ; **à faire** : **rebuild** profile-service (`make build` ou rebuild du service) et redémarrer pour que l’image embarque les routes. (3) **Notification 200 au lieu de 401** (sans token) : le service doit renvoyer 401 ; **à faire** : rebuild notification-service. Après corrections : **relancer `make create-admin-user`** (avec auth-service up) pour un admin avec password123, puis **make build** et **make up-full** (ou rebuild profile + notification), puis relancer les Tests API depuis le backoffice. **Comparaison de rapports** : implémentée (Backoffice → Rapports de tests → « Comparer des rapports »).
 5b. **Couverture des tests (Priorité 2, en parallèle des échecs Tests API)** : **Backend complet** — Le script `scripts/test-api-specific.sh` couvre désormais **tous les services** : health, auth, users, companies, applications, **contacts**, **interviews**, **calls**, **events**, **followups**, **profile**, **notifications**, **metrics** (metrics-aggregator via gateway), **dashboard** (statistics, analytics events/errors/stats), **emails** (logs, stats), **workflow** (GET /workflows), **security** (firewall rules, blocked-ips, waf config, logs). **Rapports** : les runs depuis le backoffice (Tests API) génèrent un rapport (HTML + summary.json) dans `tests/results/<timestamp>/` ; `scripts/run-all-tests-with-reports.sh` inclut **Tests API Backend (script - tous services)** et **Tests Sécurité Firewall & WAF (API)** ; les rapports sont listés et comparables dans Backoffice → Rapports de tests. **Frontend / Backoffice / Sécurité** : `run-all-tests-with-reports.sh` exécute aussi User Journey, Jest API/backend, Playwright E2E (frontend + mobile), Jest frontend, tests performance, tests sécurité (injection SQL, XSS, CSRF, auth avancée, autorisation), tests firewall/WAF ; chaque catégorie produit un rapport dans le même répertoire. **À faire** : s’assurer que les tests deployment (si un service deployment est exposé au gateway) et les tests backoffice Playwright dédiés sont bien lancés selon l’env (voir Catégories 2 et 5 dans le script).
 6. SMTP 503 : configurer SMTP (auth-service ou service dédié), test opérationnel, écrans backoffice Configuration SMTP et Déliverabilité.
-7. **Logs emails 404** : La page `/backoffice/emails/logs` existe et appelle `GET /api/v1/emails/logs` (via gateway → auth-service). Côté code : gateway a `/api/v1/emails` → auth-service ; auth-service a `GET /logs` sous `/api/v1/emails` (authentification requise). Si 404 persiste : vérifier que le front utilise bien `NEXT_PUBLIC_API_URL` (gateway), que le token est envoyé, et les logs auth-service / api-gateway.
-8. **API versioning (prioritaire)** : Le versioning API n’est pas encore en place. Route `GET /api/v1/analytics/stats/:userId/versions` (404) : existe côté dashboard-service ; gateway envoie `/api/v1/analytics*` au dashboard ; front `user-analytics/page.tsx` appelle cette URL. Si 404 persiste : vérifier logs gateway/dashboard et droits. À faire : corriger 404 + définir stratégie de versioning des APIs.
+7. **Logs emails 404** : La page `/backoffice/emails/logs` existe et appelle `GET /api/v1/emails/logs` (via gateway → auth-service). Côté code : gateway a `/api/v1/emails` → auth-service ; auth-service a `GET /logs` sous `/api/v1/emails` (authentification requise). Si 404 persiste : vérifier que le front utilise bien `NEXT_PUBLIC_API_URL` (gateway), que le token est envoyé, et les logs auth-service / api-gateway. **Dépannage** : rebuild auth-service puis redémarrer ; le front affiche un message explicite en cas de 404.
+8. **API versioning (prioritaire)** : Le versioning API n’est pas encore en place. Route `GET /api/v1/analytics/stats/:userId/versions` (404) : existe côté dashboard-service (`/stats/:userId/versions` en premier dans analytics.routes.js) ; gateway envoie `/api/v1/analytics*` au dashboard-service:3000 ; front `user-analytics/page.tsx` appelle cette URL avec token. Si 404 persiste : **Dépannage** : rebuild dashboard-service puis redémarrer ; vérifier JWT_SECRET partagé. À faire : corriger 404 + définir stratégie de versioning des APIs.
 9. ~~Health checks 404~~ ✅ **Fait** : `GET /health` ajouté sur monitoring-c, log-collector-c et metrics-aggregator ; après rebuild, plus de 404 sur ces trois services.
 
 **Checklist Priorité 2 – à valider avant de passer en phase 3**
@@ -211,8 +225,8 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 
 ### Emails
 
-- Configuration SMTP, test SMTP, écrans Configuration et Déliverabilité (non implémentés).
-- Historique des emails : API et page à brancher.
+- **SMTP** : configuré via variables d’environnement (docker-compose, auth-service) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EMAIL_PROVIDER` (SMTP ou RESEND). Par défaut : `SMTP_HOST=ssl0.ovh.net`, `SMTP_PORT=465`. Le provider SMTP est initialisé au démarrage de l’auth-service ; **test SMTP** (`GET /api/v1/emails/test-smtp`) **100 % Node** (Nodemailer), plus de fallback Python. Écrans backoffice Configuration SMTP et Déliverabilité : à rendre opérationnels (renseigner les variables puis redémarrer auth-service).
+- Historique des emails : API `GET /api/v1/emails/logs` et page `/backoffice/emails/logs` branchées ; si 404, voir point 7 Priorité 2 (rebuild auth-service).
 
 ### Sécurité
 
@@ -232,3 +246,12 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 ### Migration et sécurisation complète
 
 - À faire en dernier (après backoffice, tests, API stables) : migration auth vers Go/Rust, chiffrement, JWT/refresh, rate limiting, HTTPS, validation stricte. Voir section « Migration et sécurisation complète » dans l’historique du fichier si besoin.
+
+
+---
+
+## Annexes (références rapides)
+
+- **Git auteur** : \`git config --local user.name "Ton Nom"\` et \`user.email\` (détail : \`docs/GIT_AUTHOR.md\`).
+- **Make** : rebuild complet = \`make fresh-start\` ; BDD seule = \`make db-push-all\` après démarrage ; aide = \`make help\` / \`make help-database\` / \`make help-compilation\`.
+- **Commit & push** : configurer l'auteur (ci-dessus), puis \`git add -A\` → \`git commit -m "..."\` → \`git push origin <branche>\`.
