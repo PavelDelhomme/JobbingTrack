@@ -49,38 +49,69 @@ La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **�
 
 ---
 
-## Mail / Emails – à faire (système complet)
+## Mail / Emails – objectif et à faire (système complet)
 
-Tout le travail mail (SMTP, logs, envoi depuis le backoffice) est piloté ici. Détails en profondeur : **`docs/emails/MAIL.md`**.
+**Objectif** : permettre l’inscription (app mobile / web) avec **email de confirmation de compte**, et l’envoi d’emails **reset password** et **vérification**. Pas de newsletter ni réception (contact, etc.) dans l’objectif actuel — éventuellement en tout fin de projet.
 
-### Config (.env / docker-compose auth-service)
+**Où c’est** : backend **auth-service** (SMTP, envoi, logs, templates). Références : **`backend/auth-service/README.md`**, **`backend/auth-service/PYTHON_EMAIL_SETUP.md`** (config SMTP + tests Python), **`docs/emails/MAIL.md`** (vue d’ensemble, OVH jobbingtrack.com, backoffice, tests).
 
-Variables à avoir pour l’envoi réel (déjà utilisées si tu recevais des mails de test avant) :
+### Infra déjà en place (OVH)
 
-- `SMTP_HOST` (ex. `ssl0.ovh.net`)
-- `SMTP_PORT` (ex. `465` ou `587`)
-- `SMTP_USER` (ex. `redacted@example.invalid`)
-- `SMTP_PASS`
-- `SMTP_FROM` (ex. `JobbingTrack <redacted@example.invalid>`)
+- **Domaine** : jobbingtrack.com (enregistré, actif).
+- **MX Plan** : jobbingtrack.com, état actif ; MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net ; SPF `v=spf1 include:mx.ovh.com -all`.
+- **Zone DNS** : A jobbingtrack.com + www → VPS ; MX + SPF déjà configurés. Pas besoin de toucher au DNS pour faire marcher l’envoi SMTP.
+
+Envoi : via **SMTP OVH** (compte type `noreply@jobbingtrack.test`). Stockage des logs et métadonnées : **dans notre BDD** (table `EmailLog`, stats) — pas dans la boîte mail OVH, pour ne pas être limité par les quotas et avoir une plateforme type Brevo dans le backoffice.
+
+### Config SMTP (auth-service)
+
+Variables à définir (`.env` ou `docker-compose`, section auth-service) :
+
+- `SMTP_HOST` = `ssl0.ovh.net`
+- `SMTP_PORT` = `465` (SSL) ou `587` (STARTTLS)
+- `SMTP_USER` = ex. `noreply@jobbingtrack.test` (compte créé dans MX Plan OVH)
+- `SMTP_PASS` = mot de passe du compte
+- `SMTP_FROM` = ex. `JobbingTrack <noreply@jobbingtrack.test>`
 - `SMTP_REPLY_TO` (optionnel)
 - `EMAIL_PROVIDER` = `SMTP` (défaut) ou `RESEND`
 
+Détail config et tests : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
+
+### Backoffice – pages mail (déjà en interface)
+
+À brancher / valider pour que tout soit cohérent avec les APIs et la charte graphique du backoffice :
+
+- **Configuration** : `/backoffice/emails/settings` — config SMTP, test connexion.
+- **Déliverabilité** : `/backoffice/emails/deliverability` — test SMTP, test DNS, envoi de test.
+- **Historique des emails** : `/backoffice/emails/logs` — API `GET /api/v1/emails/logs`.
+- **Templates** : `/backoffice/emails/templates` — API `GET/PUT /api/v1/emails/templates` (reset, vérification, etc.).
+- **Email Monitor** : `/backoffice/emails` (dashboard emails) + `/backoffice/email-monitor` — stats, logs, échecs.
+
+À faire : s’assurer que ces pages appellent bien le gateway (`NEXT_PUBLIC_API_URL`), que les APIs répondent (auth-service), et que les stats / logs apparaissent dans le **tableau de bord** et **analytics utilisateur** (emails envoyés, à qui, etc.) comme pour une plateforme type Brevo.
+
+### Tests et développement
+
+- **Tests API mail** : `tests/api/test-email-endpoints.test.js` (logs, test-smtp, stats, envoi test).
+- **Script Tests API** : `scripts/test-api-specific.sh` couvre déjà emails (logs, stats).
+- **Parcours utilisateur** : backoffice user-journey inclut des appels à `/api/v1/emails/test` (envoi test, reset, vérification) — à garder et valider.
+- **Données de test** : prévoir ou documenter des données de test pour les scénarios mail (utilisateur avec email, reset, vérification).
+- **Dashboard / stats / monitoring** : inclure les métriques mail (emails envoyés, par type, échecs) dans les tableaux de bord et l’analytics utilisateur.
+
+À faire : exécuter les tests mail (`test-email-endpoints`), les intégrer au run de dev (make / script de tests), et vérifier que le parcours utilisateur et les stats backoffice reflètent bien les envois.
+
 ### Étapes à faire (dans l’ordre)
 
-1. **SMTP**  
-   Vérifier/corriger le .env (ou docker-compose) avec les variables ci-dessus → redémarrer auth-service (`make build` puis redémarrer le service ou `make up-full`). Tester : Backoffice → Emails → Déliverabilité → « Tester la connexion SMTP », ou API `GET /api/v1/emails/test-smtp` (avec token). Si ça marchait avant et plus maintenant : revérifier les variables et que auth-service tourne.
-
-2. **Logs emails**  
-   Page Backoffice → Emails → Historique des emails (`/backoffice/emails/logs`) ; API `GET /api/v1/emails/logs`. Si 404 : rebuild auth-service et redémarrer. Si 401 : se reconnecter (token).
-
-3. **API versioning (analytics)**  
-   Route `GET /api/v1/analytics/stats/:userId/versions` (dashboard-service). Si 404 : rebuild dashboard-service, vérifier `JWT_SECRET` partagé avec l’auth.
+1. **SMTP** : Créer le compte email OVH (ex. `noreply@jobbingtrack.test`) dans le MX Plan jobbingtrack.com si pas déjà fait. Renseigner les variables SMTP dans .env / docker-compose (auth-service). Redémarrer auth-service. Tester : Backoffice → Emails → Déliverabilité → « Tester la connexion SMTP », ou API `GET /api/v1/emails/test-smtp` (avec token).
+2. **Envoi reset + vérification** : Vérifier que les flows forgot-password et verify-email envoient bien via auth-service (Node ou Python selon config) et que les emails arrivent. Tester depuis l’app (inscription, reset).
+3. **Backoffice** : Vérifier Configuration, Déliverabilité, Historique, Templates, Email Monitor (pas de 404, données cohérentes). Brancher les stats mail dans le tableau de bord et l’analytics si pas déjà fait.
+4. **Tests** : Lancer `tests/api/test-email-endpoints.test.js` et le script test-api-specific (partie emails). S’assurer que le parcours utilisateur et les données de test couvrent les cas mail.
+5. **Logs / analytics** : S’assurer que les emails envoyés (à qui, type, statut) sont visibles dans le backoffice (Historique, Email Monitor, stats, analytics utilisateur).
 
 ### Dépannage rapide
 
-- Envoi / test SMTP qui ne marche plus : .env correct pour auth-service, auth-service redémarré, Backoffice → Déliverabilité ou `GET /api/v1/emails/test-smtp`.
-- Logs emails 404 : rebuild auth-service.
-- Versions analytics 404 : rebuild dashboard-service, `JWT_SECRET` identique.
+- Test SMTP / envoi ne marche plus : vérifier .env (auth-service), redémarrer auth-service. Vérifier compte OVH et mot de passe. Backoffice → Déliverabilité ou `GET /api/v1/emails/test-smtp`.
+- Logs emails 404 : rebuild auth-service ; front appelle bien le gateway avec token.
+- APIs templates / stats 404 : idem, rebuild auth-service et vérifier routes montées sous `/api/v1/emails` et `/api/v1/emails/templates`.
 
 ---
 
