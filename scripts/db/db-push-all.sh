@@ -111,12 +111,32 @@ if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo ""
 fi
 
-# Partie 3/3 : security_logs, network_*, firewall_rules, security_alerts
+# Partie 3/3 : security_logs, network_*, firewall_rules, security_alerts, EmailLog, EmailTemplate
 if [ -f "${ROOT_DIR}/scripts/db/init-key-tables.sql" ]; then
-  echo "[DB-PUSH-ALL] Partie 3/3 – Tables sécurité / monitoring (init-key-tables.sql)"
-  echo "━━━ Partie 3/3 – Tables sécurité / monitoring (init-key-tables.sql) ━━━"
-  echo "  security_logs, network_*, firewall_rules, security_alerts, vulnerabilities, security_metrics, deployments (+ deployment_metrics, rollbacks)"
-  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql" > /dev/null 2>&1 && echo "  ✅ Tables security_logs / system_metrics_snapshots / network_connections / network_threats / security_alerts / firewall_rules OK" || true
+  echo "[DB-PUSH-ALL] Partie 3/3 – Tables sécurité / monitoring / emails (init-key-tables.sql)"
+  echo "━━━ Partie 3/3 – Tables sécurité / monitoring / emails (init-key-tables.sql) ━━━"
+  echo "  security_logs, network_*, EmailLog, EmailTemplate, security_alerts, etc."
+  PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
+  PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
+  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/init-key-tables.sql"; then
+    echo "  ✅ Tables security_logs / EmailLog / EmailTemplate / network_* OK"
+  else
+    echo "  ❌ Erreur init-key-tables (vérifiez les logs ci-dessus)"
+    exit 1
+  fi
+  echo ""
+fi
+
+# Seed des templates d'email par défaut (EmailTemplate) - après init-key-tables
+if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
+  echo "[DB-PUSH-ALL] Seed templates email (EmailTemplate)"
+  PSQL_USER="${POSTGRES_USER:-jobbingtrack}"
+  PSQL_DB="${POSTGRES_DB:-jobbingtrack}"
+  if docker exec -i jobbingtrack-postgres psql -U "${PSQL_USER}" -d "${PSQL_DB}" -f - < "${ROOT_DIR}/scripts/db/seed-email-templates.sql"; then
+    echo "  ✅ Templates email insérés (ou déjà présents)"
+  else
+    echo "  ⚠️  Seed templates email ignoré (tables peut-être absentes : relancer init-key-tables)"
+  fi
   echo ""
 fi
 

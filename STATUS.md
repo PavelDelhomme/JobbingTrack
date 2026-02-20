@@ -55,25 +55,23 @@ La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **�
 
 **Où c’est** : backend **auth-service** (SMTP, envoi, logs, templates). Références : **`backend/auth-service/README.md`**, **`backend/auth-service/PYTHON_EMAIL_SETUP.md`** (config SMTP + tests Python), **`docs/emails/MAIL.md`** (vue d’ensemble, OVH jobbingtrack.com, backoffice, tests).
 
-### Infra déjà en place (OVH)
+### Infra OVH (envoi SMTP)
 
-- **Domaine** : jobbingtrack.com (enregistré, actif).
-- **MX Plan** : jobbingtrack.com, état actif ; MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net ; SPF `v=spf1 include:mx.ovh.com -all`.
-- **Zone DNS** : A jobbingtrack.com + www → VPS ; MX + SPF déjà configurés. Pas besoin de toucher au DNS pour faire marcher l’envoi SMTP.
-
-Envoi : via **SMTP OVH** (compte type `noreply@jobbingtrack.test`). Stockage des logs et métadonnées : **dans notre BDD** (table `EmailLog`, stats) — pas dans la boîte mail OVH, pour ne pas être limité par les quotas et avoir une plateforme type Brevo dans le backoffice.
+- **Option recommandée** : compte **redacted@example.invalid** (MX Plan maily.ovh actif, offre MX Plan 5). Authentification SMTP avec ce compte ; affichage expéditeur dans `SMTP_FROM` : `JobbingTrack <noreply@jobbingtrack.test>` pour que le destinataire voie jobbingtrack.com.
+- **Option alternative** : si un compte **noreply@jobbingtrack.test** existe (MX jobbingtrack.com : 1/5/100 mx1/mx2/mx3.mail.ovh.net), utiliser ce compte en `SMTP_USER` / `SMTP_PASS`.
+- **Stockage** : logs et métadonnées **dans notre BDD** (table `EmailLog`, stats) — pas dans la boîte mail OVH, pour ne pas être limité par les quotas et avoir une plateforme type Brevo dans le backoffice.
 
 ### Config SMTP (auth-service)
 
-Variables à définir (`.env` ou `docker-compose`, section auth-service) :
+Variables à définir dans **`.env`** (ou docker-compose, section auth-service) — exemple avec **redacted@example.invalid** :
 
 - `SMTP_HOST` = `ssl0.ovh.net`
-- `SMTP_PORT` = `465` (SSL) ou `587` (STARTTLS)
-- `SMTP_USER` = ex. `noreply@jobbingtrack.test` (compte créé dans MX Plan OVH)
-- `SMTP_PASS` = mot de passe du compte
-- `SMTP_FROM` = ex. `JobbingTrack <noreply@jobbingtrack.test>`
-- `SMTP_REPLY_TO` (optionnel)
-- `EMAIL_PROVIDER` = `SMTP` (défaut) ou `RESEND`
+- `SMTP_PORT` = `587` (STARTTLS) ou `465` (SSL)
+- `SMTP_USER` = `redacted@example.invalid` (compte MX Plan maily.ovh) ou `noreply@jobbingtrack.test` si ce compte existe
+- `SMTP_PASS` = mot de passe du compte OVH
+- `SMTP_FROM` = `JobbingTrack <noreply@jobbingtrack.test>` (ce que voit le destinataire)
+- `SMTP_REPLY_TO` = ex. `redacted@example.invalid`
+- `EMAIL_PROVIDER` = `SMTP`
 
 Détail config et tests : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 
@@ -99,10 +97,18 @@ Détail config et tests : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 
 À faire : exécuter les tests mail (`test-email-endpoints`), les intégrer au run de dev (make / script de tests), et vérifier que le parcours utilisateur et les stats backoffice reflètent bien les envois.
 
+### État actuel (2026-02-21)
+
+- **Tables** : EmailLog, EmailTemplate créées par `make db-push-all`. **Send-verification** corrigé (verificationToken, sendGenericEmail). URLs deep linking : verify-email?token=xxx, reset-password/{token}.
+- **Tests DNS** : OK (MX, SPF OK ; DKIM optionnel).
+- **Connexion SMTP** : OK (Backoffice → Déliverabilité → « Tester la connexion SMTP » ; host ssl0.ovh.net, port 587, user redacted@example.invalid, from `JobbingTrack <noreply@jobbingtrack.test>`).
+- **Envoi de test** : Les emails arrivent bien en boîte mail, mais l’interface affiche « Erreur lors de l’envoi » car la table **EmailLog** n’existe pas → le logging échoue. **Solution** : exécuter **`make db-push-all`** pour créer la table.
+- **Reply-To** : `SMTP_REPLY_TO=noreply@jobbingtrack.test` ; headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` pour indiquer message automatique (pas de réponse attendue).
+
 ### Étapes à faire (dans l’ordre)
 
-1. **SMTP** : Créer le compte email OVH (ex. `noreply@jobbingtrack.test`) dans le MX Plan jobbingtrack.com si pas déjà fait. Renseigner les variables SMTP dans .env / docker-compose (auth-service). Redémarrer auth-service. Tester : Backoffice → Emails → Déliverabilité → « Tester la connexion SMTP », ou API `GET /api/v1/emails/test-smtp` (avec token).
-2. **Envoi reset + vérification** : Vérifier que les flows forgot-password et verify-email envoient bien via auth-service (Node ou Python selon config) et que les emails arrivent. Tester depuis l’app (inscription, reset).
+1. **Créer la table EmailLog** : `make db-push-all` (auth-service schéma inclut EmailLog). Puis redémarrer auth-service si besoin et retester l’envoi depuis Backoffice → Déliverabilité.
+2. **Envoi reset + vérification** : Vérifier que les flows forgot-password et verify-email envoient bien via auth-service et que les emails arrivent. Tester depuis l’app (inscription, reset).
 3. **Backoffice** : Vérifier Configuration, Déliverabilité, Historique, Templates, Email Monitor (pas de 404, données cohérentes). Brancher les stats mail dans le tableau de bord et l’analytics si pas déjà fait.
 4. **Tests** : Lancer `tests/api/test-email-endpoints.test.js` et le script test-api-specific (partie emails). S’assurer que le parcours utilisateur et les données de test couvrent les cas mail.
 5. **Logs / analytics** : S’assurer que les emails envoyés (à qui, type, statut) sont visibles dans le backoffice (Historique, Email Monitor, stats, analytics utilisateur).

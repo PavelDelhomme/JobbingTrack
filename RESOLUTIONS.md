@@ -4,6 +4,16 @@
 
 ---
 
+## Février 2026 – Mail / SMTP (Déliverabilité, envoi de test)
+
+- **Problème** : Tests DNS et connexion SMTP OK (Backoffice → Déliverabilité) ; envoi d’email de test affichait « Erreur lors de l’envoi » alors que l’email arrivait bien en boîte mail.
+- **Cause** : La table `public.EmailLog` n’existait pas. L’envoi SMTP réussissait, mais le logging (INSERT puis UPDATE) échouait → l’API renvoyait une erreur au frontend.
+- **Solution** : Exécuter **`make db-push-all`** pour créer la table `EmailLog` (schéma auth-service). Après db-push-all, l’envoi de test ne renvoie plus d’erreur et les logs sont bien enregistrés.
+- **Reply-To** : Configuré `SMTP_REPLY_TO=noreply@jobbingtrack.test` (affichage « répondre à » en jobbingtrack.com ; pas de boîte active sur ce domaine = pas de réponse possible). Ajout des headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` pour indiquer que c’est un message automatique.
+- **Config SMTP** : Compte OVH redacted@example.invalid (MX Plan maily.ovh actif) ; affichage expéditeur `JobbingTrack <noreply@jobbingtrack.test>`. DNS jobbingtrack.com : MX, SPF OK ; DKIM non configuré (optionnel).
+
+---
+
 ## Priorité 1 validée (2026-02-19)
 
 - **make up-full** : l’admin est créé automatiquement à la fin du démarrage (message « ✅ Utilisateur administrateur existe » ou « 🔧 Création automatique de l’admin... »).

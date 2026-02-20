@@ -221,6 +221,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: '🧪',
           subItems: [
             { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
+            { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '📧' },
             { name: 'Lancer les tests API', href: '/backoffice/tests-api', icon: '🔌' },
             { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
             { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
@@ -255,6 +256,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Templates', href: '/backoffice/emails/templates', icon: '📝' },
         { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
         { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
+        { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '🧪' },
       ]
     },
   ]
