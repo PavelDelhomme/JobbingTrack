@@ -24,7 +24,7 @@ Appliqué selon **docs/tests/ECHECS_TESTS_API_2026-02-19.md** :
    - **Get User Profile** : URL corrigée en **GET /api/v1/auth/profile** (profil de l'utilisateur connecté) au lieu de `/api/v1/users/profile` (qui interprétait « profile » comme un id utilisateur → 404).
    - **Create Call** : envoi de **applicationId** (récupéré via liste des applications), **subject** et **callDate** pour satisfaire la validation du call-service.
    - **Create Followup** : envoi de **followUpDate** (requis) et **applicationId** récupéré depuis la liste des applications.
-5. **Tables BDD (priorité 2)** : après **make db-push-all**, la création des tables manquantes est considérée OK. Les logs peuvent être filtrés avec le marqueur **`[DB-PUSH-ALL]`** (déjà ajouté dans `scripts/db/db-push-all.sh`).
+5. **Tables BDD (priorité 2)** : après **make db-push-all**, la création des tables manquantes est considérée OK. **Seed statuts** : `scripts/db/seed-status-tables.sql` est exécuté dans **db-push-all** (après les Prisma push) pour remplir ApplicationStatus, InterviewStatus, FollowUpStatus (ON CONFLICT (code) DO NOTHING). **application-service** : le contrôleur candidatures utilise **statusId** + résolution par code (ApplicationStatus) à la création et à la mise à jour ; ApplicationStatusHistory avec previousStatusId/newStatusId. Les logs peuvent être filtrés avec le marqueur **`[DB-PUSH-ALL]`**.
 
 **Reste à valider en conditions réelles** : Create Company/Application/Contact (JWT avec userId admin réel après db-push-all), Events 403 (token bien transmis).
 
@@ -37,6 +37,14 @@ Pour repérer le début et la fin d’un run depuis les logs : `[TESTS API] Dém
 **Conformité BDD (complément 2026-02-19)** :  
 - **User** : colonnes `verificationToken`, `verificationTokenExpiry`, `loginCount` ajoutées aux schémas `backend/application-service/prisma/schema.prisma` et `backend/prisma/schema.prisma` pour que le login auth-service trouve l'utilisateur en BDD (plus d'erreur « column User.verificationToken does not exist ») et renvoie le vrai id admin au lieu de dev_user_1.  
 - **Application / Interview** : schémas **interview-service**, **call-service**, **followup-service** alignés sur la BDD : `Application.status` remplacé par `statusId` + relation vers modèle `ApplicationStatus` ; `Interview.status` remplacé par `statusId` + relation vers modèle `InterviewStatus` ; `ApplicationStatusHistory` avec `previousStatusId`/`newStatusId`. Contrôleur interview-service : création d'entretien utilise `statusId` (résolution du code statut, ex. SCHEDULED). Après **`make db-push-all`**, les erreurs « column Application.status does not exist » et « column Interview.status does not exist » sont résolues.
+
+**Resend (RESEND_API_KEY)** : optionnel ; tier gratuit disponible (ex. 3000 emails/mois). À configurer plus tard si envoi d’emails via Resend. Laisser vide dans `.env` pour éviter le warning Docker Compose (voir `.env.example`).
+
+**make refresh-bdd** : une seule commande qui enchaîne build → down → up-full → db-push-all. Ce n’est pas une boucle : up-full lance db-push-all en interne (1x avec auth seul, 1x avec tous les services), puis l’étape 4 refait un db-push-all complet. Voir **make help-database**.
+
+**Metrics-aggregator – container_logs** : l’erreur PostgreSQL « cache lookup failed for type NNNNN » en logs est connue et non bloquante ; la persistance des logs conteneurs est optionnelle. Le service traite cette erreur comme table/type manquant et n’envoie plus l’exception (évite le spam en logs).
+
+**Backoffice Tests API – Résumé** : après chaque run, un résumé s’affiche dans la page (X/Y tests passés, Z échecs). L’API `/api/test/run-api` lit `summary.json` du rapport et renvoie `summary` dans la réponse.
 
 ---
 

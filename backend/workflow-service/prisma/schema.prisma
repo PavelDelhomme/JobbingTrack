@@ -199,7 +199,7 @@ model Application {
   location        String?
   type            JobType           @default(FULL_TIME)
   salary          String?
-  status          ApplicationStatus @default(CANDIDATE_PENDING)
+  statusId        String // Relation vers ApplicationStatus (BDD)
   applicationDate DateTime          @default(now()) // Date et heure d'envoi
   jobUrl          String?
   notes           String?
@@ -214,6 +214,7 @@ model Application {
   user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   company             Company                    @relation(fields: [companyId], references: [id])
   platform            Platform?                  @relation(fields: [platformId], references: [id])
+  status              ApplicationStatus         @relation(fields: [statusId], references: [id])
   interviews          Interview[]
   followUps           FollowUp[]
   documents           ApplicationDocument[]
@@ -388,7 +389,7 @@ model Interview {
   meetingUrl     String?
   interviewer    String?
   notes          String?
-  status         InterviewStatus @default(PENDING)
+  statusId       String // Relation vers InterviewStatus (BDD)
   feedback       String?
   completedAt    DateTime? // Date et heure de fin
   // Champs d'archivage
@@ -402,6 +403,7 @@ model Interview {
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   application       Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   company           Company            @relation(fields: [companyId], references: [id])
+  status            InterviewStatus    @relation(fields: [statusId], references: [id])
   // Relations avec les nouveaux modèles
   events            Event[]
   // Relations many-to-many avec contacts
@@ -459,18 +461,19 @@ model Event {
 
 // Modèle Historique des états de candidature (simplifié pour workflow-service)
 model ApplicationStatusHistory {
-  id             String             @id @default(cuid())
-  applicationId  String
-  previousStatus ApplicationStatus?
-  newStatus      ApplicationStatus
-  comment        String?
-  changedAt      DateTime           @default(now())
-  changedBy      String? // ID de l'utilisateur qui a fait le changement
+  id                String              @id @default(cuid())
+  applicationId     String
+  previousStatusId  String?
+  newStatusId       String
+  comment           String?
+  changedAt         DateTime            @default(now())
+  changedBy         String? // ID de l'utilisateur qui a fait le changement
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus    ApplicationStatus?  @relation("PreviousStatus", fields: [previousStatusId], references: [id])
+  newStatus         ApplicationStatus   @relation("NewStatus", fields: [newStatusId], references: [id])
 
   @@index([applicationId])
   @@index([changedAt])
@@ -637,16 +640,24 @@ enum JobType {
   HYBRID
 }
 
-enum ApplicationStatus {
-  CANDIDATE_PENDING // "Candidaté et en attente"
-  NO_RESPONSE // "Aucune réponse"
-  NO_RESPONSE_AFTER_FIRST_FOLLOWUP // "Aucune réponse après 1 relance"
-  NO_RESPONSE_AFTER_SECOND_FOLLOWUP // "Aucune réponse après 2 relance"
-  FIRST_INTERVIEW_PENDING // "1er entretien en attente"
-  OTHER_INTERVIEW_PENDING // "Autre entretien en attente"
-  ACCEPTED_AFTER_INTERVIEW // "Retenue après entretien"
-  REJECTED_WITHOUT_INTERVIEW // "Non retenue sans entretien"
-  REJECTED_AFTER_INTERVIEW // "Non retenue après entretien"
+// Table ApplicationStatus (aligné BDD – statusId sur Application)
+model ApplicationStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  applications            Application[]
+  previousStatusHistories ApplicationStatusHistory[] @relation("PreviousStatus")
+  newStatusHistories      ApplicationStatusHistory[] @relation("NewStatus")
+  @@index([code])
 }
 
 enum InterviewType {
@@ -660,11 +671,22 @@ enum InterviewType {
   FINAL
 }
 
-enum InterviewStatus {
-  UPCOMING_ARRIVAL // "Entretien arrivé"
-  COMPLETED // "Entretien passé"
-  FEEDBACK_PENDING // "Retour prévu d'ici (plage de retour)"
-  PENDING // "Entretien en attente"
+// Table InterviewStatus (aligné BDD – statusId sur Interview)
+model InterviewStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  interviews  Interview[]
+  @@index([code])
 }
 
 enum FollowUpType {

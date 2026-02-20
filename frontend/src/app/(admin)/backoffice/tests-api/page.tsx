@@ -187,6 +187,10 @@ export default function APITestsPage() {
       if (!response.ok) {
         addLog(`❌ Erreur: ${data.error || response.statusText}`)
         if (data.reportId) setLastReportId(data.reportId)
+        if (data.summary) {
+          const s = data.summary as { total: number; passed: number; failed: number; skipped?: number }
+          addLog(`📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Voir le rapport ci‑dessous.` : ''}`)
+        }
         setTestStatuses(prev => prev.map(t => ({ ...t, status: 'error', progress: 0 })))
         setIsRunning(false)
         setCurrentTest('')
@@ -194,14 +198,22 @@ export default function APITestsPage() {
       }
 
       setProgress(100)
-      setTestStatuses(prev => prev.map(t => ({ ...t, status: 'completed', progress: 100 })))
+      setTestStatuses(prev => prev.map(t => ({ ...t, status: data.success === false ? 'completed' : 'completed', progress: 100 })))
       setCurrentTest('')
-      addLog(`✅ ${data.message || 'Rapport généré.'}`)
+      if (data.success === false) {
+        addLog(`⚠️ ${data.error || 'Des tests ont échoué.'}`)
+      } else {
+        addLog(`✅ ${data.message || 'Rapport généré.'}`)
+      }
+      if (data.summary) {
+        const s = data.summary as { total: number; passed: number; failed: number; skipped?: number }
+        addLog(`📊 Résumé : ${s.passed}/${s.total} tests passés${s.failed > 0 ? ` — ${s.failed} échec(s). Consultez le rapport pour le détail.` : ' — Tout OK.'}`)
+      }
       if (data.reportId) {
         setLastReportId(data.reportId)
-        addLog('📊 Voir le rapport ci‑dessous.')
+        addLog('📄 Voir le rapport ci‑dessous.')
       } else {
-        addLog('📊 Consultez « Rapports de Tests » pour le rapport.')
+        addLog('📄 Consultez « Rapports de Tests » pour le rapport.')
       }
     } catch (error: unknown) {
       addLog(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur réseau'}`)

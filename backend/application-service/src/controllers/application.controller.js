@@ -39,8 +39,15 @@ const createApplication = async (req, res, next) => {
       notes
     } = req.body;
 
-    // Utiliser le statut fourni ou le statut par défaut
-    const finalStatus = status || 'CANDIDATE_PENDING';
+    // Utiliser le statut fourni ou le statut par défaut (code ApplicationStatus)
+    const statusCode = status || 'CANDIDATE_PENDING';
+    const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
+    if (!statusRow) {
+      return res.status(400).json({
+        success: false,
+        error: `Statut inconnu: ${statusCode}. Exécuter le seed des statuts (scripts/db/seed-status-tables.sql) si besoin.`
+      });
+    }
 
     // ✅ LOGIQUE INTELLIGENTE : Gérer automatiquement l'entreprise
     let finalCompanyId = companyId;
@@ -80,14 +87,15 @@ const createApplication = async (req, res, next) => {
         salaryMin,
         salaryMax,
         salaryNegotiable,
-        status: finalStatus, // Utiliser status (enum ApplicationStatus)
+        statusId: statusRow.id,
         applicationDate: applicationDate ? new Date(applicationDate) : new Date(), // ✅ NOUVEAU - Date par défaut
         jobUrl,
         notes
       },
       include: {
         company: true,
-        platform: true // ✅ NOUVEAU - Inclure la plateforme
+        platform: true,
+        status: true
       }
     });
 
@@ -409,9 +417,9 @@ const deleteApplication = async (req, res, next) => {
 const updateApplicationStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status: newStatus, comment } = req.body; // Accepter status (enum ApplicationStatus)
+    const { status: newStatusCode, comment } = req.body; // Accepter status = code ApplicationStatus
 
-    if (!newStatus) {
+    if (!newStatusCode) {
       return res.status(400).json({
         success: false,
         error: 'status requis'
@@ -419,7 +427,8 @@ const updateApplicationStatus = async (req, res, next) => {
     }
 
     const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id },
+      include: { status: true }
     });
 
     if (!existingApplication) {
@@ -429,26 +438,38 @@ const updateApplicationStatus = async (req, res, next) => {
       });
     }
 
-    // Récupérer le statut précédent pour l'historique
-    const previousStatus = existingApplication.status;
+    const newStatusRow = await prisma.applicationStatus.findFirst({ where: { code: newStatusCode } });
+    if (!newStatusRow) {
+      return res.status(400).json({
+        success: false,
+        error: `Statut inconnu: ${newStatusCode}`
+      });
+    }
+
+    const previousStatusId = existingApplication.statusId;
 
     // Créer l'historique du changement de statut
     const statusHistory = await prisma.applicationStatusHistory.create({
       data: {
         applicationId: id,
-        previousStatus: previousStatus, // Utiliser le statut précédent (enum)
-        newStatus: newStatus, // Utiliser le nouveau statut (enum)
+        previousStatusId: previousStatusId || null,
+        newStatusId: newStatusRow.id,
         comment: comment || null
+      },
+      include: {
+        previousStatus: true,
+        newStatus: true
       }
     });
 
     // Mettre à jour le statut de la candidature
     const application = await prisma.application.update({
       where: { id },
-      data: { status: newStatus }, // Utiliser status (enum ApplicationStatus)
+      data: { statusId: newStatusRow.id },
       include: {
         company: true,
-        platform: true
+        platform: true,
+        status: true
       }
     });
 
@@ -459,7 +480,7 @@ const updateApplicationStatus = async (req, res, next) => {
       statusHistory
     });
 
-    logger.info(`Statut candidature ${id} changé de ${previousStatus} à ${newStatus} par ${req.user.email}`);
+    logger.info(`Statut candidature ${id} changé vers ${newStatusCode} par ${req.user.email}`);
   } catch (error) {
     logger.error('Erreur changement statut candidature:', error);
     next(error);
@@ -485,14 +506,8 @@ const getApplicationStatusHistory = async (req, res, next) => {
     const statusHistory = await prisma.applicationStatusHistory.findMany({
       where: { applicationId: id },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true
-          }
-        }
+        previousStatus: true,
+        newStatus: true
       },
       orderBy: { changedAt: 'desc' }
     });

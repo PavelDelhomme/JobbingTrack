@@ -371,7 +371,7 @@ model Interview {
   estimatedDuration     Int?                // Durée estimée en minutes
   location              String?             // Lieu physique
   videoLink             String?             // Lien visio
-  status                InterviewStatus     @default(SCHEDULED)
+  statusId              String              // Relation vers InterviewStatus (BDD)
   
   // Retour attendu
   feedbackExpectedFrom  DateTime?           // Début plage de retour
@@ -393,22 +393,33 @@ model Interview {
   company               Company             @relation(fields: [companyId], references: [id])
   interviewType         InterviewType?      @relation(fields: [interviewTypeId], references: [id])
   interviewStyle        InterviewStyle?     @relation(fields: [interviewStyleId], references: [id])
+  status                InterviewStatus    @relation(fields: [statusId], references: [id])
   
   contacts              InterviewContact[]  // Many-to-many
   events                Event[]
   
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([interviewDate])
 }
 
-enum InterviewStatus {
-  SCHEDULED                 // Entretien programmé
-  COMPLETED                 // Entretien passé
-  FEEDBACK_PENDING          // En attente de retour
-  CANCELLED                 // Annulé
-  RESCHEDULED               // Reporté
+// Table InterviewStatus (aligné BDD – statusId sur Interview)
+model InterviewStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  interviews  Interview[]
+  @@index([code])
 }
 
 enum InterviewOutcome {

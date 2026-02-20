@@ -40,11 +40,12 @@ help-compilation: ## Afficher l'aide compilation
 # BUILD ET COMPILATION
 # ============================================================================
 
-# Build de tous les services
+# Build de tous les services (COMPOSE_FILES_ESSENTIAL uniquement : docker-compose.monitoring.yml
+# met monitoring-c sous profil → "depends on undefined service" avec COMPOSE_FILES_FULL)
 build: ## Build tous les services
 	@echo "🔨 Build de tous les services..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) build)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) build)
 	@echo "✅ Tous les services construits"
 
 # Rebuild sans cache (OBSOLÈTE - utilisez 'make rebuild' à la racine)
@@ -54,17 +55,17 @@ rebuild-old: ## Rebuild sans cache (ancienne version)
 	@echo ""
 	@echo "🔨 Rebuild complet sans cache..."
 	$(call check_docker)
-	$(call docker_compose, $(COMPOSE_FILES_FULL) build --no-cache)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) build --no-cache)
 	@echo "✅ Rebuild terminé"
 
 # ============================================================================
 # NETTOYAGE
 # ============================================================================
 
-# Nettoyage complet
+# Nettoyage complet (ESSENTIAL pour éviter "depends on undefined service" avec monitoring.yml)
 clean: ## Nettoyage complet
 	@echo "🧹 Nettoyage complet..."
-	$(call docker_compose, $(COMPOSE_FILES_FULL) down -v --remove-orphans)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) down -v --remove-orphans)
 	docker system prune -f
 	docker network prune -f
 	docker volume prune -f

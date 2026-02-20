@@ -4,10 +4,27 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
-import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X } from 'lucide-react'
+import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare } from 'lucide-react'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
+
+interface CompareReportData {
+  id: string
+  name: string
+  date: string
+  time: string
+  category: string
+  summary: { total: number; passed: number; failed: number; skipped: number }
+  tests: Array<{ num: number; name: string; status: 'pass' | 'fail'; expected: string; actual: string }>
+}
+
+interface CompareResult {
+  success: boolean
+  reports?: CompareReportData[]
+  comparison?: { byTest: Array<{ testName: string; results: Record<string, 'pass' | 'fail' | 'skip'>; diff?: string }>; sameCategory: string | null }
+  error?: string
+}
 
 interface TestReport {
   id: string
@@ -47,6 +64,10 @@ export default function TestReportsPage() {
   const [sortBy, setSortBy] = useState<'date' | 'tests' | 'passed' | 'failed'>('date')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>([])
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([])
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(null)
+  const [loadingCompare, setLoadingCompare] = useState(false)
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -194,6 +215,34 @@ export default function TestReportsPage() {
     }
   }
 
+  const runCompare = async () => {
+    if (selectedForCompare.length < 2) {
+      alert('Sélectionnez au moins 2 rapports de la même catégorie pour comparer.')
+      return
+    }
+    setLoadingCompare(true)
+    setCompareResult(null)
+    try {
+      const res = await fetch(`/api/test-reports/compare?ids=${selectedForCompare.join(',')}`)
+      const data = await res.json()
+      if (data.success) {
+        setCompareResult(data)
+      } else {
+        setCompareResult({ success: false, error: data.error || 'Erreur comparaison' })
+      }
+    } catch (e: any) {
+      setCompareResult({ success: false, error: e.message || 'Erreur réseau' })
+    } finally {
+      setLoadingCompare(false)
+    }
+  }
+
+  const toggleCompareSelection = (id: string) => {
+    setSelectedForCompare((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
   const deleteAllReports = async () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer TOUS les rapports ? Cette action est irréversible.')) {
       return
@@ -306,6 +355,13 @@ export default function TestReportsPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <button
+                onClick={() => { setCompareMode((m) => !m); setCompareResult(null); setSelectedForCompare([]); }}
+                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${compareMode ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              >
+                <GitCompare className="w-4 h-4" />
+                <span className="sm:inline">{compareMode ? 'Annuler comparaison' : 'Comparer des rapports'}</span>
+              </button>
+              <button
                 onClick={loadReports}
                 className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
               >
@@ -389,6 +445,73 @@ export default function TestReportsPage() {
           )}
         </div>
 
+        {compareResult && (
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Comparaison de rapports</h2>
+              <button onClick={() => setCompareResult(null)} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              {!compareResult.success && (
+                <p className="text-red-600 dark:text-red-400">{compareResult.error}</p>
+              )}
+              {compareResult.success && compareResult.reports && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {compareResult.reports.map((r) => (
+                      <div key={r.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                        <div className="font-medium text-gray-900 dark:text-white mb-2">{r.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{r.date} {r.time}</div>
+                        <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                          <div><span className="font-semibold text-gray-900 dark:text-white">{r.summary.total}</span><br /><span className="text-gray-500">Total</span></div>
+                          <div><span className="font-semibold text-green-600">{r.summary.passed}</span><br /><span className="text-gray-500">Réussis</span></div>
+                          <div><span className="font-semibold text-red-600">{r.summary.failed}</span><br /><span className="text-gray-500">Échoués</span></div>
+                          <div><span className="font-semibold text-yellow-600">{r.summary.skipped}</span><br /><span className="text-gray-500">Ignorés</span></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
+                            {compareResult.reports.map((r) => (
+                              <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{r.date} {r.time}</th>
+                            ))}
+                            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Diff</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {compareResult.comparison.byTest.map((row, idx) => (
+                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                              <td className="py-2 px-3 text-gray-900 dark:text-white">{row.testName}</td>
+                              {compareResult.reports!.map((r) => (
+                                <td key={r.id} className="py-2 px-3">
+                                  {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
+                                  {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
+                                  {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
+                                </td>
+                              ))}
+                              <td className="py-2 px-3 text-gray-600 dark:text-gray-400">{row.diff ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length === 0 && (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Aucun détail par test disponible (fichiers test-results.txt absents).</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {reports.length === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -410,9 +533,26 @@ export default function TestReportsPage() {
             {/* Liste des rapports */}
             {!isFullscreen && (
               <div className="space-y-4 flex flex-col" style={{ minHeight: 'calc(100vh - 250px)' }}>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex-shrink-0">
-                  Rapports Disponibles ({filteredReports.length} / {reports.length})
-                </h2>
+                <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Rapports Disponibles ({filteredReports.length} / {reports.length})
+                  </h2>
+                  {compareMode && selectedForCompare.length >= 2 && (
+                    <button
+                      onClick={runCompare}
+                      disabled={loadingCompare}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      <GitCompare className="w-4 h-4" />
+                      {loadingCompare ? 'Chargement...' : `Comparer ${selectedForCompare.length} rapports`}
+                    </button>
+                  )}
+                </div>
+                {compareMode && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    Sélectionnez au moins 2 rapports de la <strong>même catégorie</strong> (ex. Tests API), puis cliquez sur « Comparer X rapports ».
+                  </p>
+                )}
                 
                 <div className="space-y-3 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
                 {filteredReports.length === 0 ? (
