@@ -15,21 +15,11 @@ Ce document décrit l’ensemble du système mail : objectif, infra OVH (jobbing
 
 ---
 
-## 2. Infra OVH (jobbingtrack.com)
+## 2. Infra OVH (envoi SMTP)
 
-- **Domaine** : jobbingtrack.com (enregistré, actif).
-- **MX Plan** : jobbingtrack.com — état actif ; offre redirect / Webmail Roundcube.
-- **Champs MX** :  
-  - 1 mx1.mail.ovh.net  
-  - 5 mx2.mail.ovh.net  
-  - 100 mx3.mail.ovh.net  
-- **Zone DNS** (déjà en place) :  
-  - A jobbingtrack.com → 95.111.227.204  
-  - A www.jobbingtrack.com → 95.111.227.204  
-  - SPF : `v=spf1 include:mx.ovh.com -all`  
-  - MX 1/5/100 vers mx1/mx2/mx3.mail.ovh.net  
-
-Aucune modif DNS nécessaire pour faire marcher l’envoi SMTP. Le VPS (nginx, etc.) et la prod web peuvent être configurés en tout dernier ; pour les mails, on utilise uniquement le SMTP OVH.
+- **Option recommandée** : **noreply@maily.ovh** — MX Plan **maily.ovh** actif (offre MX Plan 5), compte « noreply » créé. On utilise ce compte pour l’authentification SMTP ; on met `SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>` pour que le destinataire voie jobbingtrack.com comme expéditeur.
+- **Option alternative** : **noreply@jobbingtrack.com** — si un MX Plan ou un compte existe sur jobbingtrack.com (champs MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net), tu peux mettre ce compte en `SMTP_USER` / `SMTP_PASS`.
+- **Stockage** : tous les envois sont loggés dans **notre BDD** (EmailLog, stats), pas dans la boîte mail OVH.
 
 ---
 
@@ -37,24 +27,24 @@ Aucune modif DNS nécessaire pour faire marcher l’envoi SMTP. Le VPS (nginx, e
 
 L’envoi passe par le **auth-service**. Deux possibilités côté code : **Node (Nodemailer)** et/ou **service Python** (voir `backend/auth-service/PYTHON_EMAIL_SETUP.md`). Le test de connexion SMTP est en **100 % Node** ; l’envoi reset/vérification peut utiliser Node ou le script Python selon l’implémentation actuelle.
 
-### Variables (.env / docker-compose – auth-service)
+### Variables (.env – auth-service)
 
-Pour **OVH avec jobbingtrack.com** (compte créé dans le MX Plan, ex. `noreply@jobbingtrack.com`) :
+Exemple avec **noreply@maily.ovh** (MX Plan maily.ovh actif) — affichage expéditeur jobbingtrack.com :
 
 ```env
 SMTP_HOST=ssl0.ovh.net
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USE_SSL=true
-SMTP_USER=noreply@jobbingtrack.com
-SMTP_PASS=<mot_de_passe_compte_ovh>
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USE_SSL=false
+SMTP_USER=noreply@maily.ovh
+SMTP_PASS=<mot_de_passe_compte_maily.ovh>
 SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
-SMTP_REPLY_TO=noreply@jobbingtrack.com
+SMTP_REPLY_TO=noreply@maily.ovh
 EMAIL_PROVIDER=SMTP
 ```
 
-- **Créer le compte** : dans l’espace OVH, MX Plan jobbingtrack.com → créer l’adresse (ex. `noreply@jobbingtrack.com`) et son mot de passe.
-- **Port 587** : si tu préfères STARTTLS, mets `SMTP_PORT=587`, `SMTP_SECURE=false` et adapte selon `PYTHON_EMAIL_SETUP.md`.
+- **Alternative** : si tu as un compte **noreply@jobbingtrack.com**, mets `SMTP_USER=noreply@jobbingtrack.com` et `SMTP_PASS` correspondant.
+- **Port 465** : pour SSL direct, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USE_SSL=true`.
 
 Détail des variables et commandes de test : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 
@@ -103,13 +93,16 @@ Commandes utiles (auth-service) : voir **`backend/auth-service/PYTHON_EMAIL_SETU
 
 ---
 
-## 7. Récap – quoi faire
+## 7. État actuel et récap
 
-1. Créer le compte email OVH (ex. `noreply@jobbingtrack.com`) dans le MX Plan jobbingtrack.com.
-2. Renseigner les variables SMTP dans .env / docker-compose (auth-service) et redémarrer le service.
-3. Tester la connexion : Backoffice → Déliverabilité ou `GET /api/v1/emails/test-smtp`.
-4. Valider les flows **reset password** et **vérification compte** (inscription) — envoi réel via SMTP, logs dans `EmailLog`.
-5. Vérifier toutes les pages backoffice (Configuration, Déliverabilité, Historique, Templates, Email Monitor) et les intégrer au tableau de bord / analytics.
-6. Lancer les tests mail (test-email-endpoints, test-api-specific) et le parcours utilisateur ; ajouter les données de test nécessaires.
+- **Tests DNS** : OK (MX, SPF). **Connexion SMTP** : OK (noreply@maily.ovh, ssl0.ovh.net:587). **Envoi de test** : les emails arrivent en boîte mail, mais l’interface affiche une erreur car la table **EmailLog** n’existe pas. **Solution** : `make db-push-all` pour créer la table.
+- **Reply-To** : `noreply@jobbingtrack.com` (pas de réponse attendue). Headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` ajoutés.
+
+### Récap – quoi faire
+
+1. **`make db-push-all`** pour créer la table `EmailLog`, puis retester l’envoi depuis Backoffice → Déliverabilité.
+2. Valider les flows **reset password** et **vérification compte** (inscription).
+3. Vérifier toutes les pages backoffice (Configuration, Déliverabilité, Historique, Templates, Email Monitor) et les intégrer au tableau de bord / analytics.
+4. Lancer les tests mail et le parcours utilisateur ; ajouter les données de test nécessaires.
 
 Pour le détail des étapes et la checklist à jour : **`STATUS.md`**, section « Mail / Emails – objectif et à faire ».

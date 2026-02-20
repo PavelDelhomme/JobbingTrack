@@ -7,7 +7,7 @@ import { AdminLayout } from '@/components/features';
 import { 
   ArrowLeft, Mail, Phone, Calendar, UserCheck, UserX, 
   Shield, Edit, Save, X, Trash2, Key, Lock, Unlock,
-  AlertCircle, CheckCircle, Clock
+  AlertCircle, CheckCircle, Clock, Send
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -41,6 +41,7 @@ export default function UserDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -249,13 +250,42 @@ export default function UserDetailPage() {
       if (response.data.success) {
         alert('Email de réinitialisation envoyé avec succès');
       } else {
-        alert('Erreur lors de l\'envoi de l\'email');
+        alert(response.data?.error || 'Erreur lors de l\'envoi de l\'email');
       }
     } catch (error: any) {
       console.error('Erreur réinitialisation mot de passe:', error);
-      alert(error.response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
+      alert((error as any).response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
     } finally {
       setResettingPassword(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!user) return;
+    
+    if (!confirm(`Renvoyer l\'email de vérification de compte à ${user.email} ?`)) {
+      return;
+    }
+
+    try {
+      setResendingVerification(true);
+      const response = await axios.post(
+        `${API_URL}/api/v1/auth/users/${userId}/resend-verification`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert('Email de vérification envoyé avec succès');
+        await loadUser();
+      } else {
+        alert(response.data?.error || 'Erreur lors de l\'envoi de l\'email');
+      }
+    } catch (error: any) {
+      console.error('Erreur envoi vérification:', error);
+      alert((error as any).response?.data?.error || 'Erreur lors de l\'envoi de l\'email');
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -590,6 +620,16 @@ export default function UserDetailPage() {
             Actions Rapides
           </h2>
           <div className="flex flex-wrap gap-3">
+            {!user.emailVerified && (
+              <button
+                onClick={handleResendVerification}
+                disabled={resendingVerification}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                <Send className="h-5 w-5" />
+                {resendingVerification ? 'Envoi...' : 'Renvoyer email de vérification'}
+              </button>
+            )}
             <button
               onClick={handleResetPassword}
               disabled={resettingPassword}

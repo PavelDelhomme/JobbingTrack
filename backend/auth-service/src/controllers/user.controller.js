@@ -146,7 +146,8 @@ const updateUser = async (req, res) => {
 
       updateData.email = email.toLowerCase();
       updateData.emailVerified = false; // Nécessite une nouvelle vérification
-      updateData.emailVerificationToken = crypto.randomBytes(32).toString('hex');
+      updateData.verificationToken = crypto.randomBytes(32).toString('hex');
+      updateData.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
     // Si le mot de passe change, le hasher
@@ -174,13 +175,13 @@ const updateUser = async (req, res) => {
     });
 
     // Si l'email a changé, envoyer un email de vérification
-    if (updateData.email && updateData.emailVerificationToken) {
+    if (updateData.email && updateData.verificationToken) {
       try {
         await sendVerificationEmailInternal(
           updatedUser.id,
           updatedUser.email,
           updatedUser.firstName,
-          updateData.emailVerificationToken
+          updateData.verificationToken
         );
       } catch (emailError) {
         logger.error('Erreur envoi email de vérification:', emailError);
@@ -325,7 +326,10 @@ const sendVerificationEmail = async (req, res) => {
 
     await prisma.user.update({
       where: { id },
-      data: { emailVerificationToken: verificationToken }
+      data: {
+        verificationToken,
+        verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      }
     });
 
     // Envoyer l'email
@@ -365,7 +369,7 @@ const verifyEmail = async (req, res) => {
     const { token } = req.params;
 
     const user = await prisma.user.findFirst({
-      where: { emailVerificationToken: token }
+      where: { verificationToken: token }
     });
 
     if (!user) {
@@ -388,7 +392,8 @@ const verifyEmail = async (req, res) => {
       data: {
         emailVerified: true,
         emailVerifiedAt: new Date(),
-        emailVerificationToken: null
+        verificationToken: null,
+        verificationTokenExpiry: null
       }
     });
 
@@ -408,9 +413,11 @@ const verifyEmail = async (req, res) => {
 };
 
 // Fonction interne pour envoyer l'email de vérification
+// URL compatible web + deep link mobile (universal links / app links)
+// Format: https://app.jobbingtrack.com/verify-email?token=xxx (web) ou jobbingtrack://verify-email?token=xxx (mobile)
 async function sendVerificationEmailInternal(userId, email, firstName, token) {
-  const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:8080';
-  const verificationUrl = `${frontendUrl}/verify-email/${token}`;
+  const baseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:8080';
+  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -460,10 +467,10 @@ async function sendVerificationEmailInternal(userId, email, firstName, token) {
   `;
 
   try {
-    await emailService.sendEmail({
+    await emailService.sendGenericEmail({
       to: email,
       subject: 'Vérifiez votre adresse email - JobbingTrack',
-      html: emailHtml
+      htmlContent: emailHtml
     });
   } catch (error) {
     logger.error('Erreur envoi email de vérification:', error);

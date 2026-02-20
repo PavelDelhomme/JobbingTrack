@@ -68,7 +68,8 @@ class SMTPEmailProvider extends BaseEmailProvider {
         headers: {
           'From': displayFrom,
           'Reply-To': displayReplyTo,
-          // Permettre l'affichage personnalisé même si l'authentification est différente
+          'Auto-Submitted': 'auto-generated',
+          'X-Auto-Response-Suppress': 'All',
           'X-Mailer': 'JobbingTrack Email Service',
         },
       };

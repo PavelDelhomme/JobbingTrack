@@ -28,10 +28,12 @@ router.get('/logs/:id', emailController.getEmailLog);
 router.get('/stats', emailController.getEmailStats);
 
 // Envoyer un email de test (admin seulement)
+// subject obligatoire uniquement si type non spécifié (reset_password, verification)
 router.post('/test', [
   body('to').isEmail().normalizeEmail(),
-  body('subject').notEmpty(),
-  body('content').optional()
+  body('subject').optional(),
+  body('content').optional(),
+  body('type').optional().isIn(['reset_password', 'verification'])
 ], emailController.sendTestEmail);
 
 // Renvoyer un email

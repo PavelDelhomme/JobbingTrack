@@ -51,14 +51,14 @@ export default function EmailMonitorPage() {
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [filteredEmails, setFilteredEmails] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'SENT' | 'FAILED' | 'PENDING' | 'DELIVERED' | 'BOUNCED'>('all');
+  const [filter, setFilter] = useState<'all' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED' | 'PENDING' | 'BOUNCED'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'WELCOME' | 'VERIFICATION' | 'RESET_PASSWORD' | 'TEST'>('all');
   const [selectedEmail, setSelectedEmail] = useState<EmailLog | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit] = useState(50);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
   // Charger les emails depuis l'API
   useEffect(() => {
@@ -570,8 +570,8 @@ export default function EmailMonitorPage() {
                 <strong>Pour tester</strong> :
               </p>
               <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Avec MailHog : Voir http://localhost:8025</li>
-                <li>Avec OVH : Vérifier la boîte mail du destinataire</li>
+                <li>Avec SMTP OVH : Vérifier la boîte mail du destinataire</li>
+                <li>Utiliser la page <strong>Tests → Tests Emails</strong> pour envoyer des emails de test</li>
                 <li>Utiliser le scénario "Vérification Email et Reset Password" dans User Journey</li>
               </ul>
               <p className="mt-4 text-blue-700">
