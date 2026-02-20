@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
 import { getProjectRoot } from '../testRunnerUtils'
 
 const RUN_TIMEOUT_MS = 120000 // 2 min
@@ -7,6 +9,28 @@ const RUN_TIMEOUT_MS = 120000 // 2 min
 function extractReportId(stdout: string): string | null {
   const match = stdout.match(/\d{8}-\d{6}/)
   return match ? match[0] : null
+}
+
+function readSummary(reportId: string | null): { total: number; passed: number; failed: number; skipped: number } | null {
+  if (!reportId) return null
+  try {
+    const projectRoot = getProjectRoot()
+    const resultsDir = process.env.TESTS_RESULTS_DIR || join(projectRoot, 'tests', 'results')
+    const summaryPath = join(resultsDir, reportId, 'summary.json')
+    if (!existsSync(summaryPath)) return null
+    const raw = readFileSync(summaryPath, 'utf-8')
+    const data = JSON.parse(raw) as { summary?: { totalTests?: number; totalPassed?: number; totalFailed?: number; totalSkipped?: number } }
+    const s = data?.summary
+    if (!s) return null
+    return {
+      total: s.totalTests ?? 0,
+      passed: s.totalPassed ?? 0,
+      failed: s.totalFailed ?? 0,
+      skipped: s.totalSkipped ?? 0,
+    }
+  } catch {
+    return null
+  }
 }
 
 /** URL de l’API pour les scripts de test. En Docker (frontend), utiliser le service api-gateway sur le réseau interne. */
@@ -63,12 +87,14 @@ export async function POST(request: NextRequest) {
       // Si un rapport a tout de même été généré (script a écrit le rapport puis exit 1), retourner 200 pour permettre de l’ouvrir
       if (reportId) {
         console.log(`[TESTS API] Fin des Tests API (échec partiel) — ${new Date().toISOString()} — rapport: ${reportId}`)
+        const summary = readSummary(reportId)
         return NextResponse.json({
           success: false,
           error: errorMessage,
           reportId,
           reportLocation: 'tests/results/',
           selectedTests: tests,
+          summary: summary ?? undefined,
         }, { status: 200 })
       }
       console.log(`[TESTS API] Fin des Tests API (erreur) — ${new Date().toISOString()}`)
@@ -83,12 +109,14 @@ export async function POST(request: NextRequest) {
     const endLabel = `[TESTS API] Fin des Tests API — ${new Date().toISOString()} — rapport: ${reportId ?? 'N/A'}`
     console.log(endLabel)
 
+    const summary = reportId ? readSummary(reportId) : null
     return NextResponse.json({
       success: true,
       message: `Rapport généré${tests.length > 0 ? ` (${tests.length} test(s))` : ''}`,
       reportId,
       reportLocation: 'tests/results/',
       selectedTests: tests,
+      summary: summary ?? undefined,
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'

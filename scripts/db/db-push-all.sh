@@ -88,6 +88,13 @@ done
 echo "  ⏭️  security / deployment / metrics-aggregator : tables via auth-service ou init-key-tables (pas de push)"
 echo ""
 
+# Seed des tables ApplicationStatus, InterviewStatus, FollowUpStatus (statuts prédéfinis)
+if [ -f "${ROOT_DIR}/scripts/db/seed-status-tables.sql" ]; then
+  echo "[DB-PUSH-ALL] Seed statuts prédéfinis (ApplicationStatus, InterviewStatus, FollowUpStatus)"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/seed-status-tables.sql" > /dev/null 2>&1 && echo "  ✅ Statuts prédéfinis insérés (ou déjà présents)" || echo "  ⚠️  Seed statuts ignoré (tables peut-être absentes : relancer après make build + up-full)"
+  echo ""
+fi
+
 # Partie 2/3 : system_metrics, container_metrics, service_availability_history
 if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
@@ -110,3 +117,9 @@ echo "[DB-PUSH-ALL] Fin — $(date '+%Y-%m-%dT%H:%M:%S%z')"
 echo "✅ db-push-all terminé"
 echo "   📦 Prisma db push : $PUSHED service(s)"
 echo "   ⏭️  Ignorés / erreurs : $SKIPPED"
+# Redémarrer metrics-aggregator pour qu'il recharge le schéma (évite « cached plan must not change result type » et « cache lookup failed for type »)
+if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-metrics-aggregator$'; then
+  echo ""
+  echo "🔄 Redémarrage de metrics-aggregator pour recharger le schéma BDD..."
+  docker restart jobbingtrack-metrics-aggregator > /dev/null 2>&1 && echo "   ✅ metrics-aggregator redémarré" || echo "   ⚠️  Redémarrage ignoré"
+fi

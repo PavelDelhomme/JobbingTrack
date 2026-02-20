@@ -1,6 +1,6 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : Février 2026
+**Dernière mise à jour** : 20 février 2026
 
 ---
 
@@ -22,11 +22,13 @@
 
 ### Priorité 2 – Erreurs à corriger
 
-4. **Tables BDD manquantes** : lancer **`make db-push-all`** une fois Postgres et les conteneurs démarrés. **Si tu as modifié les schémas Prisma ou le code** : d’abord **`make build`**, puis redémarrer (ex. `make down && make up-full`), **puis** **`make db-push-all`** (sinon les conteneurs poussent l’ancien schéma). Détail : **docs/tests/ECHECS_TESTS_API_2026-02-19.md** (§ « Après modification des schémas Prisma »). Pour créer les tables manquantes (`deployments`, `container_logs`, `system_metrics`, `system_metrics_snapshots`, `service_availability_history`, etc.). **Après `make db-push-all`, la partie « tables BDD » de la priorité 2 est considérée comme OK.** Les logs peuvent être filtrés avec le marqueur `[DB-PUSH-ALL]`.
-5. **Tests API – 15 échecs** : résolutions appliquées (voir **RESOLUTIONS.md** et **docs/tests/ECHECS_TESTS_API_2026-02-19.md** ; routes ajoutées : profile-service `server.js` GET/PUT `/api/v1/profile/me`, notification `server.js` 401, dashboard agrégation HTTP). Pour valider : **`make build`** puis redémarrer puis **`make db-push-all`**, puis relancer les Tests API. Détail dans **RESOLUTIONS.md** (profile-service GET/PUT `/api/v1/profile/me`, notification 401 sans token, dashboard statistics via agrégation HTTP, script : `applicationId`/`subject`/`followUpDate`, Get User Profile → `/api/v1/auth/profile`). Les échecs restants (Create Company/Application/Contact après db-push-all pour JWT admin réel ; schémas statusId et User déjà alignés) dépendent d’un JWT avec l’id admin réel après `make db-push-all` et d’un schéma Prisma aligné.
+4. **Tables BDD** ✅ : **`make up-full`** exécute **un seul** `db-push-all` après démarrage de tous les conteneurs (9 services Prisma + init-system-metrics + init-key-tables + seed statuts). **9/9 services** synchronisés, **0 ignoré**. Si tu as modifié les schémas ou le code : **`make build`** puis **`make down && make up-full`**. Logs : `[DB-PUSH-ALL]`, puis redémarrage de metrics-aggregator.
+5. **Tests API – suite** : Avec la BDD à jour (verificationToken, statusId, admin créé), **prochaine étape** : **relancer les Tests API depuis le backoffice** (Backoffice → Tests → Tests API → Lancer). Vérifier le nouveau rapport (X/36 passés) : le login doit renvoyer le vrai `userId`, donc Create Company / Application / Contact peuvent passer. Si des échecs restent, les traiter un par un (voir **docs/tests/ECHECS_TESTS_API_2026-02-19.md**). **Comparaison de rapports** : implémentée (Backoffice → Rapports de tests → « Comparer des rapports », sélectionner 2+ rapports de même catégorie).
 6. SMTP 503 : configurer SMTP (auth-service ou service dédié), test opérationnel, écrans backoffice Configuration SMTP et Déliverabilité.
 7. Logs emails 404 : brancher page Historique des emails (`/backoffice/emails/logs`) et API `GET /api/v1/emails/logs`.
 8. API versions 404 : exposer `GET /api/v1/analytics/stats/:userId/versions` via le gateway et corriger le front.
+
+**Notes** : **Resend** (RESEND_API_KEY) : optionnel, à configurer plus tard. **container_logs** : table + enum `LogLevel` créés dans `init-key-tables.sql` ; la persistance des logs depuis le log collector est opérationnelle (plus de contournement dans metrics-aggregator). **Backoffice Tests API** : après lancement, un résumé s’affiche (X/Y tests passés, Z échecs). **URLs inter-conteneurs** : `.env.example` et `.env` incluent `MONITORING_C_URL` pour le metrics-aggregator.
 
 ### Priorité 3 – Tests à valider
 
@@ -63,7 +65,8 @@
 
 ## À valider (tests à lancer)
 
-- Lancer les cibles make listées en priorité 3 (étape 7) depuis la racine du projet.
+- **Priorité 2 (maintenant)** : **Relancer les Tests API depuis le backoffice** (http://localhost:5003 → Tests → Tests API → Lancer). Consulter le rapport généré et noter X/36 passés ; corriger les échecs restants (voir docs/tests/ECHECS_TESTS_API_2026-02-19.md).
+- **Priorité 3** : Lancer les cibles make listées (make test-api, test-security, test-frontend, etc.) depuis la racine.
 - En fin de session : noter les échecs dans STATUS.md ou TESTS_END.md.
 
 **Commandes détaillées** : **docs/COMMANDES_UTILES.md** (aide, tests, db, logs, rebuild).
@@ -90,7 +93,10 @@
 - Tests API depuis Docker : `sh` + chemins absolus, PROJECT_ROOT, volume scripts, TESTS_RESULTS_DIR, syntaxe POSIX (test-api-specific.sh, generate-test-report.sh).
 - Persistance agrégateur : filtre JobbingTrack → 21 conteneurs ; rebuild metrics-aggregator si besoin.
 - Tables manquantes : `make db-push-all` crée toutes les tables (Prisma 9 services + init-system-metrics.sql + init-key-tables.sql). Ne pas lancer db-push-security / db-push-deployment seuls.
-- **Rapport Tests API (2026-02-19)** : 21/36 passent, 15 échecs (profile 404, notification 200 vs 401, dev_user_1, schéma statusId, dashboard count, etc.) — détail et ordre des corrections dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**.
+- **Rapport Tests API (2026-02-19)** : 21/36 passent, 15 échecs (profile 404, notification 200 vs 401, dev_user_1, schéma statusId, dashboard count, etc.) — détail et ordre des corrections dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**. Depuis le backoffice, un **résumé** (X/Y passés, Z échecs) s’affiche après chaque run.
+- **make refresh-bdd** : une seule commande (build → down → up-full → db-push-all). up-full démarre tous les services puis exécute **un seul** db-push-all (plus de premier passage avec seulement auth).
+- **up-full** : un seul `db-push-all` après le démarrage de tous les conteneurs (postgres, redis, api-gateway, auth, frontend, profil full, monitoring-c, metrics-aggregator). Évite les « conteneur non démarré (ignoré) ». Après db-push-all, **metrics-aggregator est redémarré** pour recharger le schéma BDD et éviter les erreurs « cached plan must not change result type » et « cache lookup failed for type ».
+- **container_logs** : table et enum `LogLevel` créés dans `scripts/db/init-key-tables.sql` ; persistance des logs opérationnelle (plus de contournement dans metrics-aggregator).
 
 ### Emails
 

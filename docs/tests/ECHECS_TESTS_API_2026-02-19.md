@@ -1,9 +1,12 @@
 # Échecs Tests API – Rapport 2026-02-19
 
-**Résolutions appliquées** : voir **RESOLUTIONS.md**. Corrections : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate), schémas Prisma alignés BDD (User.verificationToken/loginCount ; Application/Interview.statusId dans interview-, call-, followup-service).
+**Dernière mise à jour** : 20 février 2026.
 
-**Rapport** : 36 tests, 21 réussis, 15 échoués (58 % opérationnel).  
-**Runs** : lancés depuis le backoffice (Tests > Tests API). Les rapports sont enregistrés dans `tests/results/<timestamp>/` (ex. `20260219-191835`) ou en Docker dans `TESTS_RESULTS_DIR` (ex. `/tmp/tests/results`).
+**Résolutions appliquées** : voir **RESOLUTIONS.md**. Corrections : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate), schémas Prisma alignés BDD (User.verificationToken/loginCount ; Application/Interview.statusId sur tous les services). **Seed statuts** : exécuté dans **`make db-push-all`** (ApplicationStatus, InterviewStatus, FollowUpStatus). **up-full** : un seul db-push-all après démarrage de tous les conteneurs (9/9 services synchronisés), puis redémarrage de metrics-aggregator.
+
+**Rapport initial** : 36 tests, 21 réussis, 15 échoués (58 %).  
+**Prochaine étape** : après **`make down && make up-full`** (BDD fraîche, admin créé, 9/9 Prisma push), **relancer les Tests API depuis le backoffice** (Tests > Tests API > Lancer) et noter le nouveau résultat (X/36 passés). Le login doit renvoyer le vrai `userId`, donc Create Company / Application / Contact devraient pouvoir passer. Mettre à jour ce document avec le nouveau rapport si besoin.  
+**Runs** : backoffice (Tests > Tests API). Résumé (X/Y passés, Z échecs) après chaque run. Rapports : `tests/results/<timestamp>/` ou en Docker `TESTS_RESULTS_DIR`.
 
 ---
 
@@ -16,7 +19,7 @@
 - **#36** : dashboard stats/statistics utilisent `getAggregatedStatistics` (agrégation HTTP).
 - **User (auth)** : colonnes `verificationToken`, `verificationTokenExpiry`, `loginCount` ajoutées aux schémas partagés (application-service, backend/prisma) pour que le login trouve l’admin en BDD après **`make db-push-all`** (et renvoie le vrai userId au lieu de dev_user_1 → #19, #21, #23).
 
-**À valider après `make db-push-all`** : Create Company, Create Application, Create Contact. **À vérifier** : Events 403 (token transmis par le script).
+**À valider** : après **`make down && make up-full`** (un seul db-push-all, 9/9 services, admin créé), relancer les Tests API depuis le backoffice. Create Company, Create Application, Create Contact devraient passer si le login renvoie le vrai userId. À vérifier : Events 403 (token bien transmis), et tout autre échec restant dans le nouveau rapport.
 
 ---
 
@@ -39,7 +42,8 @@ Les conteneurs utilisent le **code et le schéma Prisma présents dans l’image
    ```
    (ou au minimum redémarrer les services concernés : auth, application, company, contact, interview, call, followup, event, workflow.)
 3. **Ensuite** lancer **`make db-push-all`** : les conteneurs à jour pousseront le bon schéma (User.verificationToken, Application.statusId, Interview.statusId, etc.).
-4. Relancer les **Tests API** depuis le backoffice et vérifier les logs (marqueurs `[TESTS API] Démarrage` / `[TESTS API] Fin`).
+4. **Optionnel** : le script **`scripts/db/seed-status-tables.sql`** est exécuté automatiquement à la fin de la partie 1 de **db-push-all** (avant init-system-metrics). Il insère les statuts prédéfinis (ApplicationStatus, InterviewStatus, FollowUpStatus). Si les tables n’existent pas encore, le seed est ignoré ; refaire l’ordre ci-dessus.
+5. Relancer les **Tests API** depuis le backoffice et vérifier les logs (marqueurs `[TESTS API] Démarrage` / `[TESTS API] Fin`).
 
 ---
 
@@ -87,12 +91,12 @@ Les conteneurs utilisent le **code et le schéma Prisma présents dans l’image
 
 ## À faire en priorité (ordre suggéré)
 
-1. Lancer **`make db-push-all`** (Postgres + conteneurs démarrés) pour créer les tables manquantes et réduire les erreurs 500 liées aux tables.
-2. **profile-service** : ajouter les routes GET et PUT `/api/v1/profile/me` (ou documenter le proxy gateway si une autre URL est utilisée).
-3. **Script de test** : remplacer `dev_user_1` par le `userId` de l’utilisateur connecté (admin) pour Company, Contact, Application.
-4. Aligner les schémas Prisma (auth, application, interview, followup) avec la BDD (verificationToken, status vs statusId) puis relancer `make db-push-all` si besoin.
-5. **notification-service** : renvoyer 401 pour les routes protégées sans token.
-6. **dashboard-service** : corriger l’erreur « reading 'count' » (vérifier l’objet avant accès).
-7. **Tests Create Call / Create Followup** : envoyer les champs requis (applicationId, subject ; followUpDate).
+1. ~~Lancer **`make db-push-all`**~~ — **Fait** : `make up-full` exécute un seul db-push-all après démarrage de tous les conteneurs (9/9 services, seed statuts, init-key-tables).
+2. ~~**profile-service** : routes GET/PUT `/api/v1/profile/me`~~ — **Fait**.
+3. ~~**Script de test** : utiliser le `userId` de l’admin connecté~~ — **Fait** (script utilise le token/login ; avec BDD à jour le login renvoie le vrai userId).
+4. ~~Aligner schémas Prisma (verificationToken, statusId)~~ — **Fait** (tous les services : auth, company, contact, event, application, interview, call, followup, workflow).
+5. ~~**notification-service** : 401 sans token~~ — **Fait**.
+6. ~~**dashboard-service** : erreur « reading 'count' »~~ — **Fait** (getAggregatedStatistics).
+7. ~~**Create Call / Create Followup** : champs requis~~ — **Fait** (applicationId, subject ; followUpDate).
 
-Voir **STATUS.md** (Priorité 2) et **RESOLUTIONS.md** pour le détail. Les actions listées ci-dessus ont été appliquées (profile, notification, dashboard, script, schémas statusId/User).
+**Maintenant** : **Relancer les Tests API depuis le backoffice** et noter le nouveau résultat (X/36). Corriger les échecs restants un par un. Voir **STATUS.md** (Priorité 2) et **RESOLUTIONS.md**.

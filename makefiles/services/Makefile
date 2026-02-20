@@ -468,13 +468,6 @@ _up-full-internal:
 	# Correction DB
 	$(MAKE) db-fix-role
 	
-	# ✅ CRÉER AUTOMATIQUEMENT LES TABLES PRISMA
-	@echo "📊 Création automatique des tables Prisma..."
-	@echo "⏳ Cela peut prendre quelques secondes..."
-	@$(MAKE) db-push-all || echo "⚠️  Erreur lors de la création des tables Prisma (peut être normal si elles existent déjà)"
-	@echo "⏳ Attente supplémentaire pour que les tables soient créées (3s)..."
-	@sleep 3
-	
 	# Démarrer frontend
 	@echo "🚀 Démarrage du frontend..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
@@ -492,13 +485,15 @@ _up-full-internal:
 	@echo "📋 Démarrage du collecteur de logs (optionnel)..."
 	@$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
 	
-	# Attendre que les services soient prêts
-	@echo "⏳ Attente que les services soient prêts (5s)..."
-	@sleep 5
+	# Attendre que tous les conteneurs soient démarrés (nécessaire pour db-push-all qui exécute Prisma dans chaque conteneur)
+	@echo "⏳ Attente que tous les services soient démarrés (8s)..."
+	@sleep 8
 	
-	# Synchro Prisma sur tous les services maintenant démarrés (premier passage n'avait que auth-service)
-	@echo "📊 Synchronisation des schémas Prisma sur tous les microservices..."
-	@$(MAKE) db-push-all || echo "⚠️  db-push-all (second passage) a échoué ou partiel, les tables auth existent déjà"
+	# ✅ UN SEUL db-push-all : tous les conteneurs sont up, Prisma push (9 services) + init-system-metrics + init-key-tables
+	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
+	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
+	@echo "⏳ Redémarrage de metrics-aggregator pour recharger le schéma BDD (évite cached plan / cache lookup for type)..."
+	@docker restart jobbingtrack-metrics-aggregator 2>/dev/null || true
 	@echo "⏳ Attente finalisation (3s)..."
 	@sleep 3
 	
@@ -885,14 +880,14 @@ rebuild-metrics-aggregator: ## Reconstruire metrics-aggregator (build --no-cache
 rebuild-monitoring-c: ## Reconstruire monitoring-c (build --no-cache + up -d)
 	@$(MAKE) rebuild-service SERVICE=monitoring-c
 
-# Logs d'un service spécifique (SERVICE=nom comme dans make status)
+# Logs d'un service spécifique (SERVICE=nom comme dans make status) - tags colorés
 logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "❌ Spécifiez le service avec SERVICE=<nom>"; \
 		echo "📋 Exemple: make logs-service SERVICE=metrics-aggregator"; \
 		exit 1; \
 	fi
-	$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(COMPOSE_SVC))
+	@$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(COMPOSE_SVC)) 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
 
 # ============================================================================
 # STATUS ET LOGS
@@ -1296,17 +1291,18 @@ ps: ## Liste les conteneurs actifs
 	@echo "================================"
 	$(call docker_compose, $(COMPOSE_FILES_FULL) ps)
 
-# Logs en temps réel (compose principal)
-logs: ## Affiche tous les logs en temps réel
+# Logs en temps réel (compose principal) - tags colorés [DEBUG], [STATS], [ERROR], etc.
+logs: ## Affiche tous les logs en temps réel (tags colorés)
 	@echo "📋 Logs en temps réel des services JobbingTrack"
 	@echo "==============================================="
 	@echo "💡 Un service: make logs-service SERVICE=frontend  |  metrics-aggregator: make logs-metrics"
+	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta, ERROR=rouge"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f 2>/dev/null || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
 
-# Logs de metrics-aggregator uniquement
+# Logs de metrics-aggregator uniquement (tags colorés)
 logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour quitter)
 	@echo "📊 Logs de metrics-aggregator"
 	@echo "=============================="
-	@exec docker logs jobbingtrack-metrics-aggregator -f
+	@docker logs jobbingtrack-metrics-aggregator -f 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"

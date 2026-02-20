@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd
 
 # ============================================================================
 # AIDE
@@ -16,9 +16,10 @@ help-database: ## Afficher l'aide base de données
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🔄 MIGRATIONS & DONNÉES:"
-	@echo "  make db-migrate            - Appliquer migrations Prisma"
-	@echo "  make db-push-all           - Synchroniser schémas Prisma (db push)"
-	@echo "  make db-push-auth          - Créer tables auth (User, etc.) si erreur 'User does not exist'"
+	@echo "  make refresh-bdd           - Tout en un : build → down → up-full → db-push-all (puis lancer tests API)"
+	@echo "  make db-migrate             - Appliquer migrations Prisma"
+	@echo "  make db-push-all            - Synchroniser schémas Prisma (db push)"
+	@echo "  make db-push-auth           - Créer tables auth (User, etc.) si erreur 'User does not exist'"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
 	@echo "  make db-init-system-metrics - Créer system_metrics/container_metrics (monitoring-c) si absentes"
 	@echo "  make db-push-security      - Créer tables security (security_logs, firewall_rules, etc.)"
@@ -120,6 +121,25 @@ db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma d
 	@echo "   Tables security/deployment/metrics : via schéma auth ou init-key-tables (pas de push séparé)"
 	@echo ""
 	@ROOT_DIR="$(ROOT_DIR)" bash "$(ROOT_DIR)/scripts/db/db-push-all.sh"
+
+# Une seule commande : build → down → up-full → db-push-all (pour tout mettre à jour BDD et pouvoir lancer les tests)
+# up-full exécute db-push-all en interne (1x auth seul, 1x tous les services) ; étape 4 = sync final (pas une boucle).
+refresh-bdd: ## Tout mettre à jour : build, arrêt, redémarrage, db-push-all (puis lancer les tests API depuis le backoffice)
+	@echo "🔄 refresh-bdd : build → down → up-full → db-push-all"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "1️⃣  Build des images..."
+	@$(MAKE) build
+	@echo ""
+	@echo "2️⃣  Arrêt des services..."
+	@$(MAKE) down
+	@echo ""
+	@echo "3️⃣  Démarrage complet (up-full)..."
+	@$(MAKE) up-full
+	@echo ""
+	@echo "4️⃣  Synchronisation BDD (db-push-all + seed statuts)..."
+	@$(MAKE) db-push-all
+	@echo ""
+	@echo "✅ refresh-bdd terminé. Vous pouvez lancer les Tests API depuis le backoffice."
 
 # Créer les tables system_metrics et container_metrics (monitoring-c) si absentes
 db-init-system-metrics: ## Créer system_metrics + container_metrics pour monitoring-c

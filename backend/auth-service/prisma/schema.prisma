@@ -152,7 +152,7 @@ model Application {
   // Candidature
   applicationDate       DateTime            @default(now())
   applicationType       ApplicationType     @default(OFFRE) // Spontanée ou à une offre
-  status                ApplicationStatus   @default(CANDIDATE_PENDING)
+  statusId              String              // Relation vers ApplicationStatus (BDD)
   
   // Rémunération
   salaryMin             Int?                // en euros/an
@@ -173,6 +173,7 @@ model Application {
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   company               Company             @relation(fields: [companyId], references: [id])
   platform              Platform?           @relation(fields: [platformId], references: [id])
+  status                ApplicationStatus   @relation(fields: [statusId], references: [id])
   
   contacts              ContactApplication[] // Many-to-many
   followUps             FollowUp[]
@@ -184,7 +185,7 @@ model Application {
   
   @@index([userId])
   @@index([companyId])
-  @@index([status])
+  @@index([statusId])
   @@index([applicationDate])
 }
 
@@ -209,19 +210,24 @@ enum ApplicationType {
   SPONTANEE             // Candidature spontanée
 }
 
-enum ApplicationStatus {
-  CANDIDATE_PENDING                     // Candidaté et en attente
-  NO_RESPONSE                           // Aucune réponse
-  NO_RESPONSE_AFTER_FIRST_FOLLOWUP      // Aucune réponse après 1 relance
-  NO_RESPONSE_AFTER_SECOND_FOLLOWUP     // Aucune réponse après 2 relances
-  FIRST_INTERVIEW_PENDING               // 1er entretien en attente
-  OTHER_INTERVIEW_PENDING               // Autre entretien en attente
-  TECHNICAL_TEST_PENDING                // Test technique en cours
-  OFFER_RECEIVED                        // Offre reçue
-  ACCEPTED_AFTER_INTERVIEW              // Retenue après entretien
-  REJECTED_WITHOUT_INTERVIEW            // Non retenue sans entretien
-  REJECTED_AFTER_INTERVIEW              // Non retenue après entretien
-  WITHDRAWN                             // Candidature retirée
+// Table ApplicationStatus (aligné BDD – statusId sur Application)
+model ApplicationStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  applications            Application[]
+  previousStatusHistories ApplicationStatusHistory[] @relation("PreviousStatus")
+  newStatusHistories      ApplicationStatusHistory[] @relation("NewStatus")
+  @@index([code])
 }
 
 // ============================================
@@ -375,7 +381,7 @@ model Interview {
   estimatedDuration     Int?                // Durée estimée en minutes
   location              String?             // Lieu physique
   videoLink             String?             // Lien visio
-  status                InterviewStatus     @default(SCHEDULED)
+  statusId              String              // Relation vers InterviewStatus (BDD)
   
   // Retour attendu
   feedbackExpectedFrom  DateTime?           // Début plage de retour
@@ -397,22 +403,33 @@ model Interview {
   company               Company             @relation(fields: [companyId], references: [id])
   interviewType         InterviewType?      @relation(fields: [interviewTypeId], references: [id])
   interviewStyle        InterviewStyle?     @relation(fields: [interviewStyleId], references: [id])
+  status                InterviewStatus     @relation(fields: [statusId], references: [id])
   
   contacts              InterviewContact[]  // Many-to-many
   events                Event[]
   
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([interviewDate])
 }
 
-enum InterviewStatus {
-  SCHEDULED                 // Entretien programmé
-  COMPLETED                 // Entretien passé
-  FEEDBACK_PENDING          // En attente de retour
-  CANCELLED                 // Annulé
-  RESCHEDULED               // Reporté
+// Table InterviewStatus (aligné BDD – statusId sur Interview)
+model InterviewStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  interviews  Interview[]
+  @@index([code])
 }
 
 enum InterviewOutcome {
@@ -478,13 +495,14 @@ model Event {
 model ApplicationStatusHistory {
   id                String              @id @default(cuid())
   applicationId     String
-  previousStatus    ApplicationStatus
-  newStatus         ApplicationStatus
+  previousStatusId  String?
+  newStatusId       String
   comment           String?
   changedAt         DateTime            @default(now())
   
-  // Relation
   application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus    ApplicationStatus?   @relation("PreviousStatus", fields: [previousStatusId], references: [id])
+  newStatus         ApplicationStatus   @relation("NewStatus", fields: [newStatusId], references: [id])
   
   @@index([applicationId])
   @@index([changedAt])
