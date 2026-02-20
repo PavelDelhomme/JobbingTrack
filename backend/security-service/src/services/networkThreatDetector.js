@@ -6,6 +6,7 @@
 const { PrismaClient } = require('@prisma/client');
 const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
+const securityService = require('./securityService');
 const { logger } = require('../utils/logger');
 
 const prisma = new PrismaClient();
@@ -183,6 +184,18 @@ async function handleAnomaly(anomaly, metrics) {
         }
       }
     });
+
+    // Écrire dans security_logs pour affichage dans « Logs de sécurité » backoffice
+    await securityService.createSecurityLog({
+      level: anomaly.severity === 'CRITICAL' ? 'critical' : anomaly.severity === 'HIGH' ? 'error' : 'warning',
+      category: 'network',
+      eventType: 'network_threat_detected',
+      message: `Menace détectée: ${anomaly.type} depuis ${anomaly.sourceIp} - ${anomaly.message}`,
+      sourceIP: anomaly.sourceIp,
+      riskScore: anomaly.severity === 'CRITICAL' ? 90 : anomaly.severity === 'HIGH' ? 70 : 50,
+      isBlocked: false,
+      metadata: { threatId: threat.id, threatType: anomaly.type }
+    }).catch(() => {});
   } catch (error) {
     logger.error('Erreur gestion anomalie:', error);
   }

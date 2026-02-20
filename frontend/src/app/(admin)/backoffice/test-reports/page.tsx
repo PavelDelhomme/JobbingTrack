@@ -22,8 +22,54 @@ interface CompareReportData {
 interface CompareResult {
   success: boolean
   reports?: CompareReportData[]
-  comparison?: { byTest: Array<{ testName: string; results: Record<string, 'pass' | 'fail' | 'skip'>; diff?: string }>; sameCategory: string | null }
+  comparison?: {
+    byTest: Array<{
+      testName: string
+      results: Record<string, 'pass' | 'fail' | 'skip'>
+      details?: Record<string, { expected?: string; actual?: string; response?: string }>
+      diff?: string
+    }>
+    sameCategory: string | null
+  }
   error?: string
+}
+
+/** Affiche date/heure du rapport en heure locale du navigateur. Si generatedAtISO est fourni (UTC), on l’utilise pour un affichage cohérent. */
+function formatReportDateLocal(date: string, time: string, generatedAtISO?: string): string {
+  if (generatedAtISO) {
+    try {
+      const d = new Date(generatedAtISO)
+      if (!Number.isNaN(d.getTime())) return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+    } catch {
+      // fallback
+    }
+  }
+  if (!date || !time) return `${date || ''} ${time || ''}`.trim()
+  const timeNorm = /^\d{2}:\d{2}/.test(time) ? time : `${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6) || '00'}`
+  try {
+    const [y, m, d] = date.split('-')
+    const [h, min] = timeNorm.split(':')
+    if (!y || !m || !d) return `${date} ${timeNorm}`
+    const dObj = new Date(Number(y), Number(m) - 1, Number(d), Number(h ?? 0), Number(min ?? 0), 0, 0)
+    if (Number.isNaN(dObj.getTime())) return `${date} ${timeNorm}`
+    return dObj.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+  } catch {
+    return `${date} ${timeNorm}`
+  }
+}
+
+/** Retourne les lignes où les résultats diffèrent entre les rapports (régression ou amélioration). */
+function getDifferencesOnly(
+  byTest: Array<{ testName: string; results: Record<string, 'pass' | 'fail' | 'skip'>; diff?: string }>,
+  reportIds: string[]
+) {
+  if (!byTest.length || reportIds.length < 2) return []
+  return byTest.filter((row) => {
+    const statuses = reportIds.map((id) => row.results[id]).filter((s) => s !== 'skip')
+    if (statuses.length < 2) return false
+    const first = statuses[0]
+    return statuses.some((s) => s !== first)
+  })
 }
 
 interface TestReport {
@@ -33,6 +79,8 @@ interface TestReport {
   timestamp: string
   date: string
   time: string
+  /** ISO UTC pour affichage en heure locale */
+  generatedAtISO?: string
   path: string
   summaryPath?: string
   htmlPath?: string
@@ -237,10 +285,24 @@ export default function TestReportsPage() {
     }
   }
 
-  const toggleCompareSelection = (id: string) => {
-    setSelectedForCompare((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
+  const toggleCompareSelection = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    const report = reports.find((r) => r.id === id)
+    if (!report) return
+    setSelectedForCompare((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      // Au plus 2 rapports, et même catégorie
+      if (prev.length >= 2) return prev
+      const firstId = prev[0]
+      const firstReport = reports.find((r) => r.id === firstId)
+      const firstCat = firstReport?.category || ''
+      const thisCat = report.category || ''
+      if (firstCat && thisCat && firstCat !== thisCat) {
+        alert(`Sélectionnez uniquement des rapports de la même catégorie. « ${firstCat } » ≠ « ${thisCat } ».`)
+        return prev
+      }
+      return [...prev, id]
+    })
   }
 
   const deleteAllReports = async () => {
@@ -459,11 +521,11 @@ export default function TestReportsPage() {
               )}
               {compareResult.success && compareResult.reports && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {compareResult.reports.map((r) => (
                       <div key={r.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
                         <div className="font-medium text-gray-900 dark:text-white mb-2">{r.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{r.date} {r.time}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</div>
                         <div className="grid grid-cols-4 gap-2 text-center text-sm">
                           <div><span className="font-semibold text-gray-900 dark:text-white">{r.summary.total}</span><br /><span className="text-gray-500">Total</span></div>
                           <div><span className="font-semibold text-green-600">{r.summary.passed}</span><br /><span className="text-gray-500">Réussis</span></div>
@@ -473,36 +535,81 @@ export default function TestReportsPage() {
                       </div>
                     ))}
                   </div>
-                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length > 0 && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
-                            {compareResult.reports.map((r) => (
-                              <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{r.date} {r.time}</th>
-                            ))}
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Diff</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {compareResult.comparison.byTest.map((row, idx) => (
-                            <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                              <td className="py-2 px-3 text-gray-900 dark:text-white">{row.testName}</td>
-                              {compareResult.reports!.map((r) => (
-                                <td key={r.id} className="py-2 px-3">
-                                  {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
-                                  {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
-                                  {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
-                                </td>
+                  {compareResult.comparison?.byTest && compareResult.comparison.byTest.length > 0 && (() => {
+                    const reportIds = compareResult.reports!.map((r) => r.id)
+                    const differencesOnly = getDifferencesOnly(compareResult.comparison.byTest, reportIds)
+                    return (
+                      <>
+                        {differencesOnly.length > 0 && (
+                          <div className="mb-6">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
+                              🔍 Tests qui diffèrent ({differencesOnly.length})
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                              Ces tests n'ont pas le même résultat entre les deux rapports (régression ou amélioration).
+                            </p>
+                            <div className="overflow-x-auto rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+                              <table className="w-full text-sm border-collapse">
+                                <thead>
+                                  <tr className="border-b border-amber-200 dark:border-amber-800 bg-amber-100/50 dark:bg-amber-900/20">
+                                    <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
+                                    {compareResult.reports!.map((r) => (
+                                      <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</th>
+                                    ))}
+                                    <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Écart</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {differencesOnly.map((row, idx) => (
+                                    <tr key={idx} className="border-b border-amber-100 dark:border-amber-800/50">
+                                      <td className="py-2 px-3 text-gray-900 dark:text-white font-medium">{row.testName}</td>
+                                      {compareResult.reports!.map((r) => (
+                                        <td key={r.id} className="py-2 px-3">
+                                          {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
+                                          {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
+                                          {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
+                                        </td>
+                                      ))}
+                                      <td className="py-2 px-3 text-amber-700 dark:text-amber-300">{row.diff ?? 'Régression ou amélioration'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Tous les tests</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <th className="text-left py-2 px-3 font-semibold text-gray-900 dark:text-white">Test</th>
+                                {compareResult.reports.map((r) => (
+                                  <th key={r.id} className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">{formatReportDateLocal(r.date, r.time, r.generatedAtISO)}</th>
+                                ))}
+                                <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Résumé</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {compareResult.comparison.byTest.map((row, idx) => (
+                                <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                                  <td className="py-2 px-3 text-gray-900 dark:text-white">{row.testName}</td>
+                                  {compareResult.reports!.map((r) => (
+                                    <td key={r.id} className="py-2 px-3">
+                                      {row.results[r.id] === 'pass' && <span className="text-green-600 font-medium">✓ Réussi</span>}
+                                      {row.results[r.id] === 'fail' && <span className="text-red-600 font-medium">✗ Échoué</span>}
+                                      {row.results[r.id] === 'skip' && <span className="text-gray-400">—</span>}
+                                    </td>
+                                  ))}
+                                  <td className="py-2 px-3 text-gray-600 dark:text-gray-400">{row.diff ?? '—'}</td>
+                                </tr>
                               ))}
-                              <td className="py-2 px-3 text-gray-600 dark:text-gray-400">{row.diff ?? '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )
+                  })()}
                   {compareResult.comparison?.byTest && compareResult.comparison.byTest.length === 0 && (
                     <p className="text-gray-500 dark:text-gray-400 text-sm">Aucun détail par test disponible (fichiers test-results.txt absents).</p>
                   )}
@@ -550,7 +657,7 @@ export default function TestReportsPage() {
                 </div>
                 {compareMode && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    Sélectionnez au moins 2 rapports de la <strong>même catégorie</strong> (ex. Tests API), puis cliquez sur « Comparer X rapports ».
+                    Cliquez sur <strong>« Sélectionner pour comparer »</strong> sur un rapport, puis sur un second rapport de la <strong>même catégorie</strong>. Ensuite cliquez sur le bouton <strong>« Comparer 2 rapports »</strong>.
                   </p>
                 )}
                 
@@ -562,16 +669,47 @@ export default function TestReportsPage() {
                     </p>
                   </div>
                 ) : (
-                  filteredReports.map((report) => (
+                  filteredReports.map((report) => {
+                    const selectedForCompareCount = selectedForCompare.length
+                    const firstSelectedId = selectedForCompareCount ? selectedForCompare[0] : null
+                    const firstReport = firstSelectedId ? reports.find((r) => r.id === firstSelectedId) : null
+                    const firstCategory = firstReport?.category || ''
+                    const reportCategory = report.category || ''
+                    const canSelectForCompare = compareMode && (
+                      selectedForCompareCount === 0 ||
+                      (selectedForCompareCount === 1 && firstCategory && reportCategory === firstCategory) ||
+                      selectedForCompare.includes(report.id)
+                    )
+                    const isSelectedForCompare = selectedForCompare.includes(report.id)
+                    return (
                   <div
                     key={report.id}
-                    className={`bg-white dark:bg-gray-800 rounded-lg border-2 p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg ${
-                      selectedReport === report.id
-                        ? 'border-blue-500 shadow-md'
-                        : 'border-gray-200 dark:border-gray-700'
-                    }`}
-                    onClick={() => loadReportContent(report.id)}
+                    className={`bg-white dark:bg-gray-800 rounded-lg border-2 p-3 sm:p-4 transition-all hover:shadow-lg ${
+                      compareMode ? (isSelectedForCompare ? 'border-indigo-500 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700') : 'cursor-pointer'
+                    } ${!compareMode && selectedReport === report.id ? 'border-blue-500 shadow-md' : ''}`}
+                    onClick={() => !compareMode && loadReportContent(report.id)}
                   >
+                    {compareMode && (
+                      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        <button
+                          type="button"
+                          onClick={(e) => toggleCompareSelection(e, report.id)}
+                          disabled={!canSelectForCompare && !isSelectedForCompare}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            isSelectedForCompare
+                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              : canSelectForCompare
+                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/30'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelectedForCompare ? 'bg-indigo-600 border-indigo-600' : 'border-gray-400'}`}>
+                            {isSelectedForCompare && <span className="text-white text-xs">✓</span>}
+                          </span>
+                          {isSelectedForCompare ? 'Sélectionné pour comparaison' : canSelectForCompare ? 'Sélectionner pour comparer' : 'Même catégorie requise'}
+                        </button>
+                      </div>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getStatusIcon(report.status)}
@@ -582,11 +720,11 @@ export default function TestReportsPage() {
                             </span>
                           )}
                           <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                            {report.name || `Rapport du ${report.date}`}
+                            {report.name || `Rapport du ${formatReportDateLocal(report.date, report.time, report.generatedAtISO)}`}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {report.date} {report.time}
+                            <p className="text-sm text-gray-500 dark:text-gray-400" title={`UTC: ${report.date} ${report.time}`}>
+                              {formatReportDateLocal(report.date, report.time, report.generatedAtISO)}
                             </p>
                             {report.category && (
                               <>
@@ -667,7 +805,8 @@ export default function TestReportsPage() {
                       </button>
                     </div>
                   </div>
-                  ))
+                  )
+                  })
                 )}
                 </div>
               </div>
@@ -688,7 +827,7 @@ export default function TestReportsPage() {
                         {isFullscreen ? `REPORT-${selectedReport}` : 'Aperçu du Rapport'}
                       </h2>
                       <p className="font-medium text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {reports.find(r => r.id === selectedReport)?.date} {reports.find(r => r.id === selectedReport)?.time}
+                        {(() => { const r = reports.find(x => x.id === selectedReport); return r ? formatReportDateLocal(r.date, r.time, r.generatedAtISO) : ''; })()}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-wrap sm:flex-nowrap">

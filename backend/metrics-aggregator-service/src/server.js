@@ -9,6 +9,11 @@ const si = require('systeminformation')
 const axios = require('axios')
 const Docker = require('dockerode')
 
+// Réduction des logs : moins de bruit conteneurs/monitoring pour se concentrer sur données et tests API.
+// Mettre REDUCE_METRICS_LOGS=0 dans .env pour réactiver les logs verbeux ([PROC], [DISCOVERY], [CONTAINERS], etc.).
+const REDUCE_LOGS = process.env.REDUCE_METRICS_LOGS !== '0'
+function logIfVerbose (...args) { if (!REDUCE_LOGS) console.log(...args) }
+
 // ✅ OPTIMISATION: Pool de connexions Docker réutilisable
 // Créer une instance Docker unique réutilisable au lieu de créer de nouvelles instances
 const docker = new Docker({ socketPath: '/var/run/docker.sock' })
@@ -156,9 +161,9 @@ let lastMetricsData = null
 
 // Fonction pour découvrir automatiquement les conteneurs
 async function discoverServices() {
-  console.log('[DISCOVERY] === DÉBUT DÉCOUVERTE ===')
+  logIfVerbose('[DISCOVERY] === DÉBUT DÉCOUVERTE ===')
   try {
-    console.log('[DISCOVERY] Docker API non accessible, utilisation des services configurés statiquement...')
+    logIfVerbose('[DISCOVERY] Docker API non accessible, utilisation des services configurés statiquement...')
 
     // Retourner les services configurés statiquement car Docker API n'est pas accessible
     const discoveredServices = {}
@@ -173,13 +178,12 @@ async function discoverServices() {
       }
     })
 
-    console.log(`[DISCOVERY] ${Object.keys(discoveredServices).length} services configurés`)
-    console.log('[DISCOVERY] === FIN DÉCOUVERTE ===')
+    logIfVerbose(`[DISCOVERY] ${Object.keys(discoveredServices).length} services configurés`)
+    logIfVerbose('[DISCOVERY] === FIN DÉCOUVERTE ===')
     return discoveredServices
-
   } catch (error) {
     console.error('[DISCOVERY] Erreur lors de la découverte:', error)
-    console.log('[DISCOVERY] === ERREUR DÉCOUVERTE ===')
+    logIfVerbose('[DISCOVERY] === ERREUR DÉCOUVERTE ===')
     return {}
   }
 }
@@ -400,7 +404,7 @@ let previousCpuStats = {}
 
 // Fonction pour collecter les métriques des conteneurs depuis /proc natif ET Docker stats
 async function collectContainerMetrics() {
-  console.log('[CONTAINERS] === DÉBUT COLLECTE CONTENEURS ===')
+  logIfVerbose('[CONTAINERS] === DÉBUT COLLECTE CONTENEURS ===')
   const containerMetrics = {}
   
   try {
@@ -413,7 +417,7 @@ async function collectContainerMetrics() {
       const name = (c.Names && c.Names[0]) ? c.Names[0].replace(/^\//, '') : ''
       return isJobbingTrackContainer(name)
     })
-    console.log(`[PROC] ${containers.length} conteneurs en cours d'exécution (${allContainers.length} total sur l'hôte, filtre JobbingTrack)`)
+    logIfVerbose(`[PROC] ${containers.length} conteneurs en cours d'exécution (${allContainers.length} total sur l'hôte, filtre JobbingTrack)`)
     
     // ✅ OPTIMISATION: Collecte parallèle avec limite de concurrence (max 5 conteneurs à la fois)
     const MAX_CONCURRENT = 5
@@ -428,7 +432,7 @@ async function collectContainerMetrics() {
         const pid = inspect.State.Pid
         
         if (!pid || pid === 0) {
-          console.log(`[PROC] ${containerName}: PID non disponible (conteneur arrêté?)`)
+          logIfVerbose(`[PROC] ${containerName}: PID non disponible (conteneur arrêté?)`)
           return null
         }
         
@@ -509,8 +513,7 @@ async function collectContainerMetrics() {
           pid: pid
         }
         
-        console.log(`[PROC] ${containerName}: CPU ${cpuPercent.toFixed(1)}%, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
-        
+        logIfVerbose(`[PROC] ${containerName}: CPU ${cpuPercent.toFixed(1)}%, Mémoire ${memoryMB}MB/${memoryLimitMB}MB (${memoryPercent.toFixed(1)}%)`)
         return { containerName, metrics }
         
       } catch (err) {
@@ -537,12 +540,11 @@ async function collectContainerMetrics() {
       containerMetrics[containerName] = metrics
     })
     
-    console.log(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés`)
+    logIfVerbose(`[CONTAINERS] ${Object.keys(containerMetrics).length} conteneurs collectés`)
     return containerMetrics
-    
   } catch (error) {
     console.error('[METRICS] Erreur collecte conteneurs:', error.message)
-    console.log('[CONTAINERS] === ERREUR COLLECTE CONTENEURS ===')
+    logIfVerbose('[CONTAINERS] === ERREUR COLLECTE CONTENEURS ===')
     return {}
   }
 }
@@ -560,7 +562,7 @@ async function collectMetricsFromMonitoringC() {
     })
     if (response.data) {
       const containerCount = response.data.containers?.length || 0
-      console.log(`[MONITORING-C] ✅ Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
+      logIfVerbose(`[MONITORING-C] ✅ Métriques récupérées: ${containerCount} conteneurs, CPU: ${response.data.avg_cpu_percent}%, Mem: ${response.data.avg_memory_percent}%`)
       return response.data
     }
     return null
@@ -576,9 +578,9 @@ async function collectMetricsFromMonitoringC() {
 
 // Fonction principale de collecte des métriques
 async function collectAllMetrics() {
-  console.log('[COLLECTOR] === DÉBUT COLLECTE ===')
+  logIfVerbose('[COLLECTOR] === DÉBUT COLLECTE ===')
   try {
-    console.log('[COLLECTOR] Démarrage de la collecte des métriques...')
+    logIfVerbose('[COLLECTOR] Démarrage de la collecte des métriques...')
 
     // ✅ NOUVEAU : Essayer d'abord de récupérer depuis monitoring C
     let monitoringCData = null
@@ -599,13 +601,10 @@ async function collectAllMetrics() {
         Object.assign(containerMetrics, collected)
       }
     } else {
-      // ✅ Utiliser les données de monitoring C pour enrichir les métriques
-      console.log('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
-      
-      // Convertir les conteneurs de monitoring C en format attendu (JobbingTrack uniquement, pas lab-*)
+      logIfVerbose('[COLLECTOR] Utilisation des données monitoring C pour enrichir les métriques')
       if (monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const filtered = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        console.log(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis monitoring C (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[COLLECTOR] Conversion de ${filtered.length} conteneurs depuis monitoring C (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         filtered.forEach(container => {
           const rawName = container.name || 'unknown'
           const containerName = rawName.startsWith('jobbingtrack-') ? rawName : `jobbingtrack-${rawName}`
@@ -848,9 +847,9 @@ async function collectAllMetrics() {
     const stackAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 0;
     const systemAvailability = totalServices > 0 ? Math.round((healthyServices / totalServices) * 100) : 100;
     
-    console.log(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
-    console.log(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
-    console.log(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
+    logIfVerbose(`[COLLECTOR] Métriques collectées pour ${totalServices} services`)
+    logIfVerbose(`[COLLECTOR] Disponibilité: ${healthyServices} sains, ${degradedServices} dégradés, ${offlineServices} hors ligne = ${stackAvailability}%`)
+    logIfVerbose(`[COLLECTOR] JobbingTrack: ${jobbingtrackContainers.length} conteneurs, CPU avg: ${systemMetrics.jobbingtrack?.containers?.cpu?.averagePercent}%, Mémoire: ${systemMetrics.jobbingtrack?.containers?.memory?.percent}%`)
     
     // Normaliser les champs attendus par le frontend (usage_percent, disk[0].usage)
     if (systemMetrics.cpu && systemMetrics.cpu.usage !== undefined && systemMetrics.cpu.usage_percent === undefined) {
@@ -1006,7 +1005,7 @@ async function collectAllMetrics() {
       // Si on a des données de monitoring C, les utiliser en priorité
       if (monitoringCData && monitoringCData.containers && Array.isArray(monitoringCData.containers)) {
         const toSave = monitoringCData.containers.filter(c => isJobbingTrackContainer(c.name || ''))
-        console.log(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
+        logIfVerbose(`[PERSISTENCE] Préparation de ${toSave.length} conteneurs depuis monitoring C pour sauvegarde (${monitoringCData.containers.length} reçus, filtre JobbingTrack)`)
         toSave.forEach(container => {
           const containerName = container.name || 'unknown'
           const memMb = Number(container.memory_mb) || 0
@@ -1035,7 +1034,7 @@ async function collectAllMetrics() {
         if (isJobbingTrackContainer(name)) containersForDb[name] = containerMetrics[name]
       })
       
-      console.log(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
+      logIfVerbose(`[PERSISTENCE] Sauvegarde de ${Object.keys(containersForDb).length} conteneurs en BDD`)
       await persistenceService.saveMultipleContainerMetrics(containersForDb)
       
       // Sauvegarder la disponibilité des services (silencieux si table absente)
@@ -1053,12 +1052,12 @@ async function collectAllMetrics() {
         });
       }
       
-      console.log('[PERSISTENCE] ✅ Métriques persistées avec succès')
+      logIfVerbose('[PERSISTENCE] ✅ Métriques persistées avec succès')
     } catch (error) {
       console.error('[PERSISTENCE] ❌ Erreur persistance:', error.message)
     }
     
-    console.log('[COLLECTOR] === FIN COLLECTE ===')
+    logIfVerbose('[COLLECTOR] === FIN COLLECTE ===')
 
     // Émettre les métriques via WebSocket
     io.emit('metrics-update', {
@@ -1070,7 +1069,7 @@ async function collectAllMetrics() {
 
   } catch (error) {
     console.error('[COLLECTOR] Erreur lors de la collecte:', error)
-    console.log('[COLLECTOR] === ERREUR COLLECTE ===')
+    logIfVerbose('[COLLECTOR] === ERREUR COLLECTE ===')
   }
 }
 

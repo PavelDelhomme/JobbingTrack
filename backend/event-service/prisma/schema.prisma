@@ -151,9 +151,9 @@ model Application {
   salaryMax             Int?                // en euros/an
   salaryNegotiable      Boolean             @default(false)
   
-  // Notes et suivi
+  // Notes et suivi (colonne BDD : archived)
   notes                 String?
-  isArchived            Boolean             @default(false)
+  isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
   
   // Timestamps

@@ -11,6 +11,37 @@ const mapInterviewResponse = (interview) => ({
   updatedAt: interview.updatedAt?.toISOString()
 });
 
+// Récupère une candidature par id (raw d'abord pour éviter erreur colonne isArchived/archived en BDD)
+async function getApplicationForUser(applicationId, userId) {
+  const aid = applicationId != null ? String(applicationId).trim() : '';
+  const uid = userId != null ? String(userId) : '';
+  if (!aid || !uid || aid === 'placeholder-application-id') return null;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      'SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1',
+      aid,
+      uid
+    );
+    const row = rows?.[0];
+    if (!row) return null;
+    const appId = row.id;
+    const appUserId = row.userId ?? row.userid;
+    const appCompanyId = row.companyId ?? row.companyid;
+    if (!appId) return null;
+    const company = appCompanyId ? await prisma.company.findUnique({ where: { id: appCompanyId } }).catch(() => null) : null;
+    return { ...row, id: appId, userId: appUserId, companyId: appCompanyId, company };
+  } catch (_) {
+    try {
+      return await prisma.application.findFirst({
+        where: { id: aid, userId: uid },
+        include: { company: true }
+      });
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+
 const createInterview = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -20,10 +51,7 @@ const createInterview = async (req, res, next) => {
 
     const userId = req.user.id;
     const { applicationId } = req.body;
-    const application = await prisma.application.findFirst({
-      where: { id: applicationId, userId },
-      include: { company: true }
-    });
+    const application = await getApplicationForUser(applicationId, userId);
 
     if (!application) {
       return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
@@ -187,19 +215,24 @@ const updateInterview = async (req, res, next) => {
 
     let companyId = existingInterview.companyId;
     if (req.body.applicationId && req.body.applicationId !== existingInterview.applicationId) {
-      const newApplication = await prisma.application.findFirst({
-        where: { id: req.body.applicationId, userId },
-        include: { company: true }
-      });
-
+      const newApplication = await getApplicationForUser(req.body.applicationId, userId);
       if (!newApplication) {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
       }
-
       companyId = newApplication.companyId;
     }
 
     const interviewDate = req.body.interviewDate || req.body.scheduledAt;
+
+    let statusId = existingInterview.statusId;
+    if (req.body.statusId) {
+      statusId = req.body.statusId;
+    } else if (req.body.status) {
+      const statusRow = await prisma.interviewStatus.findFirst({
+        where: { code: req.body.status.toUpperCase() }
+      });
+      if (statusRow) statusId = statusRow.id;
+    }
 
     const interview = await prisma.interview.update({
       where: { id },
@@ -213,7 +246,7 @@ const updateInterview = async (req, res, next) => {
         location: req.body.location ?? existingInterview.location,
         videoLink: req.body.videoLink ?? existingInterview.videoLink,
         notes: req.body.notes ?? existingInterview.notes,
-        status: req.body.status ? req.body.status.toUpperCase() : existingInterview.status
+        statusId
       },
       include: {
         application: {

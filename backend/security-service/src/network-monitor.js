@@ -262,29 +262,38 @@ function detectAnomalies(connections, previousConnections = []) {
     }
   }
 
-  // Détection port scanning (tentatives sur plusieurs ports depuis une IP)
-  const portsByIp = {};
+  // Détection port scanning : une IP qui se connecte à PLUSIEURS PORTS DESTINATION différents (scan de nos services).
+  // Exclure le faux positif : beaucoup de connexions d'une IP vers UN SEUL port (ex. app → postgres 5432) = trafic normal.
+  const localPortsByRemoteIp = {};
+  const remotePortsByRemoteIp = {};
   for (const conn of connections) {
-    const state = typeof conn.state === 'string' ? 
-      (conn.state === 'SYN_SENT' || conn.state === 'TIME_WAIT' ? 0x02 : null) : 
+    const state = typeof conn.state === 'string' ?
+      (conn.state === 'SYN_SENT' || conn.state === 'TIME_WAIT' ? 0x02 : null) :
       conn.state;
     if (state === 0x02 || state === 0x06) { // SYN_SENT ou TIME_WAIT
-      if (!portsByIp[conn.remoteIp]) {
-        portsByIp[conn.remoteIp] = new Set();
+      if (!localPortsByRemoteIp[conn.remoteIp]) {
+        localPortsByRemoteIp[conn.remoteIp] = new Set();
+        remotePortsByRemoteIp[conn.remoteIp] = new Set();
       }
-      portsByIp[conn.remoteIp].add(conn.localPort);
+      localPortsByRemoteIp[conn.remoteIp].add(conn.localPort);
+      remotePortsByRemoteIp[conn.remoteIp].add(conn.remotePort);
     }
   }
 
-  for (const [ip, ports] of Object.entries(portsByIp)) {
-    if (ports.size > 5) { // Seuil réduit pour détecter plus tôt
+  for (const [ip, localPorts] of Object.entries(localPortsByRemoteIp)) {
+    const remotePorts = remotePortsByRemoteIp[ip] || new Set();
+    // Éviter faux positif : une IP avec plein de connexions vers UN SEUL port (ex. app→postgres 5432) = normal
+    const singleDestinationPort = remotePorts.size <= 1;
+    // Vrai port scan = une IP touche au moins 3 ports différents côté nous (ex. 22, 80, 443)
+    const manyDistinctLocalPorts = localPorts.size >= 3;
+    if (manyDistinctLocalPorts && !singleDestinationPort) {
       anomalies.push({
         type: 'PORT_SCAN',
-        severity: ports.size > 20 ? 'HIGH' : ports.size > 10 ? 'MEDIUM' : 'LOW',
+        severity: localPorts.size > 20 ? 'HIGH' : localPorts.size > 10 ? 'MEDIUM' : 'LOW',
         sourceIp: ip,
-        portCount: ports.size,
-        ports: Array.from(ports),
-        message: `Port scanning détecté: ${ports.size} ports différents depuis ${ip} (ports: ${Array.from(ports).slice(0, 10).join(', ')})`
+        portCount: localPorts.size,
+        ports: Array.from(localPorts),
+        message: `Port scanning détecté: ${localPorts.size} ports différents depuis ${ip} (ports: ${Array.from(localPorts).slice(0, 10).join(', ')})`
       });
     }
   }

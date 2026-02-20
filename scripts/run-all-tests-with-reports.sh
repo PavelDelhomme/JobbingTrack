@@ -406,6 +406,12 @@ elif [ -f "tests/backend/test-security-service.test.js" ]; then
         "$REPORT_DIR/backend-services.json"
 fi
 
+# 6b. Tests API Backend (script complet : auth, users, companies, applications, contacts, interviews, calls, events, followups, profile, notifications, metrics, dashboard, emails, workflow, security)
+API_BASE_URL="${API_URL:-http://localhost:5002}"
+run_test "Tests API Backend (script - tous services)" \
+    "API_URL='$API_BASE_URL' bash scripts/test-api-specific.sh" \
+    "$REPORT_DIR/api-backend-script.json"
+
 # ==============================================================================
 # CATÉGORIE 2 : TESTS FRONTEND (PLAYWRIGHT)
 # ==============================================================================
@@ -741,6 +747,13 @@ if [ -f "tests/security/test-authorization.js" ]; then
     run_test "Tests Autorisation (Rôles & Permissions)" \
         "node tests/security/test-authorization.js" \
         "$REPORT_DIR/security-authorization.json"
+fi
+
+# 33b. Tests Sécurité Firewall & WAF (script API)
+if [ -f "scripts/security/test-firewall.sh" ]; then
+    run_test "Tests Sécurité Firewall & WAF (API)" \
+        "API_GATEWAY_URL='${API_URL:-http://localhost:5002}' bash scripts/security/test-firewall.sh" \
+        "$REPORT_DIR/security-firewall-api.json"
 fi
 
 # 34. Tests Rate Limiting Sécurité

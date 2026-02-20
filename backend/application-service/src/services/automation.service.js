@@ -22,16 +22,16 @@ const isElementArchived = async (elementType, elementId) => {
       case 'interview':
         const interview = await prisma.interview.findUnique({
           where: { id: elementId },
-          select: { isArchived: true }
+          select: { application: { select: { isArchived: true } } }
         });
-        return interview?.isArchived || false;
+        return interview?.application?.isArchived || false;
 
       case 'followup':
         const followup = await prisma.followUp.findUnique({
           where: { id: elementId },
-          select: { isArchived: true }
+          select: { application: { select: { isArchived: true } } }
         });
-        return followup?.isArchived || false;
+        return followup?.application?.isArchived || false;
 
       case 'contact':
         const contact = await prisma.contact.findUnique({
@@ -43,9 +43,9 @@ const isElementArchived = async (elementType, elementId) => {
       case 'call':
         const call = await prisma.call.findUnique({
           where: { id: elementId },
-          select: { isArchived: true }
+          select: { application: { select: { isArchived: true } } }
         });
-        return call?.isArchived || false;
+        return call?.application?.isArchived || false;
 
       default:
         return false;
@@ -58,8 +58,8 @@ const isElementArchived = async (elementType, elementId) => {
 
 // VÉRIFIER SI UNE CANDIDATURE EST ARCHIVÉE AVANT D'APPLIQUER DES LOGIQUES
 const shouldProcessApplication = async (applicationId) => {
-  const archived = await isElementArchived('application', applicationId);
-  if (archived) {
+  const isArchived = await isElementArchived('application', applicationId);
+  if (isArchived) {
     logger.info(`Candidature archivée ignorée pour automatisation: ${applicationId}`);
     return false;
   }
@@ -68,8 +68,8 @@ const shouldProcessApplication = async (applicationId) => {
 
 // VÉRIFIER SI UNE RELANCE EST ARCHIVÉE AVANT D'APPLIQUER DES LOGIQUES
 const shouldProcessFollowUp = async (followUpId) => {
-  const archived = await isElementArchived('followup', followUpId);
-  if (archived) {
+  const isArchived = await isElementArchived('followup', followUpId);
+  if (isArchived) {
     logger.info(`Relance archivée ignorée pour automatisation: ${followUpId}`);
     return false;
   }
@@ -78,8 +78,8 @@ const shouldProcessFollowUp = async (followUpId) => {
 
 // VÉRIFIER SI UN ENTRETIEN EST ARCHIVÉ AVANT D'APPLIQUER DES LOGIQUES
 const shouldProcessInterview = async (interviewId) => {
-  const archived = await isElementArchived('interview', interviewId);
-  if (archived) {
+  const isArchived = await isElementArchived('interview', interviewId);
+  if (isArchived) {
     logger.info(`Entretien archivé ignoré pour automatisation: ${interviewId}`);
     return false;
   }
@@ -96,15 +96,9 @@ const getActiveApplications = async (userId) => {
       },
       include: {
         company: true,
-        interviews: {
-          where: { isArchived: false }
-        },
-        followUps: {
-          where: { isArchived: false }
-        },
-        calls: {
-          where: { isArchived: false }
-        }
+        interviews: true,
+        followUps: true,
+        calls: true
       }
     });
   } catch (error) {
@@ -124,8 +118,7 @@ const getActiveFollowUps = async (userId) => {
 
     return await prisma.followUp.findMany({
       where: {
-        applicationId: { in: applicationIds },
-        isArchived: false
+        applicationId: { in: applicationIds }
       },
       include: {
         application: {
@@ -151,8 +144,7 @@ const getActiveInterviews = async (userId) => {
 
     return await prisma.interview.findMany({
       where: {
-        applicationId: { in: applicationIds },
-        isArchived: false
+        applicationId: { in: applicationIds }
       },
       include: {
         application: {
@@ -177,8 +169,7 @@ const getActiveCalls = async (userId) => {
 
     return await prisma.call.findMany({
       where: {
-        applicationId: { in: applicationIds },
-        isArchived: false
+        applicationId: { in: applicationIds }
       },
       include: {
         application: {
@@ -196,7 +187,7 @@ const getActiveCalls = async (userId) => {
 // FILTRE POUR EXCLURE LES ÉLÉMENTS ARCHIVÉS DANS LES REQUÊTES
 const getActiveElementsFilter = () => {
   return {
-    archived: false
+    isArchived: false
   };
 };
 

@@ -134,7 +134,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Construire la comparaison par test (si on a des tests détaillés)
-    const byTest: Array<{ testName: string; results: Record<string, 'pass' | 'fail' | 'skip'>; diff?: string }> = []
+    const byTest: Array<{
+      testName: string
+      results: Record<string, 'pass' | 'fail' | 'skip'>
+      details?: Record<string, { expected?: string; actual?: string; response?: string }>
+      diff?: string
+    }> = []
     const allTestNames = new Set<string>()
     for (const r of reportsData) {
       for (const t of r.tests) allTestNames.add(t.name)
@@ -142,20 +147,38 @@ export async function GET(request: NextRequest) {
     if (allTestNames.size > 0) {
       for (const testName of Array.from(allTestNames).sort()) {
         const results: Record<string, 'pass' | 'fail' | 'skip'> = {}
+        const details: Record<string, { expected?: string; actual?: string; response?: string }> = {}
         for (let i = 0; i < reportsData.length; i++) {
           const report = reportsData[i]
           const row = report.tests.find((t) => t.name === testName)
           results[report.id] = row ? row.status : 'skip'
+          if (row) {
+            details[report.id] = {
+              expected: row.expected || undefined,
+              actual: row.actual || undefined,
+              response: row.response || undefined
+            }
+          }
         }
         const statuses = Object.values(results)
         const allPass = statuses.every((s) => s === 'pass')
         const allFail = statuses.every((s) => s === 'fail')
         const mixed = !allPass && !allFail && statuses.some((s) => s !== 'skip')
         let diff: string | undefined
-        if (mixed) diff = 'Régression ou amélioration selon le rapport'
-        else if (allPass) diff = 'Réussi partout'
+        if (mixed) {
+          const ids = reportsData.map((r) => r.id)
+          const parts = ids.map((id) => {
+            const d = details[id]
+            const st = results[id]
+            if (d?.expected !== undefined || d?.actual !== undefined) {
+              return `${st}: attendu ${d.expected ?? '?'}, reçu ${d.actual ?? '?'}`
+            }
+            return st
+          })
+          diff = parts.join(' → ')
+        } else if (allPass) diff = 'Réussi partout'
         else if (allFail) diff = 'Échoué partout'
-        byTest.push({ testName, results, diff })
+        byTest.push({ testName, results, details: Object.keys(details).length ? details : undefined, diff })
       }
     }
 

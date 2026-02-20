@@ -1,10 +1,16 @@
 const { PrismaClient } = require('@prisma/client');
 const { validationResult } = require('express-validator');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 const companyService = require('../services/company.service');
 const axios = require('axios');
 
 const prisma = new PrismaClient();
+
+/** Génère un id unique type CUID pour insertion raw (quand Prisma échoue sur colonne isArchived/archived). */
+function generateApplicationId() {
+  return 'c' + Date.now().toString(36) + crypto.randomBytes(8).toString('hex');
+}
 
 const EVENT_SERVICE_URL = process.env.EVENT_SERVICE_URL || 'http://event-service:3011';
 
@@ -73,36 +79,114 @@ const createApplication = async (req, res, next) => {
       });
     }
 
-    const application = await prisma.application.create({
-      data: {
-        userId: req.user.id,
-        companyId: finalCompanyId,
-        platformId: platformId || null,
-        position,
-        description,
-        location,
-        contractType,
-        workMode,
-        applicationType,
-        salaryMin,
-        salaryMax,
-        salaryNegotiable,
-        statusId: statusRow.id,
-        applicationDate: applicationDate ? new Date(applicationDate) : new Date(), // ✅ NOUVEAU - Date par défaut
-        jobUrl,
-        notes
-      },
-      include: {
-        company: true,
-        platform: true,
-        status: true
+    let application;
+    try {
+      application = await prisma.application.create({
+        data: {
+          userId: req.user.id,
+          companyId: finalCompanyId,
+          platformId: platformId || null,
+          position,
+          description,
+          location,
+          contractType,
+          workMode,
+          applicationType,
+          salaryMin,
+          salaryMax,
+          salaryNegotiable,
+          statusId: statusRow.id,
+          applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
+          jobUrl,
+          notes
+        },
+        include: {
+          company: true,
+          platform: true,
+          status: true
+        }
+      });
+    } catch (createErr) {
+      const msg = (createErr && createErr.message) || (createErr && createErr.cause && createErr.cause.message) || String(createErr);
+      const hint = (createErr && createErr.meta && typeof createErr.meta === 'object' && createErr.meta.message) || '';
+      const full = msg + hint;
+      const isArchivedColumnError = full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'));
+      if (!isArchivedColumnError) throw createErr;
+
+      try {
+        application = await prisma.application.create({
+          data: {
+            userId: req.user.id,
+            companyId: finalCompanyId,
+            platformId: platformId || null,
+            position,
+            description,
+            location,
+            contractType,
+            workMode,
+            applicationType,
+            salaryMin,
+            salaryMax,
+            salaryNegotiable,
+            statusId: statusRow.id,
+            applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
+            jobUrl,
+            notes
+          }
+        });
+        const [company, platform, status] = await Promise.all([
+          prisma.company.findUnique({ where: { id: application.companyId } }).catch(() => null),
+          application.platformId ? prisma.platform.findUnique({ where: { id: application.platformId } }).catch(() => null) : null,
+          prisma.applicationStatus.findUnique({ where: { id: application.statusId } }).catch(() => null)
+        ]);
+        application = { ...application, company, platform, status };
+      } catch (secondErr) {
+        // Second create() peut encore lever (RETURNING avec isArchived) → fallback INSERT raw
+        const appId = generateApplicationId();
+        const appDate = applicationDate ? new Date(applicationDate) : new Date();
+        const rows = await prisma.$queryRawUnsafe(
+          `INSERT INTO "Application" ("id", "userId", "companyId", "platformId", "position", "description", "jobUrl", "location", "contractType", "workMode", "applicationType", "statusId", "applicationDate", "salaryMin", "salaryMax", "salaryNegotiable", "notes", "archived")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, false)
+           RETURNING *`,
+          appId,
+          req.user.id,
+          finalCompanyId,
+          platformId || null,
+          position || '',
+          description || null,
+          jobUrl || null,
+          location || null,
+          contractType || 'CDI',
+          workMode || null,
+          applicationType || 'OFFRE',
+          statusRow.id,
+          appDate,
+          salaryMin ?? null,
+          salaryMax ?? null,
+          salaryNegotiable === true,
+          notes || null
+        );
+        const row = rows?.[0];
+        if (!row) throw secondErr;
+        const rid = row.id ?? row.Id;
+        const cid = row.companyId ?? row.companyid;
+        const pid = row.platformId ?? row.platformid;
+        const sid = row.statusId ?? row.statusid;
+        const [company, platform, status] = await Promise.all([
+          cid ? prisma.company.findUnique({ where: { id: cid } }).catch(() => null) : null,
+          pid ? prisma.platform.findUnique({ where: { id: pid } }).catch(() => null) : null,
+          sid ? prisma.applicationStatus.findUnique({ where: { id: sid } }).catch(() => null) : null
+        ]);
+        const { archived, ...rest } = row;
+        application = { ...rest, id: rid, userId: row.userId ?? row.userid, companyId: cid, platformId: pid, statusId: sid, isArchived: archived ?? false, company, platform, status };
       }
-    });
+    }
 
     // ✅ Créer automatiquement un événement calendrier pour la candidature
     try {
       const eventDate = applicationDate ? new Date(applicationDate) : new Date();
-      const eventTitle = `📝 Candidature: ${position} chez ${application.company.name}`;
+      const companyName = application.company?.name || 'Entreprise';
+      const eventTitle = `📝 Candidature: ${position} chez ${companyName}`;
       const eventDescription = `Candidature envoyée pour le poste de ${position}\n\n${description || ''}`;
 
       await axios.post(
@@ -139,7 +223,7 @@ const createApplication = async (req, res, next) => {
         data: {
           applicationId: application.id,
           type: 'APPLICATION_CREATED',
-          description: `Candidature créée pour ${position} chez ${application.company.name}`
+          description: `Candidature créée pour ${position} chez ${application.company?.name || 'Entreprise'}`
         }
       });
     } catch (activityError) {
@@ -183,84 +267,118 @@ const getApplications = async (req, res, next) => {
   } = req.query;
 
     const offset = (page - 1) * limit;
-    
-  const where = {
-    userId: req.user.id,
-    ...(includeArchived !== 'true' && { archived: false }), // Exclure les candidatures archivées sauf si demandé
-    // ✅ CORRECTION: Utiliser statusId au lieu de status (car status est une relation, pas un champ)
-    ...(status && { 
-      status: {
-        code: status // Rechercher par code du statut
-      }
-    }),
-    ...(search && {
-      position: { contains: search, mode: 'insensitive' }
-    })
-  };
+    const userId = req.user.id;
 
+    // Liste : requête raw en premier pour éviter erreur colonne isArchived/archived en BDD
     let applications, total;
+    try {
+      const andArchived = includeArchived === 'true' ? '' : ' AND archived = false';
+      const countResult = await prisma.$queryRawUnsafe(
+        `SELECT COUNT(*)::int as count FROM "Application" WHERE "userId" = $1${andArchived}`,
+        userId
+      );
+      total = Number(countResult?.[0]?.count ?? countResult?.[0]?.Count ?? 0);
+      const applicationsRaw = await prisma.$queryRawUnsafe(
+        `SELECT * FROM "Application" WHERE "userId" = $1${andArchived} ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
+        userId,
+        parseInt(limit, 10) || 10,
+        parseInt(offset, 10) || 0
+      );
+      applications = (applicationsRaw || []).map(row => {
+        const { archived, ...rest } = row;
+        const id = row.id ?? row.Id;
+        const userIdR = row.userId ?? row.userid;
+        const companyIdR = row.companyId ?? row.companyid;
+        return { ...rest, id, userId: userIdR, companyId: companyIdR, isArchived: archived ?? false };
+      });
+      return res.json({
+        success: true,
+        applications,
+        pagination: { page: parseInt(page, 10), limit: parseInt(limit, 10), total, pages: Math.ceil(total / (parseInt(limit, 10) || 1)) }
+      });
+    } catch (rawListErr) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('List applications raw fallback failed, trying Prisma:', rawListErr.message);
+      }
+    }
+
+    // Fallback Prisma si raw a échoué
+    const where = {
+      userId,
+      ...(includeArchived !== 'true' && { isArchived: false }),
+      ...(status && { status: { code: status } }),
+      ...(search && { position: { contains: search, mode: 'insensitive' } })
+    };
     try {
       [applications, total] = await Promise.all([
         prisma.application.findMany({
           where,
           include: {
             company: true,
-            platform: true, // ✅ NOUVEAU - Inclure la plateforme
-            status: true, // ✅ Inclure le statut (relation ApplicationStatus)
-            _count: {
-              select: {
-                interviews: true,
-                followUps: true
-              }
-            }
+            platform: true,
+            status: true,
+            _count: { select: { interviews: true, followUps: true } }
           },
           orderBy: { [sortBy]: sortOrder },
-          skip: parseInt(offset),
-          take: parseInt(limit)
+          skip: parseInt(offset, 10),
+          take: parseInt(limit, 10)
         }),
         prisma.application.count({ where })
       ]);
     } catch (error) {
+      const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
+      const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
+      const full = msg + hint;
+      const isArchivedColumnError = full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'));
+      if (isArchivedColumnError && req.user?.id) {
+        try {
+          const andArchived = includeArchived === 'true' ? '' : ' AND archived = false';
+          const countResult = await prisma.$queryRawUnsafe(
+            `SELECT COUNT(*)::int as count FROM "Application" WHERE "userId" = $1${andArchived}`,
+            userId
+          );
+          const totalFallback = Number(countResult?.[0]?.count ?? 0);
+          const applicationsRaw = await prisma.$queryRawUnsafe(
+            `SELECT * FROM "Application" WHERE "userId" = $1${andArchived} ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
+            userId,
+            parseInt(limit, 10),
+            parseInt(offset, 10)
+          );
+          const applicationsFallback = (applicationsRaw || []).map(row => {
+            const { archived, ...rest } = row;
+            return { ...rest, id: row.id ?? row.Id, userId: row.userId ?? row.userid, companyId: row.companyId ?? row.companyid, isArchived: archived ?? false };
+          });
+          return res.json({
+            success: true,
+            applications: applicationsFallback,
+            pagination: { page: parseInt(page, 10), limit: parseInt(limit, 10), total: totalFallback, pages: Math.ceil(totalFallback / (parseInt(limit, 10) || 1)) }
+          });
+        } catch (rawErr) {
+          logger.warn('Fallback raw query (archived column) failed:', rawErr.message);
+        }
+      }
       // Fallback si table Application n'existe pas (P2021) - Mode développement
       const isTableError = error.code === 'P2021' || 
                           error.code === 'P2022' ||
-                          (error.message && (
-                            error.message.includes('does not exist') || 
-                            error.message.includes('Table') || 
-                            error.message.includes('relation') && error.message.includes('does not exist')
-                          ));
+                          (msg.includes('does not exist') || msg.includes('Table') || (msg.includes('relation') && msg.includes('does not exist')));
       
       if (isTableError && process.env.NODE_ENV !== 'production') {
         logger.warn('Table Application non trouvée, retour de données vides (mode développement)');
-        logger.warn(`   Code erreur: ${error.code}, Message: ${error.message}`);
         applications = [];
         total = 0;
-        
         return res.json({
           success: true,
           applications: [],
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total: 0,
-            pages: 0
-          },
+          pagination: { page: parseInt(page), limit: parseInt(limit), total: 0, pages: 0 },
           warning: 'Table Application non trouvée. Exécutez "make db-push-all" pour créer les tables.'
         });
-      } else {
-        // Logger l'erreur complète en développement
-        if (process.env.NODE_ENV === 'development') {
-          logger.error('Erreur récupération candidatures:', {
-            message: error.message,
-            code: error.code,
-            name: error.name,
-            stack: error.stack
-          });
-        } else {
-          logger.error('Erreur récupération candidatures:', error);
-        }
-        return next(error);
       }
+      if (process.env.NODE_ENV === 'development') {
+        logger.error('Erreur récupération candidatures:', { message: msg, code: error.code });
+      } else {
+        logger.error('Erreur récupération candidatures:', error);
+      }
+      return next(error);
     }
 
     res.json({
@@ -291,27 +409,22 @@ const getApplications = async (req, res, next) => {
 
 // READ - Une candidature
 const getApplication = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Non autorisé' });
+  }
 
+  try {
     const application = await prisma.application.findFirst({
-      where: {
-        id,
-        userId: req.user.id
-      },
+      where: { id, userId },
       include: {
         company: true,
-        platform: true, // ✅ NOUVEAU - Inclure la plateforme
-        interviews: {
-          orderBy: { scheduledAt: 'asc' }
-        },
-        followUps: {
-          orderBy: { scheduledDate: 'desc' }
-        },
-        activities: {
-          orderBy: { createdAt: 'desc' },
-          take: 10
-        }
+        platform: true,
+        status: true,
+        interviews: { orderBy: { scheduledAt: 'asc' } },
+        followUps: { orderBy: { scheduledDate: 'desc' } },
+        activities: { orderBy: { createdAt: 'desc' }, take: 10 }
       }
     });
 
@@ -322,11 +435,30 @@ const getApplication = async (req, res, next) => {
       });
     }
 
-    res.json({
-      success: true,
-      application
-    });
+    return res.json({ success: true, application });
   } catch (error) {
+    const msg = (error && error.message) || (error && error.cause && error.cause.message) || String(error);
+    const hint = (error && error.meta && typeof error.meta === 'object' && error.meta.message) || '';
+    const full = msg + hint;
+    // Fallback si le client Prisma envoie isArchived alors que la BDD a "archived"
+    if (full.includes('isArchived') && (full.includes('does not exist') || full.includes('Perhaps you meant') || full.includes('archived'))) {
+      try {
+        const rows = await prisma.$queryRawUnsafe(
+          `SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
+          id,
+          userId
+        );
+        const row = rows?.[0];
+        if (!row) {
+          return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
+        }
+        const { archived, ...rest } = row;
+        const application = { ...rest, isArchived: archived ?? false };
+        return res.json({ success: true, application });
+      } catch (rawErr) {
+        logger.warn('Fallback getApplication (archived) failed:', rawErr.message);
+      }
+    }
     logger.error('Erreur récupération candidature:', error);
     next(error);
   }

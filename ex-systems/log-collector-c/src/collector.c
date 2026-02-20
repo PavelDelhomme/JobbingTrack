@@ -23,6 +23,18 @@
 #define BUFFER_SIZE 8192
 #define LOG_DIR "/var/lib/docker/containers"
 
+/** Préfixe datetime ISO pour les logs (ex: 2026-02-20T16:30:00Z) */
+static const char* log_ts(void) {
+    static char buf[32];
+    time_t t = time(NULL);
+    struct tm *tm = gmtime(&t);
+    if (tm)
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+    else
+        snprintf(buf, sizeof(buf), "%ld", (long)t);
+    return buf;
+}
+
 static int inotify_fd;
 static int watch_count = 0;
 static WatchInfo watches[MAX_WATCHES];
@@ -189,45 +201,45 @@ int main(int argc, char *argv[]) {
         http_port = atoi(argv[1]);
     }
     
-    printf("🚀 Collecteur de logs démarré\n");
+    printf("[%s] 🚀 Collecteur de logs démarré\n", log_ts());
     
     // ✅ NOUVEAU : Initialiser le stockage PostgreSQL
-    printf("💾 Initialisation du stockage PostgreSQL...\n");
+    printf("[%s] 💾 Initialisation du stockage PostgreSQL...\n", log_ts());
     if (init_storage() != 0) {
-        fprintf(stderr, "⚠️  Échec initialisation PostgreSQL (les logs seront toujours disponibles via l'API HTTP)\n");
+        fprintf(stderr, "[%s] ⚠️  Échec initialisation PostgreSQL (les logs seront toujours disponibles via l'API HTTP)\n", log_ts());
     } else {
-        printf("✅ Stockage PostgreSQL initialisé\n");
+        printf("[%s] ✅ Stockage PostgreSQL initialisé\n", log_ts());
     }
     
     // ✅ NOUVEAU : Démarrer le serveur HTTP
-    printf("🌐 Démarrage du serveur HTTP...\n");
+    printf("[%s] 🌐 Démarrage du serveur HTTP...\n", log_ts());
     if (start_http_server(http_port) != 0) {
-        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n");
+        fprintf(stderr, "[%s] ⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n", log_ts());
     } else {
-        printf("✅ Serveur HTTP démarré sur le port %d\n", http_port);
-        printf("📊 API disponible sur http://localhost:%d/api/v1/logs\n", http_port);
+        printf("[%s] ✅ Serveur HTTP démarré sur le port %d\n", log_ts(), http_port);
+        printf("[%s] 📊 API disponible sur http://localhost:%d/api/v1/logs\n", log_ts(), http_port);
     }
     
     if (init_log_collector() != 0) {
-        fprintf(stderr, "Erreur initialisation\n");
+        fprintf(stderr, "[%s] Erreur initialisation\n", log_ts());
         stop_http_server();
         cleanup_storage();
         return 1;
     }
     
-    printf("✅ Surveillance de %d conteneurs\n", watch_count);
+    printf("[%s] ✅ Surveillance de %d conteneurs\n", log_ts(), watch_count);
     
     // ✅ AMÉLIORATION : Afficher les conteneurs surveillés
     if (watch_count > 0) {
-        printf("📋 Conteneurs surveillés:\n");
+        printf("[%s] 📋 Conteneurs surveillés:\n", log_ts());
         for (int i = 0; i < watch_count && i < 10; i++) {
-            printf("   - %s\n", watches[i].container_id);
+            printf("[%s]    - %s\n", log_ts(), watches[i].container_id);
         }
         if (watch_count > 10) {
-            printf("   ... et %d autres\n", watch_count - 10);
+            printf("[%s]    ... et %d autres\n", log_ts(), watch_count - 10);
         }
     } else {
-        printf("⚠️  Aucun conteneur trouvé à surveiller\n");
+        printf("[%s] ⚠️  Aucun conteneur trouvé à surveiller\n", log_ts());
         printf("💡 Vérifiez que /var/lib/docker/containers est accessible\n");
     }
     

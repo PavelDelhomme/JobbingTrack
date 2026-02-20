@@ -4,7 +4,7 @@
 # Gestion du démarrage, arrêt, restart des services Docker
 # ============================================================================
 
-.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
+.PHONY: setup install-docker install-emojis fix-frontend _up-full-internal up down down-keep-data up-full up-full-mickdevil up-no-check up-mickdevil up-with-mobile up-for-tests up-monitoring restart restart-tests-api-services restart-clean restart-force restart-full fix-unhealthy-healthchecks up-profile start-auth start-applications stop-service restart-service rebuild-service rebuild-metrics-aggregator rebuild-monitoring-c start-service up-service logs-service status status-live logs ps help-services
 
 # ============================================================================
 # INSTALLATION
@@ -181,6 +181,7 @@ help-services: ## Afficher l'aide services
 	@echo ""
 	@echo "🔄 RESTART:"
 	@echo "  make restart               - Redémarrer tous les services actifs (sans argument)"
+	@echo "  make restart-tests-api-services - Redémarrer application, interview, call, followup (fix tests API isArchived)"
 	@echo "  make restart-clean         - Redémarrage + nettoyage"
 	@echo "  make restart-full          - Redémarrage complet en conservant la DB (ex. après setup-ports)"
 	@echo "  make restart-service SERVICE=nom - Redémarrer un service (nom = comme dans make status)"
@@ -640,6 +641,14 @@ restart: ## Redémarrer seulement les conteneurs actuellement actifs
 	@echo "📊 État des services après redémarrage:"
 	@docker ps --filter "name=jobbingtrack-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 	@echo "✅ Services redémarrés"
+
+# Redémarrer les 4 services concernés par les tests API (isArchived/archived) pour charger le code à jour (volumes montés)
+restart-tests-api-services: ## Redémarrer application, interview, call, followup (après modif fallback isArchived)
+	@echo "🔄 Redémarrage des services Tests API (application, interview, call, followup)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) restart application-service interview-service call-service followup-service)
+	@echo "⏳ Attente 5s..."
+	@sleep 5
+	@echo "✅ Services redémarrés. Relancez les Tests API depuis le backoffice."
 
 # Recréer les conteneurs notification, profile, workflow pour appliquer les healthchecks corrigés (/health)
 fix-unhealthy-healthchecks: ## Recréer notification, profile, workflow pour appliquer les healthchecks (après correction /health)

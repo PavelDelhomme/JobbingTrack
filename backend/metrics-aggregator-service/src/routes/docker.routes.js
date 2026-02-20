@@ -794,7 +794,9 @@ router.get('/service/:name/logs', async (req, res) => {
     const serviceName = req.params.name;
     const lines = parseInt(req.query.lines) || 100;
     
-    console.log('[DOCKER ROUTES] 📜 Récupération logs pour:', serviceName, '- Lignes:', lines);
+    if (process.env.REDUCE_METRICS_LOGS === '0') {
+      console.log('[DOCKER ROUTES] 📜 Récupération logs pour:', serviceName, '- Lignes:', lines);
+    }
     
     const { exec } = require('child_process');
     const { promisify } = require('util');

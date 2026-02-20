@@ -36,11 +36,11 @@ const authenticate = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // ✅ Pas besoin de vérifier l'utilisateur en base - le JWT est la source de vérité
+      // ✅ JWT est la source de vérité ; auth-service envoie userId dans le payload
       req.user = {
-        id: decoded.userId,
+        id: decoded.userId ?? decoded.id,
         email: decoded.email,
-        role: decoded.role // ✅ Extraire le rôle du JWT
+        role: decoded.role
       };
       req.token = token;
       

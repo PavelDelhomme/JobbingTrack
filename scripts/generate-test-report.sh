@@ -29,6 +29,8 @@ if [ -n "$TESTS_RESULTS_DIR" ]; then
 else
   RESULTS_DIR="$PROJECT_ROOT/tests/results"
 fi
+# Heure locale : TZ pour timestamps lisibles (ex. Europe/Paris) ; UTC stocké en plus pour affichage frontend en heure locale utilisateur
+export TZ="${TZ:-Europe/Paris}"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT_DIR="$RESULTS_DIR/$TIMESTAMP"
 mkdir -p "$REPORT_DIR" || {
@@ -46,7 +48,7 @@ echo -e "${CYAN}╚════════════════════�
 echo ""
 # Marqueurs visibles dans les logs (grep "[TESTS API]") pour repérer début / fin du run
 if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Lancement de la suite Tests API — $(date '+%Y-%m-%dT%H:%M:%S%z')"
+  echo "[TESTS API] Lancement de la suite Tests API — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
 fi
 echo -e "${BLUE}📁 Répertoire des résultats : $REPORT_DIR${NC}"
 echo ""
@@ -55,7 +57,7 @@ echo ""
 export TEST_RESULTS_FILE="$REPORT_DIR/test-results.txt"
 echo -e "${YELLOW}🚀 Exécution du test...${NC}"
 if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Début exécution des tests — $(date '+%Y-%m-%dT%H:%M:%S%z')"
+  echo "[TESTS API] Début exécution des tests — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
 fi
 echo ""
 
@@ -74,7 +76,7 @@ end_time=$(date +%s)
 duration=$((end_time - start_time))
 
 if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Exécution des tests terminée — $(date '+%Y-%m-%dT%H:%M:%S%z') — durée ${duration}s — exit $exit_code"
+  echo "[TESTS API] Exécution des tests terminée — $(date '+%Y-%m-%dT%H:%M:%S %Z') — durée ${duration}s — exit $exit_code"
 fi
 
 # Lire les résultats et nettoyer les codes ANSI
@@ -174,8 +176,9 @@ else
     output_json="\"$output_json\""
 fi
 
-# Construire la section "Résultats par test" (table) à partir de test-results.txt
+# Construire la section "Résultats par test" (table) et "Tests en échec" (uniquement les échecs)
 structured_tests_html=""
+failed_tests_html=""
 if [ -f "$REPORT_DIR/test-results.txt" ]; then
     while IFS='|' read -r tag num name status expected actual response; do
         [ "$tag" != "TEST" ] && continue
@@ -183,10 +186,15 @@ if [ -f "$REPORT_DIR/test-results.txt" ]; then
         response_esc=$(echo "$response" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
         status_class=$([ "$status" = "pass" ] && echo "success" || echo "failed")
         structured_tests_html="$structured_tests_html<tr><td>$num</td><td>$name_esc</td><td><span class=\"badge badge-$status_class\">$status</span></td><td>$expected</td><td>$actual</td><td class=\"response-cell\">$response_esc</td></tr>"
+        if [ "$status" != "pass" ]; then
+            failed_tests_html="$failed_tests_html<tr><td>$num</td><td>$name_esc</td><td><span class=\"badge badge-failed\">$status</span></td><td>$expected</td><td>$actual</td><td class=\"response-cell\">$response_esc</td></tr>"
+        fi
     done < "$REPORT_DIR/test-results.txt" 2>/dev/null
 fi
 
 # Récupérer les logs des services (pendant l'exécution) depuis l'agrégateur
+# Strip ANSI (ESC[... et \u001b[...) pour un rapport lisible
+strip_ansi_logs() { sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' -e 's/\\u001b\[[0-9;]*[a-zA-Z]//g' -e 's/\\u001b\[[0-9;]*m//g'; }
 METRICS_AGGREGATOR_URL="${METRICS_AGGREGATOR_URL:-http://jobbingtrack-metrics-aggregator:3014}"
 logs_services_html=""
 for svc in api-gateway auth-service dashboard-service company-service application-service contact-service interview-service call-service event-service followup-service profile-service notification-service; do
@@ -196,9 +204,11 @@ for svc in api-gateway auth-service dashboard-service company-service applicatio
         if command -v jq >/dev/null 2>&1; then
             log_text=$(echo "$log_json" | jq -r '.lines[]? // empty' 2>/dev/null | head -50)
         else
-            log_text=$(echo "$log_json" | sed 's/\\n/\n/g' | sed -n 's/.*"lines":\[\(.*\)\].*/\1/p' | tr ',' '\n' | sed 's/^"//;s/"$//;s/\\"/"/g' | head -50)
+            # Sans jq: extraire uniquement le tableau .lines (pas errorLines/warningLines)
+            log_text=$(echo "$log_json" | sed -n 's/.*"lines":\[//p' | sed 's/"], *"errorLines".*//' | sed 's/"], *"warningLines".*//' | tr ',' '\n' | sed 's/^"//;s/"$//;s/\\"/"/g' | head -50)
         fi
         [ -z "$log_text" ] && log_text="(aucune ligne ou format non supporté)"
+        log_text=$(echo "$log_text" | strip_ansi_logs)
         log_escaped=$(echo "$log_text" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
         logs_services_html="$logs_services_html<div class=\"log-service\"><h4>$container_name</h4><pre class=\"log-pre\">$log_escaped</pre></div>"
     else
@@ -266,10 +276,12 @@ cat > "$RESULT_FILE" <<EOF
 }
 EOF
 
-# Créer le summary.json
+# Créer le summary.json (generatedAtISO en UTC pour affichage en heure locale dans le frontend)
+GENERATED_AT_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
 cat > "$SUMMARY_FILE" <<EOF
 {
   "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')",
+  "generatedAtISO": "$GENERATED_AT_ISO",
   "reportDir": "$REPORT_DIR",
   "testType": "$test_type",
   "category": "$category",
@@ -354,12 +366,24 @@ cat > "$HTML_REPORT" <<EOHTML
                     $([ "$skipped" -gt 0 ] && echo "<div class=\"stat skipped\"><span class=\"value\">$skipped</span><span class=\"label\">Ignorés</span></div>" || echo "")
                 </div>
                 <div class="meta">
-                    <span>Généré le $(date '+%d/%m/%Y à %H:%M:%S')</span>
+                    <span>Généré le <span id="report-generated-date" data-iso="$GENERATED_AT_ISO">$GENERATED_AT_ISO</span> (heure locale)</span>
                     <span>Durée : ${duration}s</span>
                     <span>Statut : <span class="badge badge-$([ $exit_code -eq 0 ] && echo "success" || echo "failed")">$([ $exit_code -eq 0 ] && echo "SUCCÈS" || echo "ÉCHEC")</span></span>
                 </div>
             </div>
         </div>
+
+        $([ "$failed" -gt 0 ] && [ -n "$failed_tests_html" ] && echo "
+        <div class=\"card\">
+            <div class=\"card-header\" style=\"border-left: 4px solid #c62828;\">❌ Tests en échec ($failed)</div>
+            <div class=\"card-body\">
+                <table class=\"results-table\">
+                    <thead><tr><th>#</th><th>Test</th><th>Statut</th><th>Attendu</th><th>Reçu</th><th>Réponse (extrait)</th></tr></thead>
+                    <tbody>$failed_tests_html</tbody>
+                </table>
+            </div>
+        </div>
+        ")
 
         $([ -n "$structured_tests_html" ] && echo "
         <div class=\"card\">
@@ -398,6 +422,17 @@ cat > "$HTML_REPORT" <<EOHTML
             </div>
         </div>
     </div>
+    <script>
+    (function(){
+      var el = document.getElementById('report-generated-date');
+      if (el && el.getAttribute('data-iso')) {
+        try {
+          var d = new Date(el.getAttribute('data-iso'));
+          if (!isNaN(d.getTime())) el.textContent = d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+        } catch(e) {}
+      }
+    })();
+    </script>
 </body>
 </html>
 EOHTML

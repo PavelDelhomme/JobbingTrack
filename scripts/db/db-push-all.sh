@@ -95,6 +95,13 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-status-tables.sql" ]; then
   echo ""
 fi
 
+# Fix colonne Application.isArchived (client Prisma attend isArchived, table n'a que archived)
+if [ -f "${ROOT_DIR}/scripts/db/fix-application-isarchived.sql" ]; then
+  echo "[DB-PUSH-ALL] Fix Application.isArchived (colonne générée pour compatibilité Prisma)"
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/fix-application-isarchived.sql" 2>&1 | grep -E "NOTICE|ERROR" || true
+  echo ""
+fi
+
 # Partie 2/3 : system_metrics, container_metrics, service_availability_history
 if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
