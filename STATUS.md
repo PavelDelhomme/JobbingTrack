@@ -49,11 +49,38 @@ La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **�
 
 ---
 
-## Travail en cours : SMTP, logs emails, API versioning
+## Mail / Emails – à faire (système complet)
 
-**Doc dédiée** : **`docs/emails/EMAILS.md`** — quoi faire, comment (SMTP, logs emails, API versioning), étapes et dépannage.
+Tout le travail mail (SMTP, logs, envoi depuis le backoffice) est piloté ici. Détails en profondeur : **`docs/emails/MAIL.md`**.
 
-En bref : configurer les variables SMTP → tester via backoffice (Déliverabilité) ou `GET /api/v1/emails/test-smtp` ; vérifier que `/backoffice/emails/logs` et la route versions analytics répondent (rebuild auth-service / dashboard-service si 404).
+### Config (.env / docker-compose auth-service)
+
+Variables à avoir pour l’envoi réel (déjà utilisées si tu recevais des mails de test avant) :
+
+- `SMTP_HOST` (ex. `ssl0.ovh.net`)
+- `SMTP_PORT` (ex. `465` ou `587`)
+- `SMTP_USER` (ex. `redacted@example.invalid`)
+- `SMTP_PASS`
+- `SMTP_FROM` (ex. `JobbingTrack <redacted@example.invalid>`)
+- `SMTP_REPLY_TO` (optionnel)
+- `EMAIL_PROVIDER` = `SMTP` (défaut) ou `RESEND`
+
+### Étapes à faire (dans l’ordre)
+
+1. **SMTP**  
+   Vérifier/corriger le .env (ou docker-compose) avec les variables ci-dessus → redémarrer auth-service (`make build` puis redémarrer le service ou `make up-full`). Tester : Backoffice → Emails → Déliverabilité → « Tester la connexion SMTP », ou API `GET /api/v1/emails/test-smtp` (avec token). Si ça marchait avant et plus maintenant : revérifier les variables et que auth-service tourne.
+
+2. **Logs emails**  
+   Page Backoffice → Emails → Historique des emails (`/backoffice/emails/logs`) ; API `GET /api/v1/emails/logs`. Si 404 : rebuild auth-service et redémarrer. Si 401 : se reconnecter (token).
+
+3. **API versioning (analytics)**  
+   Route `GET /api/v1/analytics/stats/:userId/versions` (dashboard-service). Si 404 : rebuild dashboard-service, vérifier `JWT_SECRET` partagé avec l’auth.
+
+### Dépannage rapide
+
+- Envoi / test SMTP qui ne marche plus : .env correct pour auth-service, auth-service redémarré, Backoffice → Déliverabilité ou `GET /api/v1/emails/test-smtp`.
+- Logs emails 404 : rebuild auth-service.
+- Versions analytics 404 : rebuild dashboard-service, `JWT_SECRET` identique.
 
 ---
 
