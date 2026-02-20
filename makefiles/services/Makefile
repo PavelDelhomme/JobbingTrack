@@ -166,6 +166,8 @@ help-services: ## Afficher l'aide services
 	@echo "  make fix-frontend          - Rebuild et redémarrer le frontend (fix erreurs JS)"
 	@echo ""
 	@echo "🚀 DÉMARRAGE:"
+	@echo "  make start                 - Alias de up-full (démarrer sans rebuild)"
+	@echo "  make fresh-start           - down + build + up-full + status (rebuild complet)"
 	@echo "  make up                    - Services essentiels (postgres, redis, gateway, frontend, auth)"
 	@echo "  make up-no-check           - Sans vérification Docker"
 	@echo "  make up-full               - TOUS les services (avec vérification Docker)"
@@ -472,28 +474,28 @@ _up-full-internal:
 	@echo "🚀 Démarrage du frontend..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d frontend)
 	
-	# Démarrer TOUS les autres services avec le profil 'full'
+	# Démarrer TOUS les autres services avec le profil 'full' (SANS monitoring-c et metrics-aggregator pour l'instant)
 	@echo "🚀 Démarrage de tous les microservices (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
-
-	# Démarrer le système de monitoring (ex-systems) : monitoring-c + metrics-aggregator (sans profil)
-	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d monitoring-c jobbingtrack-metrics-aggregator)
-	@echo "✅ Monitoring démarré (collecteur C + API agrégateur)"
-
-	# Optionnel : log-collector-c (depuis docker-compose.monitoring.yml)
-	@echo "📋 Démarrage du collecteur de logs (optionnel)..."
-	@$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
 	
 	# Attendre que tous les conteneurs soient démarrés (nécessaire pour db-push-all qui exécute Prisma dans chaque conteneur)
 	@echo "⏳ Attente que tous les services soient démarrés (8s)..."
 	@sleep 8
 	
-	# ✅ UN SEUL db-push-all : tous les conteneurs sont up, Prisma push (9 services) + init-system-metrics + init-key-tables
+	# ✅ UN SEUL db-push-all : Prisma push (9 services) + init-system-metrics + init-key-tables
+	# Fait AVANT monitoring/metrics-aggregator pour que container_metrics_snapshots existe dès le premier run
 	@echo "📊 Création/synchronisation des tables Prisma (db-push-all)..."
 	@$(MAKE) db-push-all || echo "⚠️  db-push-all a échoué ou partiel, vérifiez les logs"
-	@echo "⏳ Redémarrage de metrics-aggregator pour recharger le schéma BDD (évite cached plan / cache lookup for type)..."
-	@docker restart jobbingtrack-metrics-aggregator 2>/dev/null || true
+	
+	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
+	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d monitoring-c jobbingtrack-metrics-aggregator)
+	@echo "✅ Monitoring démarré (collecteur C + API agrégateur)"
+
+	# Optionnel : log-collector-c
+	@echo "📋 Démarrage du collecteur de logs (optionnel)..."
+	@$(call docker_compose, $(COMPOSE_FILES_FULL) --profile monitoring-c up -d --build --no-deps log-collector-c 2>/dev/null) || echo "   ⏭️  log-collector-c ignoré (fichier monitoring absent ou erreur)"
+	
 	@echo "⏳ Attente finalisation (3s)..."
 	@sleep 3
 	
@@ -887,7 +889,7 @@ logs-service: ## Voir les logs d'un service spécifique (SERVICE=nom)
 		echo "📋 Exemple: make logs-service SERVICE=metrics-aggregator"; \
 		exit 1; \
 	fi
-	@$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f $(COMPOSE_SVC)) 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+	@$(call docker_compose, $(COMPOSE_FILES_FULL) logs -f -t $(COMPOSE_SVC)) 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
 
 # ============================================================================
 # STATUS ET LOGS
@@ -1296,13 +1298,15 @@ logs: ## Affiche tous les logs en temps réel (tags colorés)
 	@echo "📋 Logs en temps réel des services JobbingTrack"
 	@echo "==============================================="
 	@echo "💡 Un service: make logs-service SERVICE=frontend  |  metrics-aggregator: make logs-metrics"
-	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta, ERROR=rouge"
+	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta"
+	@echo "   Erreurs (rouge): ERROR/FATAL, HTTP 404/5xx, tables absentes, « does not exist », Erreur insertion/sauvegarde"
+	@echo "   Timestamps: date/heure affichées (format ISO)"
 	@echo ""
-	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs"; exit 1)
 
 # Logs de metrics-aggregator uniquement (tags colorés)
 logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour quitter)
 	@echo "📊 Logs de metrics-aggregator"
 	@echo "=============================="
-	@docker logs jobbingtrack-metrics-aggregator -f 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+	@docker logs jobbingtrack-metrics-aggregator -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"

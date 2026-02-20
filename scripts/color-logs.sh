@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Colorize docker compose logs - tags ([DEBUG], [STATS], etc.) and errors
 # Usage: docker compose logs -f 2>/dev/null | ./scripts/color-logs.sh
+#
+# Lignes affichées en ROUGE (erreurs) :
+#   - ERROR/FATAL (Postgres, runtime)
+#   - HTTP 404 / 5xx (ex: "(HTTP 404)" ou access log " 404 ")
+#   - "does not exist", "Table X absente", "Erreur insertion/sauvegarde"
 
 RED='\033[1;31m'
 GREEN='\033[0;32m'
@@ -12,8 +17,19 @@ DIM='\033[2;37m'
 R='\033[0m'
 
 while IFS= read -r line || [ -n "$line" ]; do
-  # ERROR/FATAL lines (Postgres, runtime) - highlight in red
+  # ---- LIGNES ERREUR (toujours en rouge) ----
+  # Postgres / runtime ERROR ou FATAL
   if [[ "$line" =~ (ERROR|FATAL)[[:space:]:] ]]; then
+    printf '%b%s%b\n' "$RED" "$line" "$R"
+    continue
+  fi
+  # Réponses HTTP 4xx/5xx (access log: " 404 ", " 500 ", ou "(HTTP 404)", "(HTTP 5xx)")
+  if [[ "$line" =~ \"[[:space:]](4[0-9][0-9]|5[0-9][0-9])[[:space:]] ]] || [[ "$line" =~ \(HTTP[[:space:]](404|5[0-9][0-9])\) ]]; then
+    printf '%b%s%b\n' "$RED" "$line" "$R"
+    continue
+  fi
+  # Tables/relations manquantes, erreurs de persistance
+  if [[ "$line" =~ does[[:space:]]not[[:space:]]exist ]] || [[ "$line" =~ Table[[:space:]].*absente ]] || [[ "$line" =~ Erreur[[:space:]](insertion|sauvegarde) ]]; then
     printf '%b%s%b\n' "$RED" "$line" "$R"
     continue
   fi
