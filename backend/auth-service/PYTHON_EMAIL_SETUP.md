@@ -109,17 +109,19 @@ environment:
   - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
 ```
 
-### Configuration OVH (Production)
+### Configuration OVH (Production – MX Plan jobbingtrack.com)
 
 ```env
 SMTP_HOST=ssl0.ovh.net
-SMTP_PORT=587
+SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USE_SSL=false
-SMTP_USER=noreply@maily.ovh
+SMTP_USE_SSL=true
+SMTP_USER=noreply@jobbingtrack.com
 SMTP_PASS=votre-mot-de-passe
 SMTP_FROM=JobbingTrack <noreply@jobbingtrack.com>
 ```
+
+(Créer le compte `noreply@jobbingtrack.com` dans l’espace OVH, MX Plan jobbingtrack.com.)
 
 ### Configuration MailHog (Développement)
 

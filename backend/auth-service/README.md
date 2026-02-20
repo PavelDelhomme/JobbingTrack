@@ -10,6 +10,10 @@ Service d'authentification et d'autorisation. Gère les connexions, inscriptions
 - **[Sécurité](../../docs/deployment/security/README.md)** - Configuration sécurité
 - **[Architecture](../../docs/core/architecture/README.md)** - Architecture microservices
 
+## 📧 Mail / SMTP
+
+Config SMTP et envoi d’emails (reset password, vérification compte) : voir **`STATUS.md`** (section Mail / Emails) et **`docs/emails/MAIL.md`**. Config détaillée et tests Python : **`PYTHON_EMAIL_SETUP.md`** (dans ce dossier).
+
 ## 🚀 Démarrage rapide
 
 ```bash
