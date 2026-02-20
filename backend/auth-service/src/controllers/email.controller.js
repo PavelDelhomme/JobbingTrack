@@ -857,106 +857,52 @@ const testDNS = async (req, res) => {
 };
 
 /**
- * Tester la connexion SMTP (utilise le service Python)
+ * Tester la connexion SMTP (100 % Node / Nodemailer – pas de Python)
+ * Le service email du backoffice est entièrement en JavaScript pour rester cohérent avec la stack.
  */
 const testSMTPConnection = async (req, res) => {
+  const detailsPayload = () => ({
+    host: process.env.SMTP_HOST || 'Non configuré',
+    port: process.env.SMTP_PORT || 'Non configuré',
+    secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
+    useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
+    user: process.env.SMTP_USER || 'Non configuré',
+    from: process.env.SMTP_FROM || 'Non configuré',
+    suggestion: 'Vérifiez SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM dans .env puis redémarrez auth-service.',
+  });
+
   try {
-    // Utiliser le service Python pour tester la connexion SMTP
-    // PythonEmailService est exporté comme une instance déjà créée
-    const pythonService = require('../services/email/pythonEmailService');
-    
-    logger.info('[EmailController] Test de connexion SMTP via service Python...');
-    
-    let result;
-    try {
-      result = await pythonService.testConnection();
-      
-      // Vérifier que result est défini
-      if (!result) {
-        throw new Error('Le service Python n\'a retourné aucune réponse');
-      }
-    } catch (serviceError) {
-      logger.error('Erreur lors de l\'appel au service Python:', serviceError);
-      return res.status(500).json({
+    const provider = emailService.getProvider();
+    if (!provider || typeof provider.verifyConnection !== 'function') {
+      return res.status(503).json({
         success: false,
-        error: 'Erreur lors du test de connexion SMTP',
-        message: serviceError.message || 'Impossible d\'exécuter le service Python',
-        details: {
-          host: process.env.SMTP_HOST || 'Non configuré',
-          port: process.env.SMTP_PORT || 'Non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
-          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
-          user: process.env.SMTP_USER || 'Non configuré',
-          from: process.env.SMTP_FROM || 'Non configuré',
-          suggestion: 'Vérifiez que Python 3 est installé dans le conteneur et que le script email_service.py existe'
-        }
+        error: 'Provider email non disponible',
+        message: 'Le provider SMTP/Resend n\'est pas initialisé.',
+        details: detailsPayload(),
       });
     }
-    
-    // Vérifier que result est un objet valide
-    if (!result || typeof result !== 'object') {
-      logger.error('[EmailController] Résultat invalide du service Python:', result);
-      return res.status(500).json({
-        success: false,
-        error: 'Réponse invalide du service Python',
-        message: 'Le service Python n\'a pas retourné une réponse valide',
-        details: {
-          host: process.env.SMTP_HOST || 'Non configuré',
-          port: process.env.SMTP_PORT || 'Non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
-          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
-          user: process.env.SMTP_USER || 'Non configuré',
-          from: process.env.SMTP_FROM || 'Non configuré',
-          suggestion: 'Vérifiez que Python 3 est installé dans le conteneur et que le script email_service.py existe'
-        }
-      });
-    }
-    
-    if (result.success === true) {
-      res.json({
+    const verified = await provider.verifyConnection();
+    if (verified) {
+      logger.info('[EmailController] Test SMTP réussi (Node)');
+      return res.json({
         success: true,
-        message: result.message || 'Connexion SMTP réussie',
-        data: {
-          provider: 'SMTP (Python)',
-          host: process.env.SMTP_HOST || 'Non configuré',
-          port: process.env.SMTP_PORT || 'Non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
-          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
-          from: process.env.SMTP_FROM || 'Non configuré',
-          user: process.env.SMTP_USER || 'Non configuré',
-        }
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: result.error || 'Connexion SMTP échouée',
-        message: result.message || 'Impossible de se connecter au serveur SMTP',
-        details: {
-          host: process.env.SMTP_HOST || 'Non configuré',
-          port: process.env.SMTP_PORT || 'Non configuré',
-          secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
-          useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
-          user: process.env.SMTP_USER || 'Non configuré',
-          from: process.env.SMTP_FROM || 'Non configuré',
-          suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible'
-        }
+        message: 'Connexion SMTP réussie',
+        data: { provider: provider.getProviderName ? provider.getProviderName() : 'SMTP', ...detailsPayload() },
       });
     }
+    return res.status(500).json({
+      success: false,
+      error: 'Connexion SMTP échouée',
+      message: 'La vérification de la connexion a échoué.',
+      details: detailsPayload(),
+    });
   } catch (error) {
     logger.error('Erreur test SMTP:', error);
     res.status(500).json({
       success: false,
       error: 'Erreur lors du test de connexion SMTP',
       message: error.message || 'Erreur inconnue',
-      details: {
-        host: process.env.SMTP_HOST || 'Non configuré',
-        port: process.env.SMTP_PORT || 'Non configuré',
-        secure: process.env.SMTP_USE_SSL === 'true' || process.env.SMTP_SECURE === 'true' ? '✅ Oui' : '❌ Non',
-        useSSL: process.env.SMTP_USE_SSL === 'true' ? '✅ Oui' : '❌ Non',
-        user: process.env.SMTP_USER || 'Non configuré',
-        from: process.env.SMTP_FROM || 'Non configuré',
-        suggestion: 'Vérifiez vos variables SMTP dans .env et que le serveur SMTP est accessible. Vérifiez aussi que Python 3 est installé dans le conteneur.'
-      }
+      details: detailsPayload(),
     });
   }
 };

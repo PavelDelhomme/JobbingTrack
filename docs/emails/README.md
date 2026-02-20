@@ -4,6 +4,9 @@
 
 ## 📄 Fichiers Disponibles
 
+### 🎯 Quoi faire maintenant (SMTP, logs, API versioning)
+- **[EMAILS.md](EMAILS.md)** – **Quoi faire, comment** : SMTP, logs emails, API versioning (étapes, dépannage).
+
 ### 📊 État et Résumés
 - **[EMAIL_STATUS.md](EMAIL_STATUS.md)** - État complet du système email
 - **[RESUME_EMAIL.md](RESUME_EMAIL.md)** - Résumé rapide du système email
