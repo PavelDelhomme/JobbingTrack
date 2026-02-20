@@ -41,8 +41,15 @@ include makefiles/help/Makefile          # système d'aide
 # ============================================================================
 
 # Alias pour démarrer tous les services
-start: ## Alias de up-full - Démarrer TOUS les services
+start: ## Alias de up-full - Démarrer TOUS les services (sans rebuild)
 	@$(MAKE) up-full
+
+# Rebuild complet : down + build + up-full + status (utilise docker compose build puis up, pas make dev)
+fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make down && make build && make up-full && make status)
+	@$(MAKE) down
+	@$(MAKE) build
+	@$(MAKE) up-full
+	@$(MAKE) status
 
 # ============================================================================
 # BENCHMARK BACKOFFICE - Tests de performance avant/après optimisations

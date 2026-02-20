@@ -1104,10 +1104,9 @@ const persistenceRoutes = require('./routes/persistence.routes')
 const persistenceService = require('./services/persistence.service')
 const dockerLogsService = require('./services/docker-logs.service')
 
-// Routes API
-app.get('/api/v1/health', (req, res) => {
-  const startTime = Date.now();
-  
+// Routes API — /health pour monitoring-c (collecteur appelle GET /health), /api/v1/health pour docker healthcheck
+const healthPayload = (req, res) => {
+  const startTime = Date.now()
   res.json({
     status: 'online',
     service: 'jobbingtrack-metrics-aggregator',
@@ -1117,7 +1116,9 @@ app.get('/api/v1/health', (req, res) => {
     uptime: process.uptime(),
     memoryUsage: process.memoryUsage()
   })
-})
+}
+app.get('/health', healthPayload)
+app.get('/api/v1/health', healthPayload)
 
 // Routes Docker (métriques directes depuis Docker)
 app.use('/api/v1/docker', dockerRoutes)
