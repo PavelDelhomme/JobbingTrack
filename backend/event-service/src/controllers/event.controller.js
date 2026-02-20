@@ -147,9 +147,7 @@ const createEvent = async (req, res, next) => {
           allDay: Boolean(allDay),
           applicationId: applicationId || null,
           interviewId: interviewId || null,
-          followUpId: followUpId || null,
-          contactId: contactId || null,
-          companyId: application?.companyId || null
+          followUpId: followUpId || null
         }
       });
 

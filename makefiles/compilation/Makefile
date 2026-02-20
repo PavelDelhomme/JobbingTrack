@@ -4,7 +4,7 @@
 # Build, rebuild et nettoyage des images Docker
 # ============================================================================
 
-.PHONY: build rebuild-old clean clean-force help-compilation
+.PHONY: build build-application-service rebuild-old clean clean-force help-compilation
 
 # ============================================================================
 # AIDE
@@ -15,9 +15,10 @@ help-compilation: ## Afficher l'aide compilation
 	@echo "🔨 COMPILATION - Commandes disponibles"
 	@echo "================================================================"
 	@echo ""
-	@echo "🔨 BUILD:"
-	@echo "  make build                 - Build tous les services Docker"
-	@echo "  make rebuild               - Rebuild sans cache (complet) ⭐ NOUVELLE VERSION"
+	@echo "🔨 BUILD (KIS):"
+	@echo "  make build                 - Build des images (après changement code/schéma)"
+	@echo "  make build-application-service - Rebuild application-service SANS CACHE (si Company.isTestData persiste)"
+	@echo "  make rebuild               - Rebuild complet sans cache (si besoin)"
 	@echo ""
 	@echo "🧹 NETTOYAGE:"
 	@echo "  make clean                 - Nettoyage complet (containers, volumes, réseaux)"
@@ -47,6 +48,14 @@ build: ## Build tous les services
 	$(call check_docker)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) build)
 	@echo "✅ Tous les services construits"
+
+# Rebuild application-service SANS CACHE (obligatoire après modification du schéma Prisma Company/Application)
+# À utiliser si l'erreur « column Company.isTestData does not exist » persiste après correction du schéma
+build-application-service: ## Rebuild application-service sans cache (schéma Prisma à jour)
+	@echo "🔨 Rebuild application-service (sans cache) pour appliquer le schéma Prisma..."
+	$(call check_docker)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) build --no-cache application-service)
+	@echo "✅ application-service reconstruit. Puis: make up-full ou redémarrer le service."
 
 # Rebuild sans cache (OBSOLÈTE - utilisez 'make rebuild' à la racine)
 rebuild-old: ## Rebuild sans cache (ancienne version)

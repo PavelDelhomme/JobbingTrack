@@ -18,6 +18,36 @@ const mapCall = (call) => ({
   updatedAt: call.updatedAt?.toISOString()
 });
 
+async function getApplicationForUser(applicationId, userId) {
+  const aid = applicationId != null ? String(applicationId).trim() : '';
+  const uid = userId != null ? String(userId) : '';
+  if (!aid || !uid || aid === 'placeholder-application-id') return null;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      'SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1',
+      aid,
+      uid
+    );
+    const row = rows?.[0];
+    if (!row) return null;
+    const appId = row.id;
+    const appUserId = row.userId ?? row.userid;
+    const appCompanyId = row.companyId ?? row.companyid;
+    if (!appId) return null;
+    const company = appCompanyId ? await prisma.company.findUnique({ where: { id: appCompanyId } }).catch(() => null) : null;
+    return { ...row, id: appId, userId: appUserId, companyId: appCompanyId, company };
+  } catch (_) {
+    try {
+      return await prisma.application.findFirst({
+        where: { id: aid, userId: uid },
+        include: { company: true }
+      });
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+
 const getCalls = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -135,15 +165,10 @@ const createCall = async (req, res, next) => {
     let applicationIdToUse = applicationId || null;
 
     if (applicationId) {
-      const application = await prisma.application.findFirst({
-        where: { id: applicationId, userId },
-        include: { company: true }
-      });
-
+      const application = await getApplicationForUser(applicationId, userId);
       if (!application) {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
       }
-
       applicationIdToUse = application.id;
       companyId = application.companyId;
     }
@@ -207,15 +232,10 @@ const updateCall = async (req, res, next) => {
     let companyId = existingCall.companyId;
 
     if (req.body.applicationId && req.body.applicationId !== existingCall.applicationId) {
-      const application = await prisma.application.findFirst({
-        where: { id: req.body.applicationId, userId },
-        include: { company: true }
-      });
-
+      const application = await getApplicationForUser(req.body.applicationId, userId);
       if (!application) {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
       }
-
       applicationId = application.id;
       companyId = application.companyId;
     }
@@ -364,7 +384,7 @@ const getCallsByApplication = async (req, res, next) => {
     const userId = req.user.id;
     const { applicationId } = req.params;
 
-    const application = await prisma.application.findFirst({ where: { id: applicationId, userId } });
+    const application = await getApplicationForUser(applicationId, userId);
     if (!application) {
       return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
     }

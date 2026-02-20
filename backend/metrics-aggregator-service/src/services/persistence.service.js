@@ -113,8 +113,8 @@ class PersistenceService {
    */
   async saveContainerMetricsSnapshot(containerName, metricsData) {
     if (!this.isDatabaseEnabled()) return null;
-    if (this._missingTables.has('container_metrics_snapshot')) {
-      this._warnOnceMissing('container_metrics_snapshot', 'container_metrics_snapshot');
+    if (this._missingTables.has('container_metrics_snapshots')) {
+      this._warnOnceMissing('container_metrics_snapshots', 'container_metrics_snapshots');
       return null;
     }
     try {
@@ -148,8 +148,8 @@ class PersistenceService {
       
       return snapshot;
     } catch (error) {
-      if (this._isTableMissing(error, 'container_metrics_snapshot')) {
-        this._warnOnceMissing('container_metrics_snapshot', 'container_metrics_snapshot');
+      if (this._isTableMissing(error, 'container_metrics_snapshots')) {
+        this._warnOnceMissing('container_metrics_snapshots', 'container_metrics_snapshots');
         return null;
       }
       console.error(`[PERSISTENCE] ❌ Erreur sauvegarde métriques ${containerName}:`, error.message);

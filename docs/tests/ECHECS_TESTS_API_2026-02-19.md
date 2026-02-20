@@ -2,11 +2,11 @@
 
 **Dernière mise à jour** : 20 février 2026.
 
-**Résolutions appliquées** : voir **RESOLUTIONS.md**. Corrections : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, script (auth/profile, applicationId/subject/followUpDate), schémas Prisma alignés BDD (User.verificationToken/loginCount ; Application/Interview.statusId sur tous les services). **Seed statuts** : exécuté dans **`make db-push-all`** (ApplicationStatus, InterviewStatus, FollowUpStatus). **up-full** : un seul db-push-all après démarrage de tous les conteneurs (9/9 services synchronisés), puis redémarrage de metrics-aggregator.
+**Résolutions appliquées** : profile-service GET/PUT `/api/v1/profile/me`, notification 401, dashboard statistics, schémas Prisma alignés BDD (User.verificationToken/loginCount ; Application.archived, FollowUp.statusId ; **Application et Company sans isTestData/syncHash/entityHash/lastSyncAt** dans application-service ; Event create sans contactId/companyId). **Seed statuts** : dans **`make db-push-all`**. **up-full** : un seul db-push-all après démarrage (9/9 services), puis metrics-aggregator.
 
-**Rapport initial** : 36 tests, 21 réussis, 15 échoués (58 %).  
-**Prochaine étape** : après **`make down && make up-full`** (BDD fraîche, admin créé, 9/9 Prisma push), **relancer les Tests API depuis le backoffice** (Tests > Tests API > Lancer) et noter le nouveau résultat (X/36 passés). Le login doit renvoyer le vrai `userId`, donc Create Company / Application / Contact devraient pouvoir passer. Mettre à jour ce document avec le nouveau rapport si besoin.  
-**Runs** : backoffice (Tests > Tests API). Résumé (X/Y passés, Z échecs) après chaque run. Rapports : `tests/results/<timestamp>/` ou en Docker `TESTS_RESULTS_DIR`.
+**Dernier rapport (36 tests)** : **32 réussis, 4 échoués** (Create Application 500, Create Interview/Call/Followup 404 — cause : Company.isTestData en BDD ; corrigé en retirant isTestData/sync du modèle Company dans application-service).  
+**Prochaine étape** : **`make build`** puis **`make up-full`**, relancer les Tests API depuis le backoffice (viser 36/36).  
+**Runs** : backoffice (Tests > Tests API). Rapports : `tests/results/<timestamp>/` ou en Docker `TESTS_RESULTS_DIR`.
 
 ---
 
@@ -57,7 +57,22 @@ Les conteneurs utilisent le **code et le schéma Prisma présents dans l’image
 
 ---
 
-## Résumé des 15 échecs
+## Détail exécution 47 tests (13 pass, 34 fail)
+
+- **1–4** : Health, Auth → pass 200.
+- **5–11** : Company, Application, Contact, Interview, Call, Event, FollowUp (sans token) → pass 401.
+- **12** : Profile Service (sans token) → fail 404 (attendu 401) — Cannot GET /api/v1/profile/me.
+- **13** : Notification Service (sans token) → fail 200 (attendu 401) — Données démo.
+- **14, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 45** : Login → fail 401 (Invalid email or password).
+- **15, 17, 18, 20–21, 23–24, 26–27, 29–30, 32–33, 35–36, 38–39, 41–42, 47** : Get Profile, List Users, Companies, … → fail 401/404 (token manquant ou profile 404).
+- **44** : List Notifications → pass 200.
+- **46** : Get Metrics → pass 200.
+
+**Causes** : (1) Login 401 = admin avec hash « secret » → `make create-admin-user` avec auth-service up. (2) Profile 404 = **rebuild profile-service**. (3) Notification 200 sans token = **rebuild notification-service**.
+
+**Mise à jour 2026-02-20 (run 32/36 passent, 4 échecs)** : (1) **Application.isArchived** → `archived` dans interview/call/followup Prisma. (2) **FollowUp.status** → statusId dans followup-service. (3) **Events 403** → JWT_SECRET pour event-service. (4) **Create Application 500** — « column Company.isTestData does not exist » : modèle **Company** dans **application-service** aligné sur la BDD partagée (retrait de isTestData, syncHash, entityHash, lastSyncAt et @@index([isTestData])). (5) **Create Interview/Call/Followup 404** « Candidature non trouvée » : conséquence de l’échec Create Application ; une fois Create Application en 201, ces 3 tests passent. **Workflow** : `make build` puis `make up-full`, relancer les Tests API.
+
+## Résumé des 15 échecs (référence)
 
 | # | Test | Statut obtenu | Attendu | Cause / action |
 |---|------|----------------|---------|----------------|
@@ -99,4 +114,14 @@ Les conteneurs utilisent le **code et le schéma Prisma présents dans l’image
 6. ~~**dashboard-service** : erreur « reading 'count' »~~ — **Fait** (getAggregatedStatistics).
 7. ~~**Create Call / Create Followup** : champs requis~~ — **Fait** (applicationId, subject ; followUpDate).
 
-**Maintenant** : **Relancer les Tests API depuis le backoffice** et noter le nouveau résultat (X/36). Corriger les échecs restants un par un. Voir **STATUS.md** (Priorité 2) et **RESOLUTIONS.md**.
+**Correctifs 2026-02-20 (suite aux erreurs Postgres après db-push-all)** :
+- **User.loginCount / lastLoginAt manquants** : `workflow-service` fait un db push en dernier avec un modèle User simplifié et pouvait supprimer ces colonnes. **Correction** : (1) `scripts/db/init-key-tables.sql` ajoute désormais les colonnes `lastLoginAt` et `loginCount` sur `User` si elles manquent (après les 9 pushes). (2) Le modèle User de `workflow-service` inclut maintenant `verificationToken`, `verificationTokenExpiry`, `lastLoginAt`, `loginCount` pour ne plus les supprimer.
+- **Application.status / Interview.status does not exist** : le code utilisait encore un filtre/update sur une colonne `status` alors que la BDD n’a que `statusId`. **Corrections** : (1) `followup-service` : filtre par `status: { code: { in: [...] } }` au lieu de `status: { in: [...] }`. (2) `interview-service` : mise à jour par `statusId` (ou résolution du code vers un `InterviewStatus`), plus de `status` scalaire.
+- **Auth** : mise à jour du login pour incrémenter `loginCount` et mettre à jour `lastLoginAt` (schéma auth-service contient déjà ces champs).
+
+**Correctifs 2026-02-20 (tables metrics-aggregator)** :
+- **container_metrics_snapshots** : la table était absente (message « Table container_metrics_snapshot absente »). **Correction** : `scripts/db/init-key-tables.sql` crée désormais **container_metrics_snapshots** (compatible Prisma ContainerMetricsSnapshot).
+- **aggregated_logs** : la relation n’existait pas (erreur Postgres « relation public.aggregated_logs does not exist »). **Correction** : **aggregated_logs** ajoutée dans `init-key-tables.sql` (après création du type `LogLevel`), compatible Prisma AggregatedLog.
+- **metrics-aggregator** : le message d’avertissement utilise maintenant le nom de table correct (**container_metrics_snapshots**).
+
+**Procédure** : après modification des scripts SQL ou des schémas, **relancer `make db-push-all`** (ou `make down && make up-full` qui l’exécute), puis **redémarrer metrics-aggregator** si besoin (`docker restart jobbingtrack-metrics-aggregator`). Ensuite **relancer les Tests API** depuis le backoffice (Tests → Tests API → Lancer) et noter le résultat (X/Y passés). Le rapport peut afficher un total de 36, 47 ou autre selon les tests exécutés (script / sélection). Corriger les échecs restants selon ce document et **STATUS.md** (Priorité 2).

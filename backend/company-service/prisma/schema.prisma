@@ -49,6 +49,8 @@ model User {
   language          String?   @default("fr")
   timezone          String?   @default("Europe/Paris")
   notificationsEnabled Boolean @default(true)
+
+  isTestData Boolean @default(false)
   
   // Timestamps
   createdAt         DateTime  @default(now())
@@ -56,6 +58,7 @@ model User {
   deletedAt         DateTime? // Soft delete
   
   // Relations
+  profile           Profile?
   applications      Application[]
   companies         Company[]
   contacts          Contact[]
@@ -70,6 +73,23 @@ model User {
   @@index([email])
   @@index([role])
   @@index([isActive])
+  @@index([isTestData])
+}
+
+model Profile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  bio          String?
+  headline     String?
+  avatarUrl    String?
+  linkedinUrl  String?
+  githubUrl    String?
+  website      String?
+  preferences  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
 }
 
 enum UserRole {
@@ -151,9 +171,9 @@ model Application {
   salaryMax             Int?                // en euros/an
   salaryNegotiable      Boolean             @default(false)
   
-  // Notes et suivi
+  // Notes et suivi (colonne BDD : archived)
   notes                 String?
-  isArchived            Boolean             @default(false)
+  isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
   
   // Timestamps
@@ -242,6 +262,11 @@ model Contact {
   archivedAt        DateTime?
   archivedReason    String?
   
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -259,6 +284,7 @@ model Contact {
   @@index([userId])
   @@index([email])
   @@index([lastName, firstName])
+  @@index([isTestData])
 }
 
 // ============================================
@@ -270,14 +296,18 @@ model FollowUp {
   userId            String
   applicationId     String
   companyId         String
-  followUpTypeId    String?             // Type de relance (personnalisable)
-  followUpMethodId  String?             // Moyen de relance (personnalisable)
+  followUpTypeId    String?
+  followUpMethodId  String?
   
-  // Informations de la relance
   followUpDate      DateTime
-  status            FollowUpStatus      @default(PENDING)
-  response          String?             // Réponse reçue
+  statusId          String
+  response          String?
   notes             String?
+  
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
   
   // Timestamps
   createdAt         DateTime            @default(now())
@@ -290,6 +320,7 @@ model FollowUp {
   company           Company             @relation(fields: [companyId], references: [id])
   followUpType      FollowUpType?       @relation(fields: [followUpTypeId], references: [id])
   followUpMethod    FollowUpMethod?     @relation(fields: [followUpMethodId], references: [id])
+  status            FollowUpStatus      @relation(fields: [statusId], references: [id])
   
   contacts          FollowUpContact[]   // Many-to-many
   calls             Call[]
@@ -297,16 +328,26 @@ model FollowUp {
   
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([followUpDate])
+  @@index([isTestData])
 }
 
-enum FollowUpStatus {
-  PENDING                   // Relance en attente
-  POSITIVE_RESPONSE         // Retour positif reçu
-  NEGATIVE_RESPONSE         // Retour négatif reçu
-  NO_RESPONSE               // Aucun retour
-  PLANNED                   // Relance prévisionnelle
+model FollowUpStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  followUps   FollowUp[]
+  @@index([code])
 }
 
 // ============================================
@@ -329,6 +370,11 @@ model Call {
   notes             String?
   status            CallStatus          @default(COMPLETED)
   
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -347,6 +393,7 @@ model Call {
   @@index([userId])
   @@index([callDate])
   @@index([status])
+  @@index([isTestData])
 }
 
 enum CallStatus {
@@ -384,6 +431,11 @@ model Interview {
   outcome               InterviewOutcome?
   notes                 String?
   
+  isTestData            Boolean             @default(false)
+  syncHash              String?
+  entityHash            String?
+  lastSyncAt            DateTime?
+  
   // Timestamps
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -404,6 +456,7 @@ model Interview {
   @@index([applicationId])
   @@index([statusId])
   @@index([interviewDate])
+  @@index([isTestData])
 }
 
 // Table InterviewStatus (aligné BDD – statusId sur Interview)
@@ -460,6 +513,8 @@ model Event {
   // Personnalisation
   color             String?             @default("#3B82F6")
   
+  isTestData        Boolean             @default(false)
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -478,6 +533,7 @@ model Event {
   @@index([startDate])
   @@index([applicationId])
   @@index([interviewId])
+  @@index([isTestData])
 }
 
 // ============================================
@@ -516,6 +572,11 @@ model Document {
   fileSize          Int                 // en bytes
   mimeType          String
   
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
   // Timestamps
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -528,6 +589,7 @@ model Document {
   @@index([userId])
   @@index([applicationId])
   @@index([documentType])
+  @@index([isTestData])
 }
 
 enum DocumentType {

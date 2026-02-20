@@ -17,7 +17,7 @@ COPY package*.json ./
 # Installer les dépendances
 RUN npm install --omit=dev
 
-# Copier le schéma Prisma
+# Copier le schéma Prisma (aligné BDD: Application.archived)
 COPY prisma ./prisma/
 
 # Générer le client Prisma

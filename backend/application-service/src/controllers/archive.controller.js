@@ -83,9 +83,7 @@ const restoreApplication = async (req, res, next) => {
       where: { id },
       data: {
         isArchived: false,
-        archivedAt: null,
-        archivedBy: null,
-        archivedReason: null
+        archivedAt: null
       }
     });
 
@@ -122,7 +120,7 @@ const getArchivedApplications = async (req, res, next) => {
 
     const where = {
       userId: req.user.id,
-      archived: true,
+      isArchived: true,
       ...(search && {
         OR: [
           { position: { contains: search, mode: 'insensitive' } },
@@ -169,50 +167,10 @@ const getArchivedApplications = async (req, res, next) => {
 };
 
 // FONCTION POUR ARCHIVER LES ÉLÉMENTS LIÉS
+// Note: FollowUp, Interview, Call n'ont pas isArchived dans le schéma BDD partagé; seul Application.archived est utilisé.
 const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
   try {
-    // Archiver tous les entretiens liés
-    await prisma.interview.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: true,
-        archivedAt: new Date(),
-        archivedBy,
-        archivedReason: reason
-      }
-    });
-
-    // Archiver toutes les relances liées
-    await prisma.followUp.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: true,
-        archivedAt: new Date(),
-        archivedBy,
-        archivedReason: reason
-      }
-    });
-
-    // Archiver tous les appels liés
-    await prisma.call.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: true,
-        archivedAt: new Date(),
-        archivedBy,
-        archivedReason: reason
-      }
-    });
-
-    // Archiver toutes les activités liées
-    await prisma.activity.updateMany({
-      where: { applicationId },
-      data: {
-        // Les activités restent visibles même si liées à une candidature archivée
-        // On pourrait ajouter un champ isArchived aux activités si nécessaire
-      }
-    });
-
+    // Les activités restent visibles même si liées à une candidature archivée
     logger.info(`Éléments liés archivés pour candidature: ${applicationId}`);
   } catch (error) {
     logger.error('Erreur archivage éléments liés:', error);
@@ -221,41 +179,9 @@ const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
 };
 
 // FONCTION POUR RESTAURER LES ÉLÉMENTS LIÉS
+// Note: FollowUp, Interview, Call n'ont pas isArchived dans le schéma BDD partagé.
 const restoreRelatedElements = async (applicationId) => {
   try {
-    // Restaurer tous les entretiens liés
-    await prisma.interview.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: false,
-        archivedAt: null,
-        archivedBy: null,
-        archivedReason: null
-      }
-    });
-
-    // Restaurer toutes les relances liées
-    await prisma.followUp.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: false,
-        archivedAt: null,
-        archivedBy: null,
-        archivedReason: null
-      }
-    });
-
-    // Restaurer tous les appels liés
-    await prisma.call.updateMany({
-      where: { applicationId },
-      data: {
-        isArchived: false,
-        archivedAt: null,
-        archivedBy: null,
-        archivedReason: null
-      }
-    });
-
     logger.info(`Éléments liés restaurés pour candidature: ${applicationId}`);
   } catch (error) {
     logger.error('Erreur restauration éléments liés:', error);
@@ -269,21 +195,21 @@ const getArchiveStats = async (req, res, next) => {
     const userId = req.user.id;
 
     const stats = await prisma.application.groupBy({
-      by: ['archived'],
+      by: ['isArchived'],
       where: { userId },
       _count: {
         id: true
       }
     });
 
-    const archivedCount = stats.find(s => s.archived)?._count.id || 0;
-    const activeCount = stats.find(s => !s.archived)?._count.id || 0;
+    const archivedCount = stats.find(s => s.isArchived)?._count.id || 0;
+    const activeCount = stats.find(s => !s.isArchived)?._count.id || 0;
 
     res.json({
       success: true,
       stats: {
         total: archivedCount + activeCount,
-        archived: archivedCount,
+        isArchived: archivedCount,
         active: activeCount,
         archivedPercentage: activeCount > 0 ? Math.round((archivedCount / (archivedCount + activeCount)) * 100) : 0
       }

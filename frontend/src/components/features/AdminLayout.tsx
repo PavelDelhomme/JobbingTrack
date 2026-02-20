@@ -362,9 +362,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   )}
                 </button>
 
-                {/* Section Items - Collapsible */}
+                {/* Section Items - Collapsible (indentés sous le titre de section) */}
                 {(!section.isCollapsible || expandedSections[section.id]) && (
-                  <div className="space-y-1">
+                  <div className="pl-4 space-y-1 border-l border-gray-200 dark:border-gray-700 ml-2">
                     {section.items.map((item) => {
                       const isActive = pathname === item.href
                       const hasSubItems = item.subItems && item.subItems.length > 0
@@ -453,9 +453,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                   </button>
                                 )}
                               </div>
-                              {/* Sous-items */}
+                              {/* Sous-items (retrait supplémentaire sous l'item parent) */}
                               {hasSubItems && isItemExpanded && (
-                                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+                                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                                   {item.subItems.map((subItem) => {
                                     const isSubActive = pathname === subItem.href
                                     return subItem.href ? (

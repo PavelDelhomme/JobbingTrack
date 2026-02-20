@@ -306,9 +306,9 @@ const login = async (req, res, next) => {
       try {
         await prisma.user.update({
           where: { id: user.id },
-          data: { 
-            lastLoginAt: new Date()
-            // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
+          data: {
+            lastLoginAt: new Date(),
+            loginCount: (user.loginCount ?? 0) + 1
           }
         });
       } catch (error) {

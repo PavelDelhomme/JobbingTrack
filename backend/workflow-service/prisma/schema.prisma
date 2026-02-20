@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle Utilisateur (simplifié pour workflow-service)
+// Modèle Utilisateur (aligné BDD partagée – garder colonnes pour ne pas les supprimer au db push)
 model User {
   id             String  @id @default(cuid())
   email          String  @unique
@@ -18,6 +18,12 @@ model User {
   lastName       String
   phone          String?
   profilePicture String?
+
+  // Champs auth (requis pour ne pas les supprimer quand workflow-service fait db push en dernier)
+  verificationToken     String?   @unique
+  verificationTokenExpiry DateTime?
+  lastLoginAt           DateTime?
+  loginCount            Int       @default(0)
 
   // Champs administratifs
   role     UserRole @default(USER)
@@ -203,8 +209,8 @@ model Application {
   applicationDate DateTime          @default(now()) // Date et heure d'envoi
   jobUrl          String?
   notes           String?
-  // Champs d'archivage
-  isArchived      Boolean           @default(false)
+  // Champs d'archivage (colonne BDD : archived)
+  isArchived      Boolean           @default(false) @map("archived")
   archivedAt      DateTime?
   archivedBy      String? // ID de l'utilisateur qui a archivé
   archivedReason  String? // Raison de l'archivage

@@ -132,13 +132,51 @@ if command -v docker &> /dev/null; then
 
     if [ -z "$EXISTS" ] || [ "$EXISTS" = "0" ]; then
         echo "🔧 Création de l'utilisateur administrateur..."
+        AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-auth-service 2>/dev/null)
+        CREATED_VIA_NODE=""
+        if [ -n "$AUTH_CONTAINER" ]; then
+            if docker exec $AUTH_CONTAINER node -e "
+            const { PrismaClient } = require('@prisma/client');
+            const bcrypt = require('bcryptjs');
+            async function createAdmin() {
+                const prisma = new PrismaClient();
+                try {
+                    const hashedPassword = await bcrypt.hash('$ADMIN_PASSWORD', 10);
+                    await prisma.user.upsert({
+                        where: { email: '$ADMIN_EMAIL' },
+                        create: { email: '$ADMIN_EMAIL', password: hashedPassword, firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true },
+                        update: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', role: 'SUPER_ADMIN', isActive: true }
+                    });
+                    console.log('OK');
+                } finally { await prisma.\$disconnect(); }
+            }
+            createAdmin();
+            " 2>/dev/null | grep -q OK; then
+                CREATED_VIA_NODE="1"
+                echo -e "${GREEN}✅ Utilisateur admin créé via auth-service (mot de passe: \$ADMIN_PASSWORD)${NC}"
+            fi
+        fi
+        if [ -z "$CREATED_VIA_NODE" ]; then
+        # Hash bcrypt pour ADMIN_PASSWORD — généré via auth-service si disponible, sinon hash pour "secret"
+        BCRYPT_HASH="$(
+          if [ -n "$AUTH_CONTAINER" ]; then
+            docker exec $AUTH_CONTAINER node -e "console.log(require('bcryptjs').hashSync('$ADMIN_PASSWORD', 10))" 2>/dev/null || true
+          fi
+        )"
+        if [ -z "$BCRYPT_HASH" ]; then
+          # Fallback : hash pour "secret" (si auth-service indisponible). Pour password123, lancez avec auth-service démarré.
+          BCRYPT_HASH='$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi'
+          echo -e "${YELLOW}💡 Mot de passe admin = 'secret' (hash par défaut). Pour password123: relancez 'make create-admin-user' avec auth-service up.${NC}"
+        fi
+        # Échapper $ pour le shell dans la chaîne psql
+        BCRYPT_ESC=$(echo "$BCRYPT_HASH" | sed 's/\$/\\$/g')
         # id obligatoire (Prisma @id @default(cuid())) : CUID-like = 'c' + 24 caractères (compatible toutes versions PG)
         docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
         INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", role, \"isActive\", \"createdAt\", \"updatedAt\")
         VALUES (
           'c' || substr(md5(random()::text || now()::text), 1, 24),
           '$ADMIN_EMAIL',
-          '\$2b\$10\$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36ZPfP6P.wqgU5OVgHOVCoi',
+          '$BCRYPT_ESC',
           '$ADMIN_FIRST_NAME',
           '$ADMIN_LAST_NAME',
           'SUPER_ADMIN',
@@ -151,6 +189,7 @@ if command -v docker &> /dev/null; then
             echo -e "${YELLOW}💡 La table User existe-t-elle ? Lancez 'make db-migrate' si nécessaire${NC}"
             exit 1
         }
+        fi
     else
         echo "🔄 Utilisateur déjà existant, mise à jour..."
         UPDATE_RESULT=$(docker exec $POSTGRES_CONTAINER psql -U $DB_USER -d $DB_NAME -c "

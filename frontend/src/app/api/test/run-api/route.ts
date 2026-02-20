@@ -44,7 +44,7 @@ function getApiUrlForTests(): string {
 
 export async function POST(request: NextRequest) {
   // Log visible dans les logs du conteneur frontend quand on lance les Tests API depuis le backoffice
-  const startLabel = `[TESTS API] Démarrage des Tests API depuis le backoffice — ${new Date().toISOString()}`
+  const startLabel = `[TESTS API] Démarrage des Tests API depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`
   console.log(startLabel)
 
   try {
@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
 
     const apiUrl = getApiUrlForTests()
     const metricsAggregatorUrl = process.env.METRICS_AGGREGATOR_URL || (process.env.PROJECT_ROOT === '/app' ? 'http://jobbingtrack-metrics-aggregator:3014' : 'http://localhost:5004')
-    const env = { ...process.env, API_URL: apiUrl, METRICS_AGGREGATOR_URL: metricsAggregatorUrl }
+    const tz = process.env.TZ || process.env.NEXT_PUBLIC_TZ || 'Europe/Paris'
+    const env = { ...process.env, API_URL: apiUrl, METRICS_AGGREGATOR_URL: metricsAggregatorUrl, TZ: tz }
 
     let stdout = ''
     let reportId: string | null = null
@@ -83,30 +84,32 @@ export async function POST(request: NextRequest) {
       const execErr = err as { stdout?: string; stderr?: string; message?: string; status?: number }
       stdout = execErr.stdout || ''
       reportId = extractReportId(stdout)
-      const errorMessage = execErr.message || 'Erreur lors de l’exécution des tests'
+      const summary = reportId ? readSummary(reportId) : null
+      const friendlyError = summary && (summary.failed ?? 0) > 0
+        ? `Certains tests ont échoué (${summary.failed}/${summary.total}). Consultez le rapport ci-dessous.`
+        : (execErr.message || 'Erreur lors de l’exécution des tests')
       // Si un rapport a tout de même été généré (script a écrit le rapport puis exit 1), retourner 200 pour permettre de l’ouvrir
       if (reportId) {
-        console.log(`[TESTS API] Fin des Tests API (échec partiel) — ${new Date().toISOString()} — rapport: ${reportId}`)
-        const summary = readSummary(reportId)
+        console.log(`[TESTS API] Fin des Tests API (échec partiel) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId}`)
         return NextResponse.json({
           success: false,
-          error: errorMessage,
+          error: friendlyError,
           reportId,
           reportLocation: 'tests/results/',
           selectedTests: tests,
           summary: summary ?? undefined,
         }, { status: 200 })
       }
-      console.log(`[TESTS API] Fin des Tests API (erreur) — ${new Date().toISOString()}`)
+      console.log(`[TESTS API] Fin des Tests API (erreur) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
       return NextResponse.json({
         success: false,
-        error: errorMessage,
+        error: friendlyError,
         reportId: undefined,
         selectedTests: tests,
       }, { status: 500 })
     }
 
-    const endLabel = `[TESTS API] Fin des Tests API — ${new Date().toISOString()} — rapport: ${reportId ?? 'N/A'}`
+    const endLabel = `[TESTS API] Fin des Tests API — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`
     console.log(endLabel)
 
     const summary = reportId ? readSummary(reportId) : null
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'
-    const endLabel = `[TESTS API] Fin des Tests API (erreur) — ${new Date().toISOString()}`
+    const endLabel = `[TESTS API] Fin des Tests API (erreur) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`
     console.log(endLabel)
     return NextResponse.json(
       { success: false, error: message },

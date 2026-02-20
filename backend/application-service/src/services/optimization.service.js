@@ -62,18 +62,16 @@ class OptimizationService {
           interviews: {
             select: {
               id: true,
-              type: true,
-              scheduledAt: true,
-              status: true,
+              interviewDate: true,
+              statusId: true,
               companyId: true
             }
           },
           followUps: {
             select: {
               id: true,
-              type: true,
-              scheduledDate: true,
-              status: true,
+              followUpDate: true,
+              statusId: true,
               companyId: true
             }
           }
@@ -185,7 +183,7 @@ class OptimizationService {
     return await prisma.contact.findMany({
       where: {
         userId,
-        archived: false
+        isArchived: false
       },
       include,
       orderBy: { lastContactDate: 'desc' }
@@ -240,13 +238,13 @@ class OptimizationService {
   async getOptimizedStats(userId) {
     // Requête unique au lieu de multiples requêtes
     const stats = await prisma.application.groupBy({
-      by: ['status'],
+      by: ['statusId'],
       where: {
         userId,
-        archived: false
+        isArchived: false
       },
       _count: {
-        status: true
+        statusId: true
       }
     });
 
@@ -255,7 +253,7 @@ class OptimizationService {
       by: ['companyId'],
       where: {
         userId,
-        archived: false
+        isArchived: false
       },
       _count: {
         companyId: true

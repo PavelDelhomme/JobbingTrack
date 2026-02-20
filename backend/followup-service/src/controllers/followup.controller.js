@@ -18,6 +18,36 @@ const mapFollowup = (followup) => ({
   updatedAt: followup.updatedAt?.toISOString()
 });
 
+async function getApplicationForUser(applicationId, userId) {
+  const aid = applicationId != null ? String(applicationId).trim() : '';
+  const uid = userId != null ? String(userId) : '';
+  if (!aid || !uid || aid === 'placeholder-application-id') return null;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      'SELECT * FROM "Application" WHERE "id" = $1 AND "userId" = $2 LIMIT 1',
+      aid,
+      uid
+    );
+    const row = rows?.[0];
+    if (!row) return null;
+    const appId = row.id;
+    const appUserId = row.userId ?? row.userid;
+    const appCompanyId = row.companyId ?? row.companyid;
+    if (!appId) return null;
+    const company = appCompanyId ? await prisma.company.findUnique({ where: { id: appCompanyId } }).catch(() => null) : null;
+    return { ...row, id: appId, userId: appUserId, companyId: appCompanyId, company };
+  } catch (_) {
+    try {
+      return await prisma.application.findFirst({
+        where: { id: aid, userId: uid },
+        include: { company: true }
+      });
+    } catch (e) {
+      throw e;
+    }
+  }
+}
+
 const getFollowups = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -28,7 +58,7 @@ const getFollowups = async (req, res, next) => {
 
     const where = {
       userId,
-      ...(status && { status: sanitizeStatus(status) })
+      ...(status && { status: { code: sanitizeStatus(status) } })
     };
 
     let followups, total, usedFallback = false;
@@ -43,7 +73,7 @@ const getFollowups = async (req, res, next) => {
               }
             },
             company: true,
-            contact: true
+            status: true
           },
           orderBy: { followUpDate: 'desc' },
           skip,
@@ -62,6 +92,7 @@ const getFollowups = async (req, res, next) => {
           [followups, total] = await Promise.all([
             prisma.followUp.findMany({
               where,
+              include: { status: true },
               orderBy: { followUpDate: 'desc' },
               skip,
               take: limitNum
@@ -152,11 +183,7 @@ const createFollowup = async (req, res, next) => {
       status
     } = req.body;
 
-    const application = await prisma.application.findFirst({
-      where: { id: applicationId, userId },
-      include: { company: true }
-    });
-
+    const application = await getApplicationForUser(applicationId, userId);
     if (!application) {
       return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
     }
@@ -169,16 +196,23 @@ const createFollowup = async (req, res, next) => {
     }
 
     const dateValue = followUpDate || scheduledDate || scheduledFor;
+    const statusCode = sanitizeStatus(status);
+    const statusRow = await prisma.followUpStatus.findFirst({
+      where: { code: statusCode }
+    });
+    const statusIdToUse = statusRow?.id ?? (await prisma.followUpStatus.findFirst({ where: { code: 'PENDING' } }))?.id;
+    if (!statusIdToUse) {
+      return res.status(500).json({ success: false, error: 'Aucun statut FollowUp trouvé (exécutez le seed des statuts)' });
+    }
 
     const followup = await prisma.followUp.create({
       data: {
         userId,
         applicationId,
         companyId: application.companyId,
-        contactId: contactId || null,
         followUpDate: new Date(dateValue),
         notes: notes || null,
-        status: sanitizeStatus(status)
+        statusId: statusIdToUse
       },
       include: {
         application: {
@@ -187,7 +221,7 @@ const createFollowup = async (req, res, next) => {
           }
         },
         company: true,
-        contact: true
+        status: true
       }
     });
 
@@ -218,15 +252,10 @@ const updateFollowup = async (req, res, next) => {
     let applicationId = existingFollowup.applicationId;
 
     if (req.body.applicationId && req.body.applicationId !== existingFollowup.applicationId) {
-      const newApplication = await prisma.application.findFirst({
-        where: { id: req.body.applicationId, userId },
-        include: { company: true }
-      });
-
+      const newApplication = await getApplicationForUser(req.body.applicationId, userId);
       if (!newApplication) {
         return res.status(404).json({ success: false, error: 'Candidature non trouvée' });
       }
-
       applicationId = newApplication.id;
       companyId = newApplication.companyId;
     }
@@ -239,16 +268,20 @@ const updateFollowup = async (req, res, next) => {
     }
 
     const dateValue = req.body.followUpDate || req.body.scheduledDate || req.body.scheduledFor;
+    let statusIdToUse = existingFollowup.statusId;
+    if (req.body.status) {
+      const statusRow = await prisma.followUpStatus.findFirst({ where: { code: sanitizeStatus(req.body.status) } });
+      if (statusRow) statusIdToUse = statusRow.id;
+    }
 
     const followup = await prisma.followUp.update({
       where: { id },
       data: {
         applicationId,
         companyId,
-        contactId: req.body.contactId ?? existingFollowup.contactId,
         followUpDate: dateValue ? new Date(dateValue) : existingFollowup.followUpDate,
         notes: req.body.notes ?? existingFollowup.notes,
-        status: req.body.status ? sanitizeStatus(req.body.status) : existingFollowup.status
+        statusId: statusIdToUse
       },
       include: {
         application: {
@@ -257,7 +290,7 @@ const updateFollowup = async (req, res, next) => {
           }
         },
         company: true,
-        contact: true
+        status: true
       }
     });
 
@@ -304,11 +337,14 @@ const completeFollowup = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
+    const statusRow = await prisma.followUpStatus.findFirst({ where: { code: sanitizeStatus(status || 'POSITIVE_RESPONSE') } });
+    const statusIdToUse = statusRow?.id ?? existingFollowup.statusId;
+
     const followup = await prisma.followUp.update({
       where: { id },
       data: {
         response: response || null,
-        status: sanitizeStatus(status || 'POSITIVE_RESPONSE')
+        statusId: statusIdToUse
       },
       include: {
         application: {
@@ -317,7 +353,7 @@ const completeFollowup = async (req, res, next) => {
           }
         },
         company: true,
-        contact: true
+        status: true
       }
     });
 
@@ -332,28 +368,34 @@ const getStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
+    const pendingStatuses = await prisma.followUpStatus.findMany({ where: { code: { in: ['PENDING', 'PLANNED'] } }, select: { id: true } });
+    const pendingStatusIds = pendingStatuses.map((s) => s.id);
+
     const [total, byStatus, upcoming, overdue] = await Promise.all([
       prisma.followUp.count({ where: { userId } }),
       prisma.followUp.groupBy({
         where: { userId },
-        by: ['status'],
+        by: ['statusId'],
         _count: true
       }),
       prisma.followUp.count({
         where: {
           userId,
-          status: { in: ['PENDING', 'PLANNED'] },
+          statusId: { in: pendingStatusIds },
           followUpDate: { gte: new Date() }
         }
       }),
       prisma.followUp.count({
         where: {
           userId,
-          status: { in: ['PENDING', 'PLANNED'] },
+          statusId: { in: pendingStatusIds },
           followUpDate: { lt: new Date() }
         }
       })
     ]);
+
+    const statusIds = [...new Set(byStatus.map((item) => item.statusId))];
+    const statusMap = statusIds.length ? await prisma.followUpStatus.findMany({ where: { id: { in: statusIds } }, select: { id: true, code: true } }).then((rows) => Object.fromEntries(rows.map((r) => [r.id, r.code]))) : {};
 
     res.json({
       success: true,
@@ -362,7 +404,7 @@ const getStats = async (req, res, next) => {
         upcoming,
         overdue,
         byStatus: byStatus.reduce((acc, item) => {
-          acc[item.status] = item._count;
+          acc[statusMap[item.statusId] || item.statusId] = item._count;
           return acc;
         }, {})
       }
@@ -381,7 +423,7 @@ const getSuggestions = async (req, res, next) => {
       where: {
         userId,
         status: {
-          in: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING']
+          code: { in: ['CANDIDATE_PENDING', 'NO_RESPONSE', 'FIRST_INTERVIEW_PENDING'] }
         },
         followUps: {
           none: {

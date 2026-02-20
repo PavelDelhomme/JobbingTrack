@@ -28,6 +28,8 @@ interface TestReport {
   timestamp: string
   date: string
   time: string
+  /** ISO UTC (ex. 2026-02-20T15:54:52Z) pour affichage en heure locale dans le frontend */
+  generatedAtISO?: string
   path: string
   htmlPath?: string
   pdfPath?: string
@@ -279,7 +281,9 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
       
       const date = `${year}-${month}-${day}`
       const time = `${hour}:${minute}:${second}`
-      
+      // Si le rapport a une date générée en UTC (generatedAtISO), on l’utilise pour l’affichage en heure locale
+      const generatedAtISO = summary?.generatedAtISO as string | undefined
+
       // ✅ Extraire les statistiques du résumé (support de plusieurs formats)
       const totalTests = summary?.totalTests || summary?.summary?.totalTests || 0
       const totalPassed = summary?.totalPassed || summary?.summary?.totalPassed || summary?.passed || 0
@@ -326,6 +330,7 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
         timestamp: dirEntry.name,
         date,
         time,
+        ...(generatedAtISO && { generatedAtISO }),
         path: dirPath,
         htmlPath: `${dirEntry.name}/report.html`,
         summaryPath,

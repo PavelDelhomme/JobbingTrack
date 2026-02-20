@@ -1,7 +1,13 @@
 /**
  * Système de collecte de métriques en C
  * Collecteur principal ultra-léger pour remplacer Node.js
+ *
+ * Réduction des logs : [DEBUG] et [CPU] désactivés par défaut (MONITORING_DEBUG=0).
+ * Voir ex-systems/monitoring-c/src/http_server.c pour réactiver.
  */
+#ifndef MONITORING_DEBUG
+#define MONITORING_DEBUG 0
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +25,18 @@
 
 #define COLLECTION_INTERVAL 15  // secondes
 #define MAX_CONTAINERS 100
+
+/** Préfixe datetime ISO pour les logs (ex: 2026-02-20T16:30:00Z) */
+static const char* log_ts(void) {
+    static char buf[32];
+    time_t t = time(NULL);
+    struct tm *tm = gmtime(&t);
+    if (tm)
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+    else
+        snprintf(buf, sizeof(buf), "%ld", (long)t);
+    return buf;
+}
 
 // Structure globale pour les métriques (exportée pour http_server.c)
 MetricsData global_metrics = {0};
@@ -87,7 +105,9 @@ int collect_system_metrics(void) {
     // Sinon, utiliser le fallback depuis load_1
     if (proc_stat_ok && system_cpu_percent > 0.0 && system_cpu_percent <= 100.0) {
         global_metrics.system_cpu_usage_percent = system_cpu_percent;
+#if MONITORING_DEBUG
         printf("[CPU] ✅ CPU système depuis /proc/stat: %.2f%%\n", system_cpu_percent);
+#endif
     } else {
         // Fallback : approximation depuis load_1 (MAINTENANT cores est défini)
         // Note: load_1 peut être > cores si le système est surchargé, donc on limite à 100%
@@ -103,11 +123,15 @@ int collect_system_metrics(void) {
         
         // ✅ DEBUG : Logger si on utilise le fallback
         if (!proc_stat_ok) {
+#if MONITORING_DEBUG
             printf("[CPU] ⚠️ read_proc_stat_cpu a échoué, utilisation du fallback (load_1=%.2f, cores=%d, cpu=%.2f%%)\n",
                    global_metrics.cpu.load_1, global_metrics.cpu.cores, load_based_cpu);
+#endif
         } else if (system_cpu_percent == 0.0) {
+#if MONITORING_DEBUG
             printf("[CPU] ⚠️ read_proc_stat_cpu retourne 0.0 (première lecture?), utilisation du fallback (load_1=%.2f, cores=%d, cpu=%.2f%%)\n",
                    global_metrics.cpu.load_1, global_metrics.cpu.cores, load_based_cpu);
+#endif
         }
     }
     
@@ -144,8 +168,9 @@ int collect_container_metrics(void) {
     int name_count = 0;
     unsigned long total_rx = 0, total_tx = 0;
     
+#if MONITORING_DEBUG
     printf("[DEBUG] Début collecte conteneurs (container_idx=%d)\n", container_idx);
-    
+#endif
     // Compter les conteneurs Docker actifs (pour info)
     FILE *fp = popen("docker ps -q 2>/dev/null | wc -l", "r");
     if (fp) {
@@ -378,10 +403,12 @@ int collect_container_metrics(void) {
     // Mettre à jour le nombre de conteneurs JobbingTrack trouvés
     if (container_idx > 0) {
         global_metrics.container_count = container_idx;
-        printf("[CONTAINERS] %d conteneurs JobbingTrack trouvés, réseau: RX=%.2f MB, TX=%.2f MB\n", 
-               container_idx, 
-               total_rx / (1024.0 * 1024.0), 
+#if MONITORING_DEBUG
+        printf("[CONTAINERS] %d conteneurs JobbingTrack trouvés, réseau: RX=%.2f MB, TX=%.2f MB\n",
+               container_idx,
+               total_rx / (1024.0 * 1024.0),
                total_tx / (1024.0 * 1024.0));
+#endif
     } else {
         // Si aucun conteneur JobbingTrack trouvé, utiliser le compte total
         // (déjà fait plus haut si container_idx == 0)
@@ -417,10 +444,10 @@ int collect_container_metrics(void) {
         (project_cpu_total / project_container_count) : 0.0;
     global_metrics.project_memory_mb = project_memory_mb;
     
-    // ✅ DEBUG : Afficher les métriques projet calculées
+#if MONITORING_DEBUG
     printf("[PROJECT] CPU Projet: total=%.2f%%, count=%d, avg=%.2f%%, Memory: %lu MB\n",
            project_cpu_total, project_container_count, global_metrics.project_cpu_avg, global_metrics.project_memory_mb);
-    
+#endif
     // Mesurer les temps de réponse HTTP pour les services JobbingTrack
     for (int i = 0; i < container_idx && i < 100; i++) {
         if (global_metrics.containers[i].name[0] != '\0') {
@@ -515,10 +542,12 @@ int collect_container_metrics(void) {
                     if (sscanf(response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
                         global_metrics.containers[i].response_time_ms = time_total * 1000.0;
                         global_metrics.containers[i].http_status = http_code;
-                        printf("[DEBUG] Health check %s: %.2f ms (HTTP %d)\n", 
-                               global_metrics.containers[i].name, 
-                               global_metrics.containers[i].response_time_ms, 
+#if MONITORING_DEBUG
+                        printf("[DEBUG] Health check %s: %.2f ms (HTTP %d)\n",
+                               global_metrics.containers[i].name,
+                               global_metrics.containers[i].response_time_ms,
                                http_code);
+#endif
                     } else {
                         // ✅ CORRECTION : Si curl a échoué, essayer avec le nom du service directement
                         // (dans Docker network, le nom du service fonctionne)
@@ -539,10 +568,12 @@ int collect_container_metrics(void) {
                                 if (sscanf(fallback_response, "%lf,%d", &time_total, &http_code) == 2 && http_code > 0) {
                                     global_metrics.containers[i].response_time_ms = time_total * 1000.0;
                                     global_metrics.containers[i].http_status = http_code;
-                                    printf("[DEBUG] Health check fallback %s: %.2f ms (HTTP %d)\n", 
-                                           global_metrics.containers[i].name, 
-                                           global_metrics.containers[i].response_time_ms, 
+#if MONITORING_DEBUG
+                                    printf("[DEBUG] Health check fallback %s: %.2f ms (HTTP %d)\n",
+                                           global_metrics.containers[i].name,
+                                           global_metrics.containers[i].response_time_ms,
                                            http_code);
+#endif
                                 } else {
                                     global_metrics.containers[i].response_time_ms = 0.0;
                                     global_metrics.containers[i].http_status = 0;
@@ -692,6 +723,7 @@ int collect_container_metrics(void) {
     previous_metrics = global_metrics;
     has_previous_metrics = true;
     
+#if MONITORING_DEBUG
     printf("[STATS] Temps réponse moyen: %.2f ms, CPU moyen: %.2f%%, Mémoire moyenne: %.2f%%, Disponibilité: %.2f%%, Score charge: %.2f\n",
            avg_response_time, avg_cpu, avg_memory, availability_percent, load_score);
     printf("[STATS] Variations - CPU: %.2f%%, Mémoire: %.2f%%, Temps réponse: %.2f%%, Disponibilité: %.2f%%\n",
@@ -699,7 +731,7 @@ int collect_container_metrics(void) {
            global_metrics.variations.memory_change_percent,
            global_metrics.variations.response_time_change_percent,
            global_metrics.variations.availability_change_percent);
-    
+#endif
     return 0;
 }
 
@@ -715,29 +747,29 @@ int main(int argc, char *argv[]) {
         if (interval < 5) interval = 5;  // Minimum 5 secondes
     }
     
-    printf("🚀 Collecteur de métriques démarré (intervalle: %ds)\n", interval);
+    printf("[%s] 🚀 Collecteur de métriques démarré (intervalle: %ds)\n", log_ts(), interval);
     
     // ✅ NOUVEAU : Initialiser le stockage PostgreSQL au démarrage
-    printf("💾 Initialisation du stockage PostgreSQL...\n");
+    printf("[%s] 💾 Initialisation du stockage PostgreSQL...\n", log_ts());
     fflush(stdout);
     if (init_storage() != 0) {
-        fprintf(stderr, "⚠️  Échec initialisation PostgreSQL (les métriques seront toujours disponibles via l'API HTTP)\n");
+        fprintf(stderr, "[%s] ⚠️  Échec initialisation PostgreSQL (les métriques seront toujours disponibles via l'API HTTP)\n", log_ts());
         fflush(stderr);
     } else {
-        printf("✅ Stockage PostgreSQL initialisé\n");
+        printf("[%s] ✅ Stockage PostgreSQL initialisé\n", log_ts());
         fflush(stdout);
     }
     
     // Démarrer le serveur HTTP AVANT de commencer la collecte
-    printf("🌐 Démarrage du serveur HTTP...\n");
+    printf("[%s] 🌐 Démarrage du serveur HTTP...\n", log_ts());
     fflush(stdout);
     if (start_http_server() != 0) {
-        fprintf(stderr, "⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n");
+        fprintf(stderr, "[%s] ⚠️  Erreur démarrage serveur HTTP (continuons quand même)\n", log_ts());
         fflush(stderr);
     } else {
         // Attendre que le serveur soit prêt (thread démarré)
         sleep(2);  // Augmenté à 2s pour laisser le temps au thread de se lancer
-        printf("✅ Serveur HTTP initialisé\n");
+        printf("[%s] ✅ Serveur HTTP initialisé\n", log_ts());
         fflush(stdout);
     }
     
@@ -746,38 +778,39 @@ int main(int argc, char *argv[]) {
     global_metrics.timestamp = time(NULL);
     
     // Collecter une première fois pour avoir des données
-    printf("📊 Première collecte des métriques...\n");
+    printf("[%s] 📊 Première collecte des métriques...\n", log_ts());
     fflush(stdout);
     
     // Collecter avec gestion d'erreur robuste
     if (collect_system_metrics() != 0) {
-        fprintf(stderr, "⚠️  Erreur collecte système (continuons)\n");
+        fprintf(stderr, "[%s] ⚠️  Erreur collecte système (continuons)\n", log_ts());
         fflush(stderr);
     }
     
     if (collect_container_metrics() != 0) {
-        fprintf(stderr, "⚠️  Erreur collecte conteneurs (continuons)\n");
+        fprintf(stderr, "[%s] ⚠️  Erreur collecte conteneurs (continuons)\n", log_ts());
         fflush(stderr);
     }
     
-    printf("✅ Collecte initiale terminée\n");
+    printf("[%s] ✅ Collecte initiale terminée\n", log_ts());
     fflush(stdout);
     
     // Boucle infinie de collecte avec gestion d'erreur robuste
     while (1) {
+#if MONITORING_DEBUG
         time_t current_time = time(NULL);
         printf("[%ld] Collecte des métriques...\n", current_time);
         fflush(stdout);
-        
+#endif
         // Collecter métriques système (ne pas crash si erreur)
         if (collect_system_metrics() != 0) {
-            fprintf(stderr, "⚠️  Erreur collecte système (continuons)\n");
+            fprintf(stderr, "[%s] ⚠️  Erreur collecte système (continuons)\n", log_ts());
             fflush(stderr);
         }
         
         // Collecter métriques conteneurs (ne pas crash si erreur)
         if (collect_container_metrics() != 0) {
-            fprintf(stderr, "⚠️  Erreur collecte conteneurs (continuons)\n");
+            fprintf(stderr, "[%s] ⚠️  Erreur collecte conteneurs (continuons)\n", log_ts());
             fflush(stderr);
         }
         
@@ -786,17 +819,17 @@ int main(int argc, char *argv[]) {
         
         // Sauvegarder en base de données (ne pas crash si erreur)
         if (save_metrics_to_db(&global_metrics) != 0) {
-            fprintf(stderr, "⚠️  Erreur sauvegarde DB (continuons)\n");
+            fprintf(stderr, "[%s] ⚠️  Erreur sauvegarde DB (continuons)\n", log_ts());
             fflush(stderr);
         } else {
-            // ✅ DEBUG : Afficher le timestamp sauvegardé
+#if MONITORING_DEBUG
             struct tm *tm_info = gmtime(&global_metrics.timestamp);
             char time_str[64];
             strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S UTC", tm_info);
             printf("[STORAGE] ✅ Métriques sauvegardées à %s\n", time_str);
             fflush(stdout);
+#endif
         }
-        
         // Attendre avant la prochaine collecte
         sleep(interval);
     }

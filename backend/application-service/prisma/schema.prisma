@@ -59,6 +59,7 @@ model User {
   deletedAt DateTime? // Soft delete
 
   // Relations
+  profile       Profile?
   applications  Application[]
   companies     Company[]
   contacts      Contact[]
@@ -74,6 +75,29 @@ model User {
   @@index([role])
   @@index([isActive])
   @@index([isTestData])
+}
+
+// ============================================
+// 👤 PROFIL UTILISATEUR (lié à User)
+// ============================================
+
+model Profile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  bio       String? // Biographie / présentation
+  headline  String? // Titre / headline (ex: "Développeur full-stack")
+  avatarUrl String? // URL photo de profil (en plus de User.profilePicture)
+  linkedinUrl String?
+  githubUrl  String?
+  website   String?
+  preferences Json? // Préférences métier (notifications relances, rappels, etc.)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 enum UserRole {
@@ -102,14 +126,6 @@ model Company {
   logoUrl     String?
   description String?
 
-  // Données de test
-  isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
-
-  // Synchronisation
-  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
-  entityHash String? // Hash de l'entité complète pour comparaison
-  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
-
   // Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -125,7 +141,6 @@ model Company {
 
   @@index([userId])
   @@index([name])
-  @@index([isTestData])
 }
 
 enum CompanySize {
@@ -164,18 +179,10 @@ model Application {
   salaryMax        Int? // en euros/an
   salaryNegotiable Boolean @default(false)
 
-  // Notes et suivi
-  notes      String?
-  archived   Boolean   @default(false)
-  archivedAt DateTime?
-
-  // Données de test
-  isTestData Boolean @default(false) // Marqueur pour distinguer données de test de production
-
-  // Synchronisation
-  syncHash   String? // Hash calculé pour détection de modifications (SHA-256)
-  entityHash String? // Hash de l'entité complète pour comparaison
-  lastSyncAt DateTime? // Timestamp de dernière synchronisation réussie
+  // Notes et suivi (colonne BDD : archived pour compatibilité)
+  notes        String?
+  isArchived   Boolean   @default(false) @map("archived")
+  archivedAt   DateTime?
 
   // Timestamps
   createdAt DateTime  @default(now())
@@ -200,7 +207,6 @@ model Application {
   @@index([companyId])
   @@index([statusId])
   @@index([applicationDate])
-  @@index([isTestData])
 }
 
 enum ContractType {

@@ -23,6 +23,9 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 
+# ID de la candidature créée (réutilisé pour Interview, Call, Followup)
+CREATED_APPLICATION_ID=""
+
 # Fichier de résultats structurés pour le rapport (env exporté par generate-test-report.sh)
 RESULTS_FILE="${TEST_RESULTS_FILE:-}"
 [ -n "$RESULTS_FILE" ] && : > "$RESULTS_FILE"
@@ -82,10 +85,11 @@ get_token() {
     test_endpoint "Login" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
     
     if [ -f /tmp/response.txt ]; then
-        TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
-        if [ -z "$TOKEN" ]; then
-            TOKEN=$(cat /tmp/response.txt | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+        if command -v node >/dev/null 2>&1; then
+            TOKEN=$(node -e "try { const d=JSON.parse(require('fs').readFileSync('/tmp/response.txt','utf8')); process.stdout.write(d.token||''); } catch(e){}" 2>/dev/null)
         fi
+        [ -z "$TOKEN" ] && TOKEN=$(python3 -c "import sys,json; print(json.load(open('/tmp/response.txt')).get('token',''), end='')" 2>/dev/null)
+        [ -z "$TOKEN" ] && TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
         if [ -n "$TOKEN" ]; then
             echo -e "${GREEN}   ✓ Token obtenu${NC}"
         fi
@@ -137,12 +141,71 @@ test_companies() {
     test_endpoint "Create Company" "$API_URL/api/v1/companies" "POST" "$COMPANY_DATA" "201" "$TOKEN"
 }
 
+# Extrait un id depuis un fichier JSON (réponse Create Application). Node en priorité (disponible en Docker frontend), sinon Python.
+extract_application_id_from_file() {
+    local f="$1"
+    [ ! -f "$f" ] && return
+    if command -v node >/dev/null 2>&1; then
+        node -e "
+try {
+  const d = JSON.parse(require('fs').readFileSync('$f', 'utf8'));
+  const a = d.application || d.data;
+  const id = (a && (a.id || a.Id)) || d.id || d.Id || '';
+  if (id) process.stdout.write(String(id).trim());
+} catch (e) {}
+" 2>/dev/null
+        return
+    fi
+    python3 -c "
+import json
+try:
+    d = json.load(open('$f'));
+    a = d.get('application') or d.get('data');
+    out = (a.get('id') or a.get('Id') or '') if isinstance(a, dict) else (d.get('id') or d.get('Id') or '');
+    print(str(out).strip(), end='')
+except: pass
+" 2>/dev/null
+}
+
+# Récupère l'id de la première candidature (pour Interview/Call/Followup)
+get_first_application_id() {
+    [ -z "$TOKEN" ] && return
+    curl -s -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/applications?limit=5" --max-time 10 -o /tmp/apps_list.json 2>/dev/null || true
+    [ ! -f /tmp/apps_list.json ] && return
+    if command -v node >/dev/null 2>&1; then
+        node -e "
+try {
+  const d = JSON.parse(require('fs').readFileSync('/tmp/apps_list.json', 'utf8'));
+  const apps = d.applications || d.data || [];
+  const first = Array.isArray(apps) ? apps[0] : apps;
+  const id = (first && (first.id || first.Id || first.ID)) || '';
+  if (id) process.stdout.write(String(id).trim());
+} catch (e) {}
+" 2>/dev/null
+        return
+    fi
+    python3 -c "
+import json
+try:
+    d = json.load(open('/tmp/apps_list.json'));
+    apps = d.get('applications') or d.get('data') or [];
+    first = apps[0] if isinstance(apps, list) and apps else (apps if isinstance(apps, dict) else None);
+    out = (first.get('id') or first.get('Id') or first.get('ID') or '') if first and isinstance(first, dict) else '';
+    print(str(out).strip(), end='')
+except: pass
+" 2>/dev/null
+}
+
 test_applications() {
     echo -e "\n${YELLOW}═══ Candidatures ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Applications" "$API_URL/api/v1/applications" "GET" "" "200" "$TOKEN"
     APPLICATION_DATA="{\"position\":\"Développeur Full Stack\",\"companyName\":\"Tech Corp\",\"status\":\"CANDIDATE_PENDING\",\"location\":\"Paris\",\"contractType\":\"CDI\"}"
     test_endpoint "Create Application" "$API_URL/api/v1/applications" "POST" "$APPLICATION_DATA" "201" "$TOKEN"
+    # Extraire l'id de la candidature créée (Node en priorité pour Docker frontend, sinon Python)
+    CREATED_APPLICATION_ID=$(extract_application_id_from_file /tmp/response.txt)
+    [ -z "$CREATED_APPLICATION_ID" ] && CREATED_APPLICATION_ID=$(get_first_application_id)
+    echo -n "$CREATED_APPLICATION_ID" > /tmp/created_application_id.txt
 }
 
 test_contacts() {
@@ -157,7 +220,13 @@ test_interviews() {
     echo -e "\n${YELLOW}═══ Entretiens ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Interviews" "$API_URL/api/v1/interviews" "GET" "" "200" "$TOKEN"
-    INTERVIEW_DATA="{\"applicationId\":\"test-id\",\"scheduledAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"type\":\"technical\"}"
+    # Ordre : id de la candidature créée dans ce run (test_applications), puis fichier, puis liste, puis placeholder
+    APPLICATION_ID="$CREATED_APPLICATION_ID"
+    [ -z "$APPLICATION_ID" ] && [ -f /tmp/created_application_id.txt ] && APPLICATION_ID=$(cat /tmp/created_application_id.txt)
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID=$(get_first_application_id)
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
+    INTERVIEW_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    INTERVIEW_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"interviewDate\":\"$INTERVIEW_DATE\",\"scheduledAt\":\"$INTERVIEW_DATE\",\"type\":\"technical\",\"location\":\"Paris\"}"
     test_endpoint "Create Interview" "$API_URL/api/v1/interviews" "POST" "$INTERVIEW_DATA" "201" "$TOKEN" || true
 }
 
@@ -165,11 +234,9 @@ test_calls() {
     echo -e "\n${YELLOW}═══ Appels ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Calls" "$API_URL/api/v1/calls" "GET" "" "200" "$TOKEN"
-    # Récupérer un applicationId valide pour Create Call (requis par le backend)
-    APPLICATION_ID=""
-    if [ -n "$TOKEN" ]; then
-        APPLICATION_ID=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/applications" --max-time 10 | python3 -c "import sys, json; d=json.load(sys.stdin); apps=d.get('applications',[]) or d.get('data',[]); print(apps[0]['id'] if apps else '')" 2>/dev/null || echo "")
-    fi
+    APPLICATION_ID="$CREATED_APPLICATION_ID"
+    [ -z "$APPLICATION_ID" ] && [ -f /tmp/created_application_id.txt ] && APPLICATION_ID=$(cat /tmp/created_application_id.txt)
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID=$(get_first_application_id)
     [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
     CALL_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     CALL_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"subject\":\"Appel de suivi test\",\"callDate\":\"$CALL_DATE\",\"duration\":30,\"notes\":\"Test call\"}"
@@ -188,9 +255,10 @@ test_followups() {
     echo -e "\n${YELLOW}═══ Relances ═══${NC}"
     [ -z "$TOKEN" ] && get_token
     test_endpoint "List Followups" "$API_URL/api/v1/followups" "GET" "" "200" "$TOKEN"
-    # followUpDate requis par le backend (message "Date de relance requise" sinon)
     FOLLOWUP_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    APPLICATION_ID=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/applications" --max-time 10 | python3 -c "import sys, json; d=json.load(sys.stdin); apps=d.get('applications',[]) or d.get('data',[]); print(apps[0]['id'] if apps else '')" 2>/dev/null || echo "")
+    APPLICATION_ID="$CREATED_APPLICATION_ID"
+    [ -z "$APPLICATION_ID" ] && [ -f /tmp/created_application_id.txt ] && APPLICATION_ID=$(cat /tmp/created_application_id.txt)
+    [ -z "$APPLICATION_ID" ] && APPLICATION_ID=$(get_first_application_id)
     [ -z "$APPLICATION_ID" ] && APPLICATION_ID="placeholder-application-id"
     FOLLOWUP_DATA="{\"applicationId\":\"$APPLICATION_ID\",\"type\":\"email\",\"followUpDate\":\"$FOLLOWUP_DATE\",\"notes\":\"Test followup\"}"
     test_endpoint "Create Followup" "$API_URL/api/v1/followups" "POST" "$FOLLOWUP_DATA" "201" "$TOKEN" || true
@@ -211,10 +279,41 @@ test_notifications() {
 }
 
 test_metrics() {
-    echo -e "\n${YELLOW}═══ Métriques ═══${NC}"
+    echo -e "\n${YELLOW}═══ Métriques / Metrics-Aggregator ═══${NC}"
     [ -z "$TOKEN" ] && get_token
-    test_endpoint "Get Metrics" "$API_URL/api/v1/metrics" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Get Metrics (metrics-aggregator via gateway)" "$API_URL/api/v1/metrics" "GET" "" "200" "$TOKEN" || true
     test_endpoint "Get Dashboard Statistics" "$API_URL/api/v1/dashboard/statistics" "GET" "" "200" "$TOKEN" || true
+}
+
+test_dashboard() {
+    echo -e "\n${YELLOW}═══ Dashboard & Analytics ═══${NC}"
+    [ -z "$TOKEN" ] && get_token
+    test_endpoint "Dashboard Statistics" "$API_URL/api/v1/dashboard/statistics" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Analytics Events" "$API_URL/api/v1/analytics/events?limit=5" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Analytics Errors" "$API_URL/api/v1/analytics/errors?limit=5" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Analytics Stats" "$API_URL/api/v1/analytics/stats?days=7" "GET" "" "200" "$TOKEN" || true
+}
+
+test_emails() {
+    echo -e "\n${YELLOW}═══ Emails (logs, stats) ═══${NC}"
+    [ -z "$TOKEN" ] && get_token
+    test_endpoint "Emails Logs" "$API_URL/api/v1/emails/logs" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Emails Stats" "$API_URL/api/v1/emails/stats?days=30" "GET" "" "200" "$TOKEN" || true
+}
+
+test_workflow() {
+    echo -e "\n${YELLOW}═══ Workflow Service ═══${NC}"
+    [ -z "$TOKEN" ] && get_token
+    test_endpoint "List Workflows" "$API_URL/api/v1/workflows" "GET" "" "200" "$TOKEN" || true
+}
+
+test_security() {
+    echo -e "\n${YELLOW}═══ Security Service ═══${NC}"
+    [ -z "$TOKEN" ] && get_token
+    test_endpoint "Security Firewall Rules" "$API_URL/api/v1/security/firewall/rules" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Security Blocked IPs" "$API_URL/api/v1/security/firewall/blocked-ips" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Security WAF Config" "$API_URL/api/v1/security/waf/config" "GET" "" "200" "$TOKEN" || true
+    test_endpoint "Security Logs" "$API_URL/api/v1/security/logs?limit=10" "GET" "" "200" "$TOKEN" || true
 }
 
 # Afficher le résumé à la sortie (même en cas d'échec prématuré) pour que generate-test-report.sh puisse parser
@@ -252,6 +351,10 @@ if [ -n "$TEST_TYPES" ]; then
             profiles) test_profiles ;;
             notifications) test_notifications ;;
             metrics) test_metrics ;;
+            dashboard) test_dashboard ;;
+            emails) test_emails ;;
+            workflow) test_workflow ;;
+            security) test_security ;;
             *) echo -e "${YELLOW}Type de test inconnu: $type${NC}" ;;
         esac
     done
@@ -271,6 +374,10 @@ else
     test_profiles
     test_notifications
     test_metrics
+    test_dashboard
+    test_emails
+    test_workflow
+    test_security
 fi
 
 # Résumé (le trap EXIT affiche aussi ces lignes en sortie anticipée)

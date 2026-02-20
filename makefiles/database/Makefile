@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd
 
 # ============================================================================
 # AIDE
@@ -28,6 +28,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make migrate-restart       - Migrations + redémarrage services"
 	@echo "  make db-seed               - Insérer données de test"
 	@echo "  make db-fix-role           - Réparer rôle et DB PostgreSQL"
+	@echo "  make db-fix-isarchived     - Ajouter colonne Application.isArchived (fix tests API sans rebuild)"
 	@echo ""
 	@echo "👤 GESTION UTILISATEUR ADMIN:"
 	@echo "  make create-admin-user     - Créer l'utilisateur super admin"
@@ -145,6 +146,14 @@ refresh-bdd: ## Tout mettre à jour : build, arrêt, redémarrage, db-push-all (
 db-init-system-metrics: ## Créer system_metrics + container_metrics pour monitoring-c
 	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré." && exit 1)
 	@docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "$(ROOT_DIR)/scripts/db/init-system-metrics.sql" && echo "✅ Tables system_metrics / container_metrics créées ou déjà présentes"
+
+# Ajouter colonne Application.isArchived (générée depuis archived) pour compatibilité client Prisma sans rebuild
+db-fix-isarchived: ## Fix colonne isArchived (évite erreur "column Application.isArchived does not exist" et 404 Candidature non trouvée)
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full'." && exit 1)
+	@docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "$(ROOT_DIR)/scripts/db/fix-application-isarchived.sql" && echo "✅ Application.isArchived appliqué (relancez les tests API)"
+
+# Alias pour la même cible (nom avec tiret)
+db-fix-is-archived: db-fix-isarchived
 
 # Créer les tables auth (User, etc.) – à utiliser si erreur "The table public.User does not exist"
 # Utilise le conteneur auth-service si démarré, sinon Prisma local avec DATABASE_URL du .env

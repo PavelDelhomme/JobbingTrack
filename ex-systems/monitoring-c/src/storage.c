@@ -15,6 +15,18 @@
 static PGconn *conn = NULL;
 static int storage_initialized = 0;
 
+/** Préfixe datetime ISO pour les logs (ex: 2026-02-20T16:30:00Z) */
+static const char* log_ts(void) {
+    static char buf[32];
+    time_t t = time(NULL);
+    struct tm *tm = gmtime(&t);
+    if (tm)
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+    else
+        snprintf(buf, sizeof(buf), "%ld", (long)t);
+    return buf;
+}
+
 // Variables d'environnement pour la connexion
 static const char *get_db_host(void) {
     const char *host = getenv("POSTGRES_HOST");
@@ -46,7 +58,7 @@ static const char *get_db_password(void) {
  */
 static int create_tables_if_not_exists(PGconn *conn) {
     const char *create_system_metrics_table = 
-        "CREATE TABLE IF NOT EXISTS system_metrics ("
+        "CREATE TABLE IF NOT EXISTS public.system_metrics ("
         "  id BIGSERIAL PRIMARY KEY,"
         "  timestamp TIMESTAMP NOT NULL,"
         "  cpu_load_1 DOUBLE PRECISION,"
@@ -75,9 +87,9 @@ static int create_tables_if_not_exists(PGconn *conn) {
         ");";
     
     const char *create_container_metrics_table =
-        "CREATE TABLE IF NOT EXISTS container_metrics ("
+        "CREATE TABLE IF NOT EXISTS public.container_metrics ("
         "  id BIGSERIAL PRIMARY KEY,"
-        "  system_metrics_id BIGINT REFERENCES system_metrics(id) ON DELETE CASCADE,"
+        "  system_metrics_id BIGINT REFERENCES public.system_metrics(id) ON DELETE CASCADE,"
         "  timestamp TIMESTAMP NOT NULL,"
         "  container_name VARCHAR(256) NOT NULL,"
         "  cpu_percent DOUBLE PRECISION,"
@@ -91,17 +103,17 @@ static int create_tables_if_not_exists(PGconn *conn) {
         ");";
     
     const char *create_indexes =
-        "CREATE INDEX IF NOT EXISTS idx_system_metrics_timestamp ON system_metrics(timestamp);"
-        "CREATE INDEX IF NOT EXISTS idx_container_metrics_timestamp ON container_metrics(timestamp);"
-        "CREATE INDEX IF NOT EXISTS idx_container_metrics_name ON container_metrics(container_name);"
-        "CREATE INDEX IF NOT EXISTS idx_container_metrics_system_id ON container_metrics(system_metrics_id);";
+        "CREATE INDEX IF NOT EXISTS idx_system_metrics_timestamp ON public.system_metrics(timestamp);"
+        "CREATE INDEX IF NOT EXISTS idx_container_metrics_timestamp ON public.container_metrics(timestamp);"
+        "CREATE INDEX IF NOT EXISTS idx_container_metrics_name ON public.container_metrics(container_name);"
+        "CREATE INDEX IF NOT EXISTS idx_container_metrics_system_id ON public.container_metrics(system_metrics_id);";
     
     PGresult *res;
     
     // Créer la table system_metrics
     res = PQexec(conn, create_system_metrics_table);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "[STORAGE] Erreur création table system_metrics: %s\n", PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE] Erreur création table system_metrics: %s\n", log_ts(), PQerrorMessage(conn));
         PQclear(res);
         return -1;
     }
@@ -110,7 +122,7 @@ static int create_tables_if_not_exists(PGconn *conn) {
     // Créer la table container_metrics
     res = PQexec(conn, create_container_metrics_table);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "[STORAGE] Erreur création table container_metrics: %s\n", PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE] Erreur création table container_metrics: %s\n", log_ts(), PQerrorMessage(conn));
         PQclear(res);
         return -1;
     }
@@ -119,7 +131,7 @@ static int create_tables_if_not_exists(PGconn *conn) {
     // Créer les index
     res = PQexec(conn, create_indexes);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "[STORAGE] Erreur création index: %s\n", PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE] Erreur création index: %s\n", log_ts(), PQerrorMessage(conn));
         PQclear(res);
         return -1;
     }
@@ -150,22 +162,29 @@ int init_storage(void) {
     conn = PQconnectdb(conninfo);
     
     if (PQstatus(conn) != CONNECTION_OK) {
-        fprintf(stderr, "[STORAGE] ⚠️  Échec connexion PostgreSQL: %s\n", PQerrorMessage(conn));
-        fprintf(stderr, "[STORAGE]    (Les métriques seront toujours disponibles via l'API HTTP)\n");
+        fprintf(stderr, "[%s] [STORAGE] ⚠️  Échec connexion PostgreSQL: %s\n", log_ts(), PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE]    (Les métriques seront toujours disponibles via l'API HTTP)\n", log_ts());
         PQfinish(conn);
         conn = NULL;
         return -1;
     }
     
-    printf("[STORAGE] ✅ Connecté à PostgreSQL: %s@%s:%s/%s\n",
-           get_db_user(), get_db_host(), get_db_port(), get_db_name());
+    printf("[%s] [STORAGE] ✅ Connecté à PostgreSQL: %s@%s:%s/%s\n",
+           log_ts(), get_db_user(), get_db_host(), get_db_port(), get_db_name());
+    
+    // Forcer le schéma public pour éviter "relation does not exist" (conflits search_path)
+    PGresult *path_res = PQexec(conn, "SET search_path TO public");
+    if (PQresultStatus(path_res) != PGRES_COMMAND_OK) {
+        fprintf(stderr, "[%s] [STORAGE] ⚠️ SET search_path: %s\n", log_ts(), PQerrorMessage(conn));
+    }
+    PQclear(path_res);
     
     // Créer les tables si elles n'existent pas
     if (create_tables_if_not_exists(conn) != 0) {
-        fprintf(stderr, "[STORAGE] ⚠️  Erreur création tables (continuons quand même)\n");
+        fprintf(stderr, "[%s] [STORAGE] ⚠️  Erreur création tables (continuons quand même)\n", log_ts());
         // Ne pas retourner d'erreur, on peut continuer sans tables
     } else {
-        printf("[STORAGE] ✅ Tables créées/vérifiées\n");
+        printf("[%s] [STORAGE] ✅ Tables créées/vérifiées\n", log_ts());
     }
     
     storage_initialized = 1;
@@ -202,10 +221,10 @@ int save_metrics_to_db(const MetricsData *metrics) {
     double project_cpu_avg = metrics->project_cpu_avg;
     unsigned long project_memory_mb = metrics->project_memory_mb;
     
-    // Insérer les métriques système
+    // Insérer les métriques système (schéma public explicite)
     char query[2048];
     snprintf(query, sizeof(query),
-        "INSERT INTO system_metrics ("
+        "INSERT INTO public.system_metrics ("
         "  timestamp, cpu_load_1, cpu_load_5, cpu_load_15, cpu_cores, cpu_usage_percent,"
         "  memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent,"
         "  disk_total_gb, disk_used_gb, disk_free_gb, disk_usage_percent,"
@@ -235,7 +254,7 @@ int save_metrics_to_db(const MetricsData *metrics) {
     PGresult *res = PQexec(conn, query);
     
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "[STORAGE] ⚠️  Erreur insertion métriques système: %s\n", PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE] ⚠️  Erreur insertion métriques système: %s\n", log_ts(), PQerrorMessage(conn));
         PQclear(res);
         return -1;
     }
@@ -257,12 +276,12 @@ int save_metrics_to_db(const MetricsData *metrics) {
         PQescapeStringConn(conn, escaped_name, metrics->containers[i].name, 
                           strlen(metrics->containers[i].name), &error);
         if (error) {
-            fprintf(stderr, "[STORAGE] ⚠️  Erreur échappement nom conteneur: %s\n", metrics->containers[i].name);
+            fprintf(stderr, "[%s] [STORAGE] ⚠️  Erreur échappement nom conteneur: %s\n", log_ts(), metrics->containers[i].name);
             continue;
         }
         
         snprintf(query, sizeof(query),
-            "INSERT INTO container_metrics ("
+            "INSERT INTO public.container_metrics ("
             "  system_metrics_id, timestamp, container_name, cpu_percent,"
             "  memory_mb, memory_limit_mb, memory_percent,"
             "  network_rx_bytes, network_tx_bytes, response_time_ms, http_status"
@@ -279,14 +298,14 @@ int save_metrics_to_db(const MetricsData *metrics) {
         
         res = PQexec(conn, query);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "[STORAGE] ⚠️  Erreur insertion conteneur %s: %s\n", 
+            fprintf(stderr, "[%s] [STORAGE] ⚠️  Erreur insertion conteneur %s: %s\n", log_ts(),
                    metrics->containers[i].name, PQerrorMessage(conn));
             // Continuer avec les autres conteneurs
         }
         PQclear(res);
     }
     
-    fprintf(stderr, "[STORAGE] ✅ Métriques sauvegardées dans PostgreSQL (system_id=%lld, %d conteneurs)\n", 
+    fprintf(stderr, "[%s] [STORAGE] ✅ Métriques sauvegardées dans PostgreSQL (system_id=%lld, %d conteneurs)\n", log_ts(),
             system_id, metrics->container_count);
     fflush(stderr);
     
@@ -314,7 +333,7 @@ char* get_system_metrics_history(int limit, int offset, const char *start_date, 
         "memory_total_mb, memory_used_mb, memory_free_mb, memory_usage_percent, "
         "disk_usage_percent, container_count, avg_response_time_ms, availability_percent, "
         "load_score, total_network_rx_bytes, total_network_tx_bytes, project_cpu_avg, project_memory_mb "
-        "FROM system_metrics "
+        "FROM public.system_metrics "
         "WHERE ($1::text = '' OR timestamp >= $1::timestamp) AND ($2::text = '' OR timestamp <= $2::timestamp) "
         "ORDER BY timestamp DESC "
         "LIMIT $3 OFFSET $4";
@@ -331,7 +350,7 @@ char* get_system_metrics_history(int limit, int offset, const char *start_date, 
     PGresult *res = PQexecParams(conn, query, 4, NULL, param_values, NULL, NULL, 0);
     
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "[STORAGE] ❌ Erreur requête historique: %s\n", PQerrorMessage(conn));
+        fprintf(stderr, "[%s] [STORAGE] ❌ Erreur requête historique: %s\n", log_ts(), PQerrorMessage(conn));
         PQclear(res);
         return NULL;
     }

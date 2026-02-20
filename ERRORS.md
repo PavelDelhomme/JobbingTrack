@@ -6,7 +6,8 @@
 
 ## ⏳ À traiter en priorité (erreurs connues)
 
-- **Tests API – 15 échecs (rapport 2026-02-19)** : 21/36 tests passent. Les 15 échecs sont listés et analysés dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md** : profile-service 404 (pas de route `/api/v1/profile/me`), notification-service 200 au lieu de 401 sans token, script de test qui utilise `userId=dev_user_1` (absent en BDD), schéma Application/Interview (status vs statusId), dashboard statistics (reading 'count' undefined), champs requis manquants (Call, Followup). Actions : `make db-push-all`, implémenter profile/me, utiliser userId admin dans les tests, aligner schémas Prisma, sécuriser notification-service, corriger dashboard.
+- **Tests API – 34 échecs (rapport 47 tests, 13 passent)** : Détail dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**. **Erreur 1 – Login 401** : le script utilise `admin@jobbingtrack.com` / `password123` mais l’admin en BDD était créé avec le hash bcrypt pour « secret » (INSERT SQL dans create-admin-user.sh). **Résolution** : le script **create-admin-user.sh** privilégie désormais la création via **auth-service** (Node + bcrypt pour `ADMIN_PASSWORD`). **Action** : lancer **`make create-admin-user`** avec **auth-service démarré** pour que l’admin ait password123. **Erreur 2 – Profile 404** : GET/PUT `/api/v1/profile/me` renvoient 404 (HTML « Cannot GET/PUT ») ; les routes existent dans le code profile-service. **Action** : **rebuild profile-service** (`make build` ou rebuild du service) pour que l’image embarque les routes. **Erreur 3 – Notification 200 au lieu de 401** : sans token, le test attend 401 mais reçoit 200 (données démo). **Action** : **rebuild notification-service**. Les autres échecs (Get Profile, List Users, Companies, etc.) sont des conséquences du login qui échoue (pas de token) ou du profile 404.
+- **create-admin-user échoue « Aucun conteneur PostgreSQL trouvé »** : le script a besoin de la stack démarrée. **Ordre** : **`make up-full`** d'abord, puis **`make create-admin-user`**.
 - **Tables BDD manquantes au démarrage** : logs Postgres indiquent `deployments`, `container_logs`, `system_metrics_snapshots`, `service_availability_history` absentes. **Action** : lancer **`make db-push-all`** après démarrage des services.
 - **Tests API depuis Docker** : ~~`/bin/sh: bash: not found`~~ → **Corrigé** : les routes d’exécution de tests utilisent désormais **`sh`** au lieu de `bash`. Si les scripts échouent sous `sh`, les rendre POSIX ou installer `bash` dans l’image frontend.
 - **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503 (Service Unavailable)**. Rendre le service opérationnel ou gérer côté front.
@@ -18,6 +19,9 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 ---
 
 ## ✅ Erreurs corrigées (Février 2026)
+
+### Tests API – Login 401 (admin password)
+- **Login 401 « Invalid email or password »** — L’admin était créé par le chemin SQL de `create-admin-user.sh` avec un hash bcrypt pour le mot de passe « secret », alors que le script de test utilise **password123**. **Correction** : `backend/scripts/database/create-admin-user.sh` privilégie désormais la création via **auth-service** (Node + `bcrypt.hash(ADMIN_PASSWORD, 10)`). Si auth-service est indisponible, fallback avec hash « secret » et message invitant à relancer avec auth up. **Action utilisateur** : lancer **`make up-full`** puis **`make create-admin-user`** (auth-service up pour password123 ; sans stack up → « Aucun conteneur PostgreSQL trouvé »).
 
 ### Prisma et base de données (metrics-aggregator)
 - **P1012 « The datasource property `url` is no longer supported »** — Le projet utilise **Prisma 6.x** (6.7.0) dans `backend/metrics-aggregator-service`. Ne pas utiliser Prisma 7 en global ; les versions `prisma` et `@prisma/client` sont fixées en 6.7.0 dans le `package.json`.

@@ -1,3 +1,8 @@
+// ============================================
+// SCHÉMA PRISMA PARTAGÉ - JobbingTrack (profile-service)
+// ============================================
+// User (minimal) + Profile lié à User pour le backoffice / API profil
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,10 +12,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modèle de base pour éviter les erreurs
-model HealthCheck {
-  id        String   @id @default(cuid())
-  service   String
-  status    String
-  timestamp DateTime @default(now())
+// ============================================
+// 👤 UTILISATEUR (minimal pour relation Profile)
+// ============================================
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password       String
+  firstName      String
+  lastName       String
+  phone          String?
+  profilePicture String?
+  role           String   @default("USER")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  profile Profile?
+
+  @@index([email])
+}
+
+// ============================================
+// 👤 PROFIL UTILISATEUR (lié à User)
+// ============================================
+
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  bio          String?  // Biographie / présentation
+  headline     String?  // Titre (ex: "Développeur full-stack")
+  avatarUrl    String?
+  linkedinUrl  String?
+  githubUrl    String?
+  website      String?
+  preferences  Json?    // Préférences métier (notifications, rappels, etc.)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
