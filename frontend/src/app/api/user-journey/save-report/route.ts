@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
       await mkdir(REPORTS_DIR, { recursive: true })
     }
 
-    // Générer le nom du fichier avec timestamp
+    // Générer le nom du fichier avec timestamp (sanitiser le nom pour le système de fichiers)
+    const safeName = (journeyName || 'custom').replace(/[^a-zA-Z0-9À-ÿ_-]/g, '-').replace(/-+/g, '-').slice(0, 50)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
                      new Date().toTimeString().split(' ')[0].replace(/:/g, '')
-    const fileName = `user-journey-${journeyName || 'custom'}-${timestamp}.json`
+    const fileName = `user-journey-${safeName}-${timestamp}.json`
     const filePath = join(REPORTS_DIR, fileName)
 
     // Sauvegarder le rapport

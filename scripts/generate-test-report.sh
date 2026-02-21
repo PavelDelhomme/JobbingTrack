@@ -55,6 +55,7 @@ echo ""
 
 # Exécuter le test (exporter le fichier de résultats pour le script de test)
 export TEST_RESULTS_FILE="$REPORT_DIR/test-results.txt"
+export REPORT_DIR
 echo -e "${YELLOW}🚀 Exécution du test...${NC}"
 if [ "$TEST_TYPE" = "api" ]; then
   echo "[TESTS API] Début exécution des tests — $(date '+%Y-%m-%dT%H:%M:%S %Z')"

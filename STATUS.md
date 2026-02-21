@@ -1,6 +1,78 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 20 février 2026
+**Dernière mise à jour** : 21 février 2026
+
+---
+
+## 🚀 DÉMARRAGE PROJET (premier lancement ou reprise)
+
+**Séquence recommandée après un premier `make up-full` ou une reprise après pause :**
+
+```bash
+make db-push-all && make build && make up-full && make status
+```
+
+- **`make db-push-all`** : Prisma push (9 services) + init-system-metrics + init-key-tables + seed statuts + fix Application.isArchived.
+- **`make build`** : Rebuild des images Docker (nécessaire après changement de code/schéma).
+- **`make up-full`** : Démarre tous les conteneurs (21/21 services). Crée l'admin si absent (admin@jobbingtrack.com / password123).
+- **`make status`** : Affiche l'état des services.
+
+**Si besoin de repartir à zéro :** `make down && make db-push-all && make build && make up-full && make status`
+
+---
+
+## 📋 REPRISE TRAVAIL – À faire en priorité (lundi)
+
+### 1. Vérifier que tout tourne
+
+- Lancer la séquence ci-dessus.
+- Se connecter au backoffice : admin@jobbingtrack.com / password123.
+- Lancer les **Tests API** (Backoffice → Tests → Tests API → Lancer) : 36/36 doivent passer.
+- Vérifier les **rapports** : Backoffice → Rapports de tests (Tests API, Sécurité, Performance, Parcours).
+
+### 2. Tests Sécurité
+
+- **Correction ENOENT faite** (21/02) : le script utilise `REPORT_DIR`. Relancer Tests Sécurité depuis le backoffice et vérifier que le rapport apparaît dans Rapports de tests.
+- **À faire** : Enrichir les tests (XSS, SQLi, CSRF, auth, rate limiting, headers) ; s'assurer qu'ils sont complets et opérationnels.
+
+### 3. Rapports de performance
+
+- Les rapports perf ne sont **pas** enregistrés/affichés comme les Tests API.
+- **À faire** : Aligner sur le flux des Tests API (écriture dans `tests/results/<timestamp>/`, affichage complet dans Rapports de tests).
+
+### 4. Parcours utilisateur (User Journey)
+
+- **Parcours personnalisé** (21/02) : Plus d'étapes disponibles (Mise à jour Entreprises/Candidatures/Contacts, Liste Notifications) ; appel API corrigé (`/api/user-journey/custom`) ; rapports sauvegardés et visibles dans Rapports de parcours.
+- **Parcours prédéfinis** (21 scénarios) : En mode Admin et mode Utilisateur de test, les scénarios échouent (~14 % de réussite). Logs : ERROR auth-service après register/login.
+- **À faire** : Corriger l'auth (register/login) et l'enchaînement des étapes ; rendre les 21 scénarios opérationnels ; s'assurer que tous les rapports de parcours sont bien enregistrés et listés.
+
+### 5. Rapports – Conventions de nommage
+
+- **Tests API** : `tests/results/<timestamp>/` (ex. `20260221-143052`), fichiers `api.json`, `summary.json`, `report.html`.
+- **Tests Sécurité** : `tests/results/<timestamp>/security-report.json` (via REPORT_DIR).
+- **Parcours utilisateur** : `tests/user-journey-reports/user-journey-<nom>-<date>_<heure>.json` (ex. `user-journey-Mon-Parcours-Personnalise-2026-02-21_143052.json`).
+- **Performance** : À aligner sur le même schéma (tests/results ou répertoire dédié avec format cohérent).
+
+### 6. Autres points en attente
+
+- **Logs emails** : Page `/backoffice/emails/logs` et API `GET /api/v1/emails/logs` OK.
+- **API versioning** : Corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
+- **SMTP** : Config opérationnelle, test d'envoi depuis Backoffice → Déliverabilité.
+- **Créer compte test** : Backoffice → Utilisateurs → Nouvel utilisateur (formulaire opérationnel).
+- **CI/CD** : Pipeline GitHub Actions à adapter (projet microservices).
+- **Mise à jour des tests** : Lors de l'ajout de nouvelles fonctionnalités, mettre à jour les Tests API, les parcours et les scénarios correspondants.
+
+### 7. Checklist rapide reprise
+
+| Action | Statut |
+|--------|--------|
+| `make db-push-all && make build && make up-full && make status` | À exécuter |
+| Connexion backoffice (admin@jobbingtrack.com) | À vérifier |
+| Tests API 36/36 | À lancer |
+| Tests Sécurité (rapport généré ?) | À vérifier |
+| Parcours personnalisé (étapes + rapport) | Corrigé 21/02 |
+| Parcours prédéfinis (mode admin + test user) | À corriger |
+| Rapports perf enregistrés/affichés | À aligner |
 
 ---
 
@@ -38,6 +110,12 @@ La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **�
 - Après **rebuild** des images concernées (`make build` ou rebuild des services monitoring-c, log-collector-c, metrics-aggregator), les health checks du collecteur doivent afficher **HTTP 200** pour ces trois services et la **disponibilité** (ex. dans les stats) doit augmenter (plus de 404 comptés comme hors ligne).
 - **Tables « absentes »** ✅ **Corrigé** : Le message `[PERSISTENCE] Table container_metrics_snapshots absente` venait d’un **problème d’ordre de démarrage** (non lié au parallélisme) : metrics-aggregator démarrait avant db-push-all, donc la table n’existait pas encore. **Correction** : monitoring-c et metrics-aggregator sont maintenant démarrés **après** db-push-all dans `make up-full`. Si le message apparaît encore (ex. BDD existante sans la table), relancer `make db-push-all`.
 - **Logs datetime** : `make logs` = timestamp Docker (ISO) ; `make monitoring-c-logs` = préfixe [ISO] sur monitoring-c et log-collector-c (pas de doublon entre les deux vues). **system_metrics** : tables en **public.** dans `init-system-metrics.sql` ; après mise à jour, exécuter **make db-push-all** pour éviter « relation public.system_metrics does not exist ».
+
+### ✅ Fait récemment (21/02/2026) – Emails et gestion utilisateurs
+
+- **Emails** : Tables EmailLog, EmailTemplate créées (init-key-tables + seed). Test, reset, vérification fonctionnent. Send-verification corrigé (verificationToken, sendGenericEmail). URLs : verify-email?token=xxx, reset-password/{token}.
+- **Gestion utilisateurs** : Boutons « Renvoyer email vérification » et « Réinitialiser mot de passe » sur fiche utilisateur. Page Tests Emails (Backoffice → Tests).
+- **Email Monitor** : Référence MailHog supprimée.
 
 ---
 
@@ -102,8 +180,8 @@ Détail config et tests : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 - **Tables** : EmailLog, EmailTemplate créées par `make db-push-all`. **Send-verification** corrigé (verificationToken, sendGenericEmail). URLs deep linking : verify-email?token=xxx, reset-password/{token}.
 - **Tests DNS** : OK (MX, SPF OK ; DKIM optionnel).
 - **Connexion SMTP** : OK (Backoffice → Déliverabilité → « Tester la connexion SMTP » ; host ssl0.ovh.net, port 587, user noreply@maily.ovh, from `JobbingTrack <noreply@jobbingtrack.com>`).
-- **Envoi de test** : Les emails arrivent bien en boîte mail, mais l’interface affiche « Erreur lors de l’envoi » car la table **EmailLog** n’existe pas → le logging échoue. **Solution** : exécuter **`make db-push-all`** pour créer la table.
-- **Reply-To** : `SMTP_REPLY_TO=noreply@jobbingtrack.com` ; headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` pour indiquer message automatique (pas de réponse attendue).
+- **Envoi de test** : Les emails arrivent bien en boîte mail, mais l’interface affiche « Erreur lors de l’envoi » car la table **EmailLog** n’existe pas . Tables EmailLog/EmailTemplate créées par `make db-push-all`.
+- **Reply-To** : `SMTP_REPLY_TO=noreply@jobbingtrack.com` ; headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All`.
 
 ### Étapes à faire (dans l’ordre)
 
@@ -210,11 +288,63 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 20. Observabilité : tout le trafic (API, mobile, mails, user journey, tests) répertorié dans log-collector + metrics-aggregator.
 21. Documentation : tenir à jour ERRORS.md, aligner RESOLUTIONS.md / TESTS_END.md avec STATUS.
 
+**Tests Sécurité (backoffice)** :
+
+- **Correction ENOENT** (21/02/2026) : Le script `tests/security/test-security.js` écrivait dans `tests/reports/` (chemin relatif) ; en Docker (frontend) le CWD ou l’absence du dossier provoquait `ENOENT: no such file or directory, mkdir 'tests/reports'`. **Correction** : le script utilise désormais `process.env.REPORT_DIR` (exporté par `scripts/generate-test-report.sh`) pour écrire `security-report.json` dans le même répertoire que les autres rapports (`tests/results/<timestamp>/`). Fallback : `PROJECT_ROOT/tests/results` ou `cwd/tests/results`.
+- **État actuel** : 1 test exécuté, 0 réussi, 1 échoué (avant correction : échec à cause de l’ENOENT). Après correction, les rapports doivent se générer ; les **tests de sécurité complets** (API, backoffice, backend, frontend) ne sont pas encore tous opérationnels.
+- **À faire** : Enrichir les tests sécurité (XSS, SQLi, CSRF, auth, rate limiting, headers, validation) pour qu’ils soient complets et opérationnels ; s’assurer que le rapport est bien listé et affiché dans Backoffice → Rapports de tests (comme les Tests API).
+
+**Rapports de performance** :
+
+- Les tests de performance (Backend / Frontend) ne sont **pas** enregistrés ni affichés comme les Tests API : pas le même flux d’enregistrement (répertoire, summary, affichage dans l’interface).
+- **À faire** : Aligner les rapports perf sur le flux des Tests API (écriture dans `tests/results/<timestamp>/`, summary.json, affichage complet dans Backoffice → Rapports de tests, avec tout le détail nécessaire).
+
+**Parcours utilisateur (User Journey)** :
+
+- **Interface** : Backoffice → Parcours utilisateur (ou User Journey) : choix du scénario (21 scénarios listés), mode **Administrateur** ou **Utilisateur de test**.
+- **Problème actuel** : En mode admin et en mode utilisateur de test, les scénarios (ex. « Parcours Complet », 14 étapes) échouent massivement : taux de réussite ~14,3 %, 0/14 étapes réussies, 12 étapes échouées. Logs : après `POST /api/v1/auth/register` (201) et `POST /api/v1/auth/login`, des **ERROR** côté auth-service apparaissent ; les étapes suivantes (Créer Entreprises, Mettre à jour Entreprises, Créer Candidatures, etc.) échouent.
+- **Rapports** : Les rapports de parcours doivent être **enregistrés** dans la section Rapports de tests (comme les rapports API), avec résumé et détail complets.
+- **Scénarios** : 21 scénarios sont proposés (Parcours Complet, Parcours Rapide, Chercheur d’emploi actif, Nouvel utilisateur, Test Mobile complet, Ajouter Appel/Contact à candidature, Gestion contacts, Workflow entretiens, Gestion relances, Planification événements, Workflow entreprises, Cycle de vie candidature, Activité quotidienne, Candidature rapide, Session networking, Préparation entretien, Revue hebdomadaire, Vérification email et reset password, Tests emails complets, Gestion données de test). **À faire** : Corriger l’auth (register/login) et l’enchaînement des étapes pour que les parcours passent en mode admin et en mode utilisateur de test ; finaliser l’implémentation de tous les scénarios ; enregistrer les rapports de parcours dans les rapports de tests.
+
+**Fin des fonctionnalités à faire** (backlog) :
+
+- **Tests de performance** : Finaliser les tests de performance (backoffice) ; rapports **enregistrés et affichés** comme les Tests API (résumé + détail complet dans l’interface).
+- **Tests de sécurité** : Suite à la correction ENOENT : tests complets (API, backoffice, backend, frontend) opérationnels ; rapports listés et affichés dans Rapports de tests.
+- **Parcours utilisateur** : Parcours complets fonctionnels en mode Administrateur et en mode Utilisateur de test ; rapports de parcours enregistrés dans Rapports de tests ; 21 scénarios correctement implémentés et maintenus à jour.
+- **Sélection des tests** : Tests API a déjà cocher/décocher par type ; Performance a Backend/Frontend/Both ; améliorer la sélection sur les autres pages (sécurité, Playwright, etc.).
+- **Gestion utilisateur enrichie** : Statut validation compte (emailVerified), derniers emails envoyés (type, date, statut), statut du lien (cliqué ou non).
+- **Analytics par utilisateur** : Par utilisateur (gestion users → fiche) : analytics actions, comportement sur l’interface, performance (web + app mobile), versions récupérées. Déjà prévu dans user-analytics (Overview, Events, Errors, Performance, Mobile/Versions) mais pas encore totalement opérationnel : onglet Performance = placeholder ; Mobile/Versions dépend des APIs ; possibilité de voir les analytics d’un autre utilisateur (pas seulement le sien) à ajouter.
+- **Création d'utilisateurs** : ✅ Formulaire création dans /users/new (utilise POST /register) ; compte de test dédié (ex. test@delhomme.ovh) à créer.
+- **Tests de rétrocompatibilité** : Rétrocompatibilité application de version en version (API, schémas BDD).
+- **Enrichissement des tests** : Sécurité, perf, API, Playwright, user journey — inclure scénarios email.
+- **Flutter APK / émulateur** : Générer APK, lancer dans émulateur mobile Flutter.
+- **Deep linking mobile** : Universal Links / App Links — quand app mobile prête.
+- **Réchauffage domaine, templates clients** : Après interface app mobile OK.
+- **API REST doc** : Swagger/OpenAPI présent (api-gateway) mais pas à jour avec tous les microservices ; à synchroniser.
+
+---
+
+## Prochaine étape à faire (21/02/2026)
+
+**→ Voir la section « REPRISE TRAVAIL – À faire en priorité (lundi) » en tête de document.**
+
+**Ordre recommandé** :
+
+1. **Valider ce qui existe** : Lancer Tests API (36/36), Tests Performance (Backend + Frontend), Tests Sécurité, User Journey. Noter les échecs. Les Tests API permettent de cocher/décocher les types à exécuter (boutons « Tout cocher » / « Tout décocher »). **Tests Sécurité** : ENOENT sur `tests/reports` corrigé (rapport écrit dans REPORT_DIR) ; relancer et vérifier que le rapport est généré et visible dans Rapports de tests.
+2. **Rapports perf et parcours** : Aligner les rapports de performance et les rapports de parcours utilisateur sur le flux des Tests API (enregistrement dans `tests/results/<timestamp>/`, affichage complet dans Backoffice → Rapports de tests).
+3. **Parcours utilisateur** : Corriger les échecs en mode Admin et mode Utilisateur de test (auth après register/login, enchaînement des étapes) ; enregistrer les rapports de parcours dans Rapports de tests ; maintenir à jour les 21 scénarios (Parcours Complet, Email/Reset password, etc.).
+4. **Créer le compte test** : Utiliser Backoffice → Utilisateurs → « Nouvel utilisateur » pour créer `test@delhomme.ovh` (formulaire création opérationnel).
+5. **Gestion utilisateur enrichie** : Afficher emailVerified, derniers emails envoyés, statut du lien ; **analytics par utilisateur** (actions, comportement, performance web + mobile, versions app) — user-analytics existe mais Performance = placeholder, Mobile dépend des APIs ; ajouter lien vers analytics depuis fiche utilisateur (vue admin sur un user).
+6. **Finaliser les tests de performance** : Rapports enregistrés et affichés comme Tests API ; couverture complète (voir backlog).
+7. **Sélection des tests** : Étendre la sélection activer/désactiver aux pages Sécurité, Playwright, User Journey (comme sur Tests API).
+
+Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API REST doc à jour.
+
 ---
 
 ## À valider (tests à lancer)
 
-- **Priorité 2 (maintenant)** : **Suite immédiate** : **SMTP** (config + test + backoffice), **API versioning** (important – pas encore en place ; corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions` et définir stratégie), **logs emails** (404). Tests API : 36/36 OK ; BDD : `make db-push-all` puis si besoin `make db-fix-is-archived` et `make restart-tests-api-services`.
+- **Priorité 2 (maintenant)** : **Suite immédiate** : SMTP OK ; logs emails OK (tables créées). **API versioning** (corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`). Tests API : 36/36 OK.
 - **Priorité 3** : Lancer les cibles make listées (make test-api, test-security, test-frontend, etc.) depuis la racine ; valider ou documenter les échecs.
 - **Priorité 4 (sécurité)** : après stabilisation des tests et APIs, affiner la partie sécurité (WAF réelle, seuils, logs/menaces cohérents). Les menaces détectées sont désormais aussi enregistrées dans les logs de sécurité.
 - En fin de session : noter les échecs dans STATUS.md ou TESTS_END.md.
@@ -248,6 +378,8 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 ---
 
 ## Parcours de vie et traitements métier – À couvrir plus tard (hors Tests API)
+
+**Backoffice – Parcours utilisateur (User Journey)** : La page Backoffice → Parcours utilisateur propose **21 scénarios** (Parcours Complet, Parcours Rapide, Chercheur d’emploi actif, Nouvel utilisateur, Test Mobile complet, Ajouter Appel/Contact à candidature, Gestion contacts, Workflow entretiens, Gestion relances, Planification événements, Workflow entreprises, Cycle de vie candidature, Activité quotidienne, Candidature rapide, Session networking, Préparation entretien, Revue hebdomadaire, Vérification email et reset password, Tests emails complets, Gestion données de test). Exécution en mode **Administrateur** ou **Utilisateur de test**. Actuellement les parcours échouent (auth après register/login, étapes suivantes) ; les rapports doivent être enregistrés dans Rapports de tests. Détail : section **« Parcours utilisateur (User Journey) »** dans le backlog ci‑dessus.
 
 **À noter** : les points ci‑dessous ne sont **pas** couverts par les Tests API (script backoffice). Ils relèvent des **parcours utilisateur** (prédéfinis / personnalisés), **tests backend**, **tests frontend**, **tests backoffice**, **Playwright E2E**, et éventuellement du **workflow-service** (traitements réguliers dans le temps). À traiter après les priorités immédiates (SMTP, API versioning, etc.).
 

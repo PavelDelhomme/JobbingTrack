@@ -500,12 +500,17 @@ class SecurityTester {
     const allResults = securityTests.flat();
     const report = this.generateSecurityReport(allResults);
 
-    // Sauvegarder le rapport
+    // Sauvegarder le rapport (REPORT_DIR fourni par generate-test-report.sh, sinon fallback)
     const fs = require('fs');
     const path = require('path');
-    const reportPath = path.join('tests', 'reports', 'security-report.json');
+    const reportDir = process.env.REPORT_DIR || path.join(process.env.PROJECT_ROOT || process.cwd(), 'tests', 'results');
+    const reportPath = path.join(reportDir, 'security-report.json');
 
-    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    try {
+      fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
     console.log(`\n📋 Rapport sauvegardé: ${reportPath}`);
