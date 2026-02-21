@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
+import { getProjectRoot } from '../../test/testRunnerUtils';
 
 const execAsync = promisify(exec);
-
-const PROJECT_ROOT = process.cwd().includes('frontend') 
-  ? join(process.cwd(), '..')
-  : process.cwd();
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,13 +18,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construire la commande pour exécuter le parcours personnalisé
-    const stepsJson = JSON.stringify(steps);
-    const testScriptPath = join(PROJECT_ROOT, 'tests', 'user-journey', 'test-custom-journey.js');
-    const apiUrl = process.env.API_URL || 'http://localhost:5002';
+    const projectRoot = getProjectRoot();
+    const stepsJson = JSON.stringify(steps).replace(/'/g, "'\\''");
+    const testScriptPath = join(projectRoot, 'tests', 'user-journey', 'test-custom-journey.js');
+    const apiUrl = process.env.API_GATEWAY_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
-    // Exécuter le script de test
-    const command = `cd ${PROJECT_ROOT} && node ${testScriptPath} custom '${stepsJson}'`;
+    const command = `cd "${projectRoot}" && node "${testScriptPath}" custom '${stepsJson}'`;
     
     const { stdout, stderr } = await execAsync(command, {
       env: {

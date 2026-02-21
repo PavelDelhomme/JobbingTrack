@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1617,6 +1617,7 @@ export default function UserJourneyPage() {
 
   // Sauvegarder le rapport dans les rapports de tests
   const saveReport = async () => {
+    const journeyResults = steps.filter(s => s.status !== 'pending');
     if (!journeyResults || journeyResults.length === 0) {
       alert('Aucun résultat à sauvegarder')
       return
@@ -1624,18 +1625,25 @@ export default function UserJourneyPage() {
 
     try {
       const reportData = {
-        journeyName: selectedScenario || 'custom',
+        journeyName: SCENARIOS[selectedScenario]?.name || selectedScenario || 'custom',
         timestamp: new Date().toISOString(),
         summary: {
-          totalSteps: journeyResults.length,
-          successCount: journeyResults.filter(r => r.status === 'success').length,
-          errorCount: journeyResults.filter(r => r.status === 'error').length,
-          warningCount: journeyResults.filter(r => r.status === 'warning').length,
-          skippedCount: journeyResults.filter(r => r.status === 'skipped').length,
-          totalDuration: journeyResults.reduce((acc, r) => acc + (r.duration || 0), 0),
-          successRate: ((journeyResults.filter(r => r.status === 'success').length / journeyResults.length) * 100).toFixed(2) + '%'
+          totalSteps: steps.length,
+          successCount: steps.filter(r => r.status === 'success').length,
+          errorCount: steps.filter(r => r.status === 'error').length,
+          warningCount: steps.filter(r => r.status === 'warning').length,
+          skippedCount: steps.filter(r => r.status === 'skipped').length,
+          totalDuration: analytics.totalDuration || steps.reduce((acc, r) => acc + (r.duration || 0), 0),
+          successRate: analytics.successRate ? `${analytics.successRate}%` : ((steps.filter(r => r.status === 'success').length / steps.length) * 100).toFixed(2) + '%'
         },
-        results: journeyResults,
+        results: steps.map(s => ({
+          step: s.id,
+          name: s.name,
+          status: s.status,
+          duration: s.duration,
+          error: s.error,
+          result: s.result
+        })),
         context: {
           testToken: testToken,
           scenario: selectedScenario
@@ -1659,6 +1667,36 @@ export default function UserJourneyPage() {
       alert('Erreur lors de la sauvegarde du rapport')
     }
   }
+
+  // Sauvegarde automatique du rapport lorsque le parcours est terminé
+  const lastAutoSavedCompletedAt = useRef<Date | null>(null)
+  useEffect(() => {
+    if (!analytics.completedAt || !steps.length || steps.every(s => s.status === 'pending')) return
+    if (lastAutoSavedCompletedAt.current === analytics.completedAt) return
+    lastAutoSavedCompletedAt.current = analytics.completedAt
+    const reportData = {
+      journeyName: SCENARIOS[selectedScenario]?.name || selectedScenario || 'custom',
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalSteps: steps.length,
+        successCount: steps.filter(r => r.status === 'success').length,
+        errorCount: steps.filter(r => r.status === 'error').length,
+        warningCount: steps.filter(r => r.status === 'warning').length,
+        skippedCount: steps.filter(r => r.status === 'skipped').length,
+        totalDuration: analytics.totalDuration || steps.reduce((acc, r) => acc + (r.duration || 0), 0),
+        successRate: analytics.successRate ? `${analytics.successRate}%` : ((steps.filter(r => r.status === 'success').length / steps.length) * 100).toFixed(2) + '%'
+      },
+      results: steps.map(s => ({ step: s.id, name: s.name, status: s.status, duration: s.duration, error: s.error, result: s.result })),
+      context: { testToken: token, scenario: selectedScenario }
+    }
+    fetch('/api/user-journey/save-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportData, journeyName: SCENARIOS[selectedScenario]?.name || selectedScenario || 'custom' })
+    }).then(res => res.json()).then(data => {
+      if (data.success) console.log('✅ Rapport de parcours enregistré automatiquement')
+    }).catch(err => console.warn('Avertissement: enregistrement automatique du rapport échoué', err))
+  }, [analytics.completedAt, steps, selectedScenario, analytics.totalDuration, analytics.successRate, token])
 
   // Exporter les résultats en JSON
   const exportResults = () => {

@@ -288,9 +288,30 @@ export default function APITestsPage() {
 
         {/* Liste des tests disponibles */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Tests Disponibles ({availableTests.filter(t => t.enabled).length} sélectionné(s))
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Tests Disponibles ({availableTests.filter(t => t.enabled).length} sélectionné(s))
+            </h2>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAvailableTests(prev => prev.map(t => ({ ...t, enabled: true })))}
+                disabled={isRunning}
+                className="text-sm px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+              >
+                Tout cocher
+              </button>
+              <button
+                type="button"
+                onClick={() => setAvailableTests(prev => prev.map(t => ({ ...t, enabled: false })))}
+                disabled={isRunning}
+                className="text-sm px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+              >
+                Tout décocher
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Cliquez sur une carte pour l&apos;activer ou la désactiver.</p>
           
           {categories.map(category => (
             <div key={category} className="mb-6 last:mb-0">

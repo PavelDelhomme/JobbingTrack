@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
 interface User {
   id: string;
@@ -42,21 +42,27 @@ export default function UserDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
-  
+  const [creating, setCreating] = useState(false);
+  const isCreateMode = userId === 'new';
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
+    password: '',
     role: 'USER' as 'USER' | 'ADMIN' | 'SUPER_ADMIN',
     isActive: true,
   });
 
   useEffect(() => {
-    if (token && userId) {
+    if (token && userId && !isCreateMode) {
       loadUser();
+    } else if (isCreateMode) {
+      setLoading(false);
+      setUser(null);
     }
-  }, [token, userId]);
+  }, [token, userId, isCreateMode]);
 
   const loadUser = async () => {
     try {
@@ -164,6 +170,41 @@ export default function UserDetailPage() {
       alert(error.response?.data?.error || 'Erreur lors de la mise à jour');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!formData.email?.trim() || !formData.firstName?.trim() || !formData.lastName?.trim() || !formData.password?.trim()) {
+      alert('Veuillez remplir tous les champs obligatoires (prénom, nom, email, mot de passe)');
+      return;
+    }
+    if (formData.password.length < 6) {
+      alert('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+    try {
+      setCreating(true);
+      const response = await axios.post(
+        `${API_URL}/api/v1/auth/register`,
+        {
+          email: formData.email.trim(),
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          password: formData.password,
+          role: formData.role,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data?.user?.id) {
+        router.push(`/backoffice/users/${response.data.user.id}`);
+      } else {
+        router.push('/backoffice/users');
+      }
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { error?: string } } };
+      alert(axErr.response?.data?.error || 'Erreur lors de la création');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -313,7 +354,7 @@ export default function UserDetailPage() {
     }
   };
 
-  if (loading) {
+  if (loading && !isCreateMode) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-screen">
@@ -323,7 +364,7 @@ export default function UserDetailPage() {
     );
   }
 
-  if (error && !user) {
+  if (error && !user && !isCreateMode) {
     return (
       <AdminLayout>
         <div className="p-6">
@@ -345,8 +386,94 @@ export default function UserDetailPage() {
     );
   }
 
-  if (!user) {
+  if (!user && !isCreateMode) {
     return null;
+  }
+
+  if (isCreateMode) {
+    return (
+      <AdminLayout>
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => router.push('/backoffice/users')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Retour
+            </button>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-6 max-w-xl">
+            <h1 className="text-2xl font-bold mb-6">Nouvel utilisateur</h1>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Prénom *</label>
+                <input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nom *</label>
+                <input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mot de passe * (min. 6 caractères)</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Rôle</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER' | 'ADMIN' | 'SUPER_ADMIN' })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="USER">Utilisateur</option>
+                  <option value="ADMIN">Administrateur</option>
+                  <option value="SUPER_ADMIN">Super Administrateur</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleCreateUser}
+                  disabled={creating}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {creating ? 'Création...' : 'Créer'}
+                </button>
+                <button
+                  onClick={() => router.push('/backoffice/users')}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (

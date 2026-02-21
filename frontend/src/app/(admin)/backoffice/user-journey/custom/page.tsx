@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/hooks/auth';
+import Link from 'next/link';
 import { 
   Play, 
   Plus, 
@@ -15,27 +16,41 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Settings,
-  Save,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003';
-
-// Définition des étapes disponibles
+// Définition des étapes disponibles (alignées avec journey-builder.js)
 const AVAILABLE_STEPS = [
-  { id: 'register', name: 'Inscription', description: 'Inscription d\'un nouvel utilisateur', icon: '👤' },
-  { id: 'email_validation', name: 'Validation Email', description: 'Validation de l\'email après inscription', icon: '📧' },
+  // Auth & profil
+  { id: 'register', name: 'Inscription', description: "Inscription d'un nouvel utilisateur", icon: '👤' },
+  { id: 'email_validation', name: 'Validation Email', description: "Validation de l'email après inscription", icon: '📧' },
   { id: 'login', name: 'Connexion', description: 'Connexion utilisateur', icon: '🔐' },
   { id: 'profile', name: 'Profil Utilisateur', description: 'Mise à jour du profil utilisateur', icon: '👨‍💼' },
+  // Entreprises
+  { id: 'create_companies', name: 'Créer Entreprises', description: 'Créer des entreprises de test', icon: '🏢' },
+  { id: 'update_companies', name: 'Mise à jour Entreprises', description: 'Mettre à jour une entreprise existante', icon: '✏️' },
   { id: 'application_with_company', name: 'Candidature avec Entreprise', description: 'Création candidature avec création entreprise', icon: '📝' },
-  { id: 'contact_to_application', name: 'Contact à Candidature', description: 'Ajout d\'un contact à une candidature', icon: '📇' },
-  { id: 'followup', name: 'Relance', description: 'Ajout d\'une relance à une candidature', icon: '📞' },
-  { id: 'interview', name: 'Entretien', description: 'Ajout d\'un entretien à une candidature', icon: '📅' },
-  { id: 'call_company', name: 'Appel Entreprise', description: 'Enregistrement d\'un appel avec l\'entreprise', icon: '☎️' },
-  { id: 'call_contact', name: 'Appel Contact', description: 'Enregistrement d\'un appel avec un contact', icon: '📱' },
-  { id: 'application_status', name: 'Statut Candidature', description: 'Vérification/mise à jour du statut', icon: '📊' },
-  { id: 'application_rejected', name: 'Candidature Rejetée', description: 'Marquer candidature comme rejetée après entretien', icon: '❌' }
+  // Candidatures
+  { id: 'create_applications', name: 'Créer Candidatures', description: 'Créer des candidatures de test', icon: '📄' },
+  { id: 'update_applications', name: 'Mise à jour Candidatures', description: 'Mettre à jour une candidature existante', icon: '✏️' },
+  { id: 'application_status', name: 'Statut Candidature', description: 'Vérification/mise à jour du statut candidature', icon: '📊' },
+  { id: 'application_rejected', name: 'Candidature Rejetée', description: 'Marquer candidature comme rejetée après entretien', icon: '❌' },
+  // Contacts
+  { id: 'create_contacts', name: 'Créer Contacts', description: 'Créer des contacts recruteurs', icon: '👥' },
+  { id: 'update_contacts', name: 'Mise à jour Contacts', description: 'Mettre à jour un contact existant', icon: '✏️' },
+  { id: 'contact_to_application', name: 'Contact à Candidature', description: "Ajout d'un contact à une candidature", icon: '📇' },
+  // Suivi candidature
+  { id: 'followup', name: 'Relance', description: "Ajout d'une relance à une candidature", icon: '📞' },
+  { id: 'interview', name: 'Entretien', description: "Ajout d'un entretien à une candidature", icon: '📅' },
+  { id: 'call_company', name: 'Appel Entreprise', description: "Enregistrement d'un appel avec l'entreprise", icon: '☎️' },
+  { id: 'call_contact', name: 'Appel Contact', description: "Enregistrement d'un appel avec un contact", icon: '📱' },
+  // Calendrier & événements
+  { id: 'create_events', name: 'Créer Événements', description: 'Créer des événements au calendrier', icon: '📆' },
+  { id: 'view_calendar', name: 'Voir Calendrier', description: 'Consulter le calendrier des événements', icon: '🗓️' },
+  // Dashboard & notifications
+  { id: 'view_statistics', name: 'Voir Statistiques', description: 'Consulter le dashboard et les statistiques', icon: '📈' },
+  { id: 'list_notifications', name: 'Liste Notifications', description: 'Récupérer la liste des notifications', icon: '🔔' },
 ];
 
 type CustomStep = {
@@ -60,6 +75,7 @@ export default function CustomJourneyPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<StepResult[]>([]);
   const [journeyName, setJourneyName] = useState('Mon Parcours Personnalisé');
+  const [reportSaved, setReportSaved] = useState(false);
 
   const addStep = (stepId: string) => {
     const newStep: CustomStep = {
@@ -92,9 +108,10 @@ export default function CustomJourneyPage() {
 
     setIsRunning(true);
     setResults([]);
+    setReportSaved(false);
 
     try {
-      const response = await fetch(`${API_URL}/api/user-journey/custom`, {
+      const response = await fetch('/api/user-journey/custom', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +131,43 @@ export default function CustomJourneyPage() {
       }
 
       const data = await response.json();
-      setResults(data.results || []);
+      const resultsList = data.results || [];
+      setResults(resultsList);
+
+      // Sauvegarder automatiquement le rapport dans Rapports de Tests
+      if (resultsList.length > 0) {
+        try {
+          const reportData = {
+            journeyName: journeyName || 'Parcours Personnalisé',
+            timestamp: new Date().toISOString(),
+            summary: data.summary || {
+              totalSteps: resultsList.length,
+              successCount: resultsList.filter((r: StepResult) => r.status === 'success').length,
+              errorCount: resultsList.filter((r: StepResult) => r.status === 'error').length,
+              warningCount: resultsList.filter((r: StepResult) => r.status === 'warning').length,
+              skippedCount: resultsList.filter((r: StepResult) => r.status === 'skipped').length,
+              totalDuration: data.summary?.totalDuration || 0,
+              successRate: data.summary?.successRate || '0%'
+            },
+            results: resultsList,
+            context: data.context || {}
+          };
+          const saveRes = await fetch('/api/user-journey/save-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reportData,
+              journeyName: journeyName || 'Parcours Personnalisé'
+            })
+          });
+          const saveData = await saveRes.json();
+          if (saveData.success) {
+            setReportSaved(true);
+          }
+        } catch (saveErr) {
+          console.warn('Avertissement: rapport non sauvegardé', saveErr);
+        }
+      }
     } catch (error: any) {
       console.error('Erreur exécution parcours:', error);
       setResults([{
@@ -300,11 +353,31 @@ export default function CustomJourneyPage() {
           </Card>
         </div>
 
+        {/* Notification rapport sauvegardé */}
+        {reportSaved && (
+          <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Rapport sauvegardé dans Rapports de tests</span>
+                </div>
+                <Link href="/backoffice/user-journey/reports">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <FileText className="w-4 h-4" />
+                    Voir les rapports de parcours
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Résultats */}
         {results.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Résultats de l'Exécution</CardTitle>
+              <CardTitle>Résultats de l&apos;Exécution</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

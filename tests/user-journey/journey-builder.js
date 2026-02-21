@@ -14,6 +14,16 @@ const stepInterview = require('./modules/step-interview');
 const stepCall = require('./modules/step-call');
 const stepApplicationStatus = require('./modules/step-application-status');
 const stepApplicationRejected = require('./modules/step-application-rejected');
+const stepCreateCompanies = require('./modules/step-create-companies');
+const stepCreateApplications = require('./modules/step-create-applications');
+const stepCreateContacts = require('./modules/step-create-contacts');
+const stepUpdateCompanies = require('./modules/step-update-companies');
+const stepUpdateApplications = require('./modules/step-update-applications');
+const stepUpdateContacts = require('./modules/step-update-contacts');
+const stepListNotifications = require('./modules/step-list-notifications');
+const stepCreateEvents = require('./modules/step-create-events');
+const stepViewStatistics = require('./modules/step-view-statistics');
+const stepViewCalendar = require('./modules/step-view-calendar');
 
 // Mapping des étapes disponibles
 const STEP_MODULES = {
@@ -28,7 +38,13 @@ const STEP_MODULES = {
   call_company: (options) => stepCall.stepCall({ ...options, callType: 'COMPANY' }),
   call_contact: (options) => stepCall.stepCall({ ...options, callType: 'CONTACT' }),
   application_status: stepApplicationStatus.stepApplicationStatus,
-  application_rejected: stepApplicationRejected.stepApplicationRejected
+  application_rejected: stepApplicationRejected.stepApplicationRejected,
+  create_companies: stepCreateCompanies.stepCreateCompanies,
+  create_applications: stepCreateApplications.stepCreateApplications,
+  create_contacts: stepCreateContacts.stepCreateContacts,
+  create_events: stepCreateEvents.stepCreateEvents,
+  view_statistics: stepViewStatistics.stepViewStatistics,
+  view_calendar: stepViewCalendar.stepViewCalendar
 };
 
 // Noms des étapes pour l'affichage
@@ -44,7 +60,17 @@ const STEP_NAMES = {
   call_company: 'Appel Entreprise',
   call_contact: 'Appel Contact',
   application_status: 'Statut Candidature',
-  application_rejected: 'Candidature Rejetée'
+  application_rejected: 'Candidature Rejetée',
+  create_companies: 'Créer Entreprises',
+  create_applications: 'Créer Candidatures',
+  create_contacts: 'Créer Contacts',
+  update_companies: 'Mise à jour Entreprises',
+  update_applications: 'Mise à jour Candidatures',
+  update_contacts: 'Mise à jour Contacts',
+  list_notifications: 'Liste Notifications',
+  create_events: 'Créer Événements',
+  view_statistics: 'Voir Statistiques',
+  view_calendar: 'Voir Calendrier'
 };
 
 /**
