@@ -36,14 +36,20 @@ const archiveApplication = async (req, res, next) => {
     // Archiver automatiquement tous les éléments liés
     await archiveRelatedElements(id, req.user.id, reason);
 
-    // Créer une activité d'archivage
-    await prisma.activity.create({
-      data: {
-        applicationId: id,
-        type: 'APPLICATION_ARCHIVED',
-        description: `Candidature archivée${reason ? `: ${reason}` : ''}`
+    // Créer une activité d'archivage (si le modèle Activity existe)
+    if (typeof prisma.activity?.create === 'function') {
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: id,
+            type: 'APPLICATION_ARCHIVED',
+            description: `Candidature archivée${reason ? `: ${reason}` : ''}`
+          }
+        });
+      } catch (e) {
+        logger.warn('Échec création activité archivage:', e.message);
       }
-    });
+    }
 
     res.json({
       success: true,
@@ -90,14 +96,20 @@ const restoreApplication = async (req, res, next) => {
     // Restaurer automatiquement les éléments liés
     await restoreRelatedElements(id);
 
-    // Créer une activité de restauration
-    await prisma.activity.create({
-      data: {
-        applicationId: id,
-        type: 'APPLICATION_RESTORED',
-        description: 'Candidature restaurée depuis l\'archive'
+    // Créer une activité de restauration (si le modèle Activity existe)
+    if (typeof prisma.activity?.create === 'function') {
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: id,
+            type: 'APPLICATION_RESTORED',
+            description: 'Candidature restaurée depuis l\'archive'
+          }
+        });
+      } catch (e) {
+        logger.warn('Échec création activité restauration:', e.message);
       }
-    });
+    }
 
     res.json({
       success: true,

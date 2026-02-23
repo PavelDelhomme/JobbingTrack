@@ -72,8 +72,10 @@ const getUserPreferences = async (req, res) => {
           where: { userId }
         });
       } catch (error) {
-        // Si la table n'existe pas (P2021), retourner les valeurs par défaut
-        if (error.code === 'P2021' || (error.message && error.message.includes('does not exist'))) {
+        // Si la table n'existe pas (P2021 ou message "does not exist"), retourner les valeurs par défaut
+        const tableMissing = error.code === 'P2021' ||
+          (error.message && (error.message.includes('does not exist') || error.message.includes('UserCustomization')));
+        if (tableMissing) {
           logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
           return res.json({
             success: true,

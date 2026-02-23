@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import {
-  Play, Square, Loader2, Shield, RefreshCw, CheckCircle2, ExternalLink
+  Play, Square, Loader2, Shield, RefreshCw, CheckCircle2, ExternalLink, FileText
 } from '@/lib/icons'
 
 interface TestItem {
@@ -162,17 +163,17 @@ export default function SecurityTestsPage() {
         </div>
 
         {reportId && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Rapport généré : <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{reportId}</code>
-            </p>
-            <a
-              href="/backoffice/test-reports"
-              className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 hover:underline"
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <Link
+              href={`/backoffice/test-reports?open=${encodeURIComponent(reportId)}`}
+              className="inline-flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:underline font-medium"
             >
-              <ExternalLink className="w-4 h-4" />
-              Voir tous les rapports
-            </a>
+              <FileText className="w-4 h-4" />
+              Voir le rapport
+            </Link>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Rapport : <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{reportId}</code>
+            </p>
           </div>
         )}
 
@@ -193,6 +194,17 @@ export default function SecurityTestsPage() {
               ))}
               <div ref={logsEndRef} />
             </div>
+            {reportId && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <Link
+                  href={`/backoffice/test-reports?open=${encodeURIComponent(reportId)}`}
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
+                >
+                  <FileText className="w-4 h-4" />
+                  Voir le rapport
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
         encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024,
         timeout: RUN_TIMEOUT_MS,
-        env: { ...process.env, TESTS_RESULTS_DIR: process.env.TESTS_RESULTS_DIR || undefined },
+        env: {
+          ...process.env,
+          TESTS_RESULTS_DIR: process.env.TESTS_RESULTS_DIR || (inContainer ? '/tmp/tests/results' : undefined),
+        },
       })
       reportId = extractReportId(stdout)
     } catch (err: unknown) {

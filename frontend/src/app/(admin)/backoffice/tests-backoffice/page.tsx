@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import { 
   Play, Square, Loader2, CheckCircle, XCircle, 
-  Settings, Activity, Clock, Zap, RefreshCw, Shield, CheckCircle2
+  Settings, Activity, Clock, Zap, RefreshCw, Shield, CheckCircle2, FileText
 } from '@/lib/icons'
 
 interface TestItem {
@@ -31,6 +32,7 @@ export default function BackofficeTestsPage() {
   const [currentTest, setCurrentTest] = useState<string>('')
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
+  const [lastReportId, setLastReportId] = useState<string | null>(null)
 
   // Liste des tests disponibles avec leurs descriptions
   const [availableTests, setAvailableTests] = useState<TestItem[]>([
@@ -130,19 +132,14 @@ export default function BackofficeTestsPage() {
     setProgress(0)
     setLogs([])
     setCurrentTest('')
+    setLastReportId(null)
 
-    // Initialiser les statuts des tests sélectionnés
-    setTestStatuses(selectedTests.map(test => ({
-      name: test.name,
-      status: 'pending',
-      progress: 0
-    })))
-
+    setTestStatuses(selectedTests.map(test => ({ name: test.name, status: 'pending', progress: 0 })))
     addLog(`🚀 Démarrage des tests Backoffice...`)
     addLog(`📋 ${selectedTests.length} test(s) sélectionné(s)`)
 
     try {
-      // Lancer les tests backoffice via make (tests E2E spécifiques au backoffice)
+      setCurrentTest('Exécution en cours...')
       const response = await fetch('/api/test/run-backoffice', {
         method: 'POST',
         headers: {
@@ -154,57 +151,26 @@ export default function BackofficeTestsPage() {
         })
       })
 
-      if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status}`)
-      }
-
       const data = await response.json()
-      addLog(`✅ Tests backoffice lancés: ${data.message || 'En cours...'}`)
 
-      // Simuler la progression pour chaque test
-      for (let i = 0; i < selectedTests.length; i++) {
-        const test = selectedTests[i]
-        setCurrentTest(test.name)
-        setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'running', progress: 0 } : t
-        ))
-        addLog(`▶️ Démarrage: ${test.name}`)
-
-        // Simuler la progression
-        let testProgress = 0
-        const testInterval = setInterval(() => {
-          testProgress = Math.min(testProgress + 10, 100)
-          setTestStatuses(prev => prev.map((t, idx) => {
-            if (idx === i && t.status === 'running') {
-              return { ...t, progress: testProgress }
-            }
-            return t
-          }))
-          setProgress(((i + testProgress / 100) * 100) / selectedTests.length)
-        }, 100)
-
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        clearInterval(testInterval)
-
-        setTestStatuses(prev => prev.map((t, idx) => 
-          idx === i ? { ...t, status: 'completed', progress: 100 } : t
-        ))
-        addLog(`✅ Terminé: ${test.name}`)
+      if (!response.ok) {
+        throw new Error(data.error || `Erreur API: ${response.status}`)
       }
 
+      addLog(`✅ ${data.message || 'Tests backoffice terminés.'}`)
+      if (data.reportId) {
+        setLastReportId(data.reportId)
+        addLog('📄 Voir le rapport ci-dessous.')
+      }
+      setTestStatuses(prev => prev.map(t => ({ ...t, status: 'completed', progress: 100 })))
       setCurrentTest('')
       setIsRunning(false)
       setProgress(100)
       addLog('🎉 Tous les tests backoffice sont terminés !')
-      addLog('📊 Consultez les rapports dans "Rapports de Tests"')
-
     } catch (error: any) {
       addLog(`❌ Erreur: ${error.message}`)
       setIsRunning(false)
       setProgress(0)
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
-      }
     }
   }
 
@@ -379,6 +345,29 @@ export default function BackofficeTestsPage() {
               ))}
               <div ref={logsEndRef} />
             </div>
+            {lastReportId && (
+              <div className="mt-3 pt-3 border-t border-gray-700">
+                <Link
+                  href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
+                >
+                  <FileText className="w-4 h-4" />
+                  Voir le rapport
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {lastReportId && logs.length === 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <Link
+              href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}
+              className="inline-flex items-center gap-2 text-blue-700 dark:text-blue-300 hover:underline font-medium"
+            >
+              <FileText className="w-4 h-4" />
+              Voir le rapport généré
+            </Link>
           </div>
         )}
       </div>

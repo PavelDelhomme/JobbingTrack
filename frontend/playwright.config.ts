@@ -1,11 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 import { findFreePort, killProcessOnPort } from './tests/utils/portUtils';
+import path from 'path';
+
+// En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
+const reportDir = process.env.REPORT_DIR || '';
+const outputDir = reportDir ? path.join(reportDir, 'test-results') : 'test-results';
+const htmlReportDir = reportDir ? path.join(reportDir, 'playwright-report') : 'playwright-report';
+const jsonReportPath = reportDir ? path.join(reportDir, 'test-results.json') : 'test-results.json';
+const junitReportPath = reportDir ? path.join(reportDir, 'test-results.xml') : 'test-results.xml';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  outputDir,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -16,9 +25,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
-    ['json', { outputFile: 'test-results.json' }],
-    ['junit', { outputFile: 'test-results.xml' }],
+    ['html', { outputFolder: htmlReportDir }],
+    ['json', { outputFile: jsonReportPath }],
+    ['junit', { outputFile: junitReportPath }],
     process.env.CI ? ['github'] : ['list']
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

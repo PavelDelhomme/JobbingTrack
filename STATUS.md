@@ -1,6 +1,28 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 24 février 2026 (reprise lundi)
+**Dernière mise à jour** : 10 février 2026
+
+---
+
+## 📌 Dernières choses à faire (en plus)
+
+À traiter en plus des priorités ci‑dessous (ordre recommandé) :
+
+1. **Page Tests (hub) – lancement depuis la vue d’ensemble**  
+   Actuellement la page **Tests** (`/backoffice/tests`) affiche les catégories (cartes avec liens). **À faire** : permettre de **sélectionner une ou plusieurs catégories** (ou « tout ») et de **lancer les tests directement depuis cette page** (comme sur les pages Tests API / Backend), puis afficher le rapport généré (lien « Voir le rapport »).
+
+2. **Tests programmés (schedule)**  
+   Page **Programmer tests** (`/backoffice/performance-tests/schedule`) : **À faire** : permettre de **sélectionner tout ou certains tests** à exécuter dans le planning (ex. cocher Tests API, Backend, Frontend, Backoffice, Sécurité, Performance), et pas seulement un type global.
+
+3. **User Journey – affichage et analytics**  
+   - **Erreur corrigée (10/02)** : `ReferenceError: token is not defined` dans `user-journey/page.tsx` (useEffect) → ajout de `const { token } = useAuth()` en tête du composant.
+   - **À faire** : Vérifier que l’**affichage** des parcours (résultats, analytics, perf) est **fonctionnel** ; que le User Journey rassemble bien les **tests logiques** qu’un utilisateur peut faire sur l’app (mobile inclus) ; que les **analytics** (durée, taux de succès, etc.) s’affichent correctement. Corriger auth (register/login) et enchaînement des étapes pour que les scénarios passent en mode Admin et Utilisateur de test.
+
+4. **CI/CD complet (en tout dernier)**  
+   - Pipeline **complète** : validation structure BDD (adaptée microservices), **exécution de tous les tests** (API, backend, frontend, backoffice, sécurité, performance, user-journey, Playwright), **déploiement** (build images, push, déploiement staging/prod selon stratégie).
+   - Adapter le workflow GitHub Actions au projet **microservices** (un Prisma par service, pas un seul `backend/prisma`).
+   - Intégrer les tests actuels (Tests API 36, tests backend, frontend, backoffice, sécurité, performance) dans la CI et les rapports (artefacts, statut par catégorie).
+   - **À faire en tout dernier** une fois le reste stabilisé.
 
 ---
 
@@ -35,12 +57,14 @@
 ## ☑️ Checklist reprise (cocher au fur et à mesure)
 
 - [ ] `make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status` exécuté, 21/21 services UP
-- [ ] Connexion backoffice OK (admin@jobbingtrack.test / password123). Si « Accès Refusé » (rôle USER) : relancer `make create-admin-user` puis se reconnecter.
-- [ ] Tests API lancés : 36/36 passent
-- [ ] Tests Sécurité lancés : rapport généré et visible dans Rapports de tests
+- [x] Connexion backoffice OK (admin@jobbingtrack.test / password123). Si « Accès Refusé » (rôle USER) : relancer `make create-admin-user` puis se reconnecter.
+- [x] Tests API lancés : 36/36 passent
+- [x] Tests Sécurité lancés : rapport généré et visible dans Rapports de tests (détail : total / sécurisées / vulnérabilités + CRITIQUES, HAUTES, MOYENNES, BASSES, SÉCURISÉES)
 - [ ] Parcours personnalisé testé : exécution OK, rapport enregistré
-- [ ] (Ensuite) Parcours prédéfinis à corriger (auth après register/login)
-- [ ] (Ensuite) Rapports performance à aligner comme Tests API
+- [ ] Parcours prédéfinis : corriger auth (register/login) et enchaînement des étapes
+- [ ] **Rapports performance** : aligner sur Tests API (répertoire, summary, affichage)
+- [ ] **Table UserCustomization** : exécuter `make db-push-all` pour créer la table (auth-service Prisma) et persister les préférences utilisateur
+- [ ] (Ensuite) Enrichir tests sécurité ; corriger vulnérabilités (CSRF, headers, rate limiting)
 
 ---
 
@@ -97,7 +121,15 @@ make down && make up-full && make db-push-all && make build && make up-full && m
 ### 2. Tests Sécurité
 
 - **Correction ENOENT faite** (21/02) : le script utilise `REPORT_DIR`. Relancer Tests Sécurité depuis le backoffice et vérifier que le rapport apparaît dans Rapports de tests.
+- **Rapport détaillé** (23/02) : le script `generate-test-report.sh` lit `security-report.json` pour remplir total / passed / failed (vérifications vs vulnérabilités) ; le résumé et la page Rapports de tests affichent le bon nombre de tests (ex. 61 vérifications, 59 sécurisées, 2 vulnérabilités) et le détail par gravité (Critiques, Hautes, Moyennes, Basses, Sécurisées).
 - **À faire** : Enrichir les tests (XSS, SQLi, CSRF, auth, rate limiting, headers) ; s'assurer qu'ils sont complets et opérationnels.
+
+**Priorité des prochaines tâches** : (1) Parcours personnalisé — test complet ; (2) Parcours prédéfinis — corriger auth ; (3) Rapports performance — aligner comme Tests API ; (4) Table UserCustomization — `make db-push-all` ; (5) Tests sécurité — enrichir et corriger vulnérabilités.
+
+**Erreurs corrigées (23/02)** — à valider après `make build` / redémarrage :
+- **auth-service** : table `UserCustomization` absente → le contrôleur preferences retourne des préférences par défaut si la table n'existe pas. **À faire** : créer la table avec `make db-push-all` (auth-service Prisma inclut le modèle UserCustomization).
+- **application-service** : `prisma.activity` undefined → création d'activité conditionnelle ; seed protégé.
+- **Central logger** : `METRICS_SERVICE_URL` corrigé en `http://jobbingtrack-metrics-aggregator:3014` dans docker-compose.yml.
 
 ### 3. Rapports de performance
 
@@ -352,7 +384,7 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 **Tests Sécurité (backoffice)** :
 
 - **Correction ENOENT** (21/02/2026) : Le script `tests/security/test-security.js` écrivait dans `tests/reports/` (chemin relatif) ; en Docker (frontend) le CWD ou l’absence du dossier provoquait `ENOENT: no such file or directory, mkdir 'tests/reports'`. **Correction** : le script utilise désormais `process.env.REPORT_DIR` (exporté par `scripts/generate-test-report.sh`) pour écrire `security-report.json` dans le même répertoire que les autres rapports (`tests/results/<timestamp>/`). Fallback : `PROJECT_ROOT/tests/results` ou `cwd/tests/results`.
-- **État actuel** : 1 test exécuté, 0 réussi, 1 échoué (avant correction : échec à cause de l’ENOENT). Après correction, les rapports doivent se générer ; les **tests de sécurité complets** (API, backoffice, backend, frontend) ne sont pas encore tous opérationnels.
+- **État actuel** : 1 test exécuté, 0 réussi, 1 échoué (avant correction : échec à cause de l’ENOENT). Le script lit security-report.json pour le résumé (total/sécurisées/vulnérabilités) ; le backoffice affiche le détail par gravité. Les **tests de sécurité complets** (API, backoffice, backend, frontend) ne sont pas encore tous opérationnels.
 - **À faire** : Enrichir les tests sécurité (XSS, SQLi, CSRF, auth, rate limiting, headers, validation) pour qu’ils soient complets et opérationnels ; s’assurer que le rapport est bien listé et affiché dans Backoffice → Rapports de tests (comme les Tests API).
 
 **Rapports de performance** :
@@ -376,7 +408,7 @@ Une fois ces points cochés (ou documentés), passer à **Priorité 3** (simplif
 - **Gestion utilisateur enrichie** : Statut validation compte (emailVerified), derniers emails envoyés (type, date, statut), statut du lien (cliqué ou non).
 - **Analytics par utilisateur** : Par utilisateur (gestion users → fiche) : analytics actions, comportement sur l’interface, performance (web + app mobile), versions récupérées. Déjà prévu dans user-analytics (Overview, Events, Errors, Performance, Mobile/Versions) mais pas encore totalement opérationnel : onglet Performance = placeholder ; Mobile/Versions dépend des APIs ; possibilité de voir les analytics d’un autre utilisateur (pas seulement le sien) à ajouter.
 - **Création d'utilisateurs** : ✅ Formulaire création dans /users/new (utilise POST /register) ; compte de test dédié (ex. test@example.invalid) à créer.
-- **Tests de rétrocompatibilité** : Rétrocompatibilité application de version en version (API, schémas BDD).
+- **Tests de rétrocompatibilité** : Rétrocompatibilité application de version en version (API, schémas BDD). En fin de projet : vérifier la checklist **TESTS_END.md § 14 (À vérifier en fin de projet – Rétrocompatibilité)**.
 - **Enrichissement des tests** : Sécurité, perf, API, Playwright, user journey — inclure scénarios email.
 - **Flutter APK / émulateur** : Générer APK, lancer dans émulateur mobile Flutter.
 - **Deep linking mobile** : Universal Links / App Links — quand app mobile prête.
@@ -462,7 +494,7 @@ Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API RES
 - **docs/STATISTIQUES_PROJET.md** — Statistiques projet (services, observabilité, persistance).
 - **docs/tests/ECHECS_TESTS_API_2026-02-19.md** — Analyse des 15 échecs du rapport Tests API (2026-02-19) et actions à faire.
 - **ERRORS.md** — Erreurs connues et statut.
-- **TESTS_END.md** — Synthèse des tests et validation via make.
+- **TESTS_END.md** — Synthèse des tests et validation via make ; **§ 14** = checklist rétrocompatibilité en fin de projet.
 
 ---
 

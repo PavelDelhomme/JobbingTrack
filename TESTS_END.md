@@ -172,4 +172,15 @@
 
 ---
 
+## 14. À vérifier en fin de projet – Rétrocompatibilité
+
+Une fois le projet finalisé, vérifier la **rétrocompatibilité** de l’ensemble (APIs, BDD, frontend, app mobile) :
+
+- [ ] **APIs** : Les contrats (routes, corps de requête/réponse, codes HTTP) restent stables entre versions ; pas de breaking change non documenté. Versioning `/api/v1/` respecté.
+- [ ] **Schémas BDD** : Les migrations Prisma (ou scripts SQL) sont réversibles ou documentées ; pas de suppression de colonne/tables sans migration de données. `make db-push-all` applique un état cohérent sur tous les services.
+- [ ] **Frontend / Backoffice** : Les pages et appels API restent compatibles avec la version déployée du gateway et des services. Pas de dépendance à des champs API supprimés ou renommés sans adaptation.
+- [ ] **App mobile** : Si connectée, elle fonctionne avec la version actuelle des APIs (auth, candidatures, entreprises, etc.) ; deep links et versions d’app gérés côté backend/analytics si utilisé.
+- [ ] **Tests** : Tous les tests (API, backend, frontend, backoffice, sécurité, performance, user-journey) passent après les dernières modifications ; les rapports générés sont cohérents (totaux, statuts, pas de « unknown »).
+- [ ] **Données existantes** : En cas de montée de version BDD (nouvelle colonne, table), les données existantes restent lisibles et les seeds/scripts ne cassent pas l’existant.
+
 **Utilisation** : cocher chaque point au fur et à mesure. Ce fichier sert de checklist finale avant livraison ou merge.

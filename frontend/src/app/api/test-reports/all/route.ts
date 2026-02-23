@@ -290,8 +290,8 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
       const totalFailed = summary?.totalFailed || summary?.summary?.totalFailed || summary?.failed || 0
       const totalSkipped = summary?.totalSkipped || summary?.summary?.totalSkipped || summary?.skipped || 0
       
-      // Déterminer le statut
-      let status: 'success' | 'failed' | 'partial' = 'partial'
+      // Déterminer le statut (éviter "unknown" : utiliser testResults[0].status si totalTests === 0)
+      let status: 'success' | 'failed' | 'partial' | 'unknown' = 'partial'
       if (totalTests > 0) {
         if (totalFailed === 0 && totalPassed > 0) {
           status = 'success'
@@ -301,7 +301,8 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
           status = 'partial'
         }
       } else {
-        status = 'unknown'
+        const firstResultStatus = summary?.testResults?.[0]?.status
+        status = firstResultStatus === 'success' ? 'success' : firstResultStatus === 'failed' ? 'failed' : 'partial'
       }
       
       // Catégorie et type depuis summary.json (généré par generate-test-report.sh)

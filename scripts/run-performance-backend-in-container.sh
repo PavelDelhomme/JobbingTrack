@@ -3,7 +3,8 @@
 # Appelle l'API Gateway et le Metrics Aggregator pour mesurer la disponibilité et le temps de réponse.
 
 API_GATEWAY_URL="${API_GATEWAY_URL:-http://api-gateway:3000}"
-METRICS_URL="${METRICS_AGGREGATOR_URL:-http://metrics-aggregator:3014}"
+# En Docker Compose le service s'appelle jobbingtrack-metrics-aggregator
+METRICS_URL="${METRICS_AGGREGATOR_URL:-http://jobbingtrack-metrics-aggregator:3014}"
 
 echo "================================================================"
 echo "🔍 TEST DE PERFORMANCE BACKEND (mode conteneur)"

@@ -518,6 +518,7 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
 };
 
 export default function UserJourneyPage() {
+  const { token } = useAuth()
   const [selectedScenario, setSelectedScenario] = useState<keyof typeof SCENARIOS>('complete');
   const [userMode, setUserMode] = useState<'admin' | 'user'>('admin'); // Mode Admin ou Utilisateur de test
   const [steps, setSteps] = useState<JourneyStep[]>([]);

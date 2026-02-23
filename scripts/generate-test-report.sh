@@ -147,21 +147,84 @@ if ([ -z "$total" ] || ! [ "$total" -ge 1 ] 2>/dev/null) && echo "$output" | gre
   fi
 fi
 
+# Pattern 5: Tests sécurité — lire security-report.json (total = vérifications, passed = sécurisées, failed = vulnérabilités)
+report_status_override=""
+if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ]; then
+  sec_critical=0; sec_high=0; sec_medium=0; sec_low=0; sec_secure=0; sec_total=0
+  if command -v jq >/dev/null 2>&1; then
+    sec_total=$(jq -r '.totalVulnerabilities // ( .critical + .high + .medium + .low + .secure )' "$REPORT_DIR/security-report.json" 2>/dev/null)
+    sec_secure=$(jq -r '.secure // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
+    sec_critical=$(jq -r '.critical // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
+    sec_high=$(jq -r '.high // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
+    sec_medium=$(jq -r '.medium // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
+    sec_low=$(jq -r '.low // 0' "$REPORT_DIR/security-report.json" 2>/dev/null)
+  else
+    # Fallback sans jq : extraire les champs du JSON avec grep/sed
+    sec_secure=$(grep -o '"secure"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
+    sec_critical=$(grep -o '"critical"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
+    sec_high=$(grep -o '"high"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
+    sec_medium=$(grep -o '"medium"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
+    sec_low=$(grep -o '"low"[[:space:]]*:[[:space:]]*[0-9]*' "$REPORT_DIR/security-report.json" 2>/dev/null | grep -o '[0-9]*' | head -1)
+    [ -z "$sec_secure" ] && sec_secure=0; [ -z "$sec_critical" ] && sec_critical=0; [ -z "$sec_high" ] && sec_high=0
+    [ -z "$sec_medium" ] && sec_medium=0; [ -z "$sec_low" ] && sec_low=0
+  fi
+  sec_failed=$((sec_critical + sec_high + sec_medium + sec_low))
+  [ -z "$sec_total" ] && sec_total=$((sec_secure + sec_failed))
+  [ -n "$sec_total" ] && [ "$sec_total" -ge 0 ] 2>/dev/null && total=$sec_total
+  [ -n "$sec_secure" ] && [ "$sec_secure" -ge 0 ] 2>/dev/null && passed=$sec_secure
+  [ -n "$sec_failed" ] && [ "$sec_failed" -ge 0 ] 2>/dev/null && failed=$sec_failed
+  # Statut rapport : failed si vulnérabilités (critical/high/medium/low > 0)
+  if [ "$sec_failed" -gt 0 ] 2>/dev/null; then
+    report_status_override="failed"
+  fi
+fi
+
+# Pattern 6: Performance backend — parser la sortie "Total: N tests", "Tests réussis: N", "Tests échoués: N"
+if [ "$TEST_TYPE" = "performance-backend" ] || [ "$TEST_TYPE" = "test-performance-backend" ]; then
+  perf_total=$(echo "$output" | grep -oE 'Total:[[:space:]]+[0-9]+[[:space:]]+tests' | grep -oE '[0-9]+' | head -1)
+  perf_passed=$(echo "$output" | grep -oE 'Tests réussis:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+  perf_failed=$(echo "$output" | grep -oE 'Tests échoués:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+  if [ -n "$perf_total" ] && [ "$perf_total" -ge 0 ] 2>/dev/null; then total=$perf_total; fi
+  if [ -n "$perf_passed" ] && [ "$perf_passed" -ge 0 ] 2>/dev/null; then passed=$perf_passed; fi
+  if [ -n "$perf_failed" ] && [ "$perf_failed" -ge 0 ] 2>/dev/null; then failed=$perf_failed; fi
+  if [ "$failed" -gt 0 ] 2>/dev/null; then report_status_override="failed"; fi
+fi
+
+# Pattern 7: Backoffice E2E (Playwright) — lire test-results.json si présent (écrit dans REPORT_DIR)
+if [ "$TEST_TYPE" = "backoffice" ] && [ -f "$REPORT_DIR/test-results.json" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    pw_passed=$(jq -r '[.. | .status? | select(. == "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)
+    pw_failed=$(jq -r '[.. | .status? | select(. != null and . != "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)
+    [ -z "$pw_passed" ] && pw_passed=0; [ -z "$pw_failed" ] && pw_failed=0
+    pw_total=$((pw_passed + pw_failed))
+    [ "$pw_total" -ge 0 ] 2>/dev/null && total=$pw_total
+    [ "$pw_passed" -ge 0 ] 2>/dev/null && passed=$pw_passed
+    [ "$pw_failed" -ge 0 ] 2>/dev/null && failed=$pw_failed
+    [ "$pw_failed" -gt 0 ] 2>/dev/null && report_status_override="failed"
+  fi
+fi
+
 # S'assurer que toutes les variables sont des nombres valides
 if [ -z "$total" ] || ! [ "$total" -ge 0 ] 2>/dev/null; then total=0; fi
 if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
 if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
 if [ -z "$skipped" ] || ! [ "$skipped" -ge 0 ] 2>/dev/null; then skipped=0; fi
 
-# Fallback: seulement si aucune donnée parseable ET pas de sortie Jest "No tests found" (garder 0 plutôt que 1)
-if [ "$total" -eq 0 ] && ! echo "$output" | grep -q "No tests found"; then
-    if [ "$exit_code" -eq 0 ]; then
-        total=1
-        passed=1
-    else
-        total=1
-        failed=1
-    fi
+# Fallback: si aucune donnée parseable
+if [ "$total" -eq 0 ]; then
+  if echo "$output" | grep -qi "No tests found"; then
+    # Jest "No tests found" → 1 test échoué pour afficher un statut clair (failed) au lieu de 0/0/0
+    total=1
+    passed=0
+    failed=1
+    report_status_override="failed"
+  elif [ "$exit_code" -eq 0 ]; then
+    total=1
+    passed=1
+  else
+    total=1
+    failed=1
+  fi
 fi
 
 # Créer le JSON de résultat
@@ -257,6 +320,11 @@ case "$TEST_TYPE" in
         ;;
 esac
 
+# Statut final : priorité à report_status_override (sécurité vulns, performance échecs), sinon exit_code
+final_status="success"
+[ $exit_code -ne 0 ] && final_status="failed"
+[ -n "$report_status_override" ] && final_status="$report_status_override"
+
 cat > "$RESULT_FILE" <<EOF
 {
   "testName": "$TEST_NAME",
@@ -266,7 +334,7 @@ cat > "$RESULT_FILE" <<EOF
   "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')",
   "duration": $duration,
   "exitCode": $exit_code,
-  "status": "$([ $exit_code -eq 0 ] && echo "success" || echo "failed")",
+  "status": "$final_status",
   "statistics": {
     "total": $total,
     "passed": $passed,
@@ -296,12 +364,19 @@ cat > "$SUMMARY_FILE" <<EOF
   "testResults": [
     {
       "name": "$TEST_NAME",
-      "status": "$([ $exit_code -eq 0 ] && echo "success" || echo "failed")",
+      "status": "$final_status",
       "duration": $duration
     }
   ]
 }
 EOF
+
+# Enrichir summary.json avec le détail sécurité (CRITIQUES, HAUTES, etc.) si disponible
+if [ "$TEST_TYPE" = "security" ] && [ -f "$REPORT_DIR/security-report.json" ] && command -v jq >/dev/null 2>&1; then
+  jq --slurpfile sec "$REPORT_DIR/security-report.json" '
+    .summary.security = ($sec[0] | { critical, high, medium, low, secure })
+  ' "$SUMMARY_FILE" > "$SUMMARY_FILE.tmp" && mv "$SUMMARY_FILE.tmp" "$SUMMARY_FILE"
+fi
 
 # Générer le rapport HTML (structure lisible, capture terminal nommée, prêt pour téléchargement)
 cat > "$HTML_REPORT" <<EOHTML
@@ -369,7 +444,7 @@ cat > "$HTML_REPORT" <<EOHTML
                 <div class="meta">
                     <span>Généré le <span id="report-generated-date" data-iso="$GENERATED_AT_ISO">$GENERATED_AT_ISO</span> (heure locale)</span>
                     <span>Durée : ${duration}s</span>
-                    <span>Statut : <span class="badge badge-$([ $exit_code -eq 0 ] && echo "success" || echo "failed")">$([ $exit_code -eq 0 ] && echo "SUCCÈS" || echo "ÉCHEC")</span></span>
+                    <span>Statut : <span class="badge badge-$final_status">$([ "$final_status" = "success" ] && echo "SUCCÈS" || echo "ÉCHEC")</span></span>
                 </div>
             </div>
         </div>
@@ -413,7 +488,7 @@ cat > "$HTML_REPORT" <<EOHTML
         <div class="card" id=\"detail-execution\">
             <div class=\"card-header\">Détail de l'exécution · Fin du rapport</div>
             <div class="card-body">
-                <p class="meta" style="margin-bottom: 12px;"><strong>Statut:</strong> <span class="badge badge-$([ $exit_code -eq 0 ] && echo "success" || echo "failed")">$([ $exit_code -eq 0 ] && echo "success" || echo "failed")</span> · <strong>Durée:</strong> ${duration}s · <strong>Tests exécutés:</strong> $total · <strong>Réussis:</strong> <span style="color:#2e7d32">$passed</span> · <strong>Échoués:</strong> <span style="color:#c62828">$failed</span>$([ "$skipped" -gt 0 ] && echo " · <strong>Ignorés:</strong> $skipped" || echo "")</p>
+                <p class="meta" style="margin-bottom: 12px;"><strong>Statut:</strong> <span class="badge badge-$final_status">$final_status</span> · <strong>Durée:</strong> ${duration}s · <strong>Tests exécutés:</strong> $total · <strong>Réussis:</strong> <span style="color:#2e7d32">$passed</span> · <strong>Échoués:</strong> <span style="color:#c62828">$failed</span>$([ "$skipped" -gt 0 ] && echo " · <strong>Ignorés:</strong> $skipped" || echo "")</p>
                 <div class="section-terminal">
                     <details>
                         <summary>Capture du terminal complet ($line_count lignes)</summary>
