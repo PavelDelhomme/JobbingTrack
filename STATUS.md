@@ -1,6 +1,6 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 23 février 2026 (hub tests, rapports ; objectifs Application réelle + Émulateur mobile dans « À faire »)
+**Dernière mise à jour** : 23 février 2026 (hub tests, rapports ; Application mobile – checklist complète à valider, émulateur ADB/logs réels, docs/mobile/APPLICATION_MOBILE_A_FAIRE.md)
 
 ---
 
@@ -45,13 +45,15 @@
    Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
 
 4. **Émulateur mobile (à faire très bientôt)**  
-   Faire fonctionner correctement l’**interface Émulateur mobile** du backoffice pour pouvoir **démarrer le projet et lancer les tests sur l’émulateur** dans de bonnes conditions. À prévoir :
-   - **Appareil(s) connecté(s) en ADB** : sélection de l’appareil ADB depuis l’interface (liste des appareils, choix de l’appareil cible).
-   - **Installation d’APK** : possibilité d’**installer un APK** (choix / upload du fichier APK, pas d’URL d’application) sur l’appareil sélectionné.
-   - **Build et run depuis l’interface** : idéalement **générer un APK de l’application Flutter** directement depuis l’interface (build Flutter → APK), ou au minimum **lancer l’application** sur l’appareil (sans forcément gérer la création d’APK dans l’UI). Pouvoir **sélectionner et lancer l’application** et avoir le **rendu du run** (sortie, logs) dans l’interface.
-   - **Logs Android en temps réel** : afficher les **logs de l’appareil connecté** en temps réel, avec **filtre** pour n’afficher que les logs de notre application JobbingTrack si possible (ex. par tag ou package).
-   - **Backoffice / backend** : ajouter toutes les **infos et APIs backoffice/backend nécessaires** pour tester l’application mobile dans un **bon environnement** (config, health, version, etc.).
-   - **Plus tard** : **versioning** de l’app mobile et **déploiement** (build / déploiement d’APK depuis l’interface backoffice, en fonction du versioning).
+   Faire fonctionner correctement l’**interface Émulateur mobile** du backoffice pour **démarrer le projet** et **tester l’app mobile en direct** (rendu réel, vrais logs). À prévoir :
+   - **Sélection des appareils ADB** : lister les **appareils actuellement connectés en ADB sur la machine hôte** (`adb devices`), et permettre de **sélectionner l’appareil** cible dans l’interface (pas seulement des profils iPhone/Pixel simulés).
+   - **URL de l’application / démarrage du projet** : pouvoir saisir l’**URL de l’application** (ex. app en dev) ou **démarrer le projet** (lancer l’app Flutter en mode debug sur l’appareil sélectionné) pour avoir le **rendu réel** de l’application en cours de développement.
+   - **Rendu et run** : afficher le **rendu** de l’app qui tourne sur l’appareil (streaming écran ou iframe vers URL de dev si applicable), et **démarrer / arrêter** les **versions de l’app réellement en cours de développement** (ex. `flutter run` ciblant l’appareil ADB), avec sortie et logs dans l’interface.
+   - **Logs Android réels** : afficher les **logs de l’appareil connecté (logcat)** en temps réel, avec **filtre** pour n’afficher que les logs de l’application JobbingTrack (par tag ou package) si possible.
+   - **Installation d’APK** : possibilité d’**installer un APK** (choix / upload du fichier APK) sur l’appareil sélectionné via ADB.
+   - **Build / run depuis l’interface** : idéalement **générer un APK Flutter** depuis l’interface ou au minimum **lancer l’application** sur l’appareil et avoir le **rendu du run** (sortie, logs).
+   - **Backoffice / backend** : infos et APIs nécessaires pour tester l’app dans un bon environnement (config, health, version).
+   - **Plus tard** : **versioning** et **déploiement** (build / déploiement d’APK depuis le backoffice).
 
 ---
 
@@ -72,8 +74,9 @@ L’application doit permettre au **candidat** de **suivre, gérer et piloter** 
 
 ### Où c’est répertorié
 
-- **STATUS.md** (ce fichier) : objectifs, reprise travail, checklist, erreurs connues.
-- **/docs** : fonctionnement applicatif, guide mobile (`docs/mobile/`, `docs/mobile/guide/README.md`), user journey (`docs/user-journey/`), tests mobile (`docs/tests/MOBILE_TESTS_README.md`), emails (`docs/emails/MAIL.md`).
+- **STATUS.md** (ce fichier) : objectifs, reprise travail, **checklist « Application mobile – À faire et à valider »** (écrans, fonctionnalités, émulateur, user journey, analytics), erreurs connues.
+- **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** : **récapitulatif complet** (comportement attendu, alignement API, écrans, émulateur, user journey, analytics) ; référence **docs/api/api-reference/README.md** et **docs/database/**.
+- **/docs** : fonctionnement applicatif, guide mobile (`docs/mobile/`, `docs/mobile/guide/README.md`), user journey (`docs/user-journey/`), tests mobile (`docs/tests/MOBILE_TESTS_README.md`), emails (`docs/emails/MAIL.md`), analytics mobile (`docs/mobile/analytics/`).
 - **mobile/** : app Flutter, README, analytics ; à connecter aux APIs et à la sync.
 
 ### Ordre de travail recommandé
@@ -81,6 +84,65 @@ L’application doit permettre au **candidat** de **suivre, gérer et piloter** 
 1. **D’abord** : développer et valider **inscription, connexion, session, synchronisation** et **APIs backend** pour que l’app mobile soit utilisable dans un environnement de test (émulateur + backend).
 2. **Ensuite** : retravailler les autres aspects (backoffice administrateur, parcours, rapports, etc.) et améliorer l’émulateur mobile (APK, logs, déploiement).
 3. **Plus tard** : **versioning** de l’application mobile et **déploiement** depuis l’interface backoffice (build/déploiement APK selon version).
+
+---
+
+## 📱 APPLICATION MOBILE – À faire et à valider (checklist)
+
+Récapitulatif complet : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** (comportement attendu, alignement API **docs/api/api-reference/README.md**, structure données **docs/database/**). Cocher au fur et à mesure de la validation.
+
+### Émulateur mobile (backoffice)
+
+- [ ] Lister les **appareils connectés en ADB** (machine hôte) et **sélectionner l’appareil** dans l’interface.
+- [ ] **URL de l’application** et / ou **démarrer le projet** (run Flutter sur l’appareil) pour **rendu réel** de l’app en cours de dev.
+- [ ] **Rendu** de l’app (streaming ou iframe) et **démarrer / arrêter** les versions en développement avec sortie et logs dans l’interface.
+- [ ] **Logs Android (logcat)** en temps réel avec **filtre** (logs JobbingTrack uniquement si possible).
+- [ ] **Installer un APK** (upload / chemin) sur l’appareil sélectionné.
+- [ ] Backoffice/backend : config, health, version pour environnement de test.
+
+### Écrans mobiles (à valider un par un)
+
+- [ ] **Login** : champs email/mot de passe, appel API login, stockage token, redirection.
+- [ ] **Inscription** : champs requis, appel API register, redirection (login ou complétion profil).
+- [ ] **Complétion profil** : formulaire profil (PUT /profiles/me), puis accès accueil.
+- [ ] **Accueil** : tableau de bord candidat (résumé, accès aux sections).
+- [ ] **Candidatures** : liste, création, édition, filtres (demandes, en cours, propositions si applicable).
+- [ ] **Entreprises** : liste, création.
+- [ ] **Contacts** : liste, création (lié entreprise/candidature).
+- [ ] **Entretiens** : liste, planification.
+- [ ] **Relances** : liste, création.
+- [ ] **Événements** : calendrier / liste, création.
+- [ ] **Profil** : affichage et édition (PUT /profiles/me).
+- [ ] **Paramètres** : préférences, thème, notifications, déconnexion.
+- [ ] **Statistiques / Dashboard** : vue agrégée (dashboard API).
+- [ ] **Recherche** : recherche globale (candidatures, contacts, etc.).
+
+### Fonctionnalités (processus complet)
+
+- [ ] **Inscription** : flux complet (email, mot de passe, champs requis), API register.
+- [ ] **Connexion** : flux complet (email, mot de passe), API login, token stocké.
+- [ ] **Persistance de la session** : garder la connexion (token, refresh), reprise au redémarrage app.
+- [ ] **Déconnexion** : bouton déconnexion, suppression token, redirection login.
+- [ ] **Synchronisation** : données offline / online, sync avec backend (API Gateway).
+- [ ] **Suivi candidat** : demandes (candidatures/missions), en cours, propositions reçues (écrans + APIs/filtres).
+
+### User journey mobile
+
+- [ ] Parcours **inscription → connexion → (complétion profil) → accueil** fonctionnel.
+- [ ] Parcours **création candidature → entreprise → contact → entretien / relance / événement** cohérent avec les APIs.
+- [ ] User journey documenté et **aligné avec docs/user-journey/** ; parcours prédéfinis / personnalisés utilisables pour valider.
+
+### Tracking utilisateur et analytics mobile
+
+- [ ] **Outils analytics mobile** : service backend (mobile-analytics), SDK Flutter, envoi événements/sessions/crashes.
+- [ ] **Consentement utilisateur** (opt-in, RGPD) et **dashboard backoffice** pour visualiser les métriques mobile.
+- [ ] Référence : **docs/mobile/analytics/** (README, INTEGRATION, PRIVACY, DASHBOARD, SUMMARY).
+
+### Documentation et structure
+
+- [ ] **docs/api/api-reference/README.md** : à jour avec les endpoints utilisés par l’app mobile.
+- [ ] **docs/database/** (ACTIONS_ET_MODIFICATIONS, relations, structure) : alignés avec les besoins mobile (candidatures, statuts, filtres demandes/en cours/propositions).
+- [ ] **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** : tenu à jour (écrans, APIs, comportement attendu).
 
 ---
 
