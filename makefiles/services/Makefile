@@ -1306,7 +1306,8 @@ ps: ## Liste les conteneurs actifs
 logs: ## Affiche tous les logs en temps réel (tags colorés)
 	@echo "📋 Logs en temps réel des services JobbingTrack"
 	@echo "==============================================="
-	@echo "💡 Un service: make logs-service SERVICE=frontend  |  metrics-aggregator: make logs-metrics"
+	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence ([PERSISTENCE] uniquement)  |  make logs-metrics"
+	@echo "   Un service: make logs-service SERVICE=frontend"
 	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta"
 	@echo "   Erreurs (rouge): ERROR/FATAL, HTTP 404/5xx, tables absentes, « does not exist », Erreur insertion/sauvegarde"
 	@echo "   Timestamps: date/heure affichées (format ISO)"
@@ -1319,3 +1320,19 @@ logs-metrics: ## Affiche les logs du service metrics-aggregator (Ctrl+C pour qui
 	@echo "📊 Logs de metrics-aggregator"
 	@echo "=============================="
 	@docker logs jobbingtrack-metrics-aggregator -f -t 2>&1 | bash "$(ROOT_DIR)/scripts/color-logs.sh"
+
+# Logs applicatifs uniquement (sans metrics-aggregator ni monitoring-c) — moins de bruit
+logs-applicative: ## Logs des services applicatifs (sans métriques / monitoring)
+	@echo "📋 Logs applicatifs (sans metrics-aggregator ni monitoring-c)"
+	@echo "=================================================================="
+	@echo "💡 Pour tout voir : make logs  |  Métriques seules : make logs-metrics"
+	@echo ""
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered -E -v '^jobbingtrack-metrics-aggregator[[:space:]]|^jobbingtrack-monitoring-c[[:space:]]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-applicative"; exit 1)
+
+# Logs contenant uniquement les lignes [PERSISTENCE] (sauvegardes, snapshots, etc.)
+logs-persistence: ## Affiche uniquement les logs de type persistance (tag [PERSISTENCE])
+	@echo "💾 Logs Persistance ([PERSISTENCE])"
+	@echo "===================================="
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[PERSISTENCE\]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)

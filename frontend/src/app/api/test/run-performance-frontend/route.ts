@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
 import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils'
 
+const TESTS_TAG = '[TESTS PERFORMANCE-FRONTEND]'
 const RUN_TIMEOUT_MS = 120000
 function extractReportId(stdout: string): string | null {
   const match = stdout.match(/\d{8}-\d{6}/)
@@ -9,6 +10,7 @@ function extractReportId(stdout: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  console.log(`${TESTS_TAG} Démarrage depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
   try {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Performance Frontend'
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
     } catch (err: unknown) {
       const execErr = err as { stdout?: string }
       reportId = execErr.stdout ? extractReportId(execErr.stdout) : null
+      console.log(`${TESTS_TAG} Fin (échec) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`)
       if (reportId) {
         return NextResponse.json({
           success: false,
@@ -43,8 +46,10 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ success: false, error: (err as Error).message, reportId: undefined }, { status: 500 })
     }
+    console.log(`${TESTS_TAG} Fin — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`)
     return NextResponse.json({ success: true, message: 'Rapport généré', reportId, reportLocation: 'tests/results/' })
   } catch (error: unknown) {
+    console.log(`${TESTS_TAG} Fin (erreur) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' }, { status: 500 })
   }
 }

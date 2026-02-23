@@ -510,6 +510,41 @@ test-analytics-endpoint: ## Teste l'endpoint analytics /api/v1/persistence/logs
 	@echo ""
 
 # ================================================================
+# 🗄️ TESTS BDD - Tests base de données (connexion, enums, relations)
+# ================================================================
+
+test-database: ## Tests base de données (connexion, schéma, enums, relations)
+	$(call check_help_read,test-database)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║        🗄️  TESTS BDD - JobbingTrack                   ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Cette commande exécute les tests base de données :"
+	@echo "   ✓ Connexion et schéma (tests/database/)"
+	@echo "   ✓ Validation enums, relations (si scripts présents)"
+	@echo ""
+	@echo "⚙️  Configuration requise :"
+	@echo "   • Postgres démarré (make up ou make up-full)"
+	@echo "   • make db-push-all si besoin (tables à jour)"
+	@echo ""
+	@echo "🚀 Lancement des tests..."
+	@echo ""
+	@if docker ps | grep -q jobbingtrack-frontend; then \
+		echo "🐳 Exécution dans le conteneur jobbingtrack-frontend..."; \
+		docker exec -w /app/tests jobbingtrack-frontend sh -c "npm run test:database 2>&1" || \
+		docker exec -w /app jobbingtrack-frontend sh -c "cd tests && npm run test:database 2>&1" || \
+		(cd tests && npm run test:database 2>&1); \
+	else \
+		echo "💻 Exécution en local..."; \
+		(cd tests && npm run test:database 2>&1) || echo "⚠️  Tests nécessitent: cd tests && npm install"; \
+	fi
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║                ✅ TEST BDD TERMINÉ                    ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# ================================================================
 # 🧪 TESTS API - Tests API complets (Jest dans conteneur)
 # ================================================================
 

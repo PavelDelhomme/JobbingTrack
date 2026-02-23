@@ -16,6 +16,11 @@
 - **Rapports Playwright – captures d'écran** : sur la page **Rapports de tests** (`/backoffice/test-reports`), lorsqu'un rapport **Backoffice** ou **Playwright** (E2E) est affiché, un bouton **« Captures Playwright »** permet d'afficher le rapport HTML Playwright du même run (avec captures d'écran et détail des steps). L'API `/api/test-reports/view?id=...&playwright=1` sert le fichier `playwright-report/index.html` du répertoire du run quand il existe.
 - **Page Tests (hub) – sélection et lancement** : la page **Tests** (`/backoffice/tests`) permet déjà de **sélectionner une ou plusieurs catégories** (cartes cliquables) et de **lancer les tests** via le bouton « Lancer les tests sélectionnés ». Le journal d'exécution et le lien vers le dernier rapport sont affichés. **À valider** en parcours complet (voir checklist ci‑dessous).
 - **Tests programmés (schedule)** : la page **Programmer tests** (`/backoffice/performance-tests/schedule`) permet de créer plusieurs plannings, chacun avec un **type** parmi : Performance (Backend, Frontend, les deux), Tests API, Backend, Frontend, Backoffice, **Tests Sécurité**, **Tests Playwright**, **Tests Emails**. Chaque schedule peut être activé/désactivé et « Lancer maintenant » exécute le type choisi.
+- **Vue d'ensemble Tests – blocage pendant l'exécution** : pendant le lancement des tests depuis la page Tests, un **overlay** bloque la page (« Ne pas quitter la page (recharger annule la run) ») et affiche le **test en cours** (ex. « Tests Playwright ») avec une mention pour les tests longs. **Barre de progression** (X/Y) et **liste des étapes** (terminées ✓, en cours, en attente) dans l’overlay. **Avertissement au rechargement** : si l’utilisateur recharge ou ferme l’onglet pendant une run, le navigateur affiche une confirmation ; la run côté serveur continue mais l’UI est perdue (relancer depuis la page ou en CLI). Les cartes de sélection sont désactivées pendant l’exécution.
+- **make logs – catégories** : **make logs-applicative** affiche les logs sans metrics-aggregator ni monitoring-c (moins de bruit). **make logs-persistence** affiche uniquement les lignes contenant `[PERSISTENCE]`. **make logs-metrics** reste pour le service metrics-aggregator seul. Aide : **make help-logs**.
+- **Hub Tests – Tests BDD et Backoffice uniquement** : depuis la page Tests (`/backoffice/tests`), deux nouvelles catégories lançables : **Tests BDD** (connexion, enums, relations via `make test-database` / `npm run test:database`) et **Backoffice uniquement** (uniquement le spec `backoffice.spec.ts` pour un run E2E plus court). Les rapports sont générés et visibles comme les autres (Tests BDD, Tests Backoffice).
+- **Spec backoffice étendu** : `frontend/tests/e2e/backoffice.spec.ts` couvre en plus les pages Rapports de tests, Programmer tests, Données de test, Testeur d’API, hub Tests ; modification paramètre (thème/sauvegarde) ; notifications (contenu ou vide) ; annulation création (remise à l’état) ; apparence (layout, pas de scroll horizontal).
+- **Page Playwright – bouton « Toute la suite »** : sur `/backoffice/playwright-tests`, un bouton **« Toute la suite »** lance toute la suite Playwright via `/api/test/run-playwright` (sans scénarios), génère un rapport et ouvre le rapport dans un nouvel onglet (plus de 400 depuis cette page).
 
 ---
 
@@ -64,6 +69,41 @@
 
 ---
 
+## 🧪 Ce que couvrent les « Tests Backoffice » (E2E)
+
+Quand on lance **Tests Backoffice** depuis le hub (`/backoffice/tests`), la commande exécute **toute la suite Playwright** du frontend (`npm run test:e2e` → tous les specs dans `frontend/tests/e2e/`), pas uniquement le backoffice. Sont donc exécutés notamment : `backoffice.spec.ts`, `admin-features.spec.ts`, `login.spec.ts`, `data-management.spec.ts`, `security-tests.spec.ts`, `performance-tests.spec.ts`, etc.
+
+### Ce que teste le spec backoffice (`frontend/tests/e2e/backoffice.spec.ts`)
+
+- **Affichage** : titre, menu, liens Applications / Candidats / Entreprises.
+- **Navigation** : Applications → liste candidatures, Entreprises → liste entreprises, Candidats → liste contacts ; Analytics → Statistiques + graphiques/métriques ; Utilisateurs → liste + actions Modifier/Supprimer/Activer.
+- **Recherche globale** : champ recherche, résultats.
+- **Paramètres** : accès au lien Paramètres, présence « Configuration » et bouton thème (aucune **modification** de paramètres, pas de test rétention / nettoyage auto / affichage).
+- **Déconnexion** : bouton Déconnexion → redirection login.
+- **Notifications** : présence du centre de notifications et de la liste (pas de test d’envoi ou de contenu).
+- **Accessibilité** : navigation clavier (Tab, Enter).
+- **404** : route inexistante → page 404.
+- **Session** : rechargement → utilisateur resté connecté.
+- **RGPD** : lien RGPD → Données personnelles, Export/Suppression.
+
+### Ce qui est couvert après extension (backoffice.spec.ts)
+
+- **Pages ajoutées** : Rapports de tests (`/backoffice/test-reports`), Programmer tests (`/backoffice/performance-tests/schedule`), Données de test (`/backoffice/test-data`), Testeur d’API (`/backoffice/api-tester`), hub Tests (`/backoffice/tests`).
+- **Paramètres** : test de modification du thème (bouton thème + Sauvegarder si présents), sans casser l’état.
+- **Notifications** : centre de notifications ou indicateur ; liste ou message « Aucune notification ».
+- **Remise à l’état** : test « ne pas laisser de données créées » (ouvrir Créer utilisateur puis Annuler/Retour sans soumettre).
+- **Apparence** : layout (nav, main), pas de scroll horizontal excessif.
+
+### Ce qui reste partiel ou non couvert
+
+- **Pages** : paramètres avancés (rétention, nettoyage auto), Archives, Corbeille, Logs services/sécurité, User analytics, Email Monitor, Parcours utilisateur (assertions légères ou absentes).
+- **Rétention / nettoyage automatique** : non testés (pas d’UI dédiée dans le spec).
+- **Rollback BDD** : la suite utilise un login mocké et n’insère pas de données réelles ; pas de teardown nécessaire pour backoffice.spec.ts.
+
+**Hub Tests** : depuis `/backoffice/tests` on peut lancer **Tests BDD** (run-database → `make test-database` / `npm run test:database` dans `tests/`) et **Backoffice uniquement** (run-backoffice-only → uniquement `backoffice.spec.ts`). Les rapports sont générés comme pour les autres types (catégorie « Tests BDD » ou « Tests Backoffice »).
+
+---
+
 ## 🔴 Erreurs backoffice (parcours des pages admin) – corrigées et connues
 
 Lors du parcours **toutes les pages du backoffice** une par une, les erreurs suivantes ont été identifiées. Les corrections sont documentées dans **RESOLUTIONS.md** et **ERRORS.md**.
@@ -75,6 +115,7 @@ Lors du parcours **toutes les pages du backoffice** une par une, les erreurs sui
 | **User Journey – ENOENT save-report** | ✅ Corrigé | En Docker, `mkdir('/app/tests/user-journey-reports')` échouait (répertoire parent absent). **Correction** : en Docker utilisation de `/tmp/user-journey-reports` (ou `USER_JOURNEY_REPORTS_DIR`) + `mkdir(..., { recursive: true })`. |
 | **User Analytics – tables manquantes** | ⚠️ À traiter | Page `/backoffice/user-analytics` : Postgres `relation "public.user_events" does not exist` (idem `user_sessions`, `user_errors`, `user_performances`, `device_infos`). Ces tables sont utilisées par dashboard-service (analytics). **Action** : créer les tables (migrations/init) ou documenter comme optionnel. |
 | **Loki – ENOTFOUND** | ⚠️ Documenté | Requêtes type « erreurs par conteneur » (Loki) : `getaddrinfo ENOTFOUND loki`. Loki n’est pas déployé. **Action** : dégrader proprement (pas de crash, message clair) ou ajouter Loki au stack si besoin. |
+| **Logs applicatifs – erreurs connues** | ⚠️ Documenté | **make logs** / **make logs-applicative** : Postgres peut afficher `type "FollowUpStatus" already exists`, `relation "system_metrics_snapshots" does not exist` (lancer `make db-push-all` si besoin), `service_availability_history` absente. Redis : WARNING Memory overcommit. Colorées en rouge par `scripts/color-logs.sh`. **make logs-applicative** exclut metrics-aggregator et monitoring-c (`grep --line-buffered`). |
 | **Archives / Corbeille** | ⚠️ Documenté | Plusieurs services renvoient 404/500 « ne supporte pas les archives » : company, user, event, interview, contact, application, call, followup. **Action** : implémenter les routes archives côté backend ou documenter les limites. |
 
 **À faire** : après `make build` (et redémarrage des services concernés), revérifier les pages Analytics → Conteneurs (métriques par conteneur), Services → Logs (log-collector-c), Parcours utilisateur → sauvegarde rapport. Voir **ERRORS.md** et **TESTS_END.md** §15 pour la checklist complète des pages à tester.
