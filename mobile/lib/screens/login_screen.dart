@@ -14,12 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _passwordController.text = 'password123';
-  }
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -166,8 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           hintText: '••••••••',
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
-                            icon: const Icon(Icons.visibility_off),
-                            onPressed: () {},
+                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -175,12 +170,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           filled: true,
                           fillColor: Colors.grey[50],
                         ),
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _login(),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+
+                      // Mot de passe oublié
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pushNamed('/forgot-password'),
+                          child: Text(
+                            'Mot de passe oublié ?',
+                            style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
 
                       // Bouton de connexion
                       SizedBox(

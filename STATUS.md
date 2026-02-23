@@ -1,6 +1,6 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 23 février 2026 (hub tests, rapports ; Application mobile – checklist complète à valider, émulateur ADB/logs réels, docs/mobile/APPLICATION_MOBILE_A_FAIRE.md)
+**Dernière mise à jour** : 23 février 2026 (Application mobile – premières étapes auth faites : login, inscription, vérification email, mot de passe oublié, reset password)
 
 ---
 
@@ -44,16 +44,15 @@
 3. **Tests backoffice – couverture complète**  
    Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
 
-4. **Émulateur mobile (à faire très bientôt)**  
-   Faire fonctionner correctement l’**interface Émulateur mobile** du backoffice pour **démarrer le projet** et **tester l’app mobile en direct** (rendu réel, vrais logs). À prévoir :
-   - **Sélection des appareils ADB** : lister les **appareils actuellement connectés en ADB sur la machine hôte** (`adb devices`), et permettre de **sélectionner l’appareil** cible dans l’interface (pas seulement des profils iPhone/Pixel simulés).
-   - **URL de l’application / démarrage du projet** : pouvoir saisir l’**URL de l’application** (ex. app en dev) ou **démarrer le projet** (lancer l’app Flutter en mode debug sur l’appareil sélectionné) pour avoir le **rendu réel** de l’application en cours de développement.
-   - **Rendu et run** : afficher le **rendu** de l’app qui tourne sur l’appareil (streaming écran ou iframe vers URL de dev si applicable), et **démarrer / arrêter** les **versions de l’app réellement en cours de développement** (ex. `flutter run` ciblant l’appareil ADB), avec sortie et logs dans l’interface.
-   - **Logs Android réels** : afficher les **logs de l’appareil connecté (logcat)** en temps réel, avec **filtre** pour n’afficher que les logs de l’application JobbingTrack (par tag ou package) si possible.
-   - **Installation d’APK** : possibilité d’**installer un APK** (choix / upload du fichier APK) sur l’appareil sélectionné via ADB.
-   - **Build / run depuis l’interface** : idéalement **générer un APK Flutter** depuis l’interface ou au minimum **lancer l’application** sur l’appareil et avoir le **rendu du run** (sortie, logs).
-   - **Backoffice / backend** : infos et APIs nécessaires pour tester l’app dans un bon environnement (config, health, version).
-   - **Plus tard** : **versioning** et **déploiement** (build / déploiement d’APK depuis le backoffice).
+4. **Émulateur mobile (priorité immédiate)**  
+   Faire fonctionner l’**interface Émulateur mobile** du backoffice pour **démarrer le projet** et **tester l’app mobile directement** dans l’interface : **build d’APK** et **run du projet** pour avoir une **vraie app qui tourne et se voit** dans l’émulateur. À prévoir :
+   - **Build APK** : lancer le **build Android (APK)** du projet Flutter depuis l’interface (ou script déclenché par le backoffice).
+   - **Run du projet** : **démarrer le projet** (ex. `flutter run` ou install APK + lancement) depuis l’interface pour que l’app s’exécute et soit **visible** (rendu réel).
+   - **Sélection des appareils ADB** : lister les **appareils connectés en ADB** sur la machine hôte (`adb devices`), **sélectionner l’appareil** dans l’interface.
+   - **Rendu et logs** : afficher le **rendu** de l’app (streaming ou iframe si applicable), **démarrer / arrêter**, **logs Android (logcat)** en temps réel avec filtre JobbingTrack si possible.
+   - **Installation d’APK** : installer un APK (upload / chemin) sur l’appareil sélectionné via ADB.
+   - **Backoffice / backend** : config, health, version pour l’environnement de test.
+   - **Plus tard** (voir section « Déploiement final » en fin de document) : déploiement de l’app mobile et de l’API/backoffice sur le serveur depuis le backoffice (Docker Hub, CI, scripts SSH, pipeline build APK/AAB release, etc.).
 
 ---
 
@@ -91,19 +90,34 @@ L’application doit permettre au **candidat** de **suivre, gérer et piloter** 
 
 Récapitulatif complet : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** (comportement attendu, alignement API **docs/api/api-reference/README.md**, structure données **docs/database/**). Cocher au fur et à mesure de la validation.
 
-### Émulateur mobile (backoffice)
+### Premières étapes – Auth (connexion, inscription, vérification email, mot de passe oublié)
 
+- [x] **Écran Login** : email + mot de passe, lien « Mot de passe oublié ? », appel API login, stockage token, redirection accueil.
+- [x] **Écran Inscription** : email (validation), mot de passe + confirmation (validation), envoi mail de vérification après inscription, redirection login.
+- [x] **Vérification email** : écran (route `/verify-email/:token`), appel API verify-email, affichage succès/erreur puis lien vers connexion.
+- [x] **Mot de passe oublié** : écran avec email → appel API forgot-password → envoi mail à l’utilisateur avec lien de réinitialisation.
+- [x] **Réinitialisation mot de passe** : écran (route `/reset-password/:token`), nouveau mot de passe + confirmation, appel API reset-password, redirection login.
+- [ ] **Page de démarrage (dashboard)** avec **navigation en bas** (bottom nav) et **drawer** (à faire ensuite).
+
+### Émulateur mobile (backoffice) – priorité immédiate
+
+**Objectif** : pouvoir **démarrer le projet** et **tester l’app mobile** directement depuis l’interface backoffice (Émulateur mobile) : **build d’APK** et **run du projet** dans l’interface pour avoir une **vraie app qui tourne et se voit** dans l’émulateur.
+
+- [ ] **Build APK** : lancer le **build Android (APK)** du projet Flutter depuis l’interface (ou script déclenché par le backoffice), mode debug ou release selon besoin.
+- [ ] **Run du projet** : **démarrer le projet** (ex. `flutter run` ou installation APK + lancement) depuis l’interface pour que l’app s’exécute sur l’appareil/émulateur et soit **visible** (rendu réel).
 - [ ] Lister les **appareils connectés en ADB** (machine hôte) et **sélectionner l’appareil** dans l’interface.
-- [ ] **URL de l’application** et / ou **démarrer le projet** (run Flutter sur l’appareil) pour **rendu réel** de l’app en cours de dev.
-- [ ] **Rendu** de l’app (streaming ou iframe) et **démarrer / arrêter** les versions en développement avec sortie et logs dans l’interface.
+- [ ] **Rendu** de l’app (streaming écran ou iframe si applicable) et **démarrer / arrêter** avec sortie et logs dans l’interface.
 - [ ] **Logs Android (logcat)** en temps réel avec **filtre** (logs JobbingTrack uniquement si possible).
 - [ ] **Installer un APK** (upload / chemin) sur l’appareil sélectionné.
 - [ ] Backoffice/backend : config, health, version pour environnement de test.
 
 ### Écrans mobiles (à valider un par un)
 
-- [ ] **Login** : champs email/mot de passe, appel API login, stockage token, redirection.
-- [ ] **Inscription** : champs requis, appel API register, redirection (login ou complétion profil).
+- [x] **Login** : champs email/mot de passe, lien Mot de passe oublié, appel API login, stockage token, redirection.
+- [x] **Inscription** : champs requis (email, validation email, mot de passe, validation mot de passe), appel API register, envoi mail vérification, redirection login.
+- [x] **Mot de passe oublié** : écran, envoi mail de réinitialisation (API forgot-password).
+- [x] **Réinitialisation mot de passe** : écran avec token (lien reçu par mail), API reset-password.
+- [x] **Vérification email** : écran avec token (lien reçu par mail), API verify-email.
 - [ ] **Complétion profil** : formulaire profil (PUT /profiles/me), puis accès accueil.
 - [ ] **Accueil** : tableau de bord candidat (résumé, accès aux sections).
 - [ ] **Candidatures** : liste, création, édition, filtres (demandes, en cours, propositions si applicable).
@@ -119,10 +133,10 @@ Récapitulatif complet : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** (comporte
 
 ### Fonctionnalités (processus complet)
 
-- [ ] **Inscription** : flux complet (email, mot de passe, champs requis), API register.
-- [ ] **Connexion** : flux complet (email, mot de passe), API login, token stocké.
+- [x] **Inscription** : flux complet (email, mot de passe, validation, envoi mail vérification), API register.
+- [x] **Connexion** : flux complet (email, mot de passe), API login, token stocké.
 - [ ] **Persistance de la session** : garder la connexion (token, refresh), reprise au redémarrage app.
-- [ ] **Déconnexion** : bouton déconnexion, suppression token, redirection login.
+- [x] **Déconnexion** : bouton déconnexion (écran Paramètres), suppression token, redirection login.
 - [ ] **Synchronisation** : données offline / online, sync avec backend (API Gateway).
 - [ ] **Suivi candidat** : demandes (candidatures/missions), en cours, propositions reçues (écrans + APIs/filtres).
 
@@ -760,6 +774,24 @@ Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API RES
 
 - À faire en dernier (après backoffice, tests, API stables) : migration auth vers Go/Rust, chiffrement, JWT/refresh, rate limiting, HTTPS, validation stricte. Voir section « Migration et sécurisation complète » dans l’historique du fichier si besoin.
 
+
+---
+
+## 🚀 Déploiement final (à faire en tout dernier, quand tout sera fini)
+
+**Objectif** : pouvoir déployer **l’application mobile** et **la partie API + backoffice** sur ton serveur, en déclenchant le déploiement depuis l’**interface backoffice**, sans payer de webhook Portainer (scripts + SSH + Docker Hub, CI).
+
+### À prévoir (pour plus tard)
+
+- **Déploiement depuis le backoffice** : déclencher depuis l’interface admin le déploiement sur le serveur (API prod, backoffice, et/ou build mobile).
+- **Serveur** : déploiement API + backoffice sur ton serveur (images Docker Hub, pull + run via **scripts SSH** déclenchés par le backoffice ou par une CI, sans webhook Portainer payant).
+- **Pipeline / CI** : scripts pour build des images, push Docker Hub, puis déploiement via SSH (ex. script qui se connecte au serveur et fait `docker pull` + `docker compose up`). Déclenchement possible depuis le backoffice (bouton « Déployer » qui lance un job CI ou un script).
+- **Application mobile** :
+  - **Build Android** : pipeline build **APK** et **AAB** (App Bundle), mode **release** ; types de build : internal, beta, prod.
+  - **Suivi** : branche, commit, statut du build, **logs de déploiement** ; version de l’app (HTTP ou récupération de la version) ; lancement build mobile (internal / beta / prod) depuis le backoffice.
+- **CI** : mettre en place éventuellement **GitLab** en plus de GitHub pour avoir des pipelines gratuites (build + déploiement) si besoin.
+
+**Pour l’instant** : on se concentre sur les **tests sur l’émulateur mobile directement dans l’interface backoffice** (build APK, run du projet, voir la vraie app dans l’émulateur). Le déploiement final (serveur, Docker Hub, CI, scripts SSH, déploiement mobile depuis backoffice) sera fait quand l’application sera prête.
 
 ---
 

@@ -4,6 +4,20 @@ Document de référence pour le développement et la validation de l’applicati
 
 ---
 
+## 🚀 Premières étapes (auth puis dashboard)
+
+**Ordre de développement** : on commence par la base **authentification** (connexion uniquement via **email + mot de passe**) :
+
+1. **Écran Login** : email, mot de passe, lien « Mot de passe oublié ? », appel `POST /auth/login`, stockage token, redirection vers accueil.
+2. **Écran Inscription** : email (validation format), mot de passe (validation, ex. min 8 caractères), confirmation mot de passe, envoi mail de **vérification d’email** après inscription.
+3. **Vérification email** : lien reçu par mail → ouverture dans l’app (route `/verify-email/:token`) ou page dédiée → appel `GET /auth/verify-email/:token`.
+4. **Mot de passe oublié** : écran avec champ email → appel `POST /auth/forgot-password` → envoi d’un **mail** à l’utilisateur avec lien de réinitialisation.
+5. **Réinitialisation mot de passe** : écran (accédé via lien reçu par mail, route `/reset-password/:token`) → nouveau mot de passe + confirmation → `POST /auth/reset-password/:token`.
+
+Ensuite : **page de démarrage (dashboard)** avec **navigation en bas** (bottom nav) et **drawer** à faire.
+
+---
+
 ## 🎯 Comportement attendu de l’application (récapitulatif)
 
 - **Utilisateur = candidat** : l’app permet de suivre **ses propres** candidatures et expériences intérim (demandes, en cours, propositions reçues).
@@ -40,8 +54,11 @@ D’après `mobile/lib/main.dart` et `mobile/lib/screens/` :
 
 | Écran              | Fichier                  | À faire / à valider |
 |--------------------|--------------------------|----------------------|
-| Login              | `login_screen.dart`      | Connexion, champs email/mot de passe, appel `POST /auth/login`, stockage token, redirection |
-| Inscription        | `register_screen.dart`   | Inscription, champs requis, appel `POST /auth/register`, redirection login ou complétion profil |
+| Login              | `login_screen.dart`      | Connexion email/mot de passe, lien « Mot de passe oublié », `POST /auth/login`, token, redirection. |
+| Inscription        | `register_screen.dart`   | Inscription (email, validation email, mot de passe, validation mot de passe), `POST /auth/register`, envoi mail vérification, redirection login. |
+| Mot de passe oublié | `forgot_password_screen.dart` | Saisie email, `POST /auth/forgot-password`, envoi mail avec lien de réinitialisation. |
+| Réinitialisation MDP | `reset_password_screen.dart` | Route `/reset-password/:token`, nouveau mot de passe + confirmation, `POST /auth/reset-password/:token`. |
+| Vérification email | `verify_email_screen.dart` | Route `/verify-email` ou `/verify-email/:token`, `GET /auth/verify-email/:token`, affichage succès/erreur. |
 | Accueil            | `home_screen.dart`       | Tableau de bord candidat (résumé, accès aux sections) |
 | Candidatures       | `applications_screen.dart` | Liste/création/édition, filtres (demandes, en cours, propositions si modélisé), API applications |
 | Entreprises        | `companies_screen.dart`  | Liste/création entreprises, API companies |
@@ -58,9 +75,13 @@ D’après `mobile/lib/main.dart` et `mobile/lib/screens/` :
 
 ---
 
-## 🔧 Émulateur mobile (backoffice) – à faire
+## 🔧 Émulateur mobile (backoffice) – priorité immédiate
 
-Objectif : depuis l’interface **Backoffice → Émulateur mobile** (`/backoffice/mobile-emulator`), pouvoir **développer et tester l’app mobile en direct** avec un appareil réel ou un émulateur connecté en ADB.
+**Objectif** : depuis l’interface **Backoffice → Émulateur mobile** (`/backoffice/mobile-emulator`), pouvoir **démarrer le projet** et **tester l’app mobile directement** : **build d’APK** et **run du projet** dans l’interface pour avoir une **vraie app qui tourne et se voit** dans l’émulateur (tests sur émulateur mobile directement depuis l’interface).
+
+À mettre en place en premier :
+- **Build APK** : lancer le build Android (APK) du projet Flutter depuis l’interface.
+- **Run du projet** : démarrer le projet (flutter run ou install APK + lancement) depuis l’interface pour que l’app s’exécute et soit visible.
 
 - **Sélection des appareils** : lister les **appareils actuellement connectés en ADB** sur la machine hôte (commande `adb devices`), et permettre de **sélectionner l’appareil** cible dans l’interface (pas seulement des profils iPhone/Pixel simulés dans le navigateur).
 - **URL de l’application / démarrage du projet** : pouvoir saisir l’**URL de l’application** (ex. app en dev sur machine hôte) ou **démarrer le projet** (lancer l’app Flutter en mode debug sur l’appareil sélectionné) pour avoir le **rendu réel** de l’application en cours de développement.
@@ -91,3 +112,9 @@ Référence implémentation actuelle : `frontend/src/app/(admin)/backoffice/mobi
 ## ✅ Checklist de validation (à cocher dans STATUS.md)
 
 La checklist détaillée (écran par écran, fonctionnalité par fonctionnalité) est maintenue dans **STATUS.md** section **« Application mobile – À faire et à valider »** pour que chaque point puisse être validé un par un. Ce fichier sert de **référence** (comportement, API, structure, user journey, analytics) et reste aligné avec `docs/api/api-reference/README.md` et la structure des données en base.
+
+---
+
+## 🚀 Déploiement final (à faire en tout dernier)
+
+Quand tout sera fini : déploiement de **l’application mobile** et de **l’API + backoffice** sur le serveur, **déclenché depuis l’interface backoffice** (sans webhook Portainer payant : scripts SSH, Docker Hub, CI). Pipeline build Android APK/AAB (release, internal/beta/prod), branche/commit/statut/logs de déploiement, version app. Éventuellement GitLab en plus de GitHub pour CI gratuite. Détail : section **« Déploiement final »** en fin de **STATUS.md**.
