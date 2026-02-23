@@ -8,13 +8,19 @@
 
 **Suivre ces étapes dans l’ordre :**
 
-1. **Démarrer la stack** (dans le terminal, à la racine du projet) :
+1. **Démarrer la stack** (dans le terminal, à la racine du projet) — **une seule commande** (inclut la création du super admin) :
    ```bash
-   make db-push-all && make build && make up-full && make status
+   make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status
    ```
-   Attendre que tous les services soient UP (21/21).
+   Attendre que chaque étape se termine (21/21 services UP à la fin). `make create-admin-user` crée ou met à jour l’utilisateur **SUPER_ADMIN** (admin@jobbingtrack.com / password123).
 
 2. **Ouvrir le backoffice** (navigateur) : URL du front (ex. http://localhost:5003 ou celle configurée). Se connecter avec **admin@jobbingtrack.com** / **password123**.
+
+   **Si vous voyez « Accès Refusé – Votre rôle actuel : USER »** : l’utilisateur admin existe en BDD mais avec le rôle USER. Corriger en lançant une fois :
+   ```bash
+   make create-admin-user
+   ```
+   Puis se **déconnecter** et se **reconnecter** (ou rafraîchir après déconnexion). Le script met à jour le rôle en **SUPER_ADMIN** pour admin@jobbingtrack.com.
 
 3. **Lancer les Tests API** : Backoffice → **Tests** → **Tests API** → bouton **Lancer**. Vérifier que **36/36** passent. Si des échecs : noter lesquels et vérifier les logs (`make logs` ou Backoffice → Rapports de tests).
 
@@ -28,8 +34,8 @@
 
 ## ☑️ Checklist reprise (cocher au fur et à mesure)
 
-- [ ] `make db-push-all && make build && make up-full && make status` exécuté, 21/21 services UP
-- [ ] Connexion backoffice OK (admin@jobbingtrack.com)
+- [ ] `make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status` exécuté, 21/21 services UP
+- [ ] Connexion backoffice OK (admin@jobbingtrack.com / password123). Si « Accès Refusé » (rôle USER) : relancer `make create-admin-user` puis se reconnecter.
 - [ ] Tests API lancés : 36/36 passent
 - [ ] Tests Sécurité lancés : rapport généré et visible dans Rapports de tests
 - [ ] Parcours personnalisé testé : exécution OK, rapport enregistré
@@ -38,20 +44,43 @@
 
 ---
 
+## 🔧 Dépannage : Accès Refusé (rôle USER au lieu d’admin)
+
+**Symptôme** : Connexion avec admin@jobbingtrack.com OK, mais message « Accès Refusé – Votre rôle actuel : USER ». Le backoffice exige les rôles **ADMIN** ou **SUPER_ADMIN**.
+
+**Cause** : L’utilisateur admin@jobbingtrack.com existe en base mais avec le rôle **USER** (création par inscription ou ancien seed). `make up-full` ne fait que vérifier qu’un utilisateur avec cet email existe ; il ne corrige pas le rôle.
+
+**Solution** :
+1. À la racine du projet : `make create-admin-user`
+2. Se déconnecter du backoffice, puis se reconnecter avec admin@jobbingtrack.com / password123.
+
+Le script met à jour l’utilisateur existant en **SUPER_ADMIN** (et réinitialise le mot de passe si besoin). À ajouter à la checklist si cela se reproduit après un `db-push-all` ou une recréation de données.
+
+---
+
 ## 🚀 DÉMARRAGE PROJET (premier lancement ou reprise)
 
-**Séquence recommandée après un premier `make up-full` ou une reprise après pause :**
+**Séquence complète à lancer à la racine du projet** (une seule ligne) :
 
 ```bash
-make db-push-all && make build && make up-full && make status
+make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status
 ```
 
-- **`make db-push-all`** : Prisma push (9 services) + init-system-metrics + init-key-tables + seed statuts + fix Application.isArchived.
-- **`make build`** : Rebuild des images Docker (nécessaire après changement de code/schéma).
-- **`make up-full`** : Démarre tous les conteneurs (21/21 services). Crée l'admin si absent (admin@jobbingtrack.com / password123).
-- **`make status`** : Affiche l'état des services.
+Détail de chaque étape :
 
-**Si besoin de repartir à zéro :** `make down && make db-push-all && make build && make up-full && make status`
+| Étape | Commande | Rôle |
+|-------|----------|------|
+| 1 | `make up-full` | Démarre tous les conteneurs (PostgreSQL, auth, gateway, etc.). |
+| 2 | `make db-push-all` | Prisma push (9 services) + init-system-metrics + init-key-tables + seed statuts + fix Application.isArchived. |
+| 3 | `make build` | Rebuild des images Docker (après changement de code/schéma). |
+| 4 | `make up-full` | Redémarre la stack avec les images à jour (21/21 services). |
+| 5 | `make create-admin-user` | **Crée ou met à jour** l’utilisateur super admin (admin@jobbingtrack.com / password123, rôle **SUPER_ADMIN**). Sans cette étape, l’admin peut exister en **USER** et le backoffice affiche « Accès Refusé ». |
+| 6 | `make status` | Affiche l’état des services. |
+
+**Repartir à zéro (nettoyage complet) :**
+```bash
+make down && make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status
+```
 
 ---
 
@@ -59,7 +88,8 @@ make db-push-all && make build && make up-full && make status
 
 ### 1. Vérifier que tout tourne
 
-- Lancer la séquence ci-dessus.
+- Lancer la **séquence complète** (section « DÉMARRAGE PROJET » ci-dessus) :  
+  `make up-full && make db-push-all && make build && make up-full && make create-admin-user && make status`
 - Se connecter au backoffice : admin@jobbingtrack.com / password123.
 - Lancer les **Tests API** (Backoffice → Tests → Tests API → Lancer) : 36/36 doivent passer.
 - Vérifier les **rapports** : Backoffice → Rapports de tests (Tests API, Sécurité, Performance, Parcours).
@@ -87,7 +117,12 @@ make db-push-all && make build && make up-full && make status
 - **Parcours utilisateur** : `tests/user-journey-reports/user-journey-<nom>-<date>_<heure>.json` (ex. `user-journey-Mon-Parcours-Personnalise-2026-02-21_143052.json`).
 - **Performance** : À aligner sur le même schéma (tests/results ou répertoire dédié avec format cohérent).
 
-### 6. Autres points en attente
+### 6. Admin en rôle USER (Accès Refusé backoffice)
+
+- **Symptôme** : Connexion avec admin@jobbingtrack.com OK mais message « Accès Refusé – Votre rôle actuel : USER ».
+- **Solution** : Exécuter `make create-admin-user`, puis se déconnecter et se reconnecter. Détail : section **« Dépannage : Accès Refusé »** ci-dessus.
+
+### 7. Autres points en attente
 
 - **Logs emails** : Page `/backoffice/emails/logs` et API `GET /api/v1/emails/logs` OK.
 - **API versioning** : Corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
@@ -96,7 +131,7 @@ make db-push-all && make build && make up-full && make status
 - **CI/CD** : Pipeline GitHub Actions à adapter (projet microservices).
 - **Mise à jour des tests** : Lors de l'ajout de nouvelles fonctionnalités, mettre à jour les Tests API, les parcours et les scénarios correspondants.
 
-### 7. Checklist détaillée
+### 8. Checklist détaillée
 
 → Voir la **Checklist reprise** en tête de document (section « ☑️ Checklist reprise »). Cocher chaque point au fur et à mesure.
 
