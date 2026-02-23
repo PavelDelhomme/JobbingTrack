@@ -26,6 +26,9 @@ import 'package:jobbingtrack_mobile/screens/trash_screen.dart';
 import 'package:jobbingtrack_mobile/screens/users_screen.dart';
 import 'package:jobbingtrack_mobile/screens/followups_screen.dart';
 import 'package:jobbingtrack_mobile/screens/events_screen.dart';
+import 'package:jobbingtrack_mobile/screens/forgot_password_screen.dart';
+import 'package:jobbingtrack_mobile/screens/reset_password_screen.dart';
+import 'package:jobbingtrack_mobile/screens/verify_email_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,9 +64,32 @@ class JobbingTrackMobileApp extends StatelessWidget {
           fontFamily: 'Inter',
         ),
         home: const LoginScreen(),
+        onGenerateRoute: (settings) {
+          // /reset-password/:token
+          if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
+            final token = settings.name!.replaceFirst('/reset-password/', '');
+            return MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: token),
+              settings: settings,
+            );
+          }
+          // /verify-email ou /verify-email/:token
+          if (settings.name != null && settings.name!.startsWith('/verify-email')) {
+            String? token;
+            if (settings.name!.length > '/verify-email/'.length && settings.name!.startsWith('/verify-email/')) {
+              token = settings.name!.substring('/verify-email/'.length);
+            }
+            return MaterialPageRoute(
+              builder: (context) => VerifyEmailScreen(token: token),
+              settings: settings,
+            );
+          }
+          return null;
+        },
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const HomeScreen(),
           '/applications': (context) => const ApplicationsScreen(),
           '/companies': (context) => const CompaniesScreen(),

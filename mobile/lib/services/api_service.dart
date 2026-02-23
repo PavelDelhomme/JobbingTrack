@@ -60,6 +60,61 @@ class ApiService {
     }
   }
 
+  /// Envoie un email de réinitialisation à l'adresse fournie.
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim()}),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+      throw Exception(body['message'] ?? body['error'] ?? 'Erreur ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Réinitialise le mot de passe avec le token reçu par email.
+  static Future<Map<String, dynamic>> resetPassword(String token, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/auth/reset-password/$token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'password': password}),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+      throw Exception(body['message'] ?? body['error'] ?? 'Erreur ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Vérifie l'email avec le token reçu par email (lien de vérification).
+  static Future<Map<String, dynamic>> verifyEmail(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/v1/auth/verify-email/$token'),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+      throw Exception(body['message'] ?? body['error'] ?? 'Erreur ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
   static Future<List<Application>> getApplications() async {
     try {
       final response = await http.get(

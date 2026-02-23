@@ -70,5 +70,50 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Demande d'envoi d'un email de réinitialisation du mot de passe.
+  Future<void> forgotPassword(String email) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await ApiService.forgotPassword(email);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Réinitialise le mot de passe avec le token reçu par email.
+  Future<void> resetPassword(String token, String password) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await ApiService.resetPassword(token, password);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Vérifie l'email avec le token reçu par email (lien de vérification).
+  Future<void> verifyEmail(String token) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await ApiService.verifyEmail(token);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   bool get isAuthenticated => _token != null && _user != null;
 }
