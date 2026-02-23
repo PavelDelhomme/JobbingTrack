@@ -4,6 +4,30 @@
 
 ---
 
+## Février 2026 – CI/CD : Validation des enums (EventType / EntityType)
+
+- **Problème** : Le job GitHub Actions « Validation de la structure de base de données » échouait avec **« ❌ Enum EventType manquant »** (exit 1). Le workflow exigeait la présence de `enum EventType`, `enum NotificationType`, `enum EntityType` dans `backend/prisma/schema.prisma`.
+- **Cause** : Le schéma partagé utilise **model EventType** (table), pas un enum ; **EntityType** peut être défini uniquement dans un service (ex. workflow-service).
+- **Solution** : Dans `.github/workflows/ci-cd.yml`, la step « Validation des enums » a été modifiée pour : (1) accepter **model EventType** en plus de **enum EventType** ; (2) considérer **EntityType** comme optionnel et le chercher dans `*/prisma/schema.prisma` si absent du schéma partagé. Ainsi le job ne quitte plus en erreur sur EventType/EntityType.
+
+---
+
+## Février 2026 – Parcours personnalisé : 500 quand une étape échoue
+
+- **Problème** : Lors du lancement d’un parcours personnalisé, si une étape échouait (ex. « Création entreprise échouée: Internal Server Error »), le script Node sortait avec code 1 et l’API `POST /api/user-journey/custom` renvoyait **500** ; l’utilisateur ne voyait pas les résultats ni le lien vers les rapports de parcours.
+- **Cause** : `execAsync` rejette en cas d’exit code non nul ; le catch renvoyait 500 sans parser le stdout qui contient malgré tout le JSON du rapport.
+- **Solution** : Dans `frontend/src/app/api/user-journey/custom/route.ts`, en cas d’erreur d’exécution, on capture `stdout`/`stderr` depuis l’erreur et on parse le JSON dans stdout comme avant. On renvoie toujours **200** avec `success: true` et les résultats (results, summary, context) dès que le JSON est valide, même si le script a exit 1. Ainsi les résultats et le résumé (réussis, échoués, ignorés) s’affichent et le rapport peut être sauvegardé / consulté.
+
+---
+
+## Février 2026 – Rapports Tests Sécurité : chiffres incohérents
+
+- **Problème** : Le rapport Tests Sécurité affichait par exemple « 1 test exécuté, 1 réussi, 2 échoués » (incohérent : total ≠ réussi + échoués).
+- **Cause** : Pour les rapports sécurité, le frontend lit `summary.summary` (totalTests, totalPassed, totalFailed) et parfois affiche aussi les vulnérabilités depuis `summary.security` ; lorsque le script n’avait pas correctement rempli le summary à partir de `security-report.json`, les valeurs pouvaient être mélangées.
+- **Solution** : Dans `frontend/src/app/api/test-reports/all/route.ts`, pour les rapports dont la catégorie est « Tests Sécurité » et qui ont `summary.summary.security`, on recalcule **totalTests**, **totalPassed**, **totalFailed** à partir de `secure` et de `critical+high+medium+low` pour que Total = Réussis + Échoués soit cohérent.
+
+---
+
 ## Février 2026 – Backoffice : BigInt, container_logs, user-journey save-report
 
 - **BigInt (metrics-aggregator)** : Les réponses `GET /api/v1/persistence/containers/:containerName/metrics` contenaient des champs BigInt (ex. `cpuUsageNano`, `memoryUsageBytes`) que `JSON.stringify` ne peut pas sérialiser → 500 « Do not know how to serialize a BigInt ». **Solution** : ajout dans `backend/metrics-aggregator-service/src/routes/persistence.routes.js` d’une fonction `serializeBigInt(obj)` qui parcourt récursivement l’objet et convertit les BigInt en Number ; la réponse est passée par `serializeBigInt(...)` avant `res.json()`.

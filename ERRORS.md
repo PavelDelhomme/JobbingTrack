@@ -94,6 +94,15 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 
 ---
 
+## CI/CD – Validation de la structure de base de données (à résoudre)
+
+- **Job** : « Validation de la structure de base de données » (workflow GitHub Actions).
+- **Erreur** : `🏷️ Validation des enums` → **« ❌ Enum EventType manquant »** (Process completed with exit code 1). Le job vérifie dans `backend/prisma/schema.prisma` la présence de `enum EventType`, `enum NotificationType`, `enum EntityType`.
+- **Cause** : Le schéma partagé utilise **model EventType** (table), pas **enum EventType** ; **EntityType** peut être défini dans un service (ex. workflow-service) et non dans le schéma partagé.
+- **Résolution appliquée** : Le workflow a été adapté pour accepter **model EventType** en plus de **enum EventType**, et pour considérer **EntityType** comme optionnel (vérifié dans les schémas des services si absent du schéma partagé). Vérifier au prochain push que le job passe.
+
+---
+
 ## 🎯 Prochaines vérifications
 
 1. Exécuter `make db-push-all` depuis la racine avec Postgres démarré et `.env` correct.
@@ -104,5 +113,8 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 6. **Page Tests (hub)** : pas encore de sélection de catégorie / « tout » pour lancer les tests depuis la vue d’ensemble (uniquement des liens vers les pages par catégorie). Voir STATUS.md § « Dernières choses à faire ».
 7. **Tests programmés (schedule)** : pas de sélection fine (tout ou certains tests) pour l’exécution programmée. Voir STATUS.md § « Dernières choses à faire ».
 8. **User Journey – affichage / analytics** : vérifier que l’affichage des résultats et analytics est pleinement fonctionnel après correction de l’erreur `token is not defined` (voir RESOLUTIONS.md).
+9. **Page Tests (hub)** : permettre la sélection d’un ou plusieurs tests (catégories) et le lancement depuis `/backoffice/tests`, avec lien vers le rapport (voir STATUS.md § Dernières choses à faire).
+10. **Rapports Tests Sécurité** : les chiffres (exécutés / réussis / échoués) doivent rester cohérents ; correction appliquée dans l’API test-reports/all pour les rapports « Tests Sécurité » à partir de `summary.security`. Vérifier que `REPORT_DIR` est bien transmis en Docker.
+11. **Parcours personnalisé** : lien visible vers « Rapports de parcours » ; cause du 500 company-service (création entreprise) pour l’utilisateur de test à corriger. **Parcours prédéfinis** : aligner les compteurs (étapes réussies / échouées) et la génération du rapport (voir STATUS.md).
 
 Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**. Pour la liste consolidée des tâches (à faire en priorité puis fait), voir **STATUS.md** (section « À FAIRE » et « Dernières choses à faire »).

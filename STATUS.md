@@ -8,20 +8,23 @@
 
 À traiter en plus des priorités ci‑dessous (ordre recommandé) :
 
-1. **Page Tests (hub) – lancement depuis la vue d’ensemble**  
-   Actuellement la page **Tests** (`/backoffice/tests`) affiche les catégories (cartes avec liens). **À faire** : permettre de **sélectionner une ou plusieurs catégories** (ou « tout ») et de **lancer les tests directement depuis cette page** (comme sur les pages Tests API / Backend), puis afficher le rapport généré (lien « Voir le rapport »).
+1. **Page Tests (hub) – sélection et lancement**  
+   Actuellement la page **Tests** (`/backoffice/tests`) affiche les catégories (cartes avec liens) mais **on ne peut pas sélectionner un test ou un ensemble de tests et les lancer depuis cette page**. **À faire** : permettre de **sélectionner une ou plusieurs catégories** (ou « tout ») et de **lancer les tests directement depuis cette page** (comme sur les pages Tests API / Backend), puis afficher le rapport généré (lien « Voir le rapport »).
 
 2. **Tests programmés (schedule)**  
    Page **Programmer tests** (`/backoffice/performance-tests/schedule`) : **À faire** : permettre de **sélectionner tout ou certains tests** à exécuter dans le planning (ex. cocher Tests API, Backend, Frontend, Backoffice, Sécurité, Performance), et pas seulement un type global.
 
-3. **User Journey – affichage et analytics**  
+3. **User Journey – affichage, analytics, rapports**  
    - **Erreur corrigée (10/02)** : `ReferenceError: token is not defined` dans `user-journey/page.tsx` (useEffect) → ajout de `const { token } = useAuth()` en tête du composant.
-   - **À faire** : Vérifier que l’**affichage** des parcours (résultats, analytics, perf) est **fonctionnel** ; que le User Journey rassemble bien les **tests logiques** qu’un utilisateur peut faire sur l’app (mobile inclus) ; que les **analytics** (durée, taux de succès, etc.) s’affichent correctement. Corriger auth (register/login) et enchaînement des étapes pour que les scénarios passent en mode Admin et Utilisateur de test.
+   - **Parcours personnalisé** : si une étape échoue (ex. « Création entreprise échouée: Internal Server Error »), le script sort en code 1 et l’API renvoyait 500 → **correction** : l’API `/api/user-journey/custom` parse désormais le JSON dans stdout même en cas d’exit 1 et renvoie 200 avec les résultats (succès + échecs + ignorés). **Reste** : corriger la cause du 500 côté company-service pour l’utilisateur de test (contexte token) ; ajouter un **lien visible** vers « Rapports de parcours » depuis la page Parcours personnalisé / User Journey.
+   - **Parcours prédéfinis** : les analytics affichent parfois des incohérences (ex. « Étapes Réussies 0 / 14 » alors que « Taux de réussite 78,6 % » et « Étapes Échouées 3 ») ; le **rapport du parcours prédéfini** n’est pas toujours généré ou listé. **À faire** : aligner les compteurs (réussies / échouées / total) et s’assurer que le rapport est bien généré et accessible (lien « Voir les rapports de parcours »).
+   - **À faire** : Vérifier que l’**affichage** des parcours (résultats, analytics, perf) est **fonctionnel** ; corriger auth (register/login) et enchaînement des étapes pour que les scénarios passent en mode Admin et Utilisateur de test.
 
 4. **CI/CD complet (en tout dernier)**  
    - Pipeline **complète** : validation structure BDD (adaptée microservices), **exécution de tous les tests** (API, backend, frontend, backoffice, sécurité, performance, user-journey, Playwright), **déploiement** (build images, push, déploiement staging/prod selon stratégie).
    - Adapter le workflow GitHub Actions au projet **microservices** (un Prisma par service, pas un seul `backend/prisma`).
    - Intégrer les tests actuels (Tests API 36, tests backend, frontend, backoffice, sécurité, performance) dans la CI et les rapports (artefacts, statut par catégorie).
+   - **Résolution à faire** : le job « Validation de la structure de base de données » échouait avec **« Validation des enums – Enum EventType manquant »** (exit 1). Cause : le schéma partagé `backend/prisma/schema.prisma` utilise **model EventType** (table), pas **enum EventType**, et **EntityType** peut être dans un service. **Correction appliquée** : le workflow accepte désormais `model EventType` en plus de `enum EventType`, et `enum EntityType` est optionnel (vérifié dans un service si absent du schéma partagé). Vérifier que le job passe au prochain push.
    - **À faire en tout dernier** une fois le reste stabilisé.
 
 5. **Tests backoffice – couverture complète**  
@@ -142,6 +145,7 @@ make down && make up-full && make db-push-all && make build && make up-full && m
 
 - **Correction ENOENT faite** (21/02) : le script utilise `REPORT_DIR`. Relancer Tests Sécurité depuis le backoffice et vérifier que le rapport apparaît dans Rapports de tests.
 - **Rapport détaillé** (23/02) : le script `generate-test-report.sh` lit `security-report.json` pour remplir total / passed / failed (vérifications vs vulnérabilités) ; le résumé et la page Rapports de tests affichent le bon nombre de tests (ex. 61 vérifications, 59 sécurisées, 2 vulnérabilités) et le détail par gravité (Critiques, Hautes, Moyennes, Basses, Sécurisées).
+- **Chiffres incohérents** (ex. « 1 test exécuté, 1 réussi, 2 échoués ») : **correction** : l’API `GET /api/test-reports/all` recalcule pour les rapports « Tests Sécurité » les totaux à partir de `summary.security` (secure + critical+high+medium+low) pour que Total / Réussis / Échoués soient cohérents. S’assurer que `REPORT_DIR` est bien passé au script de test en Docker pour que `security-report.json` soit généré.
 - **À faire** : Enrichir les tests (XSS, SQLi, CSRF, auth, rate limiting, headers) ; s'assurer qu'ils sont complets et opérationnels.
 
 **Priorité des prochaines tâches** : (1) Parcours personnalisé — test complet ; (2) Parcours prédéfinis — corriger auth ; (3) Rapports performance — aligner comme Tests API ; (4) Table UserCustomization — `make db-push-all` ; (5) Tests sécurité — enrichir et corriger vulnérabilités.

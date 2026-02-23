@@ -25,26 +25,36 @@ export async function POST(request: NextRequest) {
 
     const command = `cd "${projectRoot}" && node "${testScriptPath}" custom '${stepsJson}'`;
     
-    const { stdout, stderr } = await execAsync(command, {
-      env: {
-        ...process.env,
-        API_URL: apiUrl,
-        OUTPUT_JSON: 'true'
-      },
-      maxBuffer: 10 * 1024 * 1024 // 10MB
-    });
-
-    // Parser le résultat JSON depuis stdout
-    let results;
+    let stdout = '';
+    let stderr = '';
     try {
-      // Extraire le JSON de la sortie
+      const result = await execAsync(command, {
+        env: {
+          ...process.env,
+          API_URL: apiUrl,
+          OUTPUT_JSON: 'true'
+        },
+        maxBuffer: 10 * 1024 * 1024 // 10MB
+      });
+      stdout = result.stdout ?? '';
+      stderr = result.stderr ?? '';
+    } catch (err: unknown) {
+      const execErr = err as { stdout?: string; stderr?: string };
+      stdout = execErr.stdout ?? '';
+      stderr = execErr.stderr ?? '';
+      // Même en cas d'exit code 1 (étape en erreur), le script imprime le JSON : on parse et on renvoie 200
+    }
+
+    // Parser le résultat JSON depuis stdout (présent même si le script a exit 1)
+    let results: { results?: unknown[]; summary?: Record<string, unknown>; context?: Record<string, unknown> };
+    try {
       const jsonMatch = stdout.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        results = JSON.parse(jsonMatch[0]);
+        results = JSON.parse(jsonMatch[0]) as typeof results;
       } else {
         throw new Error('Aucun JSON trouvé dans la sortie');
       }
-    } catch (parseError: any) {
+    } catch (parseError: unknown) {
       console.error('Erreur parsing JSON:', parseError);
       return NextResponse.json(
         {
@@ -63,12 +73,12 @@ export async function POST(request: NextRequest) {
       summary: results.summary || {},
       context: results.context || {}
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur exécution parcours personnalisé:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Erreur lors de l\'exécution du parcours'
+        error: error instanceof Error ? error.message : 'Erreur lors de l\'exécution du parcours'
       },
       { status: 500 }
     );
