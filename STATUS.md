@@ -1,6 +1,40 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 21 février 2026
+**Dernière mise à jour** : 24 février 2026 (reprise lundi)
+
+---
+
+## ▶️ PROCHAINE ÉTAPE – À faire maintenant (lundi)
+
+**Suivre ces étapes dans l’ordre :**
+
+1. **Démarrer la stack** (dans le terminal, à la racine du projet) :
+   ```bash
+   make db-push-all && make build && make up-full && make status
+   ```
+   Attendre que tous les services soient UP (21/21).
+
+2. **Ouvrir le backoffice** (navigateur) : URL du front (ex. http://localhost:5003 ou celle configurée). Se connecter avec **admin@jobbingtrack.test** / **password123**.
+
+3. **Lancer les Tests API** : Backoffice → **Tests** → **Tests API** → bouton **Lancer**. Vérifier que **36/36** passent. Si des échecs : noter lesquels et vérifier les logs (`make logs` ou Backoffice → Rapports de tests).
+
+4. **Vérifier les Tests Sécurité** : Backoffice → **Tests** → **Tests Sécurité** → Lancer. Vérifier que le rapport est bien généré et visible dans **Rapports de tests** (plus d’erreur ENOENT `tests/reports`).
+
+5. **Vérifier le Parcours personnalisé** : Backoffice → **Parcours utilisateur** → **Parcours personnalisé**. Ajouter quelques étapes (ex. Connexion, Créer Entreprises, Voir Statistiques) → **Lancer le Parcours**. Vérifier que les résultats s’affichent et que le rapport est sauvegardé (lien « Voir les rapports de parcours »).
+
+6. **Cocher la checklist** (ci‑dessous) au fur et à mesure, puis passer aux tâches « À faire » (rapports perf, parcours prédéfinis, etc.) selon la section **REPRISE TRAVAIL** plus bas.
+
+---
+
+## ☑️ Checklist reprise (cocher au fur et à mesure)
+
+- [ ] `make db-push-all && make build && make up-full && make status` exécuté, 21/21 services UP
+- [ ] Connexion backoffice OK (admin@jobbingtrack.test)
+- [ ] Tests API lancés : 36/36 passent
+- [ ] Tests Sécurité lancés : rapport généré et visible dans Rapports de tests
+- [ ] Parcours personnalisé testé : exécution OK, rapport enregistré
+- [ ] (Ensuite) Parcours prédéfinis à corriger (auth après register/login)
+- [ ] (Ensuite) Rapports performance à aligner comme Tests API
 
 ---
 
@@ -62,17 +96,9 @@ make db-push-all && make build && make up-full && make status
 - **CI/CD** : Pipeline GitHub Actions à adapter (projet microservices).
 - **Mise à jour des tests** : Lors de l'ajout de nouvelles fonctionnalités, mettre à jour les Tests API, les parcours et les scénarios correspondants.
 
-### 7. Checklist rapide reprise
+### 7. Checklist détaillée
 
-| Action | Statut |
-|--------|--------|
-| `make db-push-all && make build && make up-full && make status` | À exécuter |
-| Connexion backoffice (admin@jobbingtrack.test) | À vérifier |
-| Tests API 36/36 | À lancer |
-| Tests Sécurité (rapport généré ?) | À vérifier |
-| Parcours personnalisé (étapes + rapport) | Corrigé 21/02 |
-| Parcours prédéfinis (mode admin + test user) | À corriger |
-| Rapports perf enregistrés/affichés | À aligner |
+→ Voir la **Checklist reprise** en tête de document (section « ☑️ Checklist reprise »). Cocher chaque point au fur et à mesure.
 
 ---
 
