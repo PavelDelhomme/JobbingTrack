@@ -10,6 +10,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, steps } = body;
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
     if (!steps || !Array.isArray(steps) || steps.length === 0) {
       return NextResponse.json(
@@ -24,16 +26,18 @@ export async function POST(request: NextRequest) {
     const apiUrl = process.env.API_GATEWAY_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
     const command = `cd "${projectRoot}" && node "${testScriptPath}" custom '${stepsJson}'`;
-    
+    const env: Record<string, string> = {
+      ...process.env,
+      API_URL: apiUrl,
+      OUTPUT_JSON: 'true'
+    };
+    if (token) env.TEST_TOKEN = token;
+
     let stdout = '';
     let stderr = '';
     try {
       const result = await execAsync(command, {
-        env: {
-          ...process.env,
-          API_URL: apiUrl,
-          OUTPUT_JSON: 'true'
-        },
+        env,
         maxBuffer: 10 * 1024 * 1024 // 10MB
       });
       stdout = result.stdout ?? '';

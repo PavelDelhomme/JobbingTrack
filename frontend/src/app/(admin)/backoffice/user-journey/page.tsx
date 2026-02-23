@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -527,7 +528,15 @@ export default function UserJourneyPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [testToken, setTestToken] = useState<string | null>(null);
   const [isGeneratingToken, setIsGeneratingToken] = useState(false);
-  const [analytics, setAnalytics] = useState<any>({
+  const [analytics, setAnalytics] = useState<{
+    totalDuration: number;
+    successRate: number;
+    passedCount?: number;
+    failedCount?: number;
+    failedSteps: string[];
+    completedAt: Date | null;
+    wasCancelled?: boolean;
+  }>({
     totalDuration: 0,
     successRate: 0,
     failedSteps: [],
@@ -1552,12 +1561,15 @@ export default function UserJourneyPage() {
     }
 
     const totalDuration = Date.now() - startTime;
-    const completedSteps = steps.filter(s => s.status === 'success').length;
-    const successCount = wasCancelled ? completedSteps : steps.length - failedSteps.length;
-    
+    const passedCount = steps.length - failedSteps.length;
+    const failedCount = failedSteps.length;
+    const successRate = steps.length ? (passedCount / steps.length) * 100 : 0;
+
     setAnalytics({
       totalDuration,
-      successRate: (successCount / steps.length) * 100,
+      successRate,
+      passedCount,
+      failedCount,
       failedSteps,
       completedAt: new Date(),
       wasCancelled
@@ -1675,17 +1687,19 @@ export default function UserJourneyPage() {
     if (!analytics.completedAt || !steps.length || steps.every(s => s.status === 'pending')) return
     if (lastAutoSavedCompletedAt.current === analytics.completedAt) return
     lastAutoSavedCompletedAt.current = analytics.completedAt
+    const passed = analytics.passedCount ?? steps.filter(r => r.status === 'success').length;
+    const failed = analytics.failedCount ?? steps.filter(r => r.status === 'error').length;
     const reportData = {
       journeyName: SCENARIOS[selectedScenario]?.name || selectedScenario || 'custom',
       timestamp: new Date().toISOString(),
       summary: {
         totalSteps: steps.length,
-        successCount: steps.filter(r => r.status === 'success').length,
-        errorCount: steps.filter(r => r.status === 'error').length,
+        successCount: passed,
+        errorCount: failed,
         warningCount: steps.filter(r => r.status === 'warning').length,
         skippedCount: steps.filter(r => r.status === 'skipped').length,
         totalDuration: analytics.totalDuration || steps.reduce((acc, r) => acc + (r.duration || 0), 0),
-        successRate: analytics.successRate ? `${analytics.successRate}%` : ((steps.filter(r => r.status === 'success').length / steps.length) * 100).toFixed(2) + '%'
+        successRate: analytics.successRate != null ? `${Number(analytics.successRate).toFixed(1)}%` : (steps.length ? ((passed / steps.length) * 100).toFixed(2) + '%' : '0%')
       },
       results: steps.map(s => ({ step: s.id, name: s.name, status: s.status, duration: s.duration, error: s.error, result: s.result })),
       context: { testToken: token, scenario: selectedScenario }
@@ -2049,6 +2063,12 @@ export default function UserJourneyPage() {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          <Link href="/backoffice/user-journey/reports">
+            <Button variant="outline" className="gap-2" title="Voir tous les rapports de parcours sauvegardés">
+              <FileText className="h-4 w-4" />
+              Rapports de parcours
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -2290,7 +2310,7 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {steps.filter(s => s.status === 'success').length} / {steps.length}
+                  {(analytics.passedCount ?? steps.filter(s => s.status === 'success').length)} / {steps.length}
                 </div>
               </CardContent>
             </Card>
@@ -2303,7 +2323,7 @@ export default function UserJourneyPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {analytics.failedSteps.length}
+                  {analytics.failedCount ?? analytics.failedSteps.length}
                 </div>
               </CardContent>
             </Card>

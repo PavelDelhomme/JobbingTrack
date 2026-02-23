@@ -220,7 +220,7 @@ export default function CustomJourneyPage() {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               🎯 Parcours Utilisateur Personnalisé
@@ -229,14 +229,22 @@ export default function CustomJourneyPage() {
               Construisez votre propre parcours étape par étape
             </p>
           </div>
-          <Button
-            onClick={executeJourney}
-            disabled={isRunning || steps.length === 0}
-            className="flex items-center gap-2"
-          >
-            <Play className="w-4 h-4" />
-            {isRunning ? 'Exécution...' : 'Lancer le Parcours'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/backoffice/user-journey/reports">
+              <Button variant="outline" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Voir les rapports de parcours
+              </Button>
+            </Link>
+            <Button
+              onClick={executeJourney}
+              disabled={isRunning || steps.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Play className="w-4 h-4" />
+              {isRunning ? 'Exécution...' : 'Lancer le Parcours'}
+            </Button>
+          </div>
         </div>
 
         {/* Nom du parcours */}

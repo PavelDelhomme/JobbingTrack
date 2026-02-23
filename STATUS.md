@@ -151,7 +151,9 @@ make down && make up-full && make db-push-all && make build && make up-full && m
 **Priorité des prochaines tâches** : (1) Parcours personnalisé — test complet ; (2) Parcours prédéfinis — corriger auth ; (3) Rapports performance — aligner comme Tests API ; (4) Table UserCustomization — `make db-push-all` ; (5) Tests sécurité — enrichir et corriger vulnérabilités.
 
 **Erreurs corrigées (23/02)** — à valider après `make build` / redémarrage :
-- **auth-service** : table `UserCustomization` absente → le contrôleur preferences retourne des préférences par défaut si la table n'existe pas. **À faire** : créer la table avec `make db-push-all` (auth-service Prisma inclut le modèle UserCustomization).
+- **auth-service** : table `UserCustomization` absente → le contrôleur preferences retourne des préférences par défaut si la table n'existe pas. **À faire** : créer la table avec `make db-push-all` (auth-service Prisma inclut le modèle UserCustomization). Sans cette table, les logs affichent des ERROR sur `UserCustomization` et le parcours utilisateur peut générer des erreurs côté préférences.
+- **Rapports de parcours** : l’API de sauvegarde des rapports (save-report) utilisait en Docker `/tmp/user-journey-reports` au lieu du même chemin que le scan (`PROJECT_ROOT/tests/user-journey-reports`). Corrigé : les rapports sont maintenant enregistrés dans le même répertoire que celui scanné par « Rapports de parcours », donc visibles après un parcours prédéfini ou personnalisé.
+- **CI/CD (validation BDD)** : (1) `DATABASE_URL` est défini lors de la validation du schéma Prisma pour éviter P1012 ; (2) `prisma format` est exécuté (au lieu de `--check` uniquement) pour corriger le formatage ; (3) le seed des statuts s’exécute depuis `$GITHUB_WORKSPACE/backend` avec le script en chemin absolu pour éviter MODULE_NOT_FOUND.
 - **application-service** : `prisma.activity` undefined → création d'activité conditionnelle ; seed protégé.
 - **Central logger** : `METRICS_SERVICE_URL` corrigé en `http://jobbingtrack-metrics-aggregator:3014` dans docker-compose.yml.
 

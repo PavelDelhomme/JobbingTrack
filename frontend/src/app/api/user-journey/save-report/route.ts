@@ -3,13 +3,12 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
-// Chemin vers les rapports user-journey (en Docker /app/tests n'existe pas → /tmp)
-const PROJECT_ROOT = process.cwd().includes('frontend')
-  ? join(process.cwd(), '..')
-  : process.cwd()
+// Aligné sur test-reports/all pour que les rapports soient listés sur la page Rapports de parcours
+const PROJECT_ROOT = process.env.PROJECT_ROOT
+  || (process.cwd().includes('frontend') ? join(process.cwd(), '..') : process.cwd())
 const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
 const REPORTS_DIR = process.env.USER_JOURNEY_REPORTS_DIR
-  || (IS_DOCKER ? '/tmp/user-journey-reports' : join(PROJECT_ROOT, 'tests', 'user-journey-reports'))
+  || join(IS_DOCKER ? (process.env.PROJECT_ROOT || '/app') : PROJECT_ROOT, 'tests', 'user-journey-reports')
 
 export async function POST(request: NextRequest) {
   try {

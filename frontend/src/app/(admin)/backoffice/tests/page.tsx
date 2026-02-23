@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import Link from 'next/link'
@@ -14,8 +15,23 @@ import {
   BarChart3,
   Mail,
   Calendar,
+  PlayCircle,
 } from 'lucide-react'
 import { Loader2 } from '@/lib/icons'
+import { Button } from '@/components/ui/button'
+
+/** Catégories lançables depuis le hub (endpoint API run-*) */
+const RUNNABLE_IDS = ['api', 'backend', 'frontend', 'backoffice', 'security', 'performance', 'playwright', 'emails'] as const
+const RUN_API: Record<string, string | string[]> = {
+  api: '/api/test/run-api',
+  backend: '/api/test/run-backend',
+  frontend: '/api/test/run-frontend',
+  backoffice: '/api/test/run-backoffice',
+  security: '/api/test/run-security',
+  performance: ['/api/test/run-performance-backend', '/api/test/run-performance-frontend'],
+  playwright: '/api/test/run-playwright',
+  emails: '/api/test/run-emails',
+}
 
 const CATEGORIES = [
   {
@@ -131,7 +147,59 @@ const CATEGORIES = [
 ]
 
 export default function TestsHubPage() {
-  const { loading: authLoading, isAuthenticated } = useAuth()
+  const { loading: authLoading, isAuthenticated, token } = useAuth()
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isRunning, setIsRunning] = useState(false)
+  const [runLog, setRunLog] = useState<string[]>([])
+  const [lastReportId, setLastReportId] = useState<string | null>(null)
+
+  const toggleSelection = (id: string) => {
+    if (!RUNNABLE_IDS.includes(id as any)) return
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const runSelected = async () => {
+    if (selectedIds.length === 0 || isRunning) return
+    setIsRunning(true)
+    setRunLog([])
+    setLastReportId(null)
+    const log = (msg: string) => setRunLog((prev) => [...prev, msg])
+    let reportId: string | null = null
+    const opts = {
+      method: 'POST' as const,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({}),
+    }
+    for (const id of selectedIds) {
+      const api = RUN_API[id]
+      if (!api) continue
+      const name = CATEGORIES.find((c) => c.id === id)?.name || id
+      const urls = Array.isArray(api) ? api : [api]
+      for (const url of urls) {
+        log(`Lancement: ${name}...`)
+        try {
+          const res = await fetch(url, opts)
+          const data = await res.json().catch(() => ({}))
+          if (data.reportId) {
+            reportId = data.reportId
+            log(`  → Rapport: ${data.reportId}`)
+          }
+          if (!res.ok) log(`  → Erreur: ${data.error || res.statusText}`)
+          else log(`  → Terminé`)
+        } catch (e) {
+          log(`  → Erreur: ${e instanceof Error ? e.message : 'Réseau'}`)
+        }
+      }
+    }
+    if (reportId) setLastReportId(reportId)
+    log('Tous les tests sélectionnés ont été exécutés.')
+    setIsRunning(false)
+  }
 
   if (authLoading) {
     return (
@@ -164,44 +232,94 @@ export default function TestsHubPage() {
             Tests
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Choisissez une catégorie pour exécuter des tests ou consulter les rapports.
+            Sélectionnez une ou plusieurs catégories puis lancez les tests, ou ouvrez une page dédiée.
           </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={runSelected}
+            disabled={selectedIds.length === 0 || isRunning}
+            className="gap-2"
+          >
+            {isRunning ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <PlayCircle className="w-4 h-4" />
+            )}
+            {isRunning ? 'Exécution...' : `Lancer les tests sélectionnés (${selectedIds.length})`}
+          </Button>
+          <Link href="/backoffice/test-reports">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Voir tous les rapports
+            </Button>
+          </Link>
+          {lastReportId && (
+            <Link href={`/backoffice/test-reports?open=${encodeURIComponent(lastReportId)}`}>
+              <Button variant="outline" size="sm" className="gap-2 text-emerald-600 border-emerald-300">
+                <FileText className="w-4 h-4" />
+                Dernier rapport
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon
+            const runnable = RUNNABLE_IDS.includes(cat.id as any)
+            const selected = selectedIds.includes(cat.id)
             return (
-              <Link
+              <div
                 key={cat.id}
-                href={cat.href}
-                className={`block rounded-xl border-2 p-5 transition-all hover:shadow-lg ${cat.bgClass} border`}
+                className={`rounded-xl border-2 p-5 transition-all ${cat.bgClass} border flex items-stretch gap-0`}
               >
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-lg ${cat.iconClass} bg-white/50 dark:bg-black/20`}>
+                {/* Zone gauche entière cliquable pour cocher/décocher (symbole + texte) */}
+                <button
+                  type="button"
+                  onClick={() => runnable && toggleSelection(cat.id)}
+                  className={`flex-1 flex items-start gap-3 text-left min-w-0 p-0 border-0 bg-transparent cursor-pointer rounded-l-lg ${
+                    runnable ? 'hover:opacity-90' : 'cursor-default'
+                  }`}
+                  aria-pressed={runnable ? selected : undefined}
+                  aria-label={runnable ? `Sélectionner ou désélectionner ${cat.name}` : undefined}
+                >
+                  {runnable && (
+                    <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded border-2 border-gray-400 mt-0.5">
+                      {selected && <span className="text-green-600 font-bold">✓</span>}
+                    </span>
+                  )}
+                  {!runnable && <span className="w-8 shrink-0" aria-hidden />}
+                  <div className={`p-2 rounded-lg shrink-0 ${cat.iconClass} bg-white/50 dark:bg-black/20`}>
                     <Icon className="w-6 h-6" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <h2 className={`font-semibold text-lg ${cat.textClass}`}>{cat.name}</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                       {cat.description}
                     </p>
                   </div>
-                </div>
-              </Link>
+                </button>
+                <Link
+                  href={cat.href}
+                  className="shrink-0 self-center text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1 rounded"
+                >
+                  Ouvrir →
+                </Link>
+              </div>
             )
           })}
         </div>
 
-        <div className="flex justify-center pt-4">
-          <Link
-            href="/backoffice/test-reports"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-          >
-            <BarChart3 className="w-5 h-5" />
-            Voir tous les rapports
-          </Link>
-        </div>
+        {runLog.length > 0 && (
+          <div className="rounded-lg border bg-gray-50 dark:bg-gray-900/50 p-4 font-mono text-sm">
+            <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Journal d&apos;exécution</div>
+            {runLog.map((line, i) => (
+              <div key={i} className="text-gray-600 dark:text-gray-400">{line}</div>
+            ))}
+          </div>
+        )}
       </div>
     </AdminLayout>
   )
