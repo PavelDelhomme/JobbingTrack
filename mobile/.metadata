@@ -4,8 +4,8 @@
 # This file should be version controlled and should not be manually edited.
 
 version:
-  revision: "d5ae7839620b810608551ef886fe12196b612490"
-  channel: "master"
+  revision: "archlinuxaur0000000000000000000000000000"
+  channel: ""
 
 project_type: app
 
@@ -13,11 +13,11 @@ project_type: app
 migration:
   platforms:
     - platform: root
-      create_revision: d5ae7839620b810608551ef886fe12196b612490
-      base_revision: d5ae7839620b810608551ef886fe12196b612490
-    - platform: web
-      create_revision: d5ae7839620b810608551ef886fe12196b612490
-      base_revision: d5ae7839620b810608551ef886fe12196b612490
+      create_revision: archlinuxaur0000000000000000000000000000
+      base_revision: archlinuxaur0000000000000000000000000000
+    - platform: android
+      create_revision: archlinuxaur0000000000000000000000000000
+      base_revision: archlinuxaur0000000000000000000000000000
 
   # User provided section
 

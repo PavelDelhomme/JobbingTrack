@@ -389,8 +389,10 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   # Exemple: flutter run -d emulator-5554"
 	@echo "   # Exemple: flutter run -d RZ8N41234AB (Android physique)"
 	@echo ""
-	@echo "🌐 Ou utilisez l'émulateur mobile intégré :"
-	@echo "   http://localhost:5003/backoffice/mobile-emulator"
+	@echo "🌐 Émulateur mobile (rendu en direct comme Android Studio) :"
+	@echo "   Le contrôleur démarre automatiquement avec make up-full."
+	@echo "   Puis ouvrez : http://localhost:5003/backoffice/mobile-emulator"
+	@echo "   → Sélectionnez un AVD ou un téléphone déjà connecté (adb), build APK, voyez l'écran en direct"
 	@echo ""
 	@echo "================================================================"
 	@echo "✅ PROJET COMPLET DÉMARRÉ !"
@@ -575,6 +577,21 @@ up-full: ## Démarrer TOUS les services avec tous les profils (avec vérificatio
 	else \
 		echo "⚠️  Conteneur PostgreSQL non trouvé, vérification impossible"; \
 	fi
+	@echo ""
+	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
+		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then \
+			echo "   ✅ Contrôleur déjà en cours (port 5055). Backoffice → Émulateur mobile."; \
+		else \
+			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
+			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile pour le rendu en direct."; \
+		fi; \
+	else \
+		echo "   ℹ️  Optionnel : lancez 'make emulator-controller' pour l'émulateur mobile."; \
+	fi
 
 # Démarrer TOUS les services (SANS vérification Docker - pour MickDevil)
 up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mode MickDevil)
@@ -584,6 +601,21 @@ up-full-mickdevil: ## Démarrer TOUS les services SANS vérification Docker (mod
 	
 	# Appeler la fonction interne
 	@$(MAKE) _up-full-internal
+	@echo ""
+	@echo "📱 Contrôleur d'émulateur mobile (démarrage automatique)..."
+	@if [ -f "$(ROOT_DIR)/tools/emulator-controller/server.js" ] && command -v node >/dev/null 2>&1; then \
+		_port_check=0; \
+		(command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ') && _port_check=1; \
+		(command -v lsof >/dev/null 2>&1 && lsof -i :5055 -sTCP:LISTEN -t >/dev/null 2>&1) && _port_check=1; \
+		if [ "$$_port_check" = "1" ]; then \
+			echo "   ✅ Contrôleur déjà en cours (port 5055)."; \
+		else \
+			cd "$(ROOT_DIR)/tools/emulator-controller" && nohup node server.js > /tmp/emulator-controller.log 2>&1 & \
+			echo "   ✅ Contrôleur démarré (port 5055). Backoffice → Émulateur mobile."; \
+		fi; \
+	else \
+		echo "   ℹ️  Optionnel : make emulator-controller pour l'émulateur mobile."; \
+	fi
 
 # ============================================================================
 # ARRÊT DES SERVICES
