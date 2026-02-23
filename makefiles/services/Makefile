@@ -1306,7 +1306,7 @@ ps: ## Liste les conteneurs actifs
 logs: ## Affiche tous les logs en temps réel (tags colorés)
 	@echo "📋 Logs en temps réel des services JobbingTrack"
 	@echo "==============================================="
-	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence ([PERSISTENCE] uniquement)  |  make logs-metrics"
+	@echo "💡 Filtres: make logs-applicative (sans metrics)  |  make logs-persistence  |  make logs-tests (tests)  |  make logs-metrics"
 	@echo "   Un service: make logs-service SERVICE=frontend"
 	@echo "   Couleurs: [DEBUG]=gris, [STATS]/[CPU]=cyan, [STORAGE]/[PROC]=bleu/jaune, [PERSISTENCE]/[AUTH]=vert, [COLLECTOR]/[DISCOVERY]=magenta"
 	@echo "   Erreurs (rouge): ERROR/FATAL, HTTP 404/5xx, tables absentes, « does not exist », Erreur insertion/sauvegarde"
@@ -1336,3 +1336,13 @@ logs-persistence: ## Affiche uniquement les logs de type persistance (tag [PERSI
 	@echo "===================================="
 	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[PERSISTENCE\]' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
 		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full"; exit 1)
+
+# Logs pendant les tests : uniquement les lignes [TESTS API], [TESTS BACKEND], [TESTS FRONTEND], etc.
+logs-tests: ## Affiche uniquement les logs liés aux tests (tags [TESTS ...])
+	@echo "🧪 Logs des tests ([TESTS API], [TESTS BACKEND], [TESTS FRONTEND], …)"
+	@echo "=========================================================================="
+	@echo "💡 Les lignes affichées sont celles émises pendant les runs (Démarrage / Fin)."
+	@echo "   Pour tous les logs : make logs  |  Applicatifs : make logs-applicative"
+	@echo ""
+	@cd $(ROOT_DIR) && docker compose $(COMPOSE_FILES_ESSENTIAL) logs -f -t 2>&1 | grep --line-buffered '\[TESTS ' | bash "$(ROOT_DIR)/scripts/color-logs.sh" || \
+		(echo "⚠️  Conteneurs arrêtés? Lancez: make up-full  puis  make logs-tests"; exit 1)

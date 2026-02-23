@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
-import { getProjectRoot } from '../testRunnerUtils'
+import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils'
 
 const RUN_TIMEOUT_MS = 120000 // 2 min
 
@@ -54,10 +54,16 @@ export async function POST(request: NextRequest) {
 
     const projectRoot = getProjectRoot()
     const scriptDir = `${projectRoot}/scripts`
-    let testCommand = 'make test-api'
+    const inContainer = isRunningInFrontendContainer()
+    let testCommand: string
     if (tests && tests.length > 0) {
       const testTypes = tests.join(',')
       testCommand = `sh "${scriptDir}/test-api-specific.sh" "${testTypes}"`
+    } else if (inContainer) {
+      // En Docker pas de make : exécuter les tests API directement (équivalent de make test-api)
+      testCommand = 'cd /app/tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1'
+    } else {
+      testCommand = 'make test-api'
     }
     // Passer la commande entre guillemets simples pour que le shell transmette un seul argument à generate-test-report.sh
     const safeCommand = testCommand.replace(/'/g, "'\"'\"'")

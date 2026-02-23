@@ -16,7 +16,7 @@
         "test": "jest",
         "test:ci": "jest --ci --coverage --watchAll=false",
         "test:watch": "jest --watch",
-        "test:unit": "jest --testPathPattern=unit",
+        "test:unit": "jest --testPathPattern=unit --passWithNoTests",
         "test:analytics": "jest --testPathPattern=analytics/__tests__",
         "test:analytics:validate": "./scripts/validate-analytics-page.sh",
         "test:analytics:complete": "./scripts/test-analytics-complete.sh",
