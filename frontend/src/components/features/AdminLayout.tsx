@@ -217,12 +217,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Émulateur mobile', href: '/backoffice/mobile-emulator', icon: '📱' },
         {
           name: 'Tests',
-          href: '/backoffice/playwright-tests',
+          href: '/backoffice/tests',
           icon: '🧪',
           subItems: [
+            { name: 'Vue d\'ensemble', href: '/backoffice/tests', icon: '📋' },
             { name: 'Tests Playwright', href: '/backoffice/playwright-tests', icon: '🎭' },
             { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '📧' },
-            { name: 'Lancer les tests API', href: '/backoffice/tests-api', icon: '🔌' },
+            { name: 'Tests API', href: '/backoffice/tests-api', icon: '🔌' },
             { name: 'Tests Backend', href: '/backoffice/tests-backend', icon: '🗄️' },
             { name: 'Tests Frontend', href: '/backoffice/tests-frontend', icon: '💻' },
             { name: 'Tests Backoffice', href: '/backoffice/tests-backoffice', icon: '🛡️' },

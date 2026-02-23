@@ -284,7 +284,7 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
       - PORT=3002
       - LOG_LEVEL=info
-      - METRICS_SERVICE_URL=http://metrics-aggregator-service:8014
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - SERVICE_NAME=application-service
       - ENABLE_CENTRAL_LOGGING=true
     depends_on:
@@ -325,7 +325,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
-      - METRICS_SERVICE_URL=http://metrics-aggregator-service:8014
+      - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - SERVICE_NAME=company-service
       - ENABLE_CENTRAL_LOGGING=true
     depends_on:

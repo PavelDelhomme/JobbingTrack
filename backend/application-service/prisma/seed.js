@@ -7,7 +7,9 @@ async function main() {
   console.log('🌱 Début du peuplement de la base de données...')
 
   // Nettoyer les données existantes
-  await prisma.activity.deleteMany()
+  if (typeof prisma.activity?.deleteMany === 'function') {
+    await prisma.activity.deleteMany();
+  }
   await prisma.followUp.deleteMany()
   await prisma.interview.deleteMany()
   await prisma.applicationDocument.deleteMany()

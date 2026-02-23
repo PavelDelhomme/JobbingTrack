@@ -217,17 +217,19 @@ const createApplication = async (req, res, next) => {
       logger.warn(`⚠️ Échec création événement calendrier: ${eventError.message}`);
     }
 
-    // ✅ Créer une activité pour tracer la création
-    try {
-      await prisma.activity.create({
-        data: {
-          applicationId: application.id,
-          type: 'APPLICATION_CREATED',
-          description: `Candidature créée pour ${position} chez ${application.company?.name || 'Entreprise'}`
-        }
-      });
-    } catch (activityError) {
-      logger.warn(`⚠️ Échec création activité: ${activityError.message}`);
+    // ✅ Créer une activité pour tracer la création (si le modèle Activity existe)
+    if (typeof prisma.activity?.create === 'function') {
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: application.id,
+            type: 'APPLICATION_CREATED',
+            description: `Candidature créée pour ${position} chez ${application.company?.name || 'Entreprise'}`
+          }
+        });
+      } catch (activityError) {
+        logger.warn(`⚠️ Échec création activité: ${activityError.message}`);
+      }
     }
 
     res.status(201).json({

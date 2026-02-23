@@ -1,6 +1,14 @@
 # ✅ Résolutions appliquées
 
-**Dernière mise à jour** : Février 2026
+**Dernière mise à jour** : 10 février 2026
+
+---
+
+## Février 2026 – User Journey – token is not defined
+
+- **Problème** : En ouvrant la page Parcours utilisateur (User Journey), une erreur runtime s’affichait : `ReferenceError: token is not defined` (ligne 1699 de `user-journey/page.tsx`, dans le tableau de dépendances d’un `useEffect` qui enregistre automatiquement le rapport de parcours).
+- **Cause** : Le composant utilisait `token` (dans `context: { testToken: token }` et dans les dépendances du `useEffect`) sans jamais le définir ; `useAuth()` n’était pas appelé.
+- **Solution** : Ajout de `const { token } = useAuth()` au début du composant `UserJourneyPage`. Ainsi `token` est défini (éventuellement `undefined` si non connecté), et l’effet ne provoque plus d’erreur. L’affichage et l’enregistrement des rapports de parcours peuvent être utilisés sans crash. À vérifier ensuite : affichage complet des analytics et bon déroulement des scénarios (auth, étapes).
 
 ---
 

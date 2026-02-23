@@ -232,6 +232,24 @@ export default function TestReportsPage() {
     }
   }
 
+  /** Statut effectif pour couleur (success | failed | partial), déduit si unknown */
+  const getEffectiveStatus = (report: { status?: string; failed?: number; passed?: number }) => {
+    const s = report.status
+    if (s === 'success' || s === 'failed' || s === 'partial') return s
+    const failed = report.failed ?? 0
+    const passed = report.passed ?? 0
+    if (failed > 0) return 'failed'
+    if (passed > 0) return 'success'
+    return 'partial'
+  }
+  /** Libellé affiché pour le statut (éviter "unknown") */
+  const getStatusLabel = (report: { status?: string; failed?: number; passed?: number }) => {
+    const s = getEffectiveStatus(report)
+    if (s === 'success') return 'SUCCÈS'
+    if (s === 'failed') return 'ÉCHEC'
+    return 'PARTIEL'
+  }
+
   const deleteReport = async (reportId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport ?')) {
       return
@@ -348,9 +366,9 @@ export default function TestReportsPage() {
         if (!matchesSearch) return false
       }
 
-      // Filtre par statut
+      // Filtre par statut (utiliser le statut effectif pour inclure les rapports "unknown" déductibles)
       if (filterStatus !== 'all') {
-        if (report.status !== filterStatus) return false
+        if (getEffectiveStatus(report) !== filterStatus) return false
       }
 
       // ✅ Filtre par catégorie
@@ -712,7 +730,7 @@ export default function TestReportsPage() {
                     )}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {getStatusIcon(report.status)}
+                        {getStatusIcon(getEffectiveStatus(report))}
                         <div className="flex-1 min-w-0">
                           {report.category && (
                             <span className="inline-block text-xs font-medium px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mb-1">
@@ -737,9 +755,9 @@ export default function TestReportsPage() {
                           </div>
                         </div>
                       </div>
-                      {report.status && (
-                        <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${getStatusColor(report.status)}`}>
-                          {report.status}
+                      {(report.status || report.failed !== undefined || report.passed !== undefined) && (
+                        <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${getStatusColor(getEffectiveStatus(report))}`}>
+                          {getStatusLabel(report)}
                         </span>
                       )}
                     </div>
@@ -748,23 +766,38 @@ export default function TestReportsPage() {
                     {(report.totalTests !== undefined && report.totalTests > 0) || 
                      (report.passed !== undefined && report.passed > 0) || 
                      (report.failed !== undefined && report.failed > 0) ? (
-                      <div className="grid grid-cols-4 gap-2 text-sm mt-2">
-                        <div className="text-center">
-                          <div className="font-semibold text-gray-900 dark:text-white">{report.totalTests || 0}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-4 gap-2 text-sm">
+                          <div className="text-center">
+                            <div className="font-semibold text-gray-900 dark:text-white">{report.totalTests || 0}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-green-600 dark:text-green-400">{report.passed || 0}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Réussis</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-red-600 dark:text-red-400">{report.failed || 0}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Échoués</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-yellow-600 dark:text-yellow-400">{report.skipped || 0}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Ignorés</div>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-green-600 dark:text-green-400">{report.passed || 0}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Réussis</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-red-600 dark:text-red-400">{report.failed || 0}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Échoués</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-yellow-600 dark:text-yellow-400">{report.skipped || 0}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Ignorés</div>
-                        </div>
+                        {/* Détail sécurité (CRITIQUES, HAUTES, etc.) pour les rapports Tests Sécurité */}
+                        {(report.category === 'Tests Sécurité' && (report.summary as any)?.summary?.security) && (() => {
+                          const sec = (report.summary as any).summary.security as { critical?: number; high?: number; medium?: number; low?: number; secure?: number }
+                          return (
+                            <div className="grid grid-cols-2 xs:grid-cols-5 gap-1.5 text-xs pt-1 border-t border-gray-200 dark:border-gray-600">
+                              <div className="text-center"><span className="font-medium text-red-700 dark:text-red-400">🚨 {sec.critical ?? 0}</span><br /><span className="text-gray-500">Critiques</span></div>
+                              <div className="text-center"><span className="font-medium text-orange-600 dark:text-orange-400">🔴 {sec.high ?? 0}</span><br /><span className="text-gray-500">Hautes</span></div>
+                              <div className="text-center"><span className="font-medium text-yellow-600 dark:text-yellow-400">🟡 {sec.medium ?? 0}</span><br /><span className="text-gray-500">Moyennes</span></div>
+                              <div className="text-center"><span className="font-medium text-green-600 dark:text-green-400">🟢 {sec.low ?? 0}</span><br /><span className="text-gray-500">Basses</span></div>
+                              <div className="text-center"><span className="font-medium text-emerald-600 dark:text-emerald-400">✅ {sec.secure ?? 0}</span><br /><span className="text-gray-500">Sécurisées</span></div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     ) : report.type === 'performance-backend' || report.type === 'performance-frontend' ? (
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">

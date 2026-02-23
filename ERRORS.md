@@ -1,6 +1,6 @@
 # 🔍 Rapport d’analyse des erreurs
 
-**Dernière mise à jour** : Février 2026
+**Dernière mise à jour** : 10 février 2026
 
 ---
 
@@ -19,6 +19,13 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 ---
 
 ## ✅ Erreurs corrigées (Février 2026)
+
+### User Journey – token is not defined (10/02/2026)
+- **Erreur** : `ReferenceError: token is not defined` dans `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (ligne 1699, dans le tableau de dépendances d’un `useEffect`). La variable `token` était utilisée dans le rapport sauvegardé et dans les dépendances sans être définie.
+- **Cause** : Le composant n’appelait pas `useAuth()` pour récupérer le `token`.
+- **Solution** : Ajout de `const { token } = useAuth()` en tête du composant `UserJourneyPage`. Le rapport et les appels API utilisent déjà `testToken || token` ; avec `token` défini, l’enregistrement automatique du rapport et l’effet ne plantent plus.
+
+---
 
 ### Tests API – Login 401 (admin password)
 - **Login 401 « Invalid email or password »** — L’admin était créé par le chemin SQL de `create-admin-user.sh` avec un hash bcrypt pour le mot de passe « secret », alors que le script de test utilise **password123**. **Correction** : `backend/scripts/database/create-admin-user.sh` privilégie désormais la création via **auth-service** (Node + `bcrypt.hash(ADMIN_PASSWORD, 10)`). Si auth-service est indisponible, fallback avec hash « secret » et message invitant à relancer avec auth up. **Action utilisateur** : lancer **`make up-full`** puis **`make create-admin-user`** (auth-service up pour password123 ; sans stack up → « Aucun conteneur PostgreSQL trouvé »).
@@ -74,5 +81,8 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 3. Surveiller les logs monitoring-c (ERR_EMPTY_RESPONSE, starting).
 4. Corriger les URLs / services pour **logs emails** (404) et **test SMTP** (503).
 5. Implémenter ou adapter **API versions** (analytics utilisateur) si l’onglet « Versions & App mobile » est utilisé.
+6. **Page Tests (hub)** : pas encore de sélection de catégorie / « tout » pour lancer les tests depuis la vue d’ensemble (uniquement des liens vers les pages par catégorie). Voir STATUS.md § « Dernières choses à faire ».
+7. **Tests programmés (schedule)** : pas de sélection fine (tout ou certains tests) pour l’exécution programmée. Voir STATUS.md § « Dernières choses à faire ».
+8. **User Journey – affichage / analytics** : vérifier que l’affichage des résultats et analytics est pleinement fonctionnel après correction de l’erreur `token is not defined` (voir RESOLUTIONS.md).
 
-Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**. Pour la liste consolidée des tâches (à faire en priorité puis fait), voir **STATUS.md** (section « À FAIRE » en premier).
+Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**. Pour la liste consolidée des tâches (à faire en priorité puis fait), voir **STATUS.md** (section « À FAIRE » et « Dernières choses à faire »).
