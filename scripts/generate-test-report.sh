@@ -46,10 +46,21 @@ echo -e "${CYAN}╔════════════════════�
 echo -e "${CYAN}║     🧪 GÉNÉRATION RAPPORT : $TEST_NAME${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
-# Marqueurs visibles dans les logs (grep "[TESTS API]") pour repérer début / fin du run
-if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Lancement de la suite Tests API — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
-fi
+# Tag unique pour make logs (grep "[TESTS BACKOFFICE]", "[TESTS BACKEND]", etc.)
+case "$TEST_TYPE" in
+  api) TESTS_TAG="TESTS API" ;;
+  backoffice) TESTS_TAG="TESTS BACKOFFICE" ;;
+  backoffice-only) TESTS_TAG="TESTS BACKOFFICE-ONLY" ;;
+  backend) TESTS_TAG="TESTS BACKEND" ;;
+  database) TESTS_TAG="TESTS BDD" ;;
+  frontend) TESTS_TAG="TESTS FRONTEND" ;;
+  security) TESTS_TAG="TESTS SECURITY" ;;
+  playwright) TESTS_TAG="TESTS PLAYWRIGHT" ;;
+  performance-backend) TESTS_TAG="TESTS PERFORMANCE-BACKEND" ;;
+  performance-frontend) TESTS_TAG="TESTS PERFORMANCE-FRONTEND" ;;
+  *) TESTS_TAG="TESTS $TEST_TYPE" ;;
+esac
+echo "[$TESTS_TAG] Démarrage — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
 echo -e "${BLUE}📁 Répertoire des résultats : $REPORT_DIR${NC}"
 echo ""
 
@@ -57,9 +68,7 @@ echo ""
 export TEST_RESULTS_FILE="$REPORT_DIR/test-results.txt"
 export REPORT_DIR
 echo -e "${YELLOW}🚀 Exécution du test...${NC}"
-if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Début exécution des tests — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
-fi
+echo "[$TESTS_TAG] Exécution en cours — $(date '+%Y-%m-%dT%H:%M:%S %Z')"
 echo ""
 
 start_time=$(date +%s)
@@ -76,9 +85,7 @@ fi
 end_time=$(date +%s)
 duration=$((end_time - start_time))
 
-if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Exécution des tests terminée — $(date '+%Y-%m-%dT%H:%M:%S %Z') — durée ${duration}s — exit $exit_code"
-fi
+echo "[$TESTS_TAG] Fin — $(date '+%Y-%m-%dT%H:%M:%S %Z') — durée ${duration}s — exit $exit_code"
 
 # Lire les résultats et nettoyer les codes ANSI
 if [ -f "$RESULT_FILE.tmp" ]; then
@@ -191,7 +198,7 @@ if [ "$TEST_TYPE" = "performance-backend" ] || [ "$TEST_TYPE" = "test-performanc
 fi
 
 # Pattern 7: Backoffice / Playwright E2E — lire test-results.json si présent (écrit dans REPORT_DIR)
-if { [ "$TEST_TYPE" = "backoffice" ] || [ "$TEST_TYPE" = "playwright" ]; } && [ -f "$REPORT_DIR/test-results.json" ]; then
+if { [ "$TEST_TYPE" = "backoffice" ] || [ "$TEST_TYPE" = "backoffice-only" ] || [ "$TEST_TYPE" = "playwright" ]; } && [ -f "$REPORT_DIR/test-results.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     pw_passed=$(jq -r '[.. | .status? | select(. == "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)
     pw_failed=$(jq -r '[.. | .status? | select(. != null and . != "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)
@@ -290,6 +297,10 @@ case "$TEST_TYPE" in
         category="Tests Backend"
         test_type="unitaire"
         ;;
+    database|test-database)
+        category="Tests BDD"
+        test_type="database"
+        ;;
     frontend|test-frontend)
         category="Tests Frontend"
         test_type="unitaire"
@@ -306,7 +317,7 @@ case "$TEST_TYPE" in
         category="Performance Frontend"
         test_type="performance-frontend"
         ;;
-    backoffice|test-backoffice)
+    backoffice|test-backoffice|backoffice-only)
         category="Tests Backoffice"
         test_type="e2e"
         ;;
@@ -516,9 +527,7 @@ EOHTML
 # Nettoyer
 rm -f "$RESULT_FILE.tmp"
 
-if [ "$TEST_TYPE" = "api" ]; then
-  echo "[TESTS API] Fin de la génération du rapport — $(date '+%Y-%m-%dT%H:%M:%S%z') — $REPORT_DIR"
-fi
+echo "[$TESTS_TAG] Fin de la génération du rapport — $(date '+%Y-%m-%dT%H:%M:%S%z') — $REPORT_DIR"
 echo ""
 echo -e "${GREEN}✅ Rapport généré avec succès !${NC}"
 echo -e "${BLUE}📁 Répertoire : $REPORT_DIR${NC}"

@@ -4,12 +4,15 @@ import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils
 
 const RUN_TIMEOUT_MS = 120000
 
+const TESTS_TAG = '[TESTS BACKEND]'
+
 function extractReportId(stdout: string): string | null {
   const match = stdout.match(/\d{8}-\d{6}/)
   return match ? match[0] : null
 }
 
 export async function POST(request: NextRequest) {
+  console.log(`${TESTS_TAG} Démarrage des Tests Backend depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
   try {
     const body = await request.json().catch(() => ({}))
     const testName = body.testName || 'Tests Backend'
@@ -32,6 +35,7 @@ export async function POST(request: NextRequest) {
     } catch (err: unknown) {
       const execErr = err as { stdout?: string; message?: string }
       reportId = execErr.stdout ? extractReportId(execErr.stdout) : null
+      console.log(`${TESTS_TAG} Fin (échec) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`)
       if (reportId) {
         return NextResponse.json({
           success: false,
@@ -48,6 +52,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+    console.log(`${TESTS_TAG} Fin — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`)
     return NextResponse.json({
       success: true,
       message: 'Rapport généré',
@@ -55,6 +60,7 @@ export async function POST(request: NextRequest) {
       reportLocation: 'tests/results/',
     })
   } catch (error: unknown) {
+    console.log(`${TESTS_TAG} Fin (erreur) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }

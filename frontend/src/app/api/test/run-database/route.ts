@@ -4,7 +4,7 @@ import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils
 
 const RUN_TIMEOUT_MS = 120000
 
-const TESTS_TAG = '[TESTS SECURITY]'
+const TESTS_TAG = '[TESTS BDD]'
 
 function extractReportId(stdout: string): string | null {
   const match = stdout.match(/\d{8}-\d{6}/)
@@ -12,17 +12,17 @@ function extractReportId(stdout: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  console.log(`${TESTS_TAG} Démarrage des Tests Sécurité depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
+  console.log(`${TESTS_TAG} Démarrage des Tests BDD depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
   try {
     const body = await request.json().catch(() => ({}))
-    const testName = body.testName || 'Tests Sécurité'
+    const testName = body.testName || 'Tests BDD'
     const projectRoot = getProjectRoot()
     const scriptPath = `${projectRoot}/scripts/generate-test-report.sh`
     const inContainer = isRunningInFrontendContainer()
     const testCommand = inContainer
-      ? 'cd /app/tests && node security/test-security.js'
-      : 'make test-security'
-    const command = `cd "${projectRoot}" && sh "${scriptPath}" security "${testCommand}" "${testName}"`
+      ? 'cd /app/tests && npm run test:database'
+      : 'make test-database'
+    const command = `cd "${projectRoot}" && sh "${scriptPath}" database "${testCommand}" "${testName}"`
 
     let stdout = ''
     let reportId: string | null = null
@@ -44,17 +44,20 @@ export async function POST(request: NextRequest) {
       if (reportId) {
         return NextResponse.json({
           success: false,
-          message: 'Tests terminés avec des échecs',
+          message: 'Tests BDD terminés avec des échecs',
           reportId,
           reportLocation: 'tests/results/',
-          error: (err as Error).message || 'Erreur exécution tests sécurité',
+          error: (err as Error).message,
         })
       }
-      return NextResponse.json({
-        success: false,
-        error: (err as Error).message || 'Erreur exécution tests sécurité',
-        reportId: undefined,
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: (err as Error).message || 'Erreur exécution tests BDD',
+          reportId: undefined,
+        },
+        { status: 500 }
+      )
     }
 
     console.log(`${TESTS_TAG} Fin — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${reportId ?? 'N/A'}`)

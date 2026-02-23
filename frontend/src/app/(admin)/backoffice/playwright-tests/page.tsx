@@ -233,6 +233,32 @@ export default function PlaywrightTestsPage() {
     });
   };
 
+  /** Lance toute la suite Playwright via la route Next (génère un rapport, pas de 400). */
+  const runFullSuite = async () => {
+    setRunning(true);
+    try {
+      const res = await fetch('/api/test/run-playwright', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: '{}',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.reportId) {
+        window.open(`/backoffice/test-reports?open=${encodeURIComponent(data.reportId)}`, '_blank');
+        alert(`Rapport généré : ${data.reportId}. Ouvert dans un nouvel onglet.`);
+      } else if (!res.ok) {
+        alert(data.error || 'Erreur lors du lancement de la suite Playwright.');
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur réseau');
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const runTests = async () => {
     if (selectedScenarios.length === 0) {
       alert('Veuillez sélectionner au moins un scénario à exécuter');
@@ -418,6 +444,24 @@ ${scenario.steps.map(step => {
             >
               <Plus className="h-5 w-5" />
               Nouveau test
+            </button>
+            <button
+              onClick={runFullSuite}
+              disabled={running}
+              title="Exécute toute la suite Playwright (tests/e2e) et génère un rapport"
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {running ? (
+                <>
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  Exécution...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-5 w-5" />
+                  Toute la suite
+                </>
+              )}
             </button>
             <button
               onClick={runTests}

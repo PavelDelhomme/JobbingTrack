@@ -5,6 +5,7 @@ import { getProjectRoot, isRunningInFrontendContainer } from '../testRunnerUtils
 // Côté serveur (conteneur frontend), utiliser l'URL interne Docker pour joindre l'API gateway
 const API_URL = process.env.API_GATEWAY_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
+const TESTS_TAG = '[TESTS PLAYWRIGHT]'
 const RUN_TIMEOUT_MS = 300000 // 5 min pour toute la suite Playwright
 
 function extractReportId(stdout: string): string | null {
@@ -43,14 +44,16 @@ async function runFullPlaywrightSuite(): Promise<{ success: boolean; reportId?: 
 }
 
 export async function POST(request: NextRequest) {
+  console.log(`${TESTS_TAG} Démarrage des Tests Playwright depuis le backoffice — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
   try {
     const body = await request.json().catch(() => ({}))
-    const scenarios = body.scenarios
+    const scenarios = body?.scenarios
+    // Pas de scénarios = lancer toute la suite (hub ou page sans sélection). Évite 400 "Aucun scénario fourni".
     const hasScenarios = Array.isArray(scenarios) && scenarios.length > 0
 
-    // Depuis le hub (sans scénarios) : lancer toute la suite Playwright localement et générer un rapport
     if (!hasScenarios) {
       const result = await runFullPlaywrightSuite()
+      console.log(`${TESTS_TAG} Fin — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — rapport: ${result.reportId ?? 'N/A'}`)
       if (result.reportId && !result.success) {
         return NextResponse.json({
           success: false,
@@ -86,11 +89,13 @@ export async function POST(request: NextRequest) {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
+      console.log(`${TESTS_TAG} Fin (erreur API) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
       return NextResponse.json(
         { success: false, error: data.error || data.message || res.statusText, reportId: undefined },
         { status: res.status }
       )
     }
+    console.log(`${TESTS_TAG} Fin — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })} — executionId: ${data.executionId ?? 'N/A'}`)
     return NextResponse.json({
       success: true,
       message: data.message || 'Lancement Playwright effectué',
@@ -98,6 +103,7 @@ export async function POST(request: NextRequest) {
       reportId: data.reportId ?? data.executionId ?? undefined,
     })
   } catch (error: unknown) {
+    console.log(`${TESTS_TAG} Fin (erreur) — ${new Date().toLocaleString('fr-FR', { timeZone: process.env.TZ || 'Europe/Paris' })}`)
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }

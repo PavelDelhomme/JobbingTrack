@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
 import Link from 'next/link'
@@ -16,17 +16,22 @@ import {
   Mail,
   Calendar,
   PlayCircle,
+  Check,
+  Circle,
+  Database,
 } from 'lucide-react'
 import { Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 
 /** Catégories lançables depuis le hub (endpoint API run-*) */
-const RUNNABLE_IDS = ['api', 'backend', 'frontend', 'backoffice', 'security', 'performance', 'playwright', 'emails'] as const
+const RUNNABLE_IDS = ['api', 'backend', 'frontend', 'backoffice', 'backoffice-only', 'database', 'security', 'performance', 'playwright', 'emails'] as const
 const RUN_API: Record<string, string | string[]> = {
   api: '/api/test/run-api',
   backend: '/api/test/run-backend',
   frontend: '/api/test/run-frontend',
   backoffice: '/api/test/run-backoffice',
+  'backoffice-only': '/api/test/run-backoffice-only',
+  database: '/api/test/run-database',
   security: '/api/test/run-security',
   performance: ['/api/test/run-performance-backend', '/api/test/run-performance-frontend'],
   playwright: '/api/test/run-playwright',
@@ -77,6 +82,28 @@ const CATEGORIES = [
     bgClass: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
     textClass: 'text-indigo-700 dark:text-indigo-300',
     iconClass: 'text-indigo-600 dark:text-indigo-400',
+  },
+  {
+    id: 'backoffice-only',
+    name: 'Backoffice uniquement',
+    description: 'Uniquement le spec backoffice.spec.ts (rapide)',
+    href: '/backoffice/tests-backoffice',
+    icon: Shield,
+    color: 'indigo',
+    bgClass: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
+    textClass: 'text-indigo-700 dark:text-indigo-300',
+    iconClass: 'text-indigo-600 dark:text-indigo-400',
+  },
+  {
+    id: 'database',
+    name: 'Tests BDD',
+    description: 'Tests base de données (connexion, enums, relations)',
+    href: '/backoffice/tests-backend',
+    icon: Database,
+    color: 'violet',
+    bgClass: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800',
+    textClass: 'text-violet-700 dark:text-violet-300',
+    iconClass: 'text-violet-600 dark:text-violet-400',
   },
   {
     id: 'security',
@@ -152,6 +179,21 @@ export default function TestsHubPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [runLog, setRunLog] = useState<string[]>([])
   const [lastReportId, setLastReportId] = useState<string | null>(null)
+  /** Nom du test en cours (affiché dans l’overlay pour que l’utilisateur sache où il en est). */
+  const [currentRunName, setCurrentRunName] = useState<string | null>(null)
+  const [currentStep, setCurrentStep] = useState<{ step: number; total: number } | null>(null)
+  /** Liste des étapes de la run en cours (pour barre de progression et détail dans l’overlay). */
+  const [runSteps, setRunSteps] = useState<{ name: string; subLabel?: string }[]>([])
+  const isRunningRef = useRef(false)
+  isRunningRef.current = isRunning
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isRunningRef.current) e.preventDefault()
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
 
   const toggleSelection = (id: string) => {
     if (!RUNNABLE_IDS.includes(id as any)) return
@@ -165,6 +207,8 @@ export default function TestsHubPage() {
     setIsRunning(true)
     setRunLog([])
     setLastReportId(null)
+    setCurrentStep(null)
+    setRunSteps([])
     const log = (msg: string) => setRunLog((prev) => [...prev, msg])
     let reportId: string | null = null
     const opts = {
@@ -175,35 +219,51 @@ export default function TestsHubPage() {
       },
       body: JSON.stringify({}),
     }
+    // Liste plate des étapes (chaque appel API = 1 étape ; performance = 2 étapes)
+    const steps: { url: string; name: string; subLabel?: string }[] = []
     for (const id of selectedIds) {
       const api = RUN_API[id]
       if (!api) continue
       const name = CATEGORIES.find((c) => c.id === id)?.name || id
       const urls = Array.isArray(api) ? api : [api]
       const isPerformance = id === 'performance' && urls.length === 2
-      if (isPerformance) log(`Lancement: ${name}...`)
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i]
-        if (!isPerformance) log(`Lancement: ${name}...`)
-        const subLabel = isPerformance ? (url.includes('backend') ? 'Backend' : 'Frontend') : null
-        try {
-          const res = await fetch(url, opts)
-          const data = await res.json().catch(() => ({}))
-          if (data.reportId) {
-            reportId = data.reportId
-            log(subLabel ? `  → ${subLabel} – Rapport: ${data.reportId}` : `  → Rapport: ${data.reportId}`)
-          }
-          if (!res.ok) log(subLabel ? `  → ${subLabel} – Erreur: ${data.error || res.statusText}` : `  → Erreur: ${data.error || res.statusText}`)
-          else log(subLabel ? `  → ${subLabel} terminé` : `  → Terminé`)
-        } catch (e) {
-          log(subLabel ? `  → ${subLabel} – Erreur: ${e instanceof Error ? e.message : 'Réseau'}` : `  → Erreur: ${e instanceof Error ? e.message : 'Réseau'}`)
+        const subLabel = isPerformance ? (url.includes('backend') ? 'Backend' : 'Frontend') : undefined
+        steps.push({ url, name, subLabel })
+      }
+    }
+    const totalSteps = steps.length
+    setRunSteps(steps.map(({ name, subLabel }) => ({ name, subLabel })))
+    for (let stepIndex = 0; stepIndex < steps.length; stepIndex++) {
+      const { url, name, subLabel } = steps[stepIndex]
+      const stepNum = stepIndex + 1
+      setCurrentStep({ step: stepNum, total: totalSteps })
+      const displayName = subLabel ? `${name} – ${subLabel}` : name
+      setCurrentRunName(displayName)
+      if (subLabel) log(`Lancement: ${name} – ${subLabel}...`)
+      else log(`Lancement: ${name}...`)
+      try {
+        const res = await fetch(url, opts)
+        const data = await res.json().catch(() => ({}))
+        if (data.reportId) {
+          reportId = data.reportId
+          log(subLabel ? `  → ${subLabel} – Rapport: ${data.reportId}` : `  → Rapport: ${data.reportId}`)
         }
+        if (!res.ok) log(subLabel ? `  → ${subLabel} – Erreur: ${data.error || res.statusText}` : `  → Erreur: ${data.error || res.statusText}`)
+        else log(subLabel ? `  → ${subLabel} terminé` : `  → Terminé`)
+      } catch (e) {
+        log(subLabel ? `  → ${subLabel} – Erreur: ${e instanceof Error ? e.message : 'Réseau'}` : `  → Erreur: ${e instanceof Error ? e.message : 'Réseau'}`)
       }
     }
     if (reportId) setLastReportId(reportId)
     log('Tous les tests sélectionnés ont été exécutés.')
+    setCurrentRunName(null)
+    setCurrentStep(null)
+    setRunSteps([])
     setIsRunning(false)
   }
+
 
   if (authLoading) {
     return (
@@ -229,7 +289,74 @@ export default function TestsHubPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 relative">
+        {/* Overlay pendant l’exécution : bloque la page et indique le test en cours */}
+        {isRunning && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            aria-live="polite"
+            role="alert"
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md mx-4 text-center border-2 border-amber-500">
+              <Loader2 className="w-16 h-16 animate-spin text-amber-500 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Exécution en cours
+              </h2>
+              <p className="text-amber-600 dark:text-amber-400 font-medium mb-1">
+                Ne pas quitter la page (recharger annule la run)
+              </p>
+              {currentStep && currentStep.total > 0 && (
+                <div className="mt-3 mb-3">
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Progression</span>
+                    <span className="font-mono">{currentStep.step} / {currentStep.total}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-500 transition-all duration-300"
+                      style={{ width: `${Math.round((currentStep.step / currentStep.total) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {(currentStep || currentRunName) && (
+                <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                  {currentStep && currentStep.total > 1 && (
+                    <span className="font-mono text-amber-600 dark:text-amber-400">
+                      Test {currentStep.step}/{currentStep.total}
+                      {currentRunName ? ' : ' : ''}
+                    </span>
+                  )}
+                  {currentRunName && <strong>{currentRunName}</strong>}
+                  {(currentRunName?.includes('Playwright') || currentRunName?.includes('Backoffice') || currentRunName?.includes('Performance')) && (
+                    <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">(peut prendre plusieurs minutes)</span>
+                  )}
+                </p>
+              )}
+              {runSteps.length > 0 && runSteps.length <= 12 && (
+                <div className="mt-4 text-left max-h-40 overflow-y-auto rounded bg-gray-100 dark:bg-gray-900/50 p-2 text-xs">
+                  <div className="font-medium text-gray-500 dark:text-gray-400 mb-1.5">Étapes</div>
+                  {runSteps.map((s, i) => {
+                    const stepNum = i + 1
+                    const total = runSteps.length
+                    const isDone = currentStep ? stepNum < currentStep.step : false
+                    const isCurrent = currentStep ? stepNum === currentStep.step : false
+                    const label = s.subLabel ? `${s.name} – ${s.subLabel}` : s.name
+                    return (
+                      <div key={i} className={`flex items-center gap-2 py-0.5 ${isCurrent ? 'text-amber-600 dark:text-amber-400 font-medium' : isDone ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {isDone && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        {isCurrent && <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />}
+                        {!isDone && !isCurrent && <Circle className="w-3.5 h-3.5 shrink-0" />}
+                        <span>{stepNum}. {label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <FlaskConical className="w-8 h-8 text-blue-600" />
@@ -282,10 +409,11 @@ export default function TestsHubPage() {
                 {/* Zone gauche entière cliquable pour cocher/décocher (symbole + texte) */}
                 <button
                   type="button"
-                  onClick={() => runnable && toggleSelection(cat.id)}
-                  className={`flex-1 flex items-start gap-3 text-left min-w-0 p-0 border-0 bg-transparent cursor-pointer rounded-l-lg ${
-                    runnable ? 'hover:opacity-90' : 'cursor-default'
-                  }`}
+                  onClick={() => runnable && !isRunning && toggleSelection(cat.id)}
+                  disabled={isRunning}
+                  className={`flex-1 flex items-start gap-3 text-left min-w-0 p-0 border-0 bg-transparent rounded-l-lg ${
+                    runnable && !isRunning ? 'cursor-pointer hover:opacity-90' : 'cursor-default opacity-90'
+                  } ${isRunning ? 'pointer-events-none' : ''}`}
                   aria-pressed={runnable ? selected : undefined}
                   aria-label={runnable ? `Sélectionner ou désélectionner ${cat.name}` : undefined}
                 >
