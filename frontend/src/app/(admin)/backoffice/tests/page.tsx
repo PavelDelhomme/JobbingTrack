@@ -180,19 +180,23 @@ export default function TestsHubPage() {
       if (!api) continue
       const name = CATEGORIES.find((c) => c.id === id)?.name || id
       const urls = Array.isArray(api) ? api : [api]
-      for (const url of urls) {
-        log(`Lancement: ${name}...`)
+      const isPerformance = id === 'performance' && urls.length === 2
+      if (isPerformance) log(`Lancement: ${name}...`)
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i]
+        if (!isPerformance) log(`Lancement: ${name}...`)
+        const subLabel = isPerformance ? (url.includes('backend') ? 'Backend' : 'Frontend') : null
         try {
           const res = await fetch(url, opts)
           const data = await res.json().catch(() => ({}))
           if (data.reportId) {
             reportId = data.reportId
-            log(`  → Rapport: ${data.reportId}`)
+            log(subLabel ? `  → ${subLabel} – Rapport: ${data.reportId}` : `  → Rapport: ${data.reportId}`)
           }
-          if (!res.ok) log(`  → Erreur: ${data.error || res.statusText}`)
-          else log(`  → Terminé`)
+          if (!res.ok) log(subLabel ? `  → ${subLabel} – Erreur: ${data.error || res.statusText}` : `  → Erreur: ${data.error || res.statusText}`)
+          else log(subLabel ? `  → ${subLabel} terminé` : `  → Terminé`)
         } catch (e) {
-          log(`  → Erreur: ${e instanceof Error ? e.message : 'Réseau'}`)
+          log(subLabel ? `  → ${subLabel} – Erreur: ${e instanceof Error ? e.message : 'Réseau'}` : `  → Erreur: ${e instanceof Error ? e.message : 'Réseau'}`)
         }
       }
     }

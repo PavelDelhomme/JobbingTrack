@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AdminLayout } from '@/components/features'
 import { useAuth } from '@/lib/hooks/auth'
-import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare } from 'lucide-react'
+import { FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, Download, Eye, RefreshCw, Trash2, Search, Filter, X, GitCompare, Image } from 'lucide-react'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
@@ -915,6 +915,34 @@ export default function TestReportsPage() {
                         <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="hidden xs:inline">Télécharger</span>
                       </a>
+                      {(() => {
+                        const r = reports.find(x => x.id === selectedReport)
+                        const isE2eOrPlaywright = r && (r.type === 'e2e' || r.category?.includes('Playwright') || r.category?.includes('Backoffice'))
+                        if (!isE2eOrPlaywright) return null
+                        return (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/test-reports/view?id=${encodeURIComponent(selectedReport!)}&playwright=1`)
+                                const data = await res.json()
+                                if (data.success && data.content) {
+                                  setReportContent(data.content)
+                                } else {
+                                  alert(data.error || 'Rapport Playwright non disponible pour ce run.')
+                                }
+                              } catch (e) {
+                                alert('Erreur chargement rapport Playwright.')
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-cyan-600 text-white rounded hover:bg-cyan-700"
+                            title="Afficher le rapport Playwright détaillé (captures d&#39;écran)"
+                          >
+                            <Image className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="hidden xs:inline">Captures Playwright</span>
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
                   <div className={`p-2 sm:p-4 ${isFullscreen ? 'h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]' : ''}`}>

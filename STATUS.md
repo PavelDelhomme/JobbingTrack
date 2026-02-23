@@ -1,6 +1,21 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 10 février 2026
+**Dernière mise à jour** : 23 février 2026 (hub tests Playwright, Backoffice E2E, Emails, rapports)
+
+---
+
+## ✅ Fait récemment (hub tests, BDD, rapports)
+
+- **Table UserCustomization** : ajoutée dans `scripts/db/init-key-tables.sql` ; créée à chaque `make db-push-all`. Plus d’erreur « relation public.UserCustomization does not exist » après connexion.
+- **Tests Emails / Playwright depuis le hub** : les routes `/api/test/run-emails` et `/api/test/run-playwright` utilisent en priorité `API_GATEWAY_URL` pour les appels serveur depuis le conteneur frontend (évite « fetch failed » en Docker).
+- **Tests Playwright depuis la vue d'ensemble** : lancement « Tests Playwright » sans scénarios exécute toute la suite Playwright localement (`generate-test-report.sh playwright "npm run test:e2e"`) et renvoie un rapport ; plus d'erreur 400 « Aucun scénario fourni ». Scénarios personnalisés (page Playwright) appellent toujours l'API admin.
+- **Backoffice E2E (EADDRINUSE 3000)** : en Docker, la config Playwright réutilise le serveur déjà sur 3000 (`REPORT_DIR` / `TESTS_RESULTS_DIR`) pour éviter « listen EADDRINUSE » lors de `npm run test:e2e` dans le conteneur frontend.
+- **Tests Emails (message d'erreur)** : en cas d'échec, la route remonte le message de l'API et une indication sur la config SMTP (auth-service) si pertinent.
+- **Journal Performance (hub)** : une seule ligne « Lancement: Tests Performance... » puis sous-lignes « → Backend terminé » / « → Frontend terminé » (plus de doublon).
+- **Rapports (totaux cohérents)** : dans `/api/test-reports/all`, pour les rapports dont total ≠ passed + failed, on force `totalTests = passed + failed`. Les rapports Sécurité utilisent `summary.summary.security`. Pour Backoffice et Playwright, le script `generate-test-report.sh` parse `test-results.json` quand il est présent pour remplir total / passed / failed.
+- **Rapports Playwright – captures d'écran** : sur la page **Rapports de tests** (`/backoffice/test-reports`), lorsqu'un rapport **Backoffice** ou **Playwright** (E2E) est affiché, un bouton **« Captures Playwright »** permet d'afficher le rapport HTML Playwright du même run (avec captures d'écran et détail des steps). L'API `/api/test-reports/view?id=...&playwright=1` sert le fichier `playwright-report/index.html` du répertoire du run quand il existe.
+- **Page Tests (hub) – sélection et lancement** : la page **Tests** (`/backoffice/tests`) permet déjà de **sélectionner une ou plusieurs catégories** (cartes cliquables) et de **lancer les tests** via le bouton « Lancer les tests sélectionnés ». Le journal d'exécution et le lien vers le dernier rapport sont affichés. **À valider** en parcours complet (voir checklist ci‑dessous).
+- **Tests programmés (schedule)** : la page **Programmer tests** (`/backoffice/performance-tests/schedule`) permet de créer plusieurs plannings, chacun avec un **type** parmi : Performance (Backend, Frontend, les deux), Tests API, Backend, Frontend, Backoffice, **Tests Sécurité**, **Tests Playwright**, **Tests Emails**. Chaque schedule peut être activé/désactivé et « Lancer maintenant » exécute le type choisi.
 
 ---
 
@@ -8,27 +23,44 @@
 
 À traiter en plus des priorités ci‑dessous (ordre recommandé) :
 
-1. **Page Tests (hub) – sélection et lancement**  
-   Actuellement la page **Tests** (`/backoffice/tests`) affiche les catégories (cartes avec liens) mais **on ne peut pas sélectionner un test ou un ensemble de tests et les lancer depuis cette page**. **À faire** : permettre de **sélectionner une ou plusieurs catégories** (ou « tout ») et de **lancer les tests directement depuis cette page** (comme sur les pages Tests API / Backend), puis afficher le rapport généré (lien « Voir le rapport »).
-
-2. **Tests programmés (schedule)**  
-   Page **Programmer tests** (`/backoffice/performance-tests/schedule`) : **À faire** : permettre de **sélectionner tout ou certains tests** à exécuter dans le planning (ex. cocher Tests API, Backend, Frontend, Backoffice, Sécurité, Performance), et pas seulement un type global.
-
-3. **User Journey – affichage, analytics, rapports**  
+1. **User Journey – affichage, analytics, rapports**  
    - **Erreur corrigée (10/02)** : `ReferenceError: token is not defined` dans `user-journey/page.tsx` (useEffect) → ajout de `const { token } = useAuth()` en tête du composant.
    - **Parcours personnalisé** : si une étape échoue (ex. « Création entreprise échouée: Internal Server Error »), le script sort en code 1 et l’API renvoyait 500 → **correction** : l’API `/api/user-journey/custom` parse désormais le JSON dans stdout même en cas d’exit 1 et renvoie 200 avec les résultats (succès + échecs + ignorés). **Reste** : corriger la cause du 500 côté company-service pour l’utilisateur de test (contexte token) ; ajouter un **lien visible** vers « Rapports de parcours » depuis la page Parcours personnalisé / User Journey.
    - **Parcours prédéfinis** : les analytics affichent parfois des incohérences (ex. « Étapes Réussies 0 / 14 » alors que « Taux de réussite 78,6 % » et « Étapes Échouées 3 ») ; le **rapport du parcours prédéfini** n’est pas toujours généré ou listé. **À faire** : aligner les compteurs (réussies / échouées / total) et s’assurer que le rapport est bien généré et accessible (lien « Voir les rapports de parcours »).
    - **À faire** : Vérifier que l’**affichage** des parcours (résultats, analytics, perf) est **fonctionnel** ; corriger auth (register/login) et enchaînement des étapes pour que les scénarios passent en mode Admin et Utilisateur de test.
 
-4. **CI/CD complet (en tout dernier)**  
+2. **CI/CD complet (en tout dernier)**  
    - Pipeline **complète** : validation structure BDD (adaptée microservices), **exécution de tous les tests** (API, backend, frontend, backoffice, sécurité, performance, user-journey, Playwright), **déploiement** (build images, push, déploiement staging/prod selon stratégie).
    - Adapter le workflow GitHub Actions au projet **microservices** (un Prisma par service, pas un seul `backend/prisma`).
    - Intégrer les tests actuels (Tests API 36, tests backend, frontend, backoffice, sécurité, performance) dans la CI et les rapports (artefacts, statut par catégorie).
    - **Résolution à faire** : le job « Validation de la structure de base de données » échouait avec **« Validation des enums – Enum EventType manquant »** (exit 1). Cause : le schéma partagé `backend/prisma/schema.prisma` utilise **model EventType** (table), pas **enum EventType**, et **EntityType** peut être dans un service. **Correction appliquée** : le workflow accepte désormais `model EventType` en plus de `enum EventType`, et `enum EntityType` est optionnel (vérifié dans un service si absent du schéma partagé). Vérifier que le job passe au prochain push.
    - **À faire en tout dernier** une fois le reste stabilisé.
 
-5. **Tests backoffice – couverture complète**  
+3. **Tests backoffice – couverture complète**  
    Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
+
+---
+
+## ☑️ Checklist couverture complète – pages Tests
+
+À parcourir pour valider toute la partie **Tests** du backoffice (ordre recommandé) :
+
+| # | Page / action | URL / lieu | À vérifier |
+|---|----------------|------------|------------|
+| 1 | Vue d'ensemble (hub) | `/backoffice/tests` | Cartes visibles, sélection (cocher plusieurs catégories), bouton « Lancer les tests sélectionnés », journal d'exécution, lien « Dernier rapport ». |
+| 2 | Tests Playwright | Carte + `/backoffice/playwright-tests` | Lancement depuis le hub (sans scénarios = toute la suite) ; page dédiée scénarios personnalisés. |
+| 3 | Tests Emails | Carte + `/backoffice/tests-emails` | Lancement depuis le hub ; config SMTP si erreur. |
+| 4 | Tests API | Carte + `/backoffice/tests-api` | Lancer, rapport avec totaux (ex. 36 tests). |
+| 5 | Tests Backend | Carte + `/backoffice/tests-backend` | Lancer, rapport cohérent. |
+| 6 | Tests Frontend | Carte + `/backoffice/tests-frontend` | Lancer, rapport cohérent. |
+| 7 | Tests Backoffice (E2E) | Carte + `/backoffice/tests-backoffice` | Lancer (plus d'EADDRINUSE si Docker), rapport. |
+| 8 | Tests Sécurité | Carte + `/backoffice/tests-security` | Lancer, rapport (vulnérabilités, sécurisées). |
+| 9 | Tests Performance | Carte + sous-lignes Backend / Frontend | Les deux runs, rapports. |
+| 10 | Rapports de tests | `/backoffice/test-reports` | Liste des rapports, filtre, ouvrir un rapport, bouton « Captures Playwright » pour Backoffice/Playwright. |
+| 11 | Programmer tests | `/backoffice/performance-tests/schedule` | Créer un schedule (types : API, Backend, Frontend, Backoffice, Sécurité, Playwright, Emails, Performance), activer, « Lancer maintenant ». |
+| 12 | Parcours prédéfinis | Parcours utilisateur | Lancer un parcours, analytics, rapport généré et accessible. |
+| 13 | Parcours personnalisé | Parcours utilisateur | Étapes, lancer, résultats, rapport enregistré. |
+| 14 | Rapports de parcours | Lien depuis Parcours ou Rapports | Liste et détail des rapports de parcours. |
 
 ---
 
@@ -86,7 +118,7 @@ Lors du parcours **toutes les pages du backoffice** une par une, les erreurs sui
 - [ ] Parcours personnalisé testé : exécution OK, rapport enregistré
 - [ ] Parcours prédéfinis : corriger auth (register/login) et enchaînement des étapes
 - [ ] **Rapports performance** : aligner sur Tests API (répertoire, summary, affichage)
-- [ ] **Table UserCustomization** : exécuter `make db-push-all` pour créer la table (auth-service Prisma) et persister les préférences utilisateur
+- [x] **Table UserCustomization** : créée par `make db-push-all` via `scripts/db/init-key-tables.sql` (évite « relation public.UserCustomization does not exist » à la connexion). Après un `make db-push-all`, les préférences utilisateur sont persistées.
 - [ ] (Ensuite) Enrichir tests sécurité ; corriger vulnérabilités (CSRF, headers, rate limiting)
 
 ---
@@ -532,7 +564,7 @@ Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API RES
 
 - Tests API depuis Docker : `sh` + chemins absolus, PROJECT_ROOT, volume scripts, TESTS_RESULTS_DIR, syntaxe POSIX (test-api-specific.sh, generate-test-report.sh).
 - Persistance agrégateur : filtre JobbingTrack → 21 conteneurs ; rebuild metrics-aggregator si besoin.
-- Tables manquantes : `make db-push-all` crée toutes les tables (Prisma 9 services + init-system-metrics.sql + init-key-tables.sql). **init-key-tables** crée aussi vulnerabilities, security_metrics, deployments (+ deployment_metrics, rollbacks) et ajoute User.verificationToken / verificationTokenExpiry si la table User existe. Ne pas lancer db-push-security / db-push-deployment seuls.
+- Tables manquantes : `make db-push-all` crée toutes les tables (Prisma 9 services + init-system-metrics.sql + init-key-tables.sql). **init-key-tables** crée aussi **UserCustomization** (préférences utilisateur, évite l’erreur à la connexion), vulnerabilities, security_metrics, deployments (+ deployment_metrics, rollbacks) et ajoute User.verificationToken / verificationTokenExpiry si la table User existe. Ne pas lancer db-push-security / db-push-deployment seuls.
 - **Rapport Tests API (2026-02-10)** : 13/47 passent, 34 échecs. Causes : (1) Login 401 (hash admin = « secret » au lieu de password123) — script create-admin-user corrigé (création via auth-service en priorité) ; (2) Profile 404 sur GET/PUT `/api/v1/profile/me` — rebuild profile-service nécessaire ; (3) Notification 200 sans token au lieu de 401 — rebuild notification-service nécessaire. Détail dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md** et **ERRORS.md**. Résumé (X/Y passés, Z échecs) affiché après chaque run depuis le backoffice.
 - **make refresh-bdd** : une seule commande (build → down → up-full → db-push-all). up-full démarre tous les services puis exécute **un seul** db-push-all (plus de premier passage avec seulement auth).
 - **up-full** : un seul `db-push-all` après le démarrage de tous les conteneurs (postgres, redis, api-gateway, auth, frontend, profil full, monitoring-c, metrics-aggregator). Évite les « conteneur non démarré (ignoré) ». Après db-push-all, **metrics-aggregator est redémarré** pour recharger le schéma BDD et éviter les erreurs « cached plan must not change result type » et « cache lookup failed for type ».
@@ -540,7 +572,7 @@ Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API RES
 
 ### Emails
 
-- **SMTP** : configuré via variables d’environnement (docker-compose, auth-service) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EMAIL_PROVIDER` (SMTP ou RESEND). Par défaut : `SMTP_HOST=ssl0.ovh.net`, `SMTP_PORT=465`. Le provider SMTP est initialisé au démarrage de l’auth-service ; **test SMTP** (`GET /api/v1/emails/test-smtp`) **100 % Node** (Nodemailer), plus de fallback Python. Écrans backoffice Configuration SMTP et Déliverabilité : à rendre opérationnels (renseigner les variables puis redémarrer auth-service).
+- **SMTP** : configuré via variables d’environnement (docker-compose, auth-service) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_REPLY_TO`, `EMAIL_PROVIDER` (SMTP ou RESEND). Par défaut : `SMTP_HOST=ssl0.ovh.net`, `SMTP_PORT=465`. Le provider SMTP est initialisé au démarrage de l’auth-service ; **test SMTP** (`GET /api/v1/emails/test-smtp`) **100 % Node** (Nodemailer), Écrans backoffice Configuration SMTP et Déliverabilité : à rendre opérationnels (renseigner les variables puis redémarrer auth-service). Si le hub Tests affiche une erreur sur « Tests Emails », vérifier la config SMTP (auth-service) et que le service est joignable (API_GATEWAY_URL).
 - Historique des emails : API `GET /api/v1/emails/logs` et page `/backoffice/emails/logs` branchées ; si 404, voir point 7 Priorité 2 (rebuild auth-service).
 
 ### Sécurité

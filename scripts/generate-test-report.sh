@@ -190,8 +190,8 @@ if [ "$TEST_TYPE" = "performance-backend" ] || [ "$TEST_TYPE" = "test-performanc
   if [ "$failed" -gt 0 ] 2>/dev/null; then report_status_override="failed"; fi
 fi
 
-# Pattern 7: Backoffice E2E (Playwright) — lire test-results.json si présent (écrit dans REPORT_DIR)
-if [ "$TEST_TYPE" = "backoffice" ] && [ -f "$REPORT_DIR/test-results.json" ]; then
+# Pattern 7: Backoffice / Playwright E2E — lire test-results.json si présent (écrit dans REPORT_DIR)
+if { [ "$TEST_TYPE" = "backoffice" ] || [ "$TEST_TYPE" = "playwright" ]; } && [ -f "$REPORT_DIR/test-results.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     pw_passed=$(jq -r '[.. | .status? | select(. == "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)
     pw_failed=$(jq -r '[.. | .status? | select(. != null and . != "passed")] | length' "$REPORT_DIR/test-results.json" 2>/dev/null)

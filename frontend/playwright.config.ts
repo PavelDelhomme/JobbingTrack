@@ -4,6 +4,7 @@ import path from 'path';
 
 // En Docker (backoffice E2E), REPORT_DIR est exporté par generate-test-report.sh pour éviter EACCES sur /app
 const reportDir = process.env.REPORT_DIR || '';
+const inDocker = !!(reportDir || process.env.TESTS_RESULTS_DIR || process.env.DOCKER);
 const outputDir = reportDir ? path.join(reportDir, 'test-results') : 'test-results';
 const htmlReportDir = reportDir ? path.join(reportDir, 'playwright-report') : 'playwright-report';
 const jsonReportPath = reportDir ? path.join(reportDir, 'test-results.json') : 'test-results.json';
@@ -32,8 +33,8 @@ export default defineConfig({
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:8080',
+    /* Base URL: en Docker l'app tourne déjà sur 3000, sinon 8080 (ou 3000 selon dev). */
+    baseURL: inDocker ? 'http://localhost:3000' : 'http://localhost:8080',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -93,27 +94,34 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: [
-    {
-      command: 'npm run dev',
-      url: 'http://localhost:8080',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-      env: {
-        // Désactiver les protections pendant les tests
-        WAF_ENABLED: 'false',
-        RATE_LIMIT_ENABLED: 'false',
-      },
-    },
-    // Serveur pour l'application mobile Flutter
-    {
-      command: 'npm run dev:mobile',
-      url: 'http://localhost:8090',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    }
-  ],
+  /* Run your local dev server before starting the tests. En Docker, réutiliser le serveur déjà sur 3000 (évite EADDRINUSE). */
+  webServer: inDocker
+    ? [
+        {
+          command: 'echo',
+          url: 'http://localhost:3000',
+          reuseExistingServer: true,
+          timeout: 10_000,
+        },
+      ]
+    : [
+        {
+          command: 'npm run dev',
+          url: 'http://localhost:8080',
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+          env: {
+            WAF_ENABLED: 'false',
+            RATE_LIMIT_ENABLED: 'false',
+          },
+        },
+        {
+          command: 'npm run dev:mobile',
+          url: 'http://localhost:8090',
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
+      ],
 
   /* Global setup and teardown */
   globalSetup: './tests/e2e/global-setup.ts',
