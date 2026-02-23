@@ -1,0 +1,10 @@
+{
+  "name": "jobbingtrack-emulator-controller",
+  "version": "1.0.0",
+  "description": "Agent pour contrôler l'émulateur Android et l'app Flutter depuis le backoffice",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

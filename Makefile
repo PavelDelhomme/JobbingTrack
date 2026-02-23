@@ -32,6 +32,7 @@ include makefiles/tests/Makefile         # tous les tests
 -include makefiles/tests/Makefile.mobile-tests  # tests mobile (optionnel)
 include makefiles/backend/Makefile       # monitoring uniquement
 include makefiles/frontend/Makefile      # frontend spécifiques
+include makefiles/mobile/Makefile        # émulateur mobile (contrôleur, tests en direct)
 include makefiles/utils/Makefile         # utils (metrics, cadvisor)
 include makefiles/documentation/Makefile # génération PDF documentation
 include makefiles/help/Makefile          # système d'aide

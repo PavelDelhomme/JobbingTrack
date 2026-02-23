@@ -89,8 +89,9 @@ D’après `mobile/lib/main.dart` et `mobile/lib/screens/` :
 - **Logs réels** : **logs Android (logcat)** en temps réel de l’appareil connecté, avec **filtre** pour n’afficher que les logs de l’application JobbingTrack (par tag ou package) si possible.
 - **Installation APK** : garder la possibilité d’**installer un APK** (upload ou chemin) sur l’appareil sélectionné via ADB (`adb -s <device> install ...`).
 - **Backend / backoffice** : fournir les infos et APIs nécessaires (config, health, version) pour que l’environnement de test (URL API, etc.) soit correct.
+- **Création d’un AVD depuis l’interface (à faire)** : actuellement seuls les AVD déjà créés (Android Studio / `avdmanager`) sont listés ; prévoir un flux dans l’interface pour **créer un AVD** (choix de système d’image, API level, etc.) si besoin.
 
-Référence implémentation actuelle : `frontend/src/app/(admin)/backoffice/mobile-emulator/page.tsx` (aujourd’hui : appareils simulés, URL manuelle, iframe, logs simulés ; à étendre avec ADB réel et logs logcat).
+Référence implémentation actuelle : `frontend/src/app/(admin)/backoffice/mobile-emulator/page.tsx` (aujourd’hui : appareils simulés, URL manuelle, iframe, logs simulés ; à étendre avec ADB réel et logs logcat). Démarrer sur téléphone : USB + débogage USB ; make emulator-controller (dernier code) ; rafraîchir appareils, sélectionner le téléphone ; Build APK puis Installer et lancer. Logs Flutter run = terminal du contrôleur ; à faire : streamer dans l'UI. À faire plus tard : AVD depuis l'UI, logs en direct.
 
 ---
 
