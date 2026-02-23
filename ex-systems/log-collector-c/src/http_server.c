@@ -107,7 +107,7 @@ static void handle_request(int client_fd) {
 
         const char *query = 
             "SELECT timestamp, container_id, container_name, level, message, source, response_time_ms, http_status, is_error "
-            "FROM container_logs "
+            "FROM log_collector_logs "
             "WHERE ($1::boolean = false OR is_error = true) "
             "AND ($2::text = '' OR level = $2) "
             "AND ($3::text = '' OR container_name = $3) "

@@ -4,6 +4,14 @@
 
 ---
 
+## Février 2026 – Backoffice : BigInt, container_logs, user-journey save-report
+
+- **BigInt (metrics-aggregator)** : Les réponses `GET /api/v1/persistence/containers/:containerName/metrics` contenaient des champs BigInt (ex. `cpuUsageNano`, `memoryUsageBytes`) que `JSON.stringify` ne peut pas sérialiser → 500 « Do not know how to serialize a BigInt ». **Solution** : ajout dans `backend/metrics-aggregator-service/src/routes/persistence.routes.js` d’une fonction `serializeBigInt(obj)` qui parcourt récursivement l’objet et convertit les BigInt en Number ; la réponse est passée par `serializeBigInt(...)` avant `res.json()`.
+- **container_logs vs log_collector_logs (log-collector-c)** : L’API HTTP du log-collector-c lisait `FROM container_logs` avec des colonnes `container_id`, `container_name`, etc. La table `container_logs` (créée par init-key-tables) a des colonnes en camelCase (`"containerId"`, `"containerName"`). **Solution** : dans `ex-systems/log-collector-c/src/http_server.c`, la requête SELECT utilise désormais **log_collector_logs** (table créée et alimentée par le C, avec container_id, container_name, level, message, source, response_time_ms, http_status, is_error). Rebuild du service log-collector-c nécessaire après modification.
+- **User Journey – ENOENT save-report** : En Docker, la route POST `/api/user-journey/save-report` faisait `mkdir(REPORTS_DIR)` avec `REPORTS_DIR = '/app/tests/user-journey-reports'` ; le répertoire parent `/app/tests` n’existe pas dans le conteneur frontend. **Solution** : dans `frontend/src/app/api/user-journey/save-report/route.ts`, en Docker utiliser `USER_JOURNEY_REPORTS_DIR || '/tmp/user-journey-reports'`. Le `mkdir(..., { recursive: true })` était déjà présent. Les rapports sont donc écrits dans `/tmp/user-journey-reports` dans le conteneur (volatiles sauf si volume monté).
+
+---
+
 ## Février 2026 – User Journey – token is not defined
 
 - **Problème** : En ouvrant la page Parcours utilisateur (User Journey), une erreur runtime s’affichait : `ReferenceError: token is not defined` (ligne 1699 de `user-journey/page.tsx`, dans le tableau de dépendances d’un `useEffect` qui enregistre automatiquement le rapport de parcours).

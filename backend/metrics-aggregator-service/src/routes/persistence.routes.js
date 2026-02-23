@@ -105,6 +105,19 @@ router.get('/containers/metrics', async (req, res) => {
   }
 });
 
+/** Sérialise BigInt pour JSON (évite "Do not know how to serialize a BigInt") */
+function serializeBigInt(obj) {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') return Number(obj);
+  if (Array.isArray(obj)) return obj.map(serializeBigInt);
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const out = {};
+    for (const k of Object.keys(obj)) out[k] = serializeBigInt(obj[k]);
+    return out;
+  }
+  return obj;
+}
+
 /**
  * GET /api/v1/persistence/containers/:containerName/metrics
  * Récupérer l'historique des métriques d'un conteneur spécifique
@@ -121,12 +134,12 @@ router.get('/containers/:containerName/metrics', async (req, res) => {
       endDate,
     });
 
-    res.json({
+    res.json(serializeBigInt({
       success: true,
       containerName,
       count: metrics.length,
       data: metrics,
-    });
+    }));
   } catch (error) {
     console.error('[API] Erreur récupération métriques conteneur:', error);
     res.status(500).json({
