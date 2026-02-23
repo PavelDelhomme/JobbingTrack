@@ -426,6 +426,7 @@ help-logs: ## Aide détaillée pour 'make logs'
 	@echo "  make logs                      - Tous les logs"
 	@echo "  make logs-applicative          - Logs sans metrics-aggregator ni monitoring-c"
 	@echo "  make logs-persistence          - Uniquement les lignes [PERSISTENCE]"
+	@echo "  make logs-tests                - Uniquement les lignes [TESTS ...] (pendant les runs)"
 	@echo "  make logs-metrics              - Uniquement metrics-aggregator"
 	@echo "  make logs-service SERVICE=api-gateway - Un service"
 	@echo ""

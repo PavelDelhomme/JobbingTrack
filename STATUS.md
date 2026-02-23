@@ -1,6 +1,6 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 23 février 2026 (hub tests Playwright, Backoffice E2E, Emails, rapports)
+**Dernière mise à jour** : 23 février 2026 (hub tests, rapports ; objectifs Application réelle + Émulateur mobile dans « À faire »)
 
 ---
 
@@ -43,6 +43,44 @@
 
 3. **Tests backoffice – couverture complète**  
    Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
+
+4. **Émulateur mobile (à faire très bientôt)**  
+   Faire fonctionner correctement l’**interface Émulateur mobile** du backoffice pour pouvoir **démarrer le projet et lancer les tests sur l’émulateur** dans de bonnes conditions. À prévoir :
+   - **Appareil(s) connecté(s) en ADB** : sélection de l’appareil ADB depuis l’interface (liste des appareils, choix de l’appareil cible).
+   - **Installation d’APK** : possibilité d’**installer un APK** (choix / upload du fichier APK, pas d’URL d’application) sur l’appareil sélectionné.
+   - **Build et run depuis l’interface** : idéalement **générer un APK de l’application Flutter** directement depuis l’interface (build Flutter → APK), ou au minimum **lancer l’application** sur l’appareil (sans forcément gérer la création d’APK dans l’UI). Pouvoir **sélectionner et lancer l’application** et avoir le **rendu du run** (sortie, logs) dans l’interface.
+   - **Logs Android en temps réel** : afficher les **logs de l’appareil connecté** en temps réel, avec **filtre** pour n’afficher que les logs de notre application JobbingTrack si possible (ex. par tag ou package).
+   - **Backoffice / backend** : ajouter toutes les **infos et APIs backoffice/backend nécessaires** pour tester l’application mobile dans un **bon environnement** (config, health, version, etc.).
+   - **Plus tard** : **versioning** de l’app mobile et **déploiement** (build / déploiement d’APK depuis l’interface backoffice, en fonction du versioning).
+
+---
+
+## 🎯 APPLICATION RÉELLE – Objectifs (mobile + backend API)
+
+**Priorité** : travailler sur une **application réelle avec backend API fonctionnel**, testable dans **notre émulateur mobile**, pour valider la **gestion des candidatures** comme prévu.
+
+### Vision côté candidat (intérim / expériences travail)
+
+L’application doit permettre au **candidat** de **suivre, gérer et piloter** l’ensemble de ses **expériences travail côté intérim** (et candidatures classiques) : tout depuis le point de vue candidat — **ses demandes** (candidatures, missions), **ce qu’il a en cours** (missions en cours, processus en cours), **les propositions qu’il reçoit** (offres, missions proposées), etc. Objectif : un tableau de bord clair pour savoir où en sont ses démarches, ses missions intérim et ses propositions, sans confusion.
+
+### Fonctionnalités à développer en priorité (côté applicatif)
+
+- **Utilisateur** : **inscription** (app mobile / web), **connexion**, **persistance de la session** (garder la connexion), **système de synchronisation** (données offline / online).
+- **Backend API** : APIs stables et sécurisées pour auth, candidatures, entreprises, contacts, entretiens, appels, relances, etc. (déjà partiellement en place ; à valider et compléter pour l’app mobile).
+- **Suivi candidat** : **demandes** (candidatures / missions), **en cours** (missions ou processus en cours), **propositions reçues** (offres, missions proposées) — à refléter dans les écrans et les APIs (filtres, statuts, types).
+- **Test dans l’émulateur** : pouvoir **tester l’application de gestion des candidatures** (et du suivi intérim côté candidat) de bout en bout depuis l’interface backoffice (Émulateur mobile + appareil ADB, voir point 4 ci‑dessus).
+
+### Où c’est répertorié
+
+- **STATUS.md** (ce fichier) : objectifs, reprise travail, checklist, erreurs connues.
+- **/docs** : fonctionnement applicatif, guide mobile (`docs/mobile/`, `docs/mobile/guide/README.md`), user journey (`docs/user-journey/`), tests mobile (`docs/tests/MOBILE_TESTS_README.md`), emails (`docs/emails/MAIL.md`).
+- **mobile/** : app Flutter, README, analytics ; à connecter aux APIs et à la sync.
+
+### Ordre de travail recommandé
+
+1. **D’abord** : développer et valider **inscription, connexion, session, synchronisation** et **APIs backend** pour que l’app mobile soit utilisable dans un environnement de test (émulateur + backend).
+2. **Ensuite** : retravailler les autres aspects (backoffice administrateur, parcours, rapports, etc.) et améliorer l’émulateur mobile (APK, logs, déploiement).
+3. **Plus tard** : **versioning** de l’application mobile et **déploiement** depuis l’interface backoffice (build/déploiement APK selon version).
 
 ---
 
@@ -115,8 +153,31 @@ Lors du parcours **toutes les pages du backoffice** une par une, les erreurs sui
 | **User Journey – ENOENT save-report** | ✅ Corrigé | En Docker, `mkdir('/app/tests/user-journey-reports')` échouait (répertoire parent absent). **Correction** : en Docker utilisation de `/tmp/user-journey-reports` (ou `USER_JOURNEY_REPORTS_DIR`) + `mkdir(..., { recursive: true })`. |
 | **User Analytics – tables manquantes** | ⚠️ À traiter | Page `/backoffice/user-analytics` : Postgres `relation "public.user_events" does not exist` (idem `user_sessions`, `user_errors`, `user_performances`, `device_infos`). Ces tables sont utilisées par dashboard-service (analytics). **Action** : créer les tables (migrations/init) ou documenter comme optionnel. |
 | **Loki – ENOTFOUND** | ⚠️ Documenté | Requêtes type « erreurs par conteneur » (Loki) : `getaddrinfo ENOTFOUND loki`. Loki n’est pas déployé. **Action** : dégrader proprement (pas de crash, message clair) ou ajouter Loki au stack si besoin. |
-| **Logs applicatifs – erreurs connues** | ⚠️ Documenté | **make logs** / **make logs-applicative** : Postgres peut afficher `type "FollowUpStatus" already exists`, `relation "system_metrics_snapshots" does not exist` (lancer `make db-push-all` si besoin), `service_availability_history` absente. Redis : WARNING Memory overcommit. Colorées en rouge par `scripts/color-logs.sh`. **make logs-applicative** exclut metrics-aggregator et monitoring-c (`grep --line-buffered`). |
+| **Logs applicatifs – erreurs connues** | ⚠️ Documenté | **make logs** / **make logs-applicative** : Postgres peut afficher `type "FollowUpStatus" already exists`, `relation "system_metrics_snapshots" does not exist` (lancer `make db-push-all` si besoin), `service_availability_history` absente. Redis : WARNING Memory overcommit. Colorées en rouge par `scripts/color-logs.sh`. **make logs-applicative** exclut metrics-aggregator et monitoring-c (`grep --line-buffered`). **→ Résolution détaillée** : section **« Résolution – Tables monitoring et enums (Postgres) »** ci‑dessous. |
 | **Archives / Corbeille** | ⚠️ Documenté | Plusieurs services renvoient 404/500 « ne supporte pas les archives » : company, user, event, interview, contact, application, call, followup. **Action** : implémenter les routes archives côté backend ou documenter les limites. |
+
+### Résolution – Tables monitoring et enums (Postgres)
+
+Erreurs typiques dans les logs Postgres après `make up-full` ou en cours d’exécution :
+
+1. **`relation "public.system_metrics_snapshots" does not exist`** (idem **container_metrics_snapshots**, **service_availability_history**, **system_metrics**)
+   - **Cause** : les tables sont créées par `make db-push-all` (Partie 2 = `init-system-metrics.sql`, Partie 3 = `init-key-tables.sql`). Si `db-push-all` n’a pas été exécuté, a échoué ou a été lancé après le démarrage de metrics-aggregator/monitoring-c, ces tables peuvent manquer.
+   - **Solution** :
+     - Lancer **`make db-push-all`** avec la stack déjà up (Postgres doit être démarré). Vérifier que la sortie affiche bien « Partie 2/3 » et « Partie 3/3 » sans erreur.
+     - Si vous utilisez **`make up-full`** : il exécute un seul `db-push-all` après le démarrage des services principaux et **avant** monitoring-c et metrics-aggregator. En cas d’échec partiel de `db-push-all`, les erreurs ne sont plus masquées (init-system-metrics affiche les erreurs SQL).
+     - Après un `db-push-all` réussi, **redémarrer metrics-aggregator** : `docker restart jobbingtrack-metrics-aggregator` (ou relancer `make db-push-all`, qui redémarre déjà le service en fin de script).
+   - **Vérification** : `docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c '\dt public.system_metrics*'` doit lister `system_metrics`, `system_metrics_snapshots`, etc.
+
+2. **`type "FollowUpStatus" already exists`** / **`type "InterviewType" already exists`**
+   - **Cause** : plusieurs services Prisma (interview-, call-, event-, workflow-service, etc.) définissent ces enums. Lors des `prisma db push` (lors de `db-push-all` ou au démarrage d’un service qui lance un push), le premier push crée le type, les suivants provoquent cette erreur.
+   - **Solution** : **À ignorer** en pratique. Le script `db-push-all.sh` considère déjà « type already exists » comme succès pour le décompte. Si un service (ex. security-service) lance un `prisma db push` au démarrage quand des tables manquent, ces messages peuvent apparaître ; ils n’empêchent pas le fonctionnement.
+   - Pour réduire le bruit : éviter de lancer `prisma db push` au démarrage des conteneurs ; privilégier un seul `make db-push-all` après mise à jour du schéma.
+
+3. **`jobbingtrack-metrics-aggregator exited with code 1`**
+   - **Cause** : le plus souvent, échec d’écriture en BDD (tables **system_metrics_snapshots**, **container_metrics_snapshots** ou **service_availability_history** absentes) ou erreur au démarrage.
+   - **Solution** : appliquer la résolution (1) ci‑dessus, puis `docker restart jobbingtrack-metrics-aggregator` ou relancer `make up-full` (qui refait `db-push-all` puis démarre le monitoring).
+
+**Résumé** : après un **`make db-push-all`** réussi (sans erreur sur init-system-metrics et init-key-tables), les tables monitoring existent et metrics-aggregator peut persister. En cas de BDD déjà existante sans ces tables, exécuter une fois **`make db-push-all`** puis redémarrer metrics-aggregator.
 
 **À faire** : après `make build` (et redémarrage des services concernés), revérifier les pages Analytics → Conteneurs (métriques par conteneur), Services → Logs (log-collector-c), Parcours utilisateur → sauvegarde rapport. Voir **ERRORS.md** et **TESTS_END.md** §15 pour la checklist complète des pages à tester.
 
@@ -205,6 +266,8 @@ make down && make up-full && make db-push-all && make build && make up-full && m
 ---
 
 ## 📋 REPRISE TRAVAIL – À faire en priorité (lundi)
+
+**Objectif principal** : viser une **application réelle** (mobile + backend API) testable dans l’émulateur — inscription, connexion, session, synchronisation. Voir la section **« APPLICATION RÉELLE – Objectifs »** ci‑dessus.
 
 ### 1. Vérifier que tout tourne
 
@@ -547,7 +610,7 @@ Ensuite : sécuriser le flow de vérification ; Flutter APK/émulateur ; API RES
 
 ## Fonctionnement du projet – Parcours de vie (d’après les .md)
 
-**Objectif** (README, docs/database/ACTIONS_ET_MODIFICATIONS) : JobbingTrack est un **outil personnel de suivi de candidatures pour un chercheur d’emploi**. L’utilisateur = le candidat qui suit **ses propres** candidatures. Ce n’est **pas** un ATS (outil recruteur/employeur).
+**Objectif** (README, docs/database/ACTIONS_ET_MODIFICATIONS) : JobbingTrack est un **outil personnel de suivi de candidatures pour un chercheur d’emploi**. L’utilisateur = le candidat qui suit **ses propres** candidatures. L’application doit aussi permettre de **suivre, gérer et piloter les différentes expériences travail côté intérim** : **demandes** (candidatures, missions), **en cours** (ce qui est en cours), **propositions reçues** (offres, missions proposées), le tout depuis le point de vue candidat. Ce n’est **pas** un ATS (outil recruteur/employeur).
 
 **Parcours de vie typique** (données et APIs couverts par les 36 tests) :
 

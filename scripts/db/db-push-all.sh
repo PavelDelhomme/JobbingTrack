@@ -107,7 +107,11 @@ if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
   echo "━━━ Partie 2/3 – Tables monitoring (init-system-metrics.sql) ━━━"
   echo "  system_metrics, container_metrics, service_availability_history"
-  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" > /dev/null 2>&1 && echo "  ✅ Tables system_metrics / service_availability_history OK" || true
+  if docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql"; then
+    echo "  ✅ Tables system_metrics / service_availability_history OK"
+  else
+    echo "  ⚠️  init-system-metrics.sql a échoué (voir erreurs ci-dessus) ; relancer make db-push-all après correction"
+  fi
   echo ""
 fi
 

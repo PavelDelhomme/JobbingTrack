@@ -183,7 +183,7 @@ export default function TestsHubPage() {
   const [currentRunName, setCurrentRunName] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<{ step: number; total: number } | null>(null)
   /** Liste des étapes de la run en cours (pour barre de progression et détail dans l’overlay). */
-  const [runSteps, setRunSteps] = useState<{ name: string; subLabel?: string }[]>([])
+  const [runSteps, setRunSteps] = useState<{ name: string; subLabel?: string; subSteps?: string[] }[]>([])
   const isRunningRef = useRef(false)
   isRunningRef.current = isRunning
 
@@ -379,6 +379,26 @@ export default function TestsHubPage() {
               <PlayCircle className="w-4 h-4" />
             )}
             {isRunning ? 'Exécution...' : `Lancer les tests sélectionnés (${selectedIds.length})`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedIds([...RUNNABLE_IDS])}
+            disabled={isRunning || selectedIds.length === RUNNABLE_IDS.length}
+            className="gap-1.5"
+          >
+            <Check className="w-4 h-4" />
+            Tout sélectionner
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedIds([])}
+            disabled={isRunning || selectedIds.length === 0}
+            className="gap-1.5"
+          >
+            <Circle className="w-4 h-4" />
+            Tout décocher
           </Button>
           <Link href="/backoffice/test-reports">
             <Button variant="outline" className="gap-2">
