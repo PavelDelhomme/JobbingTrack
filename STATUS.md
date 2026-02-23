@@ -24,6 +24,26 @@
    - Intégrer les tests actuels (Tests API 36, tests backend, frontend, backoffice, sécurité, performance) dans la CI et les rapports (artefacts, statut par catégorie).
    - **À faire en tout dernier** une fois le reste stabilisé.
 
+5. **Tests backoffice – couverture complète**  
+   Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
+
+---
+
+## 🔴 Erreurs backoffice (parcours des pages admin) – corrigées et connues
+
+Lors du parcours **toutes les pages du backoffice** une par une, les erreurs suivantes ont été identifiées. Les corrections sont documentées dans **RESOLUTIONS.md** et **ERRORS.md**.
+
+| Problème | Statut | Détail |
+|----------|--------|--------|
+| **BigInt – métriques conteneur** | ✅ Corrigé | `GET /api/v1/persistence/containers/:name/metrics` renvoyait 500 « Do not know how to serialize a BigInt ». **Correction** : sérialisation des BigInt (metrics-aggregator `persistence.routes.js`) avant `res.json()`. |
+| **container_logs – colonne container_id** | ✅ Corrigé | Log-collector-c lisait `container_logs` (schéma init-key-tables avec `"containerId"`) au lieu de **log_collector_logs** (table qu’il remplit, avec `container_id`). **Correction** : `http_server.c` lit désormais `FROM log_collector_logs`. |
+| **User Journey – ENOENT save-report** | ✅ Corrigé | En Docker, `mkdir('/app/tests/user-journey-reports')` échouait (répertoire parent absent). **Correction** : en Docker utilisation de `/tmp/user-journey-reports` (ou `USER_JOURNEY_REPORTS_DIR`) + `mkdir(..., { recursive: true })`. |
+| **User Analytics – tables manquantes** | ⚠️ À traiter | Page `/backoffice/user-analytics` : Postgres `relation "public.user_events" does not exist` (idem `user_sessions`, `user_errors`, `user_performances`, `device_infos`). Ces tables sont utilisées par dashboard-service (analytics). **Action** : créer les tables (migrations/init) ou documenter comme optionnel. |
+| **Loki – ENOTFOUND** | ⚠️ Documenté | Requêtes type « erreurs par conteneur » (Loki) : `getaddrinfo ENOTFOUND loki`. Loki n’est pas déployé. **Action** : dégrader proprement (pas de crash, message clair) ou ajouter Loki au stack si besoin. |
+| **Archives / Corbeille** | ⚠️ Documenté | Plusieurs services renvoient 404/500 « ne supporte pas les archives » : company, user, event, interview, contact, application, call, followup. **Action** : implémenter les routes archives côté backend ou documenter les limites. |
+
+**À faire** : après `make build` (et redémarrage des services concernés), revérifier les pages Analytics → Conteneurs (métriques par conteneur), Services → Logs (log-collector-c), Parcours utilisateur → sauvegarde rapport. Voir **ERRORS.md** et **TESTS_END.md** §15 pour la checklist complète des pages à tester.
+
 ---
 
 ## ▶️ PROCHAINE ÉTAPE – À faire maintenant (lundi)

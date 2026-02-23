@@ -4,6 +4,21 @@
 
 ---
 
+## 🔴 Erreurs backoffice (parcours des pages admin)
+
+Lors du parcours de **toutes les pages du backoffice** une par une, les erreurs suivantes ont été constatées. Les corrections sont dans **RESOLUTIONS.md**.
+
+| Erreur | Composant | Statut |
+|--------|-----------|--------|
+| **TypeError: Do not know how to serialize a BigInt** | metrics-aggregator, `GET /api/v1/persistence/containers/:name/metrics` | ✅ Corrigé (sérialisation BigInt avant `res.json`) |
+| **column "container_id" does not exist** (HINT: containerId) | log-collector-c / Postgres, requête sur `container_logs` | ✅ Corrigé (lecture depuis `log_collector_logs`) |
+| **ENOENT: mkdir '/app/tests/user-journey-reports'** | frontend, route `/api/user-journey/save-report` | ✅ Corrigé (REPORTS_DIR = `/tmp/user-journey-reports` en Docker) |
+| **relation "public.user_events" does not exist** (idem user_sessions, user_errors, user_performances, device_infos) | Postgres / dashboard-service (page User Analytics) | ⚠️ À traiter (créer tables ou désactiver page) |
+| **getaddrinfo ENOTFOUND loki** | metrics-aggregator (requêtes Loki pour erreurs par conteneur) | ⚠️ Documenté (Loki non déployé ; dégrader proprement) |
+| **Service X ne supporte pas les archives** (404/500) | api-gateway / company, user, event, interview, contact, application, call, followup | ⚠️ Documenté (routes archives à implémenter ou à documenter) |
+
+---
+
 ## ⏳ À traiter en priorité (erreurs connues)
 
 - **Tests API – 34 échecs (rapport 47 tests, 13 passent)** : Détail dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**. **Erreur 1 – Login 401** : le script utilise `admin@jobbingtrack.test` / `password123` mais l’admin en BDD était créé avec le hash bcrypt pour « secret » (INSERT SQL dans create-admin-user.sh). **Résolution** : le script **create-admin-user.sh** privilégie désormais la création via **auth-service** (Node + bcrypt pour `ADMIN_PASSWORD`). **Action** : lancer **`make create-admin-user`** avec **auth-service démarré** pour que l’admin ait password123. **Erreur 2 – Profile 404** : GET/PUT `/api/v1/profile/me` renvoient 404 (HTML « Cannot GET/PUT ») ; les routes existent dans le code profile-service. **Action** : **rebuild profile-service** (`make build` ou rebuild du service) pour que l’image embarque les routes. **Erreur 3 – Notification 200 au lieu de 401** : sans token, le test attend 401 mais reçoit 200 (données démo). **Action** : **rebuild notification-service**. Les autres échecs (Get Profile, List Users, Companies, etc.) sont des conséquences du login qui échoue (pas de token) ou du profile 404.
@@ -19,6 +34,11 @@ Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches 
 ---
 
 ## ✅ Erreurs corrigées (Février 2026)
+
+### Backoffice – BigInt, container_logs, user-journey ENOENT (02/2026)
+- **BigInt** : `GET /api/v1/persistence/containers/:containerName/metrics` renvoyait 500 « Do not know how to serialize a BigInt » (champs Prisma type BigInt dans la réponse JSON). **Solution** : dans `backend/metrics-aggregator-service/src/routes/persistence.routes.js`, ajout d’un helper `serializeBigInt()` qui convertit récursivement les BigInt en Number avant `res.json()`.
+- **container_id** : La page Logs (backoffice → Services → Logs) ou l’API log-collector-c exécutait `SELECT ... FROM container_logs` avec des colonnes `container_id`, `container_name`, etc. La table `container_logs` (init-key-tables) a des colonnes en camelCase (`"containerId"`, `"containerName"`). **Solution** : dans `ex-systems/log-collector-c/src/http_server.c`, la requête lit désormais **log_collector_logs** (table créée et alimentée par log-collector-c, avec container_id, container_name, level, message, etc.).
+- **User Journey save-report ENOENT** : En Docker, le frontend utilisait `REPORTS_DIR = '/app/tests/user-journey-reports'` mais `/app/tests` n’existe pas dans le conteneur. **Solution** : `frontend/src/app/api/user-journey/save-report/route.ts` — en Docker utiliser `process.env.USER_JOURNEY_REPORTS_DIR || '/tmp/user-journey-reports'` ; `mkdir(..., { recursive: true })` déjà présent.
 
 ### User Journey – token is not defined (10/02/2026)
 - **Erreur** : `ReferenceError: token is not defined` dans `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (ligne 1699, dans le tableau de dépendances d’un `useEffect`). La variable `token` était utilisée dans le rapport sauvegardé et dans les dépendances sans être définie.

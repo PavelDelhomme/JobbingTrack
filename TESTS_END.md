@@ -184,3 +184,31 @@ Une fois le projet finalisé, vérifier la **rétrocompatibilité** de l’ensem
 - [ ] **Données existantes** : En cas de montée de version BDD (nouvelle colonne, table), les données existantes restent lisibles et les seeds/scripts ne cassent pas l’existant.
 
 **Utilisation** : cocher chaque point au fur et à mesure. Ce fichier sert de checklist finale avant livraison ou merge.
+
+---
+
+## 15. Backoffice administrateur – couverture complète
+
+Objectif : pouvoir **tester absolument tout** le backoffice admin (toutes les pages, toutes les fonctionnalités). Voir **ERRORS.md** pour les erreurs connues par page et **STATUS.md** § « Erreurs backoffice ».
+
+### Pages à parcourir et vérifier
+- [ ] **Vue d’ensemble** : CPU, mémoire, temps de réponse, services, health
+- [ ] **Analytics** : Performances (CPU, mémoire, disque, réseau), Réseau, Conteneurs (métriques par conteneur), Application
+- [ ] **Logs** : Services → Logs (logs agrégés, filtres niveau/service/erreurs), Security → Logs (logs sécurité)
+- [ ] **User Analytics** : stats par utilisateur, événements, sessions, erreurs, versions (tables user_events, user_sessions, etc. à créer si utilisées)
+- [ ] **Archives / Corbeille** : liste par service (company, user, application, etc.) — certains services renvoient 404/500 « ne supporte pas les archives »
+- [ ] **Gestion utilisateurs** : liste, création, édition, désactivation, analytics par user
+- [ ] **Génération de données de test** : page test-data, création companies/applications/contacts/interviews/events/followups/calls
+- [ ] **Émulateur mobile** : page mobile-emulator
+- [ ] **Parcours utilisateur** : parcours personnalisé, parcours prédéfinis (admin / user), sauvegarde rapports, lien « Voir les rapports de parcours »
+- [ ] **Tests** : hub Tests, Tests API, Tests Backend, Tests Frontend, Tests Backoffice, Tests Sécurité, Performance, Programmer tests (schedule)
+- [ ] **API Tester** : page api-tester
+- [ ] **Email Monitor** : configuration, délivrabilité, historique, templates
+- [ ] **Services** : liste des services, détail par service (métriques, logs temps réel, requêtes) — Loki optionnel (ENOTFOUND si non déployé)
+
+### Fonctionnalités transverses
+- [ ] Logs en temps réel par service (endpoints logs par conteneur)
+- [ ] Monitoring unitaire par service (métriques, health)
+- [ ] Rapports de parcours (user-journey) enregistrés et listés (répertoire en Docker : `/tmp/user-journey-reports` ou `USER_JOURNEY_REPORTS_DIR`)
+- [ ] Parcours admin vs user : analytics et scénarios distincts
+- [ ] Pas d’erreur 500 sur les pages listées (BigInt, container_logs, ENOENT save-report corrigés ; user_events / Loki / archives documentés)
