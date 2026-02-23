@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 interface TestSchedule {
   id: string
   name: string
-  type: 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice'
+  type: 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails'
   interval: 'hourly' | 'daily' | 'weekly' | 'custom'
   customCron?: string
   enabled: boolean
@@ -32,7 +32,7 @@ export default function PerformanceTestsSchedulePage() {
   const [editingSchedule, setEditingSchedule] = useState<TestSchedule | null>(null)
   const [formData, setFormData] = useState({
     name: '',
-    type: 'both' as 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice',
+    type: 'both' as 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails',
     interval: 'daily' as 'hourly' | 'daily' | 'weekly' | 'custom',
     customCron: '',
     enabled: true
@@ -150,7 +150,16 @@ export default function PerformanceTestsSchedulePage() {
       if (schedule.type === 'backoffice') {
         await fetch('/api/test/run-backoffice', { method: 'POST' })
       }
-      
+      if (schedule.type === 'security') {
+        await fetch('/api/test/run-security', { method: 'POST' })
+      }
+      if (schedule.type === 'playwright') {
+        await fetch('/api/test/run-playwright', { method: 'POST' })
+      }
+      if (schedule.type === 'emails') {
+        await fetch('/api/test/run-emails', { method: 'POST' })
+      }
+
       alert('Tests lancés ! Consultez les rapports dans "Rapports de Tests"')
     } catch (error) {
       console.error('Erreur lancement tests:', error)
@@ -261,7 +270,10 @@ export default function PerformanceTestsSchedulePage() {
                            schedule.type === 'api' ? 'Tests API' :
                            schedule.type === 'backend' ? 'Tests Backend' :
                            schedule.type === 'frontend' ? 'Tests Frontend' :
-                           schedule.type === 'backoffice' ? 'Tests Backoffice' : schedule.type}
+                           schedule.type === 'backoffice' ? 'Tests Backoffice' :
+                           schedule.type === 'security' ? 'Tests Sécurité' :
+                           schedule.type === 'playwright' ? 'Tests Playwright' :
+                           schedule.type === 'emails' ? 'Tests Emails' : schedule.type}
                         </p>
                       </div>
                       <div>
@@ -382,6 +394,9 @@ export default function PerformanceTestsSchedulePage() {
                       <option value="backend">Tests Backend</option>
                       <option value="frontend">Tests Frontend</option>
                       <option value="backoffice">Tests Backoffice (E2E)</option>
+                      <option value="security">Tests Sécurité</option>
+                      <option value="playwright">Tests Playwright</option>
+                      <option value="emails">Tests Emails</option>
                     </optgroup>
                   </select>
                 </div>

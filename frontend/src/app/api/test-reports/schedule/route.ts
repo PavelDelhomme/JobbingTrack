@@ -18,7 +18,7 @@ const SCHEDULES_FILE = join(SCHEDULES_DIR, 'schedules.json')
 interface TestSchedule {
   id: string
   name: string
-  type: 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice'
+  type: 'performance-backend' | 'performance-frontend' | 'both' | 'api' | 'backend' | 'frontend' | 'backoffice' | 'security' | 'playwright' | 'emails'
   interval: 'hourly' | 'daily' | 'weekly' | 'custom'
   customCron?: string
   enabled: boolean

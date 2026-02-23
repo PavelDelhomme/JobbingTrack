@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id')
     const filePath = searchParams.get('path')
     const category = searchParams.get('category') // Nouveau: catégorie du rapport
+    const playwrightReport = searchParams.get('playwright') === '1' // Rapport HTML Playwright (captures d'écran)
 
     if (!id && !filePath) {
       return NextResponse.json(
@@ -74,7 +75,17 @@ export async function GET(request: NextRequest) {
         fullPath = join(REPORT_DIRS['user-journey'], `user-journey-${suffix}.json`)
       } else {
         // Format standard: YYYYMMDD-HHMMSS (tests results)
-        fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')
+        if (playwrightReport) {
+          // Rapport Playwright détaillé (avec captures d'écran) pour ce run
+          const playwrightPath = join(REPORT_DIRS['tests-results'], id, 'playwright-report', 'index.html')
+          if (existsSync(playwrightPath)) {
+            fullPath = playwrightPath
+          } else {
+            fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')
+          }
+        } else {
+          fullPath = join(REPORT_DIRS['tests-results'], id, 'report.html')
+        }
       }
     } else if (filePath) {
       // Support legacy

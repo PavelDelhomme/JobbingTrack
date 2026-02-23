@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_GATEWAY_URL || 'http://localhost:5002'
+// Côté serveur (conteneur frontend), utiliser l’URL interne Docker pour joindre l’API gateway
+const API_URL = process.env.API_GATEWAY_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
 
 /** Lance un test email minimal (vérification du service). Pas de rapport généré. */
 export async function POST(request: NextRequest) {
@@ -20,8 +21,10 @@ export async function POST(request: NextRequest) {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
+      const message = data.error || data.message || res.statusText
+      const detail = data.details || data.code ? ` (${[data.details, data.code].filter(Boolean).join(' — ')})` : ''
       return NextResponse.json(
-        { success: false, error: data.error || data.message || res.statusText },
+        { success: false, error: message ? `${message}${detail}` : 'Erreur lors de l\'envoi de l\'email de test. Vérifiez la configuration SMTP (auth-service).' },
         { status: res.status }
       )
     }
@@ -30,8 +33,9 @@ export async function POST(request: NextRequest) {
       message: 'Test email lancé (consultez la page Tests Emails pour plus d’options).',
     })
   } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erreur inconnue'
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' },
+      { success: false, error: msg.includes('fetch') || msg.includes('network') ? `${msg}. Vérifiez que l'auth-service est joignable (API_GATEWAY_URL).` : msg },
       { status: 500 }
     )
   }

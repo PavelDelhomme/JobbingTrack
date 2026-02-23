@@ -301,7 +301,10 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
           totalFailed = vulns
         }
       }
-      
+      // Cohérence globale : total = passed + failed (évite affichage "1 exécuté, 1 réussi, 2 échoués")
+      const sum = totalPassed + totalFailed
+      if (sum > 0 && totalTests !== sum) totalTests = sum
+
       // Déterminer le statut (éviter "unknown" : utiliser testResults[0].status si totalTests === 0)
       let status: 'success' | 'failed' | 'partial' | 'unknown' = 'partial'
       if (totalTests > 0) {
