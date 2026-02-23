@@ -468,7 +468,25 @@ ${scenario.steps.map(step => {
         {/* Liste des scénarios */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="p-6">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Scénarios de Test</h2>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Scénarios de Test</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedScenarios(scenarios.map(s => s.id))}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  Tout sélectionner
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedScenarios([])}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  Tout désélectionner
+                </button>
+              </div>
+            </div>
             
             {/* Filtres par catégorie */}
             <div className="flex flex-wrap gap-2 mb-6">

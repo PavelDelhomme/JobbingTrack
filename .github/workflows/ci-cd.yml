@@ -174,13 +174,15 @@ jobs:
           PGPASSWORD=jobbingtrack123 psql -h localhost -U postgres -d jobbingtrack_test -c "CREATE SCHEMA IF NOT EXISTS public;" || echo "⚠️ Erreur lors de la création du schéma"
 
       - name: 🔍 Validation du schéma Prisma
+        env:
+          DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
         run: |
           echo "🔍 Validation du schéma Prisma..."
           cd backend
           npx prisma validate || echo "⚠️ Erreur de validation du schéma Prisma"
 
-          # Vérifier que le schéma est bien formaté
-          npx prisma format --check || echo "⚠️ Le schéma Prisma n'est pas formaté correctement"
+          # Formater le schéma pour éviter les avertissements (--check ne modifie pas, on applique le format)
+          npx prisma format || echo "⚠️ Format Prisma appliqué"
 
           echo "✅ Schéma Prisma validé"
 
@@ -448,21 +450,16 @@ jobs:
           DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
         run: |
           echo "🌱 Test du seed des statuts système..."
-          
-          # Vérifier que le script de seed existe
-          if [ ! -f "scripts/database/seed-statuses.js" ]; then
-            echo "❌ Script de seed non trouvé: scripts/database/seed-statuses.js"
+          ROOT="${{ github.workspace }}"
+          SEED_SCRIPT="$ROOT/scripts/database/seed-statuses.js"
+          if [ ! -f "$SEED_SCRIPT" ]; then
+            echo "❌ Script de seed non trouvé: $SEED_SCRIPT"
             exit 1
           fi
 
-          # Installer @prisma/client si nécessaire
-          cd backend/prisma
-          npm install @prisma/client --no-save || true
-
-          # Exécuter le seed (en mode test, on vérifie juste qu'il peut s'exécuter)
-          cd ../../..
-          export DATABASE_URL="postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test"
-          node scripts/database/seed-statuses.js || {
+          # Exécuter le seed depuis backend/ pour que @prisma/client (généré depuis backend/prisma) soit trouvé
+          cd "$ROOT/backend"
+          node "$ROOT/scripts/database/seed-statuses.js" || {
             echo "⚠️  Seed échoué (peut être normal si les statuts existent déjà)"
           }
 

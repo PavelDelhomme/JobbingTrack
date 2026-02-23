@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 
 const createCompany = async (req, res, next) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utilisateur non identifié (token invalide ou absent)'
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -19,12 +26,12 @@ const createCompany = async (req, res, next) => {
     const company = await prisma.company.create({
       data: {
         userId: req.user.id,
-        name,
-        website,
-        industry,
-        size,
-        location,
-        description
+        name: name || 'Sans nom',
+        website: website || undefined,
+        industry: industry || undefined,
+        size: size || undefined,
+        location: location || undefined,
+        description: description || undefined
       }
     });
 
@@ -37,6 +44,19 @@ const createCompany = async (req, res, next) => {
     logger.info(`Entreprise créée: ${company.name}`);
   } catch (error) {
     logger.error('Erreur création entreprise:', error);
+    // P2003 = foreign key violation (ex. userId n'existe pas dans User)
+    if (error.code === 'P2003') {
+      return res.status(400).json({
+        success: false,
+        message: 'Utilisateur non trouvé en base. Vérifiez que le token correspond à un utilisateur existant.'
+      });
+    }
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: 'Une entreprise avec ce nom existe déjà pour cet utilisateur.'
+      });
+    }
     next(error);
   }
 };
