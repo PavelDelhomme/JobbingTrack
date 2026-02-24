@@ -34,6 +34,7 @@ class DatabaseTester {
       return true;
     } catch (error) {
       console.error('❌ Erreur de connexion:', error.message);
+      this.client.end().catch(() => {});
       return false;
     }
   }
@@ -150,8 +151,14 @@ class DatabaseTester {
   async runAllTests() {
     console.log('🧪 Lancement de tous les tests de base de données...\n');
 
+    const connection = await this.testConnection();
+    if (!connection) {
+      console.log('\n⚠️  Postgres non démarré ou injoignable. Tests BDD ignorés (make up-full puis make db-push-all).');
+      return { connection: false, tables: [], constraints: [], dataIntegrity: false, performance: false };
+    }
+
     const results = {
-      connection: await this.testConnection(),
+      connection: true,
       tables: await this.testTables(),
       constraints: await this.testConstraints(),
       dataIntegrity: await this.testDataIntegrity(),

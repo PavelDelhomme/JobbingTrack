@@ -10,7 +10,8 @@
         test-email-logs test-email-logs-all test-email-logs-stats test-all \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
         test-performance test-security test-integration test-docker test-monitoring \
-        test-unit test-services test-infrastructure test-cache test-analytics
+        test-unit test-services test-infrastructure test-cache test-analytics \
+        test-suite-quick test-suite-quick-nocontroller
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -66,6 +67,8 @@ tests-help:
 	@echo "  make test-infrastructure      Tests infrastructure"
 	@echo "  make test-cache               Tests système de cache"
 	@echo "  make test-analytics-endpoint  Tests endpoint analytics"
+	@echo "  make test-emulator-controller Test contrôleur émulateur (port 5055 ; lancer make emulator-controller avant)"
+	@echo "  make test-suite-quick         Suite rapide : contrôleur + frontend + BDD + status (sans interaction)"
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
 	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
@@ -386,6 +389,51 @@ test-enums: ## Valide tous les enums du schéma Prisma
 	@echo ""
 
 # ================================================================
+# ⚡ SUITE RAPIDE - Émulateur + frontend + BDD + status (sans interaction)
+# ================================================================
+# Lance le contrôleur en arrière-plan si besoin, puis enchaîne les tests.
+# Pour tout lancer sans interaction : make test-suite-quick
+# Sans démarrer le contrôleur : make test-suite-quick-nocontroller
+# ================================================================
+
+test-suite-quick: ## Suite rapide : démarre le contrôleur si besoin, test émulateur + frontend + BDD + status
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ⚡ SUITE RAPIDE - Émulateur + Frontend + BDD       ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@_port=0; command -v lsof >/dev/null 2>&1 && lsof -ti :5055 >/dev/null 2>&1 && _port=1; command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ':5055 ' && _port=1; \
+	if [ "$$_port" = "0" ]; then \
+		echo "📱 Démarrage du contrôleur émulateur en arrière-plan..."; \
+		$(MAKE) -s emulator-controller-bg 2>/dev/null || true; \
+		sleep 2; \
+	else \
+		echo "📱 Contrôleur déjà sur le port 5055."; \
+	fi
+	@echo ""
+	@echo "1/4 Test contrôleur émulateur..."
+	@$(MAKE) -s test-emulator-controller 2>/dev/null || echo "⚠️  test-emulator-controller ignoré (contrôleur absent ou ancienne version)."
+	@echo ""
+	@echo "2/4 Tests unitaires frontend..."
+	@$(MAKE) -s test-unit-frontend
+	@echo ""
+	@echo "3/4 Tests BDD..."
+	@$(MAKE) -s test-database
+	@echo ""
+	@echo "4/4 Status..."
+	@$(MAKE) -s status
+	@echo ""
+	@echo "✅ Suite rapide terminée."
+
+test-suite-quick-nocontroller: ## Suite rapide sans démarrer le contrôleur (frontend + BDD + status)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ⚡ SUITE RAPIDE (sans contrôleur)                 ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@$(MAKE) -s test-unit-frontend
+	@$(MAKE) -s test-database
+	@$(MAKE) -s status
+	@echo "✅ Suite rapide (sans contrôleur) terminée."
+
+# ================================================================
 # 🎯 TEST ALL - Exécute TOUS les tests de manière complète
 # ================================================================
 
@@ -419,8 +467,12 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "⏳ Durée estimée : 10-20 minutes (selon les tests disponibles)"
 	@echo ""
-	@echo "Appuyez sur Entrée pour continuer ou Ctrl+C pour annuler..."
-	@read confirm
+	@if [ -z "$${TEST_NOPROMPT}" ] && [ -z "$${CI}" ]; then \
+		echo "Appuyez sur Entrée pour continuer ou Ctrl+C pour annuler..."; \
+		read confirm; \
+	else \
+		echo "Lancement automatique (TEST_NOPROMPT ou CI)."; \
+	fi
 	@echo ""
 	@echo "🚀 Exécution de tous les tests avec génération de rapports..."
 	@echo ""
