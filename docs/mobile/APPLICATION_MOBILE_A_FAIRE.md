@@ -91,6 +91,8 @@ D’après `mobile/lib/main.dart` et `mobile/lib/screens/` :
 - **Backend / backoffice** : fournir les infos et APIs nécessaires (config, health, version) pour que l’environnement de test (URL API, etc.) soit correct.
 - **Création d’un AVD depuis l’interface (à faire)** : actuellement seuls les AVD déjà créés (Android Studio / `avdmanager`) sont listés ; prévoir un flux dans l’interface pour **créer un AVD** (choix de système d’image, API level, etc.) si besoin.
 
+**Tests** : `make test-emulator-controller` (contrôleur port 5055). Tests Jest page : `mobile-emulator/__tests__/mobile-emulator-page.test.tsx`.
+
 Référence implémentation actuelle : `frontend/src/app/(admin)/backoffice/mobile-emulator/page.tsx` (aujourd’hui : appareils simulés, URL manuelle, iframe, logs simulés ; à étendre avec ADB réel et logs logcat). Démarrer sur téléphone : USB + débogage USB ; make emulator-controller (dernier code) ; rafraîchir appareils, sélectionner le téléphone ; Build APK puis Installer et lancer. Logs Flutter run = terminal du contrôleur ; à faire : streamer dans l'UI. À faire plus tard : AVD depuis l'UI, logs en direct.
 
 ---

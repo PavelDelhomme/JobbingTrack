@@ -1,6 +1,6 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 23 février 2026 (Application mobile – premières étapes auth faites : login, inscription, vérification email, mot de passe oublié, reset password)
+**Dernière mise à jour** : 23 février 2026 – **Émulateur** : contrôleur v2 avec GET /flutter-devices et POST /input-tap (redémarrer avec `make emulator-controller-stop` puis `make emulator-controller`). **Tests** : `make test-emulator-controller` (vérifie /health, /avds, /devices, /flutter-devices) ; `make test-suite-quick` lance contrôleur si besoin + test émulateur + frontend + BDD + status sans interaction ; `make test-all` avec `TEST_NOPROMPT=1` ne demande plus Entrée. **BDD** : si Postgres est down, les tests BDD s’arrêtent proprement (pas de « Client already connected »). **Frontend** : test-unit-frontend en local tente `npm install` si jest absent.
 
 ---
 
@@ -103,13 +103,16 @@ Récapitulatif complet : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** (comporte
 
 **Objectif** : pouvoir **démarrer le projet** et **tester l’app mobile** directement depuis l’interface backoffice (Émulateur mobile) : **build d’APK** et **run du projet** dans l’interface pour avoir une **vraie app qui tourne et se voit** dans l’émulateur.
 
-- [ ] **Build APK** : lancer le **build Android (APK)** du projet Flutter depuis l’interface (ou script déclenché par le backoffice), mode debug ou release selon besoin.
-- [ ] **Run du projet** : **démarrer le projet** (ex. `flutter run` ou installation APK + lancement) depuis l’interface pour que l’app s’exécute sur l’appareil/émulateur et soit **visible** (rendu réel).
-- [ ] Lister les **appareils connectés en ADB** (machine hôte) et **sélectionner l’appareil** dans l’interface.
-- [ ] **Rendu** de l’app (streaming écran ou iframe si applicable) et **démarrer / arrêter** avec sortie et logs dans l’interface.
-- [ ] **Logs Android (logcat)** en temps réel avec **filtre** (logs JobbingTrack uniquement si possible).
-- [ ] **Installer un APK** (upload / chemin) sur l’appareil sélectionné.
-- [ ] Backoffice/backend : config, health, version pour environnement de test.
+**Tests ajoutés** : `make test-emulator-controller` (vérifie GET /health, /avds, /devices, /flutter-devices – le contrôleur doit être démarré). Tests Jest de la page : `frontend/src/app/(admin)/backoffice/mobile-emulator/__tests__/mobile-emulator-page.test.tsx` (rendu, boutons, appel /health). Voir `make tests-help` pour la liste des tests.
+
+- [x] **Contrôleur v2** : routes /health, /avds, /devices, /flutter-devices, /build-apk (toujours 200), /install-run, /run-flutter, /input-tap. Copie gradle writable si SDK en lecture seule. Gradle 8.13 (wrapper).
+- [ ] **Build APK** : lancer le build depuis l’interface (fonctionne si contrôleur v2 démarré : `make emulator-controller-stop` puis `make emulator-controller`).
+- [ ] **Run du projet** : Flutter run ou **Installer et lancer** (APK) depuis l’interface sur l’appareil sélectionné.
+- [x] Lister les **appareils ADB** et **sélectionner l’appareil** dans l’interface.
+- [x] **Rendu** : capture d’écran (screenshot) de l’appareil en temps réel. Boutons Copier / Effacer pour les logs.
+- [ ] **Logs Android (logcat)** en temps réel dans l’interface (à faire : streamer dans l’UI ; pour l’instant logs Flutter run = terminal du contrôleur).
+- [x] **Installer et lancer** l’APK sur l’appareil sélectionné (bouton « Installer et lancer »).
+- [x] Health, version (GET /health avec version: 2) pour environnement de test.
 
 ### Écrans mobiles (à valider un par un)
 

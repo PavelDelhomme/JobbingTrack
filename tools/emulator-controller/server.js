@@ -212,26 +212,62 @@ const routes = {
     try {
       const deviceId = body && body.deviceId;
       if (!deviceId) {
-        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "..." } requis' });
       }
       const child = spawn('flutter', ['run', '-d', deviceId, '--no-pub'], {
         cwd: MOBILE_PATH,
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: envWithAndroid(),
+        detached: true,
       });
-      let stdout = '';
-      let stderr = '';
-      child.stdout.on('data', (d) => { stdout += d.toString(); });
-      child.stderr.on('data', (d) => { stderr += d.toString(); });
-      child.on('close', (code) => {
-        send(res, 200, {
-          success: code === 0,
-          exitCode: code,
-          stdout: stdout.slice(-3000),
-          stderr: stderr.slice(-2000),
-        });
-      });
+      child.unref();
+      child.stdout.on('data', (d) => process.stdout.write(d));
+      child.stderr.on('data', (d) => process.stderr.write(d));
+      child.on('error', (e) => console.error('flutter run error:', e.message));
+      send(res, 200, { success: true, message: 'Flutter run démarré. Logs dans le terminal du contrôleur.' });
     } catch (e) {
-      send(res, 500, { success: false, error: e.message });
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/flutter-devices'(req, res) {
+    try {
+      const { stdout } = await execPromise('flutter devices --machine', { cwd: MOBILE_PATH });
+      let devices = [];
+      try {
+        const trimmed = stdout.trim();
+        const parsed = JSON.parse(trimmed);
+        const arr = Array.isArray(parsed) ? parsed : [parsed];
+        devices = arr.map((o) => ({ id: o.id, name: o.name || o.id, platform: o.platformType || o.platform }));
+      } catch (_) {
+        const lines = stdout.trim().split('\n').filter(Boolean);
+        devices = lines.map((line) => {
+          try {
+            const o = JSON.parse(line);
+            return { id: o.id, name: o.name || o.id, platform: o.platformType || o.platform };
+          } catch (e2) {
+            return null;
+          }
+        }).filter(Boolean);
+      }
+      send(res, 200, { success: true, devices });
+    } catch (e) {
+      send(res, 200, { success: true, devices: [], error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/input-tap'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const x = body && typeof body.x === 'number' ? Math.round(body.x) : null;
+      const y = body && typeof body.y === 'number' ? Math.round(body.y) : null;
+      if (!deviceId || x == null || y == null || x < 0 || y < 0) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "x": number, "y": number } requis' });
+      }
+      await execPromise(`adb -s ${deviceId} shell input tap ${x} ${y}`);
+      send(res, 200, { success: true, message: `Tap (${x}, ${y})` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
     }
   },
 
@@ -277,7 +313,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    if (req.method === 'POST' && (pathname === '/start-avd' || pathname === '/build-apk' || pathname === '/install-run' || pathname === '/run-flutter')) {
+    if (req.method === 'POST' && (pathname === '/start-avd' || pathname === '/build-apk' || pathname === '/install-run' || pathname === '/run-flutter' || pathname === '/input-tap')) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });
       req.on('end', () => {

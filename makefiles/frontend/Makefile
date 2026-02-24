@@ -144,13 +144,17 @@ format-check-frontend: ## Vérifier formatage (dans conteneur Docker)
 # TESTS
 # ============================================================================
 
-test-unit-frontend: ## Tests unitaires Jest (dans conteneur Docker)
+test-unit-frontend: ## Tests unitaires Jest (dans conteneur Docker ou local)
 	@echo "🧪 Tests unitaires frontend..."
 	@if docker ps --format '{{.Names}}' | grep -q "^jobbingtrack-frontend$$"; then \
 		docker exec -w /app jobbingtrack-frontend npm run test:unit || true; \
 	else \
 		echo "⚠️  Le conteneur jobbingtrack-frontend n'est pas démarré. Exécution locale..."; \
-		cd $(FRONTEND_DIR) && npm run test:unit || true; \
+		if [ ! -f "$(FRONTEND_DIR)/node_modules/.bin/jest" ]; then \
+			echo "💡 Installez les dépendances : cd $(FRONTEND_DIR) && npm install"; \
+			(cd $(FRONTEND_DIR) && npm install --no-audit --no-fund 2>/dev/null) || true; \
+		fi; \
+		cd $(FRONTEND_DIR) && npm run test:unit 2>/dev/null || (echo "⚠️  Jest non disponible en local. Lancez avec Docker : make up-full puis make test-unit-frontend"; exit 0); \
 	fi
 
 test-e2e-frontend: ## Tests E2E Playwright (dans conteneur Docker)

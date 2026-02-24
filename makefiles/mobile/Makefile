@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop help-emulator
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop help-emulator test-emulator-controller
 
 # Démarrer le contrôleur d'émulateur (foreground - garder le terminal ouvert)
 emulator-controller: ## Démarrer le contrôleur d'émulateur Android (port 5055). Démarre aussi automatiquement avec make up-full ; utilisez cette cible pour le lancer manuellement ou en 2e terminal
@@ -45,6 +45,13 @@ emulator-controller-stop: ## Arrêter le contrôleur d'émulateur (libère le po
 	else \
 		pkill -f "node server.js" 2>/dev/null; sleep 2; echo "ℹ️  Si EADDRINUSE persiste : lsof -i :5055 puis kill -9 <PID>"; \
 	fi
+
+# Tester le contrôleur (doit être démarré sur le port 5055)
+test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, /avds, /devices, /flutter-devices). Lancez make emulator-controller avant.
+	@if [ ! -f "$(EMULATOR_CONTROLLER_DIR)/test-server.js" ]; then \
+		echo "❌ Fichier introuvable : $(EMULATOR_CONTROLLER_DIR)/test-server.js"; exit 1; \
+	fi
+	@cd "$(ROOT_DIR)" && node "$(EMULATOR_CONTROLLER_DIR)/test-server.js"
 
 # Aide émulateur mobile
 help-emulator: ## Aide : tester l'app mobile en direct depuis le backoffice (émulateur ou téléphone connecté)
