@@ -1,0 +1,37 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  deploy-dev:
+    name: Deploy environnement dev
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resume deploiement dev
+        run: |
+          echo "## Deploiement Dev - JobbingTrack" >> $GITHUB_STEP_SUMMARY
+          echo "- Branche: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "Configurer DEV_DEPLOY_URL pour activer le deploiement reel."
+
+      - name: Deploiement (placeholder)
+        run: |
+          if [ -n "${{ secrets.DEV_DEPLOY_URL }}" ]; then
+            curl -f -X POST "${{ secrets.DEV_DEPLOY_URL }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}" || true
+          else
+            echo "DEV_DEPLOY_URL non defini : deploiement dev non execute."
+          fi

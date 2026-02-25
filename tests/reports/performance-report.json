@@ -1,12 +1,12 @@
 {
-  "timestamp": "2025-10-25T14:08:04.911Z",
+  "timestamp": "2026-02-24T23:27:52.220Z",
   "api": [
     {
       "service": "apiGateway",
       "path": "/health",
       "method": "GET",
       "success": true,
-      "duration": 16.323372999999997,
+      "duration": 17.620558000000003,
       "status": 200
     },
     {
@@ -14,7 +14,7 @@
       "path": "/health",
       "method": "GET",
       "success": true,
-      "duration": 2.7836779999999948,
+      "duration": 3.329690999999997,
       "status": 200
     }
   ],
@@ -25,7 +25,7 @@
         "endpoint": "/health",
         "successful": 20,
         "total": 20,
-        "averageTime": 8.836509499999998,
+        "averageTime": 10.203560499999998,
         "successRate": "100.0%"
       },
       {
@@ -33,28 +33,28 @@
         "endpoint": "/health",
         "successful": 15,
         "total": 15,
-        "averageTime": 11.540540799999997,
+        "averageTime": 8.568451866666662,
         "successRate": "100.0%"
       }
     ],
     "overall": {
       "successful": 35,
       "total": 35,
-      "averageTime": 10.188525149999997,
+      "averageTime": 9.386006183333329,
       "successRate": "100.0%"
     }
   },
   "memory": {
     "systemMetrics": {
-      "memory": {
-        "total": 0,
-        "used": 0,
-        "percentage": 0,
-        "containers": 0
-      },
       "cpu": {
         "usage": 0,
         "cores": 1,
+        "model": "N/A"
+      },
+      "memory": {
+        "total": 0,
+        "used": 0,
+        "free": 0,
         "percentage": 0
       },
       "disk": {
@@ -64,34 +64,33 @@
         "percentage": 0
       },
       "load": 0,
-      "containers": 0,
-      "dataSource": "cadvisor"
+      "dataSource": "systeminformation not installed"
     },
     "processMemoryIncrease": {
-      "rss": 401309696,
-      "heapUsed": 318745664,
-      "heapTotal": 388833280
+      "rss": 304148480,
+      "heapUsed": 279418328,
+      "heapTotal": 297795584
     },
-    "timestamp": "2025-10-25T14:08:06.404Z"
+    "timestamp": "2026-02-24T23:27:53.737Z"
   },
   "summary": {
     "totalTests": 4,
     "successfulTests": 4,
-    "averageResponseTime": 9.553525499999996,
+    "averageResponseTime": 10.4751245,
     "totalRequests": 35,
     "successfulRequests": 35
   },
   "system": {
     "platform": "linux",
-    "nodeVersion": "v24.7.0",
+    "nodeVersion": "v22.22.0",
     "memory": {
-      "rss": 509648896,
-      "heapTotal": 409047040,
-      "heapUsed": 332447664,
-      "external": 3320718,
-      "arrayBuffers": 19172
+      "rss": 385441792,
+      "heapTotal": 317595648,
+      "heapUsed": 292344680,
+      "external": 3455209,
+      "arrayBuffers": 67960
     },
-    "uptime": 1.542728512,
-    "timestamp": "2025-10-25T14:08:06.404Z"
+    "uptime": 1.582514826,
+    "timestamp": "2026-02-24T23:27:53.737Z"
   }
 }

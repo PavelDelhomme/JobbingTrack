@@ -430,7 +430,7 @@ export default function TestReportsPage() {
                 📊 Rapports de Tests
               </h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Consultez tous les rapports HTML générés par les tests
+                Consultez tous les rapports HTML générés par les tests (hub ou ligne de commande). Les rapports <strong>Suite CLI</strong> proviennent de <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">make test-all</code> ou <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">run-all-tests-with-reports.sh</code>.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">

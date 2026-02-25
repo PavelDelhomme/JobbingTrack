@@ -1,6 +1,8 @@
 const WebSocket = require('ws');
 const http = require('http');
 
+const METRICS_BASE = process.env.METRICS_AGGREGATOR_URL || process.env.METRICS_SERVICE_URL || 'http://localhost:5004';
+
 // Test du système complet
 async function testFullSystem() {
   console.log('🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES');
@@ -10,7 +12,8 @@ async function testFullSystem() {
   console.log('\n📡 Test API REST:');
   try {
     const response = await new Promise((resolve, reject) => {
-      http.get('http://localhost:3014/health', (res) => {
+      const url = new URL('/health', METRICS_BASE).href;
+      http.get(url, (res) => {
         let data = '';
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(data) }));
@@ -25,7 +28,8 @@ async function testFullSystem() {
   console.log('\n📊 Test Métriques système:');
   try {
     const response = await new Promise((resolve, reject) => {
-      http.get('http://localhost:3014/api/v1/metrics', (res) => {
+      const url = new URL('/api/v1/metrics', METRICS_BASE).href;
+      http.get(url, (res) => {
         let data = '';
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(data) }));
@@ -41,8 +45,9 @@ async function testFullSystem() {
 
   // 3. Test WebSocket
   console.log('\n🔌 Test WebSocket:');
+  const wsUrl = METRICS_BASE.replace(/^http/, 'ws');
   return new Promise((resolve) => {
-    const ws = new WebSocket('ws://localhost:3014');
+    const ws = new WebSocket(wsUrl);
     let connected = false;
     let receivedData = false;
 
@@ -88,8 +93,7 @@ async function testFullSystem() {
 
 testFullSystem().then(() => {
   console.log('\n🎉 TEST TERMINÉ');
-
-  describe('Error handling', () => {
-    test.skip('should handle network errors', () => {
-      // TODO: Implémenter le test de gestion des erreurs réseau
-    });
+}).catch((err) => {
+  console.error('❌ Erreur:', err);
+  process.exit(1);
+});

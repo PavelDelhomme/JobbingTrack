@@ -1,0 +1,14 @@
+{
+  "testName": "Email Logs",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;"",
+  "timestamp": "2026-02-24T16:47:26+01:00",
+  "duration": 0,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "output": "            id             |             to             |                    subject                     |     type     | status  |           sentAt           |         createdAt          \n---------------------------+----------------------------+------------------------------------------------+--------------+---------+----------------------------+----------------------------\n cmm0s44m8000a136q80733tqm | verify-1771948043@test.com | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-24 15:47:23.437+00 | 2026-02-24 15:47:23.36+00\n cmm0s44lt0008136qqediz7e1 | verify-1771948043@test.com | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | PENDING |                            | 2026-02-24 15:47:23.345+00\n cmm0pg2z50005136qtb2v91o0 | verify-1771943556@test.com | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-02-24 14:32:46.371+00 | 2026-02-24 14:32:42.257+00\n cmm0pfz4a0004136q0z9zggw4 | verify-1771943556@test.com | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-24 14:32:37.402+00 | 2026-02-24 14:32:37.258+00\n cmm0pfz3x0002136qf5edwi4q | verify-1771943556@test.com | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | SENT    | 2026-02-24 14:32:46.375+00 | 2026-02-24 14:32:37.246+00\n(5 rows)\n"
+}

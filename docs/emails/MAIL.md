@@ -81,19 +81,39 @@ Routes auth : `backend/auth-service/src/routes/email.routes.js` et `template.rou
 
 ---
 
-## 6. Tests et développement
+## 6. MailHog (développement et tests E2E)
+
+En **dev/test**, vous pouvez utiliser **MailHog** pour capturer tous les emails sans envoyer de vrais mails :
+
+- **Démarrage** : MailHog est inclus dans le profil **full** (`make up-full`) ou le profil **mail** :
+  - `COMPOSE_PROFILES=mail docker compose up -d` pour n’avoir que MailHog + les services essentiels, ou
+  - `make up-full` pour toute la stack avec MailHog.
+- **Ports** : SMTP `2525` (host) → 1025 (conteneur), Web UI **8025**.
+- **Configuration auth-service** : dans `.env` ou variables du conteneur :
+  - `SMTP_HOST=mailhog`
+  - `SMTP_PORT=1025`
+  (Pas d’authentification ; depuis un autre conteneur, utiliser le service `mailhog` et le port `1025`.)
+- **Interface** : http://localhost:8025 pour consulter les messages capturés.
+- **Tests E2E Playwright** : `tests/e2e/specs/admin-emails-mailhog.spec.ts` envoie un email de test via l’API, vérifie la réception dans MailHog (API), ouvre l’interface MailHog et peut extraire les liens (ex. reset password) pour ouvrir la page et simuler le clic. Prérequis : stack avec MailHog + auth-service configuré en SMTP vers MailHog.
+
+Variables optionnelles : `MAILHOG_WEB_URL` (défaut http://localhost:8025), `MAILHOG_SMTP_PORT` / `MAILHOG_WEB_PORT` dans docker-compose.
+
+---
+
+## 7. Tests et développement (suite)
 
 - **Tests API** : `tests/api/test-email-endpoints.test.js` (logs, test-smtp, stats, envoi test).
 - **Script global** : `scripts/test-api-specific.sh` inclut déjà les appels emails (logs, stats).
 - **Parcours utilisateur** : `frontend/src/app/(admin)/backoffice/user-journey` — appels à `/api/v1/emails/test` (générique, reset, vérification) ; à garder et valider.
 - **Données de test** : prévoir des utilisateurs avec email pour tester reset password et vérification (inscription).
 - **Intégration** : exécuter les tests mail dans le run de dev (make ou script de tests) et vérifier que le parcours utilisateur et les stats backoffice reflètent bien les envois.
+- **Tests E2E + MailHog** : voir section 6 ci-dessus ; spec `admin-emails-mailhog.spec.ts`.
 
 Commandes utiles (auth-service) : voir **`backend/auth-service/PYTHON_EMAIL_SETUP.md`** (`make test-email-python`, etc.).
 
 ---
 
-## 7. État actuel et récap
+## 8. État actuel et récap
 
 - **Tests DNS** : OK (MX, SPF). **Connexion SMTP** : OK (noreply@maily.ovh, ssl0.ovh.net:587). **Envoi de test** : les emails arrivent en boîte mail, mais l’interface affiche une erreur car la table **EmailLog** n’existe pas. **Solution** : `make db-push-all` pour créer la table.
 - **Reply-To** : `noreply@jobbingtrack.com` (pas de réponse attendue). Headers `Auto-Submitted: auto-generated` et `X-Auto-Response-Suppress: All` ajoutés.

@@ -525,6 +525,7 @@ export default function UserJourneyPage() {
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isCancelled, setIsCancelled] = useState(false);
+  const isCancelledRef = useRef(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [testToken, setTestToken] = useState<string | null>(null);
   const [isGeneratingToken, setIsGeneratingToken] = useState(false);
@@ -663,8 +664,11 @@ export default function UserJourneyPage() {
     return [];
   };
 
-  // Exécuter une étape
-  const executeStep = async (step: JourneyStep): Promise<{ success: boolean; result?: any; error?: string; duration: number }> => {
+  // Exécuter une étape (sessionToken = token obtenu lors d'un login/register précédent dans ce run)
+  const executeStep = async (
+    step: JourneyStep,
+    sessionToken: string | null
+  ): Promise<{ success: boolean; result?: any; error?: string; duration: number; newToken?: string }> => {
     const startTime = Date.now();
     
     try {
@@ -684,9 +688,10 @@ export default function UserJourneyPage() {
           });
           result = await handleFetchResponse(registerRes);
           
-          // Sauvegarder le token pour les prochaines requêtes
+          // Sauvegarder le token pour les prochaines requêtes (session parcours)
           if (result.token) {
             localStorage.setItem('token', result.token);
+            return { success: true, result, duration: Date.now() - startTime, newToken: result.token };
           }
           break;
 
@@ -717,9 +722,10 @@ export default function UserJourneyPage() {
           });
           result = await handleFetchResponse(loginRes);
           
-          // Sauvegarder le token
+          // Sauvegarder le token pour les étapes suivantes (session parcours)
           if (result.token) {
             localStorage.setItem('token', result.token);
+            return { success: true, result, duration: Date.now() - startTime, newToken: result.token };
           }
           break;
 
@@ -730,7 +736,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 name: `Entreprise Test ${i + 1}`,
@@ -747,7 +753,7 @@ export default function UserJourneyPage() {
 
         case 'update_companies':
           const companiesListRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const existingCompanies = await handleFetchResponse(companiesListRes);
           const companiesToUpdate = extractList(existingCompanies, 'companies');
@@ -757,7 +763,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 industry: ['retail', 'manufacturing', 'services'][i % 3],
@@ -778,7 +784,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 companyName: `Entreprise Test ${i + 1}`,
@@ -795,7 +801,7 @@ export default function UserJourneyPage() {
 
         case 'update_applications':
           const appsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const existingApps = await handleFetchResponse(appsRes);
           const appsToUpdate = extractList(existingApps, 'applications');
@@ -805,7 +811,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 status: ['FIRST_INTERVIEW_PENDING', 'OFFER_RECEIVED', 'ACCEPTED_AFTER_INTERVIEW'][i % 3],
@@ -825,7 +831,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 firstName: `Contact${i + 1}`,
@@ -842,7 +848,7 @@ export default function UserJourneyPage() {
 
         case 'update_contacts':
           const contactsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const existingContacts = await handleFetchResponse(contactsRes);
           const contactsToUpdate = extractList(existingContacts, 'contacts');
@@ -852,7 +858,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 phone: `+336${Math.floor(Math.random() * 100000000)}`,
@@ -868,7 +874,7 @@ export default function UserJourneyPage() {
 
         case 'schedule_interviews':
           const appsForInterviewsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForInterviewsPayload = await handleFetchResponse(appsForInterviewsRes);
           const appsForInterviews = extractList(appsForInterviewsPayload, 'applications');
@@ -882,7 +888,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 applicationId: appsForInterviews[i].id,
@@ -900,7 +906,7 @@ export default function UserJourneyPage() {
 
         case 'create_events':
           const appsForEventsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForEventsPayload = await handleFetchResponse(appsForEventsRes);
           const appsForEvents = extractList(appsForEventsPayload, 'applications');
@@ -917,7 +923,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -936,7 +942,7 @@ export default function UserJourneyPage() {
 
         case 'create_followups':
           const appsForFollowupsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForFollowupsPayload = await handleFetchResponse(appsForFollowupsRes);
           const appsForFollowups = extractList(appsForFollowupsPayload, 'applications');
@@ -946,7 +952,7 @@ export default function UserJourneyPage() {
           }
 
           const contactsForFollowupsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const contactsForFollowupsPayload = await handleFetchResponse(contactsForFollowupsRes);
           const contactsForFollowups = extractList(contactsForFollowupsPayload, 'contacts');
@@ -959,7 +965,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -977,7 +983,7 @@ export default function UserJourneyPage() {
 
         case 'make_calls':
           const appsForCallsRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForCallsPayload = await handleFetchResponse(appsForCallsRes);
           const appsForCalls = extractList(appsForCallsPayload, 'applications');
@@ -987,7 +993,7 @@ export default function UserJourneyPage() {
           }
 
           const contactsForCallsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const contactsForCallsPayload = await handleFetchResponse(contactsForCallsRes);
           const contactsForCalls = extractList(contactsForCallsPayload, 'contacts');
@@ -1000,7 +1006,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 applicationId: targetApp.id,
@@ -1021,7 +1027,7 @@ export default function UserJourneyPage() {
         case 'test_mobile_calendar':
           const calendarRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
             headers: { 
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             }
           });
           const calendarEvents = await handleFetchResponse(calendarRes);
@@ -1036,7 +1042,7 @@ export default function UserJourneyPage() {
         case 'view_statistics':
           const statsRes = await fetch(`${API_GATEWAY_URL}/api/v1/statistics`, {
             headers: { 
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             }
           });
           result = await handleFetchResponse(statsRes);
@@ -1045,13 +1051,13 @@ export default function UserJourneyPage() {
         // Nouvelles étapes granulaires
         case 'link_contact_to_application':
           const appsForLinkRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForLink = await handleFetchResponse(appsForLinkRes);
           const appsArray = extractList(appsForLink, 'applications');
           
           const contactsForLinkRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const contactsForLink = await handleFetchResponse(contactsForLinkRes);
           const contactsArray = extractList(contactsForLink, 'contacts');
@@ -1061,7 +1067,7 @@ export default function UserJourneyPage() {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 contactId: contactsArray[0].id
@@ -1075,14 +1081,14 @@ export default function UserJourneyPage() {
 
         case 'view_contact_details':
           const contactsListRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const contactsList = await handleFetchResponse(contactsListRes);
           const contactsListArray = extractList(contactsList, 'contacts');
           
           if (contactsListArray.length > 0) {
             const detailsRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsListArray[0].id}`, {
-              headers: { 'Authorization': `Bearer ${testToken || token}` }
+              headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
             });
             result = await handleFetchResponse(detailsRes);
           } else {
@@ -1092,7 +1098,7 @@ export default function UserJourneyPage() {
 
         case 'delete_contact':
           const contactsToDeleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const contactsToDelete = await handleFetchResponse(contactsToDeleteRes);
           const contactsToDeleteArray = extractList(contactsToDelete, 'contacts');
@@ -1100,7 +1106,7 @@ export default function UserJourneyPage() {
           if (contactsToDeleteArray.length > 0) {
             const deleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/contacts/${contactsToDeleteArray[contactsToDeleteArray.length - 1].id}`, {
               method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${testToken || token}` }
+              headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
             });
             result = await handleFetchResponse(deleteRes);
           } else {
@@ -1110,7 +1116,7 @@ export default function UserJourneyPage() {
 
         case 'update_interview_status':
           const interviewsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const interviewsToUpdate = await handleFetchResponse(interviewsToUpdateRes);
           const interviewsArray = extractList(interviewsToUpdate, 'interviews');
@@ -1120,7 +1126,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 status: 'COMPLETED'
@@ -1134,7 +1140,7 @@ export default function UserJourneyPage() {
 
         case 'add_interview_notes':
           const interviewsForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const interviewsForNotes = await handleFetchResponse(interviewsForNotesRes);
           const interviewsForNotesArray = extractList(interviewsForNotes, 'interviews');
@@ -1144,7 +1150,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 notes: 'Notes ajoutées automatiquement lors du test - Entretien très positif'
@@ -1158,7 +1164,7 @@ export default function UserJourneyPage() {
 
         case 'update_followup_status':
           const followupsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const followupsToUpdate = await handleFetchResponse(followupsToUpdateRes);
           const followupsArray = extractList(followupsToUpdate, 'followups');
@@ -1168,7 +1174,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 status: 'NO_RESPONSE',
@@ -1183,7 +1189,7 @@ export default function UserJourneyPage() {
 
         case 'mark_followup_completed':
           const followupsToCompleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/followups`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const followupsToComplete = await handleFetchResponse(followupsToCompleteRes);
           const followupsToCompleteArray = extractList(followupsToComplete, 'followups');
@@ -1193,7 +1199,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 status: 'POSITIVE_RESPONSE',
@@ -1208,7 +1214,7 @@ export default function UserJourneyPage() {
 
         case 'update_event':
           const eventsToUpdateRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const eventsToUpdate = await handleFetchResponse(eventsToUpdateRes);
           const eventsToUpdateArray = extractList(eventsToUpdate, 'events');
@@ -1218,7 +1224,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 title: 'Événement mis à jour - Test',
@@ -1232,16 +1238,16 @@ export default function UserJourneyPage() {
           break;
 
         case 'delete_event':
-          const eventsToDeleteRes = await fetch('/api/v1/events', {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+          const eventsToDeleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const eventsToDelete = await handleFetchResponse(eventsToDeleteRes);
           const eventsToDeleteArray = extractList(eventsToDelete, 'events');
           
           if (eventsToDeleteArray.length > 0) {
-            const deleteRes = await fetch(`/api/v1/events/${eventsToDeleteArray[eventsToDeleteArray.length - 1].id}`, {
+            const deleteRes = await fetch(`${API_GATEWAY_URL}/api/v1/events/${eventsToDeleteArray[eventsToDeleteArray.length - 1].id}`, {
               method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${testToken || token}` }
+              headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
             });
             result = await handleFetchResponse(deleteRes);
           } else {
@@ -1252,7 +1258,7 @@ export default function UserJourneyPage() {
         case 'view_calendar':
           const calendarViewRes = await fetch(`${API_GATEWAY_URL}/api/v1/events`, {
             headers: { 
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             }
           });
           const calendarView = await handleFetchResponse(calendarViewRes);
@@ -1266,7 +1272,7 @@ export default function UserJourneyPage() {
 
         case 'add_company_notes':
           const companiesForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/companies`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const companiesForNotes = await handleFetchResponse(companiesForNotesRes);
           const companiesForNotesArray = extractList(companiesForNotes, 'companies');
@@ -1276,7 +1282,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 description: 'Notes ajoutées automatiquement - Entreprise très intéressante',
@@ -1291,7 +1297,7 @@ export default function UserJourneyPage() {
 
         case 'add_application_notes':
           const appsForNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForNotes = await handleFetchResponse(appsForNotesRes);
           const appsForNotesArray = extractList(appsForNotes, 'applications');
@@ -1301,7 +1307,7 @@ export default function UserJourneyPage() {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 notes: 'Notes automatiques - candidature prometteuse',
@@ -1316,17 +1322,17 @@ export default function UserJourneyPage() {
 
         case 'update_application_status':
           const appsForStatusRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications`, {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const appsForStatus = await handleFetchResponse(appsForStatusRes);
           const appsForStatusArray = extractList(appsForStatus, 'applications');
           
           if (appsForStatusArray.length > 0) {
-            const statusRes = await fetch(`/api/v1/applications/${appsForStatusArray[0].id}`, {
+            const statusRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appsForStatusArray[0].id}`, {
               method: 'PUT',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${testToken || token}`
+                'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
               },
               body: JSON.stringify({
                 status: 'FIRST_INTERVIEW_PENDING'
@@ -1339,8 +1345,8 @@ export default function UserJourneyPage() {
           break;
 
         case 'check_interviews':
-          const upcomingInterviewsRes = await fetch('/api/v1/interviews', {
-            headers: { 'Authorization': `Bearer ${testToken || token}` }
+          const upcomingInterviewsRes = await fetch(`${API_GATEWAY_URL}/api/v1/interviews`, {
+            headers: { 'Authorization': `Bearer ${sessionToken ?? testToken ?? token}` }
           });
           const upcomingInterviews = await handleFetchResponse(upcomingInterviewsRes);
           const interviewList = extractList(upcomingInterviews, 'interviews');
@@ -1354,11 +1360,11 @@ export default function UserJourneyPage() {
         case 'test_email_generic':
           // Envoyer un email de test générique
           const testEmail = localStorage.getItem('testEmail') || `test-${Date.now()}@example.com`;
-          const genericEmailRes = await fetch('/api/v1/emails/test', {
+          const genericEmailRes = await fetch(`${API_GATEWAY_URL}/api/v1/emails/test`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             },
             body: JSON.stringify({
               to: testEmail,
@@ -1373,11 +1379,11 @@ export default function UserJourneyPage() {
         case 'test_email_reset_password':
           // Envoyer un email de reset password
           const testResetEmail = localStorage.getItem('testEmail') || `test-reset-${Date.now()}@example.com`;
-          const resetEmailRes = await fetch('/api/v1/emails/test', {
+          const resetEmailRes = await fetch(`${API_GATEWAY_URL}/api/v1/emails/test`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             },
             body: JSON.stringify({
               to: testResetEmail,
@@ -1391,11 +1397,11 @@ export default function UserJourneyPage() {
         case 'test_email_verification':
           // Envoyer un email de vérification
           const testVerifyEmail = localStorage.getItem('testEmail') || `test-verify-${Date.now()}@example.com`;
-          const verifyEmailRes = await fetch('/api/v1/emails/test', {
+          const verifyEmailRes = await fetch(`${API_GATEWAY_URL}/api/v1/emails/test`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             },
             body: JSON.stringify({
               to: testVerifyEmail,
@@ -1409,7 +1415,7 @@ export default function UserJourneyPage() {
         case 'verify_email':
           // Récupérer le token de vérification depuis le dernier utilisateur créé
           // Pour le test, on simule la vérification
-          const verifyRes = await fetch('/api/v1/auth/verify-email/test-token-simulation', {
+          const verifyRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/verify-email/test-token-simulation`, {
             method: 'GET'
           });
           
@@ -1477,7 +1483,7 @@ export default function UserJourneyPage() {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${testToken || token}`
+              'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             },
             body: JSON.stringify({
               onlyTestData: true // Nettoyer uniquement les données isTestData=true
@@ -1516,12 +1522,15 @@ export default function UserJourneyPage() {
     const startTime = Date.now();
     const failedSteps: string[] = [];
     let wasCancelled = false;
+    let sessionToken: string | null = null;
+    let stepsExecutedCount = steps.length;
 
     for (let i = 0; i < steps.length; i++) {
       // Vérifier si l'utilisateur a annulé
       if (isCancelled) {
         console.log('🛑 Parcours annulé par l\'utilisateur');
         wasCancelled = true;
+        stepsExecutedCount = i;
         
         // Marquer les étapes restantes comme annulées
         setSteps(prev => prev.map((s, idx) => 
@@ -1538,8 +1547,10 @@ export default function UserJourneyPage() {
         idx === i ? { ...s, status: 'running' } : s
       ));
 
-      // Exécuter l'étape
-      const { success, result, error, duration } = await executeStep(steps[i]);
+      // Exécuter l'étape (passer le token de session pour les appels API)
+      const stepResult = await executeStep(steps[i], sessionToken);
+      if (stepResult.newToken) sessionToken = stepResult.newToken;
+      const { success, result, error, duration } = stepResult;
 
       // Attendre un peu pour voir l'animation
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1561,9 +1572,9 @@ export default function UserJourneyPage() {
     }
 
     const totalDuration = Date.now() - startTime;
-    const passedCount = steps.length - failedSteps.length;
+    const passedCount = stepsExecutedCount - failedSteps.length;
     const failedCount = failedSteps.length;
-    const successRate = steps.length ? (passedCount / steps.length) * 100 : 0;
+    const successRate = stepsExecutedCount > 0 ? (passedCount / stepsExecutedCount) * 100 : 0;
 
     setAnalytics({
       totalDuration,
@@ -2394,6 +2405,7 @@ export default function UserJourneyPage() {
 
           {/* Rapport complet */}
           {analytics.completedAt && (
+            <>
             <Card>
               <CardHeader>
                 <CardTitle>Rapport Complet</CardTitle>
@@ -2412,6 +2424,26 @@ export default function UserJourneyPage() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800">
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />
+                  <div>
+                    <p className="font-medium text-green-800 dark:text-green-200">
+                      Rapport enregistré automatiquement.
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      Consulter tous les rapports (prédéfinis et personnalisés) :
+                    </p>
+                    <Link href="/backoffice/user-journey/reports" className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
+                      <FileText className="h-4 w-4" />
+                      Voir les rapports de parcours
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            </>
           )}
         </TabsContent>
 

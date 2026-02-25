@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Tests - JobbingTrack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 30px; }
+        .summary { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats { display: flex; gap: 20px; margin-top: 15px; }
+        .stat { flex: 1; padding: 15px; border-radius: 6px; text-align: center; }
+        .stat.total { background: #e3f2fd; color: #1976d2; }
+        .stat.passed { background: #e8f5e9; color: #388e3c; }
+        .stat.failed { background: #ffebee; color: #d32f2f; }
+        .stat h3 { font-size: 2em; margin-bottom: 5px; }
+        .test-result { background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-result h2 { margin-bottom: 10px; }
+        .test-result.success { border-left: 4px solid #4caf50; }
+        .test-result.failed { border-left: 4px solid #f44336; }
+        .test-result.skipped { border-left: 4px solid #ff9800; }
+        .status-success { color: #4caf50; font-weight: bold; }
+        .status-failed { color: #f44336; font-weight: bold; }
+        .status-skipped { color: #ff9800; font-weight: bold; }
+        .meta { color: #666; font-size: 0.9em; margin-top: 10px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Rapport de Tests - JobbingTrack</h1>
+        <div class="summary">
+            <h2>Résumé</h2>
+            <div class="stats">
+                <div class="stat total" style="background: #e3f2fd; color: #1976d2;">
+                    <h3>17</h3>
+                    <p>Catégories</p>
+                </div>
+                <div class="stat total">
+                    <h3>153</h3>
+                    <p>Total Tests</p>
+                </div>
+                <div class="stat passed">
+                    <h3>141</h3>
+                    <p>Réussis</p>
+                </div>
+                <div class="stat failed">
+                    <h3>12</h3>
+                    <p>Échoués</p>
+                </div>
+            </div>
+            <p class="meta">Généré le 24/02/2026 à 18:59:00</p>
+            <p class="meta">Répertoire : tests/results/20260224-185301</p>
+        </div>
+        
+        <h2 style="margin-top: 30px; margin-bottom: 15px;">Détails des Tests</h2>
+    <div class="test-result success">
+        <h2>Tests API Backend (script - tous services)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 47 | Réussis: <span style="color: #4caf50;">47</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (150 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Tests API Spécifiques - JobbingTrack              ║
+╚════════════════════════════════════════════════════════╝
+
+
+═══ Health Checks ═══
+[1] Test: API Gateway Health
+   ✓ PASS - Status: 200
+[2] Test: API Gateway /api/health
+   ✓ PASS - Status: 200
+[3] Test: API Gateway Metrics
+   ✓ PASS - Status: 200
+
+═══ Services Backend ═══
+[4] Test: Auth Service
+   ✓ PASS - Status: 200
+[5] Test: Company Service
+   ✓ PASS - Status: 401
+[6] Test: Application Service
+   ✓ PASS - Status: 401
+[7] Test: Contact Service
+   ✓ PASS - Status: 401
+[8] Test: Interview Service
+   ✓ PASS - Status: 401
+[9] Test: Call Service
+   ✓ PASS - Status: 401
+[10] Test: Event Service
+   ✓ PASS - Status: 401
+[11] Test: FollowUp Service
+   ✓ PASS - Status: 401
+[12] Test: Profile Service
+   ✓ PASS - Status: 401
+[13] Test: Notification Service
+   ✓ PASS - Status: 401
+
+═══ Authentification ═══
+Authentification...
+[14] Test: Login
+   ✓ PASS - Status: 200
+   ✓ Token obtenu
+[15] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ Utilisateurs ═══
+[16] Test: List Users
+   ✓ PASS - Status: 200
+[17] Test: Get User Profile
+   ✓ PASS - Status: 200
+
+═══ Entreprises ═══
+[18] Test: List Companies
+   ✓ PASS - Status: 200
+[19] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ Candidatures ═══
+[20] Test: List Applications
+   ✓ PASS - Status: 200
+[21] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ Contacts ═══
+[22] Test: List Contacts
+   ✓ PASS - Status: 200
+[23] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ Entretiens ═══
+[24] Test: List Interviews
+   ✓ PASS - Status: 200
+[25] Test: Create Interview
+   ✓ PASS - Status: 201
+
+═══ Appels ═══
+[26] Test: List Calls
+   ✓ PASS - Status: 200
+[27] Test: Create Call
+   ✓ PASS - Status: 201
+
+═══ Événements ═══
+[28] Test: List Events
+   ✓ PASS - Status: 200
+[29] Test: Create Event
+   ✓ PASS - Status: 201
+
+═══ Relances ═══
+[30] Test: List Followups
+   ✓ PASS - Status: 200
+[31] Test: Create Followup
+   ✓ PASS - Status: 201
+
+═══ Profils ═══
+[32] Test: Get Profile
+   ✓ PASS - Status: 200
+[33] Test: Update Profile
+   ✓ PASS - Status: 200
+
+═══ Notifications ═══
+[34] Test: List Notifications
+   ✓ PASS - Status: 200
+
+═══ Métriques / Metrics-Aggregator ═══
+[35] Test: Get Metrics (metrics-aggregator via gateway)
+   ✓ PASS - Status: 200
+[36] Test: Get Dashboard Statistics
+   ✓ PASS - Status: 200
+
+═══ Dashboard & Analytics ═══
+[37] Test: Dashboard Statistics
+   ✓ PASS - Status: 200
+[38] Test: Analytics Events
+   ✓ PASS - Status: 200
+[39] Test: Analytics Errors
+   ✓ PASS - Status: 200
+[40] Test: Analytics Stats
+   ✓ PASS - Status: 200
+
+═══ Emails (logs, stats) ═══
+[41] Test: Emails Logs
+   ✓ PASS - Status: 200
+[42] Test: Emails Stats
+   ✓ PASS - Status: 200
+
+═══ Workflow Service ═══
+[43] Test: List Workflows
+   ✓ PASS - Status: 200
+
+═══ Security Service ═══
+[44] Test: Security Firewall Rules
+   ✓ PASS - Status: 200
+[45] Test: Security Blocked IPs
+   ✓ PASS - Status: 200
+[46] Test: Security WAF Config
+   ✓ PASS - Status: 200
+[47] Test: Security Logs
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 47
+Tests réussis     : 47
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+
+Total de tests    : 47
+Tests réussis     : 47
+Tests échoués     : 0</pre>
+        </details>
+    </div>
+    <div class="test-result unknown">
+        <h2>Test inconnu</h2>
+        <p><strong>Statut:</strong> <span class="status-unknown">unknown</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Aucune sortie disponible pour ce test.</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests API Complets (Jest local)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 3s</p>
+        <p><strong>Statistiques:</strong> Total: 14 | Réussis: <span style="color: #4caf50;">14</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (38 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+> jobbingtrack-tests@1.0.0 test
+> jest api/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS api/test-monitoring-c-endpoints.test.js
+  Monitoring C Endpoints
+    GET /api/v1/metrics
+      ✓ devrait retourner les métriques système (28 ms)
+      ✓ devrait inclure les métriques de conteneurs (3 ms)
+      ✓ devrait inclure les métriques globales (3 ms)
+
+PASS api/analytics-endpoint.test.js
+  Analytics Endpoint
+    ✓ devrait retourner 200 même en cas d'erreur (30 ms)
+    ✓ devrait retourner un tableau vide en cas d'erreur (5 ms)
+
+PASS api/test-email-endpoints.test.js
+  Email Endpoints
+    GET /api/v1/emails/logs
+      ✓ devrait retourner les logs emails avec pagination (31 ms)
+      ✓ devrait gérer les erreurs P2021 gracieusement (10 ms)
+    POST /api/v1/emails/test
+      ✓ devrait envoyer un email de test (1088 ms)
+      ✓ devrait gérer les erreurs de timeout SMTP (1085 ms)
+    GET /api/v1/emails/test-smtp
+      ✓ devrait tester la connexion SMTP (21 ms)
+    GET /api/v1/emails/stats
+      ✓ devrait retourner les statistiques emails (31 ms)
+
+Test Suites: 3 passed, 3 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        2.813 s, estimated 3 s
+Ran all test suites matching /api\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Backend Services (Jest local)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 13 | Réussis: <span style="color: #4caf50;">13</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (40 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+> jobbingtrack-tests@1.0.0 test
+> jest backend/ --verbose --forceExit --no-coverage
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS backend/test-security-service.test.js
+  Security Service
+    GET /api/v1/security/logs
+      ✓ devrait retourner les logs de sécurité (40 ms)
+    GET /api/v1/security/policies
+      ✓ devrait retourner les politiques de sécurité (7 ms)
+    GET /api/v1/security/analysis
+      ✓ devrait retourner l'analyse de sécurité (53 ms)
+    Firewall API
+      GET /api/v1/security/firewall/rules
+        ✓ devrait retourner les règles firewall (45 ms)
+      POST /api/v1/security/firewall/rules
+        ✓ devrait créer une règle firewall (19 ms)
+      PUT /api/v1/security/firewall/rules/:id
+        ✓ devrait mettre à jour une règle firewall (15 ms)
+      DELETE /api/v1/security/firewall/rules/:id
+        ✓ devrait supprimer une règle firewall (11 ms)
+      GET /api/v1/security/firewall/blocked-ips
+        ✓ devrait retourner les IPs bloquées (10 ms)
+      POST /api/v1/security/firewall/block-ip
+        ✓ devrait bloquer une IP (14 ms)
+      GET /api/v1/security/firewall/threats
+        ✓ devrait retourner les menaces réseau (14 ms)
+    WAF API
+      GET /api/v1/security/waf/config
+        ✓ devrait retourner la configuration WAF (4 ms)
+      GET /api/v1/security/waf/stats
+        ✓ devrait retourner les statistiques WAF (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        0.425 s, estimated 1 s
+Ran all test suites matching /backend\//i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Company Service (Health Check)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Service non accessible</pre>
+        </details>
+    </div>
+    <div class="test-result unknown">
+        <h2>Test inconnu</h2>
+        <p><strong>Statut:</strong> <span class="status-unknown">unknown</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (1 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">Aucune sortie disponible pour ce test.</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Enums</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 3 | Réussis: <span style="color: #4caf50;">3</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (88 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Validation des Enums
+
+ℹ️  Test 1: Vérification définition enum UserRole
+ℹ️  Test 2: Vérification utilisation enum UserRole dans la base
+ℹ️  Test 3: Vérification valeurs enum UserRole
+
+📋 Résultats pour UserRole
+
+✅ Définition dans schéma: Enum UserRole correctement défini avec 4 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (2 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 4 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ContractType
+ℹ️  Test 2: Vérification utilisation enum ContractType dans la base
+ℹ️  Test 3: Vérification valeurs enum ContractType
+
+📋 Résultats pour ContractType
+
+✅ Définition dans schéma: Enum ContractType correctement défini avec 7 valeurs
+✅ Utilisation dans BDD: Toutes les valeurs utilisées sont valides (1 valeurs distinctes)
+✅ Valeurs complètes: Toutes les 7 valeurs attendues sont présentes
+
+3 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum WorkMode
+ℹ️  Test 2: Vérification utilisation enum WorkMode dans la base
+ℹ️  Test 3: Vérification valeurs enum WorkMode
+
+📋 Résultats pour WorkMode
+
+✅ Définition dans schéma: Enum WorkMode correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum ApplicationType
+ℹ️  Test 2: Vérification utilisation enum ApplicationType dans la base
+ℹ️  Test 3: Vérification valeurs enum ApplicationType
+
+📋 Résultats pour ApplicationType
+
+✅ Définition dans schéma: Enum ApplicationType correctement défini avec 2 valeurs
+✅ Valeurs complètes: Toutes les 2 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum CompanySize
+ℹ️  Test 2: Vérification utilisation enum CompanySize dans la base
+ℹ️  Test 3: Vérification valeurs enum CompanySize
+
+📋 Résultats pour CompanySize
+
+✅ Définition dans schéma: Enum CompanySize correctement défini avec 5 valeurs
+✅ Valeurs complètes: Toutes les 5 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum NotificationType
+ℹ️  Test 2: Vérification utilisation enum NotificationType dans la base
+ℹ️  Test 3: Vérification valeurs enum NotificationType
+
+📋 Résultats pour NotificationType
+
+✅ Définition dans schéma: Enum NotificationType correctement défini avec 6 valeurs
+✅ Valeurs complètes: Toutes les 6 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification définition enum SyncAction
+ℹ️  Test 2: Vérification utilisation enum SyncAction dans la base
+ℹ️  Test 3: Vérification valeurs enum SyncAction
+
+📋 Résultats pour SyncAction
+
+✅ Définition dans schéma: Enum SyncAction correctement défini avec 3 valeurs
+✅ Valeurs complètes: Toutes les 3 valeurs attendues sont présentes
+
+2 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Frontend Jest (Unitaires)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (7 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 912ms
+
+> jobbingtrack-frontend@1.0.1 test:unit
+> npx jest unit --passWithNoTests
+
+No tests found, exiting with code 0</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Intégration Système</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 5s</p>
+        <p><strong>Statistiques:</strong> Total: 6 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">2</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (32 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 596ms
+🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES
+=====================================
+
+📡 Test API REST:
+✅ API Health: {
+  status: 'online',
+  service: 'jobbingtrack-metrics-aggregator',
+  version: '1.0.0',
+  timestamp: '2026-02-24T17:58:53.530Z',
+  responseTime: 0,
+  uptime: 369.799036244,
+  memoryUsage: {
+    rss: 127266816,
+    heapTotal: 54308864,
+    heapUsed: 24917912,
+    external: 23515472,
+    arrayBuffers: 3443842
+  }
+}
+
+📊 Test Métriques système:
+✅ CPU: undefined% 16 cœurs
+✅ Mémoire: undefined% (NaNGB/NaNGB)
+✅ Conteneurs: 0
+
+🔌 Test WebSocket:
+❌ WebSocket erreur: socket hang up
+❌ WebSocket non connecté
+
+🎉 TEST TERMINÉ</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Performance</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 2s</p>
+        <p><strong>Statistiques:</strong> Total: 15 | Réussis: <span style="color: #4caf50;">13</span> | Échoués: <span style="color: #f44336;">2</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (60 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement de tous les tests de performance...
+
+📊 Génération du rapport de performance...
+⚡ Test des performances API...
+   apiGateway/health: ✅ 17ms
+   auth/health: ✅ 3ms
+🔥 Test de charge...
+📊 Test de charge: apiGateway/health (20 requêtes)
+   ✅ 20/20 succès - 20ms moyen
+📊 Test de charge: auth/health (15 requêtes)
+   ✅ 15/15 succès - 7ms moyen
+📊 Charge test global: 35/35 succès
+⏱️ Temps moyen global: 14ms
+🧠 Test de l'utilisation mémoire système...
+⚠️ Service de métriques système non disponible, tentative cAdvisor...
+⚠️ cAdvisor non disponible, utilisation des métriques système locales
+📊 Test de traitement de données avec charge mémoire...
+   ✅ Traitement 1000 éléments: 61ms
+   ✅ Traitement 5000 éléments: 271ms
+   ✅ Traitement 10000 éléments: 487ms
+📊 Métriques système réelles:
+   💾 Mémoire totale système: N/A GB
+   🧠 Mémoire utilisée système: N/A GB
+   📊 Pourcentage mémoire: N/A%
+   💿 Espace disque utilisé: N/A GB
+   🔄 Charge système: N/A
+📊 Augmentation mémoire processus:
+   RSS: 288.74 MB
+   Heap Used: 263.75 MB
+   Heap Total: 283.00 MB
+✅ Rapport sauvegardé: tests/reports/performance-report.json
+
+📊 ANALYSE DES PERFORMANCES COMPLÈTE:
+=====================================
+🧪 Tests totaux: 4
+✅ Tests réussis: 4
+❌ Tests échoués: 0
+⏱️ Temps moyen: 10ms
+📊 Requêtes totales: 35
+✅ Requêtes réussies: 35
+❌ Requêtes échouées: 0
+📈 Taux de succès: 100.0%
+
+💡 RECOMMANDATIONS:
+✅ Performances excellentes
+✅ Taux de succès satisfaisant
+
+📊 MÉTRIQUES SYSTÈME (SYSTEMINFORMATION NOT INSTALLED):
+   💾 Mémoire système: 0.00/0.00 GB (0.0%)
+   ✅ Mémoire système normale
+   🔄 CPU: N/A% (1 cœurs)
+   💿 Disque: 0.00 GB utilisés (0.0%)
+
+📊 AUGMENTATION MÉMOIRE PROCESSUS:
+   🧠 Heap Used: 263.75 MB
+   ⚠️ Augmentation mémoire significative détectée
+
+📈 SCORE GLOBAL:
+🎯 Score de performance: 100/100
+🏆 Performances excellentes - Système prêt pour la production</pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright E2E Frontend</h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 6s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (310 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 793ms
+[WebServer] Error: EACCES: permission denied, open '/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/.next/package.json'
+[WebServer]     at async open (node:internal/fs/promises:636:25)
+[WebServer]     at async Object.writeFile (node:internal/fs/promises:1205:14)
+[WebServer]     at async HotReloaderWebpack.start (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/dev/hot-reloader-webpack.js:620:9)
+[WebServer]     at async startWatcher (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:156:5)
+[WebServer]     at async setupDevBundler (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:775:20)
+[WebServer]     at async Span.traceAsyncFn (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/trace/trace.js:154:20)
+[WebServer]     at async initialize (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-server.js:79:30)
+[WebServer]     at async Server.<anonymous> (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/start-server.js:249:36) {
+[WebServer]   errno: -13,
+[WebServer]   code: 'EACCES',
+[WebServer]   syscall: 'open',
+[WebServer]   path: '/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/.next/package.json'
+[WebServer] }
+Error: Process from config.webServer exited early.
+
+{
+  "config": {
+    "configFile": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/playwright.config.ts",
+    "rootDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-setup.ts",
+    "globalTeardown": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Flutter Mobile App",
+        "name": "Flutter Mobile App",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
+    }
+  ],
+  "stats": {
+    "startTime": "2026-02-24T17:53:15.017Z",
+    "duration": 1599.785,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
+
+> jobbingtrack-frontend@1.0.1 test:e2e
+> playwright test --reporter=list,json
+
+[WebServer] Error: EACCES: permission denied, open '/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/.next/package.json'
+[WebServer]     at async open (node:internal/fs/promises:636:25)
+[WebServer]     at async Object.writeFile (node:internal/fs/promises:1205:14)
+[WebServer]     at async HotReloaderWebpack.start (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/dev/hot-reloader-webpack.js:620:9)
+[WebServer]     at async startWatcher (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:156:5)
+[WebServer]     at async setupDevBundler (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:775:20)
+[WebServer]     at async Span.traceAsyncFn (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/trace/trace.js:154:20)
+[WebServer]     at async initialize (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/router-server.js:79:30)
+[WebServer]     at async Server.<anonymous> (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/server/lib/start-server.js:249:36) {
+[WebServer]   errno: -13,
+[WebServer]   code: 'EACCES',
+[WebServer]   syscall: 'open',
+[WebServer]   path: '/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/.next/package.json'
+[WebServer] }
+Error: Process from config.webServer exited early.
+
+{
+  "config": {
+    "configFile": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/playwright.config.ts",
+    "rootDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-setup.ts",
+    "globalTeardown": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "Flutter Mobile App",
+        "name": "Flutter Mobile App",
+        "testDir": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
+    }
+  ],
+  "stats": {
+    "startTime": "2026-02-24T17:53:17.339Z",
+    "duration": 1765.271,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}</pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright Emails MailHog</h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 27s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (57 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 563ms
+
+Running 3 tests using 3 workers
+
+  ✘  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:80:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail (403ms)
+  ✘  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API (11.4s)
+  ✘  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:94:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page (24.6s)
+
+
+  1) [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API 
+
+    Error: expect(received).not.toBeNull()
+
+    Received: null
+
+      71 |
+      72 |     const msg = await waitForLatestMessage(countBefore, { timeoutMs: 10000 });
+    > 73 |     expect(msg).not.toBeNull();
+         |                     ^
+      74 |     const full = await getMessageById(msg!.id);
+      75 |     expect(full).not.toBeNull();
+      76 |     const links = full ? extractLinksFromMessage(full) : [];
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-emails-mailhog.spec.ts:73:21
+
+  2) [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:80:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail 
+
+    Error: Aucun message dans MailHog (envoyer un mail de test avant, ou lancer le spec en dernier)
+
+      80 |   test('ouverture interface MailHog et clic sur le dernier mail', async ({ page }) => {
+      81 |     const { messages } = await getMessages(1);
+    > 82 |     if (messages.length === 0) throw new Error('Aucun message dans MailHog (envoyer un mail de test avant, ou lancer le spec en dernier)');
+         |                                      ^
+      83 |
+      84 |     await page.goto(MAILHOG_WEB);
+      85 |     await expect(page.locator('text=MailHog').or(page.locator('body'))).toBeVisible({ timeout: 5000 });
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-emails-mailhog.spec.ts:82:38
+
+  3) [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:94:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page 
+
+    Error: expect(received).not.toBeNull()
+
+    Received: null
+
+      111 |
+      112 |     const msg = await waitForLatestMessage(countBefore, { timeoutMs: 15000 });
+    > 113 |     expect(msg).not.toBeNull();
+          |                     ^
+      114 |     const full = await getMessageById(msg!.id);
+      115 |     expect(full).not.toBeNull();
+      116 |     const links = full ? extractLinksFromMessage(full) : [];
+        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/admin-emails-mailhog.spec.ts:113:21
+
+  3 failed
+    [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API 
+    [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:80:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail 
+    [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:94:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page </pre>
+        </details>
+    </div>
+    <div class="test-result failed">
+        <h2>Playwright Mobile</h2>
+        <p><strong>Statut:</strong> <span class="status-failed">failed</span> | <strong>Durée:</strong> 301s</p>
+        <p><strong>Statistiques:</strong> Total: 0 | Réussis: <span style="color: #4caf50;">0</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (112 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+up to date in 860ms
+
+Running 192 tests using 1 worker
+
+  ✘    1 [iPhone 13 Pro] › tests/e2e/mobile/mobile-applications.spec.ts:20:7 › 📱 Mobile - Gestion Candidatures › Liste des candidatures - Affichage mobile (2ms)
+  ✘    2 [iPhone 13 Pro] › tests/e2e/mobile/mobile-applications.spec.ts:32:7 › 📱 Mobile - Gestion Candidatures › Création candidature - Formulaire mobile (2ms)
+  ✘    3 [iPhone 13 Pro] › tests/e2e/mobile/mobile-applications.spec.ts:46:7 › 📱 Mobile - Gestion Candidatures › Filtres candidatures - Interface mobile (2ms)
+  ✘    4 [iPhone 13 Pro] › tests/e2e/mobile/mobile-auth.spec.ts:16:7 › 📱 Mobile - Authentification › Inscription - Formulaire mobile (3ms)
+  ✘    5 [iPhone 13 Pro] › tests/e2e/mobile/mobile-auth.spec.ts:29:7 › 📱 Mobile - Authentification › Connexion - Formulaire mobile (3ms)
+  ✘    6 [iPhone 13 Pro] › tests/e2e/mobile/mobile-auth.spec.ts:41:7 › 📱 Mobile - Authentification › Déconnexion - Mobile (2ms)
+  ✘    7 [iPhone 13 Pro] › tests/e2e/mobile/mobile-calls.spec.ts:17:7 › 📱 Mobile - Gestion Appels › Création appel - Mobile (3ms)
+  ✘    8 [iPhone 13 Pro] › tests/e2e/mobile/mobile-calls.spec.ts:28:7 › 📱 Mobile - Gestion Appels › Liste appels - Mobile (3ms)
+  ✘    9 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:87:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 1. 📝 Inscription - Création de compte mobile (3ms)
+  ✘   10 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:96:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 2. 🔐 Connexion - Authentification mobile (3ms)
+  ✘   11 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:104:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 3. 🏢 Création d'Entreprise - Mobile (2ms)
+  ✘   12 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:129:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 4. 📋 Création de Candidature - Mobile (2ms)
+  ✘   13 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:154:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 5. 👥 Création de Contact - Mobile (4ms)
+  ✘   14 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:180:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 6. 📞 Création d'Appel - Mobile (3ms)
+  ✘   15 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:205:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 7. 📅 Création d'Entretien - Mobile (2ms)
+  ✘   16 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:231:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 8. 🔔 Création de Relance - Mobile (2ms)
+  ✘   17 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:256:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 9. 🔔 Notifications - Affichage et interaction mobile (2ms)
+  ✘   18 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:271:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 10. 🔍 Recherche - Fonctionnalité mobile (2ms)
+  ✘   19 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:286:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 11. 📊 Dashboard - Affichage mobile (3ms)
+  ✘   20 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:298:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 12. 🎨 Navigation Mobile - Menu hamburger (3ms)
+  ✘   21 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:313:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 13. 📱 Gestes Tactiles - Swipe et tap (4ms)
+  ✘   22 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:328:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 14. 🔄 Synchronisation Offline - Mobile (3ms)
+  ✘   23 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:346:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 15. 📸 Capture d'écran - Vérification visuelle mobile (3ms)
+  ✘   24 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:362:7 › 📱 Tests Mobile - Performance et UX › Performance - Temps de chargement mobile (4ms)
+  ✘   25 [iPhone 13 Pro] › tests/e2e/mobile/mobile-complete-journey.spec.ts:372:7 › 📱 Tests Mobile - Performance et UX › Responsive - Adaptation différentes tailles d'écran (2ms)
+  ✘   26 [iPhone 13 Pro] › tests/e2e/mobile/mobile-contacts.spec.ts:17:7 › 📱 Mobile - Gestion Contacts › Liste contacts - Mobile (3ms)
+  ✘   27 [iPhone 13 Pro] › tests/e2e/mobile/mobile-contacts.spec.ts:23:7 › 📱 Mobile - Gestion Contacts › Création contact - Mobile (2ms)
+  ✘   28 [iPhone 13 Pro] › tests/e2e/mobile/mobile-followups.spec.ts:17:7 › 📱 Mobile - Gestion Relances › Création relance - Mobile (3ms)
+  ✘   29 [iPhone 13 Pro] › tests/e2e/mobile/mobile-interviews.spec.ts:17:7 › 📱 Mobile - Gestion Entretiens › Création entretien - Mobile (2ms)
+  ✘   30 [iPhone 13 Pro] › tests/e2e/mobile/mobile-interviews.spec.ts:28:7 › 📱 Mobile - Gestion Entretiens › Calendrier entretiens - Mobile (2ms)
+  ✘   31 [iPhone 13 Pro] › tests/e2e/mobile/mobile-notifications.spec.ts:17:7 › 📱 Mobile - Notifications › Affichage notifications - Mobile (2ms)
+  ✘   32 [iPhone 13 Pro] › tests/e2e/mobile/mobile-notifications.spec.ts:26:7 › 📱 Mobile - Notifications › Permissions notifications - Mobile (3ms)
+  ✘   33 [iPhone SE] › tests/e2e/mobile/mobile-applications.spec.ts:20:7 › 📱 Mobile - Gestion Candidatures › Liste des candidatures - Affichage mobile (2ms)
+  ✘   34 [iPhone SE] › tests/e2e/mobile/mobile-applications.spec.ts:32:7 › 📱 Mobile - Gestion Candidatures › Création candidature - Formulaire mobile (3ms)
+  ✘   35 [iPhone SE] › tests/e2e/mobile/mobile-applications.spec.ts:46:7 › 📱 Mobile - Gestion Candidatures › Filtres candidatures - Interface mobile (3ms)
+  ✘   36 [iPhone SE] › tests/e2e/mobile/mobile-auth.spec.ts:16:7 › 📱 Mobile - Authentification › Inscription - Formulaire mobile (3ms)
+  ✘   37 [iPhone SE] › tests/e2e/mobile/mobile-auth.spec.ts:29:7 › 📱 Mobile - Authentification › Connexion - Formulaire mobile (2ms)
+  ✘   38 [iPhone SE] › tests/e2e/mobile/mobile-auth.spec.ts:41:7 › 📱 Mobile - Authentification › Déconnexion - Mobile (2ms)
+  ✘   39 [iPhone SE] › tests/e2e/mobile/mobile-calls.spec.ts:17:7 › 📱 Mobile - Gestion Appels › Création appel - Mobile (2ms)
+  ✘   40 [iPhone SE] › tests/e2e/mobile/mobile-calls.spec.ts:28:7 › 📱 Mobile - Gestion Appels › Liste appels - Mobile (2ms)
+  ✘   41 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:87:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 1. 📝 Inscription - Création de compte mobile (2ms)
+  ✘   42 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:96:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 2. 🔐 Connexion - Authentification mobile (2ms)
+  ✘   43 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:104:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 3. 🏢 Création d'Entreprise - Mobile (2ms)
+  ✘   44 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:129:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 4. 📋 Création de Candidature - Mobile (2ms)
+  ✘   45 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:154:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 5. 👥 Création de Contact - Mobile (2ms)
+  ✘   46 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:180:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 6. 📞 Création d'Appel - Mobile (3ms)
+  ✘   47 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:205:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 7. 📅 Création d'Entretien - Mobile (2ms)
+  ✘   48 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:231:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 8. 🔔 Création de Relance - Mobile (3ms)
+  ✘   49 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:256:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 9. 🔔 Notifications - Affichage et interaction mobile (3ms)
+  ✘   50 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:271:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 10. 🔍 Recherche - Fonctionnalité mobile (4ms)
+  ✘   51 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:286:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 11. 📊 Dashboard - Affichage mobile (2ms)
+  ✘   52 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:298:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 12. 🎨 Navigation Mobile - Menu hamburger (2ms)
+  ✘   53 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:313:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 13. 📱 Gestes Tactiles - Swipe et tap (2ms)
+  ✘   54 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:328:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 14. 🔄 Synchronisation Offline - Mobile (2ms)
+  ✘   55 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:346:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 15. 📸 Capture d'écran - Vérification visuelle mobile (2ms)
+  ✘   56 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:362:7 › 📱 Tests Mobile - Performance et UX › Performance - Temps de chargement mobile (3ms)
+  ✘   57 [iPhone SE] › tests/e2e/mobile/mobile-complete-journey.spec.ts:372:7 › 📱 Tests Mobile - Performance et UX › Responsive - Adaptation différentes tailles d'écran (3ms)
+  ✘   58 [iPhone SE] › tests/e2e/mobile/mobile-contacts.spec.ts:17:7 › 📱 Mobile - Gestion Contacts › Liste contacts - Mobile (2ms)
+  ✘   59 [iPhone SE] › tests/e2e/mobile/mobile-contacts.spec.ts:23:7 › 📱 Mobile - Gestion Contacts › Création contact - Mobile (2ms)
+  ✘   60 [iPhone SE] › tests/e2e/mobile/mobile-followups.spec.ts:17:7 › 📱 Mobile - Gestion Relances › Création relance - Mobile (3ms)
+  ✘   61 [iPhone SE] › tests/e2e/mobile/mobile-interviews.spec.ts:17:7 › 📱 Mobile - Gestion Entretiens › Création entretien - Mobile (2ms)
+  ✘   62 [iPhone SE] › tests/e2e/mobile/mobile-interviews.spec.ts:28:7 › 📱 Mobile - Gestion Entretiens › Calendrier entretiens - Mobile (2ms)
+  ✘   63 [iPhone SE] › tests/e2e/mobile/mobile-notifications.spec.ts:17:7 › 📱 Mobile - Notifications › Affichage notifications - Mobile (2ms)
+  ✘   64 [iPhone SE] › tests/e2e/mobile/mobile-notifications.spec.ts:26:7 › 📱 Mobile - Notifications › Permissions notifications - Mobile (2ms)
+  ✘   65 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-applications.spec.ts:20:7 › 📱 Mobile - Gestion Candidatures › Liste des candidatures - Affichage mobile (2ms)
+  ✘   66 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-applications.spec.ts:32:7 › 📱 Mobile - Gestion Candidatures › Création candidature - Formulaire mobile (3ms)
+  ✘   67 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-applications.spec.ts:46:7 › 📱 Mobile - Gestion Candidatures › Filtres candidatures - Interface mobile (3ms)
+  ✘   68 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-auth.spec.ts:16:7 › 📱 Mobile - Authentification › Inscription - Formulaire mobile (3ms)
+  ✘   69 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-auth.spec.ts:29:7 › 📱 Mobile - Authentification › Connexion - Formulaire mobile (2ms)
+  ✘   70 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-auth.spec.ts:41:7 › 📱 Mobile - Authentification › Déconnexion - Mobile (2ms)
+  ✘   71 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-calls.spec.ts:17:7 › 📱 Mobile - Gestion Appels › Création appel - Mobile (2ms)
+  ✘   72 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-calls.spec.ts:28:7 › 📱 Mobile - Gestion Appels › Liste appels - Mobile (2ms)
+  ✘   73 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:87:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 1. 📝 Inscription - Création de compte mobile (2ms)
+  ✘   74 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:96:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 2. 🔐 Connexion - Authentification mobile (2ms)
+  ✘   75 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:104:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 3. 🏢 Création d'Entreprise - Mobile (2ms)
+  ✘   76 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:129:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 4. 📋 Création de Candidature - Mobile (2ms)
+  ✘   77 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:154:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 5. 👥 Création de Contact - Mobile (2ms)
+  ✘   78 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:180:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 6. 📞 Création d'Appel - Mobile (2ms)
+  ✘   79 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:205:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 7. 📅 Création d'Entretien - Mobile (2ms)
+  ✘   80 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:231:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 8. 🔔 Création de Relance - Mobile (2ms)
+  ✘   81 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:256:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 9. 🔔 Notifications - Affichage et interaction mobile (2ms)
+  ✘   82 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:271:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 10. 🔍 Recherche - Fonctionnalité mobile (2ms)
+  ✘   83 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:286:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 11. 📊 Dashboard - Affichage mobile (3ms)
+  ✘   84 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:298:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 12. 🎨 Navigation Mobile - Menu hamburger (3ms)
+  ✘   85 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:313:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 13. 📱 Gestes Tactiles - Swipe et tap (3ms)
+  ✘   86 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:328:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 14. 🔄 Synchronisation Offline - Mobile (2ms)
+  ✘   87 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:346:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 15. 📸 Capture d'écran - Vérification visuelle mobile (3ms)
+  ✘   88 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:362:7 › 📱 Tests Mobile - Performance et UX › Performance - Temps de chargement mobile (3ms)
+  ✘   89 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-complete-journey.spec.ts:372:7 › 📱 Tests Mobile - Performance et UX › Responsive - Adaptation différentes tailles d'écran (3ms)
+  ✘   90 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-contacts.spec.ts:17:7 › 📱 Mobile - Gestion Contacts › Liste contacts - Mobile (2ms)
+  ✘   91 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-contacts.spec.ts:23:7 › 📱 Mobile - Gestion Contacts › Création contact - Mobile (2ms)
+  ✘   92 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-followups.spec.ts:17:7 › 📱 Mobile - Gestion Relances › Création relance - Mobile (2ms)
+  ✘   93 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-interviews.spec.ts:17:7 › 📱 Mobile - Gestion Entretiens › Création entretien - Mobile (2ms)
+  ✘   94 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-interviews.spec.ts:28:7 › 📱 Mobile - Gestion Entretiens › Calendrier entretiens - Mobile (3ms)
+  ✘   95 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-notifications.spec.ts:17:7 › 📱 Mobile - Notifications › Affichage notifications - Mobile (2ms)
+  ✘   96 [iPhone 12 Pro Max] › tests/e2e/mobile/mobile-notifications.spec.ts:26:7 › 📱 Mobile - Notifications › Permissions notifications - Mobile (2ms)
+  ✘   97 [Pixel 5] › tests/e2e/mobile/mobile-applications.spec.ts:20:7 › 📱 Mobile - Gestion Candidatures › Liste des candidatures - Affichage mobile (31.9s)
+  ✘   98 [Pixel 5] › tests/e2e/mobile/mobile-applications.spec.ts:32:7 › 📱 Mobile - Gestion Candidatures › Création candidature - Formulaire mobile (31.3s)
+  ✘   99 [Pixel 5] › tests/e2e/mobile/mobile-applications.spec.ts:46:7 › 📱 Mobile - Gestion Candidatures › Filtres candidatures - Interface mobile (31.3s)
+  ✘  100 [Pixel 5] › tests/e2e/mobile/mobile-auth.spec.ts:16:7 › 📱 Mobile - Authentification › Inscription - Formulaire mobile (1.7s)
+  ✘  101 [Pixel 5] › tests/e2e/mobile/mobile-auth.spec.ts:29:7 › 📱 Mobile - Authentification › Connexion - Formulaire mobile (11.5s)
+  ✘  102 [Pixel 5] › tests/e2e/mobile/mobile-auth.spec.ts:41:7 › 📱 Mobile - Authentification › Déconnexion - Mobile (31.5s)
+  ✘  103 [Pixel 5] › tests/e2e/mobile/mobile-calls.spec.ts:17:7 › 📱 Mobile - Gestion Appels › Création appel - Mobile (31.3s)
+  ✘  104 [Pixel 5] › tests/e2e/mobile/mobile-calls.spec.ts:28:7 › 📱 Mobile - Gestion Appels › Liste appels - Mobile (31.3s)
+  ✘  105 [Pixel 5] › tests/e2e/mobile/mobile-complete-journey.spec.ts:87:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 1. 📝 Inscription - Création de compte mobile (13.2s)
+  ✘  106 [Pixel 5] › tests/e2e/mobile/mobile-complete-journey.spec.ts:96:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 2. 🔐 Connexion - Authentification mobile (11.7s)
+  ✘  107 [Pixel 5] › tests/e2e/mobile/mobile-complete-journey.spec.ts:104:7 › 📱 Tests Mobile - Parcours Utilisateur Complet › 3. 🏢 Création d'Entreprise - Mobile (11.7s)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Relations BDD</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 4 | Réussis: <span style="color: #4caf50;">4</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (65 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
+📋 Tests des Relations Many-to-Many
+
+ℹ️  Test 1: Vérification existence table ContactCompany
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Company
+
+✅ Table existe: Table ContactCompany existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table ContactApplication
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Contact ↔ Application
+
+✅ Table existe: Table ContactApplication existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table FollowUpContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour FollowUp ↔ Contact
+
+✅ Table existe: Table FollowUpContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+ℹ️  Test 1: Vérification existence table InterviewContact
+ℹ️  Test 2: Vérification contraintes d'unicité
+ℹ️  Test 3: Vérification intégrité référentielle
+ℹ️  Test 4: Vérification index
+
+📋 Résultats pour Interview ↔ Contact
+
+✅ Table existe: Table InterviewContact existe (0 enregistrements)
+✅ Contraintes d'unicité: Aucun doublon détecté
+✅ Intégrité référentielle: Aucun enregistrement orphelin détecté
+✅ Index: Index sur les deux champs de relation présents
+
+4 tests réussis, 0 tests échoués
+
+
+📋 Résumé Global
+
+Total: 16 tests
+✅ 16 tests réussis
+✅ Tous les tests sont passés ! 🎉</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité Firewall & WAF (API)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 19 | Réussis: <span style="color: #4caf50;">18</span> | Échoués: <span style="color: #f44336;">1</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (61 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🔥 Test du Firewall et WAF
+==========================
+
+📋 Test 1: Récupération des règles firewall
+  Test: GET /api/v1/security/firewall/rules... ✅ PASS (HTTP 200)
+
+📋 Test 2: Création d'une règle firewall de test
+✅ PASS (HTTP 201)
+
+  ✅ Règle créée avec ID: cmm0wtcza000o5uqv3ql5hn8s
+
+📋 Test 3: Mise à jour de la règle firewall
+  Test: PUT /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 4: Suppression de la règle firewall
+  Test: DELETE /api/v1/security/firewall/rules/:id... ✅ PASS (HTTP 200)
+
+📋 Test 5: Récupération des IPs bloquées
+  Test: GET /api/v1/security/firewall/blocked-ips... ✅ PASS (HTTP 200)
+
+📋 Test 6: Blocage d'une IP de test
+  Test: POST /api/v1/security/firewall/block-ip... ✅ PASS (HTTP 200)
+
+📋 Test 7: Déblocage de l'IP de test
+  Test: POST /api/v1/security/firewall/unblock-ip... ✅ PASS (HTTP 200)
+
+📋 Test 8: Récupération des menaces réseau
+  Test: GET /api/v1/security/firewall/threats... ✅ PASS (HTTP 200)
+
+📋 Test 9: Création d'une menace de test
+  Test: POST /api/v1/security/firewall/threats... ✅ PASS (HTTP 201)
+
+📋 Test 10: Récupération des statistiques réseau
+  Test: GET /api/v1/security/firewall/network/stats... ✅ PASS (HTTP 200)
+
+📋 Test 11: Configuration WAF
+  Test: GET /api/v1/security/waf/config... ✅ PASS (HTTP 200)
+
+📋 Test 12: Statistiques WAF
+  Test: GET /api/v1/security/waf/stats... ✅ PASS (HTTP 200)
+
+📋 Test 13: Activation/désactivation WAF
+  Test: PUT /api/v1/security/waf/toggle... ✅ PASS (HTTP 200)
+
+📋 Test 14: Activation/désactivation règle WAF
+  Test: PUT /api/v1/security/waf/rules/:ruleName... ✅ PASS (HTTP 200)
+
+📋 Test 15: Vérification des logs de sécurité
+  Test: GET /api/v1/security/logs... ✅ PASS (HTTP 200)
+
+==========================
+📊 RÉSUMÉ DES TESTS
+==========================
+✅ Tests réussis: 15
+❌ Tests échoués: 0
+
+✅ Tous les tests sont passés !
+
+💡 Note: Si certains tests ont été ignorés (SKIP), c'est normal si:
+   - La table FirewallRule n'existe pas (exécutez: make db-push-all)
+   - iptables n'est pas disponible dans le conteneur (normal en développement)</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>Tests Sécurité</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 0s</p>
+        <p><strong>Statistiques:</strong> Total: 10 | Réussis: <span style="color: #4caf50;">8</span> | Échoués: <span style="color: #f44336;">2</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (31 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">🧪 Lancement de tous les tests de sécurité...
+
+🛡️ Test XSS (Cross-Site Scripting)...
+💉 Test injection SQL...
+🔄 Test CSRF (Cross-Site Request Forgery)...
+🔐 Test contournement authentification...
+⏱️ Test rate limiting...
+📋 Test des en-têtes de sécurité...
+🔍 Test exposition des données...
+✅ Test validation des entrées...
+❌ Vulnérabilité CSRF détectée
+⚠️ Aucun rate limiting détecté
+❌ Erreur test headers: Error
+✅ Validation OK: Données vides
+✅ Validation OK: Données null
+✅ Validation OK: Données undefined
+✅ Validation OK: Objet profondément nested
+✅ Validation OK: Tableau très long
+✅ Validation OK: String très long
+
+📊 RAPPORT DE SÉCURITÉ:
+🚨 CRITIQUES: 0
+🔴 HAUTES: 1
+🟡 MOYENNES: 1
+🟢 BASSES: 0
+✅ SÉCURISÉES: 59
+
+⚠️ Vulnérabilités importantes détectées.
+Correction recommandée dans les plus brefs délais.
+
+📋 Rapport sauvegardé: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/results/security-report.json</pre>
+        </details>
+    </div>
+    <div class="test-result success">
+        <h2>User Journey (API)</h2>
+        <p><strong>Statut:</strong> <span class="status-success">success</span> | <strong>Durée:</strong> 1s</p>
+        <p><strong>Statistiques:</strong> Total: 15 | Réussis: <span style="color: #4caf50;">15</span> | Échoués: <span style="color: #f44336;">0</span></p>
+        
+        <details open>
+            <summary>Voir les détails complets (74 lignes)</summary>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">╔════════════════════════════════════════════════════════╗
+║     Vérification User Journey - JobbingTrack          ║
+╚════════════════════════════════════════════════════════╝
+
+✨ Ce script utilise un token permanent qui n'expire jamais !
+
+═══ 1. Health Checks ═══
+[1] Test: API Health
+   ✓ PASS - Status: 200
+
+═══ 2. Authentification ═══
+[2] Test: Register
+   ✓ PASS - Status: 201
+   Token obtenu: eyJhbGciOiJIUzI1NiIs...
+[3] Test: Login
+   ✓ PASS - Status: 200
+   ✓ Token admin obtenu: eyJhbGciOiJIUzI1NiIs...
+
+═══ Génération Token Permanent ═══
+Génération d'un token de test permanent (100 ans)...
+   ✓ Token permanent généré avec succès !
+   ✓ Ce token n'expirera jamais (valide 100 ans)
+   ✓ Token: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+[4] Test: Get Profile
+   ✓ PASS - Status: 200
+
+═══ 3. Companies ═══
+[5] Test: List Companies
+   ✓ PASS - Status: 200
+[6] Test: Create Company
+   ✓ PASS - Status: 201
+
+═══ 4. Applications ═══
+[7] Test: List Applications
+   ✓ PASS - Status: 200
+[8] Test: Create Application
+   ✓ PASS - Status: 201
+
+═══ 5. Contacts ═══
+[9] Test: List Contacts
+   ✓ PASS - Status: 200
+[10] Test: Create Contact
+   ✓ PASS - Status: 201
+
+═══ 6. Interviews ═══
+[11] Test: List Interviews
+   ✓ PASS - Status: 200
+
+═══ 7. Events ═══
+[12] Test: List Events
+   ✓ PASS - Status: 200
+
+═══ 8. Followups ═══
+[13] Test: List Followups
+   ✓ PASS - Status: 200
+
+═══ 9. Calls ═══
+[14] Test: List Calls
+   ✓ PASS - Status: 200
+
+═══ 10. Dashboard & Statistics ═══
+[15] Test: Get Statistics
+   ✓ PASS - Status: 200
+
+╔════════════════════════════════════════════════════════╗
+║                      RÉSUMÉ                            ║
+╚════════════════════════════════════════════════════════╝
+
+Total de tests    : 15
+Tests réussis     : 15
+Tests échoués     : 0
+
+✓ TOUS LES TESTS SONT PASSÉS !
+Le système est opérationnel à 100%</pre>
+        </details>
+    </div>
+    </div>
+</body>
+</html>

@@ -23,6 +23,8 @@ interface NavItem {
   icon: string
   onClick?: () => void
   subItems?: NavItem[]
+  /** Si true, ouvre le lien dans un nouvel onglet (pour liens externes ex. MailHog) */
+  external?: boolean
 }
 
 interface NavSection {
@@ -258,6 +260,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Configuration', href: '/backoffice/emails/settings', icon: '⚙️' },
         { name: 'Déliverabilité', href: '/backoffice/emails/deliverability', icon: '✅' },
         { name: 'Tests Emails', href: '/backoffice/tests-emails', icon: '🧪' },
+        { name: 'MailHog (interface)', href: process.env.NEXT_PUBLIC_MAILHOG_UI_URL || 'http://localhost:8025', icon: '📬', external: true },
       ]
     },
   ]
@@ -460,25 +463,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               {hasSubItems && isItemExpanded && (
                                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                                   {item.subItems.map((subItem) => {
-                                    const isSubActive = pathname === subItem.href
-                                    return subItem.href ? (
-                                      <Link
-                                        key={subItem.name}
-                                        href={subItem.href}
-                                        className={`
+                                    const isSubActive = !subItem.external && pathname === subItem.href
+                                    const linkClass = `
                                           flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all relative group
                                           ${isSubActive
                                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50 border-l-2 border-blue-300 transform scale-[1.01]'
                                             : 'text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white hover:translate-x-1'
                                           }
-                                        `}
-                                      >
-                                        <span className="mr-2 text-sm">{subItem.icon}</span>
-                                        <span>{subItem.name}</span>
-                                        {isSubActive && (
-                                          <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                                        )}
-                                      </Link>
+                                        `
+                                    return subItem.href ? (
+                                      subItem.external ? (
+                                        <a
+                                          key={subItem.name}
+                                          href={subItem.href}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={linkClass}
+                                        >
+                                          <span className="mr-2 text-sm">{subItem.icon}</span>
+                                          <span>{subItem.name}</span>
+                                        </a>
+                                      ) : (
+                                        <Link
+                                          key={subItem.name}
+                                          href={subItem.href}
+                                          className={linkClass}
+                                        >
+                                          <span className="mr-2 text-sm">{subItem.icon}</span>
+                                          <span>{subItem.name}</span>
+                                          {isSubActive && (
+                                            <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                          )}
+                                        </Link>
+                                      )
                                     ) : null
                                   })}
                                 </div>

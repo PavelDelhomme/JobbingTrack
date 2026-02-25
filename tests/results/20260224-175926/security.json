@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Sécurité",
+  "command": "node tests/security/test-security.js",
+  "timestamp": "2026-02-24T17:59:48+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2
+  },
+  "output": "🧪 Lancement de tous les tests de sécurité...\n\n🛡️ Test XSS (Cross-Site Scripting)...\n💉 Test injection SQL...\n🔄 Test CSRF (Cross-Site Request Forgery)...\n🔐 Test contournement authentification...\n⏱️ Test rate limiting...\n📋 Test des en-têtes de sécurité...\n🔍 Test exposition des données...\n✅ Test validation des entrées...\n❌ Vulnérabilité CSRF détectée\n⚠️ Aucun rate limiting détecté\n❌ Erreur test headers: Error\n✅ Validation OK: Données vides\n✅ Validation OK: Données null\n✅ Validation OK: Données undefined\n✅ Validation OK: Objet profondément nested\n✅ Validation OK: Tableau très long\n✅ Validation OK: String très long\n\n📊 RAPPORT DE SÉCURITÉ:\n🚨 CRITIQUES: 0\n🔴 HAUTES: 1\n🟡 MOYENNES: 1\n🟢 BASSES: 0\n✅ SÉCURISÉES: 59\n\n⚠️ Vulnérabilités importantes détectées.\nCorrection recommandée dans les plus brefs délais.\n\n📋 Rapport sauvegardé: /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/results/security-report.json\n"
+}

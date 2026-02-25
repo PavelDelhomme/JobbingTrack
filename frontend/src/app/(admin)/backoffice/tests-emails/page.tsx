@@ -150,7 +150,7 @@ export default function TestsEmailsPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/backoffice/email-monitor">
             <Card className="hover:border-blue-400 transition-colors cursor-pointer h-full">
               <CardHeader>
@@ -187,6 +187,26 @@ export default function TestsEmailsPage() {
               </CardContent>
             </Card>
           </Link>
+          <a
+            href={process.env.NEXT_PUBLIC_MAILHOG_UI_URL || 'http://localhost:8025'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <Card className="hover:border-blue-400 transition-colors cursor-pointer h-full">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  MailHog (dev)
+                  <span className="text-xs font-normal text-gray-500">nouvel onglet</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Ouvrir l&apos;interface MailHog pour voir les emails capturés en local.
+                </p>
+              </CardContent>
+            </Card>
+          </a>
         </div>
       </div>
     </AdminLayout>

@@ -1,0 +1,14 @@
+{
+  "testName": "Playwright E2E Frontend",
+  "command": "timeout 300 bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && PLAYWRIGHT_BASE_URL="http://localhost:5003" ( test -f playwright.standalone.config.ts && ( test -x ./node_modules/.bin/playwright && ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json ) || ( test -x ./node_modules/.bin/playwright && ./node_modules/.bin/playwright test tests/e2e --reporter=list,json || npm run test:e2e -- --reporter=list,json ) ) 2>&1'",
+  "timestamp": "2026-02-24T19:17:35+01:00",
+  "duration": 0,
+  "exitCode": 2,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "bash: -c: ligne 1: erreur de syntaxe près du symbole inattendu « ( »\nbash: -c: ligne 1: `cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && PLAYWRIGHT_BASE_URL=\"http://localhost:5003\" ( test -f playwright.standalone.config.ts && ( test -x ./node_modules/.bin/playwright && ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json ) || ( test -x ./node_modules/.bin/playwright && ./node_modules/.bin/playwright test tests/e2e --reporter=list,json || npm run test:e2e -- --reporter=list,json ) ) 2>&1'\n"
+}

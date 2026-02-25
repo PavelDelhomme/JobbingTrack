@@ -30,11 +30,14 @@ class DatabaseTester {
       await this.connect();
       const result = await this.client.query('SELECT version()');
       console.log('✅ Connexion réussie:', result.rows[0].version.split(' ')[1]);
-      await this.disconnect();
+      // Ne pas déconnecter ici : on réutilise le même client pour les tests suivants
       return true;
     } catch (error) {
       console.error('❌ Erreur de connexion:', error.message);
       this.client.end().catch(() => {});
+      this.client = new Client({
+        connectionString: process.env.DATABASE_URL || 'postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack'
+      });
       return false;
     }
   }
@@ -42,8 +45,7 @@ class DatabaseTester {
   async testTables() {
     console.log('📊 Test des tables...');
     try {
-      await this.connect();
-
+      // Client déjà connecté par testConnection()
       const result = await this.client.query(`
         SELECT table_name
         FROM information_schema.tables
@@ -55,7 +57,6 @@ class DatabaseTester {
       console.log(`✅ ${tables.length} tables trouvées:`);
       tables.forEach(table => console.log(`   - ${table}`));
 
-      await this.disconnect();
       return tables;
     } catch (error) {
       console.error('❌ Erreur lors du test des tables:', error.message);
@@ -66,8 +67,6 @@ class DatabaseTester {
   async testConstraints() {
     console.log('🔒 Test des contraintes...');
     try {
-      await this.connect();
-
       const result = await this.client.query(`
         SELECT
           tc.table_name,
@@ -82,7 +81,6 @@ class DatabaseTester {
       `);
 
       console.log(`✅ ${result.rows.length} contraintes trouvées`);
-      await this.disconnect();
       return result.rows;
     } catch (error) {
       console.error('❌ Erreur lors du test des contraintes:', error.message);
@@ -93,13 +91,11 @@ class DatabaseTester {
   async testDataIntegrity() {
     console.log('🔍 Test de l\'intégrité des données...');
     try {
-      await this.connect();
-
       const integrityTests = [
-        { name: 'Users sans email', query: 'SELECT COUNT(*) as count FROM users WHERE email IS NULL' },
-        { name: 'Companies sans nom', query: 'SELECT COUNT(*) as count FROM companies WHERE name IS NULL' },
-        { name: 'Applications sans user_id', query: 'SELECT COUNT(*) as count FROM applications WHERE user_id IS NULL' },
-        { name: 'Applications sans company_id', query: 'SELECT COUNT(*) as count FROM applications WHERE company_id IS NULL' }
+        { name: 'Users sans email', query: 'SELECT COUNT(*) as count FROM "User" WHERE email IS NULL' },
+        { name: 'Companies sans nom', query: 'SELECT COUNT(*) as count FROM "Company" WHERE name IS NULL' },
+        { name: 'Applications sans user_id', query: 'SELECT COUNT(*) as count FROM "Application" WHERE "userId" IS NULL' },
+        { name: 'Applications sans company_id', query: 'SELECT COUNT(*) as count FROM "Application" WHERE "companyId" IS NULL' }
       ];
 
       for (const test of integrityTests) {
@@ -111,27 +107,25 @@ class DatabaseTester {
           console.log(`⚠️ ${test.name}: ${count} enregistrements problématiques`);
         }
       }
-
-      await this.disconnect();
+      return true;
     } catch (error) {
       console.error('❌ Erreur lors du test d\'intégrité:', error.message);
+      return false;
     }
   }
 
   async testPerformance() {
     console.log('⚡ Test de performance...');
     try {
-      await this.connect();
-
       const performanceTests = [
-        { name: 'Count users', query: 'SELECT COUNT(*) FROM users' },
-        { name: 'Count companies', query: 'SELECT COUNT(*) FROM companies' },
-        { name: 'Count applications', query: 'SELECT COUNT(*) FROM applications' },
+        { name: 'Count users', query: 'SELECT COUNT(*) FROM "User"' },
+        { name: 'Count companies', query: 'SELECT COUNT(*) FROM "Company"' },
+        { name: 'Count applications', query: 'SELECT COUNT(*) FROM "Application"' },
         { name: 'Complex join', query: `
           SELECT COUNT(*)
-          FROM applications a
-          JOIN users u ON a.user_id = u.id
-          JOIN companies c ON a.company_id = c.id
+          FROM "Application" a
+          JOIN "User" u ON a."userId" = u.id
+          JOIN "Company" c ON a."companyId" = c.id
         ` }
       ];
 
@@ -141,10 +135,10 @@ class DatabaseTester {
         const duration = Date.now() - start;
         console.log(`⚡ ${test.name}: ${duration}ms`);
       }
-
-      await this.disconnect();
+      return true;
     } catch (error) {
       console.error('❌ Erreur lors du test de performance:', error.message);
+      return false;
     }
   }
 
@@ -164,6 +158,8 @@ class DatabaseTester {
       dataIntegrity: await this.testDataIntegrity(),
       performance: await this.testPerformance()
     };
+
+    await this.disconnect();
 
     console.log('\n📋 Résumé des tests:');
     Object.entries(results).forEach(([test, result]) => {

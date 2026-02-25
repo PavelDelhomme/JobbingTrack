@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Intégration Système",
+  "command": "node tests/integration/test-full-system.js",
+  "timestamp": "2026-02-24T17:09:09+01:00",
+  "duration": 0,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "/home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/integration/test-full-system.js:95\n    });\n       \n\nSyntaxError: Unexpected end of input\n    at wrapSafe (node:internal/modules/cjs/loader:1638:18)\n    at Module._compile (node:internal/modules/cjs/loader:1680:20)\n    at Object..js (node:internal/modules/cjs/loader:1839:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49\n\nNode.js v22.22.0\n"
+}

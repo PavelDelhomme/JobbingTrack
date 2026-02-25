@@ -1,0 +1,14 @@
+{
+  "testName": "Playwright E2E Frontend",
+  "command": "timeout 300 bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && ( test -x ./node_modules/.bin/playwright && ./node_modules/.bin/playwright test tests/e2e --reporter=list,json || npm run test:e2e -- --reporter=list,json ) 2>&1'",
+  "timestamp": "2026-02-24T18:14:31+01:00",
+  "duration": 1,
+  "exitCode": 127,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "\n> jobbingtrack-frontend@1.0.1 test:e2e\n> playwright test --reporter=list,json\n\nsh: ligne 1: playwright: commande introuvable\n"
+}

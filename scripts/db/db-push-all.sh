@@ -107,11 +107,7 @@ if [ -f "${ROOT_DIR}/scripts/db/init-system-metrics.sql" ]; then
   echo "[DB-PUSH-ALL] Partie 2/3 – Tables monitoring (init-system-metrics.sql)"
   echo "━━━ Partie 2/3 – Tables monitoring (init-system-metrics.sql) ━━━"
   echo "  system_metrics, container_metrics, service_availability_history"
-  if docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql"; then
-    echo "  ✅ Tables system_metrics / service_availability_history OK"
-  else
-    echo "  ⚠️  init-system-metrics.sql a échoué (voir erreurs ci-dessus) ; relancer make db-push-all après correction"
-  fi
+  docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/init-system-metrics.sql" && echo "  ✅ Tables system_metrics / service_availability_history OK" || echo "  ⚠️  init-system-metrics.sql a échoué (on continue ; ensure-metrics-aggregator créera les tables si besoin)"
   echo ""
 fi
 
@@ -140,6 +136,17 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
     echo "  ✅ Templates email insérés (ou déjà présents)"
   else
     echo "  ⚠️  Seed templates email ignoré (tables peut-être absentes : relancer init-key-tables)"
+  fi
+  echo ""
+fi
+
+# Garantir les tables metrics-aggregator (évite « unhealthy » si init-system-metrics / init-key-tables ont échoué partiellement)
+if [ -f "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql" ]; then
+  echo "[DB-PUSH-ALL] Ensure – Tables metrics-aggregator (system_metrics_snapshots, container_metrics_snapshots, service_availability_history)"
+  if docker exec -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-metrics-aggregator-tables.sql"; then
+    echo "  ✅ Tables metrics-aggregator OK"
+  else
+    echo "  ⚠️  ensure-metrics-aggregator-tables a échoué (vérifiez Postgres)"
   fi
   echo ""
 fi
