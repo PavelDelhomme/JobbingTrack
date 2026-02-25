@@ -24,7 +24,7 @@ import { Loader2 } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 
 /** Catégories lançables depuis le hub (endpoint API run-*) */
-const RUNNABLE_IDS = ['api', 'backend', 'frontend', 'backoffice', 'backoffice-only', 'database', 'security', 'performance', 'playwright', 'emails'] as const
+const RUNNABLE_IDS = ['api', 'backend', 'frontend', 'backoffice', 'backoffice-only', 'database', 'security', 'performance', 'playwright', 'emails', 'emails-mailhog'] as const
 const RUN_API: Record<string, string | string[]> = {
   api: '/api/test/run-api',
   backend: '/api/test/run-backend',
@@ -36,6 +36,7 @@ const RUN_API: Record<string, string | string[]> = {
   performance: ['/api/test/run-performance-backend', '/api/test/run-performance-frontend'],
   playwright: '/api/test/run-playwright',
   emails: '/api/test/run-emails',
+  'emails-mailhog': '/api/test/run-playwright-mailhog',
 }
 
 const CATEGORIES = [
@@ -150,6 +151,17 @@ const CATEGORIES = [
     iconClass: 'text-pink-600 dark:text-pink-400',
   },
   {
+    id: 'emails-mailhog',
+    name: 'Tests Emails MailHog',
+    description: 'E2E : envoi email, réception MailHog, ouverture et clic liens (reset, etc.)',
+    href: '/backoffice/tests-emails',
+    icon: Mail,
+    color: 'pink',
+    bgClass: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
+    textClass: 'text-pink-700 dark:text-pink-300',
+    iconClass: 'text-pink-600 dark:text-pink-400',
+  },
+  {
     id: 'schedule',
     name: 'Programmer tests',
     description: 'Planifier l\'exécution automatique des tests',
@@ -196,7 +208,7 @@ export default function TestsHubPage() {
   }, [])
 
   const toggleSelection = (id: string) => {
-    if (!RUNNABLE_IDS.includes(id as any)) return
+    if (!(RUNNABLE_IDS as readonly string[]).includes(id)) return
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
@@ -419,7 +431,7 @@ export default function TestsHubPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon
-            const runnable = RUNNABLE_IDS.includes(cat.id as any)
+            const runnable = (RUNNABLE_IDS as readonly string[]).includes(cat.id)
             const selected = selectedIds.includes(cat.id)
             return (
               <div

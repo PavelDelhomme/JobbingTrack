@@ -120,7 +120,7 @@ MAKE_NC := $(NC)
 
 # Fonction pour vérifier si l'utilisateur a lu le help
 define check_help_read
-	@if [ -z "$$JOBBINGTRACK_HELP_READ" ]; then \
+	@if [ -z "$$JOBBINGTRACK_HELP_READ" ] && [ -z "$$CI" ] && [ -z "$$TEST_NOPROMPT" ] && [ -t 0 ]; then \
 		echo ""; \
 		echo "╔════════════════════════════════════════════════════════╗"; \
 		echo "║  ⚠️  PREMIÈRE UTILISATION ? LISEZ L'AIDE D'ABORD !     ║"; \

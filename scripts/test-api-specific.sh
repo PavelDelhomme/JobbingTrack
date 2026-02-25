@@ -11,8 +11,8 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# Configuration
-API_URL="${API_URL:-http://localhost:5002}"
+# Configuration (API_GATEWAY_URL utilisé par le backoffice / CI)
+API_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 TOKEN=""
 TEST_TYPES="$1"
 shift || true

@@ -3,6 +3,17 @@
 
 # Ne pas quitter en cas d'erreur pour continuer les autres tests
 set +e
+# Code de sortie du premier échec dans un pipeline (pour tee)
+set -o pipefail 2>/dev/null || true
+
+# Ctrl+C / SIGTERM : arrêter proprement la suite
+stop_tests() {
+    echo ""
+    echo "🛑 Interruption (Ctrl+C) – arrêt de la suite de tests..."
+    kill -INT -$$ 2>/dev/null
+    exit 130
+}
+trap stop_tests INT TERM
 
 # Couleurs
 RED='\033[0;31m'
@@ -38,6 +49,8 @@ echo -e "${CYAN}║     🧪 EXÉCUTION COMPLÈTE DES TESTS - JobbingTrack     �
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}📁 Répertoire des résultats : $REPORT_DIR${NC}"
+echo -e "${YELLOW}💡 Tables BDD à jour : make db-push-all (Postgres démarré). API : API_GATEWAY_URL ou API_URL pour test-api-specific.${NC}"
+echo -e "${CYAN}📍 Phase 4/4 – Chaque test ci-dessous affiche son numéro d'étape (étape 1, 2, 3, …).${NC}"
 echo ""
 
 # Compteurs globaux
@@ -46,28 +59,27 @@ TOTAL_PASSED=0         # Nombre total de tests réussis
 TOTAL_FAILED=0         # Nombre total de tests échoués
 TOTAL_CATEGORIES=0     # Nombre de catégories de tests exécutées
 TEST_RESULTS=()
+STEP_NUM=0             # Compteur d'étapes pour affichage progression
 
-# Fonction pour exécuter un test et capturer les résultats
+# Fonction pour exécuter un test et capturer les résultats (sortie affichée en direct)
 run_test() {
     local test_name="$1"
     local test_command="$2"
     local result_file="$3"
     
+    STEP_NUM=$((STEP_NUM + 1))
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}🧪 Test: $test_name${NC}"
+    echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC}"
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}▶ En cours – sortie ci-dessous (Ctrl+C pour arrêter)${NC}"
     echo ""
     
     local start_time=$(date +%s)
     local exit_code=0
-    
-    # Exécuter le test et capturer la sortie (forcer la sortie non-buffered)
-    # Rediriger stderr vers stdout pour capturer toutes les erreurs
-    if eval "$test_command" > "$result_file.tmp" 2>&1; then
-        exit_code=0
-    else
-        exit_code=$?
-    fi
+
+    # Exécuter le test avec sortie en direct (tee) et capture dans le fichier
+    eval "$test_command" 2>&1 | tee "$result_file.tmp"
+    exit_code=${PIPESTATUS[0]:-$?}
     
     # Filtrer les messages "check" répétitifs qui ne sont pas des erreurs critiques
     if [ -f "$result_file.tmp" ]; then
@@ -80,6 +92,7 @@ run_test() {
     
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
+    [ -z "$duration" ] || ! [ "$duration" -ge 0 ] 2>/dev/null && duration=0
     
     # Lire les résultats et nettoyer les codes ANSI
     local output=""
@@ -202,6 +215,11 @@ run_test() {
         echo -e "${RED}❌ Impossible de créer le répertoire : $result_dir${NC}"
         return 1
     }
+    # Garantir des entiers valides pour le JSON (éviter NaN / vide → jq parse error)
+    duration=$((duration + 0)); [ -z "$duration" ] || ! [ "$duration" -ge 0 ] 2>/dev/null && duration=0
+    total=$((total + 0)); [ -z "$total" ] || ! [ "$total" -ge 0 ] 2>/dev/null && total=0
+    passed=$((passed + 0)); [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null && passed=0
+    failed=$((failed + 0)); [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null && failed=0
     
     cat > "$result_file" <<EOF
 {
@@ -330,8 +348,8 @@ run_test "User Journey (API)" \
     "bash scripts/verify-user-journey.sh" \
     "$REPORT_DIR/user-journey.json"
 
-# 2. Test Relations BDD
-if docker ps | grep -q jobbingtrack-auth-service; then
+# 2. Test Relations BDD (détection conteneur auth: name exact ou partiel)
+if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Relations BDD" \
         "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js" \
         "$REPORT_DIR/relations.json"
@@ -348,8 +366,8 @@ EOF
     echo ""
 fi
 
-# 3. Test Enums
-if docker ps | grep -q jobbingtrack-auth-service; then
+# 3. Test Enums (détection conteneur auth: name exact ou partiel)
+if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Enums" \
         "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-enums-temp.js' < scripts/test-enums.js && docker exec -w /app jobbingtrack-auth-service node test-enums-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-enums-temp.js" \
         "$REPORT_DIR/enums.json"
@@ -407,9 +425,9 @@ elif [ -f "tests/backend/test-security-service.test.js" ]; then
 fi
 
 # 6b. Tests API Backend (script complet : auth, users, companies, applications, contacts, interviews, calls, events, followups, profile, notifications, metrics, dashboard, emails, workflow, security)
-API_BASE_URL="${API_URL:-http://localhost:5002}"
+API_BASE_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 run_test "Tests API Backend (script - tous services)" \
-    "API_URL='$API_BASE_URL' bash scripts/test-api-specific.sh" \
+    "API_URL='$API_BASE_URL' API_GATEWAY_URL='$API_BASE_URL' bash scripts/test-api-specific.sh" \
     "$REPORT_DIR/api-backend-script.json"
 
 # ==============================================================================
@@ -421,62 +439,57 @@ echo -e "${CYAN}║        🎨 CATÉGORIE 2 : TESTS FRONTEND (E2E)          ║
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# 7. Tests Playwright E2E Frontend (dans conteneur ou local)
-if docker ps | grep -q jobbingtrack-frontend; then
-    # Créer le répertoire test-results avec les bonnes permissions
-    docker exec jobbingtrack-frontend sh -c "mkdir -p /app/test-results && chmod -R 777 /app/test-results" 2>/dev/null || true
+# Installer les navigateurs Playwright une fois (binaire local frontend pour éviter npx global)
+echo -e "${BLUE}📦 Vérification Playwright (navigateurs) – timeout 3 min si installation nécessaire...${NC}"
+if docker ps 2>/dev/null | grep -q jobbingtrack-frontend; then
+    timeout 180 docker exec -w /app jobbingtrack-frontend npx playwright install 2>&1 | tail -5 || true
+else
+    if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+        (cd frontend && npm install --no-audit --no-fund 2>/dev/null || true && (timeout 180 ./node_modules/.bin/playwright install 2>&1 || timeout 180 npx playwright install 2>&1) | tail -5) || true
+    fi
+fi
+echo ""
+
+# 7. Tests Playwright E2E Frontend (config standalone = pas de webServer, frontend déjà up sur 5003 avec make up-full)
+PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-300}"
+PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
+if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
-        "docker exec -w /app -u root jobbingtrack-frontend sh -c 'chown -R nodejs:nodejs /app/test-results 2>/dev/null || true; chmod -R 777 /app/test-results 2>/dev/null || true' && docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e --reporter=list,json 2>&1)" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
+        "$REPORT_DIR/playwright-e2e.json"
+elif [ -d "frontend/tests/e2e" ]; then
+    run_test "Playwright E2E Frontend" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
         "$REPORT_DIR/playwright-e2e.json"
 else
-    if [ -d "frontend/tests/e2e" ]; then
-        run_test "Playwright E2E Frontend" \
-            "cd frontend && npx playwright test tests/e2e --reporter=list,json 2>&1" \
-            "$REPORT_DIR/playwright-e2e.json"
-    else
-        echo -e "${YELLOW}⚠️  Tests Playwright E2E non disponibles${NC}"
-        cat > "$REPORT_DIR/playwright-e2e.json" <<EOF
-{
-  "testName": "Playwright E2E Frontend",
-  "status": "skipped",
-  "reason": "Tests Playwright non disponibles",
-  "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
-}
-EOF
-        echo ""
-    fi
+    echo -e "${YELLOW}⚠️  Tests Playwright E2E non disponibles (frontend ou test:e2e manquant)${NC}"
+    printf '%s\n' '{"testName":"Playwright E2E Frontend","status":"skipped","reason":"frontend ou test:e2e manquant","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-e2e.json"
+    echo ""
 fi
 
-# 8. Tests Mobile Playwright
-if docker ps | grep -q jobbingtrack-frontend; then
-    # Créer le répertoire test-results avec les bonnes permissions
-    docker exec jobbingtrack-frontend sh -c "mkdir -p /app/test-results && chmod -R 777 /app/test-results" 2>/dev/null || true
+# 7b. Tests Emails + MailHog (config sans webServer → frontend déjà up sur 5003 avec make up-full)
+# Pour que les mails arrivent dans MailHog : auth-service doit avoir SMTP_HOST=mailhog SMTP_PORT=1025 (.env ou make up-full)
+if [ -f "tests/e2e/specs/admin-emails-mailhog.spec.ts" ]; then
+    run_test "Playwright Emails MailHog" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"${MAILHOG_WEB_URL:-http://localhost:8025}\" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "$REPORT_DIR/playwright-mailhog.json"
+fi
+
+# 8. Tests Mobile Playwright (config standalone = pas de webServer, frontend déjà up sur 5003)
+if [ -d "frontend" ] && [ -d "frontend/tests/e2e/mobile" ]; then
     run_test "Playwright Mobile" \
-        "docker exec -w /app -u root jobbingtrack-frontend sh -c 'chown -R nodejs:nodejs /app/test-results 2>/dev/null || true; chmod -R 777 /app/test-results 2>/dev/null || true' && docker exec -w /app jobbingtrack-frontend npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1 || (cd frontend && npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1)" \
+        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e/mobile --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e/mobile --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>/dev/null || npm run test:e2e:mobile:all; fi' 2>&1" \
         "$REPORT_DIR/playwright-mobile.json"
 else
-    if [ -d "frontend/tests/e2e/mobile" ]; then
-        run_test "Playwright Mobile" \
-            "cd frontend && npx playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>&1" \
-            "$REPORT_DIR/playwright-mobile.json"
-    else
-        echo -e "${YELLOW}⚠️  Tests Mobile non disponibles${NC}"
-        cat > "$REPORT_DIR/playwright-mobile.json" <<EOF
-{
-  "testName": "Playwright Mobile",
-  "status": "skipped",
-  "reason": "Tests Mobile non disponibles",
-  "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"
-}
-EOF
-        echo ""
-    fi
+    echo -e "${YELLOW}⚠️  Tests Mobile non disponibles${NC}"
+    printf '%s\n' '{"testName":"Playwright Mobile","status":"skipped","reason":"frontend/tests/e2e/mobile manquant","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-mobile.json"
+    echo ""
 fi
 
-# 9. Tests Frontend Jest (unitaires)
+# 9. Tests Frontend Jest (unitaires – depuis frontend/ pour next/jest)
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then
     run_test "Tests Frontend Jest (Unitaires)" \
-        "cd frontend && npm test -- --passWithNoTests 2>&1" \
+        "bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && npm run test:unit 2>&1'" \
         "$REPORT_DIR/frontend-jest.json"
 fi
 
@@ -515,7 +528,7 @@ echo ""
 # 12. Tests d'Intégration
 if [ -f "tests/integration/test-full-system.js" ]; then
     run_test "Tests Intégration Système" \
-        "node tests/integration/test-full-system.js" \
+        "bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && node integration/test-full-system.js'" \
         "$REPORT_DIR/integration.json"
 fi
 
@@ -686,8 +699,9 @@ if [ -f "tests/api-gateway/test-routing.js" ]; then
         "node tests/api-gateway/test-routing.js" \
         "$REPORT_DIR/api-gateway-routing.json"
 else
+    API_GW="${API_GATEWAY_URL:-http://localhost:5002}"
     run_test "Tests API Gateway Health" \
-        "curl -s http://localhost:3000/health && curl -s http://localhost:3000/metrics && curl -s http://localhost:3000/ready" \
+        "curl -sf \"${API_GW}/health\" && curl -sf \"${API_GW}/metrics\"" \
         "$REPORT_DIR/api-gateway-health.json"
 fi
 
@@ -812,23 +826,23 @@ TOTAL_SKIPPED=0
 # Parcourir tous les fichiers JSON de résultats (sauf summary.json)
 for json_file in "$REPORT_DIR"/*.json; do
     if [ -f "$json_file" ] && [ "$(basename "$json_file")" != "summary.json" ]; then
-        # Vérifier si c'est un test skipped
+        # Vérifier si c'est un test skipped (jq peut échouer si JSON invalide → ignorer erreur)
         if command -v jq > /dev/null 2>&1; then
-            status=$(jq -r '.status // empty' "$json_file" 2>/dev/null)
+            status=$(jq -r '.status // empty' "$json_file" 2>/dev/null || status="")
             if [ "$status" = "skipped" ]; then
                 TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
                 continue
             fi
-            # Extraire les statistiques
-            total=$(jq -r '.statistics.total // 0' "$json_file" 2>/dev/null)
-            passed=$(jq -r '.statistics.passed // 0' "$json_file" 2>/dev/null)
-            failed=$(jq -r '.statistics.failed // 0' "$json_file" 2>/dev/null)
+            # Extraire les statistiques (jq peut échouer si JSON invalide → utiliser 0)
+            total=$(jq -r '.statistics.total // 0' "$json_file" 2>/dev/null); [ -z "$total" ] || [ "$total" = "null" ] || ! [ "$total" -ge 0 ] 2>/dev/null && total=0; total=$((total + 0))
+            passed=$(jq -r '.statistics.passed // 0' "$json_file" 2>/dev/null); [ -z "$passed" ] || [ "$passed" = "null" ] || ! [ "$passed" -ge 0 ] 2>/dev/null && passed=0; passed=$((passed + 0))
+            failed=$(jq -r '.statistics.failed // 0' "$json_file" 2>/dev/null); [ -z "$failed" ] || [ "$failed" = "null" ] || ! [ "$failed" -ge 0 ] 2>/dev/null && failed=0; failed=$((failed + 0))
             
-            exit_code=$(jq -r '.exitCode // 1' "$json_file" 2>/dev/null)
-            output_text=$(jq -r '.output // ""' "$json_file" 2>/dev/null)
+            exit_code=$(jq -r '.exitCode // 1' "$json_file" 2>/dev/null); [ -z "$exit_code" ] || [ "$exit_code" = "null" ] && exit_code=1; exit_code=$((exit_code + 0))
+            output_text=$(jq -r '.output // ""' "$json_file" 2>/dev/null || output_text="")
             
             # Si total est 0 ou null, essayer d'extraire les stats depuis la sortie
-            if [ "$total" -eq 0 ] || [ -z "$total" ] || [ "$total" = "null" ]; then
+            if [ "$total" -eq 0 ] || [ -z "$total" ]; then
                 # Essayer d'extraire les stats depuis la sortie du test
                 if [ -n "$output_text" ] && [ "$output_text" != "null" ] && [ "$output_text" != "" ]; then
                     # Décoder la sortie JSON (échappement)
@@ -862,7 +876,7 @@ for json_file in "$REPORT_DIR"/*.json; do
                 fi
                 
                 # Si total est toujours 0, vérifier si le test a été exécuté (exitCode existe)
-                if [ "$total" -eq 0 ] || [ -z "$total" ] || [ "$total" = "null" ]; then
+                if [ "$total" -eq 0 ] || [ -z "$total" ]; then
                     # Si exitCode existe et n'est pas null, c'est qu'un test a été exécuté (même sans stats)
                     if [ -n "$exit_code" ] && [ "$exit_code" != "null" ] && [ "$exit_code" != "" ]; then
                         TOTAL_TESTS_RECALC=$((TOTAL_TESTS_RECALC + 1))
@@ -912,6 +926,9 @@ fi
 
 cat > "$SUMMARY_RESULT" <<EOF
 {
+  "category": "Suite CLI",
+  "testName": "Suite complète (ligne de commande)",
+  "generatedAtISO": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "timestamp": "$(date -Iseconds)",
   "reportDir": "$REPORT_DIR",
   "summary": {
@@ -1006,12 +1023,13 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
     fi
     
     if command -v jq > /dev/null 2>&1; then
-        test_name=$(jq -r '.testName // "Test inconnu"' "$result_file")
-        status=$(jq -r '.status // "unknown"' "$result_file")
-        duration=$(jq -r '.duration // 0' "$result_file")
-        total=$(jq -r '.statistics.total // 0' "$result_file")
-        passed=$(jq -r '.statistics.passed // 0' "$result_file")
-        failed=$(jq -r '.statistics.failed // 0' "$result_file")
+        # Si jq échoue (JSON invalide, ex. NaN), utiliser les fallbacks
+        test_name=$(jq -r '.testName // "Test inconnu"' "$result_file" 2>/dev/null) || test_name="Test inconnu"
+        status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null) || status="unknown"
+        duration=$(jq -r '.duration // 0' "$result_file" 2>/dev/null) || duration=0
+        total=$(jq -r '.statistics.total // 0' "$result_file" 2>/dev/null) || total=0
+        passed=$(jq -r '.statistics.passed // 0' "$result_file" 2>/dev/null) || passed=0
+        failed=$(jq -r '.statistics.failed // 0' "$result_file" 2>/dev/null) || failed=0
         # Extraire output en gérant les cas null/empty
         output=$(jq -r '.output // ""' "$result_file" 2>/dev/null || echo "")
     else

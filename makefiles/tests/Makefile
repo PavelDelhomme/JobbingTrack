@@ -4,14 +4,19 @@
 # Commandes simplifiées pour tester l'application
 # ================================================================
 
+# make test / test-all : lancement direct (pas de message d'aide ni attente 3 s)
+ifneq (,$(filter test test-all,$(MAKECMDGOALS)))
+  export TEST_NOPROMPT := 1
+endif
+
 .PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
-        tests-clean test-clean test-relations test-enums test-email-python \
+        tests-clean test-clean test test-relations test-enums test-email-python \
         test-email-python-reset test-email-python-verification test-email-diagnostic \
-        test-email-logs test-email-logs-all test-email-logs-stats test-all \
+        test-email-logs test-email-logs-all test-email-logs-stats test-all test-full \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
         test-performance test-security test-integration test-docker test-monitoring \
         test-unit test-services test-infrastructure test-cache test-analytics \
-        test-suite-quick test-suite-quick-nocontroller
+        test-suite-quick test-suite-quick-nocontroller test-suite-full
 
 # ================================================================
 # 📚 HELP - Guide d'utilisation des tests
@@ -69,9 +74,13 @@ tests-help:
 	@echo "  make test-analytics-endpoint  Tests endpoint analytics"
 	@echo "  make test-emulator-controller Test contrôleur émulateur (port 5055 ; lancer make emulator-controller avant)"
 	@echo "  make test-suite-quick         Suite rapide : contrôleur + frontend + BDD + status (sans interaction)"
+	@echo "  make test-suite-full          Suite complète : frontend + BDD + status + test-all (sans logs, sans attente)"
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
 	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
+	@echo "  make test-full                Stack (up-full) + npm install tests/frontend + test-all (tout-en-un)"
+	@echo ""
+	@echo "💡 make logs-applicative suit les logs (ne termine jamais) → à lancer dans un autre terminal."
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -433,9 +442,28 @@ test-suite-quick-nocontroller: ## Suite rapide sans démarrer le contrôleur (fr
 	@$(MAKE) -s status
 	@echo "✅ Suite rapide (sans contrôleur) terminée."
 
+# Suite complète : frontend + BDD + status + test-all (sans logs ni attente Entrée)
+# test-all = script run-all-tests-with-reports.sh (User Journey, Enums, Email Logs, API, Playwright E2E, Playwright MailHog, etc.)
+# À lancer dans un terminal ; pour voir les logs en direct, ouvrir un 2e terminal : make logs-applicative
+test-suite-full: ## Suite complète : test-frontend + test-database + status + test-all (incl. Playwright, MailHog)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🧪 SUITE COMPLÈTE - tests + test-all               ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo "💡 Logs en direct : dans un autre terminal : make logs-applicative"
+	@echo "📋 Ordre : test-frontend → test-database → status → test-all (tous les tests, dont Playwright E2E et MailHog)"
+	@echo ""
+	@TEST_NOPROMPT=1 $(MAKE) -s test-frontend && \
+	 TEST_NOPROMPT=1 $(MAKE) -s test-database && \
+	 TEST_NOPROMPT=1 $(MAKE) -s status && \
+	 TEST_NOPROMPT=1 $(MAKE) -s test-all
+	@echo ""
+	@echo "✅ Suite complète terminée."
+
 # ================================================================
 # 🎯 TEST ALL - Exécute TOUS les tests de manière complète
 # ================================================================
+
+test: test-all ## Alias : make test = make test-all (suite complète avec progression en direct)
 
 test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	$(call check_help_read,test-all)
@@ -455,6 +483,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "🎨 FRONTEND :"
 	@echo "   ✓ Tests Playwright E2E Frontend"
+	@echo "   ✓ Tests Playwright Emails (MailHog)"
 	@echo "   ✓ Tests Playwright Mobile"
 	@echo "   ✓ Tests Frontend Jest (Unitaires)"
 	@echo ""
@@ -467,11 +496,12 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "⏳ Durée estimée : 10-20 minutes (selon les tests disponibles)"
 	@echo ""
-	@if [ -z "$${TEST_NOPROMPT}" ] && [ -z "$${CI}" ]; then \
+	@TEST_NOPROMPT=1; \
+	if [ -n "$${TEST_NOPROMPT}" ] || [ -n "$${CI}" ] || ! [ -t 0 ]; then \
+		echo "🚀 Lancement automatique (pas d'attente Entrée)."; \
+	else \
 		echo "Appuyez sur Entrée pour continuer ou Ctrl+C pour annuler..."; \
 		read confirm; \
-	else \
-		echo "Lancement automatique (TEST_NOPROMPT ou CI)."; \
 	fi
 	@echo ""
 	@echo "🚀 Exécution de tous les tests avec génération de rapports..."
@@ -484,6 +514,37 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 	@echo "💡 Consultez les rapports dans tests/results/"
 	@echo ""
+
+# ================================================================
+# 🚀 TEST FULL - Stack complète + install deps + test-all (une seule commande)
+# ================================================================
+# Équivalent : make up-full && cd tests && npm install && cd .. && cd frontend && npm install && cd .. && TEST_NOPROMPT=1 make test-all
+# ================================================================
+test-full: ## Stack complète (up-full) + npm install tests + npm install frontend + test-all (commande tout-en-un)
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     🚀 TEST FULL - Stack + deps + tous les tests      ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "1/4 Démarrage de la stack (make up-full)..."
+	@$(MAKE) up-full
+	@echo ""
+	@echo "2/4 Installation des deps tests (cd tests && npm install)..."
+	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
+	@echo ""
+	@echo "3/4 Installation des deps frontend (cd frontend && npm install)..."
+	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
+	@if [ ! -w frontend/node_modules 2>/dev/null ] && [ -d frontend/node_modules ]; then \
+		echo "   ⚠️  frontend/node_modules n'est pas writable (ex. créé par Docker en root)."; \
+		echo "   💡 Si Playwright/Jest échouent avec EACCES, exécutez: sudo chown -R $$(whoami) frontend/node_modules frontend/.next"; \
+	fi
+	@if [ -d frontend/.next ] && [ ! -w frontend/.next 2>/dev/null ]; then \
+		echo "   ⚠️  frontend/.next n'est pas writable (ex. créé par Docker en root)."; \
+		echo "   💡 Pour éviter EACCES sur .next/package.json, exécutez: sudo chown -R $$(whoami) frontend/.next"; \
+	fi
+	@echo ""
+	@echo "4/4 Lancement de tous les tests (TEST_NOPROMPT=1 make test-all)..."
+	@echo "   Chaque catégorie de test affichera son numéro d'étape ci-dessous (étape 1, 2, 3, …)."
+	@TEST_NOPROMPT=1 $(MAKE) test-all
 
 # ================================================================
 # 💾 TEST CACHE - Test système de cache
@@ -583,8 +644,8 @@ test-database: ## Tests base de données (connexion, schéma, enums, relations)
 	@echo ""
 	@if docker ps | grep -q jobbingtrack-frontend; then \
 		echo "🐳 Exécution dans le conteneur jobbingtrack-frontend..."; \
-		docker exec -w /app/tests jobbingtrack-frontend sh -c "npm run test:database 2>&1" || \
-		docker exec -w /app jobbingtrack-frontend sh -c "cd tests && npm run test:database 2>&1" || \
+		docker exec -e DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack -w /app/tests jobbingtrack-frontend sh -c "npm run test:database 2>&1" || \
+		docker exec -e DATABASE_URL=postgresql://jobbingtrack:jobbingtrack123@postgres:5432/jobbingtrack -w /app jobbingtrack-frontend sh -c "cd tests && npm run test:database 2>&1" || \
 		(cd tests && npm run test:database 2>&1); \
 	else \
 		echo "💻 Exécution en local..."; \

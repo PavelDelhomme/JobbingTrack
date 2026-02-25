@@ -19,6 +19,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/v1/workflow', workflowRoutes);
+app.use('/api/v1/workflows', workflowRoutes); // alias pour gateway/test (GET /api/v1/workflows attendu 200)
 app.use('/api/v1/rules', ruleRoutes);
 
 // Démarrage du planificateur de tâches

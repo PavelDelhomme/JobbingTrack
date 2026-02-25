@@ -1,0 +1,14 @@
+{
+  "testName": "Email Logs",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;"",
+  "timestamp": "2026-02-24T17:28:14+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "output": "            id             |             to             |                    subject                     |     type     | status  |           sentAt           |         createdAt          \n---------------------------+----------------------------+------------------------------------------------+--------------+---------+----------------------------+----------------------------\n cmm0tkm9p000e5jharegfcv0e | redacted@example.invalid | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-24 16:28:12.426+00 | 2026-02-24 16:28:12.349+00\n cmm0tkm9c000c5jha5koxj31s | redacted@example.invalid | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | PENDING |                            | 2026-02-24 16:28:12.336+00\n cmm0t9of900095jha2al53vdx | redacted@example.invalid | Vérifiez votre adresse email - JobbingTrack    | VERIFICATION | SENT    | 2026-02-24 16:19:46.011+00 | 2026-02-24 16:19:41.926+00\n cmm0t9nh600085jha25km1ytb | redacted@example.invalid           | Test Email                                     | TEST         | SENT    | 2026-02-24 16:19:41.763+00 | 2026-02-24 16:19:40.698+00\n cmm0t9mn300075jhamgxvjo5k | redacted@example.invalid           | Test Email                                     | TEST         | SENT    | 2026-02-24 16:19:40.684+00 | 2026-02-24 16:19:39.616+00\n cmm0t9kke00065jha7p1jvk7v | redacted@example.invalid | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-24 16:19:37.004+00 | 2026-02-24 16:19:36.926+00\n cmm0t9kk200045jhare0rler9 | redacted@example.invalid | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | SENT    | 2026-02-24 16:19:46.015+00 | 2026-02-24 16:19:36.915+00\n cmm0svcu700015jhaae2bmcbx | redacted@example.invalid           | Test Email                                     | TEST         | SENT    | 2026-02-24 16:08:34.786+00 | 2026-02-24 16:08:33.727+00\n cmm0svbzn00005jhakc484469 | redacted@example.invalid           | Test Email                                     | TEST         | SENT    | 2026-02-24 16:08:33.692+00 | 2026-02-24 16:08:32.628+00\n cmm0sv91b000611wrjn35vpup | redacted@example.invalid | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-24 16:08:28.883+00 | 2026-02-24 16:08:28.8+00\n(10 rows)\n"
+}

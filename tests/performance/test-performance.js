@@ -9,10 +9,12 @@ const { performance } = require('perf_hooks');
 class PerformanceTester {
   constructor() {
     this.metrics = [];
+    const apiBase = process.env.API_GATEWAY_URL || process.env.API_URL || 'http://localhost:5002';
+    const authPort = process.env.AUTH_SERVICE_PORT || '5005';
     this.services = {
-      apiGateway: 'http://localhost:3000',
-      frontend: 'http://localhost:8080',
-      auth: 'http://localhost:3001',
+      apiGateway: apiBase,
+      frontend: process.env.FRONTEND_URL || 'http://localhost:8080',
+      auth: process.env.AUTH_SERVICE_URL || `http://localhost:${authPort}`,
       applications: 'http://localhost:3002',
       companies: 'http://localhost:3003',
       contacts: 'http://localhost:3004',
@@ -360,10 +362,21 @@ class PerformanceTester {
     }
   }
 
-  // Récupérer les métriques système locales
+  // Récupérer les métriques système locales (systeminformation optionnel)
   async getLocalSystemMetrics() {
+    let si;
     try {
-      const si = require('systeminformation');
+      si = require('systeminformation');
+    } catch (e) {
+      return {
+        cpu: { usage: 0, cores: 1, model: 'N/A' },
+        memory: { total: 0, used: 0, free: 0, percentage: 0 },
+        disk: { total: 0, used: 0, free: 0, percentage: 0 },
+        load: 0,
+        dataSource: 'systeminformation not installed'
+      };
+    }
+    try {
 
       const [cpu, mem, disk, load] = await Promise.all([
         si.cpu(),

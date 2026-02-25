@@ -48,8 +48,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: 'cd ../../frontend && node node_modules/next/dist/bin/next dev -H 0.0.0.0',
+    url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    timeout: 60 * 1000,
   },
 })

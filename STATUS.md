@@ -1,11 +1,108 @@
 # État du projet JobbingTrack
 
-**Dernière mise à jour** : 23 février 2026 – **Émulateur** : contrôleur v2 avec GET /flutter-devices et POST /input-tap (redémarrer avec `make emulator-controller-stop` puis `make emulator-controller`). **Tests** : `make test-emulator-controller` (vérifie /health, /avds, /devices, /flutter-devices) ; `make test-suite-quick` lance contrôleur si besoin + test émulateur + frontend + BDD + status sans interaction ; `make test-all` avec `TEST_NOPROMPT=1` ne demande plus Entrée. **BDD** : si Postgres est down, les tests BDD s’arrêtent proprement (pas de « Client already connected »). **Frontend** : test-unit-frontend en local tente `npm install` si jest absent.
+**Dernière mise à jour** : 23 février 2025
+
+---
+
+## 🎯 CE QUE TU DOIS FAIRE MAINTENANT (priorités absolues)
+
+À travailler **en premier** pour que le backoffice et les parcours soient opérationnels :
+
+1. **Parcours prédéfinis** – Rendre les 21 scénarios opérationnels : corriger l’auth (register/login) et l’enchaînement des étapes en mode Admin et Utilisateur de test ; s’assurer que les rapports sont générés et listés.
+2. **Parcours personnalisé** – Vérifier que l’exécution complète fonctionne, que les résultats s’affichent et que le rapport est enregistré ; lien visible vers « Rapports de parcours ».
+3. **Rapports de parcours** – Tous les rapports (prédéfinis + personnalisés) doivent être enregistrés et accessibles (Backoffice → Rapports de tests ou Parcours → Rapports) ; compteurs analytics cohérents (réussies / échouées / total).
+4. **Vérifier que le reste tourne** – `make up-full` puis Tests API 36/36, connexion backoffice (admin@jobbingtrack.test / password123), `make create-admin-user` si « Accès Refusé ».
+
+**Optionnel (tests)** : Tests Playwright MailHog (SMTP → MailHog + restart auth-service), Tests Sécurité, rapports performance alignés sur Tests API.
+
+**Plus tard (pas maintenant)** : Émulateur mobile (voir ci‑dessous), CI/CD, app mobile complète.
+
+---
+
+## 📊 ÉTAT EN UN COUP D’ŒIL
+
+| Catégorie | ✅ Fait | ⬜ À faire |
+|-----------|--------|-----------|
+| **Stack / BDD** | `make up-full`, `db-push-all`, 21/21 services, tables OK, monitoring démarré après db-push | — |
+| **Backoffice** | Connexion admin, Tests API 36/36, Tests Sécurité (rapport), hub Tests, sélection catégories | Parcours prédéfinis/personnalisé opérationnels, rapports de parcours listés |
+| **Parcours** | API parcours personnalisé, sauvegarde rapports (même répertoire que scan) | Auth + étapes pour parcours prédéfinis, compteurs analytics cohérents, lien visible vers rapports |
+| **Tests** | BDD, API, Backend, Playwright E2E (config standalone), hub avec sélection | MailHog 3 tests (SMTP=mailhog + restart auth), couverture complète backoffice |
+| **Plus tard** | Émulateur mobile : rendu OK au démarrage (`make emulator-controller` puis backoffice). Tests CLI visibles dans Rapports de tests (catégorie « Suite CLI »). | CI/CD, app mobile complète |
+
+---
+
+## 📌 DÉTAIL – À faire maintenant vs optionnel vs plus tard
+
+### À faire en priorité (travail actuel)
+
+- **Parcours prédéfinis** : Corriger auth (register/login) et enchaînement des étapes pour que les 21 scénarios passent en mode Admin et Utilisateur de test. Rapports enregistrés et listés dans Rapports de tests.
+- **Parcours personnalisé** : Lien visible vers « Rapports de parcours » ; corriger 500 company-service pour l’utilisateur de test si besoin.
+- **Rapports de parcours** : Tous les rapports (prédéfini + personnalisé) dans Backoffice → Rapports de tests ou page dédiée ; compteurs analytics cohérents (réussies / échouées / total).
+
+### Optionnel / pour les tests
+
+- **Tests Playwright Emails MailHog** : dans `.env`, `SMTP_HOST=mailhog`, `SMTP_PORT=1025`, puis **`docker compose restart auth-service`** (variables lues au démarrage).
+- **Tests backoffice** : couverture complète de chaque page admin (voir TESTS_END.md §15).
+- **Rapports performance** : aligner enregistrement/affichage sur le flux des Tests API (`tests/results/<timestamp>/`, Rapports de tests).
+
+### Plus tard (pas maintenant)
+
+- **Émulateur mobile** : **ne démarre pas** avec `make up-full`. **Rendu OK au démarrage** : lancer **`make emulator-controller`** (2e terminal), puis ouvrir http://localhost:5003/backoffice/mobile-emulator. `make status` affiche un rappel. Build APK / Run depuis l’interface à faire ensuite.
+- **Tests exécutés en ligne de commande** : `make test-all`, `make test-suite-full` ou `./scripts/run-all-tests-with-reports.sh` écrivent les rapports dans **`tests/results/<timestamp>/`** (summary.json, report.html). Ces rapports sont **visibles dans le backoffice** : **Rapports de tests** (`/backoffice/test-reports`), avec la catégorie **« Suite CLI »** pour les identifier.
+- **App mobile** : dashboard bottom nav + drawer, sync offline/online, suivi candidat (voir docs/mobile/APPLICATION_MOBILE_A_FAIRE.md).
+- **CI/CD complet** : pipeline avec tous les tests, workflow GitHub Actions adapté microservices.
+
+---
+
+## 📌 À FAIRE – Priorités (détail par thème)
+
+Ce qui reste à faire ou à corriger, réparti entre **tests**, **doc / backoffice**, **mobile** et **CI**. Les priorités immédiates sont ci‑dessus.
+
+### Tests et suite de tests
+
+- [x] **Ctrl+C arrête la suite** : un trap SIGINT/SIGTERM dans `run-all-tests-with-reports.sh` tue le test en cours et quitte proprement (exit 130).
+- [x] **Test BDD « Client has already been connected »** : `tests/database/test-database.js` utilise désormais un seul client PostgreSQL (connexion une fois, déconnexion en fin de run) — plus de réutilisation de client après `end()`.
+- [x] **Test Enums** : script `scripts/test-enums.js` aligné sur le schéma Prisma réel (ApplicationStatus, EventType = modèles ; NotificationType = REMINDER, APPLICATION_UPDATE, etc. ; NotificationPriority absent → ignorés). Les enums testés sont uniquement ceux présents en `enum` dans le schéma.
+- [x] **Tests API Backend (script – tous services)** : le script avec `API_GATEWAY_URL` passe (47 tests) lorsque la stack est up.
+- [x] **Tests Playwright E2E / Mobile (EACCES et webServer)** : la suite utilise désormais **playwright.standalone.config.ts** (sans démarrage de serveur, baseURL `http://localhost:5003`) pour Playwright E2E et Playwright Mobile quand le frontend tourne déjà (ex. `make test-full`). Évite EACCES sur `frontend/.next/package.json` (Next lancé par Playwright en root). Si EACCES persiste : `sudo chown -R $(whoami) frontend/node_modules frontend/.next`.
+- [ ] **Tests Playwright Emails MailHog (3 échecs)** : pour que les 3 tests MailHog passent, **auth-service** doit envoyer les mails vers MailHog : dans `.env` à la racine, définir `SMTP_HOST=mailhog` et `SMTP_PORT=1025`. **Important** : les variables sont lues au **démarrage** du conteneur — après toute modification du `.env`, redémarrer auth-service : **`docker compose restart auth-service`** (ou relancer `make up-full`). Sinon les mails partent vers l’ancien SMTP (ex. ssl0.ovh.net) et ne sont pas visibles dans MailHog.
+- [ ] **Documentation** : mettre à jour les docs (api-reference, guides) avec les derniers endpoints et comportements (emails, logs, SMTP, MailHog).
+
+### Backoffice et parcours
+
+- [ ] **Parcours prédéfinis** : auth (register/login) + enchaînement des étapes pour que les 21 scénarios passent ; rapports générés et listés.
+- [ ] **Parcours personnalisé** : lien visible vers « Rapports de parcours » ; corriger 500 company-service pour l’utilisateur de test si besoin.
+- [ ] **Rapports de parcours** : tous les rapports enregistrés et accessibles ; compteurs analytics cohérents.
+- [ ] **User Journey** : affichage, analytics, rapports ; voir section « CE QUE TU DOIS FAIRE MAINTENANT » ci‑dessus.
+- [ ] **Tests backoffice – couverture complète** : tester chaque page admin (Vue d’ensemble, Analytics, Logs, etc.) — voir TESTS_END.md §15.
+
+### Mobile et émulateur (plus tard)
+
+- [ ] **Émulateur mobile** : ne démarre pas avec `make up-full`. **Rendu OK** : lancer **`make emulator-controller`** puis ouvrir http://localhost:5003/backoffice/mobile-emulator. Build APK / Run depuis l’interface à faire ensuite.
+- [ ] **App mobile** : dashboard avec bottom nav + drawer ; sync offline/online ; suivi candidat. Référence : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md**.
+
+### CI/CD et déploiement
+
+- [ ] **CI/CD complet** (en dernier) : pipeline avec tous les tests (API, backend, frontend, backoffice, Playwright, etc.) ; workflow GitHub Actions adapté microservices ; validation BDD (enums/EventType déjà corrigée côté workflow).
+
+### Références
+
+- **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** : récap mobile, API, écrans, émulateur.
+- **docs/api/api-reference/README.md** : API, endpoints.
+- **STATUS.md** (ce fichier) : sections « Dernières choses à faire », « Application réelle », « Application mobile – checklist » pour le détail.
 
 ---
 
 ## ✅ Fait récemment (hub tests, BDD, rapports)
 
+- **Tests exécutés en ligne de commande visibles dans le backoffice** : les runs **`make test-all`**, **`make test-suite-full`** ou **`./scripts/run-all-tests-with-reports.sh`** écrivent dans `tests/results/<timestamp>/`. Le **summary.json** contient désormais **category: "Suite CLI"** et **testName: "Suite complète (ligne de commande)"** ; ces rapports apparaissent dans **Backoffice → Rapports de tests** avec la catégorie « Suite CLI ». La page Rapports de tests précise que « Suite CLI » = exécution depuis le terminal.
+- **Émulateur mobile – rendu OK au démarrage** : l’interface backoffice (Émulateur mobile) s’affiche correctement après **`make emulator-controller`** puis ouverture de http://localhost:5003/backoffice/mobile-emulator. `make status` rappelle la commande.
+- **Suite de tests – Ctrl+C** : `run-all-tests-with-reports.sh` pose un trap sur SIGINT/SIGTERM ; un **Ctrl+C** pendant `make test-suite-full` ou `make test-all` arrête proprement le test en cours (et tue les sous-processus, ex. Playwright) puis quitte (code 130).
+- **Tests BDD – client PostgreSQL** : `tests/database/test-database.js` ne réutilise plus un client après `end()` : une seule connexion pour toute la run (testConnection → tables → constraints → dataIntegrity → performance), puis une déconnexion en fin — plus d’erreur « Client has already been connected ».
+- **Suite complète (make test-all / backoffice)** : même script `run-all-tests-with-reports.sh` pour CLI et hub : User Journey, Relations, Enums, Email Logs, API Jest, Backend Services, Tests API Backend (script avec `API_GATEWAY_URL`), Playwright E2E (timeout 5 min), **Playwright Emails MailHog** (timeout 2 min), Playwright Mobile, Frontend Jest, Performance, Sécurité, Intégration. Rappel en tête de script : `make db-push-all` pour tables à jour.
+- **Tests BDD en Docker** : `make test-database` exécuté dans le conteneur frontend utilise `DATABASE_URL=postgresql://...@postgres:5432/jobbingtrack` pour joindre Postgres (plus d’échec « Postgres non démarré » alors que les services sont UP).
+- **Tests Emails MailHog** : spec `admin-emails-mailhog.spec.ts` sans skip — si MailHog ou token manquant, le test échoue. Backoffice : catégorie « Tests Emails MailHog » et route `/api/test/run-playwright-mailhog`. MailHog doit être démarré (ex. `make up-full` avec mailhog dans la stack).
+- **Metrics-aggregator unhealthy / tables absentes** : si le service affiche « Table system_metrics_snapshots / container_metrics_snapshots / service_availability_history absente », `make db-push-all` exécute désormais en fin de run le script **ensure-metrics-aggregator-tables.sql** qui recrée ces trois tables (CREATE TABLE IF NOT EXISTS). Partie 2 (init-system-metrics) ne fait plus sortir le script en erreur pour laisser Partie 3 et l’étape ensure s’exécuter. Après db-push-all, metrics-aggregator est redémarré pour recharger le schéma.
 - **Table UserCustomization** : ajoutée dans `scripts/db/init-key-tables.sql` ; créée à chaque `make db-push-all`. Plus d’erreur « relation public.UserCustomization does not exist » après connexion.
 - **Tests Emails / Playwright depuis le hub** : les routes `/api/test/run-emails` et `/api/test/run-playwright` utilisent en priorité `API_GATEWAY_URL` pour les appels serveur depuis le conteneur frontend (évite « fetch failed » en Docker).
 - **Tests Playwright depuis la vue d'ensemble** : lancement « Tests Playwright » sans scénarios exécute toute la suite Playwright localement (`generate-test-report.sh playwright "npm run test:e2e"`) et renvoie un rapport ; plus d'erreur 400 « Aucun scénario fourni ». Scénarios personnalisés (page Playwright) appellent toujours l'API admin.
@@ -14,13 +111,20 @@
 - **Journal Performance (hub)** : une seule ligne « Lancement: Tests Performance... » puis sous-lignes « → Backend terminé » / « → Frontend terminé » (plus de doublon).
 - **Rapports (totaux cohérents)** : dans `/api/test-reports/all`, pour les rapports dont total ≠ passed + failed, on force `totalTests = passed + failed`. Les rapports Sécurité utilisent `summary.summary.security`. Pour Backoffice et Playwright, le script `generate-test-report.sh` parse `test-results.json` quand il est présent pour remplir total / passed / failed.
 - **Rapports Playwright – captures d'écran** : sur la page **Rapports de tests** (`/backoffice/test-reports`), lorsqu'un rapport **Backoffice** ou **Playwright** (E2E) est affiché, un bouton **« Captures Playwright »** permet d'afficher le rapport HTML Playwright du même run (avec captures d'écran et détail des steps). L'API `/api/test-reports/view?id=...&playwright=1` sert le fichier `playwright-report/index.html` du répertoire du run quand il existe.
-- **Page Tests (hub) – sélection et lancement** : la page **Tests** (`/backoffice/tests`) permet déjà de **sélectionner une ou plusieurs catégories** (cartes cliquables) et de **lancer les tests** via le bouton « Lancer les tests sélectionnés ». Le journal d'exécution et le lien vers le dernier rapport sont affichés. **À valider** en parcours complet (voir checklist ci‑dessous).
+- **Page Tests (hub) – sélection et lancement** : la page **Tests** (`/backoffice/tests`) permet de **sélectionner une ou plusieurs catégories** (API, Backend, Frontend, Backoffice, Database, Security, Performance, Playwright, Emails, Emails MailHog, Schedule, Reports) et de **lancer les tests** via « Lancer les tests sélectionnés ». Le journal et le lien vers le dernier rapport sont affichés. **Rapports** : tous les rapports sont générés dans `tests/results/<timestamp>/` et sont **consultables et comparables** dans l’interface **Rapports de tests** (`/backoffice/test-reports`).
 - **Tests programmés (schedule)** : la page **Programmer tests** (`/backoffice/performance-tests/schedule`) permet de créer plusieurs plannings, chacun avec un **type** parmi : Performance (Backend, Frontend, les deux), Tests API, Backend, Frontend, Backoffice, **Tests Sécurité**, **Tests Playwright**, **Tests Emails**. Chaque schedule peut être activé/désactivé et « Lancer maintenant » exécute le type choisi.
 - **Vue d'ensemble Tests – blocage pendant l'exécution** : pendant le lancement des tests depuis la page Tests, un **overlay** bloque la page (« Ne pas quitter la page (recharger annule la run) ») et affiche le **test en cours** (ex. « Tests Playwright ») avec une mention pour les tests longs. **Barre de progression** (X/Y) et **liste des étapes** (terminées ✓, en cours, en attente) dans l’overlay. **Avertissement au rechargement** : si l’utilisateur recharge ou ferme l’onglet pendant une run, le navigateur affiche une confirmation ; la run côté serveur continue mais l’UI est perdue (relancer depuis la page ou en CLI). Les cartes de sélection sont désactivées pendant l’exécution.
 - **make logs – catégories** : **make logs-applicative** affiche les logs sans metrics-aggregator ni monitoring-c (moins de bruit). **make logs-persistence** affiche uniquement les lignes contenant `[PERSISTENCE]`. **make logs-metrics** reste pour le service metrics-aggregator seul. Aide : **make help-logs**.
 - **Hub Tests – Tests BDD et Backoffice uniquement** : depuis la page Tests (`/backoffice/tests`), deux nouvelles catégories lançables : **Tests BDD** (connexion, enums, relations via `make test-database` / `npm run test:database`) et **Backoffice uniquement** (uniquement le spec `backoffice.spec.ts` pour un run E2E plus court). Les rapports sont générés et visibles comme les autres (Tests BDD, Tests Backoffice).
 - **Spec backoffice étendu** : `frontend/tests/e2e/backoffice.spec.ts` couvre en plus les pages Rapports de tests, Programmer tests, Données de test, Testeur d’API, hub Tests ; modification paramètre (thème/sauvegarde) ; notifications (contenu ou vide) ; annulation création (remise à l’état) ; apparence (layout, pas de scroll horizontal).
 - **Page Playwright – bouton « Toute la suite »** : sur `/backoffice/playwright-tests`, un bouton **« Toute la suite »** lance toute la suite Playwright via `/api/test/run-playwright` (sans scénarios), génère un rapport et ouvre le rapport dans un nouvel onglet (plus de 400 depuis cette page).
+- **Test Enums – alignement schéma** : `scripts/test-enums.js` ne teste que les vrais enums du schéma (UserRole, ContractType, WorkMode, ApplicationType, CompanySize, NotificationType, SyncAction). ApplicationStatus et EventType sont des **modèles** (tables), pas des enums → exclus. NotificationType attendu = REMINDER, APPLICATION_UPDATE, INTERVIEW_SCHEDULED, FOLLOWUP_DUE, DEADLINE, SYSTEM.
+- **Suite de tests – npm install frontend** : en cas d’échec `npm install` dans `frontend/` (ex. EACCES), la suite tente quand même Playwright E2E, Playwright Mobile et Frontend Jest avec le `node_modules` existant. Si tout échoue : `sudo chown -R $(whoami) frontend/node_modules` puis relancer.
+- **Backoffice – MailHog** : sur la page **Tests Emails** (`/backoffice/tests-emails`), une carte **« MailHog (dev) »** ouvre l’interface MailHog (défaut `http://localhost:8025`) dans un nouvel onglet. **Navigation** : sous **Gestion des emails**, un lien **« MailHog (interface) »** ouvre aussi l’UI MailHog dans un nouvel onglet (variable `NEXT_PUBLIC_MAILHOG_UI_URL` ou défaut `http://localhost:8025`).
+- **Rapports (jq)** : les fichiers de résultat JSON ont des champs numériques forcés (duration, total, passed, failed) pour éviter les erreurs « Invalid numeric literal » ; la lecture des rapports (résumé + HTML) utilise des fallbacks quand `jq` échoue sur un fichier (ex. JSON corrompu).
+- **test-full** : les 4 phases sont affichées (1/4 Démarrage stack, 2/4 Deps tests, 3/4 Deps frontend, 4/4 Lancement tests). En phase 4, le script affiche **« Phase 4/4 – Chaque test ci-dessous affiche son numéro d’étape (étape 1, 2, 3, …) »** et chaque bloc de test affiche **« [étape N] »**. Si `frontend/node_modules` ou `frontend/.next` n’est pas writable (créé par Docker en root), un rappel indique `sudo chown -R $(whoami) frontend/node_modules frontend/.next` pour éviter EACCES sur Playwright/Jest.
+- **Playwright Emails MailHog** : config dédiée `tests/e2e/playwright.mailhog.config.ts` **sans webServer** (baseURL `http://localhost:5003`) pour réutiliser le frontend déjà démarré par `make up-full` ; plus d’erreur « Cannot find module next/dist/bin/next » quand `frontend/node_modules` est incomplet.
+- **Résumé des échecs fréquents (make test-full)** : les **~12 tests échoués** dans le résumé final viennent typiquement de : (1) **Playwright E2E Frontend** — résolu en utilisant `playwright.standalone.config.ts` (pas de webServer, baseURL 5003) ; (2) **Playwright Emails MailHog** (3 tests) — les mails doivent arriver dans MailHog : `SMTP_HOST=mailhog` et `SMTP_PORT=1025` dans `.env`, **puis redémarrer auth-service** : `docker compose restart auth-service` (les variables sont lues au démarrage du conteneur) ; (3) **Playwright Mobile** — même correction que E2E (config standalone). Les rapports détaillés sont dans `tests/results/<timestamp>/report.html` et consultables aussi depuis **Backoffice → Rapports de tests**.
 
 ---
 
@@ -44,15 +148,8 @@
 3. **Tests backoffice – couverture complète**  
    Pouvoir **tester absolument tout** le backoffice admin : chaque page une par une (Vue d’ensemble, Analytics Performances / Réseau / Conteneurs / Application, Logs services, Logs sécurité, User Analytics, Archives / Corbeille, Gestion utilisateurs, Génération de données de test, Émulateur mobile, Parcours utilisateur, API Tester, Email Monitor, etc.), **logs en temps réel** par service, **requêtes**, **monitoring unitaire** par service, **rapports de parcours**, **parcours admin vs user** avec analytics. Voir **TESTS_END.md** §15 (Backoffice administrateur – couverture complète) et **ERRORS.md** pour les erreurs connues par page.
 
-4. **Émulateur mobile (priorité immédiate)**  
-   Faire fonctionner l’**interface Émulateur mobile** du backoffice pour **démarrer le projet** et **tester l’app mobile directement** dans l’interface : **build d’APK** et **run du projet** pour avoir une **vraie app qui tourne et se voit** dans l’émulateur. À prévoir :
-   - **Build APK** : lancer le **build Android (APK)** du projet Flutter depuis l’interface (ou script déclenché par le backoffice).
-   - **Run du projet** : **démarrer le projet** (ex. `flutter run` ou install APK + lancement) depuis l’interface pour que l’app s’exécute et soit **visible** (rendu réel).
-   - **Sélection des appareils ADB** : lister les **appareils connectés en ADB** sur la machine hôte (`adb devices`), **sélectionner l’appareil** dans l’interface.
-   - **Rendu et logs** : afficher le **rendu** de l’app (streaming ou iframe si applicable), **démarrer / arrêter**, **logs Android (logcat)** en temps réel avec filtre JobbingTrack si possible.
-   - **Installation d’APK** : installer un APK (upload / chemin) sur l’appareil sélectionné via ADB.
-   - **Backoffice / backend** : config, health, version pour l’environnement de test.
-   - **Plus tard** (voir section « Déploiement final » en fin de document) : déploiement de l’app mobile et de l’API/backoffice sur le serveur depuis le backoffice (Docker Hub, CI, scripts SSH, pipeline build APK/AAB release, etc.).
+4. **Émulateur mobile (plus tard)**  
+   L’**interface Émulateur mobile** du backoffice ne démarre **pas** avec `make up-full`. Pour l’utiliser : **`make emulator-controller`** (2e terminal), puis http://localhost:5003/backoffice/mobile-emulator. À prévoir plus tard : build APK depuis l’interface, run du projet, logs logcat en temps réel. Voir **make status** pour le rappel.
 
 ---
 
@@ -99,9 +196,9 @@ Récapitulatif complet : **docs/mobile/APPLICATION_MOBILE_A_FAIRE.md** (comporte
 - [x] **Réinitialisation mot de passe** : écran (route `/reset-password/:token`), nouveau mot de passe + confirmation, appel API reset-password, redirection login.
 - [ ] **Page de démarrage (dashboard)** avec **navigation en bas** (bottom nav) et **drawer** (à faire ensuite).
 
-### Émulateur mobile (backoffice) – priorité immédiate
+### Émulateur mobile (backoffice) – plus tard
 
-**Objectif** : pouvoir **démarrer le projet** et **tester l’app mobile** directement depuis l’interface backoffice (Émulateur mobile) : **build d’APK** et **run du projet** dans l’interface pour avoir une **vraie app qui tourne et se voit** dans l’émulateur.
+**Objectif** (quand on y reviendra) : démarrer le projet et tester l’app mobile depuis l’interface backoffice. **L’émulateur ne démarre pas avec `make up-full`** : lancer **`make emulator-controller`** (2e terminal), puis ouvrir http://localhost:5003/backoffice/mobile-emulator. Voir **make status** pour le rappel.
 
 **Tests ajoutés** : `make test-emulator-controller` (vérifie GET /health, /avds, /devices, /flutter-devices – le contrôleur doit être démarré). Tests Jest de la page : `frontend/src/app/(admin)/backoffice/mobile-emulator/__tests__/mobile-emulator-page.test.tsx` (rendu, boutons, appel /health). Voir `make tests-help` pour la liste des tests.
 
@@ -257,6 +354,11 @@ Erreurs typiques dans les logs Postgres après `make up-full` ou en cours d’ex
    - **Solution** : appliquer la résolution (1) ci‑dessus, puis `docker restart jobbingtrack-metrics-aggregator` ou relancer `make up-full` (qui refait `db-push-all` puis démarre le monitoring).
 
 **Résumé** : après un **`make db-push-all`** réussi (sans erreur sur init-system-metrics et init-key-tables), les tables monitoring existent et metrics-aggregator peut persister. En cas de BDD déjà existante sans ces tables, exécuter une fois **`make db-push-all`** puis redémarrer metrics-aggregator.
+
+4. **Erreurs persistent après `make db-push-all`** (tables absentes + `FollowUpStatus`/`InterviewType` already exists + metrics-aggregator exit 1)
+   - **Cause** : dans `docker-compose.yml`, **monitoring-c** et **jobbingtrack-metrics-aggregator** n’avaient pas de `profiles`. Ils démarraient donc avec le premier `docker compose --profile full up -d`, **avant** l’exécution de `db-push-all`. Les tables n’existaient pas encore → erreurs Postgres et crash de metrics-aggregator.
+   - **Correctif appliqué** : les deux services ont été mis dans le profil **`monitoring`**. Ils ne sont plus démarrés avec `--profile full`. Dans `make up-full`, ils sont démarrés **après** `db-push-all` via `docker compose --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator`. Ainsi les tables sont toujours créées avant le premier écrit.
+   - **Si vous avez une ancienne stack** : faire un **`make down`** puis **`make up-full`** (ou au minimum **`make db-push-all`** puis **`docker restart jobbingtrack-metrics-aggregator jobbingtrack-monitoring-c`**) pour repartir proprement.
 
 **À faire** : après `make build` (et redémarrage des services concernés), revérifier les pages Analytics → Conteneurs (métriques par conteneur), Services → Logs (log-collector-c), Parcours utilisateur → sauvegarde rapport. Voir **ERRORS.md** et **TESTS_END.md** §15 pour la checklist complète des pages à tester.
 
@@ -449,7 +551,7 @@ La **pipeline CI/CD** GitHub Actions est actuellement **en échec** : le job **�
 
 - **Emails** : Tables EmailLog, EmailTemplate créées (init-key-tables + seed). Test, reset, vérification fonctionnent. Send-verification corrigé (verificationToken, sendGenericEmail). URLs : verify-email?token=xxx, reset-password/{token}.
 - **Gestion utilisateurs** : Boutons « Renvoyer email vérification » et « Réinitialiser mot de passe » sur fiche utilisateur. Page Tests Emails (Backoffice → Tests).
-- **Email Monitor** : Référence MailHog supprimée.
+- **MailHog** : service **MailHog** réintégré en docker-compose (profil `mail` ou `full`) pour capture des emails en dev/test ; interface http://localhost:8025. Tests E2E Playwright **admin-emails-mailhog.spec.ts** : envoi email via API, vérification réception dans MailHog, ouverture interface MailHog et extraction des liens (ex. reset password) pour navigation + clic. Voir **docs/emails/MAIL.md** § MailHog.
 
 ---
 
@@ -528,6 +630,7 @@ Détail config et tests : **`backend/auth-service/PYTHON_EMAIL_SETUP.md`**.
 ### Dépannage rapide
 
 - Test SMTP / envoi ne marche plus : vérifier .env (auth-service), redémarrer auth-service. Vérifier compte OVH et mot de passe. Backoffice → Déliverabilité ou `GET /api/v1/emails/test-smtp`.
+- **Tests MailHog échouent alors que .env a SMTP_HOST=mailhog** : les variables SMTP sont lues au **démarrage** du conteneur. Après modification du `.env`, exécuter **`docker compose restart auth-service`** puis relancer les tests.
 - Logs emails 404 : rebuild auth-service ; front appelle bien le gateway avec token.
 - APIs templates / stats 404 : idem, rebuild auth-service et vérifier routes montées sous `/api/v1/emails` et `/api/v1/emails/templates`.
 

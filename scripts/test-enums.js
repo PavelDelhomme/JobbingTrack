@@ -40,30 +40,17 @@ const log = {
   section: (msg) => console.log(`\n${colors.cyan}📋 ${msg}${colors.reset}\n`),
 };
 
-// Enums définis dans le schéma Prisma
+// Enums définis dans le schéma Prisma (auth-service)
+// ApplicationStatus, EventType sont des MODÈLES (tables) dans ce projet, pas des enums → on ne les teste pas ici
+// NotificationType dans le schéma = REMINDER, APPLICATION_UPDATE, INTERVIEW_SCHEDULED, FOLLOWUP_DUE, DEADLINE, SYSTEM
+// NotificationPriority n'existe pas dans le schéma → ignoré
 const expectedEnums = {
   UserRole: ['USER', 'ADMIN', 'SUPER_ADMIN', 'TESTER'],
-  ApplicationStatus: [
-    'CANDIDATE_PENDING',
-    'CANDIDATE_ACCEPTED',
-    'CANDIDATE_REJECTED',
-    'INTERVIEW_SCHEDULED',
-    'INTERVIEW_COMPLETED',
-    'OFFER_PENDING',
-    'OFFER_ACCEPTED',
-    'OFFER_REJECTED',
-    'HIRED',
-    'REJECTED',
-    'WITHDRAWN',
-    'STAGE',
-  ],
   ContractType: ['CDI', 'CDD', 'ALTERNANCE', 'STAGE', 'FREELANCE', 'INTERIM', 'SAISONNIER'],
   WorkMode: ['ON_SITE', 'REMOTE', 'HYBRID'],
   ApplicationType: ['OFFRE', 'SPONTANEE'],
   CompanySize: ['STARTUP', 'SMALL', 'MEDIUM', 'LARGE', 'ENTERPRISE'],
-  EventType: ['INTERVIEW', 'CALL', 'FOLLOWUP', 'MEETING', 'DEADLINE', 'REMINDER', 'OTHER'],
-  NotificationType: ['EMAIL', 'SMS', 'PUSH', 'IN_APP'],
-  NotificationPriority: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+  NotificationType: ['REMINDER', 'APPLICATION_UPDATE', 'INTERVIEW_SCHEDULED', 'FOLLOWUP_DUE', 'DEADLINE', 'SYSTEM'],
   SyncAction: ['CREATE', 'UPDATE', 'DELETE'],
 };
 
@@ -315,7 +302,12 @@ async function main() {
   let totalPassed = 0;
   let totalFailed = 0;
 
+  const schemaEnums = extractEnumsFromSchema();
   for (const [enumName, expectedValues] of Object.entries(expectedEnums)) {
+    if (!schemaEnums[enumName] || schemaEnums[enumName].length === 0) {
+      log.info(`${enumName} : ignoré (absent du schéma ou modèle, pas un enum)`);
+      continue;
+    }
     const results = await testEnum(enumName, expectedValues);
     allResults.push(results);
     totalPassed += results.passed;

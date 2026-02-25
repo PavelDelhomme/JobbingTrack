@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Intégration Système",
+  "command": "bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && node integration/test-full-system.js'",
+  "timestamp": "2026-02-25T00:03:54+01:00",
+  "duration": 4,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 6,
+    "passed": 4,
+    "failed": 2
+  },
+  "output": "\nup to date in 525ms\n🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES\n=====================================\n\n📡 Test API REST:\n✅ API Health: {\n  status: 'online',\n  service: 'jobbingtrack-metrics-aggregator',\n  version: '1.0.0',\n  timestamp: '2026-02-24T23:03:51.231Z',\n  responseTime: 0,\n  uptime: 685.170359066,\n  memoryUsage: {\n    rss: 149422080,\n    heapTotal: 65581056,\n    heapUsed: 35784072,\n    external: 27049783,\n    arrayBuffers: 6978153\n  }\n}\n\n📊 Test Métriques système:\n✅ CPU: undefined% 16 cœurs\n✅ Mémoire: undefined% (NaNGB/NaNGB)\n✅ Conteneurs: 0\n\n🔌 Test WebSocket:\n❌ WebSocket erreur: socket hang up\n❌ WebSocket non connecté\n\n🎉 TEST TERMINÉ\n"
+}

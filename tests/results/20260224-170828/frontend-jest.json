@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Frontend Jest (Unitaires)",
+  "command": "cd frontend && npm test -- --passWithNoTests 2>&1",
+  "timestamp": "2026-02-24T17:09:06+01:00",
+  "duration": 1,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "\n> jobbingtrack-frontend@1.0.1 test\n> npx jest --passWithNoTests\n\nError: Cannot find module 'next/jest'\nRequire stack:\n- /home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/jest.config.js\n- /home/pactivisme/.npm/_npx/b8d86e6551a4f492/node_modules/jest-util/build/index.js\n- /home/pactivisme/.npm/_npx/b8d86e6551a4f492/node_modules/@jest/core/build/index.js\n- /home/pactivisme/.npm/_npx/b8d86e6551a4f492/node_modules/jest-cli/build/index.js\n- /home/pactivisme/.npm/_npx/b8d86e6551a4f492/node_modules/jest-cli/bin/jest.js\n- /home/pactivisme/.npm/_npx/b8d86e6551a4f492/node_modules/jest/bin/jest.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)\n    at Function._load (node:internal/modules/cjs/loader:1192:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\n    at require (node:internal/modules/helpers:147:16)\n    at Object.<anonymous> (/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/jest.config.js:1:18)\n    at Module._compile (node:internal/modules/cjs/loader:1706:14)\n"
+}

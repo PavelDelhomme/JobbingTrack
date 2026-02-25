@@ -1,0 +1,37 @@
+name: Deploy Preprod
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  deploy-preprod:
+    name: Deploy environnement preprod
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resume deploiement preprod
+        run: |
+          echo "## Deploiement Preprod - JobbingTrack" >> $GITHUB_STEP_SUMMARY
+          echo "- Branche: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "Configurer PREPROD_DEPLOY_URL pour activer le deploiement reel."
+
+      - name: Deploiement (placeholder)
+        run: |
+          if [ -n "${{ secrets.PREPROD_DEPLOY_URL }}" ]; then
+            curl -f -X POST "${{ secrets.PREPROD_DEPLOY_URL }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}" || true
+          else
+            echo "PREPROD_DEPLOY_URL non defini : deploiement preprod non execute."
+          fi

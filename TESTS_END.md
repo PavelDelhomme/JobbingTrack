@@ -6,6 +6,8 @@
 
 **Validation des tests via Make** : Tous les tests doivent être lancés via le **Makefile** (racine du projet). Commandes principales : **`make test-api`**, **`make test-security`**, **`make test-frontend`**, **`make test-backend`**, **`make test-e2e`**, **`make test-performance`**, **`make tests-user-journey`**. Voir **`make tests-help`** et **`make help-tests`**. Détail dans **STATUS.md** section « Ce que vous pouvez tester (commandes make) ».
 
+**Suite complète en une commande** : **`make test-full`** enchaîne : démarrage stack (`make up-full`), `npm install` (tests + frontend), puis **`make test-all`** (tous les tests avec rapports). En cas d’échec **EACCES** sur `frontend/node_modules` (Playwright / Jest frontend) : exécuter `sudo chown -R $(whoami) frontend/node_modules` puis relancer. Les tests **Enums** sont alignés sur le schéma Prisma (seuls les vrais enums sont validés ; ApplicationStatus / EventType sont des modèles et sont ignorés).
+
 ---
 
 ## 1. Authentification et utilisateurs
@@ -132,6 +134,8 @@
 - [ ] Tests E2E (Playwright, etc.) sur parcours critiques
 - [ ] Tests d’accessibilité (a11y) sur les pages principales
 - [ ] Aucune régression majeure après modifications
+
+**Après `make test-full`** : vérifier le rapport (tests/results/…/report.html). Si **Enums** échouent, le script est aligné sur le schéma (ne tester que les enums réels). Si **Playwright E2E / Mobile** ou **Frontend Jest** échouent avec EACCES : `sudo chown -R $(whoami) frontend/node_modules` puis relancer ces catégories ou `make test-all`.
 
 ---
 

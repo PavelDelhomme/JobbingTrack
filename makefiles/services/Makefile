@@ -492,7 +492,7 @@ _up-full-internal:
 	
 	# Démarrer monitoring APRÈS db-push-all (évite « Table container_metrics_snapshots absente »)
 	@echo "📊 Démarrage du monitoring (monitoring-c + metrics-aggregator)..."
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d monitoring-c jobbingtrack-metrics-aggregator)
+	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-c jobbingtrack-metrics-aggregator)
 	@echo "✅ Monitoring démarré (collecteur C + API agrégateur)"
 
 	# Optionnel : log-collector-c
@@ -862,6 +862,9 @@ rebuild-workflow-service: ## Reconstruire workflow-service
 	@echo "🔨 Reconstruction du service: workflow-service"
 	@docker compose build workflow-service
 	@echo "✅ Reconstruction terminée"
+
+build-workflow-service: ## Alias de rebuild-workflow-service (build image workflow-service)
+	@$(MAKE) rebuild-workflow-service
 
 # Reconstruire un service spécifique (SERVICE=nom comme dans make status).
 # Utilise COMPOSE_FILES_ESSENTIAL pour éviter "depends on undefined service" (monitoring-c
@@ -1254,6 +1257,8 @@ status: ## Statut détaillé de chaque service (avec couleurs UP/DOWN, santé, p
 	else \
 		echo -e "\033[1;33m⚠️  PostgreSQL non démarré, vérification des tables impossible\033[0m"; \
 	fi
+	@echo ""
+	@echo "📱 Émulateur mobile (optionnel) : make emulator-controller  →  http://localhost:5003/backoffice/mobile-emulator"
 
 # Statut en temps réel (actualisation automatique)
 status-live: ## Statut détaillé en temps réel avec actualisation automatique (Ctrl+C pour quitter)

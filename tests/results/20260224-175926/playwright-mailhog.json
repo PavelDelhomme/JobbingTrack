@@ -1,0 +1,14 @@
+{
+  "testName": "Playwright Emails MailHog",
+  "command": "timeout 120 bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null; cd ../tests && npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-24T17:59:42+01:00",
+  "duration": 2,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "[WebServer] node:internal/modules/cjs/loader:1386\n[WebServer]   throw err;\n[WebServer]   ^\n[WebServer] \n[WebServer] Error: Cannot find module '/home/pactivisme/Documents/Dev/Perso/JobbingTrack/frontend/node_modules/next/dist/bin/next'\n[WebServer]     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)\n[WebServer]     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)\n[WebServer]     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)\n[WebServer]     at Function._load (node:internal/modules/cjs/loader:1192:37)\n[WebServer]     at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n[WebServer]     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n[WebServer]     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n[WebServer]     at node:internal/main/run_main_module:36:49 {\n[WebServer]   code: 'MODULE_NOT_FOUND',\n[WebServer]   requireStack: []\n[WebServer] }\n[WebServer] \n[WebServer] Node.js v22.22.0\nError: Process from config.webServer was not able to start. Exit code: 1\n"
+}
