@@ -1519,6 +1519,7 @@ export default function UserJourneyPage() {
   const runJourney = async () => {
     setIsRunning(true);
     setIsCancelled(false);
+    isCancelledRef.current = false;
     const startTime = Date.now();
     const failedSteps: string[] = [];
     let wasCancelled = false;
@@ -1526,8 +1527,7 @@ export default function UserJourneyPage() {
     let stepsExecutedCount = steps.length;
 
     for (let i = 0; i < steps.length; i++) {
-      // Vérifier si l'utilisateur a annulé
-      if (isCancelled) {
+      if (isCancelledRef.current) {
         console.log('🛑 Parcours annulé par l\'utilisateur');
         wasCancelled = true;
         stepsExecutedCount = i;
@@ -1595,6 +1595,7 @@ export default function UserJourneyPage() {
   const cancelJourney = () => {
     if (isRunning) {
       setIsCancelled(true);
+      isCancelledRef.current = true;
       console.log('🛑 Demande d\'annulation du parcours...');
     }
   };
