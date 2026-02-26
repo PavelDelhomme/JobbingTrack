@@ -4,6 +4,25 @@
 
 ---
 
+## 23 fevrier 2026 – Corrections parcours utilisateur mobile
+
+### Probleme
+- **ENOENT sauvegarde rapport** : `POST /api/user-journey/save-report` echouait avec `ENOENT: no such file or directory, open '/tmp/tests/user-journey-reports/...'`. Le repertoire existait dans l'overlay Docker mais etait corrompu (Links: 0, taille 0) — impossible d'y ecrire des fichiers.
+- **PUT /applications/:id 500** : deux etapes du parcours envoyaient des champs invalides au controleur `updateApplication`. `link_contact_to_application` envoyait `contactId` (champ inexistant dans le modele Application). `update_application_status` envoyait `{ status: 'FIRST_INTERVIEW_PENDING' }` via PUT generique au lieu de l'endpoint dedie PUT `/:id/status`.
+- **Reinitialisation des resultats** : apres execution du parcours, les resultats de chaque etape disparaissaient. Un `useEffect` dependant de `isRunning` resettait les steps a 'pending' quand le parcours se terminait.
+- **verify_email 400** : l'appel `GET /auth/verify-email/test-token-simulation` retournait 400 car l'endpoint n'accepte pas de faux tokens.
+
+### Solution
+1. **`save-report/route.ts`** : remplace le `resolveReportsDir()` statique par `getWritableReportsDir()` qui teste l'ecriture reelle (write + rm) sur chaque candidat. Fallback sur `/tmp/journey-reports` si le chemin configure est inaccessible.
+2. **`user-journey/page.tsx`** :
+   - `link_contact_to_application` : supprime `contactId` du body PUT, envoie uniquement `notes`.
+   - `update_application_status` : utilise `PUT /api/v1/applications/:id/status` avec `{ status, comment }`.
+   - `verify_email` : supprime l'appel API, retourne directement un resultat de simulation.
+   - `useEffect` d'initialisation des steps : remplace la dependance sur `isRunning` par un `useRef(prevScenario)` pour ne reset que lors d'un changement de scenario.
+3. **`test-reports/all/route.ts`** et **`test-reports/view/route.ts`** : ajout du chemin fallback `/tmp/journey-reports` pour la lecture des rapports.
+
+---
+
 ## 26 fevrier 2026 – Corrections tests echoues (7 tests / 216)
 
 ### Probleme

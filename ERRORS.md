@@ -21,6 +21,10 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 | Erreur | Resolution |
 |--------|-----------|
+| `PUT /applications/:id` retournait 500 dans parcours utilisateur (champs `contactId` et `status` invalides) | `link_contact_to_application` n'envoie plus `contactId` (champ inexistant). `update_application_status` utilise `PUT /:id/status` au lieu de `PUT /:id`. |
+| Sauvegarde rapport user-journey ENOENT (`/tmp/tests/user-journey-reports/`) | Repertoire Docker corrompu (overlay fs, Links: 0). Remplace par `/tmp/journey-reports` avec test d'ecriture dynamique avant sauvegarde. |
+| Resultats parcours user-journey reinitialises apres execution | `useEffect` resettait les steps quand `isRunning` passait a false. Corrige avec `useRef` pour ne reset que quand le scenario change. |
+| `verify_email` retournait 400 (test-token-simulation) | Supprime l'appel API inutile, marque directement comme simulation (le compte est actif des l'inscription en test). |
 | `getApplication` retournait 500 (relation `activities` inexistante) | Remplace `activities` par `statusHistory` dans le controleur. |
 | Routes application `isUUID()` rejetait les CUIDs Prisma | Remplace par `isString().notEmpty()` — les IDs Prisma sont des CUIDs. |
 | `api-e2e.spec.ts` : tous les tests echouaient (credentials desynchronises) | `config.testUser.email` generait un timestamp different de `ensureTestUser()`. Utilise `_testCreds` directement. |

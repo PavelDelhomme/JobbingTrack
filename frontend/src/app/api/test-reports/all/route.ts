@@ -19,6 +19,7 @@ const REPORT_DIRS = {
   'coverage': join(PROJECT_ROOT, 'tests', 'coverage'),
   'coverage-frontend': join(PROJECT_ROOT, 'frontend', 'coverage'),
   'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
+  'user-journey-fallback': IS_DOCKER ? '/tmp/journey-reports' : '',
   'analytics': join(PROJECT_ROOT, 'tests', 'analytics-reports'),
 }
 
