@@ -520,6 +520,28 @@ export default function MobileEmulatorPage() {
           </div>
         </div>
 
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-6 text-sm text-indigo-800 dark:text-indigo-200">
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <Smartphone className="h-4 w-4" />
+            Parcours utilisateur mobile
+          </h3>
+          <p className="mb-3">Lancez un parcours utilisateur pendant que l’émulateur affiche l’app en direct pour observer le comportement réel.</p>
+          <div className="flex flex-wrap gap-3">
+            <a href="/backoffice/user-journey" className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+              <Play className="h-4 w-4" /> Parcours prédéfinis
+            </a>
+            <a href="/backoffice/user-journey/custom" className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-700 transition-colors text-sm font-medium">
+              <Monitor className="h-4 w-4" /> Parcours personnalisé
+            </a>
+            <a href="/backoffice/user-journey/reports" className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-700 transition-colors text-sm font-medium">
+              <Monitor className="h-4 w-4" /> Rapports
+            </a>
+          </div>
+          <p className="mt-3 text-xs text-indigo-600 dark:text-indigo-400">
+            Scénarios recommandés : <strong>Mobile — Inscription complète</strong>, <strong>Mobile — Usage quotidien</strong>, <strong>Mobile — Parcours complet</strong>
+          </p>
+        </div>
+
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 text-sm text-blue-800 dark:text-blue-200">
           <h3 className="font-semibold mb-2">Démarrer tout en un (make up-full)</h3>
           <ol className="list-decimal list-inside space-y-1">

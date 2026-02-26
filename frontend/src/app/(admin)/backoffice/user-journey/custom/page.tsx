@@ -51,6 +51,13 @@ const AVAILABLE_STEPS = [
   // Dashboard & notifications
   { id: 'view_statistics', name: 'Voir Statistiques', description: 'Consulter le dashboard et les statistiques', icon: '📈' },
   { id: 'list_notifications', name: 'Liste Notifications', description: 'Récupérer la liste des notifications', icon: '🔔' },
+  // Mobile vision (section 9 FONCTIONNALITES.md)
+  { id: 'view_dashboard', name: 'Dashboard Utilisateur', description: 'Consulter le dashboard mobile : stats, entretiens, relances', icon: '📊' },
+  { id: 'search_hub', name: 'Hub Recherche (6 tabs)', description: 'Naviguer les 6 onglets : candidatures, contacts, entreprises, relances, appels, entretiens', icon: '🔍' },
+  { id: 'application_detail', name: 'Détail Candidature', description: 'Consulter le détail candidature : timeline, entretiens, relances liés', icon: '📋' },
+  { id: 'archive_restore', name: 'Archivage & Restauration', description: 'Archiver → masquer → désarchiver → supprimer → restaurer', icon: '🗑️' },
+  { id: 'password_reset', name: 'Reset Mot de Passe', description: 'Demande reset → email MailHog → token → nouveau password', icon: '🔑' },
+  { id: 'update_profile_settings', name: 'Profil & Paramètres', description: 'Modifier nom/prénom, changer mot de passe, vérifier profil', icon: '⚙️' },
 ];
 
 type CustomStep = {
