@@ -279,6 +279,181 @@ const routes = {
     }
   },
 
+  async '/input-text'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const text = body && body.text;
+      if (!deviceId || typeof text !== 'string') {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "text": "..." } requis' });
+      }
+      const escaped = text.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"']/g, (c) => `\\${c}`);
+      await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
+      send(res, 200, { success: true, message: `Text: ${text.slice(0, 30)}` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/input-keyevent'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const keycode = body && body.keycode;
+      if (!deviceId || keycode == null) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "keycode": 4 } requis (4=BACK, 3=HOME, 66=ENTER, 67=DEL, 61=TAB)' });
+      }
+      await execPromise(`adb -s ${deviceId} shell input keyevent ${keycode}`);
+      send(res, 200, { success: true, message: `Keyevent: ${keycode}` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/input-swipe'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const { x1, y1, x2, y2, duration } = body || {};
+      if (!deviceId || x1 == null || y1 == null || x2 == null || y2 == null) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "x1", "y1", "x2", "y2", "duration"? } requis' });
+      }
+      const dur = duration || 300;
+      await execPromise(`adb -s ${deviceId} shell input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${dur}`);
+      send(res, 200, { success: true, message: `Swipe (${x1},${y1})->(${x2},${y2})` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/clear-field'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const length = (body && body.length) || 50;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "...", "length"?: 50 } requis' });
+      }
+      for (let i = 0; i < length; i++) {
+        await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+      }
+      send(res, 200, { success: true, message: `Cleared ${length} chars` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/ui-dump'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const deviceArg = deviceId ? `-s ${deviceId}` : '';
+      await execPromise(`adb ${deviceArg} shell uiautomator dump /sdcard/ui_dump.xml`);
+      const { stdout } = await execPromise(`adb ${deviceArg} shell cat /sdcard/ui_dump.xml`);
+      send(res, 200, { success: true, xml: stdout });
+    } catch (e) {
+      send(res, 200, { success: false, xml: '', error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/find-and-tap'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const text = body && body.text;
+      const contentDesc = body && body.contentDesc;
+      const className = body && body.className;
+      const index = (body && body.index) || 0;
+      if (!deviceId || (!text && !contentDesc && !className)) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId", "text"? | "contentDesc"? | "className"?, "index"?: 0 } requis' });
+      }
+      await execPromise(`adb -s ${deviceId} shell uiautomator dump /sdcard/ui_dump.xml`);
+      const { stdout: xml } = await execPromise(`adb -s ${deviceId} shell cat /sdcard/ui_dump.xml`);
+
+      const nodes = [];
+      const nodeRegex = /<node[^>]*>/g;
+      let match;
+      while ((match = nodeRegex.exec(xml)) !== null) {
+        const n = match[0];
+        const getText = (attr) => { const m = n.match(new RegExp(`${attr}="([^"]*)"`)); return m ? m[1] : ''; };
+        nodes.push({ text: getText('text'), contentDesc: getText('content-desc'), className: getText('class'), bounds: getText('bounds'), resourceId: getText('resource-id') });
+      }
+
+      const matches = nodes.filter((n) => {
+        if (text) {
+          const t = text.toLowerCase();
+          if (n.text.toLowerCase().includes(t) || n.contentDesc.toLowerCase().includes(t)) return true;
+        }
+        if (contentDesc && n.contentDesc.toLowerCase().includes(contentDesc.toLowerCase())) return true;
+        if (className && n.className.includes(className)) return true;
+        return false;
+      });
+
+      if (matches.length === 0) {
+        return send(res, 200, { success: false, error: `Element not found: text="${text}" contentDesc="${contentDesc}"`, nodes: nodes.filter(n => n.text || n.contentDesc).slice(0, 30) });
+      }
+
+      const target = matches[Math.min(index, matches.length - 1)];
+      const boundsMatch = target.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+      if (!boundsMatch) {
+        return send(res, 200, { success: false, error: `Cannot parse bounds: ${target.bounds}` });
+      }
+      const cx = Math.round((parseInt(boundsMatch[1]) + parseInt(boundsMatch[3])) / 2);
+      const cy = Math.round((parseInt(boundsMatch[2]) + parseInt(boundsMatch[4])) / 2);
+
+      await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
+      send(res, 200, { success: true, message: `Tapped "${target.text || target.contentDesc}" at (${cx}, ${cy})`, bounds: target.bounds });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/tap-field-and-type'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      const hint = body && body.hint;
+      const text = body && body.text;
+      if (!deviceId || !hint || typeof text !== 'string') {
+        return send(res, 400, { success: false, error: 'Body { "deviceId", "hint": "Email", "text": "value" } requis' });
+      }
+      await execPromise(`adb -s ${deviceId} shell uiautomator dump /sdcard/ui_dump.xml`);
+      const { stdout: xml } = await execPromise(`adb -s ${deviceId} shell cat /sdcard/ui_dump.xml`);
+      const nodeRegex = /<node[^>]*>/g;
+      let match, target = null;
+      while ((match = nodeRegex.exec(xml)) !== null) {
+        const n = match[0];
+        const hintMatch = n.match(/hint="([^"]*)"/);
+        if (hintMatch && hintMatch[1].toLowerCase().includes(hint.toLowerCase())) {
+          const boundsMatch = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+          if (boundsMatch) { target = boundsMatch; break; }
+        }
+      }
+      if (!target) {
+        return send(res, 200, { success: false, error: `Field with hint "${hint}" not found` });
+      }
+      const cx = Math.round((parseInt(target[1]) + parseInt(target[3])) / 2);
+      const cy = Math.round((parseInt(target[2]) + parseInt(target[4])) / 2);
+      await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
+      await new Promise(r => setTimeout(r, 300));
+      await execPromise(`adb -s ${deviceId} shell input keyevent KEYCODE_MOVE_END`);
+      for (let i = 0; i < 60; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+      await new Promise(r => setTimeout(r, 100));
+      const escaped = text.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
+      await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
+      send(res, 200, { success: true, message: `Typed "${text.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/screen-info'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const deviceArg = deviceId ? `-s ${deviceId}` : '';
+      const { stdout } = await execPromise(`adb ${deviceArg} shell wm size`);
+      const m = stdout.match(/(\d+)x(\d+)/);
+      const width = m ? parseInt(m[1]) : 1080;
+      const height = m ? parseInt(m[2]) : 1920;
+      send(res, 200, { success: true, width, height });
+    } catch (e) {
+      send(res, 200, { success: false, width: 1080, height: 1920, error: (e && e.message) || String(e) });
+    }
+  },
+
   async '/screenshot'(req, res, _, url) {
     const u = new URL(url, 'http://x');
     const device = u.searchParams.get('device');
@@ -321,7 +496,8 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    if (req.method === 'POST' && (pathname === '/start-avd' || pathname === '/build-apk' || pathname === '/install-run' || pathname === '/run-flutter' || pathname === '/input-tap')) {
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info'];
+    if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });
       req.on('end', () => {

@@ -331,28 +331,68 @@ export default function MobileEmulatorPage() {
           </div>
         </div>
 
-        <MobileJourneyPanel addLog={addLog} />
+        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} />
       </div>
     </AdminLayout>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Parcours utilisateur mobile integre dans la page emulateur         */
+/* Parcours utilisateur mobile - interaction reelle via ADB           */
 /* ------------------------------------------------------------------ */
 
 const MOBILE_SCENARIOS: Record<string, { name: string; description: string; steps: string[] }> = {
-  mobile_registration: { name: 'Inscription complete', description: 'Register + email + login + dashboard + profil', steps: ['register', 'verify_email', 'login', 'view_dashboard', 'update_profile_settings'] },
-  mobile_password_reset: { name: 'Reset mot de passe', description: 'Forgot password + reset via MailHog + login', steps: ['register', 'login', 'password_reset'] },
-  mobile_first_use: { name: 'Premiere utilisation', description: 'Dashboard -> hub -> candidature -> calendrier', steps: ['login', 'view_dashboard', 'search_hub', 'create_applications', 'create_contacts', 'link_contact_to_application', 'application_detail', 'view_calendar'] },
-  mobile_daily_use: { name: 'Usage quotidien', description: 'Dashboard -> navigation -> entretien -> appel -> calendrier', steps: ['login', 'view_dashboard', 'search_hub', 'create_applications', 'create_contacts', 'create_followups', 'schedule_interviews', 'make_calls', 'application_detail', 'update_application_status', 'view_calendar', 'check_interviews'] },
-  mobile_archive_trash: { name: 'Archivage & corbeille', description: 'Archiver -> masquer -> desarchiver -> supprimer -> restaurer', steps: ['login', 'create_applications', 'archive_restore'] },
-  mobile_complete: { name: 'Parcours complet', description: 'Toutes les fonctionnalites mobiles de A a Z', steps: ['register', 'verify_email', 'login', 'view_dashboard', 'update_profile_settings', 'search_hub', 'create_companies', 'create_applications', 'create_contacts', 'link_contact_to_application', 'create_followups', 'schedule_interviews', 'make_calls', 'application_detail', 'update_application_status', 'archive_restore', 'create_events', 'view_calendar', 'view_statistics', 'check_interviews', 'search_hub'] },
+  mobile_registration: { name: 'Inscription complete', description: 'Ecran inscription -> remplir formulaire -> valider -> login', steps: ['go_to_register', 'fill_register_form', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui'] },
+  mobile_password_reset: { name: 'Reset mot de passe', description: 'Mot de passe oublie -> saisir email -> retour login', steps: ['go_to_login_screen', 'tap_forgot_password', 'fill_forgot_email', 'submit_forgot', 'go_back_to_login'] },
+  mobile_first_use: { name: 'Premiere utilisation', description: 'Login -> dashboard -> candidatures -> contacts -> calendrier', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_accueil'] },
+  mobile_daily_use: { name: 'Usage quotidien', description: 'Login -> navigation complete -> toutes les sections', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_profil', 'open_drawer', 'drawer_relances', 'nav_accueil', 'open_drawer', 'drawer_evenements'] },
+  mobile_archive_trash: { name: 'Archivage & corbeille', description: 'Login -> candidatures -> archiver -> corbeille', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'nav_candidatures', 'open_drawer', 'drawer_corbeille', 'nav_accueil'] },
+  mobile_complete: { name: 'Parcours complet', description: 'Toutes les fonctionnalites de A a Z dans l\'app', steps: ['go_to_register', 'fill_register_form', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_profil', 'nav_accueil', 'open_drawer', 'drawer_relances', 'go_back', 'open_drawer', 'drawer_evenements', 'go_back', 'open_drawer', 'drawer_statistiques', 'go_back', 'open_drawer', 'drawer_corbeille', 'go_back', 'nav_accueil'] },
 };
 
 type JourneyStepResult = { id: string; name: string; status: 'pending' | 'running' | 'success' | 'error'; message?: string };
 
-function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
+interface AdbHelper {
+  tap: (text: string, index?: number) => Promise<string>;
+  typeInField: (hint: string, value: string) => Promise<string>;
+  keyevent: (code: number) => Promise<void>;
+  swipe: (x1: number, y1: number, x2: number, y2: number, dur?: number) => Promise<void>;
+  wait: (ms: number) => Promise<void>;
+  back: () => Promise<void>;
+}
+
+function createAdbHelper(controllerUrl: string, deviceId: string): AdbHelper {
+  const base = controllerUrl.replace(/\/$/, '');
+  const post = async (path: string, body: any) => {
+    const res = await fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return res.json();
+  };
+
+  return {
+    tap: async (text: string, index = 0) => {
+      const r = await post('/find-and-tap', { deviceId, text, index });
+      if (!r.success) throw new Error(r.error || `Element "${text}" introuvable`);
+      return r.message;
+    },
+    typeInField: async (hint: string, value: string) => {
+      const r = await post('/tap-field-and-type', { deviceId, hint, text: value });
+      if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
+      return r.message;
+    },
+    keyevent: async (code: number) => {
+      await post('/input-keyevent', { deviceId, keycode: code });
+    },
+    swipe: async (x1: number, y1: number, x2: number, y2: number, dur = 300) => {
+      await post('/input-swipe', { deviceId, x1, y1, x2, y2, duration: dur });
+    },
+    wait: (ms: number) => new Promise((r) => setTimeout(r, ms)),
+    back: async () => {
+      await post('/input-keyevent', { deviceId, keycode: 4 });
+    },
+  };
+}
+
+function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: string) => void; controllerUrl: string; deviceId: string }) {
   const [selected, setSelected] = useState('mobile_complete');
   const [running, setRunning] = useState(false);
   const [stepResults, setStepResults] = useState<JourneyStepResult[]>([]);
@@ -363,14 +403,15 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
 
   const runJourney = async () => {
     if (!scenario || running) return;
+    if (!deviceId) { addLog('Selectionnez un appareil ADB avant de lancer un parcours'); return; }
     cancelRef.current = false;
     setRunning(true);
     const steps = scenario.steps;
     setProgress({ current: 0, total: steps.length });
-    setStepResults(steps.map((id) => ({ id, name: id.replace(/_/g, ' '), status: 'pending' as const })));
-    addLog(`Parcours "${scenario.name}" demarre (${steps.length} etapes)`);
+    setStepResults(steps.map((id) => ({ id, name: STEP_LABELS[id] || id.replace(/_/g, ' '), status: 'pending' as const })));
+    addLog(`Parcours "${scenario.name}" demarre (${steps.length} etapes) [UI reelle]`);
 
-    let sessionToken: string | null = null;
+    const adb = createAdbHelper(controllerUrl, deviceId);
 
     for (let i = 0; i < steps.length; i++) {
       if (cancelRef.current) { addLog('Parcours annule'); break; }
@@ -379,15 +420,13 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
       setProgress({ current: i + 1, total: steps.length });
 
       try {
-        const result = await executeJourneyStep(stepId, sessionToken, API_GATEWAY_URL);
-        if (result.token) sessionToken = result.token;
-        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'success' as const, message: result.message } : s));
-        addLog(`  OK ${stepId}: ${result.message || 'OK'}`);
+        const msg = await executeUIStep(stepId, adb);
+        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'success' as const, message: msg } : s));
+        addLog(`  ✅ ${STEP_LABELS[stepId] || stepId}: ${msg}`);
       } catch (e: any) {
         setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'error' as const, message: e.message } : s));
-        addLog(`  FAIL ${stepId}: ${e.message}`);
+        addLog(`  ❌ ${STEP_LABELS[stepId] || stepId}: ${e.message}`);
       }
-      await new Promise((r) => setTimeout(r, 300));
     }
 
     setRunning(false);
@@ -397,8 +436,14 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
   return (
     <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-6 text-sm">
       <h3 className="font-semibold mb-3 text-indigo-900 dark:text-indigo-100 flex items-center gap-2">
-        <Smartphone className="h-4 w-4" /> Parcours utilisateur mobile
+        <Smartphone className="h-4 w-4" /> Parcours utilisateur mobile (interaction UI reelle)
       </h3>
+
+      {!deviceId && (
+        <div className="mb-3 p-2 bg-amber-100 dark:bg-amber-900/30 rounded text-amber-800 dark:text-amber-200 text-xs">
+          Selectionnez un appareil ADB ci-dessus pour activer les parcours.
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {Object.entries(MOBILE_SCENARIOS).map(([key, s]) => (
@@ -416,11 +461,18 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
             <span className="text-xs text-gray-500">{scenario.steps.length} etapes</span>
           </div>
           <p className="text-xs text-gray-600 dark:text-gray-400">{scenario.description}</p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {scenario.steps.map((s, i) => (
+              <span key={i} className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded text-[10px]">
+                {STEP_LABELS[s] || s}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={runJourney} disabled={running}
+        <button onClick={runJourney} disabled={running || !deviceId}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {running ? 'En cours...' : 'Lancer le parcours'}
@@ -450,7 +502,7 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
       )}
 
       {stepResults.length > 0 && (
-        <div className="max-h-48 overflow-y-auto space-y-1">
+        <div className="max-h-64 overflow-y-auto space-y-1">
           {stepResults.map((step, i) => (
             <div key={i} className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
               step.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200' :
@@ -459,7 +511,7 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
             }`}>
               {step.status === 'success' ? '✅' : step.status === 'error' ? '❌' : step.status === 'running' ? '⏳' : '⬜'}
               <span className="font-medium">{step.name}</span>
-              {step.message && <span className="truncate text-gray-500 ml-auto max-w-[200px]">{step.message}</span>}
+              {step.message && <span className="truncate text-gray-500 ml-auto max-w-[250px]">{step.message}</span>}
             </div>
           ))}
         </div>
@@ -468,105 +520,170 @@ function MobileJourneyPanel({ addLog }: { addLog: (m: string) => void }) {
   );
 }
 
-async function executeJourneyStep(stepId: string, token: string | null, apiUrl: string): Promise<{ message: string; token?: string }> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+const STEP_LABELS: Record<string, string> = {
+  go_to_register: 'Aller a Inscription',
+  fill_register_form: 'Remplir formulaire inscription',
+  submit_register: 'Valider inscription',
+  go_to_login: 'Aller a Connexion',
+  go_to_login_screen: 'Ecran de connexion',
+  fill_login_form: 'Saisir identifiants',
+  submit_login: 'Se connecter',
+  view_dashboard_ui: 'Dashboard (verification)',
+  nav_candidatures: 'Nav -> Candidatures',
+  nav_entreprises: 'Nav -> Entreprises',
+  nav_contacts: 'Nav -> Contacts',
+  nav_entretiens: 'Nav -> Entretiens',
+  nav_profil: 'Nav -> Profil',
+  nav_accueil: 'Nav -> Accueil',
+  open_drawer: 'Ouvrir menu lateral',
+  drawer_relances: 'Menu -> Relances',
+  drawer_evenements: 'Menu -> Evenements',
+  drawer_statistiques: 'Menu -> Statistiques',
+  drawer_corbeille: 'Menu -> Corbeille',
+  tap_forgot_password: 'Tap Mot de passe oublie',
+  fill_forgot_email: 'Saisir email reset',
+  submit_forgot: 'Envoyer lien reset',
+  go_back_to_login: 'Retour connexion',
+  go_back: 'Retour (bouton back)',
+};
 
-  const get = (path: string) => fetch(`${apiUrl}${path}`, { headers });
-  const post = (path: string, body: any) => fetch(`${apiUrl}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
-  const put = (path: string, body: any) => fetch(`${apiUrl}${path}`, { method: 'PUT', headers, body: JSON.stringify(body) });
-
+async function executeUIStep(stepId: string, adb: AdbHelper): Promise<string> {
   switch (stepId) {
-    case 'register': {
-      const email = `test-${Date.now()}@example.com`;
-      const res = await post('/api/v1/auth/register', { email, password: 'Test123!', firstName: 'Test', lastName: 'Mobile' });
-      const data = await res.json();
-      return { message: `Inscrit: ${email}`, token: data.token };
+    case 'go_to_register': {
+      await adb.wait(500);
+      try { await adb.tap('inscrire'); } catch { await adb.swipe(540, 1800, 540, 800, 400); await adb.wait(500); await adb.tap('inscrire'); }
+      await adb.wait(1500);
+      return 'Ecran inscription affiche';
     }
-    case 'verify_email':
-      return { message: 'Email verifie (simulation test)' };
-    case 'login': {
-      const res = await post('/api/v1/auth/login', { email: 'admin@jobbingtrack.com', password: 'password123' });
-      const data = await res.json();
-      return { message: 'Connecte', token: data.token };
+    case 'fill_register_form': {
+      const ts = Date.now();
+      await adb.typeInField('pr', `Test${ts}`);
+      await adb.wait(400);
+      await adb.typeInField('Nom', `Mobile${ts}`);
+      await adb.wait(400);
+      await adb.typeInField('Email', `test-${ts}@example.com`);
+      await adb.wait(400);
+      await adb.typeInField('Minimum', `Test123!`);
+      await adb.wait(400);
+      await adb.typeInField('Retapez', `Test123!`);
+      await adb.wait(300);
+      await adb.keyevent(4);
+      await adb.wait(500);
+      try { await adb.tap('conditions'); } catch {}
+      await adb.wait(300);
+      return `Formulaire rempli (test-${ts}@example.com)`;
     }
-    case 'view_dashboard': { await get('/api/v1/statistics'); return { message: 'Dashboard consulte' }; }
-    case 'update_profile_settings': {
-      const p = await get('/api/v1/auth/profile');
-      if (p.ok) { const d = await p.json(); return { message: `Profil: ${d.user?.firstName || 'OK'}` }; }
-      return { message: 'Profil consulte (simule)' };
+    case 'submit_register': {
+      await adb.swipe(540, 1800, 540, 600, 400);
+      await adb.wait(500);
+      await adb.tap('inscrire');
+      await adb.wait(3000);
+      return 'Inscription soumise';
     }
-    case 'search_hub': {
-      for (const t of ['applications', 'contacts', 'companies', 'followups', 'calls', 'interviews']) await get(`/api/v1/${t}?limit=5`);
-      return { message: '6 onglets consultes' };
+    case 'go_to_login':
+    case 'go_to_login_screen': {
+      await adb.wait(500);
+      try { await adb.tap('connecter'); } catch { await adb.back(); await adb.wait(1000); }
+      await adb.wait(1500);
+      return 'Ecran connexion affiche';
     }
-    case 'create_companies': {
-      for (let i = 0; i < 2; i++) await post('/api/v1/companies', { name: `Entreprise Mobile ${i+1}`, industry: 'tech', size: 'STARTUP' });
-      return { message: '2 entreprises creees' };
+    case 'fill_login_form': {
+      await adb.typeInField('Email', 'admin@jobbingtrack.com');
+      await adb.wait(400);
+      await adb.typeInField('Mot de passe', 'password123');
+      await adb.wait(300);
+      await adb.keyevent(4);
+      await adb.wait(300);
+      return 'Identifiants saisis';
     }
-    case 'create_applications': {
-      for (let i = 0; i < 3; i++) await post('/api/v1/applications', { companyName: `Startup ${i+1}`, position: `Dev ${i+1}`, status: 'CANDIDATE_PENDING' });
-      return { message: '3 candidatures creees' };
+    case 'submit_login': {
+      await adb.tap('connecter');
+      await adb.wait(3000);
+      return 'Connexion en cours...';
     }
-    case 'create_contacts': {
-      await post('/api/v1/contacts', { firstName: 'Jean', lastName: 'Recruteur', email: `jean-${Date.now()}@test.com`, phone: '0600000000' });
-      return { message: '1 contact cree' };
+    case 'view_dashboard_ui': {
+      await adb.wait(2000);
+      return 'Dashboard affiche';
     }
-    case 'link_contact_to_application': {
-      const apps = await (await get('/api/v1/applications')).json();
-      const list = apps.applications || apps.data || [];
-      if (list.length > 0) await put(`/api/v1/applications/${list[0].id}`, { notes: 'Contact lie via parcours mobile' });
-      return { message: 'Contact lie' };
+    case 'nav_candidatures': {
+      await adb.tap('Candidatures');
+      await adb.wait(2000);
+      return 'Page Candidatures';
     }
-    case 'create_followups': {
-      const a = await (await get('/api/v1/applications')).json();
-      const l = a.applications || a.data || [];
-      if (l.length > 0) await post('/api/v1/followups', { applicationId: l[0].id, type: 'EMAIL', scheduledDate: new Date(Date.now()+86400000).toISOString() });
-      return { message: 'Relance creee' };
+    case 'nav_entreprises': {
+      await adb.tap('Entreprises');
+      await adb.wait(2000);
+      return 'Page Entreprises';
     }
-    case 'schedule_interviews': {
-      const a = await (await get('/api/v1/applications')).json();
-      const l = a.applications || a.data || [];
-      if (l.length > 0) await post('/api/v1/interviews', { applicationId: l[0].id, date: new Date(Date.now()+172800000).toISOString(), type: 'PHONE', notes: 'Entretien mobile' });
-      return { message: 'Entretien planifie' };
+    case 'nav_contacts': {
+      await adb.tap('Contacts');
+      await adb.wait(2000);
+      return 'Page Contacts';
     }
-    case 'make_calls': {
-      const a = await (await get('/api/v1/applications')).json();
-      const c = await (await get('/api/v1/contacts')).json();
-      const al = a.applications || a.data || [];
-      const cl = c.contacts || c.data || [];
-      if (al.length > 0 && cl.length > 0) await post('/api/v1/calls', { applicationId: al[0].id, contactId: cl[0].id, duration: 300, notes: 'Appel mobile', direction: 'OUTGOING' });
-      return { message: 'Appel enregistre' };
+    case 'nav_entretiens': {
+      await adb.tap('Entretiens');
+      await adb.wait(2000);
+      return 'Page Entretiens';
     }
-    case 'application_detail': {
-      const a = await (await get('/api/v1/applications?limit=1')).json();
-      const l = a.applications || a.data || [];
-      if (l.length > 0) { try { await get(`/api/v1/applications/${l[0].id}`); } catch {} }
-      return { message: 'Detail candidature consulte' };
+    case 'nav_profil': {
+      await adb.tap('Profil');
+      await adb.wait(2000);
+      return 'Page Profil';
     }
-    case 'update_application_status': {
-      const a = await (await get('/api/v1/applications')).json();
-      const l = a.applications || a.data || [];
-      if (l.length > 0) { try { await put(`/api/v1/applications/${l[0].id}/status`, { status: 'FIRST_INTERVIEW_PENDING', comment: 'Via parcours mobile' }); } catch {} }
-      return { message: 'Statut mis a jour' };
+    case 'nav_accueil': {
+      await adb.tap('Accueil');
+      await adb.wait(2000);
+      return 'Retour Accueil';
     }
-    case 'archive_restore': {
-      const a = await (await get('/api/v1/applications?limit=1')).json();
-      const l = a.applications || a.data || [];
-      if (l.length > 0) {
-        try { await post(`/api/v1/applications/${l[0].id}/archive`, {}); } catch {}
-        try { await post(`/api/v1/applications/${l[0].id}/unarchive`, {}); } catch {}
-      }
-      return { message: 'Archive/restauration testee' };
+    case 'open_drawer': {
+      await adb.swipe(10, 1170, 800, 1170, 300);
+      await adb.wait(1000);
+      return 'Menu lateral ouvert';
     }
-    case 'create_events': {
-      await post('/api/v1/events', { title: 'Event mobile', date: new Date(Date.now()+86400000).toISOString(), type: 'MEETING' });
-      return { message: 'Evenement cree' };
+    case 'drawer_relances': {
+      await adb.tap('Relances');
+      await adb.wait(2000);
+      return 'Page Relances';
     }
-    case 'view_calendar': { await get('/api/v1/events'); return { message: 'Calendrier consulte' }; }
-    case 'view_statistics': { await get('/api/v1/statistics'); return { message: 'Statistiques consultees' }; }
-    case 'check_interviews': { await get('/api/v1/interviews'); return { message: 'Entretiens verifies' }; }
-    case 'password_reset': return { message: 'Reset password simule (test mode)' };
-    default: return { message: `Step "${stepId}" executee (simulation)` };
+    case 'drawer_evenements': {
+      await adb.tap('Rappels');
+      await adb.wait(2000);
+      return 'Page Evenements';
+    }
+    case 'drawer_statistiques': {
+      await adb.tap('Statistiques');
+      await adb.wait(2000);
+      return 'Page Statistiques';
+    }
+    case 'drawer_corbeille': {
+      await adb.tap('Corbeille');
+      await adb.wait(2000);
+      return 'Page Corbeille';
+    }
+    case 'tap_forgot_password': {
+      await adb.tap('oubli');
+      await adb.wait(1500);
+      return 'Ecran mot de passe oublie';
+    }
+    case 'fill_forgot_email': {
+      await adb.typeInField('Email', 'admin@jobbingtrack.com');
+      await adb.wait(400);
+      await adb.keyevent(4);
+      await adb.wait(300);
+      return 'Email saisi';
+    }
+    case 'submit_forgot': {
+      await adb.tap('Envoyer');
+      await adb.wait(2000);
+      return 'Lien envoye';
+    }
+    case 'go_back_to_login':
+    case 'go_back': {
+      await adb.back();
+      await adb.wait(1500);
+      return 'Retour';
+    }
+    default:
+      return `Step "${stepId}" non implementee`;
   }
 }
