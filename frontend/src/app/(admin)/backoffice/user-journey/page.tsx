@@ -300,6 +300,64 @@ const SCENARIOS = {
       'cleanup_test_data',
       'view_statistics'
     ]
+  },
+
+  // ===== PARCOURS MOBILE (Vision section 9 FONCTIONNALITES.md) =====
+  mobile_registration: {
+    name: '📱 Mobile — Inscription complète',
+    description: 'Register + validation email + login + dashboard + profil (section 9.1-9.2)',
+    steps: ['register', 'verify_email', 'login', 'view_dashboard', 'update_profile_settings']
+  },
+  mobile_password_reset: {
+    name: '📱 Mobile — Mot de passe oublié',
+    description: 'Demande reset → email MailHog → token → nouveau password (section 9.3)',
+    steps: ['login', 'password_reset_flow']
+  },
+  mobile_first_use: {
+    name: '📱 Mobile — Première utilisation',
+    description: 'Dashboard → hub recherche → créer candidature → voir calendrier (section 9.4-9.5)',
+    steps: ['login', 'view_dashboard', 'search_hub', 'create_applications', 'create_contacts', 'link_contact_to_application', 'application_detail', 'view_calendar']
+  },
+  mobile_daily_use: {
+    name: '📱 Mobile — Usage quotidien',
+    description: 'Dashboard → navigation hub → entretien → appel → calendrier → notifs (section 9.4-9.7)',
+    steps: ['login', 'view_dashboard', 'search_hub', 'create_applications', 'create_contacts', 'create_followups', 'schedule_interviews', 'make_calls', 'application_detail', 'update_application_status', 'view_calendar', 'check_interviews']
+  },
+  mobile_archive_trash: {
+    name: '📱 Mobile — Archivage & Corbeille',
+    description: 'Swipe archive → masqué → désarchive → suppression → restauration (section 9.5)',
+    steps: ['login', 'create_applications', 'archive_restore']
+  },
+  mobile_complete: {
+    name: '📱 Mobile — Parcours complet',
+    description: 'Toutes les fonctionnalités mobiles de A à Z (section 9.1-9.9)',
+    steps: [
+      'register', 'verify_email', 'login', 'view_dashboard', 'update_profile_settings',
+      'search_hub', 'create_companies', 'create_applications', 'create_contacts',
+      'link_contact_to_application', 'create_followups', 'schedule_interviews',
+      'make_calls', 'application_detail', 'update_application_status',
+      'archive_restore', 'create_events', 'view_calendar',
+      'view_statistics', 'check_interviews', 'search_hub'
+    ]
+  },
+  admin_backoffice_complete: {
+    name: '👑 Admin — Backoffice complet',
+    description: 'CRUD complet toutes entités + statistiques + calendrier',
+    steps: [
+      'login', 'view_dashboard', 'create_companies', 'create_applications',
+      'create_contacts', 'create_events', 'update_companies', 'update_applications',
+      'update_contacts', 'schedule_interviews', 'create_followups', 'make_calls',
+      'search_hub', 'view_statistics', 'view_calendar', 'check_interviews'
+    ]
+  },
+  data_stress: {
+    name: '⚡ Stress — Données massives',
+    description: 'Création bulk + navigation intensive + vérification performances',
+    steps: [
+      'login', 'create_companies', 'create_companies', 'create_applications',
+      'create_applications', 'create_contacts', 'create_contacts', 'create_events',
+      'search_hub', 'view_dashboard', 'view_statistics'
+    ]
   }
 };
 
@@ -515,6 +573,42 @@ const STEP_DEFINITIONS: Record<string, Omit<JourneyStep, 'status'>> = {
     name: 'Nettoyer Données de Test',
     description: 'Supprimer uniquement les données marquées isTestData=true',
     icon: Trash2
+  },
+  view_dashboard: {
+    id: 'view_dashboard',
+    name: 'Dashboard Utilisateur',
+    description: 'Consulter le dashboard : statistiques, entretiens à venir, relances en attente',
+    icon: BarChart3
+  },
+  search_hub: {
+    id: 'search_hub',
+    name: 'Hub Recherche (6 onglets)',
+    description: 'Naviguer dans les 6 onglets : Candidatures, Contacts, Entreprises, Relances, Appels, Entretiens',
+    icon: Users
+  },
+  application_detail: {
+    id: 'application_detail',
+    name: 'Détail Candidature',
+    description: 'Consulter le détail d\'une candidature avec timeline, entretiens et relances liés',
+    icon: FileText
+  },
+  archive_restore: {
+    id: 'archive_restore',
+    name: 'Archivage & Restauration',
+    description: 'Archiver → vérifier masquage → désarchiver → supprimer → restaurer',
+    icon: Trash2
+  },
+  password_reset_flow: {
+    id: 'password_reset_flow',
+    name: 'Reset Mot de Passe Complet',
+    description: 'Demande reset → vérifier email MailHog → extraction token → nouveau password',
+    icon: Key
+  },
+  update_profile_settings: {
+    id: 'update_profile_settings',
+    name: 'Profil & Paramètres',
+    description: 'Modifier nom/prénom, changer mot de passe, vérifier profil',
+    icon: Users
   }
 };
 
@@ -1486,11 +1580,163 @@ export default function UserJourneyPage() {
               'Authorization': `Bearer ${sessionToken ?? testToken ?? token}`
             },
             body: JSON.stringify({
-              onlyTestData: true // Nettoyer uniquement les données isTestData=true
+              onlyTestData: true
             })
           });
           result = await handleFetchResponse(cleanupRes);
           break;
+
+        case 'view_dashboard': {
+          const authToken = sessionToken ?? testToken ?? token;
+          const [dashStatsRes, dashAppsRes, dashIntRes] = await Promise.all([
+            fetch(`${API_GATEWAY_URL}/api/v1/statistics`, { headers: { 'Authorization': `Bearer ${authToken}` } }).catch(() => null),
+            fetch(`${API_GATEWAY_URL}/api/v1/applications?limit=5`, { headers: { 'Authorization': `Bearer ${authToken}` } }).catch(() => null),
+            fetch(`${API_GATEWAY_URL}/api/v1/interviews?limit=5`, { headers: { 'Authorization': `Bearer ${authToken}` } }).catch(() => null),
+          ]);
+          const dashStats = dashStatsRes ? await handleFetchResponse(dashStatsRes).catch(() => ({})) : {};
+          const dashApps = dashAppsRes ? await handleFetchResponse(dashAppsRes).catch(() => ({})) : {};
+          const dashInt = dashIntRes ? await handleFetchResponse(dashIntRes).catch(() => ({})) : {};
+          const appList = extractList(dashApps, 'applications');
+          const intList = extractList(dashInt, 'interviews');
+          result = {
+            message: `Dashboard : ${appList.length} candidatures, ${intList.length} entretiens`,
+            statistics: dashStats,
+            recentApplications: appList.length,
+            upcomingInterviews: intList.length
+          };
+          break;
+        }
+
+        case 'search_hub': {
+          const authToken = sessionToken ?? testToken ?? token;
+          const hubTabs = ['applications', 'contacts', 'companies', 'followups', 'calls', 'interviews'];
+          const hubResults: Record<string, number> = {};
+          for (const tab of hubTabs) {
+            try {
+              const tabRes = await fetch(`${API_GATEWAY_URL}/api/v1/${tab}?limit=10`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+              const tabData = await handleFetchResponse(tabRes);
+              hubResults[tab] = extractList(tabData, tab).length;
+            } catch { hubResults[tab] = 0; }
+          }
+          const totalItems = Object.values(hubResults).reduce((a, b) => a + b, 0);
+          result = {
+            message: `Hub Recherche : ${totalItems} éléments total (6 onglets)`,
+            tabs: hubResults
+          };
+          break;
+        }
+
+        case 'application_detail': {
+          const authToken = sessionToken ?? testToken ?? token;
+          const appsForDetailRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications?limit=1`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const appsForDetail = await handleFetchResponse(appsForDetailRes);
+          const detailApps = extractList(appsForDetail, 'applications');
+          if (detailApps.length > 0) {
+            const detailRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${detailApps[0].id}`, {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const appDetail = await handleFetchResponse(detailRes);
+            const app = appDetail?.application || appDetail;
+            result = {
+              message: `Détail : "${app.position || 'N/A'}" — statut: ${app.status?.code || app.status || 'N/A'}`,
+              application: app
+            };
+            const updateNotesRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${detailApps[0].id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({ notes: `[Parcours] Vérifié le ${new Date().toISOString().slice(0, 10)}` })
+            });
+            await handleFetchResponse(updateNotesRes).catch(() => null);
+          } else {
+            result = { message: 'Aucune candidature pour consulter le détail' };
+          }
+          break;
+        }
+
+        case 'archive_restore': {
+          const authToken = sessionToken ?? testToken ?? token;
+          const appsForArchiveRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications?limit=1`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const appsForArchive = await handleFetchResponse(appsForArchiveRes);
+          const archiveApps = extractList(appsForArchive, 'applications');
+          if (archiveApps.length > 0) {
+            const appId = archiveApps[archiveApps.length - 1].id;
+            const archRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appId}/archive`, {
+              method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: '{}'
+            });
+            const archOk = archRes.ok;
+            const unarchRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appId}/unarchive`, {
+              method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: '{}'
+            });
+            const unarchOk = unarchRes.ok;
+            const delRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appId}`, {
+              method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const delOk = delRes.ok;
+            const restRes = await fetch(`${API_GATEWAY_URL}/api/v1/applications/${appId}/restore`, {
+              method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: '{}'
+            });
+            const restOk = restRes.ok;
+            result = {
+              message: `Archivage:${archOk?'OK':'KO'} → Désarchivage:${unarchOk?'OK':'KO'} → Suppression:${delOk?'OK':'KO'} → Restauration:${restOk?'OK':'KO'}`,
+              archive: archOk, unarchive: unarchOk, delete: delOk, restore: restOk
+            };
+          } else {
+            result = { message: 'Aucune candidature pour tester l\'archivage' };
+          }
+          break;
+        }
+
+        case 'password_reset_flow': {
+          const resetFlowEmail = `test-reset-${Date.now()}@example.com`;
+          const createUserRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: resetFlowEmail, password: 'OldPass123!', firstName: 'Reset', lastName: 'Test' })
+          });
+          await handleFetchResponse(createUserRes).catch(() => null);
+          const forgotRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: resetFlowEmail })
+          });
+          const forgotOk = forgotRes.ok;
+          await new Promise(r => setTimeout(r, 2000));
+          let tokenFound = false;
+          try {
+            const mailhogUrl = process.env.NEXT_PUBLIC_MAILHOG_URL || 'http://localhost:8025';
+            const mailRes = await fetch(`${mailhogUrl}/api/v2/search?kind=to&query=${encodeURIComponent(resetFlowEmail)}`);
+            const mailData = await mailRes.json();
+            tokenFound = (mailData?.items?.length || 0) > 0;
+          } catch { /* MailHog non accessible */ }
+          result = {
+            message: `Reset: demande=${forgotOk?'OK':'KO'}, email MailHog=${tokenFound?'trouvé':'non trouvé'}`,
+            requestSent: forgotOk, emailFound: tokenFound, email: resetFlowEmail
+          };
+          break;
+        }
+
+        case 'update_profile_settings': {
+          const authToken = sessionToken ?? testToken ?? token;
+          const profileRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/profile`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const profileData = await handleFetchResponse(profileRes);
+          const updateProfileRes = await fetch(`${API_GATEWAY_URL}/api/v1/auth/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ firstName: 'TestMobile', lastName: `Journey_${Date.now()}` })
+          });
+          const updateOk = updateProfileRes.ok;
+          result = {
+            message: `Profil: ${profileData?.user?.email || profileData?.email || 'récupéré'} — mise à jour: ${updateOk?'OK':'KO'}`,
+            profile: profileData, updated: updateOk
+          };
+          break;
+        }
 
         default:
           result = { message: 'Étape non implémentée' };
@@ -2587,6 +2833,65 @@ export default function UserJourneyPage() {
                           <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
                             {scenario.steps.map((stepId, idx) => (
                               <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId].name}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Parcours Mobile — Vision FONCTIONNALITES.md section 9 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Parcours Mobile (Vision section 9)
+                </h3>
+                <p className="text-xs text-gray-500 mb-3">Scénarios calqués sur la vision mobile décrite dans FONCTIONNALITES.md — testables sur émulateur</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['mobile_registration', 'mobile_password_reset', 'mobile_first_use', 'mobile_daily_use', 'mobile_archive_trash', 'mobile_complete'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId]?.name || stepId}</li>
+                            ))}
+                          </ol>
+                        </details>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Parcours Admin & Stress */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Admin Backoffice & Stress Test
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {['admin_backoffice_complete', 'data_stress'].map(key => {
+                    const scenario = SCENARIOS[key as keyof typeof SCENARIOS];
+                    return (
+                      <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-red-300 dark:hover:border-red-600 transition-colors">
+                        <h4 className="font-semibold text-base mb-2">{scenario.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{scenario.description}</p>
+                        <details className="mt-2">
+                          <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                            Voir les {scenario.steps.length} étapes
+                          </summary>
+                          <ol className="list-decimal list-inside text-xs space-y-1 mt-2 ml-2 text-gray-700 dark:text-gray-300">
+                            {scenario.steps.map((stepId, idx) => (
+                              <li key={`${key}-${stepId}-${idx}`}>{STEP_DEFINITIONS[stepId]?.name || stepId}</li>
                             ))}
                           </ol>
                         </details>

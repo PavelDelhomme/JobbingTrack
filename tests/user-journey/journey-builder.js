@@ -24,6 +24,12 @@ const stepListNotifications = require('./modules/step-list-notifications');
 const stepCreateEvents = require('./modules/step-create-events');
 const stepViewStatistics = require('./modules/step-view-statistics');
 const stepViewCalendar = require('./modules/step-view-calendar');
+const stepViewDashboard = require('./modules/step-view-dashboard');
+const stepSearchHub = require('./modules/step-search-hub');
+const stepApplicationDetail = require('./modules/step-application-detail');
+const stepArchiveRestore = require('./modules/step-archive-restore');
+const stepPasswordReset = require('./modules/step-password-reset');
+const stepUpdateProfileSettings = require('./modules/step-update-profile-settings');
 
 // Mapping des étapes disponibles
 const STEP_MODULES = {
@@ -44,7 +50,17 @@ const STEP_MODULES = {
   create_contacts: stepCreateContacts.stepCreateContacts,
   create_events: stepCreateEvents.stepCreateEvents,
   view_statistics: stepViewStatistics.stepViewStatistics,
-  view_calendar: stepViewCalendar.stepViewCalendar
+  view_calendar: stepViewCalendar.stepViewCalendar,
+  view_dashboard: stepViewDashboard.stepViewDashboard,
+  search_hub: stepSearchHub.stepSearchHub,
+  application_detail: stepApplicationDetail.stepApplicationDetail,
+  archive_restore: stepArchiveRestore.stepArchiveRestore,
+  password_reset: stepPasswordReset.stepPasswordReset,
+  update_profile_settings: stepUpdateProfileSettings.stepUpdateProfileSettings,
+  update_companies: stepUpdateCompanies?.stepUpdateCompanies,
+  update_applications: stepUpdateApplications?.stepUpdateApplications,
+  update_contacts: stepUpdateContacts?.stepUpdateContacts,
+  list_notifications: stepListNotifications?.stepListNotifications
 };
 
 // Noms des étapes pour l'affichage
@@ -70,7 +86,13 @@ const STEP_NAMES = {
   list_notifications: 'Liste Notifications',
   create_events: 'Créer Événements',
   view_statistics: 'Voir Statistiques',
-  view_calendar: 'Voir Calendrier'
+  view_calendar: 'Voir Calendrier',
+  view_dashboard: 'Dashboard Utilisateur',
+  search_hub: 'Hub Recherche (6 onglets)',
+  application_detail: 'Détail Candidature',
+  archive_restore: 'Archivage & Restauration',
+  password_reset: 'Réinitialisation Mot de Passe',
+  update_profile_settings: 'Profil & Paramètres'
 };
 
 /**
@@ -221,6 +243,111 @@ const PREDEFINED_JOURNEYS = {
     { step: 'contact_to_application' },
     { step: 'call_company' },
     { step: 'call_contact' }
+  ],
+
+  // ===== PARCOURS MOBILE (Vision section 9 FONCTIONNALITES.md) =====
+
+  // 9.1-9.2 Inscription complète : register + validation email + login
+  mobile_registration: [
+    { step: 'register' },
+    { step: 'email_validation' },
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'update_profile_settings' }
+  ],
+
+  // 9.3 Mot de passe oublié : demande reset, email MailHog, validation token
+  mobile_password_reset: [
+    { step: 'login' },
+    { step: 'password_reset' }
+  ],
+
+  // 9.4-9.5 Première utilisation : dashboard → hub recherche → créer candidature
+  mobile_first_use: [
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'search_hub' },
+    { step: 'application_with_company' },
+    { step: 'contact_to_application' },
+    { step: 'application_detail' },
+    { step: 'view_calendar' }
+  ],
+
+  // 9.4-9.7 Usage quotidien : dashboard → navigation → ajout entretien → calendrier
+  mobile_daily_use: [
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'search_hub' },
+    { step: 'application_with_company' },
+    { step: 'contact_to_application' },
+    { step: 'followup' },
+    { step: 'interview' },
+    { step: 'call_company' },
+    { step: 'application_detail' },
+    { step: 'application_status', options: { newStatus: 'INTERVIEW_SCHEDULED' } },
+    { step: 'view_calendar' },
+    { step: 'list_notifications' }
+  ],
+
+  // 9.5 Swipe archivage/corbeille/restauration
+  mobile_archive_trash: [
+    { step: 'login' },
+    { step: 'application_with_company' },
+    { step: 'archive_restore' }
+  ],
+
+  // 9.4-9.9 Parcours mobile complet : toutes les fonctionnalités
+  mobile_complete: [
+    { step: 'register' },
+    { step: 'email_validation' },
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'update_profile_settings' },
+    { step: 'search_hub' },
+    { step: 'create_companies' },
+    { step: 'application_with_company' },
+    { step: 'contact_to_application' },
+    { step: 'followup' },
+    { step: 'interview' },
+    { step: 'call_company' },
+    { step: 'call_contact' },
+    { step: 'application_detail' },
+    { step: 'application_status', options: { newStatus: 'INTERVIEW_SCHEDULED' } },
+    { step: 'archive_restore' },
+    { step: 'create_events' },
+    { step: 'view_calendar' },
+    { step: 'view_statistics' },
+    { step: 'list_notifications' },
+    { step: 'search_hub' }
+  ],
+
+  // Parcours admin backoffice : CRUD complet + sécurité
+  admin_backoffice: [
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'create_companies' },
+    { step: 'create_applications' },
+    { step: 'create_contacts' },
+    { step: 'create_events' },
+    { step: 'update_companies' },
+    { step: 'update_applications' },
+    { step: 'update_contacts' },
+    { step: 'search_hub' },
+    { step: 'view_statistics' },
+    { step: 'view_calendar' },
+    { step: 'list_notifications' }
+  ],
+
+  // Parcours données massives : création bulk + navigation
+  data_stress: [
+    { step: 'login' },
+    { step: 'create_companies', options: { count: 5 } },
+    { step: 'create_applications', options: { count: 5 } },
+    { step: 'create_contacts', options: { count: 5 } },
+    { step: 'create_events', options: { count: 5 } },
+    { step: 'search_hub' },
+    { step: 'view_dashboard' },
+    { step: 'view_statistics' }
   ]
 };
 
