@@ -1,0 +1,14 @@
+{
+  "testName": "User Journey (API)",
+  "command": "bash scripts/verify-user-journey.sh",
+  "timestamp": "2026-02-25T19:06:54+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0
+  },
+  "output": "╔════════════════════════════════════════════════════════╗\n║     Vérification User Journey - JobbingTrack          ║\n╚════════════════════════════════════════════════════════╝\n\n✨ Ce script utilise un token permanent qui n'expire jamais !\n\n═══ 1. Health Checks ═══\n[1] Test: API Health\n   ✓ PASS - Status: 200\n\n═══ 2. Authentification ═══\n[2] Test: Register\n   ✓ PASS - Status: 201\n   Token obtenu: eyJhbGciOiJIUzI1NiIs...\n[3] Test: Login\n   ✓ PASS - Status: 200\n   ✓ Token admin obtenu: eyJhbGciOiJIUzI1NiIs...\n\n═══ Génération Token Permanent ═══\nGénération d'un token de test permanent (100 ans)...\n   ✓ Token permanent généré avec succès !\n   ✓ Ce token n'expirera jamais (valide 100 ans)\n   ✓ Token: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...\n[4] Test: Get Profile\n   ✓ PASS - Status: 200\n\n═══ 3. Companies ═══\n[5] Test: List Companies\n   ✓ PASS - Status: 200\n[6] Test: Create Company\n   ✓ PASS - Status: 201\n\n═══ 4. Applications ═══\n[7] Test: List Applications\n   ✓ PASS - Status: 200\n[8] Test: Create Application\n   ✓ PASS - Status: 201\n\n═══ 5. Contacts ═══\n[9] Test: List Contacts\n   ✓ PASS - Status: 200\n[10] Test: Create Contact\n   ✓ PASS - Status: 201\n\n═══ 6. Interviews ═══\n[11] Test: List Interviews\n   ✓ PASS - Status: 200\n\n═══ 7. Events ═══\n[12] Test: List Events\n   ✓ PASS - Status: 200\n\n═══ 8. Followups ═══\n[13] Test: List Followups\n   ✓ PASS - Status: 200\n\n═══ 9. Calls ═══\n[14] Test: List Calls\n   ✓ PASS - Status: 200\n\n═══ 10. Dashboard & Statistics ═══\n[15] Test: Get Statistics\n   ✓ PASS - Status: 200\n\n╔════════════════════════════════════════════════════════╗\n║                      RÉSUMÉ                            ║\n╚════════════════════════════════════════════════════════╝\n\nTotal de tests    : 15\nTests réussis     : 15\nTests échoués     : 0\n\n✓ TOUS LES TESTS SONT PASSÉS !\nLe système est opérationnel à 100%\n"
+}

@@ -2,29 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('💾 Gestion des Données - Tests Complets', () => {
   test.beforeEach(async ({ page }) => {
-    // Se connecter en tant que SUPER_ADMIN
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.com',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'mock-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('devrait permettre la navigation vers la gestion des données', async ({ page }) => {

@@ -1,52 +1,37 @@
 {
-  "timestamp": "2026-02-24T23:27:54.438Z",
-  "totalVulnerabilities": 66,
+  "timestamp": "2026-02-25T23:41:08.367Z",
+  "totalVulnerabilities": 70,
   "critical": 0,
-  "high": 1,
+  "high": 0,
   "medium": 1,
   "low": 0,
-  "secure": 59,
+  "secure": 64,
   "vulnerabilities": [
     {
-      "endpoint": "/api/applications",
-      "vulnerability": "CSRF",
-      "severity": "HIGH",
-      "description": "Aucune protection CSRF détectée"
-    },
-    {
-      "endpoint": "/api/users/profile",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
-    },
-    {
-      "endpoint": "/api/applications",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
-    },
-    {
-      "endpoint": "/api/companies",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
-    },
-    {
-      "endpoint": "/api/dashboard/metrics",
-      "vulnerability": "Auth Bypass",
-      "severity": "UNKNOWN",
-      "description": "Erreur inattendue: Error"
-    },
-    {
-      "endpoint": "http://localhost:8080/api/auth/login",
+      "endpoint": "http://localhost:5002/api/v1/auth/login",
       "vulnerability": "Rate Limiting",
       "severity": "MEDIUM",
       "description": "Aucun rate limiting détecté"
     },
     {
-      "header": "all",
-      "status": "ERROR",
-      "error": "Error"
+      "header": "x-content-type-options",
+      "status": "SECURE"
+    },
+    {
+      "header": "x-frame-options",
+      "status": "MISSING"
+    },
+    {
+      "header": "x-xss-protection",
+      "status": "MISSING"
+    },
+    {
+      "header": "strict-transport-security",
+      "status": "MISSING"
+    },
+    {
+      "header": "content-security-policy",
+      "status": "SECURE"
     }
   ]
 }

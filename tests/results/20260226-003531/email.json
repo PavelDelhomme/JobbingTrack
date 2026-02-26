@@ -1,0 +1,14 @@
+{
+  "testName": "Email Logs",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;"",
+  "timestamp": "2026-02-26T00:35:35+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 1,
+    "passed": 3,
+    "failed": 0
+  },
+  "output": "            id             |             to             |                        subject                        |      type      | status  |           sentAt           |         createdAt          \n---------------------------+----------------------------+-------------------------------------------------------+----------------+---------+----------------------------+----------------------------\n cmm2oa0p1000aj2w1gm9g9wm8 | verify-1772062531@test.com | 🎉 Bienvenue sur JobbingTrack !                       | WELCOME        | SENT    | 2026-02-25 23:35:32.221+00 | 2026-02-25 23:35:32.102+00\n cmm2oa0op0008j2w1q6tqnz51 | verify-1772062531@test.com | ✅ Vérifiez votre adresse email - JobbingTrack        | VERIFICATION   | PENDING |                            | 2026-02-25 23:35:32.09+00\n cmm2nhva50005j2w1acebx7tl | reset-test@mailhog.local   | Réinitialisation de votre mot de passe - JobbingTrack | RESET_PASSWORD | SENT    | 2026-02-25 23:13:42.802+00 | 2026-02-25 23:13:38.717+00\n cmm2nhrav0004j2w17tl6gytf | e2e-test@mailhog.local     | E2E MailHog Test                                      | TEST           | SENT    | 2026-02-25 23:13:34.684+00 | 2026-02-25 23:13:33.56+00\n cmm2ndmy10003j2w100y56hci | e2e-test@mailhog.local     | E2E Interaction Test - 1772061021151                  | TEST           | SENT    | 2026-02-25 23:10:22.416+00 | 2026-02-25 23:10:21.289+00\n cmm2naqcz0001j2w1lewdv4t6 | test@example.com           | Test Email                                            | TEST           | SENT    | 2026-02-25 23:08:06.822+00 | 2026-02-25 23:08:05.748+00\n cmm2napia0000j2w1i1p4dyti | test@example.com           | Test Email                                            | TEST           | SENT    | 2026-02-25 23:08:05.736+00 | 2026-02-25 23:08:04.643+00\n cmm2nalh00004ktnufms3pq17 | verify-1772060879@test.com | 🎉 Bienvenue sur JobbingTrack !                       | WELCOME        | SENT    | 2026-02-25 23:07:59.512+00 | 2026-02-25 23:07:59.412+00\n cmm2nalgn0002ktnufdy9fjuz | verify-1772060879@test.com | ✅ Vérifiez votre adresse email - JobbingTrack        | VERIFICATION   | PENDING |                            | 2026-02-25 23:07:59.4+00\n(9 rows)\n"
+}

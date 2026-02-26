@@ -380,8 +380,11 @@ export default function TestReportsPage() {
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'date':
-          return b.timestamp.localeCompare(a.timestamp) // Plus récent en premier
+        case 'date': {
+          const da = new Date(`${a.date}T${a.time || '00:00:00'}`).getTime() || 0
+          const db = new Date(`${b.date}T${b.time || '00:00:00'}`).getTime() || 0
+          return db - da
+        }
         case 'tests':
           return (b.totalTests || 0) - (a.totalTests || 0)
         case 'passed':

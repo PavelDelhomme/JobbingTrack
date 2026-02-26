@@ -257,15 +257,19 @@ main() {
     analyze_large_files
     echo ""
     
-    # Demander confirmation pour le test runtime (peut prendre du temps)
-    echo -e "${YELLOW}⚠️  Le test de mémoire runtime peut démarrer le serveur dev.${NC}"
-    echo -e "${YELLOW}   Cela peut prendre ~40 secondes. Continuer ? (o/N)${NC}"
-    read -r response || response="N"
-    if [[ "$response" =~ ^[Oo]$ ]]; then
-        test_runtime_memory
-        echo ""
+    if [ -t 0 ] && [ "${CI:-}" != "true" ] && [ "${NONINTERACTIVE:-}" != "true" ]; then
+        echo -e "${YELLOW}⚠️  Le test de mémoire runtime peut démarrer le serveur dev.${NC}"
+        echo -e "${YELLOW}   Cela peut prendre ~40 secondes. Continuer ? (o/N)${NC}"
+        read -r response || response="N"
+        if [[ "$response" =~ ^[Oo]$ ]]; then
+            test_runtime_memory
+            echo ""
+        else
+            echo "Test runtime ignoré."
+            echo "{\"initial_mb\": 0, \"after_30s_mb\": 0, \"growth_mb\": 0}" > "${REPORT_DIR}/runtime_${TIMESTAMP}.json"
+        fi
     else
-        echo "Test runtime ignoré."
+        echo "Test runtime ignoré (mode non-interactif)."
         echo "{\"initial_mb\": 0, \"after_30s_mb\": 0, \"growth_mb\": 0}" > "${REPORT_DIR}/runtime_${TIMESTAMP}.json"
     fi
     

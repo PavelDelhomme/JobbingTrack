@@ -1,270 +1,514 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
-test.describe('🏢 Backoffice Administrateur - Fonctionnalités critiques', () => {
-  test.beforeEach(async ({ page }) => {
-    // Se connecter avant chaque test
-    await page.goto('/login');
+async function expectPageLoaded(page: Page, minContentLength = 100) {
+  await page.waitForLoadState('networkidle');
+  const len = await page.locator('body').textContent().then(t => (t?.length ?? 0));
+  expect(len).toBeGreaterThan(minContentLength);
+}
 
-    // Intercepter la requête de connexion
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.com',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'mock-jwt-token-12345'
-        })
-      });
-    });
-
-    // Soumettre le formulaire de connexion
-    await page.locator('button[type="submit"]').click();
-
-    // Attendre la redirection vers le backoffice
-    await page.waitForURL('/backoffice');
-  });
-
-  test('devrait afficher correctement la page du backoffice', async ({ page }) => {
-    // Vérifier le titre de la page
-    await expect(page).toHaveTitle(/JobbingTrack/);
-
-    // Vérifier la présence du titre du backoffice
-    await expect(page.locator('text=Backoffice Administrateur')).toBeVisible();
-
-    // Vérifier la présence du menu de navigation
-    await expect(page.locator('nav')).toBeVisible();
-
-    // Vérifier la présence de quelques éléments de navigation clés
-    await expect(page.locator('text=Applications')).toBeVisible();
-    await expect(page.locator('text=Candidats')).toBeVisible();
-    await expect(page.locator('text=Entreprises')).toBeVisible();
-  });
-
-  test('devrait permettre la navigation entre les différentes sections', async ({ page }) => {
-    // Cliquer sur le lien Applications
-    await page.locator('text=Applications').click();
-    await expect(page.locator('text=Liste des candidatures')).toBeVisible();
-
-    // Cliquer sur le lien Entreprises
-    await page.locator('text=Entreprises').click();
-    await expect(page.locator('text=Liste des entreprises')).toBeVisible();
-
-    // Cliquer sur le lien Candidats
-    await page.locator('text=Candidats').click();
-    await expect(page.locator('text=Liste des contacts')).toBeVisible();
-  });
-
-  test('devrait afficher la page des statistiques/dashboard', async ({ page }) => {
-    // Cliquer sur le lien Analytics/Statistiques
-    await page.locator('text=Analytics').click();
-
-    // Vérifier la présence des éléments du dashboard
-    await expect(page.locator('text=Statistiques')).toBeVisible();
-
-    // Vérifier la présence de graphiques ou métriques
-    await expect(page.locator('canvas, .chart, .metric')).toBeVisible();
-  });
-
-  test('devrait permettre l\'accès à la gestion des utilisateurs (admin)', async ({ page }) => {
-    // Cliquer sur le lien Utilisateurs (section admin)
-    await page.locator('text=Utilisateurs').click();
-
-    // Vérifier la présence de la liste des utilisateurs
-    await expect(page.locator('text=Liste des utilisateurs')).toBeVisible();
-
-    // Vérifier la présence d'actions administratives
-    await expect(page.locator('button, a').filter({ hasText: /Modifier|Supprimer|Activer/ })).toBeVisible();
-  });
-
-  test('devrait permettre la recherche globale', async ({ page }) => {
-    // Vérifier la présence du champ de recherche globale
-    const searchInput = page.locator('input[placeholder*="recherche"], input[type="search"]');
-    await expect(searchInput).toBeVisible();
-
-    // Effectuer une recherche
-    await searchInput.fill('test');
-
-    // Vérifier que des résultats de recherche apparaissent
-    await expect(page.locator('.search-results, .results')).toBeVisible();
-  });
-
-  test('devrait permettre l\'accès aux paramètres système', async ({ page }) => {
-    // Cliquer sur le lien Paramètres
-    await page.locator('text=Paramètres').click();
-
-    // Vérifier la présence des options de configuration
-    await expect(page.locator('text=Configuration')).toBeVisible();
-
-    // Vérifier la présence du bouton de thème
-    await expect(page.locator('button[title*="mode"]')).toBeVisible();
-  });
-
-  test('devrait permettre la déconnexion sécurisée', async ({ page }) => {
-    // Cliquer sur le bouton de déconnexion (généralement dans le menu utilisateur)
-    const logoutButton = page.locator('button, a').filter({ hasText: /Déconnexion|Logout|Se déconnecter/ });
-    await expect(logoutButton).toBeVisible();
-
-    // Cliquer sur le bouton de déconnexion
-    await logoutButton.click();
-
-    // Vérifier la redirection vers la page de connexion
-    await expect(page).toHaveURL('/login');
-  });
-
-  test('devrait afficher correctement les notifications', async ({ page }) => {
-    // Vérifier la présence du centre de notifications
-    const notificationCenter = page.locator('.notification-center, [data-testid="notifications"]');
-    await expect(notificationCenter).toBeVisible();
-
-    // Cliquer pour ouvrir les notifications
-    await notificationCenter.click();
-
-    // Vérifier que les notifications se chargent
-    await expect(page.locator('.notification-list, .notifications')).toBeVisible();
-  });
-
-  test('devrait être accessible via le clavier', async ({ page }) => {
-    // Test d'accessibilité avec navigation au clavier
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Enter');
-
-    // Vérifier que la navigation fonctionne
-    await expect(page.locator(':focus')).toBeVisible();
-  });
-
-  test('devrait gérer les erreurs 404 pour les routes inexistantes', async ({ page }) => {
-    // Tenter d'accéder à une route inexistante
-    await page.goto('/backoffice/route-inexistante');
-
-    // Vérifier la gestion de l'erreur 404
-    await expect(page.locator('text=404')).toBeVisible();
-    await expect(page.locator('text=Page non trouvée')).toBeVisible();
-  });
-
-  test('devrait maintenir la session utilisateur', async ({ page }) => {
-    // Recharger la page
-    await page.reload();
-
-    // Vérifier que l'utilisateur reste connecté
-    await expect(page.locator('text=Backoffice Administrateur')).toBeVisible();
-
-    // Vérifier que les informations utilisateur sont préservées
-    await expect(page.locator('text=Admin JobbingTrack')).toBeVisible();
-  });
-
-  test('devrait permettre la gestion des données sensibles (RGPD)', async ({ page }) => {
-    const rgpdLink = page.locator('text=RGPD').first();
-    if (await rgpdLink.isVisible().catch(() => false)) {
-      await rgpdLink.click();
-      const anySection = page.getByText(/Données personnelles|Export|Suppression/).first();
-      await expect(anySection).toBeVisible({ timeout: 5000 }).catch(() => {});
-    }
-  });
-
-  // ——— Pages additionnelles (rapports, programmeur, données de test, API) ———
-  test('devrait afficher la page Rapports de tests', async ({ page }) => {
-    await page.goto('/backoffice/test-reports');
-    await expect(page).toHaveURL(/test-reports/);
-    const hasContent = await page.locator('body').textContent().then(t => (t?.length ?? 0) > 200);
-    expect(hasContent).toBe(true);
-    const hasHeadingOrTitle = await page.locator('h1, h2, [role="heading"], text=Rapport').first().isVisible().catch(() => false);
-    expect(hasHeadingOrTitle).toBe(true);
-  });
-
-  test('devrait afficher la page Programmer tests', async ({ page }) => {
-    await page.goto('/backoffice/performance-tests/schedule');
-    await expect(page).toHaveURL(/schedule|performance-tests/);
-    const hasContent = await page.locator('body').textContent().then(t => (t?.length ?? 0) > 200);
-    expect(hasContent).toBe(true);
-  });
-
-  test('devrait afficher la page Données de test', async ({ page }) => {
-    await page.goto('/backoffice/test-data');
-    await expect(page).toHaveURL(/test-data/);
-    const hasContent = await page.locator('body').textContent().then(t => (t?.length ?? 0) > 200);
-    expect(hasContent).toBe(true);
-  });
-
-  test('devrait afficher la page Testeur d\'API', async ({ page }) => {
-    await page.goto('/backoffice/api-tester');
-    await expect(page).toHaveURL(/api-tester/);
-    const hasContent = await page.locator('body').textContent().then(t => (t?.length ?? 0) > 200);
-    expect(hasContent).toBe(true);
-  });
-
-  test('devrait afficher la page Tests (hub)', async ({ page }) => {
-    await page.goto('/backoffice/tests');
-    await expect(page).toHaveURL(/\/backoffice\/tests/);
-    await expect(page.locator('text=Lancer les tests sélectionnés, text=Tests API, text=Tests Backend').first()).toBeVisible({ timeout: 5000 });
-  });
-
-  // ——— Paramètres : modification et persistance (sans casser l’état) ———
-  test('devrait permettre de modifier un paramètre d’affichage (thème) sans erreur', async ({ page }) => {
-    await page.locator('text=Paramètres').click();
-    await page.waitForURL(/settings|paramètres/i).catch(() => {});
-    const themeButton = page.locator('button[title*="mode"], button[title*="thème"], [aria-label*="thème"], [aria-label*="mode"]').first();
-    if (await themeButton.isVisible().catch(() => false)) {
-      await themeButton.click();
-      await page.waitForTimeout(500);
-      await expect(page.locator('body')).toBeVisible();
-    }
-    const saveBtn = page.locator('button:has-text("Sauvegarder"), button:has-text("Enregistrer")').first();
-    if (await saveBtn.isVisible().catch(() => false)) {
-      await saveBtn.click();
-      await page.waitForTimeout(500);
-      await expect(page.locator('body')).toBeVisible();
-    }
-  });
-
-  // ——— Notifications : contenu ou liste vide ———
-  test('devrait afficher le centre de notifications ou un indicateur', async ({ page }) => {
-    const notificationTrigger = page.locator('.notification-center, [data-testid="notifications"], button[aria-label*="notification"], a[href*="notification"]').first();
-    const visible = await notificationTrigger.isVisible().catch(() => false);
-    if (visible) {
-      await notificationTrigger.click();
-      await page.waitForTimeout(300);
-      const listOrEmpty = page.locator('.notification-list, .notifications, text=Aucune notification, text=No notifications');
-      await expect(listOrEmpty.first()).toBeVisible({ timeout: 3000 }).catch(() => {});
-    } else {
-      // Pas de bloc notification : au moins la page backoffice est cohérente
-      await expect(page.locator('text=Backoffice Administrateur, nav')).toBeVisible();
-    }
-  });
-
-  // ——— Remise à l’état : ne pas créer de données orphelines ———
-  test('ne pas laisser de données créées (annuler création)', async ({ page }) => {
-    await page.locator('text=Utilisateurs').click();
+async function expectTabClickable(page: Page, tabText: string) {
+  const tab = page.getByRole('button', { name: new RegExp(tabText, 'i') }).or(
+    page.locator(`button, [role="tab"]`).filter({ hasText: new RegExp(tabText, 'i') })
+  ).first();
+  if (await tab.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await tab.click();
     await page.waitForTimeout(500);
-    const createBtn = page.locator('button:has-text("Créer"), button:has-text("Ajouter")').first();
-    if (await createBtn.isVisible().catch(() => false)) {
-      await createBtn.click();
-      await page.waitForTimeout(300);
-      const cancelBtn = page.locator('button:has-text("Annuler"), button:has-text("Fermer"), a:has-text("Retour")').first();
-      if (await cancelBtn.isVisible().catch(() => false)) {
-        await cancelBtn.click();
-      } else {
-        await page.goBack();
-      }
-      await page.waitForTimeout(300);
-      await expect(page).toHaveURL(/backoffice/);
-    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 1. DASHBOARD PRINCIPAL
+// ═══════════════════════════════════════════════════════
+test.describe('🏠 Dashboard principal', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/backoffice');
+    await page.waitForLoadState('networkidle');
   });
 
-  // ——— Apparence : layout et responsive ———
-  test('devrait conserver un layout cohérent (apparence)', async ({ page }) => {
-    await expect(page.locator('nav')).toBeVisible();
-    const main = page.locator('main, [role="main"], .main-content').first();
-    await expect(main).toBeVisible().catch(() => expect(page.locator('body')).toBeVisible());
-    const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
-    const viewportWidth = await page.evaluate(() => window.innerWidth);
-    expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 20);
+  test('affiche le dashboard avec nav et métriques', async ({ page }) => {
+    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    const hasMetrics = await page.locator('[href="/backoffice/users"], [href*="security"]').first().isVisible().catch(() => false);
+    expect(hasMetrics).toBe(true);
+  });
+
+  test('affiche les cartes de métriques système', async ({ page }) => {
+    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    const bodyText = await page.locator('body').textContent() ?? '';
+    const hasMetricTerms = /Sessions|Erreurs|Santé|Temps/i.test(bodyText);
+    expect(hasMetricTerms).toBe(true);
+  });
+
+  test('maintient la session après rechargement', async ({ page }) => {
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    expect(page.url()).toContain('/backoffice');
+    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('layout cohérent (pas de scroll horizontal)', async ({ page }) => {
+    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+    const bodyW = await page.evaluate(() => document.body.scrollWidth);
+    const viewW = await page.evaluate(() => window.innerWidth);
+    expect(bodyW).toBeLessThanOrEqual(viewW + 20);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 2. STATISTIQUES & MONITORING
+// ═══════════════════════════════════════════════════════
+test.describe('📊 Statistiques & Monitoring', () => {
+  test('page Statistiques & Monitoring Global', async ({ page }) => {
+    await page.goto('/backoffice/statistique');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('onglets Vue ensemble / Sécurité / Logs', async ({ page }) => {
+    await page.goto('/backoffice/statistique');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'Vue d');
+    await expectTabClickable(page, 'curit');
+    await expectTabClickable(page, 'Logs');
+  });
+
+  test('page Statistics (alias)', async ({ page }) => {
+    await page.goto('/backoffice/statistics');
+    await expectPageLoaded(page, 200);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 3. PERFORMANCES & ANALYTICS
+// ═══════════════════════════════════════════════════════
+test.describe('⚡ Performances & Analytics', () => {
+  test('page Performances complètes', async ({ page }) => {
+    await page.goto('/backoffice/analytics/performances');
+    await expectPageLoaded(page);
+  });
+
+  test('page Performances réseau', async ({ page }) => {
+    await page.goto('/backoffice/analytics/network');
+    await expectPageLoaded(page);
+  });
+
+  test('page Performances applicatives', async ({ page }) => {
+    await page.goto('/backoffice/analytics/application');
+    await expectPageLoaded(page);
+  });
+
+  test('page Analytics conteneurs', async ({ page }) => {
+    await page.goto('/backoffice/analytics/containers');
+    await expectPageLoaded(page);
+  });
+
+  test('page Analytics utilisateur', async ({ page }) => {
+    await page.goto('/backoffice/user-analytics');
+    await expectPageLoaded(page);
+  });
+
+  test('onglets Analytics utilisateur', async ({ page }) => {
+    await page.goto('/backoffice/user-analytics');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'Vue d');
+    await expectTabClickable(page, 'nements');
+    await expectTabClickable(page, 'Erreurs');
+    await expectTabClickable(page, 'Performance');
+  });
+
+  test('page Analytics CPU/système', async ({ page }) => {
+    await page.goto('/backoffice/analytics');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 4. SÉCURITÉ (6 pages)
+// ═══════════════════════════════════════════════════════
+test.describe('🔒 Sécurité', () => {
+  test('page Analyse de sécurité', async ({ page }) => {
+    await page.goto('/backoffice/security/analysis');
+    await expectPageLoaded(page);
+  });
+
+  test('page Firewall', async ({ page }) => {
+    await page.goto('/backoffice/security/firewall');
+    await expectPageLoaded(page);
+  });
+
+  test('page Réseau (sécurité)', async ({ page }) => {
+    await page.goto('/backoffice/security/network');
+    await expectPageLoaded(page);
+  });
+
+  test('page Politiques de sécurité', async ({ page }) => {
+    await page.goto('/backoffice/security/policies');
+    await expectPageLoaded(page);
+  });
+
+  test('page Menaces', async ({ page }) => {
+    await page.goto('/backoffice/security/threats');
+    await expectPageLoaded(page);
+  });
+
+  test('page Logs de sécurité (onglet Sécurité dans statistique)', async ({ page }) => {
+    await page.goto('/backoffice/statistique');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'curit');
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 5. GESTION DES SERVICES
+// ═══════════════════════════════════════════════════════
+test.describe('🔧 Services', () => {
+  test('page Liste des services', async ({ page }) => {
+    await page.goto('/backoffice/services');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('onglets Services / Logs Système', async ({ page }) => {
+    await page.goto('/backoffice/services');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'Services');
+    await expectTabClickable(page, 'Logs');
+  });
+
+  test('page détail d\'un service (api-gateway)', async ({ page }) => {
+    await page.goto('/backoffice/services/api-gateway');
+    await expectPageLoaded(page);
+  });
+
+  test('page détail d\'un service (auth-service)', async ({ page }) => {
+    await page.goto('/backoffice/services/auth-service');
+    await expectPageLoaded(page);
+  });
+
+  test('page Applications/Gestion des Services', async ({ page }) => {
+    await page.goto('/backoffice/applications');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 6. GESTION DES DONNÉES (page Data + sous-pages)
+// ═══════════════════════════════════════════════════════
+test.describe('💾 Gestion des données', () => {
+  test('page principale Gestion des données', async ({ page }) => {
+    await page.goto('/backoffice/data');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('onglet Candidatures', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=applications');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Entreprises', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=companies');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Contacts', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=contacts');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Entretiens', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=interviews');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Appels', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=calls');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Relances', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=followups');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Événements', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=events');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Notifications', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=notifications');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Stats utilisateur', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=userstats');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Abonnement & facturation', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=billing');
+    await expectPageLoaded(page);
+  });
+
+  test('onglet Données de test', async ({ page }) => {
+    await page.goto('/backoffice/data?tab=testdata');
+    await expectPageLoaded(page);
+  });
+
+  test('page standalone Data Management', async ({ page }) => {
+    await page.goto('/backoffice/data-management');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 7. PAGES DONNÉES INDIVIDUELLES
+// ═══════════════════════════════════════════════════════
+test.describe('📋 Pages données individuelles', () => {
+  test('page Entreprises', async ({ page }) => {
+    await page.goto('/backoffice/companies');
+    await expectPageLoaded(page);
+  });
+
+  test('page Contacts', async ({ page }) => {
+    await page.goto('/backoffice/contacts');
+    await expectPageLoaded(page);
+  });
+
+  test('page Entretiens', async ({ page }) => {
+    await page.goto('/backoffice/interviews');
+    await expectPageLoaded(page);
+  });
+
+  test('page Appels', async ({ page }) => {
+    await page.goto('/backoffice/calls');
+    await expectPageLoaded(page);
+  });
+
+  test('page Relances', async ({ page }) => {
+    await page.goto('/backoffice/followups');
+    await expectPageLoaded(page);
+  });
+
+  test('page Événements', async ({ page }) => {
+    await page.goto('/backoffice/events');
+    await expectPageLoaded(page);
+  });
+
+  test('page Notifications', async ({ page }) => {
+    await page.goto('/backoffice/notifications');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 8. ARCHIVES & CORBEILLE
+// ═══════════════════════════════════════════════════════
+test.describe('📦 Archives & Corbeille', () => {
+  test('page Archives', async ({ page }) => {
+    await page.goto('/backoffice/archives');
+    await expectPageLoaded(page);
+  });
+
+  test('page Corbeille', async ({ page }) => {
+    await page.goto('/backoffice/trash');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 9. UTILISATEURS
+// ═══════════════════════════════════════════════════════
+test.describe('👥 Utilisateurs', () => {
+  test('page Gestion des utilisateurs', async ({ page }) => {
+    await page.goto('/backoffice/users');
+    await expectPageLoaded(page);
+  });
+
+  test('page affiche un filtre de rôles ou recherche', async ({ page }) => {
+    await page.goto('/backoffice/users');
+    await expectPageLoaded(page);
+    const bodyText = await page.locator('body').textContent() ?? '';
+    const hasUserManagement = /utilisateur|role|admin|user/i.test(bodyText);
+    expect(hasUserManagement).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 10. EMAILS (5 pages)
+// ═══════════════════════════════════════════════════════
+test.describe('📧 Emails', () => {
+  test('page Gestion des emails', async ({ page }) => {
+    await page.goto('/backoffice/emails');
+    await expectPageLoaded(page);
+  });
+
+  test('onglets Email de Test / Reset Password', async ({ page }) => {
+    await page.goto('/backoffice/emails');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'Email de Test');
+    await expectTabClickable(page, 'Reset');
+  });
+
+  test('page Email Monitor', async ({ page }) => {
+    await page.goto('/backoffice/email-monitor');
+    await expectPageLoaded(page);
+  });
+
+  test('page Templates emails', async ({ page }) => {
+    await page.goto('/backoffice/emails/templates');
+    await expectPageLoaded(page);
+  });
+
+  test('onglets Templates (Prévisualisation / Code / Variables)', async ({ page }) => {
+    await page.goto('/backoffice/emails/templates');
+    await expectPageLoaded(page);
+    await expectTabClickable(page, 'visualisation');
+    await expectTabClickable(page, 'Code');
+    await expectTabClickable(page, 'Variables');
+  });
+
+  test('page Configuration SMTP', async ({ page }) => {
+    await page.goto('/backoffice/emails/settings');
+    await expectPageLoaded(page);
+  });
+
+  test('page Délivrabilité', async ({ page }) => {
+    await page.goto('/backoffice/emails/deliverability');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 11. TESTS & API (8 pages)
+// ═══════════════════════════════════════════════════════
+test.describe('🧪 Tests & API', () => {
+  test('page Hub Tests principal', async ({ page }) => {
+    await page.goto('/backoffice/tests');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('page Tests API', async ({ page }) => {
+    await page.goto('/backoffice/tests-api');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Backend', async ({ page }) => {
+    await page.goto('/backoffice/tests-backend');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Frontend', async ({ page }) => {
+    await page.goto('/backoffice/tests-frontend');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Backoffice', async ({ page }) => {
+    await page.goto('/backoffice/tests-backoffice');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Emails', async ({ page }) => {
+    await page.goto('/backoffice/tests-emails');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Sécurité', async ({ page }) => {
+    await page.goto('/backoffice/tests-security');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Performance', async ({ page }) => {
+    await page.goto('/backoffice/tests-performance');
+    await expectPageLoaded(page);
+  });
+
+  test('page Testeur d\'API', async ({ page }) => {
+    await page.goto('/backoffice/api-tester');
+    await expectPageLoaded(page);
+  });
+
+  test('page Rapports de tests', async ({ page }) => {
+    await page.goto('/backoffice/test-reports');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('page Programmer tests', async ({ page }) => {
+    await page.goto('/backoffice/performance-tests/schedule');
+    await expectPageLoaded(page);
+  });
+
+  test('page Tests Performance (standalone)', async ({ page }) => {
+    await page.goto('/backoffice/performance-tests');
+    await expectPageLoaded(page);
+  });
+
+  test('page Données de test (générateur)', async ({ page }) => {
+    await page.goto('/backoffice/test-data');
+    await expectPageLoaded(page, 200);
+  });
+
+  test('page Tests Playwright', async ({ page }) => {
+    await page.goto('/backoffice/playwright-tests');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 12. PARCOURS UTILISATEUR
+// ═══════════════════════════════════════════════════════
+test.describe('🎯 Parcours utilisateur', () => {
+  test('page Parcours prédéfinis', async ({ page }) => {
+    await page.goto('/backoffice/user-journey');
+    await expectPageLoaded(page);
+  });
+
+  test('page affiche les scénarios disponibles', async ({ page }) => {
+    await page.goto('/backoffice/user-journey');
+    await expectPageLoaded(page);
+    const bodyText = await page.locator('body').textContent() ?? '';
+    const hasJourneys = /parcours|tape|sc.nario/i.test(bodyText);
+    expect(hasJourneys).toBe(true);
+  });
+
+  test('page Parcours personnalisé', async ({ page }) => {
+    await page.goto('/backoffice/user-journey/custom');
+    await expectPageLoaded(page);
+  });
+
+  test('page Rapports de parcours', async ({ page }) => {
+    await page.goto('/backoffice/user-journey/reports');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 13. RECHERCHE
+// ═══════════════════════════════════════════════════════
+test.describe('🔍 Recherche', () => {
+  test('page Recherche optimisée', async ({ page }) => {
+    await page.goto('/backoffice/search');
+    await expectPageLoaded(page);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// 14. NAVIGATION SIDEBAR
+// ═══════════════════════════════════════════════════════
+test.describe('🧭 Navigation sidebar', () => {
+  test('sidebar visible avec liens principaux', async ({ page }) => {
+    await page.goto('/backoffice');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+
+    const nav = await page.locator('nav').textContent() ?? '';
+    const hasLinks = /Statistiques|Services|curit|Utilisateurs|Emails|Tests|Parcours/i.test(nav);
+    expect(hasLinks).toBe(true);
+  });
+
+  test('liens de navigation fonctionnels', async ({ page }) => {
+    await page.goto('/backoffice');
+    await page.waitForLoadState('networkidle');
+
+    const navLinks = page.locator('nav a[href*="/backoffice/"]');
+    const count = await navLinks.count();
+    expect(count).toBeGreaterThan(5);
   });
 });

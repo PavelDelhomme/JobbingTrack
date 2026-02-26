@@ -2,30 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('🔄 Workflow Complet - Gestion des Candidatures', () => {
   test.beforeEach(async ({ page }) => {
-    // Se connecter en tant qu'admin
-    await page.goto('/login');
-
-    // Intercepter la requête de connexion
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.com',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'mock-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('devrait permettre un workflow complet de recrutement', async ({ page }) => {

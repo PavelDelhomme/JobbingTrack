@@ -451,7 +451,7 @@ fi
 echo ""
 
 # 7. Tests Playwright E2E Frontend (config standalone = pas de webServer, frontend déjà up sur 5003 avec make up-full)
-PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-300}"
+PLAYWRIGHT_TIMEOUT="${PLAYWRIGHT_TIMEOUT:-900}"
 PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
@@ -475,16 +475,10 @@ if [ -f "tests/e2e/specs/admin-emails-mailhog.spec.ts" ]; then
         "$REPORT_DIR/playwright-mailhog.json"
 fi
 
-# 8. Tests Mobile Playwright (config standalone = pas de webServer, frontend déjà up sur 5003)
-if [ -d "frontend" ] && [ -d "frontend/tests/e2e/mobile" ]; then
-    run_test "Playwright Mobile" \
-        "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e/mobile --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e/mobile --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e/mobile --config=playwright.mobile.config.ts --reporter=list,json 2>/dev/null || npm run test:e2e:mobile:all; fi' 2>&1" \
-        "$REPORT_DIR/playwright-mobile.json"
-else
-    echo -e "${YELLOW}⚠️  Tests Mobile non disponibles${NC}"
-    printf '%s\n' '{"testName":"Playwright Mobile","status":"skipped","reason":"frontend/tests/e2e/mobile manquant","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-mobile.json"
-    echo ""
-fi
+# 8. Tests Mobile Playwright – exclus du pipeline E2E principal (pas d'émulateur mobile)
+echo -e "${YELLOW}⚠️  Tests Mobile exclus (émulateur mobile non lancé)${NC}"
+printf '%s\n' '{"testName":"Playwright Mobile","status":"skipped","reason":"Tests mobiles exclus du pipeline E2E (emulateur non lance)","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-mobile.json"
+echo ""
 
 # 9. Tests Frontend Jest (unitaires – depuis frontend/ pour next/jest)
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then

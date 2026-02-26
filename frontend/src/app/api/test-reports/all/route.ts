@@ -13,11 +13,12 @@ const REPORT_DIRS = {
   'performance-backend': join(PROJECT_ROOT, 'backend-performance-reports'),
   'performance-frontend': join(PROJECT_ROOT, 'frontend', 'performance-reports'),
   'playwright': join(PROJECT_ROOT, 'frontend', 'playwright-report'),
-  'tests-results': process.env.TESTS_RESULTS_DIR || join(PROJECT_ROOT, 'tests', 'results'),
+  'tests-results': join(PROJECT_ROOT, 'tests', 'results'),
+  'tests-results-tmp': process.env.TESTS_RESULTS_DIR && process.env.TESTS_RESULTS_DIR !== join(PROJECT_ROOT, 'tests', 'results') ? process.env.TESTS_RESULTS_DIR : '',
   'tests-reports': join(PROJECT_ROOT, 'tests', 'reports'),
   'coverage': join(PROJECT_ROOT, 'tests', 'coverage'),
   'coverage-frontend': join(PROJECT_ROOT, 'frontend', 'coverage'),
-  'user-journey': join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
+  'user-journey': process.env.USER_JOURNEY_REPORTS_DIR || join(PROJECT_ROOT, 'tests', 'user-journey-reports'),
   'analytics': join(PROJECT_ROOT, 'tests', 'analytics-reports'),
 }
 
@@ -322,8 +323,13 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
       
       // Catégorie et type depuis summary.json (généré par generate-test-report.sh)
       let type: 'unitaire' | 'e2e' | 'other' = 'other'
-      let category = (summary && typeof summary.category === 'string') ? summary.category : 'Tests'
-      const testNameFromSummary = summary && typeof summary.testName === 'string' ? summary.testName : null
+      let category = 'Suite CLI'
+      if (summary && typeof summary.category === 'string' && summary.category.trim()) {
+        category = summary.category
+      } else if (summary?.testResults?.length) {
+        category = 'Suite CLI'
+      }
+      const testNameFromSummary = summary && typeof summary.testName === 'string' ? summary.testName : 'Suite complète (ligne de commande)'
 
       if (summary) {
         if (summary.testType === 'e2e' || summary.testType === 'playwright') {
@@ -557,17 +563,27 @@ export async function GET(request: NextRequest) {
     const allReports: TestReport[] = []
     
     // Scanner tous les types de rapports
-    const [perfBackend, perfFrontend, testsResults, playwright, userJourney, analytics] = await Promise.all([
+    const [perfBackend, perfFrontend, testsResults, testsResultsTmp, playwright, userJourney, analytics] = await Promise.all([
       scanPerformanceBackend(REPORT_DIRS['performance-backend']),
       scanPerformanceFrontend(REPORT_DIRS['performance-frontend']),
       scanTestsResults(REPORT_DIRS['tests-results']),
+      REPORT_DIRS['tests-results-tmp'] ? scanTestsResults(REPORT_DIRS['tests-results-tmp']) : Promise.resolve([]),
       scanPlaywrightReports(REPORT_DIRS['playwright']),
       scanUserJourneyReports(REPORT_DIRS['user-journey']),
       scanAnalyticsReports(REPORT_DIRS['analytics'])
     ])
     
     // Combiner tous les rapports
-    allReports.push(...perfBackend, ...perfFrontend, ...testsResults, ...playwright, ...userJourney, ...analytics)
+    allReports.push(...perfBackend, ...perfFrontend, ...testsResults, ...testsResultsTmp, ...playwright, ...userJourney, ...analytics)
+    
+    // Dédupliquer les rapports par ID (si les deux dossiers contiennent les mêmes)
+    const seen = new Set<string>()
+    const deduped: TestReport[] = []
+    for (const r of allReports) {
+      if (!seen.has(r.id)) { seen.add(r.id); deduped.push(r) }
+    }
+    allReports.length = 0
+    allReports.push(...deduped)
     
     // Trier par date (plus récents en premier)
     allReports.sort((a, b) => {
