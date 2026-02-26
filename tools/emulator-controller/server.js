@@ -201,9 +201,16 @@ const routes = {
         return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
       }
       const execOpts = { cwd: MOBILE_PATH };
+      // Rediriger les ports du PC vers le téléphone pour que localhost fonctionne sur l'appareil
+      const portsToReverse = [5002, 5003, 3000, 3001, 3002, 3003, 3004, 3005, 8025];
+      for (const port of portsToReverse) {
+        try {
+          await execPromise(`adb -s ${deviceId} reverse tcp:${port} tcp:${port}`, execOpts);
+        } catch (_) { /* ignore si adb reverse échoue */ }
+      }
       await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
       await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
-      send(res, 200, { success: true, message: 'App installée et lancée' });
+      send(res, 200, { success: true, message: 'App installée et lancée (adb reverse activé sur ports API)' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
