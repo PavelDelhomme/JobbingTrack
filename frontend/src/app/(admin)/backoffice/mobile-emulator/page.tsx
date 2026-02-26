@@ -41,7 +41,9 @@ export default function MobileEmulatorPage() {
   const [logsCopied, setLogsCopied] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const [apkBuilt, setApkBuilt] = useState(false);
+  const [appRunning, setAppRunning] = useState(false);
   const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const base = () => controllerUrl.replace(/\/$/, '');
   const addLog = (msg: string) => setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -146,31 +148,81 @@ export default function MobileEmulatorPage() {
       const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
         method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }),
       });
+      if (data.success) setAppRunning(true);
       addLog(data.message || (data.success ? 'App installee et lancee.' : data.error || 'Erreur'));
     } catch (e) { addLog(`Erreur install/run: ${e instanceof Error ? e.message : String(e)}`); }
     finally { setLoading(null); }
   };
 
-  const sendTap = async (e: React.MouseEvent<HTMLImageElement>) => {
-    if (!selectedDevice) return;
+  const imgToDevice = (e: React.MouseEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    const naturalWidth = img.naturalWidth || img.width;
-    const naturalHeight = img.naturalHeight || img.height;
-    if (!naturalWidth || !naturalHeight) return;
+    const nw = img.naturalWidth || img.width;
+    const nh = img.naturalHeight || img.height;
+    if (!nw || !nh) return null;
     const rect = img.getBoundingClientRect();
-    const scale = Math.min(rect.width / naturalWidth, rect.height / naturalHeight);
-    const renderedW = naturalWidth * scale;
-    const renderedH = naturalHeight * scale;
-    const left = (rect.width - renderedW) / 2;
-    const top = (rect.height - renderedH) / 2;
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    const x = Math.round((offsetX - left) / scale);
-    const y = Math.round((offsetY - top) / scale);
-    if (x < 0 || y < 0 || x > naturalWidth || y > naturalHeight) return;
+    const scale = Math.min(rect.width / nw, rect.height / nh);
+    const rw = nw * scale;
+    const rh = nh * scale;
+    const lf = (rect.width - rw) / 2;
+    const tp = (rect.height - rh) / 2;
+    const ox = e.clientX - rect.left;
+    const oy = e.clientY - rect.top;
+    const x = Math.round((ox - lf) / scale);
+    const y = Math.round((oy - tp) / scale);
+    if (x < 0 || y < 0 || x > nw || y > nh) return null;
+    return { x, y };
+  };
+
+  const onImgMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+    const pt = imgToDevice(e);
+    if (pt) dragStart.current = { ...pt, time: Date.now() };
+  };
+
+  const onImgMouseUp = async (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!selectedDevice || !dragStart.current) return;
+    const end = imgToDevice(e);
+    if (!end) { dragStart.current = null; return; }
+    const start = dragStart.current;
+    dragStart.current = null;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dur = Date.now() - start.time;
     try {
-      await fetchJson<{ success?: boolean }>('/input-tap', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, x, y }) });
-    } catch (err) { addLog(`Tap: ${err instanceof Error ? err.message : String(err)}`); }
+      if (dist < 15) {
+        await fetchJson<{ success?: boolean }>('/input-tap', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, x: start.x, y: start.y }) });
+      } else {
+        const swipeDur = Math.max(100, Math.min(dur, 1500));
+        await fetchJson<{ success?: boolean }>('/input-swipe', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, x1: start.x, y1: start.y, x2: end.x, y2: end.y, duration: swipeDur }) });
+      }
+    } catch (err) { addLog(`Input: ${err instanceof Error ? err.message : String(err)}`); }
+  };
+
+  const stopApp = async () => {
+    if (!selectedDevice) return;
+    setLoading('stop-app');
+    try {
+      await fetchJson<{ success?: boolean }>('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) });
+      setAppRunning(false);
+      addLog('Application arretee (HOME)');
+    } catch (e) { addLog(`Erreur stop: ${e instanceof Error ? e.message : String(e)}`); }
+    finally { setLoading(null); }
+  };
+
+  const restartApp = async () => {
+    if (!selectedDevice) return;
+    setLoading('restart-app');
+    try {
+      const pkg = 'com.example.jobbingtrack_mobile';
+      await fetchJson<{ success?: boolean }>('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) });
+      await new Promise(r => setTimeout(r, 500));
+      const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
+        method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }),
+      });
+      setAppRunning(true);
+      addLog(data.message || 'Application relancee');
+    } catch (e) { addLog(`Erreur restart: ${e instanceof Error ? e.message : String(e)}`); }
+    finally { setLoading(null); }
   };
 
   const runFlutter = async () => {
@@ -278,14 +330,26 @@ export default function MobileEmulatorPage() {
                   className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'build' ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Build APK
                 </button>
-                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || !apkBuilt}
-                  title={!apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                <button type="button" onClick={installAndRun} disabled={!selectedDevice || loading !== null || !apkBuilt || appRunning}
+                  title={appRunning ? 'App en cours - arretez d\'abord' : !apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'install-run' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Installer et lancer
                 </button>
-                <button type="button" onClick={runFlutter} disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null || !apkBuilt}
-                  title={!apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                <button type="button" onClick={runFlutter} disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null || !apkBuilt || appRunning}
+                  title={appRunning ? 'App en cours - arretez d\'abord' : !apkBuilt ? 'Build APK d\'abord' : ''} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
                   {loading === 'run-flutter' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Flutter run
                 </button>
+                {appRunning && (
+                  <>
+                    <button type="button" onClick={stopApp} disabled={loading !== null}
+                      className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                      {loading === 'stop-app' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />} Arreter
+                    </button>
+                    <button type="button" onClick={restartApp} disabled={loading !== null}
+                      className="px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                      {loading === 'restart-app' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Relancer
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -301,16 +365,26 @@ export default function MobileEmulatorPage() {
         {controllerOk && selectedDevice && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
-              <ImageIcon className="h-5 w-5" /> Rendu en direct - clic = tap
+              <ImageIcon className="h-5 w-5" /> Rendu en direct
+              <span className="text-xs font-normal text-gray-500 ml-2">clic = tap | glisser = scroll/swipe</span>
             </h2>
-            <div className="rounded-xl border-2 border-gray-300 dark:border-gray-600 overflow-hidden bg-black inline-block max-w-full cursor-crosshair">
+            <div className="rounded-xl border-2 border-gray-300 dark:border-gray-600 overflow-hidden bg-black inline-block max-w-full cursor-crosshair select-none"
+              onContextMenu={(e) => e.preventDefault()}>
               {screenshotUrl ? (
-                <img src={screenshotUrl} alt="Ecran appareil" className="block max-h-[70vh] w-auto object-contain select-none"
-                  style={{ imageRendering: 'pixelated' }} onClick={sendTap} role="button" tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLImageElement).click()} />
+                <img src={screenshotUrl} alt="Ecran appareil" className="block max-h-[70vh] w-auto object-contain select-none pointer-events-auto"
+                  style={{ imageRendering: 'pixelated' }} draggable={false}
+                  onMouseDown={onImgMouseDown} onMouseUp={onImgMouseUp} />
               ) : (
                 <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-500">Rafraichissement...</div>
               )}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 4 }) }).catch(() => {})}
+                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Back</button>
+              <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) }).catch(() => {})}
+                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Home</button>
+              <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 187 }) }).catch(() => {})}
+                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Recents</button>
             </div>
           </div>
         )}
