@@ -127,15 +127,34 @@
 
 ---
 
-## 12. Tests automatisés (si présents)
+## 12. Tests automatisés
 
-- [ ] **Tests unitaires (backend, frontend)** : **non à jour / pas tous ajoutés** — frontend : peu de couverture (analytics, quelques composants) ; `tests/unit` central minimal ; backend : tests dispersés par service, suite unitaire à harmoniser et compléter (voir STATUS.md section 2).
-- [ ] Tests unitaires (backend, frontend) passants une fois la suite mise à jour
-- [ ] Tests E2E (Playwright, etc.) sur parcours critiques
-- [ ] Tests d’accessibilité (a11y) sur les pages principales
+### Architecture de test (USER / ADMIN / SYSTEM)
+
+Les rapports de tests (terminal, HTML, texte) affichent le **type d'utilisateur** par test :
+- 👤 **USER** : tests fonctionnels simulant l'app mobile (API, mobile E2E, user journey)
+- 👑 **ADMIN** : tests backoffice, archivage, emails, data management
+- ⚙️ **SYSTEM** : tests BDD, enums, relations, health checks
+
+Helpers centralisés :
+- **Jest API** : `getTestUser()` (USER) / `getAdminUser()` (ADMIN) dans `tests/helpers/auth.helper.js`
+- **Playwright E2E** : `ensureTestUser()` / `getAdminToken()` / `loginAsAdmin()` dans `test-data-helper.ts`
+- **Config** : `testUser` (USER) / `adminUser` (SUPER_ADMIN) dans `test-config.js`
+
+### Email de test réel
+
+L'adresse `test@delhomme.ovh` vérifie la **réception réelle** des emails. Credentials dans `.env` (gitignored) :
+- `TEST_REAL_EMAIL`, `TEST_REAL_EMAIL_PASSWORD`, `TEST_REAL_EMAIL_IMAP_HOST`, `TEST_REAL_EMAIL_IMAP_PORT`
+
+### Checklist
+
+- [ ] **Tests unitaires (backend, frontend)** : harmoniser et compléter la couverture.
+- [ ] Tests unitaires passants
+- [x] Tests E2E Playwright sur parcours critiques (233 tests)
+- [ ] Tests d'accessibilité (a11y) sur les pages principales
 - [ ] Aucune régression majeure après modifications
 
-**Après `make test-full`** : vérifier le rapport (tests/results/…/report.html). Si **Enums** échouent, le script est aligné sur le schéma (ne tester que les enums réels). Si **Playwright E2E / Mobile** ou **Frontend Jest** échouent avec EACCES : `sudo chown -R $(whoami) frontend/node_modules` puis relancer ces catégories ou `make test-all`.
+**Après `make test-full`** : vérifier le rapport (`tests/results/.../report.html`). Chaque test affiche son badge utilisateur (ADMIN/USER/SYSTEM). Si EACCES : `sudo chown -R $(whoami) frontend/node_modules` puis relancer.
 
 ---
 

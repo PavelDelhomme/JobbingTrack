@@ -1,55 +1,78 @@
 # Backlog technique – JobbingTrack
 
-Ensemble des tâches techniques organisées par priorité. Le STATUS.md à la racine ne contient que l'état courant ; ce fichier contient le détail du backlog complet.
+Ensemble des tâches techniques organisées par priorité. Le `STATUS.md` à la racine contient l'état courant ; ce fichier contient le backlog complet.
 
 ---
 
-## Priorité haute – Tests et stabilité
+## Terminé récemment
 
-- [ ] **Tests Playwright E2E** : 1344 tests, majorité timeout 30s (login Playwright ne fonctionne pas). Investiguer la pré-authentification.
-- [ ] **Tests Playwright MailHog** : 3 tests échouent. Configurer `SMTP_HOST=mailhog` et `SMTP_PORT=1025` dans `.env`, puis `docker compose restart auth-service`.
-- [ ] **Couverture tests backend** : `test-api-specific.sh` couvre tous les services. Vérifier que les rapports sont bien générés.
-- [ ] **Rapports performance** : aligner sur le flux Tests API (écriture dans `tests/results/<timestamp>/`).
-- [ ] **Tests backoffice – couverture complète** : tester chaque page admin (voir `docs/tests/BACKOFFICE_TESTS_COVERAGE.md`).
+- [x] **Fix `getApplication` 500** : relation `activities` (inexistante) → `statusHistory`. (26/02)
+- [x] **Fix routes `isUUID` → `isString`** : IDs Prisma sont des CUIDs, pas UUIDs. (26/02)
+- [x] **Fix `api-e2e.spec.ts`** : credentials desynchronises → `_testCreds` direct. (26/02)
+- [x] **Fix 5 fichiers E2E** : imports, networkidle → domcontentloaded, resilience. (26/02)
+- [x] **4 nouvelles suites de test** : email-workflows, admin-data-crud, admin-users-crud, admin-security-complete. (26/02)
+- [x] **Email de test réel** : `test@delhomme.ovh` (via env var `TEST_REAL_EMAIL`).
+- [x] **Tests backoffice E2E autonomes** : `loginAsAdmin()` dans 6 fichiers.
+- [x] **Rapports avec type d'utilisateur** : badge ADMIN/USER/SYSTEM.
+- [x] **Tests Playwright E2E** : pré-authentification `storageState`.
+- [x] **Tests MailHog** : SMTP_HOST/PORT configurés, 3/3 passent.
+- [x] **Corbeille (soft delete)** : 7 services, cascade logique.
+- [x] **Cascade archivage + statuts** : auto-events, archiveRelatedElements.
+- [x] **Architecture tests USER/ADMIN** : séparation complète.
+
+## ~~Priorité haute – Phase 2 : Archivage complet~~ FAIT
+
+- [x] Ajouter `isArchived` + `archivedAt` aux schémas : Interview, Call, FollowUp, Event, Company.
+- [x] Endpoints archive/unarchive pour chaque service.
+- [x] Cascade archivage/désarchivage complète.
+- [x] Filtrage `isArchived: false` dans les requêtes normales.
+- [x] Endpoint unifié archives fonctionnel.
+- [ ] Suppression auto corbeille > 30 jours (cron/worker).
+- [x] Tests E2E archivage.
+
+## Priorité haute – Phase 3 : Interactions approfondies (en cours)
+
+- [x] CRUD complet teste (tests E2E : admin-data-crud.spec.ts couvre 7 entites + archivage/restauration).
+- [x] Système statuts avec cascade automatique (entretien créé → candidature INTERVIEW_PENDING).
+- [x] Auto-création événements calendrier (entretien, relance, appel créés → événement auto).
+- [ ] Notifications automatiques (sans réponse > 7j, entretien < 24h, relance en retard).
+- [ ] Export/import données (CSV, JSON) avec interface backoffice.
+- [x] Vérification email utilisateur : tests E2E workflow inscription + reset password via MailHog.
+- [ ] Pagination et tri cohérents sur toutes les listes.
+- [x] Tests E2E interactions approfondies (archivage, cascade, BDD relations, sécurité backoffice).
+- [x] Architecture tests USER/ADMIN et rapports avec badge type utilisateur.
+- [x] Email de test réel (`test@delhomme.ovh`) pour vérification réception.
+- [x] Tests sécurité backoffice complets (firewall CRUD, WAF, menaces, IPs bloquées, logs).
 
 ## Priorité moyenne – API et fonctionnalités
 
-- [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`. Définir stratégie de versioning.
-- [ ] **Documentation API** : Swagger/OpenAPI à synchroniser avec tous les microservices.
-- [ ] **User Analytics – tables manquantes** : `user_events`, `user_sessions`, `user_errors`, `user_performances`, `device_infos`. Créer les tables ou documenter comme optionnel.
-- [ ] **Archives / Corbeille** : plusieurs services renvoient 404/500. Implémenter ou documenter les limites.
-- [ ] **Loki** : requêtes type erreurs par conteneur échouent (`ENOTFOUND loki`). Loki n'est pas déployé.
+- [ ] **API versioning** : corriger 404 sur `GET /api/v1/analytics/stats/:userId/versions`.
+- [ ] **Documentation API** : Swagger/OpenAPI.
+- [ ] **Rapports par catégorie** : organiser `tests/results/` en sous-dossiers.
+- [ ] **Lancement tests depuis hub** : clic + vérification résultat.
 
 ## Priorité basse – Mobile et émulateur
 
-- [ ] **Émulateur mobile – Build APK** : erreur `flutter_local_notifications` (bigLargeIcon ambiguous). Mettre à jour la dépendance.
-- [ ] **Émulateur mobile – Run** : installer et lancer l'APK sur l'appareil.
-- [ ] **Logs Android (logcat)** : streamer dans l'UI du backoffice.
-- [ ] **App mobile** : dashboard bottom nav + drawer, sync offline/online, suivi candidat. Voir `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md`.
+- [ ] **App mobile Flutter** : auth, dashboard, CRUD, calendrier, notifications, sync offline.
+- [ ] **Émulateur mobile – Build APK** : corriger `flutter_local_notifications`.
+- [ ] **Logs Android (logcat)** : streamer dans l'UI.
 
-## Priorité basse – CI/CD et déploiement
+## Priorité moyenne – CI/CD et déploiement
 
-- [ ] **CI/CD** : pipeline GitHub Actions à adapter au projet microservices.
+- [ ] **CI/CD** : pipeline GitHub Actions pour microservices (build + test).
+- [ ] **CI/CD** : exécution suite de tests complète dans pipeline.
+- [ ] **CI/CD** : déploiement automatisé après tests passés.
 - [ ] **Déploiement** : voir `docs/deployment/DEPLOIEMENT_FINAL.md`.
 
 ## Priorité basse – Sécurité
 
-- [ ] **WAF** : remplacer la config mock par une vraie config WAF.
-- [ ] **Tests sécurité** : enrichir (XSS, SQLi, CSRF, auth, rate limiting, headers).
-- [ ] **Migration auth** : vers Go/Rust, chiffrement, JWT/refresh, rate limiting, HTTPS.
-
-## Priorité basse – Données et UX
-
-- [ ] **Données test** : implémenter filtre API isTestData.
-- [ ] **Design pages test** : reprendre le design Tests Backend (progression, logs).
-- [ ] **Gestion utilisateur enrichie** : emailVerified, derniers emails envoyés, analytics par utilisateur.
+- [x] **Tests sécurité E2E** : firewall CRUD, WAF config/toggle, menaces réseau, IPs bloquées, logs sécurité.
+- [ ] **WAF** : remplacer la config mock par une vraie en production.
+- [x] **Tests sécurité API** : XSS, SQLi, CSRF, payload overflow (tests/security, security-e2e.spec.ts).
 
 ## Références
 
 - `STATUS.md` : état courant du projet.
-- `docs/tests/BACKOFFICE_TESTS_COVERAGE.md` : détail couverture E2E.
-- `docs/tests/RAPPORTS_CONVENTIONS.md` : conventions de rapports.
-- `docs/troubleshooting/POSTGRES_MONITORING.md` : résolution erreurs Postgres.
-- `docs/emails/MAIL.md` : système mail complet.
-- `docs/mobile/APPLICATION_MOBILE_A_FAIRE.md` : checklist mobile.
-- `docs/database/SCHEMA_CHOIX.md` : choix de schéma BDD.
+- `FONCTIONNALITES.md` : fonctionnalités complètes et roadmap.
+- `RESOLUTIONS.md` : erreurs résolues avec détail.
+- `ERRORS.md` : erreurs connues.

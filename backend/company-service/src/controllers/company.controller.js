@@ -68,6 +68,8 @@ const getCompanies = async (req, res, next) => {
     
     const where = {
       userId: req.user.id,
+      deletedAt: null,
+      isArchived: false,
       ...(search ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -288,21 +290,29 @@ const deleteCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    await prisma.company.delete({
-      where: { id }
+    const existingCompany = await prisma.company.findFirst({
+      where: { id, userId: req.user.id, deletedAt: null }
     });
 
-    res.json({
-      success: true,
-      message: 'Entreprise supprimée'
-    });
-  } catch (error) {
-    if (error.code === 'P2025') {
+    if (!existingCompany) {
       return res.status(404).json({
         success: false,
         error: 'Entreprise non trouvée'
       });
     }
+
+    await prisma.company.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    });
+
+    logger.info(`Entreprise ${id} mise à la corbeille par ${req.user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Entreprise déplacée vers la corbeille'
+    });
+  } catch (error) {
     logger.error('Erreur suppression entreprise:', error);
     next(error);
   }

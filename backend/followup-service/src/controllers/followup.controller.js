@@ -4,6 +4,32 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
+async function createAutoEvent(userId, data) {
+  try {
+    const eventType = await prisma.eventType.findFirst({ where: { code: data.typeCode || 'FOLLOWUP' } })
+      ?? await prisma.eventType.findFirst();
+    await prisma.event.create({
+      data: {
+        userId,
+        title: data.title,
+        description: data.description || null,
+        startDate: data.startDate,
+        endDate: data.endDate || new Date(data.startDate.getTime() + 1800000),
+        allDay: false,
+        reminderEnabled: true,
+        reminderMinutes: data.reminderMinutes || 60,
+        applicationId: data.applicationId || null,
+        followUpId: data.followUpId || null,
+        eventTypeId: eventType?.id || null,
+        color: data.color || '#F59E0B'
+      }
+    });
+    logger.info(`Événement auto créé: ${data.title}`);
+  } catch (e) {
+    logger.warn('Auto-création événement échouée:', e.message);
+  }
+}
+
 const sanitizeStatus = (status) => {
   if (!status) return 'PENDING';
   const value = status.toUpperCase();
@@ -58,6 +84,8 @@ const getFollowups = async (req, res, next) => {
 
     const where = {
       userId,
+      deletedAt: null,
+      isArchived: false,
       ...(status && { status: { code: sanitizeStatus(status) } })
     };
 
@@ -139,7 +167,7 @@ const getFollowup = async (req, res, next) => {
     let followup;
     try {
       followup = await prisma.followUp.findFirst({
-        where: { id, userId },
+        where: { id, userId, deletedAt: null, isArchived: false },
         include: {
           application: { include: { company: true } },
           company: true,
@@ -227,6 +255,20 @@ const createFollowup = async (req, res, next) => {
 
     logger.info(`Relance ${followup.id} créée pour l'utilisateur ${userId}`);
 
+    const followUpDateObj = new Date(dateValue);
+    const companyName = followup.application?.company?.name || followup.company?.name || 'Entreprise';
+    await createAutoEvent(userId, {
+      title: `Relance – ${companyName}`,
+      description: `Relance prévue pour la candidature ${followup.application?.position || ''}`,
+      startDate: followUpDateObj,
+      endDate: new Date(followUpDateObj.getTime() + 1800000),
+      applicationId,
+      followUpId: followup.id,
+      typeCode: 'FOLLOWUP',
+      reminderMinutes: 60,
+      color: '#F59E0B'
+    });
+
     res.status(201).json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {
     logger.error('Erreur création relance:', error);
@@ -308,17 +350,24 @@ const deleteFollowup = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const existingFollowup = await prisma.followUp.findFirst({ where: { id, userId } });
+    const existingFollowup = await prisma.followUp.findFirst({ where: { id, userId, deletedAt: null } });
 
     if (!existingFollowup) {
       return res.status(404).json({ success: false, error: 'Relance non trouvée' });
     }
 
-    await prisma.followUp.delete({ where: { id } });
+    const now = new Date();
+    await prisma.followUp.update({ where: { id }, data: { deletedAt: now } });
 
-    logger.info(`Relance ${id} supprimée pour l'utilisateur ${userId}`);
+    try {
+      await prisma.$executeRaw`UPDATE "Event" SET "deletedAt" = ${now} WHERE "followUpId" = ${id} AND "deletedAt" IS NULL`;
+    } catch (e) {
+      logger.warn('Cascade soft-delete événements échouée:', e.message);
+    }
 
-    res.json({ success: true, message: 'Relance supprimée' });
+    logger.info(`Relance ${id} mise à la corbeille par l'utilisateur ${userId}`);
+
+    res.json({ success: true, message: 'Relance déplacée vers la corbeille' });
   } catch (error) {
     logger.error('Erreur suppression relance:', error);
     next(error);

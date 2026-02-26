@@ -9,8 +9,8 @@ const API_URL = process.env.API_URL || 'http://localhost:5002';
 
 async function stepLogin(options = {}) {
   const {
-    email = 'admin@jobbingtrack.com',
-    password = 'password123',
+    email = process.env.TEST_EMAIL || 'admin@jobbingtrack.com',
+    password = process.env.TEST_PASSWORD || 'password123',
     expectedStatus = 200
   } = options;
 

@@ -1,8 +1,25 @@
 // Configuration pour les tests E2E - JobbingTrack
+//
+// CONVENTION :
+//   testUser  → utilisateur classique (USER) pour tester les fonctionnalités
+//               de l'application mobile et les endpoints API fonctionnels.
+//   adminUser → administrateur (SUPER_ADMIN) pour tester le backoffice,
+//               les parcours de test, la gestion des utilisateurs, etc.
+
+const TEST_USER_SUFFIX = process.env.TEST_USER_SUFFIX || Date.now();
 
 module.exports = {
-  // Utilisateur de test par défaut
+  // Utilisateur classique (rôle USER) — tests fonctionnels / app mobile
   testUser: {
+    email: process.env.TEST_USER_EMAIL || `e2e-user-${TEST_USER_SUFFIX}@jobbingtrack.test`,
+    password: process.env.TEST_USER_PASSWORD || 'TestPassword123!',
+    firstName: 'TestUser',
+    lastName: 'E2E',
+    role: 'USER'
+  },
+
+  // Administrateur (rôle SUPER_ADMIN) — tests backoffice / admin
+  adminUser: {
     email: process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com',
     password: process.env.ADMIN_PASSWORD || 'password123',
     firstName: 'Pavel',

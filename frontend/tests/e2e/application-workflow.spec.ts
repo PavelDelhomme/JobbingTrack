@@ -1,7 +1,10 @@
+// Tests workflow backoffice — utilise un administrateur (SUPER_ADMIN)
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './test-data-helper';
 
-test.describe('🔄 Workflow Complet - Gestion des Candidatures', () => {
+test.describe('🔄 Workflow Complet - Gestion des Candidatures (admin)', () => {
   test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
     await page.goto('/backoffice');
     await page.waitForLoadState('domcontentloaded');
   });

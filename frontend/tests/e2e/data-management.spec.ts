@@ -1,7 +1,10 @@
+// Tests gestion données backoffice — utilise un administrateur (SUPER_ADMIN)
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './test-data-helper';
 
-test.describe('💾 Gestion des Données - Tests Complets', () => {
+test.describe('💾 Gestion des Données - Tests Complets (admin)', () => {
   test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
     await page.goto('/backoffice');
     await page.waitForLoadState('domcontentloaded');
   });

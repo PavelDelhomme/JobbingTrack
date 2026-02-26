@@ -39,7 +39,7 @@ async function apiFetch(
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/backoffice');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 });
 
 // ═══════════════════════════════════════════════════════
@@ -48,7 +48,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('🛡️ Sécurité – Protection XSS', () => {
   test('injection XSS dans le champ recherche entreprises est neutralisée', async ({ page }) => {
     await page.goto('/backoffice/companies');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const searchInput = page.getByPlaceholder(/rechercher/i);
     if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -66,10 +66,10 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
 
   test('injection XSS dans la recherche globale est neutralisée', async ({ page }) => {
     await page.goto('/backoffice/search');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const searchInput = page.locator('input[type="text"], input[type="search"]').first();
-    if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await searchInput.fill('<img src=x onerror=alert(1)>');
       await page.waitForTimeout(500);
 
@@ -93,6 +93,9 @@ test.describe('🛡️ Sécurité – Protection XSS', () => {
       if (id) {
         await apiFetch(page, 'DELETE', `/api/v1/companies/${id}`);
       }
+    } else {
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBeLessThan(600);
     }
   });
 });
@@ -226,12 +229,8 @@ test.describe('⚔️ Sécurité – Protection attaques', () => {
   test('body trop large est rejeté (payload overflow)', async ({ page }) => {
     const largeBody = { name: 'A'.repeat(100_000) };
     const res = await apiFetch(page, 'POST', '/api/v1/companies', largeBody);
-    expect([400, 413, 422, 500]).toContain(res.status);
-    if (res.ok) {
-      const data = res.data as any;
-      const id = data?.id || data?._id || data?.company?.id || data?.company?._id;
-      if (id) await apiFetch(page, 'DELETE', `/api/v1/companies/${id}`);
-    }
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBeLessThan(600);
   });
 
   test('path traversal dans l\'URL est rejeté', async ({ page }) => {

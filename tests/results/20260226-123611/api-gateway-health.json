@@ -1,0 +1,14 @@
+{
+  "testName": "Tests API Gateway Health",
+  "command": "curl -sf "http://localhost:5002/health" && curl -sf "http://localhost:5002/metrics"",
+  "timestamp": "2026-02-26T12:47:50+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "output": "{\"status\":\"OK\",\"timestamp\":\"2026-02-26T11:47:49.518Z\",\"environment\":\"development\",\"version\":\"1.0.0\"}# HELP api_gateway_requests_total Total number of requests\n# TYPE api_gateway_requests_total counter\napi_gateway_requests_total 455\n\n# HELP api_gateway_response_time_seconds Response time in seconds\n# TYPE api_gateway_response_time_seconds histogram\napi_gateway_response_time_seconds_bucket{le=\"0.1\"} 27\napi_gateway_response_time_seconds_bucket{le=\"0.5\"} 162\napi_gateway_response_time_seconds_bucket{le=\"1.0\"} 110\napi_gateway_response_time_seconds_bucket{le=\"2.5\"} 176\napi_gateway_response_time_seconds_bucket{le=\"5.0\"} 365\napi_gateway_response_time_seconds_bucket{le=\"10.0\"} 340\napi_gateway_response_time_seconds_bucket{le=\"+Inf\"} 687\n\n# HELP api_gateway_up API Gateway is up\n# TYPE api_gateway_up gauge\napi_gateway_up 1\n\n# HELP api_gateway_info Information about API Gateway\n# TYPE api_gateway_info gauge\napi_gateway_info{version=\"1.0.0\",environment=\"development\"} 1\n"
+}

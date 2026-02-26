@@ -1,15 +1,23 @@
+// Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 import { test, expect } from '@playwright/test';
+import { ensureTestUser } from '../test-data-helper';
 
 /**
  * Tests Mobile - Gestion des Entretiens
  */
 
 test.describe('📱 Mobile - Gestion Entretiens', () => {
+  let testCredentials: { email: string; password: string } | null = null;
+
+  test.beforeAll(async ({ request }) => {
+    testCredentials = await ensureTestUser(request);
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.com');
-    await page.fill('input[type="password"]', 'password123');
+    await page.fill('input[type="email"]', testCredentials?.email || 'admin@jobbingtrack.com');
+    await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard**');
   });

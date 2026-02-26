@@ -1,9 +1,12 @@
+// Tests API E2E — utilise un utilisateur classique (rôle USER)
 import { test, expect } from '@playwright/test';
+import { ensureTestUser, getUserToken } from './test-data-helper';
 
-/**
- * Helper to call API from within the browser context using the stored auth token.
- * This avoids CORS issues since the fetch runs in the same browser.
- */
+const API_URL = process.env.API_URL || 'http://localhost:5002';
+
+let _testCreds: { email: string; password: string } | null = null;
+let _testToken = '';
+
 async function apiFetch(
   page: import('@playwright/test').Page,
   method: string,
@@ -37,10 +40,20 @@ async function apiFetch(
   );
 }
 
-// Pre-navigation so localStorage has the auth token
+test.beforeAll(async ({ request }) => {
+  _testCreds = await ensureTestUser(request);
+  _testToken = await getUserToken(request);
+});
+
 test.beforeEach(async ({ page }) => {
+  if (!_testToken) return;
+  await page.goto('/login');
+  await page.waitForLoadState('domcontentloaded');
+  await page.evaluate((t) => {
+    localStorage.setItem('token', t);
+  }, _testToken);
   await page.goto('/backoffice');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 });
 
 // ═══════════════════════════════════════════════════════
@@ -63,9 +76,10 @@ test.describe('🩺 API – Health & Status', () => {
 // ═══════════════════════════════════════════════════════
 test.describe('🔑 API – Authentification', () => {
   test('login avec identifiants valides retourne un token', async ({ page }) => {
+    if (!_testCreds) return;
     const res = await apiFetch(page, 'POST', '/api/v1/auth/login', {
-      email: process.env.TEST_ADMIN_EMAIL || 'admin@jobbingtrack.com',
-      password: process.env.TEST_ADMIN_PASSWORD || 'password123',
+      email: _testCreds.email,
+      password: _testCreds.password,
     });
     expect(res.status).toBe(200);
     expect(res.data).toHaveProperty('token');

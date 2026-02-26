@@ -1,6 +1,6 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Derniere mise a jour** : 26 fevrier 2026
+**Derniere mise a jour** : 23 fevrier 2026
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
@@ -395,13 +395,13 @@ Utilisateur cree Entreprise (ou existante)
 
 ## 7. Roadmap d'implementation
 
-### Phase 1 : Stabilisation (en cours)
+### Phase 1 : Stabilisation — FAIT
 
 - [x] Stack 21/21 services fonctionnels
-- [x] 41 tables BDD
+- [x] 47 tables BDD
 - [x] API Gateway avec tous les endpoints
-- [x] Tests API 47/47
-- [x] Playwright E2E 213/213
+- [x] Tests API 61 (archivage + cascade + BDD + email + monitoring)
+- [x] Playwright E2E 233
 - [x] Tests securite (64 verifications, 0 critique)
 - [x] Tests performance (15/15, score 100/100)
 - [x] Tests integration OK
@@ -409,22 +409,46 @@ Utilisateur cree Entreprise (ou existante)
 - [x] SMTP / MailHog operationnels
 - [x] Monitoring custom (monitoring-c + metrics-aggregator)
 
-### Phase 2 : Archivage & Corbeille complets
+### Phase 2 : Archivage & Corbeille complets — FAIT
 
-- [ ] Ajouter champ `isArchived` + `archivedAt` sur : `Interview`, `Call`, `FollowUp`, `Event`, `Company`
-- [ ] Implementer les routes archive/unarchive pour ces entites dans chaque service backend
-- [ ] Corriger les pages Archives et Corbeille du backoffice (actuellement 404/500 pour certains services)
-- [ ] Endpoint unifie `GET /api/v1/trash` pour lister tous les elements en corbeille
+- [x] Champ `isArchived` + `archivedAt` sur Interview, Call, FollowUp, Event, Company
+- [x] Routes archive/unarchive pour 7 entites dans chaque service backend
+- [x] Cascade archivage/desarchivage (candidature → entretiens, relances, appels, evenements)
+- [x] Cascade soft-delete (candidature → entretiens, relances, appels, evenements)
+- [x] Corbeille candidatures (route `/trash`, `/restore`, `/permanent`)
+- [x] Fix route ordering: `/trash` et `/archived` avant `/:id` dans application-service
+- [x] Tests API archivage/corbeille (19 tests)
 - [ ] Suppression automatique apres 30 jours (cron job ou worker)
-- [ ] Tests E2E pour archivage/restauration
+- [ ] Endpoint unifie `GET /api/v1/trash` pour lister tous les elements en corbeille
 
-### Phase 3 : Interactions backoffice approfondies
+### Phase 2.5 : Cascade statuts & auto-evenements — FAIT
 
-- [ ] CRUD candidatures effectif (creation complete avec tous les champs)
+- [x] Cascade statuts automatique (entretien cree → INTERVIEW_PENDING, complete → INTERVIEW_DONE, etc.)
+- [x] Auto-creation evenements calendrier (entretien, relance, appel)
+- [x] Historique des changements de statut (ApplicationStatusHistory)
+- [x] 19 statuts ApplicationStatus predefinies (seed)
+- [x] 5 EventType predefinies (INTERVIEW, FOLLOWUP, CALL, DEADLINE, OTHER)
+- [x] Tests API cascade statuts (12 tests)
+
+### Phase 2.6 : Architecture des tests — FAIT
+
+- [x] Separation utilisateur classique (USER) vs admin (SUPER_ADMIN) dans les tests
+- [x] Tests API fonctionnels via `getTestUser()` (utilisateur classique, role USER)
+- [x] Tests backoffice via `getAdminUser()` (admin, role SUPER_ADMIN)
+- [x] 7 tests Playwright mobile migres vers utilisateur classique
+- [x] test-config.js : `testUser` (USER) + `adminUser` (SUPER_ADMIN)
+- [x] test-data-helper.ts : `ensureTestUser()`, `getAdminToken()`, `loginAsAdmin()`, `getAdminCredentials()`, `REAL_TEST_EMAIL`
+- [x] Rapport de tests : texte lisible + HTML interactif, badge type utilisateur (ADMIN/USER/SYSTEM)
+- [x] Email de test reel (`test@delhomme.ovh`) pour verifier la reception, via env var `TEST_REAL_EMAIL` (.env, gitignored)
+- [x] Tests backoffice E2E autonomes avec `loginAsAdmin()` (6 fichiers corriges)
+- [x] `archive-interactions.spec.ts` utilise `getAdminToken` (fonctionnalite admin)
+
+### Phase 3 : Interactions backoffice approfondies (en cours)
+
 - [ ] Export/import donnees (CSV, JSON)
-- [ ] Lancement de tests depuis le hub avec verification du resultat
 - [ ] Pagination et tri sur toutes les listes
-- [ ] Archivage/restauration effective depuis l'interface
+- [ ] Verification email utilisateur
+- [ ] Lancement de tests depuis le hub avec verification du resultat
 - [ ] API versioning (route `GET /api/v1/analytics/stats/:userId/versions`)
 
 ### Phase 4 : Application mobile Flutter
@@ -535,3 +559,38 @@ Tous les endpoints sont prefixes par `/api/v1/` via l'API Gateway (port 5002).
 - Resolutions : `RESOLUTIONS.md`
 - Erreurs connues : `ERRORS.md`
 - Statut : `STATUS.md`
+
+
+---
+# PERSONNAL NOTES
+Une personne install l'application mobile, il arrive sur une page de connexion avec proposition email et password et bouton ensuite pour demander réintialisation mot de passe en dessous j'ai le bouton Se connecter et en dessou de ce bouton j'ai S'inscrire. Quand il se connecter on passe directemnet a la partie donc B que je citerai apres et pour le réinitialisation de mot de passe donc mot de passe oublier on passe a la partie C, la partie inscription et la suite de processus logique sera la partie A donc . Continuons pour cela il clique sur S'inscrier.
+
+A. Inscription
+Après qu'il ai clique sur le bouton s'inscrire donc l'utilisateur voir s'afficher des champs de formulaire suivant nécessaire a la création de sont compte (et de sont profil donc). Les champs sont les suivant : Nom(obligatoire), Prénom (obligatoire), Email (obligatoire et avec double champs pour vérification), Numéro  de téléphone. Il clique sur continuer et on tente de l'inscrir si l'adresse email n'est pas déjà utiliser pour une autre compte présent, si c'est le cas on affiche un message d'erreur.
+L'utilisateur s'est inscrit donc mais n'a pas valider sont compte. On l'informe et on affiche un champs pour indiquer que il recevra par email un code ou un lien pour valider son compte.
+Une fois que l'utilisateur a ouvert ses mail et clique sur le lien et retourne sur l'application mobile ou pas ca doit être détecter en live et garder en mémoire cette etape pour être sur de pas perdre le processus, on le rediriger vers le dashboard de l'application. Le lien de validation / code on une date de péremption par mesure de sécurité et ne sont valide qu'une seul fois et qu'un temps donne si l'jutilisateur n'a pas fait lees chose a temps il doit reclique poure recevoir le mail de validation a nouveau. il se peut que le mail n'a pas été envoyer la premier fois il doit y avoir donc un timer avec a la fin du timer une proposition pour renvoyer  anouveau le mail. Il a aussi pu se tromper dans l'adresse mail pour l'inscription on doit pouvoir lui permettre de modifier cela. Ont doit donc avoir un mini compte ou le compte de créer avec les information minial qu'il a inscrit pour savoir si le mail est valider ou non vref.
+Quand il a bine fait la validation de l'insription alors on a dans la base de donnée d'indiquer pour cet utilisateur qu'il a bine fait ce qu'il fallait pur valider le compte. ON rajoutera un champs aussi pour gérer les changement de mots de passe pour être sur de pas en avoir trop a la fois enfaite.
+
+L'uilisateur une fois inscrit arrive donc sur la page de dashbaord sur l'application moobile donc. on passe a l'étape B.
+
+B. Base principal dee l'application
+L'utilisateur arrive sur la page de Dahsboard utilisateur ou il retrouvera un ensemble de ses statistiques de ces candidature, relance, entretien, etc etc tout cela est a définit si pas encore définit correcmntet plus tard car ce n'ets pas crucial pour le moment et correespondra a une table spécifique donc.
+En bas de l'application mobile on a une navigation entre donc Dashboard, Recherche, Calendrier.
+L'onglet dahsboard on s'en occupe pas pour le moment comme on le disais.
+L'onglet Recherche est pour l'instant le plus important. Il concentrerai l'ensemble des element pour faire la recherche et le suivit de candidature et tout complet.
+Cet onglet recherche aura en haut une navigation par tab dans l'ordre suivant : Candidatures, Contacts, Entreprises, Relances, Appels, Entretiens.
+Chacun des ses onglet ameneron donc sur une page avec les chose suivante : 
+Candidatures : Retrouver une liste des candidatures de l'utilisateur (peut être completement vide si tout juste inscrit donc) trier par date de dernier postulation quoi. on verra sur chaque element de candidature les information suivante absoluement primordiale et nécessaire : Titre de l'offre, Entreprise, Date de la candidature, Etat de la candidature. Chaque candidature peut être swiper droite ou gauche avec option avec configuration de suppression (corbeille), archivage (archive). Le clique sur une candidature affichera la page de détails de la candidature. Chaquye candidature aura un etat docn et donc un carte de candidature aura une couleur en fonction de l'état de la candidature
+Contacts : Même principe que avec les candidature mais pour les contact. Les information a avoir sont le nom, prénom, numéro de téléphone, nom de l'entreprise. Chaque contact permet d'acceder au détail d'un contact.
+Entreprises : Pareil que avec contaact et candidautre
+Relances : PAreil que contact et candidature mais avec comme pour candidature l'état de candidature. cahque etat doit avoir une couleur définit qui colori la carte dans la lsite de la relance. On dois avoir comme information la date, le titre de l'offre de la canddiature pour laquel relance, si contact lié le nom et prénom du contact et l'entreprise.
+Appels : Doit avoir le nom du contact lié ou le nom d'entrperise si pas de nom de contact mais toujours nom de l'enterprise lié. Elle est généralement lié a une candidature donc on verra plus tard donc et on doit avoir si c'est dans le cadre d'une relance ou non par exemple donc. Plus d'informaiton seront indiquer plus tard mais on doit avoir l'objet principalement aussi donc d'indiquer de l'appel.
+Entretiens : Mê pricipe que candaitre et l reste liste des entretiens avec état des entreteien qui colore les caret donc et on peux y voir le type de l'entreiten, style, et nom entreprise et pour quel poste aussi avec date docn aussi. a modifei plus tard
+
+La page de calendrier doit être un calendrier avec définition de plusieur vue de calendirer : Jour (1 jour), 3 jours (vue sur 3 jours), 1 semaine (5 jours), 2 semaines, 1 mois, Planning.
+on retrouvera les différent évenemetn donc créer, on peux filtre l'affichage aussi en voulant ne voir que candidature, entreitens, relances, appel, mais aussi evenement gérer via workflow automatiqe donc a savoir relances a faire programmer par la machine autimaique pour mis en avnt des etat bref a détaillé plus trd.
+Chahque type d'évènement a une couleur. Le calendrier doit ressemble en interface a du google calendar. Pour le moment l'utilisateur n'est pas autorisé a créer ces propres évènements mais plus tard il faut imaginer qu'il rajoute des evenement de type jobdating ou quoi qu'il trouve sur internet pour s'en rappeler.
+
+Dans un drawer pésent dans l'application mobile. on devra retrouver les element suivant : Dashbaord (qui ammenera sur la page quoi de dashboard ou j'ai les sous page bottomsheet pour applications et calendrier ej crsoi ou quoi comme dis plus haut), En haut du drawer el profil utilisateur donc clicable et permet d'afficher les information et modifeir les information porfil utilisateur à améliorer j'ia plus les détail onv erra plus tard, En dessous un lien pour clique pour accèder au paramètre (on difinire plus tard aussi) qui concerneron reset password, modif mail, définition des paramètre de notifications, demande suppression complete données etc etc. De dashbaord dans ce drawer on retrouvera donc Archives pour voir les archives quoi, Corbeille, mê eprincipe que archive.
+
+

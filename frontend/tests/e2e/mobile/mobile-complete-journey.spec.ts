@@ -1,4 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
+import { ensureTestUser } from '../test-data-helper';
+
+// Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 
 /**
  * Tests E2E Mobile Complets - JobbingTrack
@@ -17,10 +20,10 @@ import { test, expect, Page } from '@playwright/test';
 const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5003';
 
-// Données de test
+// Données de test — utilisateur classique (rôle USER)
 const testUser = {
-  email: `test-mobile-${Date.now()}@jobbingtrack.com`,
-  password: 'Test123456!',
+  email: `test-mobile-${Date.now()}@jobbingtrack.test`,
+  password: 'TestPassword123!',
   firstName: 'Test',
   lastName: 'Mobile',
   phone: '0612345678',
@@ -31,6 +34,7 @@ let userId: string;
 let companyId: string;
 let applicationId: string;
 let contactId: string;
+let testCredentials: { email: string; password: string } | null = null;
 
 /**
  * Helper: Connexion utilisateur
@@ -73,6 +77,10 @@ async function registerUser(page: Page, userData: typeof testUser) {
 }
 
 test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
+  test.beforeAll(async ({ request }) => {
+    testCredentials = await ensureTestUser(request);
+  });
+
   test.beforeEach(async ({ page }) => {
     // Configuration mobile
     await page.setViewportSize({ width: 375, height: 667 });
@@ -95,14 +103,14 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
 
   test('2. 🔐 Connexion - Authentification mobile', async ({ page }) => {
     // Utiliser l'utilisateur admin par défaut pour les tests
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Vérifier que le dashboard est accessible
     await expect(page.locator('text=/Dashboard|Tableau de bord/i')).toBeVisible();
   });
 
   test('3. 🏢 Création d\'Entreprise - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers la création d'entreprise
     await page.click('text=/Entreprise|Company/i');
@@ -127,7 +135,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('4. 📋 Création de Candidature - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers les candidatures
     await page.click('text=/Candidature|Application/i');
@@ -152,7 +160,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('5. 👥 Création de Contact - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers les contacts
     await page.click('text=/Contact/i');
@@ -178,7 +186,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('6. 📞 Création d\'Appel - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers les appels
     await page.click('text=/Appel|Call/i');
@@ -203,7 +211,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('7. 📅 Création d\'Entretien - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers les entretiens
     await page.click('text=/Entretien|Interview/i');
@@ -229,7 +237,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('8. 🔔 Création de Relance - Mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Naviguer vers les relances
     await page.click('text=/Relance|Follow-up/i');
@@ -254,7 +262,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('9. 🔔 Notifications - Affichage et interaction mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Vérifier l'icône de notifications
     const notificationIcon = page.locator('button[aria-label*="notification"], button:has-text("🔔"), [data-testid="notifications"]').first();
@@ -269,7 +277,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('10. 🔍 Recherche - Fonctionnalité mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Trouver le champ de recherche
     const searchInput = page.locator('input[type="search"], input[placeholder*="recherche"], input[placeholder*="search"]').first();
@@ -284,7 +292,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('11. 📊 Dashboard - Affichage mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Vérifier les éléments du dashboard
     await expect(page.locator('text=/Dashboard|Tableau de bord/i')).toBeVisible();
@@ -296,7 +304,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('12. 🎨 Navigation Mobile - Menu hamburger', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Chercher le menu hamburger
     const menuButton = page.locator('button[aria-label*="menu"], button:has-text("☰"), [data-testid="menu-toggle"]').first();
@@ -311,7 +319,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('13. 📱 Gestes Tactiles - Swipe et tap', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Tester le swipe (simulation)
     await page.touchscreen.tap(100, 200);
@@ -326,7 +334,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('14. 🔄 Synchronisation Offline - Mobile', async ({ page, context }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Simuler le mode offline
     await context.setOffline(true);
@@ -344,7 +352,7 @@ test.describe('📱 Tests Mobile - Parcours Utilisateur Complet', () => {
   });
 
   test('15. 📸 Capture d\'écran - Vérification visuelle mobile', async ({ page }) => {
-    await loginUser(page, 'admin@jobbingtrack.com', 'password123');
+    await loginUser(page, testCredentials?.email || testUser.email, testCredentials?.password || testUser.password);
     
     // Prendre une capture d'écran du dashboard mobile
     await page.screenshot({ 

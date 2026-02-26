@@ -1,44 +1,34 @@
 /**
  * Tests pour les endpoints email
  * Vérifie que les endpoints email fonctionnent correctement
+ *
+ * ⚠️ Utilise le compte ADMIN (SUPER_ADMIN) car les endpoints email
+ *     sont des fonctionnalités d'administration (logs, stats, test SMTP).
+ *     L'adresse de réception test@delhomme.ovh est configurée via
+ *     la variable d'environnement TEST_REAL_EMAIL (.env, gitignored).
  */
 
 const axios = require('axios');
 const { describe, it, expect, beforeAll, afterAll } = require('@jest/globals');
+const { getAdminUser, API_URL } = require('../helpers/auth.helper');
 
-const API_URL = process.env.API_GATEWAY_URL || 'http://localhost:5002';
-const AUTH_TOKEN = process.env.TEST_AUTH_TOKEN || 'test-token';
+const REAL_TEST_EMAIL = process.env.TEST_REAL_EMAIL || 'test@example.com';
 
-describe('Email Endpoints', () => {
+describe('Email Endpoints (admin)', () => {
   let authHeaders;
   let validToken;
 
-  // SMTP peut être indisponible (timeout) : tests d'envoi avec timeout court
   jest.setTimeout(20000);
 
   beforeAll(async () => {
-    // Essayer d'obtenir un vrai token via login
     try {
-      const loginResponse = await axios.post(`${API_URL}/api/v1/auth/login`, {
-        email: 'admin@jobbingtrack.com',
-        password: 'password123'
-      }, {
-        timeout: 5000,
-        validateStatus: () => true // Ne pas throw sur les erreurs
-      });
-
-      if (loginResponse.status === 200 && loginResponse.data?.token) {
-        validToken = loginResponse.data.token;
-      }
-    } catch (error) {
-      // Si le login échoue, utiliser le token de test
-      console.warn('⚠️ Impossible d\'obtenir un token via login, utilisation du token de test');
+      const admin = await getAdminUser();
+      validToken = admin.token;
+      authHeaders = admin.headers;
+    } catch (e) {
+      console.warn('⚠️ Login admin échoué:', e.message);
+      authHeaders = { 'Content-Type': 'application/json' };
     }
-
-    authHeaders = {
-      'Authorization': `Bearer ${validToken || AUTH_TOKEN}`,
-      'Content-Type': 'application/json'
-    };
   });
 
   describe('GET /api/v1/emails/logs', () => {
@@ -99,9 +89,9 @@ describe('Email Endpoints', () => {
   describe('POST /api/v1/emails/test', () => {
     it('devrait envoyer un email de test', async () => {
       const testEmail = {
-        to: 'test@example.com',
-        subject: 'Test Email',
-        content: '<p>Ceci est un email de test</p>'
+        to: REAL_TEST_EMAIL,
+        subject: `[JobbingTrack Test] ${new Date().toISOString().slice(0, 16)}`,
+        content: '<p>Email de test automatique — JobbingTrack test suite</p>'
       };
 
       try {
@@ -127,9 +117,9 @@ describe('Email Endpoints', () => {
 
     it('devrait gérer les erreurs de timeout SMTP', async () => {
       const testEmail = {
-        to: 'test@example.com',
-        subject: 'Test Email',
-        content: '<p>Test</p>'
+        to: REAL_TEST_EMAIL,
+        subject: '[JobbingTrack] Test timeout SMTP',
+        content: '<p>Test timeout</p>'
       };
 
       try {

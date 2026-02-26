@@ -43,6 +43,8 @@ const getContacts = async (req, res, next) => {
     
     const where = {
       userId: req.user.id,
+      deletedAt: null,
+      isArchived: false,
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: 'insensitive' } },
@@ -115,7 +117,9 @@ const getContact = async (req, res, next) => {
     const contact = await prisma.contact.findFirst({
       where: {
         id,
-        userId: req.user.id
+        userId: req.user.id,
+        deletedAt: null,
+        isArchived: false
       }
     });
 
@@ -170,13 +174,13 @@ const updateContact = async (req, res, next) => {
   }
 };
 
-// DELETE
+// DELETE (soft delete → corbeille)
 const deleteContact = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const existingContact = await prisma.contact.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id, deletedAt: null }
     });
 
     if (!existingContact) {
@@ -186,16 +190,17 @@ const deleteContact = async (req, res, next) => {
       });
     }
 
-    await prisma.contact.delete({
-      where: { id }
+    await prisma.contact.update({
+      where: { id },
+      data: { deletedAt: new Date() }
     });
 
     res.json({
       success: true,
-      message: 'Contact supprimé'
+      message: 'Contact déplacé vers la corbeille'
     });
 
-    logger.info(`Contact supprimé: ${id} par ${req.user.email}`);
+    logger.info(`Contact ${id} mis à la corbeille par ${req.user.email}`);
   } catch (error) {
     logger.error('Erreur suppression contact:', error);
     next(error);

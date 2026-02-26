@@ -4,6 +4,32 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
+async function createAutoEvent(userId, data) {
+  try {
+    const eventType = await prisma.eventType.findFirst({ where: { code: data.typeCode || 'CALL' } })
+      ?? await prisma.eventType.findFirst();
+    await prisma.event.create({
+      data: {
+        userId,
+        title: data.title,
+        description: data.description || null,
+        startDate: data.startDate,
+        endDate: data.endDate || new Date(data.startDate.getTime() + 900000),
+        allDay: false,
+        reminderEnabled: true,
+        reminderMinutes: data.reminderMinutes || 15,
+        applicationId: data.applicationId || null,
+        callId: data.callId || null,
+        eventTypeId: eventType?.id || null,
+        color: data.color || '#10B981'
+      }
+    });
+    logger.info(`Événement auto créé: ${data.title}`);
+  } catch (e) {
+    logger.warn('Auto-création événement échouée:', e.message);
+  }
+}
+
 const sanitizeStatus = (status) => {
   if (!status) return 'SCHEDULED';
   const value = status.toUpperCase();
@@ -58,6 +84,8 @@ const getCalls = async (req, res, next) => {
 
     const where = {
       userId,
+      deletedAt: null,
+      isArchived: false,
       ...(status && { status: sanitizeStatus(status) })
     };
 
@@ -118,7 +146,7 @@ const getCall = async (req, res, next) => {
     const { id } = req.params;
 
     const call = await prisma.call.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null, isArchived: false },
       include: {
         application: {
           include: {
@@ -207,6 +235,22 @@ const createCall = async (req, res, next) => {
 
     logger.info(`Appel ${call.id} créé pour l'utilisateur ${userId}`);
 
+    const callDateObj = new Date(dateValue);
+    const contactName = call.contact ? `${call.contact.firstName || ''} ${call.contact.lastName || ''}`.trim() : '';
+    const companyName = call.application?.company?.name || call.company?.name || '';
+    const eventTitle = contactName ? `Appel – ${contactName}` : `Appel – ${companyName || 'Contact'}`;
+    await createAutoEvent(userId, {
+      title: eventTitle,
+      description: call.subject || null,
+      startDate: callDateObj,
+      endDate: call.duration ? new Date(callDateObj.getTime() + call.duration * 60000) : new Date(callDateObj.getTime() + 900000),
+      applicationId: applicationIdToUse,
+      callId: call.id,
+      typeCode: 'CALL',
+      reminderMinutes: 15,
+      color: '#10B981'
+    });
+
     res.status(201).json({ success: true, call: mapCall(call) });
   } catch (error) {
     logger.error('Erreur création appel:', error);
@@ -286,17 +330,24 @@ const deleteCall = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const existingCall = await prisma.call.findFirst({ where: { id, userId } });
+    const existingCall = await prisma.call.findFirst({ where: { id, userId, deletedAt: null } });
 
     if (!existingCall) {
       return res.status(404).json({ success: false, error: 'Appel non trouvé' });
     }
 
-    await prisma.call.delete({ where: { id } });
+    const now = new Date();
+    await prisma.call.update({ where: { id }, data: { deletedAt: now } });
 
-    logger.info(`Appel ${id} supprimé pour l'utilisateur ${userId}`);
+    try {
+      await prisma.$executeRaw`UPDATE "Event" SET "deletedAt" = ${now} WHERE "callId" = ${id} AND "deletedAt" IS NULL`;
+    } catch (e) {
+      logger.warn('Cascade soft-delete événements échouée:', e.message);
+    }
 
-    res.json({ success: true, message: 'Appel supprimé' });
+    logger.info(`Appel ${id} mis à la corbeille par l'utilisateur ${userId}`);
+
+    res.json({ success: true, message: 'Appel déplacé vers la corbeille' });
   } catch (error) {
     logger.error('Erreur suppression appel:', error);
     next(error);
@@ -392,7 +443,8 @@ const getCallsByApplication = async (req, res, next) => {
     const calls = await prisma.call.findMany({
       where: {
         userId,
-        applicationId
+        applicationId,
+        deletedAt: null
       },
       include: {
         contact: true

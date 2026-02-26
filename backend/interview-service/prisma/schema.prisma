@@ -100,6 +100,8 @@ model Company {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -271,9 +273,9 @@ model FollowUp {
   followUpTypeId    String?             // Type de relance (personnalisable)
   followUpMethodId  String?             // Moyen de relance (personnalisable)
   
-  // Informations de la relance
+  // Informations de la relance (aligné BDD: statusId vers table FollowUpStatus)
   followUpDate      DateTime
-  status            FollowUpStatus      @default(PENDING)
+  statusId          String
   response          String?             // Réponse reçue
   notes             String?
   
@@ -281,6 +283,8 @@ model FollowUp {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -288,6 +292,7 @@ model FollowUp {
   company           Company             @relation(fields: [companyId], references: [id])
   followUpType      FollowUpType?       @relation(fields: [followUpTypeId], references: [id])
   followUpMethod    FollowUpMethod?     @relation(fields: [followUpMethodId], references: [id])
+  status            FollowUpStatus      @relation(fields: [statusId], references: [id])
   
   contacts          FollowUpContact[]   // Many-to-many
   calls             Call[]
@@ -295,16 +300,25 @@ model FollowUp {
   
   @@index([userId])
   @@index([applicationId])
-  @@index([status])
+  @@index([statusId])
   @@index([followUpDate])
 }
 
-enum FollowUpStatus {
-  PENDING                   // Relance en attente
-  POSITIVE_RESPONSE         // Retour positif reçu
-  NEGATIVE_RESPONSE         // Retour négatif reçu
-  NO_RESPONSE               // Aucun retour
-  PLANNED                   // Relance prévisionnelle
+model FollowUpStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  followUps   FollowUp[]
+  @@index([code])
 }
 
 // ============================================
@@ -331,6 +345,8 @@ model Call {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -386,6 +402,8 @@ model Interview {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   deletedAt             DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -462,6 +480,8 @@ model Event {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -770,6 +790,7 @@ model InterviewStyle {
 model EventType {
   id                String              @id @default(cuid())
   userId            String?
+  code              String?
   name              String
   color             String?
   icon              String?
@@ -782,6 +803,7 @@ model EventType {
   
   @@unique([userId, name])
   @@index([userId])
+  @@index([code])
 }
 
 // Types d'appel (Sortant, Entrant, Manqué, etc.)

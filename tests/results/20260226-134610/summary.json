@@ -1,0 +1,35 @@
+{
+  "category": "Suite CLI",
+  "testName": "Suite complète (ligne de commande)",
+  "generatedAtISO": "2026-02-26T12:56:56Z",
+  "timestamp": "2026-02-26T13:56:56+01:00",
+  "reportDir": "tests/results/20260226-134610",
+  "summary": {
+    "totalCategories": 15,
+    "totalTests": 216,
+    "totalPassed": 209,
+    "totalFailed": 7,
+    "totalSkipped": 1,
+    "passed": 209,
+    "failed": 7,
+    "skipped": 1,
+    "successRate": 96.76
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "success", "duration": 2:user},
+    {"name": "Relations BDD", "status": "success", "duration": 1:system},
+    {"name": "Enums", "status": "success", "duration": 1:system},
+    {"name": "Email Logs", "status": "success", "duration": 0:admin},
+    {"name": "Tests API Complets (Jest local)", "status": "failed", "duration": 7:system},
+    {"name": "Tests Backend Services (Jest local)", "status": "success", "duration": 1:system},
+    {"name": "Tests API Backend (script - tous services)", "status": "success", "duration": 2:user},
+    {"name": "Playwright E2E Frontend", "status": "failed", "duration": 602:admin},
+    {"name": "Playwright Emails MailHog", "status": "success", "duration": 15:admin},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "success", "duration": 3:system},
+    {"name": "Tests Performance", "status": "success", "duration": 3:user},
+    {"name": "Tests Sécurité", "status": "success", "duration": 1:user},
+    {"name": "Tests Intégration Système", "status": "success", "duration": 3:user},
+    {"name": "Tests API Gateway Health", "status": "success", "duration": 1:system},
+    {"name": "Tests Sécurité Firewall & WAF (API)", "status": "success", "duration": 1:system}
+  ]
+}

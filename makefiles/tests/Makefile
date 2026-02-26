@@ -10,7 +10,7 @@ ifneq (,$(filter test test-all,$(MAKECMDGOALS)))
 endif
 
 .PHONY: tests-help tests-reset tests-user-journey tests-interface-web test-email-verification \
-        tests-clean test-clean test test-relations test-enums test-email-python \
+        tests-clean test-clean test tests test-relations test-enums test-email-python \
         test-email-python-reset test-email-python-verification test-email-diagnostic \
         test-email-logs test-email-logs-all test-email-logs-stats test-all test-full \
         test-database test-api test-backend test-frontend test-mobile test-e2e \
@@ -465,6 +465,8 @@ test-suite-full: ## Suite complète : test-frontend + test-database + status + t
 
 test: test-all ## Alias : make test = make test-all (suite complète avec progression en direct)
 
+tests: test-all ## Alias : make tests = make test-all (suite complète)
+
 test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	$(call check_help_read,test-all)
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -478,7 +480,7 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo "   ✓ Tests Relations BDD"
 	@echo "   ✓ Tests Enums"
 	@echo "   ✓ Tests Email Logs"
-	@echo "   ✓ Tests API Complets"
+	@echo "   ✓ Tests API Complets (archivage, cascade statuts, auto-events)"
 	@echo "   ✓ Tests Backend Services"
 	@echo ""
 	@echo "🎨 FRONTEND :"

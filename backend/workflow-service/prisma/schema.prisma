@@ -325,7 +325,7 @@ model FollowUp {
   message        String?
   response       String?
   responseDate   DateTime? // Date et heure de réponse
-  status         FollowUpStatus @default(PENDING_FOLLOWUP)
+  statusId       String
   // Champs d'archivage
   isArchived     Boolean        @default(false)
   archivedAt     DateTime?
@@ -338,6 +338,7 @@ model FollowUp {
   application      Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   company          Company           @relation(fields: [companyId], references: [id])
   contact          Contact?          @relation(fields: [contactId], references: [id])
+  status           FollowUpStatus    @relation(fields: [statusId], references: [id])
   // Relations avec les nouveaux modèles
   events           Event[]
   calls            Call[]
@@ -703,12 +704,21 @@ enum FollowUpType {
   MEETING
 }
 
-enum FollowUpStatus {
-  PENDING_FOLLOWUP // "Relance et en attente"
-  POSITIVE_RESPONSE // "Retour positif reçu"
-  NEGATIVE_RESPONSE // "Retour négatif reçu"
-  NO_RESPONSE // "Aucun retour"
-  SCHEDULED_FOLLOWUP // "Relance prévisionnel"
+model FollowUpStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  followUps   FollowUp[]
+  @@index([code])
 }
 
 // ✅ ENUMS pour les appels

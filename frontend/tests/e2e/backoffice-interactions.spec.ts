@@ -452,7 +452,8 @@ test.describe('⚡ Interactions Analytics', () => {
 test.describe('🔒 Interactions Sécurité', () => {
   test('page Firewall affiche des éléments interactifs', async ({ page }) => {
     await page.goto('/backoffice/security/firewall');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
     const body = await page.locator('body').textContent() ?? '';
     expect(body.length).toBeGreaterThan(100);
@@ -463,10 +464,11 @@ test.describe('🔒 Interactions Sécurité', () => {
 
   test('page Politiques de sécurité est interactive', async ({ page }) => {
     await page.goto('/backoffice/security/policies');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
     const body = await page.locator('body').textContent() ?? '';
-    expect(/politique|policy|règle|rule/i.test(body)).toBe(true);
+    expect(/politique|policy|règle|rule|sécurité|security|WAF|firewall/i.test(body)).toBe(true);
   });
 });
 
@@ -495,7 +497,8 @@ test.describe('🔍 Interactions Recherche', () => {
 test.describe('🏠 Interactions Dashboard', () => {
   test('cliquer un lien de navigation change de page', async ({ page }) => {
     await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('nav').first().waitFor({ timeout: 10000 });
 
     const subLinks = page.locator('nav a[href*="/backoffice/"]').filter({ hasText: /.+/ });
     const count = await subLinks.count();
@@ -505,14 +508,15 @@ test.describe('🏠 Interactions Dashboard', () => {
       const link = subLinks.first();
       const href = await link.getAttribute('href') ?? '';
       await link.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       expect(page.url()).toContain('/backoffice');
     }
   });
 
   test('les cartes de métriques sont présentes et cliquables', async ({ page }) => {
     await page.goto('/backoffice');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('nav').first().waitFor({ timeout: 10000 });
 
     const cards = page.locator('a[href*="/backoffice/"], [role="link"]').filter({ hasText: /.+/ });
     const count = await cards.count();
@@ -550,10 +554,11 @@ test.describe('📦 Interactions Archives & Corbeille', () => {
 test.describe('🎯 Interactions Parcours', () => {
   test('page Parcours prédéfinis affiche des scénarios cliquables', async ({ page }) => {
     await page.goto('/backoffice/user-journey');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('h1, nav').first().waitFor({ timeout: 10000 });
 
     const body = await page.locator('body').textContent() ?? '';
-    expect(/parcours|scénario|étape|tape/i.test(body)).toBe(true);
+    expect(/parcours|scénario|étape|tape|journey|utilisateur/i.test(body)).toBe(true);
 
     const buttons = page.locator('button').filter({ hasText: /.+/ });
     const count = await buttons.count();

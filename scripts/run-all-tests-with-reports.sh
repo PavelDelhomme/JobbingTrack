@@ -67,9 +67,11 @@ run_test() {
     local test_command="$2"
     local result_file="$3"
     
+    local user_type="${4:-system}"
+    
     STEP_NUM=$((STEP_NUM + 1))
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC}"
+    echo -e "${BLUE}🧪 Test: $test_name${NC} ${CYAN}[étape $STEP_NUM]${NC} $([ "$user_type" = "admin" ] && echo -e "${RED}👑 ADMIN${NC}" || ([ "$user_type" = "user" ] && echo -e "${GREEN}👤 USER${NC}" || echo -e "${YELLOW}⚙️ SYSTEM${NC}"))"
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "  ${GREEN}▶ En cours – sortie ci-dessous (Ctrl+C pour arrêter)${NC}"
     echo ""
@@ -224,6 +226,7 @@ run_test() {
     cat > "$result_file" <<EOF
 {
   "testName": "$test_name",
+  "userType": "$user_type",
   "command": "$test_command",
   "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')",
   "duration": $duration,
@@ -322,7 +325,7 @@ EOF
     fi
     
     TOTAL_CATEGORIES=$((TOTAL_CATEGORIES + 1))
-    TEST_RESULTS+=("$test_name:$exit_code:$duration")
+    TEST_RESULTS+=("$test_name:$exit_code:$duration:$user_type")
     
     if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}✅ $test_name : SUCCÈS${NC}"
@@ -343,16 +346,18 @@ echo -e "${CYAN}║        📦 CATÉGORIE 1 : TESTS BACKEND / BDD            �
 echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# 1. Test User Journey (API)
+# 1. Test User Journey (API) — utilisateur classique
 run_test "User Journey (API)" \
     "bash scripts/verify-user-journey.sh" \
-    "$REPORT_DIR/user-journey.json"
+    "$REPORT_DIR/user-journey.json" \
+    "user"
 
 # 2. Test Relations BDD (détection conteneur auth: name exact ou partiel)
 if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Relations BDD" \
         "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-relations-temp.js' < scripts/test-relations.js && docker exec -w /app jobbingtrack-auth-service node test-relations-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-relations-temp.js" \
-        "$REPORT_DIR/relations.json"
+        "$REPORT_DIR/relations.json" \
+        "system"
 else
     echo -e "${YELLOW}⚠️  Service auth-service non démarré, test Relations ignoré${NC}"
     cat > "$REPORT_DIR/relations.json" <<EOF
@@ -370,7 +375,8 @@ fi
 if docker ps -q --filter "name=jobbingtrack-auth-service" 2>/dev/null | grep -q . || docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'auth-service'; then
     run_test "Enums" \
         "docker exec -i jobbingtrack-auth-service sh -c 'cat > /app/test-enums-temp.js' < scripts/test-enums.js && docker exec -w /app jobbingtrack-auth-service node test-enums-temp.js && docker exec jobbingtrack-auth-service rm -f /app/test-enums-temp.js" \
-        "$REPORT_DIR/enums.json"
+        "$REPORT_DIR/enums.json" \
+        "system"
 else
     echo -e "${YELLOW}⚠️  Service auth-service non démarré, test Enums ignoré${NC}"
     cat > "$REPORT_DIR/enums.json" <<EOF
@@ -388,7 +394,8 @@ fi
 if docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT 1 FROM \"EmailLog\" LIMIT 1;" > /dev/null 2>&1; then
     run_test "Email Logs" \
         "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \"SELECT id, \\\"to\\\", subject, type, status, \\\"sentAt\\\", \\\"createdAt\\\" FROM \\\"EmailLog\\\" ORDER BY \\\"createdAt\\\" DESC LIMIT 10;\"" \
-        "$REPORT_DIR/email.json"
+        "$REPORT_DIR/email.json" \
+        "admin"
 else
     echo -e "${YELLOW}⚠️  Table EmailLog non trouvée, test email ignoré${NC}"
     cat > "$REPORT_DIR/email.json" <<EOF
@@ -406,7 +413,8 @@ fi
 if docker ps | grep -q jobbingtrack-frontend; then
     run_test "Tests API Complets (Jest)" \
         "docker exec -w /app/tests jobbingtrack-frontend sh -c 'npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || docker exec -w /app jobbingtrack-frontend sh -c 'cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || (cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1)" \
-        "$REPORT_DIR/api-tests.json"
+        "$REPORT_DIR/api-tests.json" \
+        "user"
 elif [ -f "tests/api/test-monitoring-c-endpoints.test.js" ] || [ -f "tests/api/test-email-endpoints.test.js" ]; then
     run_test "Tests API Complets (Jest local)" \
         "cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1" \
@@ -417,7 +425,8 @@ fi
 if docker ps | grep -q jobbingtrack-frontend; then
     run_test "Tests Backend Services (Jest)" \
         "docker exec -w /app/tests jobbingtrack-frontend sh -c 'npm test -- backend/ --verbose --forceExit --no-coverage 2>&1' || docker exec -w /app jobbingtrack-frontend sh -c 'cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1' || (cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1)" \
-        "$REPORT_DIR/backend-services.json"
+        "$REPORT_DIR/backend-services.json" \
+        "user"
 elif [ -f "tests/backend/test-security-service.test.js" ]; then
     run_test "Tests Backend Services (Jest local)" \
         "cd tests && npm test -- backend/ --verbose --forceExit --no-coverage 2>&1" \
@@ -428,7 +437,8 @@ fi
 API_BASE_URL="${API_URL:-${API_GATEWAY_URL:-http://localhost:5002}}"
 run_test "Tests API Backend (script - tous services)" \
     "API_URL='$API_BASE_URL' API_GATEWAY_URL='$API_BASE_URL' bash scripts/test-api-specific.sh" \
-    "$REPORT_DIR/api-backend-script.json"
+    "$REPORT_DIR/api-backend-script.json" \
+    "user"
 
 # ==============================================================================
 # CATÉGORIE 2 : TESTS FRONTEND (PLAYWRIGHT)
@@ -456,11 +466,13 @@ PLAYWRIGHT_BASE="${PLAYWRIGHT_BASE_URL:-http://localhost:5003}"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test:e2e"' frontend/package.json 2>/dev/null; then
     run_test "Playwright E2E Frontend" \
         "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
-        "$REPORT_DIR/playwright-e2e.json"
+        "$REPORT_DIR/playwright-e2e.json" \
+        "admin"
 elif [ -d "frontend/tests/e2e" ]; then
     run_test "Playwright E2E Frontend" \
         "timeout $PLAYWRIGHT_TIMEOUT bash -c 'cd frontend && npm install --no-audit --no-fund 2>/dev/null || true; export PLAYWRIGHT_BASE_URL=\"$PLAYWRIGHT_BASE\"; if [ -f playwright.standalone.config.ts ]; then ./node_modules/.bin/playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json 2>/dev/null || npx playwright test tests/e2e --config=playwright.standalone.config.ts --reporter=list,json; else ./node_modules/.bin/playwright test tests/e2e --reporter=list,json 2>/dev/null || npm run test:e2e -- --reporter=list,json; fi' 2>&1" \
-        "$REPORT_DIR/playwright-e2e.json"
+        "$REPORT_DIR/playwright-e2e.json" \
+        "admin"
 else
     echo -e "${YELLOW}⚠️  Tests Playwright E2E non disponibles (frontend ou test:e2e manquant)${NC}"
     printf '%s\n' '{"testName":"Playwright E2E Frontend","status":"skipped","reason":"frontend ou test:e2e manquant","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-e2e.json"
@@ -472,7 +484,40 @@ fi
 if [ -f "tests/e2e/specs/admin-emails-mailhog.spec.ts" ]; then
     run_test "Playwright Emails MailHog" \
         "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"${MAILHOG_WEB_URL:-http://localhost:8025}\" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
-        "$REPORT_DIR/playwright-mailhog.json"
+        "$REPORT_DIR/playwright-mailhog.json" \
+        "admin"
+fi
+
+# 7c. Tests Workflows Email complets (inscription, reset password, MailHog)
+if [ -f "tests/e2e/specs/email-workflows.spec.ts" ]; then
+    run_test "Playwright Email Workflows" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"${MAILHOG_WEB_URL:-http://localhost:8025}\" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "$REPORT_DIR/playwright-email-workflows.json" \
+        "user"
+fi
+
+# 7d. Tests CRUD données complet (admin)
+if [ -f "tests/e2e/specs/admin-data-crud.spec.ts" ]; then
+    run_test "Playwright CRUD Données (admin)" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-data-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "$REPORT_DIR/playwright-data-crud.json" \
+        "admin"
+fi
+
+# 7e. Tests CRUD utilisateurs (admin)
+if [ -f "tests/e2e/specs/admin-users-crud.spec.ts" ]; then
+    run_test "Playwright CRUD Utilisateurs (admin)" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-users-crud.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "$REPORT_DIR/playwright-users-crud.json" \
+        "admin"
+fi
+
+# 7f. Tests Sécurité Backoffice complets (admin)
+if [ -f "tests/e2e/specs/admin-security-complete.spec.ts" ]; then
+    run_test "Playwright Sécurité Backoffice (admin)" \
+        "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && npx playwright test e2e/specs/admin-security-complete.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'" \
+        "$REPORT_DIR/playwright-security-complete.json" \
+        "admin"
 fi
 
 # 8. Tests Mobile Playwright – exclus du pipeline E2E principal (pas d'émulateur mobile)
@@ -484,7 +529,8 @@ echo ""
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then
     run_test "Tests Frontend Jest (Unitaires)" \
         "bash -c 'cd frontend && (npm install --no-audit --no-fund 2>/dev/null || true) && npm run test:unit 2>&1'" \
-        "$REPORT_DIR/frontend-jest.json"
+        "$REPORT_DIR/frontend-jest.json" \
+        "system"
 fi
 
 # ==============================================================================
@@ -500,14 +546,16 @@ echo ""
 if [ -f "tests/performance/test-performance.js" ]; then
     run_test "Tests Performance" \
         "node tests/performance/test-performance.js" \
-        "$REPORT_DIR/performance.json"
+        "$REPORT_DIR/performance.json" \
+        "user"
 fi
 
 # 11. Tests Sécurité
 if [ -f "tests/security/test-security.js" ]; then
     run_test "Tests Sécurité" \
         "node tests/security/test-security.js" \
-        "$REPORT_DIR/security.json"
+        "$REPORT_DIR/security.json" \
+        "user"
 fi
 
 # ==============================================================================
@@ -523,7 +571,8 @@ echo ""
 if [ -f "tests/integration/test-full-system.js" ]; then
     run_test "Tests Intégration Système" \
         "bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && node integration/test-full-system.js'" \
-        "$REPORT_DIR/integration.json"
+        "$REPORT_DIR/integration.json" \
+        "user"
 fi
 
 # ==============================================================================
@@ -1017,14 +1066,13 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
     fi
     
     if command -v jq > /dev/null 2>&1; then
-        # Si jq échoue (JSON invalide, ex. NaN), utiliser les fallbacks
         test_name=$(jq -r '.testName // "Test inconnu"' "$result_file" 2>/dev/null) || test_name="Test inconnu"
         status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null) || status="unknown"
         duration=$(jq -r '.duration // 0' "$result_file" 2>/dev/null) || duration=0
         total=$(jq -r '.statistics.total // 0' "$result_file" 2>/dev/null) || total=0
         passed=$(jq -r '.statistics.passed // 0' "$result_file" 2>/dev/null) || passed=0
         failed=$(jq -r '.statistics.failed // 0' "$result_file" 2>/dev/null) || failed=0
-        # Extraire output en gérant les cas null/empty
+        user_type_html=$(jq -r '.userType // "system"' "$result_file" 2>/dev/null) || user_type_html="system"
         output=$(jq -r '.output // ""' "$result_file" 2>/dev/null || echo "")
     else
         # Fallback: extraire avec grep/sed
@@ -1076,9 +1124,14 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
         db_push_suggestion="<div style='margin-top: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ff9800; border-radius: 4px;'><strong>💡 Solution:</strong> Exécutez <code style='background: #f5f5f5; padding: 2px 6px; border-radius: 3px;'>make db-push-all</code> pour créer toutes les tables nécessaires.</div>"
     fi
     
+    user_type_badge=""
+    if [ "$user_type_html" = "admin" ]; then user_type_badge="<span style='background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👑 ADMIN</span>"; fi
+    if [ "$user_type_html" = "user" ]; then user_type_badge="<span style='background:#22c55e;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>👤 USER</span>"; fi
+    if [ "$user_type_html" = "system" ] || [ -z "$user_type_html" ]; then user_type_badge="<span style='background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:0.8em;margin-left:8px;'>⚙️ SYSTEM</span>"; fi
+    
     cat >> "$HTML_REPORT" <<EOF
     <div class="test-result $status">
-        <h2>$test_name</h2>
+        <h2>$test_name $user_type_badge</h2>
         <p><strong>Statut:</strong> <span class="status-$status">$status</span> | <strong>Durée:</strong> ${duration}s</p>
         <p><strong>Statistiques:</strong> Total: $total | Réussis: <span style="color: #4caf50;">$passed</span> | Échoués: <span style="color: #f44336;">$failed</span></p>
         $([ "$has_table_error" = true ] && echo "$db_push_suggestion" || echo "")
@@ -1096,68 +1149,133 @@ cat >> "$HTML_REPORT" <<EOF
 </html>
 EOF
 
-# Afficher le résumé final
+# Générer le rapport texte (toujours lisible)
+TEXT_REPORT="$REPORT_DIR/report.txt"
+{
+    echo "================================================================"
+    echo "  RAPPORT DE TESTS - JobbingTrack"
+    echo "  $(date '+%d/%m/%Y %H:%M:%S')"
+    echo "================================================================"
+    echo ""
+    echo "RESUME"
+    echo "------"
+    echo "  Categories  : $TOTAL_CATEGORIES"
+    echo "  Total tests : $TOTAL_TESTS"
+    echo "  Reussis     : $TOTAL_PASSED"
+    echo "  Echoues     : $TOTAL_FAILED"
+    if [ "$TOTAL_SKIPPED" -gt 0 ]; then
+        echo "  Ignores     : $TOTAL_SKIPPED"
+    fi
+    if [ "$TOTAL_TESTS" -gt 0 ]; then
+        TEXT_RATE=$(awk "BEGIN {printf \"%.1f\", ($TOTAL_PASSED / $TOTAL_TESTS) * 100}")
+        echo "  Taux        : ${TEXT_RATE}%"
+    fi
+    echo ""
+    echo "DETAILS PAR CATEGORIE"
+    echo "---------------------"
+    echo ""
+    echo "  Legende: [A]=Admin  [U]=User  [S]=System"
+    echo ""
+    for result in "${TEST_RESULTS[@]}"; do
+        IFS=':' read -r name exit_code duration utype <<< "$result"
+        ut_tag="S"
+        [ "$utype" = "admin" ] && ut_tag="A"
+        [ "$utype" = "user" ] && ut_tag="U"
+        if [ "$exit_code" -eq 0 ]; then
+            echo "  [OK]   [$ut_tag] $name (${duration}s)"
+        else
+            echo "  [FAIL] [$ut_tag] $name (${duration}s)"
+        fi
+    done
+    echo ""
+    echo "TESTS ECHOUES"
+    echo "-------------"
+    if [ "$TOTAL_FAILED" -eq 0 ]; then
+        echo "  Aucun test echoue !"
+    else
+        for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.json | sort); do
+            [ ! -f "$result_file" ] && continue
+            if command -v jq > /dev/null 2>&1; then
+                local_status=$(jq -r '.status // "unknown"' "$result_file" 2>/dev/null) || local_status="unknown"
+                local_name=$(jq -r '.testName // "?"' "$result_file" 2>/dev/null) || local_name="?"
+                local_output=$(jq -r '.output // ""' "$result_file" 2>/dev/null) || local_output=""
+            else
+                local_status=$(grep -o '"status": "[^"]*"' "$result_file" | cut -d'"' -f4 || echo "unknown")
+                local_name=$(grep -o '"testName": "[^"]*"' "$result_file" | cut -d'"' -f4 || echo "?")
+                local_output=""
+            fi
+            if [ "$local_status" = "failed" ]; then
+                echo ""
+                echo "  --- $local_name ---"
+                if [ -n "$local_output" ] && [ "$local_output" != "null" ]; then
+                    echo "$local_output" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | grep -iE "(FAIL|Error|expect|received|Expected|✕)" | head -30 | sed 's/^/    /'
+                fi
+            fi
+        done
+    fi
+    echo ""
+    echo "================================================================"
+    echo "  Rapports : $REPORT_DIR/"
+    echo "  HTML     : report.html"
+    echo "  Texte    : report.txt"
+    echo "================================================================"
+} > "$TEXT_REPORT" 2>/dev/null
+
+# Afficher le résumé final (format tableau lisible)
 echo ""
-echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║                    RÉSUMÉ FINAL                        ║${NC}"
-echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Catégories exécutées : ${BLUE}$TOTAL_CATEGORIES${NC}"
-echo -e "Total de tests        : ${BLUE}$TOTAL_TESTS${NC}"
-echo -e "Tests réussis         : ${GREEN}$TOTAL_PASSED${NC}"
-echo -e "Tests échoués         : ${RED}$TOTAL_FAILED${NC}"
-if [ "$TOTAL_SKIPPED" -gt 0 ]; then
-    echo -e "Tests ignorés          : ${YELLOW}$TOTAL_SKIPPED${NC}"
-fi
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                      RÉSUMÉ FINAL                           ║${NC}"
+echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
+for result in "${TEST_RESULTS[@]}"; do
+    IFS=':' read -r name exit_code duration utype <<< "$result"
+    utype_label=""
+    if [ "$utype" = "admin" ]; then utype_label="${RED}👑${NC}"; fi
+    if [ "$utype" = "user" ]; then utype_label="${GREEN}👤${NC}"; fi
+    if [ "$utype" = "system" ] || [ -z "$utype" ]; then utype_label="${YELLOW}⚙️${NC}"; fi
+    if [ "$exit_code" -eq 0 ]; then
+        printf "${CYAN}║${NC}  ${GREEN}✅${NC} $utype_label %-43s ${GREEN}%3ss${NC}  ${CYAN}║${NC}\n" "$name" "$duration"
+    else
+        printf "${CYAN}║${NC}  ${RED}❌${NC} $utype_label %-43s ${RED}%3ss${NC}  ${CYAN}║${NC}\n" "$name" "$duration"
+    fi
+done
+echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
+echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
 if [ "$TOTAL_TESTS" -gt 0 ]; then
     SUCCESS_RATE=$(awk "BEGIN {printf \"%.1f\", ($TOTAL_PASSED / $TOTAL_TESTS) * 100}")
-    echo -e "Taux de réussite       : ${GREEN}${SUCCESS_RATE}%${NC}"
-    # Vérification de cohérence
-    if [ "$TOTAL_TESTS" -ne $((TOTAL_PASSED + TOTAL_FAILED)) ]; then
-        echo -e "${YELLOW}⚠️  Incohérence détectée : $TOTAL_TESTS tests ≠ $TOTAL_PASSED réussis + $TOTAL_FAILED échoués${NC}"
-    fi
+else
+    SUCCESS_RATE="0.0"
 fi
-echo ""
-echo -e "${GREEN}📁 Résultats sauvegardés dans : $REPORT_DIR${NC}"
-echo -e "${GREEN}📄 Rapport HTML : $HTML_REPORT${NC}"
+printf "${CYAN}║${NC}  Tests: ${BLUE}%-4s${NC} | Réussis: ${GREEN}%-4s${NC} | Échoués: ${RED}%-4s${NC} | ${GREEN}%s%%${NC}  ${CYAN}║${NC}\n" "$TOTAL_TESTS" "$TOTAL_PASSED" "$TOTAL_FAILED" "$SUCCESS_RATE"
+if [ "$TOTAL_SKIPPED" -gt 0 ]; then
+    printf "${CYAN}║${NC}  Ignorés: ${YELLOW}%-4s${NC}                                            ${CYAN}║${NC}\n" "$TOTAL_SKIPPED"
+fi
+echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${CYAN}║${NC}  📁 Résultats : ${BLUE}$REPORT_DIR/${NC}"
+printf "${CYAN}║${NC}  %-60s${CYAN}║${NC}\n" ""
+echo -e "${CYAN}║${NC}  📄 ${GREEN}report.html${NC}  – Rapport interactif (navigateur)            ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  📝 ${GREEN}report.txt${NC}   – Rapport texte (terminal)                   ${CYAN}║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Afficher le lien URL du rapport HTML (sans ouvrir automatiquement)
+# Afficher le lien URL du rapport HTML
 if [ -f "$HTML_REPORT" ]; then
     HTML_REPORT_ABS=$(cd "$(dirname "$HTML_REPORT")" && pwd)/$(basename "$HTML_REPORT")
     HTML_REPORT_URI="file://$HTML_REPORT_ABS"
-    
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}📊 RAPPORT HTML DISPONIBLE${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}Ouvrir le rapport :${NC} xdg-open ${BLUE}$HTML_REPORT_URI${NC}"
+    echo -e "  ${GREEN}Lire en terminal  :${NC} cat ${BLUE}$TEXT_REPORT${NC}"
     echo ""
-    echo -e "${GREEN}🌐 Lien du rapport :${NC}"
-    echo -e "${BLUE}$HTML_REPORT_URI${NC}"
-    echo ""
-    echo -e "${YELLOW}💡 Copiez ce lien et ouvrez-le dans votre navigateur${NC}"
-    echo -e "${YELLOW}   Ou utilisez :${NC}"
-    echo -e "${YELLOW}   • Linux: xdg-open \"$HTML_REPORT_URI\"${NC}"
-    echo -e "${YELLOW}   • macOS: open \"$HTML_REPORT_URI\"${NC}"
-    echo -e "${YELLOW}   • Windows: start \"$HTML_REPORT_URI\"${NC}"
-    echo ""
-else
-    echo -e "${RED}❌ Le rapport HTML n'a pas pu être généré : $HTML_REPORT${NC}"
-    echo -e "${YELLOW}💡 Vérifiez les logs ci-dessus pour plus de détails${NC}"
 fi
 
 # Code de sortie
-# Retourner 0 si le rapport a été généré avec succès (même s'il y a des échecs)
-# L'utilisateur peut voir les résultats dans le rapport HTML
 if [ -f "$HTML_REPORT" ] && [ -f "$SUMMARY_RESULT" ]; then
-    echo ""
     if [ $TOTAL_FAILED -eq 0 ]; then
         echo -e "${GREEN}✅ Tous les tests ont réussi !${NC}"
-        exit 0
     else
-        echo -e "${YELLOW}⚠️  Certains tests ont échoué, mais le rapport a été généré${NC}"
-        echo -e "${YELLOW}   Consultez le rapport HTML pour plus de détails${NC}"
-        exit 0  # Retourner 0 car le rapport est généré, même avec des échecs
+        echo -e "${YELLOW}⚠️  $TOTAL_FAILED test(s) échoué(s) – voir le rapport pour les détails${NC}"
     fi
+    exit 0
 else
     echo -e "${RED}❌ Erreur : Le rapport n'a pas pu être généré${NC}"
     exit 1

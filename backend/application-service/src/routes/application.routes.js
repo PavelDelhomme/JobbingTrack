@@ -12,8 +12,10 @@ const createValidation = [
   // ✅ companyId n'est plus obligatoire - on peut fournir companyName
 ];
 
+const idValidation = param('id').isString().notEmpty().withMessage('ID invalide');
+
 const updateValidation = [
-  param('id').isUUID().withMessage('ID invalide')
+  idValidation
 ];
 
 // Routes publiques
@@ -25,46 +27,52 @@ router.use(authenticate);
 // Routes candidatures
 router.post('/', createValidation, controller.createApplication);
 router.get('/', controller.getApplications);
-router.get('/:id', param('id').isUUID(), controller.getApplication);
-router.put('/:id', updateValidation, controller.updateApplication);
-router.delete('/:id', param('id').isUUID(), controller.deleteApplication);
 
-// Routes plateformes
+// Routes corbeille & archivage (AVANT /:id pour éviter que "trash"/"archived" soient matchés comme :id)
+router.get('/trash', archiveController.getTrash);
+router.post('/trash/empty', archiveController.emptyTrash);
+router.get('/archived', archiveController.getArchivedApplications);
+router.get('/archive-stats', archiveController.getArchiveStats);
+
+// Routes plateformes (avant /:id)
 router.post('/platforms', [
   body('name').notEmpty().withMessage('Nom de plateforme requis')
 ], platformController.createPlatform);
 router.get('/platforms', platformController.getPlatforms);
-router.get('/platforms/:id', param('id').isUUID(), platformController.getPlatform);
-router.put('/platforms/:id', [
-  param('id').isUUID().withMessage('ID invalide')
-], platformController.updatePlatform);
-router.delete('/platforms/:id', param('id').isUUID(), platformController.deletePlatform);
+router.get('/platforms/:id', idValidation, platformController.getPlatform);
+router.put('/platforms/:id', [idValidation], platformController.updatePlatform);
+router.delete('/platforms/:id', idValidation, platformController.deletePlatform);
 
-// Routes archivage
+// Routes par ID (après les routes nommées)
+router.get('/:id', idValidation, controller.getApplication);
+router.put('/:id', updateValidation, controller.updateApplication);
+router.delete('/:id', idValidation, controller.deleteApplication);
 router.post('/:id/archive', [
-  param('id').isUUID().withMessage('ID invalide'),
+  idValidation,
   body('reason').optional().isString()
 ], archiveController.archiveApplication);
-router.post('/:id/restore', param('id').isUUID(), archiveController.restoreApplication);
-router.get('/archived', archiveController.getArchivedApplications);
-router.get('/archive-stats', archiveController.getArchiveStats);
-router.delete('/:id/permanent', param('id').isUUID(), archiveController.deleteArchivedApplication);
+router.post('/:id/unarchive', idValidation, archiveController.restoreApplication);
+router.post('/:id/restore', idValidation, archiveController.restoreFromTrash);
+router.delete('/:id/permanent', idValidation, archiveController.permanentDeleteFromTrash);
 
 // NOUVELLES ROUTES - Historique des statuts
 router.put('/:id/status', [
-  param('id').isUUID().withMessage('ID invalide'),
+  idValidation,
   body('status').isIn([
     'CANDIDATE_PENDING', 'NO_RESPONSE', 'NO_RESPONSE_AFTER_FIRST_FOLLOWUP',
     'NO_RESPONSE_AFTER_SECOND_FOLLOWUP', 'FIRST_INTERVIEW_PENDING',
     'OTHER_INTERVIEW_PENDING', 'ACCEPTED_AFTER_INTERVIEW',
-    'REJECTED_WITHOUT_INTERVIEW', 'REJECTED_AFTER_INTERVIEW'
+    'REJECTED_WITHOUT_INTERVIEW', 'REJECTED_AFTER_INTERVIEW',
+    'INTERVIEW_PENDING', 'INTERVIEW_DONE', 'OFFER_RECEIVED', 'REJECTED',
+    'RELANCED_PENDING', 'AWAITING_INTERVIEW', 'INTERVIEW_SOON',
+    'POST_INTERVIEW_FEEDBACK', 'NO_RESPONSE_NO_INTERVIEW', 'NO_RESPONSE_AFTER_FOLLOWUP'
   ]).withMessage('Statut invalide'),
   body('comment').optional().isString()
 ], controller.updateApplicationStatus);
 
-router.get('/:id/status-history', param('id').isUUID(), controller.getApplicationStatusHistory);
+router.get('/:id/status-history', idValidation, controller.getApplicationStatusHistory);
 
 // NOUVELLES ROUTES - Contacts liés aux candidatures
-router.get('/:id/contacts', param('id').isUUID(), controller.getApplicationContacts);
+router.get('/:id/contacts', idValidation, controller.getApplicationContacts);
 
 module.exports = router;
