@@ -1,14 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, rm, access } from 'fs/promises'
 import { join } from 'path'
 
-function resolveReportsDir(): string {
-  if (process.env.USER_JOURNEY_REPORTS_DIR) return process.env.USER_JOURNEY_REPORTS_DIR
+async function getWritableReportsDir(): Promise<string> {
+  const candidates: string[] = []
+
+  if (process.env.USER_JOURNEY_REPORTS_DIR) {
+    candidates.push(process.env.USER_JOURNEY_REPORTS_DIR)
+  }
+
   const cwd = process.cwd()
   const isDocker = cwd === '/app' || process.env.DOCKER === 'true'
   const projectRoot = process.env.PROJECT_ROOT
     || (isDocker ? '/app' : (cwd.includes('frontend') ? join(cwd, '..') : cwd))
-  return join(projectRoot, 'tests', 'user-journey-reports')
+
+  candidates.push(join(projectRoot, 'tests', 'user-journey-reports'))
+
+  if (isDocker) {
+    candidates.push('/tmp/journey-reports')
+  }
+
+  for (const dir of candidates) {
+    try {
+      await mkdir(dir, { recursive: true })
+      const testFile = join(dir, `.write-test-${Date.now()}`)
+      await writeFile(testFile, 'ok')
+      await rm(testFile)
+      return dir
+    } catch {
+      continue
+    }
+  }
+
+  const fallback = '/tmp/journey-reports'
+  await mkdir(fallback, { recursive: true })
+  return fallback
 }
 
 export async function POST(request: NextRequest) {
@@ -23,8 +49,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const reportsDir = resolveReportsDir()
-    await mkdir(reportsDir, { recursive: true })
+    const reportsDir = await getWritableReportsDir()
 
     const safeName = (journeyName || 'custom')
       .replace(/[^a-zA-Z0-9_-]/g, '-')
@@ -41,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Rapport sauvegardé',
+      message: `Rapport sauvegardé dans ${reportsDir}`,
       filePath: fileName
     })
   } catch (error: any) {

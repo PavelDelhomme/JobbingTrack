@@ -29,8 +29,11 @@ const REPORT_DIRS = {
     : join(PROJECT_ROOT_VIEW, 'frontend', 'playwright-report'),
   'tests-results': process.env.TESTS_RESULTS_DIR || (IS_DOCKER ? '/app/tests/results' : join(PROJECT_ROOT_VIEW, 'tests', 'results')),
   'user-journey': IS_DOCKER
-    ? '/app/tests/user-journey-reports'
+    ? '/tmp/journey-reports'
     : join(PROJECT_ROOT_VIEW, 'tests', 'user-journey-reports'),
+  'user-journey-legacy': IS_DOCKER
+    ? '/app/tests/user-journey-reports'
+    : '',
   'analytics': IS_DOCKER
     ? '/app/tests/analytics-reports'
     : join(PROJECT_ROOT_VIEW, 'tests', 'analytics-reports'),
