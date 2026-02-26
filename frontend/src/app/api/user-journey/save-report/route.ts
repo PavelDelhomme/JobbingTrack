@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
 
-// Aligné sur test-reports/all pour que les rapports soient listés sur la page Rapports de parcours
-const PROJECT_ROOT = process.env.PROJECT_ROOT
-  || (process.cwd().includes('frontend') ? join(process.cwd(), '..') : process.cwd())
-const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
-const REPORTS_DIR = process.env.USER_JOURNEY_REPORTS_DIR
-  || join(IS_DOCKER ? (process.env.PROJECT_ROOT || '/app') : PROJECT_ROOT, 'tests', 'user-journey-reports')
+function resolveReportsDir(): string {
+  if (process.env.USER_JOURNEY_REPORTS_DIR) return process.env.USER_JOURNEY_REPORTS_DIR
+  const cwd = process.cwd()
+  const isDocker = cwd === '/app' || process.env.DOCKER === 'true'
+  const projectRoot = process.env.PROJECT_ROOT
+    || (isDocker ? '/app' : (cwd.includes('frontend') ? join(cwd, '..') : cwd))
+  return join(projectRoot, 'tests', 'user-journey-reports')
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,19 +23,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Créer le répertoire s'il n'existe pas
-    if (!existsSync(REPORTS_DIR)) {
-      await mkdir(REPORTS_DIR, { recursive: true })
-    }
+    const reportsDir = resolveReportsDir()
+    await mkdir(reportsDir, { recursive: true })
 
-    // Générer le nom du fichier avec timestamp (sanitiser le nom pour le système de fichiers)
-    const safeName = (journeyName || 'custom').replace(/[^a-zA-Z0-9À-ÿ_-]/g, '-').replace(/-+/g, '-').slice(0, 50)
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
-                     new Date().toTimeString().split(' ')[0].replace(/:/g, '')
+    const safeName = (journeyName || 'custom')
+      .replace(/[^a-zA-Z0-9_-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 50)
+    const now = new Date()
+    const timestamp = now.toISOString().slice(0, 10) + '_' +
+      now.toTimeString().slice(0, 8).replace(/:/g, '')
     const fileName = `user-journey-${safeName}-${timestamp}.json`
-    const filePath = join(REPORTS_DIR, fileName)
+    const filePath = join(reportsDir, fileName)
 
-    // Sauvegarder le rapport
     await writeFile(filePath, JSON.stringify(reportData, null, 2), 'utf-8')
 
     return NextResponse.json({
