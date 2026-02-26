@@ -200,8 +200,9 @@ const routes = {
       if (!fs.existsSync(apkPath)) {
         return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
       }
-      await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`);
-      await execPromise(`adb -s ${deviceId} shell am start -n com.jobbingtrack_mobile/.MainActivity`);
+      const execOpts = { cwd: MOBILE_PATH };
+      await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
+      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
       send(res, 200, { success: true, message: 'App installée et lancée' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
