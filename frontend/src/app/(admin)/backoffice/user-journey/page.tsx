@@ -798,9 +798,7 @@ export default function UserJourneyPage() {
           });
           result = await handleFetchResponse(registerRes);
           
-          // Sauvegarder le token pour les prochaines requêtes (session parcours)
           if (result.token) {
-            localStorage.setItem('token', result.token);
             return { success: true, result, duration: Date.now() - startTime, newToken: result.token };
           }
           break;
@@ -832,9 +830,7 @@ export default function UserJourneyPage() {
           });
           result = await handleFetchResponse(loginRes);
           
-          // Sauvegarder le token pour les étapes suivantes (session parcours)
           if (result.token) {
-            localStorage.setItem('token', result.token);
             return { success: true, result, duration: Date.now() - startTime, newToken: result.token };
           }
           break;
@@ -2388,124 +2384,92 @@ export default function UserJourneyPage() {
         {/* Onglet Parcours */}
         <TabsContent value="journey" className="space-y-6">
           {/* Mode Utilisateur : Admin ou Utilisateur de test */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Mode de Test</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Choisissez le type d'utilisateur pour ce parcours de test
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => !isRunning && setUserMode('admin')}
-                      disabled={isRunning}
-                      className={`
-                        p-4 rounded-lg border-2 text-left transition-all
-                        ${userMode === 'admin' 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                        }
-                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className="h-5 w-5 text-blue-600" />
-                        <h3 className="font-semibold">Mode Administrateur</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Tests avec compte admin@jobbingtrack.test (rôle SUPER_ADMIN)
-                      </p>
-                    </button>
-                    
-                    <button
-                      onClick={() => !isRunning && setUserMode('user')}
-                      disabled={isRunning}
-                      className={`
-                        p-4 rounded-lg border-2 text-left transition-all
-                        ${userMode === 'user' 
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                          : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
-                        }
-                        ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="h-5 w-5 text-green-600" />
-                        <h3 className="font-semibold">Mode Utilisateur de Test</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Tests avec utilisateur de test (rôle USER, création automatique)
-                      </p>
-                    </button>
+          {/* Mode + Scénario : compact */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Mode de test (inline) */}
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Mode :</span>
+              <button
+                onClick={() => !isRunning && setUserMode('admin')}
+                disabled={isRunning}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                  userMode === 'admin'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-blue-50'
+                } ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <Shield className="h-3.5 w-3.5 inline mr-1" />Admin
+              </button>
+              <button
+                onClick={() => !isRunning && setUserMode('user')}
+                disabled={isRunning}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                  userMode === 'user'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-green-50'
+                } ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <Users className="h-3.5 w-3.5 inline mr-1" />Utilisateur
+              </button>
+            </div>
+
+            {/* Filtres catégorie (inline) */}
+            <div className="flex items-center gap-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
+              {(Object.entries(SCENARIO_CATEGORIES) as [ScenarioFilter, { label: string; keys: string[] }][]).map(([filterKey, cat]) => (
+                <button
+                  key={filterKey}
+                  onClick={() => setScenarioFilter(filterKey)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                    scenarioFilter === filterKey
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Scénarios : le sélectionné en grand, les autres en mini */}
+          <div className="space-y-2">
+            {/* Scénario sélectionné (pleine taille) */}
+            {SCENARIOS[selectedScenario] && (
+              <div className="p-4 rounded-lg border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{SCENARIOS[selectedScenario].name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{SCENARIOS[selectedScenario].description}</p>
                   </div>
-                </div>
-                
-                {/* Badge du mode actif */}
-                <div className="text-right">
-                  <Badge variant={userMode === 'admin' ? 'default' : 'secondary'} className="text-sm">
-                    {userMode === 'admin' ? '🛡️ Admin' : '👤 Utilisateur'}
+                  <Badge variant="default" className="ml-3 shrink-0">
+                    {SCENARIOS[selectedScenario].steps.length} étapes
                   </Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {/* Sélection du scénario */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Sélectionner un Scénario</CardTitle>
-              <p className="text-sm text-gray-600 mt-1">
-                {Object.keys(SCENARIOS).length} scénarios disponibles - Filtrez par catégorie
-              </p>
-            </CardHeader>
-            <CardContent>
-              {/* Filtres par catégorie */}
-              <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                {(Object.entries(SCENARIO_CATEGORIES) as [ScenarioFilter, { label: string; keys: string[] }][]).map(([filterKey, cat]) => (
-                  <button
-                    key={filterKey}
-                    onClick={() => setScenarioFilter(filterKey)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      scenarioFilter === filterKey
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {cat.label} ({cat.keys.filter(k => k in SCENARIOS).length})
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(SCENARIOS)
-                  .filter(([key]) => SCENARIO_CATEGORIES[scenarioFilter].keys.includes(key))
-                  .map(([key, scenario]) => (
-                  <button
-                    key={key}
-                    onClick={() => !isRunning && setSelectedScenario(key as any)}
-                    disabled={isRunning}
-                    className={`
-                      p-4 rounded-lg border-2 text-left transition-all
-                      ${selectedScenario === key 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md' 
-                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                      }
-                      ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm'}
-                    `}
-                  >
-                    <h3 className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{scenario.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{scenario.description}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                      {scenario.steps.length} étape{scenario.steps.length > 1 ? 's' : ''}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            {/* Autres scénarios (compacts, sur une ligne) */}
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(SCENARIOS)
+                .filter(([key]) => key !== selectedScenario && SCENARIO_CATEGORIES[scenarioFilter].keys.includes(key))
+                .map(([key, scenario]) => (
+                <button
+                  key={key}
+                  onClick={() => !isRunning && setSelectedScenario(key as any)}
+                  disabled={isRunning}
+                  className={`
+                    px-3 py-1.5 rounded-md border text-xs font-medium transition-all
+                    border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300
+                    hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10
+                    ${isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  `}
+                  title={scenario.description}
+                >
+                  {scenario.name} ({scenario.steps.length})
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Liste des étapes */}
           <Card>

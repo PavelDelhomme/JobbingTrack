@@ -36,6 +36,7 @@ export default function MobileEmulatorPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [logsCopied, setLogsCopied] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [apkBuilt, setApkBuilt] = useState(false);
   const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const base = () => controllerUrl.replace(/\/$/, '');
@@ -162,6 +163,7 @@ export default function MobileEmulatorPage() {
         stderr?: string;
         exitCode?: number;
       };
+      if (data.success) setApkBuilt(true);
       addLog(data.message || (data.success ? 'Build réussi.' : data.error || 'Build échoué.'));
       if (!data.success && data.stderr) addLog(`stderr: ${data.stderr.slice(-800)}`);
       if (!data.success && data.stdout) addLog(`stdout: ${data.stdout.slice(-500)}`);
@@ -416,7 +418,8 @@ export default function MobileEmulatorPage() {
                 <button
                   type="button"
                   onClick={installAndRun}
-                  disabled={!selectedDevice || loading !== null}
+                  disabled={!selectedDevice || loading !== null || !apkBuilt}
+                  title={!apkBuilt ? 'Faites un Build APK d\'abord' : ''}
                   className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading === 'install-run' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -425,7 +428,8 @@ export default function MobileEmulatorPage() {
                 <button
                   type="button"
                   onClick={runFlutter}
-                  disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null}
+                  disabled={(!selectedDevice && !selectedFlutterDevice) || loading !== null || !apkBuilt}
+                  title={!apkBuilt ? 'Faites un Build APK d\'abord' : ''}
                   className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading === 'run-flutter' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
