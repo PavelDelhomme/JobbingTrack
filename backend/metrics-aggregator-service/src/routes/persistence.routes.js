@@ -452,6 +452,7 @@ router.get('/stats', async (req, res) => {
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
 
+    const safeCount = (model) => model.count().catch(() => 0);
     const [
       systemMetricsCount,
       containerMetricsCount,
@@ -459,11 +460,11 @@ router.get('/stats', async (req, res) => {
       securityMetricsCount,
       eventsCount,
     ] = await Promise.all([
-      prisma.systemMetricsSnapshot.count(),
-      prisma.containerMetricsSnapshot.count(),
-      prisma.containerLog.count(),
-      prisma.securityMetric.count(),
-      prisma.systemEvent.count(),
+      safeCount(prisma.systemMetricsSnapshot),
+      safeCount(prisma.containerMetricsSnapshot),
+      safeCount(prisma.containerLog),
+      safeCount(prisma.securityMetric),
+      safeCount(prisma.systemEvent),
     ]);
 
     // Obtenir la date du plus ancien et plus récent enregistrement

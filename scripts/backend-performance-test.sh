@@ -223,23 +223,64 @@ EOF
     fi
 }
 
+test_api_endpoints() {
+    echo -e "${BLUE}⚡ Test des endpoints API réels...${NC}"
+
+    local API_URL="${API_GATEWAY_URL:-http://localhost:5002}"
+    local METRICS_URL="${METRICS_AGGREGATOR_URL:-http://localhost:5004}"
+
+    local endpoints=(
+        "$API_URL/health|Gateway Health"
+        "$API_URL/api/v1/applications|Applications"
+        "$API_URL/api/v1/companies|Companies"
+        "$API_URL/api/v1/contacts|Contacts"
+        "$API_URL/api/v1/interviews|Interviews"
+        "$API_URL/api/v1/calls|Calls"
+        "$API_URL/api/v1/followups?limit=5|Followups"
+        "$API_URL/api/v1/events?limit=5|Events"
+        "$METRICS_URL/api/v1/metrics|Métriques"
+        "$METRICS_URL/api/v1/docker/services/all|Docker services"
+    )
+
+    for entry in "${endpoints[@]}"; do
+        local url="${entry%%|*}"
+        local label="${entry##*|}"
+        local start_ms=$(date +%s%3N)
+        local code
+        code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$url" 2>/dev/null || echo "000")
+        local end_ms=$(date +%s%3N)
+        local ms=$((end_ms - start_ms))
+
+        if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+            local note=""
+            [ "$code" = "401" ] && note=" (auth requise)"
+            echo "  ✅ $label: HTTP $code (${ms}ms)${note}"
+        else
+            echo "  ⚠️ $label: HTTP $code (${ms}ms)"
+        fi
+    done
+}
+
 # Exécution
 main() {
     echo "Démarrage des tests de performance backend..."
     echo ""
-    
+
+    test_api_endpoints
+    echo ""
+
     local docker_stats=$(get_docker_stats)
     echo ""
-    
+
     analyze_metrics_aggregator
     echo ""
-    
+
     analyze_all_backend_services
     echo ""
-    
+
     generate_report
     generate_recommendations
-    
+
     echo ""
     echo -e "${GREEN}✅ Tests de performance backend terminés !${NC}"
     echo -e "${BLUE}📁 Rapports disponibles dans: ${REPORT_DIR}${NC}"

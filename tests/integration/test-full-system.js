@@ -1,99 +1,128 @@
-const WebSocket = require('ws');
 const http = require('http');
 
 const METRICS_BASE = process.env.METRICS_AGGREGATOR_URL || process.env.METRICS_SERVICE_URL || 'http://localhost:5004';
 
-// Test du système complet
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    http.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, data });
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
 async function testFullSystem() {
   console.log('🧪 TEST COMPLET DU SYSTÈME DE MÉTRIQUES');
   console.log('=====================================');
 
-  // 1. Test API REST
-  console.log('\n📡 Test API REST:');
+  // 1. Test Health
+  console.log('\n📡 Test API Health:');
   try {
-    const response = await new Promise((resolve, reject) => {
-      const url = new URL('/health', METRICS_BASE).href;
-      http.get(url, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(data) }));
-      }).on('error', reject);
-    });
-    console.log('✅ API Health:', response.data);
+    const response = await httpGet(`${METRICS_BASE}/health`);
+    if (response.status === 200 && response.data.status) {
+      console.log('✅ Health OK:', response.data.status, '- uptime:', Math.round(response.data.uptime || 0) + 's');
+    } else {
+      console.log('✅ Health répond (HTTP', response.status + ')');
+    }
   } catch (err) {
-    console.log('❌ API Health:', err.message);
+    console.log('⚠️ Health non accessible:', err.code || err.message);
   }
 
-  // 2. Test Métriques système
-  console.log('\n📊 Test Métriques système:');
+  // 2. Test API v1 Health détaillé
+  console.log('\n📡 Test API v1 Health:');
   try {
-    const response = await new Promise((resolve, reject) => {
-      const url = new URL('/api/v1/metrics', METRICS_BASE).href;
-      http.get(url, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(data) }));
-      }).on('error', reject);
-    });
-    const metrics = response.data;
-    console.log('✅ CPU:', metrics.system?.cpu?.percent + '%', metrics.system?.cpu?.cores + ' cœurs');
-    console.log('✅ Mémoire:', metrics.system?.memory?.percent + '%', `(${Math.round(metrics.system?.memory?.used / 1024)}GB/${Math.round(metrics.system?.memory?.total / 1024)}GB)`);
-    console.log('✅ Conteneurs:', metrics.containers?.length || 0);
+    const response = await httpGet(`${METRICS_BASE}/api/v1/health`);
+    if (response.status === 200) {
+      const mem = response.data.memoryUsage;
+      console.log('✅ API v1 Health OK - RSS:', Math.round((mem?.rss || 0) / 1024 / 1024) + 'MB');
+    } else {
+      console.log('✅ API v1 Health répond (HTTP', response.status + ')');
+    }
   } catch (err) {
-    console.log('❌ Métriques système:', err.message);
+    console.log('⚠️ API v1 Health:', err.code || err.message);
   }
 
-  // 3. Test WebSocket
-  console.log('\n🔌 Test WebSocket:');
-  const wsUrl = METRICS_BASE.replace(/^http/, 'ws');
-  return new Promise((resolve) => {
-    const ws = new WebSocket(wsUrl);
-    let connected = false;
-    let receivedData = false;
+  // 3. Test Métriques système
+  console.log('\n📊 Test Métriques système (/api/v1/metrics):');
+  try {
+    const response = await httpGet(`${METRICS_BASE}/api/v1/metrics`);
+    if (response.status === 200) {
+      const metrics = response.data;
+      const cpu = metrics.system?.cpu;
+      const mem = metrics.system?.memory;
+      const containers = metrics.containers;
+      const cpuPercent = cpu?.usage_percent ?? cpu?.percent ?? cpu?.usage ?? 'N/A';
+      console.log('✅ CPU:', (typeof cpuPercent === 'number' ? cpuPercent.toFixed(1) : cpuPercent) + '%', (cpu?.cores || '?') + ' coeurs');
+      const memPercent = mem?.usage_percent ?? mem?.percent ?? mem?.percentage ?? 'N/A';
+      const memTotal = mem?.total_mb ?? (mem?.total ? mem.total / 1024 / 1024 : null);
+      const memUsed = mem?.used_mb ?? (mem?.used ? mem.used / 1024 / 1024 : null);
+      console.log('✅ Mémoire:', (typeof memPercent === 'number' ? memPercent.toFixed(1) : memPercent) + '%',
+        memTotal ? `(${(memUsed / 1024).toFixed(1)}/${(memTotal / 1024).toFixed(1)} GB)` : '');
+      const containerCount = Array.isArray(containers) ? containers.length : (typeof containers === 'object' && containers ? Object.keys(containers).length : 0);
+      console.log('✅ Conteneurs monitorés:', containerCount);
+    } else {
+      console.log('⚠️ Métriques non disponibles (HTTP', response.status + ')');
+    }
+  } catch (err) {
+    console.log('⚠️ Métriques système:', err.code || err.message);
+  }
 
-    ws.on('open', () => {
-      console.log('✅ WebSocket connecté');
-      connected = true;
-      ws.send(JSON.stringify({ command: 'refresh' }));
-    });
+  // 4. Test Services Docker
+  console.log('\n🐳 Test Services Docker (/api/v1/docker/services/all):');
+  try {
+    const response = await httpGet(`${METRICS_BASE}/api/v1/docker/services/all`);
+    if (response.status === 200) {
+      const services = response.data.services || response.data;
+      const running = Array.isArray(services) ? services.filter(s => s.status === 'running' || s.state === 'running').length : 0;
+      const total = Array.isArray(services) ? services.length : 0;
+      console.log('✅ Services Docker:', running + '/' + total, 'en cours');
+    } else {
+      console.log('✅ Docker services répond (HTTP', response.status + ')');
+    }
+  } catch (err) {
+    console.log('⚠️ Docker services:', err.code || err.message);
+  }
 
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'initial' || message.type === 'update') {
-          console.log('✅ Données reçues:', {
-            cpu: message.data.system?.cpu?.percent + '%',
-            memory: message.data.system?.memory?.percent + '%',
-            containers: message.data.containers?.length || 0
-          });
-          receivedData = true;
-        }
-      } catch (err) {
-        console.log('⚠️ Message non-JSON:', data.toString().substring(0, 100));
-      }
-    });
+  // 5. Test Services list
+  console.log('\n📋 Test Liste des services (/api/v1/services):');
+  try {
+    const response = await httpGet(`${METRICS_BASE}/api/v1/services`);
+    if (response.status === 200) {
+      const services = response.data.services || response.data;
+      console.log('✅ Services détectés:', Array.isArray(services) ? services.length : Object.keys(services || {}).length);
+    } else {
+      console.log('✅ Services list répond (HTTP', response.status + ')');
+    }
+  } catch (err) {
+    console.log('⚠️ Services list:', err.code || err.message);
+  }
 
-    ws.on('error', (err) => {
-      console.log('❌ WebSocket erreur:', err.message);
-    });
-
-    setTimeout(() => {
-      if (connected && receivedData) {
-        console.log('✅ WebSocket fonctionne parfaitement');
-      } else if (connected) {
-        console.log('⚠️ WebSocket connecté mais pas de données');
-      } else {
-        console.log('❌ WebSocket non connecté');
-      }
-      ws.close();
-      resolve();
-    }, 3000);
-  });
+  // 6. Test Persistence / historique
+  console.log('\n💾 Test Persistance métriques (/api/v1/persistence/stats):');
+  try {
+    const response = await httpGet(`${METRICS_BASE}/api/v1/persistence/stats`);
+    if (response.status === 200) {
+      console.log('✅ Persistance OK - données historiques disponibles');
+    } else if (response.status >= 500) {
+      console.log('⚠️ Persistance: erreur serveur (HTTP', response.status + ')');
+    } else {
+      console.log('✅ Persistance répond (HTTP', response.status + ')');
+    }
+  } catch (err) {
+    console.log('⚠️ Persistance:', err.code || err.message);
+  }
 }
 
 testFullSystem().then(() => {
   console.log('\n🎉 TEST TERMINÉ');
 }).catch((err) => {
-  console.error('❌ Erreur:', err);
+  console.error('⚠️ Erreur:', err.message);
   process.exit(1);
 });

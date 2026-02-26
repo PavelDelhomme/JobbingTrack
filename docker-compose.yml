@@ -106,12 +106,14 @@ services:
       - PORT=3000
       - PROJECT_ROOT=/app
       - TESTS_RESULTS_DIR=/tmp/tests/results
+      - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
       - TZ=${TZ:-Europe/Paris}
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro
       - ./tests:/app/tests:ro
+      - ./tests/user-journey-reports:/tmp/tests/user-journey-reports
       - /app/node_modules
       - /app/.next
     user: "1001:1001"

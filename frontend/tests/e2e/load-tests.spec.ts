@@ -3,31 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('🔥 Tests de Charge et Performance Avancés', () => {
 
   test('devrait résister à une charge utilisateur intensive', async ({ page }) => {
-    await page.goto('/login');
-
-    // Connexion rapide
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Simuler 50 utilisateurs simultanés
     const userCount = 50;
@@ -46,30 +22,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
       contexts.push(context);
       pages.push(userPage);
 
-      // Chaque utilisateur se connecte
-      await userPage.goto('/login');
-      await userPage.route('**/api/v1/auth/login', async route => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            user: {
-              id: `${i}`,
-              email: `user${i}@jobbingtrack.test`,
-              firstName: `User${i}`,
-              lastName: 'Test',
-              role: 'USER'
-            },
-            token: `user-token-${i}`
-          })
-        });
-      });
-
-      await userPage.fill('input[type="email"]', `user${i}@jobbingtrack.test`);
-      await userPage.fill('input[type="password"]', 'password123');
-      await userPage.locator('button[type="submit"]').click();
-      await userPage.waitForURL('/backoffice');
+      await userPage.goto('/backoffice');
     }
 
     const connectionTime = Date.now() - startTime;
@@ -150,30 +103,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait maintenir les performances lors de requêtes API intensives', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Simuler 100 requêtes API simultanées
     const requestCount = 100;
@@ -218,30 +148,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait gérer efficacement la mémoire sous charge prolongée', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Mesurer la mémoire avant le test de charge
     const memoryBefore = await page.evaluate(() => (performance as any).memory?.usedJSHeapSize || 0);
@@ -331,30 +238,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait maintenir la réactivité lors de la création massive de données', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Créer 100 entreprises rapidement
     await page.locator('text=Entreprises').click();
@@ -458,58 +342,14 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
     expect(attackTime).toBeLessThan(30000);
 
     // Vérifier que l'application reste fonctionnelle après l'attaque
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // L'application devrait fonctionner normalement après l'attaque
     await expect(page.locator('text=Backoffice Administrateur')).toBeVisible();
   });
 
   test('devrait optimiser les performances réseau sous charge', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Surveiller les requêtes réseau
     const networkRequests: any[] = [];
@@ -572,30 +412,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait maintenir la fluidité de l\'interface sous charge CPU', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Simuler une charge CPU intensive côté client
     const cpuLoadStartTime = Date.now();
@@ -628,30 +445,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait gérer efficacement les grandes quantités de données DOM', async ({ page }) => {
-    await page.goto('/login');
-
-  await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Créer une grande quantité d'éléments DOM
     await page.route('**/api/v1/applications*', async route => {
@@ -712,30 +506,7 @@ test.describe('🔥 Tests de Charge et Performance Avancés', () => {
   });
 
   test('devrait maintenir la stabilité lors de stress tests prolongés', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Test de stabilité prolongé (2 minutes)
     const stressTestDuration = 120000;

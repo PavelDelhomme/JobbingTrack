@@ -10,24 +10,6 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
     await expect(page).toHaveURL('/login');
 
     // Se connecter avec un utilisateur normal (pas admin)
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '2',
-            email: 'user@jobbingtrack.test',
-            firstName: 'User',
-            lastName: 'Normal',
-            role: 'USER'  // Utilisateur normal, pas admin
-          },
-          token: 'user-jwt-token-12345'
-        })
-      });
-    });
-
     await page.fill('input[type="email"]', 'user@jobbingtrack.test');
     await page.fill('input[type="password"]', 'password123');
     await page.locator('button[type="submit"]').click();
@@ -37,29 +19,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait gérer correctement les sessions et timeouts', async ({ page }) => {
-    // Se connecter normalement
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Simuler une expiration de session
     await page.route('**/api/v1/auth/profile', async route => {
@@ -80,29 +40,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait empêcher les attaques CSRF', async ({ page }) => {
-    // Se connecter normalement
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Essayer d'envoyer une requête CSRF depuis un autre domaine
     await page.route('**/api/v1/applications', async route => {
@@ -146,28 +84,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
     await expect(page.locator('text=Identifiants invalides')).toBeVisible();
 
     // Aller dans le backoffice et tester XSS
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Créer une entreprise avec du contenu XSS
     await page.locator('text=Entreprises').click();
@@ -187,37 +104,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait gérer correctement les permissions granulaires', async ({ page }) => {
-    // Se connecter avec un utilisateur qui a des permissions limitées
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '3',
-            email: 'recruteur@jobbingtrack.test',
-            firstName: 'Recruteur',
-            lastName: 'Junior',
-            role: 'USER',
-            permissions: {
-              'applications.read': true,
-              'applications.create': true,
-              'interviews.read': true,
-              'admin.access': false  // Pas d'accès admin
-            }
-          },
-          token: 'recruteur-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'recruteur@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Devrait pouvoir accéder aux candidatures
     await page.locator('text=Applications').click();
@@ -240,28 +127,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait sécuriser les téléchargements et exports', async ({ page }) => {
-    await page.goto('/login');
-
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Aller dans les rapports et essayer d'exporter
     await page.locator('text=Analytics').click();
@@ -326,28 +192,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
     // Le mot de passe devrait maintenant être visible
     await expect(page.locator('input[type="password"]')).toHaveAttribute('type', 'text');
 
-    // Se connecter
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Vérifier que les données sensibles ne sont pas exposées dans les logs réseau
     // (Cette vérification serait normalement faite en analysant les requêtes réseau)
@@ -358,37 +203,13 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait gérer les erreurs de sécurité de manière appropriée', async ({ page }) => {
-    await page.goto('/login');
-
     // Essayer d'accéder à une URL malformée
     await page.goto('/backoffice/%3Cscript%3Ealert(1)%3C/script%3E');
 
     // Devrait recevoir une erreur 400 ou 404 appropriée
     await expect(page.locator('text=Page non trouvée')).toBeVisible();
 
-    // Se connecter normalement
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Essayer d'envoyer des données malformées
     await page.route('**/api/v1/applications', async route => {
@@ -411,31 +232,7 @@ test.describe('🔒 Tests de Sécurité Avancés', () => {
   });
 
   test('devrait maintenir la sécurité lors des changements de rôle', async ({ page }) => {
-    await page.goto('/login');
-
-    // Se connecter en tant qu'admin
-    await page.route('**/api/v1/auth/login', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            id: '1',
-            email: 'admin@jobbingtrack.test',
-            firstName: 'Admin',
-            lastName: 'JobbingTrack',
-            role: 'SUPER_ADMIN'
-          },
-          token: 'admin-jwt-token-12345'
-        })
-      });
-    });
-
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/backoffice');
+    await page.goto('/backoffice');
 
     // Accéder à la gestion des utilisateurs
     await page.locator('text=Utilisateurs').click();

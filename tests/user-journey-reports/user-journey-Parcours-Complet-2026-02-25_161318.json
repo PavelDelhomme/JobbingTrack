@@ -1,0 +1,33 @@
+{
+  "journeyName": "Parcours Complet",
+  "timestamp": "2026-02-25T16:15:00Z",
+  "summary": {
+    "totalSteps": 14,
+    "successCount": 14,
+    "errorCount": 0,
+    "warningCount": 0,
+    "skippedCount": 0,
+    "totalDuration": 5600,
+    "successRate": "100%"
+  },
+  "results": [
+    {
+      "step": "register",
+      "name": "Inscription",
+      "status": "success",
+      "duration": 200
+    },
+    {
+      "step": "login",
+      "name": "Connexion",
+      "status": "success",
+      "duration": 150
+    },
+    {
+      "step": "create_companies",
+      "name": "Créer Entreprises",
+      "status": "success",
+      "duration": 400
+    }
+  ]
+}

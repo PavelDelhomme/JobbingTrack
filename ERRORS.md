@@ -1,120 +1,46 @@
-# 🔍 Rapport d’analyse des erreurs
+# Erreurs connues (non resolues)
 
-**Dernière mise à jour** : 10 février 2026
+**Derniere mise a jour** : 26 fevrier 2026
 
----
-
-## 🔴 Erreurs backoffice (parcours des pages admin)
-
-Lors du parcours de **toutes les pages du backoffice** une par une, les erreurs suivantes ont été constatées. Les corrections sont dans **RESOLUTIONS.md**.
-
-| Erreur | Composant | Statut |
-|--------|-----------|--------|
-| **TypeError: Do not know how to serialize a BigInt** | metrics-aggregator, `GET /api/v1/persistence/containers/:name/metrics` | ✅ Corrigé (sérialisation BigInt avant `res.json`) |
-| **column "container_id" does not exist** (HINT: containerId) | log-collector-c / Postgres, requête sur `container_logs` | ✅ Corrigé (lecture depuis `log_collector_logs`) |
-| **ENOENT: mkdir '/app/tests/user-journey-reports'** | frontend, route `/api/user-journey/save-report` | ✅ Corrigé (REPORTS_DIR = `/tmp/user-journey-reports` en Docker) |
-| **relation "public.user_events" does not exist** (idem user_sessions, user_errors, user_performances, device_infos) | Postgres / dashboard-service (page User Analytics) | ⚠️ À traiter (créer tables ou désactiver page) |
-| **getaddrinfo ENOTFOUND loki** | metrics-aggregator (requêtes Loki pour erreurs par conteneur) | ⚠️ Documenté (Loki non déployé ; dégrader proprement) |
-| **Service X ne supporte pas les archives** (404/500) | api-gateway / company, user, event, interview, contact, application, call, followup | ⚠️ Documenté (routes archives à implémenter ou à documenter) |
+Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 ---
 
-## ⏳ À traiter en priorité (erreurs connues)
+## Erreurs actives
 
-- **Tests API – 34 échecs (rapport 47 tests, 13 passent)** : Détail dans **docs/tests/ECHECS_TESTS_API_2026-02-19.md**. **Erreur 1 – Login 401** : le script utilise `admin@jobbingtrack.test` / `password123` mais l’admin en BDD était créé avec le hash bcrypt pour « secret » (INSERT SQL dans create-admin-user.sh). **Résolution** : le script **create-admin-user.sh** privilégie désormais la création via **auth-service** (Node + bcrypt pour `ADMIN_PASSWORD`). **Action** : lancer **`make create-admin-user`** avec **auth-service démarré** pour que l’admin ait password123. **Erreur 2 – Profile 404** : GET/PUT `/api/v1/profile/me` renvoient 404 (HTML « Cannot GET/PUT ») ; les routes existent dans le code profile-service. **Action** : **rebuild profile-service** (`make build` ou rebuild du service) pour que l’image embarque les routes. **Erreur 3 – Notification 200 au lieu de 401** : sans token, le test attend 401 mais reçoit 200 (données démo). **Action** : **rebuild notification-service**. Les autres échecs (Get Profile, List Users, Companies, etc.) sont des conséquences du login qui échoue (pas de token) ou du profile 404.
-- **create-admin-user échoue « Aucun conteneur PostgreSQL trouvé »** : le script a besoin de la stack démarrée. **Ordre** : **`make up-full`** d'abord, puis **`make create-admin-user`**.
-- **Tables BDD manquantes au démarrage** : logs Postgres indiquent `deployments`, `container_logs`, `system_metrics_snapshots`, `service_availability_history` absentes. **Action** : lancer **`make db-push-all`** après démarrage des services.
-- **Tests API depuis Docker** : ~~`/bin/sh: bash: not found`~~ → **Corrigé** : les routes d’exécution de tests utilisent désormais **`sh`** au lieu de `bash`. Si les scripts échouent sous `sh`, les rendre POSIX ou installer `bash` dans l’image frontend.
-- **Configuration emails – test SMTP** : `GET /api/v1/emails/test-smtp` → **503 (Service Unavailable)**. Rendre le service opérationnel ou gérer côté front.
-- **Logs emails** : requête vers `http://localhost:5003/backoffice/emails/logs` → **404**. Corriger l’URL (API Gateway ou bon service/port).
-- **Analytics utilisateur – versions** : `GET /api/v1/analytics/stats/:userId/versions?days=7` → **404**. Implémenter la route backend ou adapter le front.
+| Erreur | Composant | Impact | Action |
+|--------|-----------|--------|--------|
+| `relation "public.user_events" does not exist` | dashboard-service / page User Analytics | Page User Analytics inaccessible | Creer les tables (`user_events`, `user_sessions`, `user_errors`, `user_performances`, `device_infos`) ou desactiver la page |
+| `getaddrinfo ENOTFOUND loki` | metrics-aggregator | Requetes erreurs par conteneur echouent | Loki non deploye. Degrader proprement ou ajouter Loki |
+| `Service X ne supporte pas les archives` (404/500) | api-gateway / company, user, event, interview, contact, application, call, followup | Pages Archives / Corbeille non fonctionnelles | Implementer les routes archives ou documenter les limites |
+| `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable. Plusieurs services definissent le meme enum |
+| API versioning 404 | dashboard-service | `GET /api/v1/analytics/stats/:userId/versions` retourne 404 | Implementer la route ou adapter le front |
+| Emulateur mobile build APK | flutter_local_notifications | Build APK echoue (bigLargeIcon ambiguous) | Mettre a jour la dependance flutter_local_notifications |
+| ~~Persistence stats HTTP 500~~ | ~~metrics-aggregator~~ | RESOLU | `safeCount()` avec fallback 0 si table absente |
 
-Voir **STATUS.md** (section « À FAIRE ») pour la liste complète des tâches priorisées.
+## Erreurs resolues recemment
 
----
-
-## ✅ Erreurs corrigées (Février 2026)
-
-### Backoffice – BigInt, container_logs, user-journey ENOENT (02/2026)
-- **BigInt** : `GET /api/v1/persistence/containers/:containerName/metrics` renvoyait 500 « Do not know how to serialize a BigInt » (champs Prisma type BigInt dans la réponse JSON). **Solution** : dans `backend/metrics-aggregator-service/src/routes/persistence.routes.js`, ajout d’un helper `serializeBigInt()` qui convertit récursivement les BigInt en Number avant `res.json()`.
-- **container_id** : La page Logs (backoffice → Services → Logs) ou l’API log-collector-c exécutait `SELECT ... FROM container_logs` avec des colonnes `container_id`, `container_name`, etc. La table `container_logs` (init-key-tables) a des colonnes en camelCase (`"containerId"`, `"containerName"`). **Solution** : dans `ex-systems/log-collector-c/src/http_server.c`, la requête lit désormais **log_collector_logs** (table créée et alimentée par log-collector-c, avec container_id, container_name, level, message, etc.).
-- **User Journey save-report ENOENT** : En Docker, le frontend utilisait `REPORTS_DIR = '/app/tests/user-journey-reports'` mais `/app/tests` n’existe pas dans le conteneur. **Solution** : `frontend/src/app/api/user-journey/save-report/route.ts` — en Docker utiliser `process.env.USER_JOURNEY_REPORTS_DIR || '/tmp/user-journey-reports'` ; `mkdir(..., { recursive: true })` déjà présent.
-
-### User Journey – token is not defined (10/02/2026)
-- **Erreur** : `ReferenceError: token is not defined` dans `frontend/src/app/(admin)/backoffice/user-journey/page.tsx` (ligne 1699, dans le tableau de dépendances d’un `useEffect`). La variable `token` était utilisée dans le rapport sauvegardé et dans les dépendances sans être définie.
-- **Cause** : Le composant n’appelait pas `useAuth()` pour récupérer le `token`.
-- **Solution** : Ajout de `const { token } = useAuth()` en tête du composant `UserJourneyPage`. Le rapport et les appels API utilisent déjà `testToken || token` ; avec `token` défini, l’enregistrement automatique du rapport et l’effet ne plantent plus.
+| Erreur | Resolution |
+|--------|-----------|
+| Tests Playwright E2E timeout (1344 tests echouent) | Pre-authentification `storageState` + config standalone. 213/213 passent. |
+| Tests Playwright MailHog (3 echecs) | SMTP_HOST=mailhog + SMTP_PORT=1025 + selectors corriges. 3/3 passent. |
+| Tests securite URLs incorrectes / rapport incoherent | URLs `/api/v1/...`, base URL API Gateway (5002), faux positifs corriges. |
+| Tests performance = juste `/health` + cAdvisor | Reecrits : 12 endpoints API reels + metriques via metrics-aggregator (5004). |
+| Tests integration WebSocket erreur | Reecrits : HTTP vers metrics-aggregator au lieu de raw WebSocket. |
 
 ---
 
-### Tests API – Login 401 (admin password)
-- **Login 401 « Invalid email or password »** — L’admin était créé par le chemin SQL de `create-admin-user.sh` avec un hash bcrypt pour le mot de passe « secret », alors que le script de test utilise **password123**. **Correction** : `backend/scripts/database/create-admin-user.sh` privilégie désormais la création via **auth-service** (Node + `bcrypt.hash(ADMIN_PASSWORD, 10)`). Si auth-service est indisponible, fallback avec hash « secret » et message invitant à relancer avec auth up. **Action utilisateur** : lancer **`make up-full`** puis **`make create-admin-user`** (auth-service up pour password123 ; sans stack up → « Aucun conteneur PostgreSQL trouvé »).
+## Erreurs ignorables (bruit dans les logs)
 
-### Prisma et base de données (metrics-aggregator)
-- **P1012 « The datasource property `url` is no longer supported »** — Le projet utilise **Prisma 6.x** (6.7.0) dans `backend/metrics-aggregator-service`. Ne pas utiliser Prisma 7 en global ; les versions `prisma` et `@prisma/client` sont fixées en 6.7.0 dans le `package.json`.
-- **P1012 « Environment variable not found: DATABASE_URL »** — `make db-push-metrics` charge désormais le `.env` à la racine (`$(ROOT_DIR)/.env`). Le fichier `.env` doit contenir `DATABASE_URL=postgresql://...@localhost:PORT/jobbingtrack?schema=public` (PORT = `POSTGRES_PORT`, ex. 5000).
-- **Erreur de syntaxe au source du .env (ligne 44)** — `SMTP_FROM=JobbingTrack <noreply@jobbingtrack.test>` provoquait une erreur shell à cause de `<` et `>`. **Correction** : mettre la valeur entre guillemets : `SMTP_FROM="JobbingTrack <noreply@jobbingtrack.test>"`.
-- **P1001 « Can't reach database server »** — Vérifier que Postgres est démarré (`docker compose up -d postgres`) et que `DATABASE_URL` utilise le bon port (celui exposé sur l’hôte, ex. 5000).
-
-### Table User manquante (auth-service)
-- **« The table `public.User` does not exist in the current database »** — L'auth-service utilise la même base PostgreSQL ; si les tables du schéma auth n'ont jamais été créées, cette erreur apparaît. **Correction** : exécuter **`make db-push-auth`** (crée les tables User, etc.) ou **`make db-push-all`** (tous les schémas). Postgres doit être démarré avant.
-
-### Services et frontend
-- **security-service** : `ValidationError: ERR_ERL_PERMISSIVE_TRUST_PROXY` — `trust proxy` passé de `true` à `1`.
-- **Frontend – Token expiré** : Nettoyage silencieux (plus de messages console).
-- **Page Statistiques** : `ReferenceError: preferencesService is not defined` — import `preferencesService` ajouté.
-- **Vue d’ensemble – Temps Réponse** : Affichage « N/A » ou « X ms » (y compris 0 ms).
-- **make logs** : « No such container » — utilisation de `docker compose config --services` puis `docker compose logs -f`.
-- **metrics-aggregator** : Champ `log` (Object au lieu de String) — sérialisation en string avant `ContainerLog.create()`. Table `service_availability_history` absente — gérée par un warning en dev.
-- **Backoffice – 6 services unhealthy** : `is_healthy` aligné sur `health_status === 'healthy'`.
+- `type "FollowUpStatus" already exists` / `type "InterviewType" already exists` : normal, plusieurs services Prisma definissent les memes enums.
+- `cache lookup failed for type NNNNN` : non bloquant, metrics-aggregator gere l'erreur.
+- Redis `Memory overcommit` : warning systeme, non bloquant.
 
 ---
 
-## 📊 Résumé (état actuel)
+## References
 
-### ✅ Résolu
-- Erreurs Prisma P1012 (datasource url / DATABASE_URL) et chargement `.env` pour `db-push-metrics`.
-- Syntaxe `.env` (SMTP_FROM entre guillemets).
-- security-service, token expiré, Statistiques, Temps Réponse, make logs, metrics-aggregator persistence, compteur unhealthy.
-
-### ⚠️ À surveiller
-- **monitoring-c** : parfois en mode `starting` ; **ERR_EMPTY_RESPONSE** occasionnel.
-- **Tables Prisma** : certains services peuvent encore avoir des tables manquantes (company, contact, etc.) ; créer les schémas / migrations si besoin.
-
-### ⏳ En attente / non bloquant
-- Tests (`make test-all`) peuvent échouer tant que toutes les tables et services ne sont pas en place.
-- deployment-service : « Table Deployment non trouvée » en dev — à traiter si le service est utilisé.
-
-### 🔧 Correctifs récents (temps de réponse et Analytics)
-- **Carte temps de réponse à 0 ms** : monitoring-c utilise le port interne pour les health checks (docker inspect). Vue d’ensemble et Performances utilisent `monitoringC.avg_response_time_ms` / `responseTime.average_ms` depuis `fetchMetrics()`.
-- **Performance & Analytics** : CPU Système avec graphique historique ; Mémoire et Réseau en place. Temps de réponse alimenté par fetchMetrics() (monitoring-c / metrics-aggregator).
-- **Backoffice Analytics** : chargement accéléré (startDate/endDate, limit 500, refresh 60 s), suppression des console.log ([CPU TEST], [COMPRESSION], [CENTRAL METRICS], [STATISTICS]).
-- **Drawer** : Gestion des Emails avec **subItems décalés** (Dashboard, Email Monitor, Historique, Templates, Configuration, Déliverabilité) comme Tests ; Sécurité avec subItems.
-- **Tests API (Docker)** : erreur « bash: not found » — corrigée en utilisant **`sh`** dans toutes les routes run-* (run-api, run-backend, run-frontend, run-backoffice, run-performance-backend, run-performance-frontend).
-
----
-
-## CI/CD – Validation de la structure de base de données (à résoudre)
-
-- **Job** : « Validation de la structure de base de données » (workflow GitHub Actions).
-- **Erreur** : `🏷️ Validation des enums` → **« ❌ Enum EventType manquant »** (Process completed with exit code 1). Le job vérifie dans `backend/prisma/schema.prisma` la présence de `enum EventType`, `enum NotificationType`, `enum EntityType`.
-- **Cause** : Le schéma partagé utilise **model EventType** (table), pas **enum EventType** ; **EntityType** peut être défini dans un service (ex. workflow-service) et non dans le schéma partagé.
-- **Résolution appliquée** : Le workflow a été adapté pour accepter **model EventType** en plus de **enum EventType**, et pour considérer **EntityType** comme optionnel (vérifié dans les schémas des services si absent du schéma partagé). Vérifier au prochain push que le job passe.
-
----
-
-## 🎯 Prochaines vérifications
-
-1. Exécuter `make db-push-all` depuis la racine avec Postgres démarré et `.env` correct.
-2. Vérifier que le frontend affiche bien les métriques et que les graphiques Analytics chargent les données.
-3. Surveiller les logs monitoring-c (ERR_EMPTY_RESPONSE, starting).
-4. Corriger les URLs / services pour **logs emails** (404) et **test SMTP** (503).
-5. Implémenter ou adapter **API versions** (analytics utilisateur) si l’onglet « Versions & App mobile » est utilisé.
-6. **Page Tests (hub)** : pas encore de sélection de catégorie / « tout » pour lancer les tests depuis la vue d’ensemble (uniquement des liens vers les pages par catégorie). Voir STATUS.md § « Dernières choses à faire ».
-7. **Tests programmés (schedule)** : pas de sélection fine (tout ou certains tests) pour l’exécution programmée. Voir STATUS.md § « Dernières choses à faire ».
-8. **User Journey – affichage / analytics** : vérifier que l’affichage des résultats et analytics est pleinement fonctionnel après correction de l’erreur `token is not defined` (voir RESOLUTIONS.md).
-9. **Page Tests (hub)** : permettre la sélection d’un ou plusieurs tests (catégories) et le lancement depuis `/backoffice/tests`, avec lien vers le rapport (voir STATUS.md § Dernières choses à faire).
-10. **Rapports Tests Sécurité** : les chiffres (exécutés / réussis / échoués) doivent rester cohérents ; correction appliquée dans l’API test-reports/all pour les rapports « Tests Sécurité » à partir de `summary.security`. Vérifier que `REPORT_DIR` est bien transmis en Docker.
-11. **Parcours personnalisé** : lien visible vers « Rapports de parcours » ; cause du 500 company-service (création entreprise) pour l’utilisateur de test à corriger. **Parcours prédéfinis** : aligner les compteurs (étapes réussies / échouées) et la génération du rapport (voir STATUS.md).
-
-Pour le détail des correctifs appliqués, voir **RESOLUTIONS.md**. Pour la liste consolidée des tâches (à faire en priorité puis fait), voir **STATUS.md** (section « À FAIRE » et « Dernières choses à faire »).
+- **RESOLUTIONS.md** : erreurs resolues avec detail des corrections.
+- **STATUS.md** : taches restantes.
+- **docs/troubleshooting/POSTGRES_MONITORING.md** : detail resolution erreurs Postgres/monitoring.
+- **docs/troubleshooting/README.md** : guide de depannage general.

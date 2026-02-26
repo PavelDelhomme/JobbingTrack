@@ -1,0 +1,14 @@
+{
+  "testName": "Email Logs",
+  "command": "docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "SELECT id, \"to\", subject, type, status, \"sentAt\", \"createdAt\" FROM \"EmailLog\" ORDER BY \"createdAt\" DESC LIMIT 10;"",
+  "timestamp": "2026-02-25T20:24:21+01:00",
+  "duration": 1,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "output": "            id             |             to             |                    subject                     |     type     | status  |           sentAt           |         createdAt          \n---------------------------+----------------------------+------------------------------------------------+--------------+---------+----------------------------+----------------------------\n cmm2fax6h0004bi7gfr2d2cy5 | redacted@example.invalid | 🎉 Bienvenue sur JobbingTrack !                | WELCOME      | SENT    | 2026-02-25 19:24:17.748+00 | 2026-02-25 19:24:17.658+00\n cmm2fax630002bi7gu5442gwp | redacted@example.invalid | ✅ Vérifiez votre adresse email - JobbingTrack | VERIFICATION | PENDING |                            | 2026-02-25 19:24:17.643+00\n(2 rows)\n"
+}

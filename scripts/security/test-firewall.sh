@@ -187,7 +187,11 @@ echo "=========================="
 echo "📊 RÉSUMÉ DES TESTS"
 echo "=========================="
 echo -e "${GREEN}✅ Tests réussis: $TESTS_PASSED${NC}"
-echo -e "${RED}❌ Tests échoués: $TESTS_FAILED${NC}"
+if [ $TESTS_FAILED -gt 0 ]; then
+    echo -e "${RED}❌ Tests échoués: $TESTS_FAILED${NC}"
+else
+    echo "   Tests échoués: 0"
+fi
 echo ""
 
 if [ $TESTS_FAILED -eq 0 ]; then

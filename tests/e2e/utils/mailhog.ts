@@ -38,7 +38,8 @@ export async function getMessages(limit = 10): Promise<{ total: number; messages
   const r = await fetch(`${MAILHOG_BASE}/api/v2/messages?limit=${limit}`);
   if (!r.ok) throw new Error(`MailHog API error: ${r.status}`);
   const data = await r.json();
-  return { total: data.total ?? 0, messages: data.messages ?? [] };
+  const items = (data.items ?? data.messages ?? []).map((m: any) => ({ id: m.ID ?? m.id, ...m }));
+  return { total: data.total ?? 0, messages: items };
 }
 
 /**

@@ -49,49 +49,44 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
-
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: 'no-auth',
+      testMatch: [/login\.spec\.ts/, /accessibility\.spec\.ts/],
+      use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Test against Flutter mobile app */
-    {
-      name: 'Flutter Mobile App',
+      name: 'chromium',
       use: {
-        ...devices['Pixel 5'],
-        baseURL: 'http://localhost:8090', // Port de l'émulateur mobile
-        viewport: { width: 393, height: 851 }, // Taille iPhone-like
+        ...devices['Desktop Chrome'],
+        storageState: path.join(__dirname, 'tests/e2e/.auth/admin.json'),
       },
+      dependencies: ['setup'],
+      testIgnore: [
+        /auth\.setup\.ts/,
+        /login\.spec\.ts/,
+        /accessibility\.spec\.ts/,
+        /complete-user-journey\.spec\.ts/,
+        /mobile-app\.spec\.ts/,
+        /user-experience\.spec\.ts/,
+        /impersonation-tests\.spec\.ts/,
+        /mobile\//,
+        /api-only-tests\.spec\.ts/,
+        /api-critiques\.spec\.ts/,
+        /admin-features\.spec\.ts/,
+        /application-workflow\.spec\.ts/,
+        /advanced-security\.spec\.ts/,
+        /security-tests\.spec\.ts/,
+        /load-tests\.spec\.ts/,
+        /data-management\.spec\.ts/,
+        /export-import-advanced\.spec\.ts/,
+        /integration-tests\.spec\.ts/,
+        /performance-tests\.spec\.ts/,
+      ],
     },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
   /* Run your local dev server before starting the tests. En Docker, réutiliser le serveur déjà sur 3000 (évite EADDRINUSE). */

@@ -1,0 +1,42 @@
+{
+  "category": "Suite CLI",
+  "testName": "Suite complète (ligne de commande)",
+  "generatedAtISO": "2026-02-25T19:40:40Z",
+  "timestamp": "2026-02-25T20:40:40+01:00",
+  "reportDir": "tests/results/20260225-203550",
+  "summary": {
+    "totalCategories": 22,
+    "totalTests": 158,
+    "totalPassed": 147,
+    "totalFailed": 11,
+    "totalSkipped": 1,
+    "passed": 147,
+    "failed": 11,
+    "skipped": 1,
+    "successRate": 93.04
+  },
+  "testResults": [
+    {"name": "User Journey (API)", "status": "success", "duration": 2},
+    {"name": "Relations BDD", "status": "success", "duration": 1},
+    {"name": "Enums", "status": "success", "duration": 1},
+    {"name": "Email Logs", "status": "success", "duration": 0},
+    {"name": "Tests API Complets (Jest)", "status": "success", "duration": 5},
+    {"name": "Tests Backend Services (Jest)", "status": "success", "duration": 1},
+    {"name": "Tests API Backend (script - tous services)", "status": "success", "duration": 1},
+    {"name": "Playwright E2E Frontend", "status": "success", "duration": 223},
+    {"name": "Playwright Emails MailHog", "status": "success", "duration": 19},
+    {"name": "Tests Frontend Jest (Unitaires)", "status": "success", "duration": 2},
+    {"name": "Tests Performance", "status": "success", "duration": 2},
+    {"name": "Tests Sécurité", "status": "success", "duration": 1},
+    {"name": "Tests Intégration Système", "status": "success", "duration": 4},
+    {"name": "Tests Company Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Contact Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests FollowUp Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Notification Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Profile Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests Metrics Aggregator Service (Health Check)", "status": "success", "duration": 1},
+    {"name": "Tests Workflow Service (Health Check)", "status": "success", "duration": 0},
+    {"name": "Tests API Gateway Health", "status": "success", "duration": 1},
+    {"name": "Tests Sécurité Firewall & WAF (API)", "status": "success", "duration": 1}
+  ]
+}

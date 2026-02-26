@@ -1,0 +1,14 @@
+{
+  "testName": "Playwright Emails MailHog",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL="http://localhost:8025" npx playwright test e2e/specs/admin-emails-mailhog.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-25T20:40:25+01:00",
+  "duration": 19,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "output": "\nup to date in 530ms\n\nRunning 3 tests using 1 worker\n\n(node:633370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:633370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n  ✓  1 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:49:7 › Emails + MailHog › envoi email de test puis vérification réception dans MailHog via API (3.2s)\n  ✓  2 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:90:7 › Emails + MailHog › ouverture interface MailHog et clic sur le dernier mail (1.4s)\nEmail de reset recu mais sans lien cliquable (template sans URL de reset)\n  ✓  3 [chromium] › e2e/specs/admin-emails-mailhog.spec.ts:111:7 › Emails + MailHog › envoi email reset password puis extraction lien et ouverture page (11.2s)\n\n  3 passed (16.5s)\n"
+}

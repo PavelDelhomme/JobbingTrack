@@ -1,0 +1,14 @@
+{
+  "testName": "Tests Performance",
+  "command": "node tests/performance/test-performance.js",
+  "timestamp": "2026-02-25T20:31:03+01:00",
+  "duration": 2,
+  "exitCode": 0,
+  "status": "success",
+  "statistics": {
+    "total": 15,
+    "passed": 13,
+    "failed": 2
+  },
+  "output": "🧪 Lancement de tous les tests de performance...\n\n📊 Génération du rapport de performance...\n⚡ Test des performances API...\n   apiGateway/health: ✅ 19ms\n   auth/health: ✅ 3ms\n🔥 Test de charge...\n📊 Test de charge: apiGateway/health (20 requêtes)\n   ✅ 20/20 succès - 12ms moyen\n📊 Test de charge: auth/health (15 requêtes)\n   ✅ 15/15 succès - 8ms moyen\n📊 Charge test global: 35/35 succès\n⏱️ Temps moyen global: 10ms\n🧠 Test de l'utilisation mémoire système...\n⚠️ Service de métriques système non disponible, tentative cAdvisor...\n⚠️ cAdvisor non disponible, utilisation des métriques système locales\n📊 Test de traitement de données avec charge mémoire...\n   ✅ Traitement 1000 éléments: 62ms\n   ✅ Traitement 5000 éléments: 283ms\n   ✅ Traitement 10000 éléments: 504ms\n📊 Métriques système réelles:\n   💾 Mémoire totale système: N/A GB\n   🧠 Mémoire utilisée système: N/A GB\n   📊 Pourcentage mémoire: N/A%\n   💿 Espace disque utilisé: N/A GB\n   🔄 Charge système: N/A\n📊 Augmentation mémoire processus:\n   RSS: 291.59 MB\n   Heap Used: 270.32 MB\n   Heap Total: 286.25 MB\n✅ Rapport sauvegardé: tests/reports/performance-report.json\n\n📊 ANALYSE DES PERFORMANCES COMPLÈTE:\n=====================================\n🧪 Tests totaux: 4\n✅ Tests réussis: 4\n❌ Tests échoués: 0\n⏱️ Temps moyen: 11ms\n📊 Requêtes totales: 35\n✅ Requêtes réussies: 35\n❌ Requêtes échouées: 0\n📈 Taux de succès: 100.0%\n\n💡 RECOMMANDATIONS:\n✅ Performances excellentes\n✅ Taux de succès satisfaisant\n\n📊 MÉTRIQUES SYSTÈME (SYSTEMINFORMATION NOT INSTALLED):\n   💾 Mémoire système: 0.00/0.00 GB (0.0%)\n   ✅ Mémoire système normale\n   🔄 CPU: N/A% (1 cœurs)\n   💿 Disque: 0.00 GB utilisés (0.0%)\n\n📊 AUGMENTATION MÉMOIRE PROCESSUS:\n   🧠 Heap Used: 270.32 MB\n   ⚠️ Augmentation mémoire significative détectée\n\n📈 SCORE GLOBAL:\n🎯 Score de performance: 100/100\n🏆 Performances excellentes - Système prêt pour la production\n"
+}
