@@ -10,6 +10,16 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 
 ---
 
+## Etat actuel (26 fevrier 2026)
+
+- **Tests** : corrections appliquees (activities→statusHistory, isUUID→isString, api-e2e credentials, networkidle). Suite de tests a re-valider apres stabilisation des fonctionnalites.
+- **Tests mobiles** : tests E2E mobile existants (7 fichiers mobile-*.spec.ts) a adapter une fois la vision mobile finalisee (voir section 9 de FONCTIONNALITES.md).
+- **CI/CD** : pipeline GitHub Actions a implementer une fois la suite de tests stable.
+- **Vision mobile** : document de reference ecrit (section 9 de FONCTIONNALITES.md). Implementation Flutter a demarrer.
+- **Phase 3** : interactions backoffice en cours (CRUD, export/import, pagination).
+
+---
+
 ## A faire maintenant
 
 ### ~~Phase 2 : Archivage complet~~ FAIT
