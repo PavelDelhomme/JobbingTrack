@@ -31,6 +31,7 @@ import 'package:jobbingtrack_mobile/screens/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/forgot_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/reset_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/verify_email_screen.dart';
+import 'package:jobbingtrack_mobile/screens/admin_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,6 +110,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/users': (context) => const UsersScreen(),
           '/followups': (context) => const FollowUpsScreen(),
           '/events': (context) => const EventsScreen(),
+          '/admin': (context) => const AdminScreen(),
         },
       ),
     );

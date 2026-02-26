@@ -127,11 +127,11 @@ class AppDrawer extends StatelessWidget {
                   title: 'Logs',
                   route: '/logs',
                 ),
-                _DrawerItem(
-                  icon: Icons.search,
-                  title: 'Recherche',
-                  route: '/search',
-                ),
+              _DrawerItem(
+                icon: Icons.delete_outline,
+                title: 'Corbeille',
+                route: '/trash',
+              ),
               ],
             ),
 

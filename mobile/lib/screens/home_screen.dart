@@ -44,21 +44,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (index) {
       case 0:
-        // Déjà sur l'accueil
         break;
       case 1:
         Navigator.of(context).pushNamed('/applications');
         break;
       case 2:
-        Navigator.of(context).pushNamed('/companies');
+        Navigator.of(context).pushNamed('/search');
         break;
       case 3:
-        Navigator.of(context).pushNamed('/contacts');
+        Navigator.of(context).pushNamed('/events');
         break;
       case 4:
-        Navigator.of(context).pushNamed('/interviews');
-        break;
-      case 5:
         Navigator.of(context).pushNamed('/profile');
         break;
     }
@@ -179,63 +175,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 24),
 
-                // Menu administrateur pour les super admins
-                if (user?.role == 'SUPER_ADMIN') ...[
-                  Text(
-                    'Administration',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
+                // Lien administration pour les admins
+                if (user?.role == 'SUPER_ADMIN' || user?.role == 'ADMIN') ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/admin'),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.indigo[500]!, Colors.purple[500]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Administration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                SizedBox(height: 2),
+                                Text('Utilisateurs, logs, statistiques...', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    children: [
-                      _buildActionCard(
-                        '👥',
-                        'Utilisateurs',
-                        Colors.indigo[600]!,
-                        () => Navigator.of(context).pushNamed('/users'),
-                      ),
-                      _buildActionCard(
-                        '📊',
-                        'Analytics',
-                        Colors.teal[600]!,
-                        () => Navigator.of(context).pushNamed('/analytics'),
-                      ),
-                      _buildActionCard(
-                        '📋',
-                        'Logs',
-                        Colors.amber[600]!,
-                        () => Navigator.of(context).pushNamed('/logs'),
-                      ),
-                      _buildActionCard(
-                        '🔍',
-                        'Recherche',
-                        Colors.cyan[600]!,
-                        () => Navigator.of(context).pushNamed('/search'),
-                      ),
-                      _buildActionCard(
-                        '📈',
-                        'Statistiques',
-                        Colors.deepPurple[600]!,
-                        () => Navigator.of(context).pushNamed('/statistics'),
-                      ),
-                      _buildActionCard(
-                        '🗑️',
-                        'Corbeille',
-                        Colors.red[600]!,
-                        () => Navigator.of(context).pushNamed('/trash'),
-                      ),
-                    ],
                   ),
                 ],
               ],
@@ -244,33 +223,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Candidatures',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.business),
-            label: 'Entreprises',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Contacts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event),
-            label: 'Entretiens',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Candidatures'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Calendrier'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue[600],
