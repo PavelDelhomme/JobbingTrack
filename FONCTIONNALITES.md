@@ -1,6 +1,6 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Derniere mise a jour** : 23 fevrier 2026
+**Derniere mise a jour** : 26 fevrier 2026
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
@@ -562,35 +562,183 @@ Tous les endpoints sont prefixes par `/api/v1/` via l'API Gateway (port 5002).
 
 
 ---
-# PERSONNAL NOTES
-Une personne install l'application mobile, il arrive sur une page de connexion avec proposition email et password et bouton ensuite pour demander réintialisation mot de passe en dessous j'ai le bouton Se connecter et en dessou de ce bouton j'ai S'inscrire. Quand il se connecter on passe directemnet a la partie donc B que je citerai apres et pour le réinitialisation de mot de passe donc mot de passe oublier on passe a la partie C, la partie inscription et la suite de processus logique sera la partie A donc . Continuons pour cela il clique sur S'inscrier.
+
+## 9. Vision utilisateur — Application mobile (notes developpeur)
+
+> **Note** : cette section decrit la vision complete du parcours utilisateur dans l'application mobile, telle que souhaitee par le developpeur. C'est le document de reference pour l'implementation mobile.
+
+### 9.1 Ecran d'accueil — Connexion
+
+L'utilisateur ouvre l'application et arrive sur un ecran de connexion :
+- Champ **Email**
+- Champ **Mot de passe**
+- Lien **Mot de passe oublie ?** → ecran reinitialisation (voir 9.3)
+- Bouton **Se connecter** → si OK, redirection vers le Dashboard (voir 9.4)
+- Bouton **S'inscrire** → ecran inscription (voir 9.2)
+
+### 9.2 Inscription (Processus A)
+
+**Formulaire d'inscription** — champs :
+1. **Nom** (obligatoire)
+2. **Prenom** (obligatoire)
+3. **Email** (obligatoire, avec **double saisie** pour verification)
+4. **Numero de telephone** (optionnel)
+
+Bouton **Continuer** → appel `POST /api/v1/auth/register`.
+
+**Regles metier inscription** :
+- Si l'email est deja utilise par un autre compte → message d'erreur explicite
+- Le compte est cree mais **non valide** tant que l'email n'est pas verifie
+- L'utilisateur voit un ecran "Verifiez votre email" avec :
+  - Un **timer** (ex. 60 secondes) apres lequel il peut demander le renvoi du mail
+  - Un bouton **Renvoyer le mail de verification**
+  - Un bouton **Modifier l'adresse email** (au cas ou il s'est trompe)
+  - Le lien/code de verification a une **duree de peremption** (usage unique, temps limite)
+  - La detection du retour dans l'app (deep link) doit se faire **en temps reel** (poll ou websocket) pour eviter de perdre l'etape en cours
+
+**Validation email** :
+- L'utilisateur recoit un email avec un lien ou un code
+- Clic sur le lien → `GET /api/v1/auth/verify-email/:token` → compte active
+- L'application detecte la validation et redirige automatiquement vers le Dashboard
+- En base de donnees : champ `emailVerified = true`, `emailVerifiedAt` renseigne
+- Prevoir un champ pour **limiter les changements de mot de passe** (anti-abus)
+
+### 9.3 Mot de passe oublie (Processus C)
+
+1. Saisie de l'email → `POST /api/v1/auth/forgot-password`
+2. Email avec lien de reinitialisation (token, duree limitee)
+3. Ecran nouveau mot de passe + confirmation → `POST /api/v1/auth/reset-password/:token`
+4. Redirection vers ecran connexion
+
+### 9.4 Structure principale de l'application (Processus B)
+
+**Navigation basse (Bottom Navigation Bar) — 3 onglets principaux** :
+1. **Dashboard** — statistiques utilisateur (candidatures, relances, entretiens, etc.). Contenu a definir plus tard, pas critique pour l'instant
+2. **Recherche** — onglet principal et le plus important, concentre tout le suivi de candidatures
+3. **Calendrier** — planning des evenements
+
+**Drawer lateral** (accessible via hamburger menu ou swipe) :
+- En haut : **Profil utilisateur** (cliquable → edition nom, photo, infos)
+- **Dashboard** (lien vers la page dashboard)
+- **Parametres** : reset password, modification email, parametres notifications, demande de suppression complete des donnees
+- **Archives** : elements archives
+- **Corbeille** : elements supprimes (soft delete)
+
+### 9.5 Onglet Recherche — Hub de suivi (le plus important)
+
+Navigation par **tabs horizontaux** en haut de l'ecran, dans cet ordre :
+1. **Candidatures**
+2. **Contacts**
+3. **Entreprises**
+4. **Relances**
+5. **Appels**
+6. **Entretiens**
+
+#### Candidatures
+- Liste triee par date de derniere candidature
+- **Informations visibles sur chaque carte** : titre de l'offre, entreprise, date de candidature, etat (badge couleur)
+- **Couleur de la carte** selon l'etat de la candidature (chaque statut a une couleur definie)
+- **Swipe** droite/gauche : options configurer (supprimer → corbeille, archiver → archives)
+- **Clic** sur une candidature → page de detail complete
+
+#### Contacts
+- Liste avec : nom, prenom, numero de telephone, nom de l'entreprise
+- Clic → page detail contact
+
+#### Entreprises
+- Meme principe que contacts et candidatures
+- Liste des entreprises avec informations cles
+
+#### Relances
+- Comme candidatures avec **etat de la relance** qui colore la carte
+- Informations : date, titre de l'offre de la candidature liee, contact lie (nom + prenom si present), entreprise
+
+#### Appels
+- Nom du contact lie OU nom de l'entreprise (toujours l'entreprise visible)
+- Indication si l'appel est dans le cadre d'une relance ou non
+- **Objet de l'appel** visible sur la carte
+
+#### Entretiens
+- Liste avec etat de l'entretien (couleur de carte)
+- Informations : type d'entretien, style (presentiel/visio), entreprise, poste, date
+
+### 9.6 Calendrier
+
+**Vues disponibles** (style Google Calendar) :
+- **Jour** (1 jour)
+- **3 jours**
+- **Semaine** (5 jours ouvrables)
+- **2 semaines**
+- **Mois**
+- **Planning** (liste chronologique)
+
+**Fonctionnalites** :
+- Chaque type d'evenement a une **couleur** definie (entretien, relance, appel, candidature, workflow automatique)
+- Filtres pour n'afficher qu'un type d'evenement (candidatures, entretiens, relances, appels, workflows automatiques)
+- Les workflows automatiques incluent les relances programmees par le systeme, les rappels, les alertes d'etat
+- Pour l'instant, l'utilisateur **ne cree pas ses propres evenements** — ils sont crees automatiquement
+- A terme : creation manuelle d'evenements (jobdating, salons, evenements trouves en ligne)
+
+### 9.7 Detail d'une candidature
+
+Page complete avec :
+- Tous les champs editables
+- **Timeline** historique des changements de statut
+- Liste des **entretiens** lies
+- Liste des **relances** liees
+- Liste des **appels** lies
+- Boutons d'action : "Ajouter entretien", "Ajouter relance", "Ajouter appel"
+- Changement de statut → `ApplicationStatusHistory` + notification
+- Si statut → "Entretien programme" : proposition de creer un entretien
+- Si statut → "Sans reponse" apres X jours : notification "Relancer ?"
+
+### 9.8 Profil et parametres
+
+**Profil** :
+- Edition : nom, prenom, photo, bio, headline, LinkedIn, GitHub, site web
+- A ameliorer (details a preciser plus tard)
+
+**Parametres** :
+- Reinitialisation mot de passe
+- Modification adresse email
+- Parametres de notifications (activer/desactiver par type)
+- Demande de suppression complete des donnees (RGPD)
+- Theme (clair/sombre)
+
+---
+
+<details>
+<summary>Notes developpeur brutes (version originale)</summary>
+
+Une personne install l'application mobile, il arrive sur une page de connexion avec proposition email et password et bouton ensuite pour demander reinitialisation mot de passe en dessous j'ai le bouton Se connecter et en dessou de ce bouton j'ai S'inscrire. Quand il se connecter on passe directement a la partie donc B que je citerai apres et pour la reinitialisation de mot de passe donc mot de passe oublie on passe a la partie C, la partie inscription et la suite de processus logique sera la partie A donc. Continuons pour cela il clique sur S'inscrire.
 
 A. Inscription
-Après qu'il ai clique sur le bouton s'inscrire donc l'utilisateur voir s'afficher des champs de formulaire suivant nécessaire a la création de sont compte (et de sont profil donc). Les champs sont les suivant : Nom(obligatoire), Prénom (obligatoire), Email (obligatoire et avec double champs pour vérification), Numéro  de téléphone. Il clique sur continuer et on tente de l'inscrir si l'adresse email n'est pas déjà utiliser pour une autre compte présent, si c'est le cas on affiche un message d'erreur.
+Apres qu'il ai clique sur le bouton s'inscrire donc l'utilisateur voir s'afficher des champs de formulaire suivant necessaire a la creation de sont compte (et de sont profil donc). Les champs sont les suivant : Nom(obligatoire), Prenom (obligatoire), Email (obligatoire et avec double champs pour verification), Numero de telephone. Il clique sur continuer et on tente de l'inscrire si l'adresse email n'est pas deja utiliser pour une autre compte present, si c'est le cas on affiche un message d'erreur.
 L'utilisateur s'est inscrit donc mais n'a pas valider sont compte. On l'informe et on affiche un champs pour indiquer que il recevra par email un code ou un lien pour valider son compte.
-Une fois que l'utilisateur a ouvert ses mail et clique sur le lien et retourne sur l'application mobile ou pas ca doit être détecter en live et garder en mémoire cette etape pour être sur de pas perdre le processus, on le rediriger vers le dashboard de l'application. Le lien de validation / code on une date de péremption par mesure de sécurité et ne sont valide qu'une seul fois et qu'un temps donne si l'jutilisateur n'a pas fait lees chose a temps il doit reclique poure recevoir le mail de validation a nouveau. il se peut que le mail n'a pas été envoyer la premier fois il doit y avoir donc un timer avec a la fin du timer une proposition pour renvoyer  anouveau le mail. Il a aussi pu se tromper dans l'adresse mail pour l'inscription on doit pouvoir lui permettre de modifier cela. Ont doit donc avoir un mini compte ou le compte de créer avec les information minial qu'il a inscrit pour savoir si le mail est valider ou non vref.
-Quand il a bine fait la validation de l'insription alors on a dans la base de donnée d'indiquer pour cet utilisateur qu'il a bine fait ce qu'il fallait pur valider le compte. ON rajoutera un champs aussi pour gérer les changement de mots de passe pour être sur de pas en avoir trop a la fois enfaite.
+Une fois que l'utilisateur a ouvert ses mail et clique sur le lien et retourne sur l'application mobile ou pas ca doit etre detecter en live et garder en memoire cette etape pour etre sur de pas perdre le processus, on le rediriger vers le dashboard de l'application. Le lien de validation / code on une date de peremption par mesure de securite et ne sont valide qu'une seul fois et qu'un temps donne si l'utilisateur n'a pas fait les chose a temps il doit recliquer pour recevoir le mail de validation a nouveau. il se peut que le mail n'a pas ete envoyer la premiere fois il doit y avoir donc un timer avec a la fin du timer une proposition pour renvoyer a nouveau le mail. Il a aussi pu se tromper dans l'adresse mail pour l'inscription on doit pouvoir lui permettre de modifier cela. Ont doit donc avoir un mini compte ou le compte de creer avec les information minial qu'il a inscrit pour savoir si le mail est valider ou non bref.
+Quand il a bien fait la validation de l'inscription alors on a dans la base de donnee d'indiquer pour cet utilisateur qu'il a bien fait ce qu'il fallait pour valider le compte. ON rajoutera un champs aussi pour gerer les changement de mots de passe pour etre sur de pas en avoir trop a la fois enfaite.
 
-L'uilisateur une fois inscrit arrive donc sur la page de dashbaord sur l'application moobile donc. on passe a l'étape B.
+L'utilisateur une fois inscrit arrive donc sur la page de dashboard sur l'application mobile donc. on passe a l'etape B.
 
-B. Base principal dee l'application
-L'utilisateur arrive sur la page de Dahsboard utilisateur ou il retrouvera un ensemble de ses statistiques de ces candidature, relance, entretien, etc etc tout cela est a définit si pas encore définit correcmntet plus tard car ce n'ets pas crucial pour le moment et correespondra a une table spécifique donc.
+B. Base principal de l'application
+L'utilisateur arrive sur la page de Dashboard utilisateur ou il retrouvera un ensemble de ses statistiques de ces candidature, relance, entretien, etc etc tout cela est a definir si pas encore definit correctement plus tard car ce n'est pas crucial pour le moment et correspondra a une table specifique donc.
 En bas de l'application mobile on a une navigation entre donc Dashboard, Recherche, Calendrier.
-L'onglet dahsboard on s'en occupe pas pour le moment comme on le disais.
-L'onglet Recherche est pour l'instant le plus important. Il concentrerai l'ensemble des element pour faire la recherche et le suivit de candidature et tout complet.
+L'onglet dashboard on s'en occupe pas pour le moment comme on le disais.
+L'onglet Recherche est pour l'instant le plus important. Il concentrerai l'ensemble des elements pour faire la recherche et le suivi de candidature et tout complet.
 Cet onglet recherche aura en haut une navigation par tab dans l'ordre suivant : Candidatures, Contacts, Entreprises, Relances, Appels, Entretiens.
-Chacun des ses onglet ameneron donc sur une page avec les chose suivante : 
-Candidatures : Retrouver une liste des candidatures de l'utilisateur (peut être completement vide si tout juste inscrit donc) trier par date de dernier postulation quoi. on verra sur chaque element de candidature les information suivante absoluement primordiale et nécessaire : Titre de l'offre, Entreprise, Date de la candidature, Etat de la candidature. Chaque candidature peut être swiper droite ou gauche avec option avec configuration de suppression (corbeille), archivage (archive). Le clique sur une candidature affichera la page de détails de la candidature. Chaquye candidature aura un etat docn et donc un carte de candidature aura une couleur en fonction de l'état de la candidature
-Contacts : Même principe que avec les candidature mais pour les contact. Les information a avoir sont le nom, prénom, numéro de téléphone, nom de l'entreprise. Chaque contact permet d'acceder au détail d'un contact.
-Entreprises : Pareil que avec contaact et candidautre
-Relances : PAreil que contact et candidature mais avec comme pour candidature l'état de candidature. cahque etat doit avoir une couleur définit qui colori la carte dans la lsite de la relance. On dois avoir comme information la date, le titre de l'offre de la canddiature pour laquel relance, si contact lié le nom et prénom du contact et l'entreprise.
-Appels : Doit avoir le nom du contact lié ou le nom d'entrperise si pas de nom de contact mais toujours nom de l'enterprise lié. Elle est généralement lié a une candidature donc on verra plus tard donc et on doit avoir si c'est dans le cadre d'une relance ou non par exemple donc. Plus d'informaiton seront indiquer plus tard mais on doit avoir l'objet principalement aussi donc d'indiquer de l'appel.
-Entretiens : Mê pricipe que candaitre et l reste liste des entretiens avec état des entreteien qui colore les caret donc et on peux y voir le type de l'entreiten, style, et nom entreprise et pour quel poste aussi avec date docn aussi. a modifei plus tard
+Chacun de ces onglets ameneront donc sur une page avec les choses suivantes :
+Candidatures : Retrouver une liste des candidatures de l'utilisateur (peut etre completement vide si tout juste inscrit donc) trier par date de dernier postulation quoi. on verra sur chaque element de candidature les information suivante absolument primordiale et necessaire : Titre de l'offre, Entreprise, Date de la candidature, Etat de la candidature. Chaque candidature peut etre swipee droite ou gauche avec option avec configuration de suppression (corbeille), archivage (archive). Le clique sur une candidature affichera la page de details de la candidature. Chaque candidature aura un etat donc et donc une carte de candidature aura une couleur en fonction de l'etat de la candidature.
+Contacts : Meme principe que avec les candidature mais pour les contacts. Les information a avoir sont le nom, prenom, numero de telephone, nom de l'entreprise. Chaque contact permet d'acceder au detail d'un contact.
+Entreprises : Pareil que avec contact et candidature.
+Relances : Pareil que contact et candidature mais avec comme pour candidature l'etat de candidature. Chaque etat doit avoir une couleur definie qui colore la carte dans la liste de la relance. On doit avoir comme information la date, le titre de l'offre de la candidature pour laquelle relance, si contact lie le nom et prenom du contact et l'entreprise.
+Appels : Doit avoir le nom du contact lie ou le nom d'entreprise si pas de nom de contact mais toujours nom de l'entreprise lie. Elle est generalement liee a une candidature donc on verra plus tard donc et on doit avoir si c'est dans le cadre d'une relance ou non par exemple donc. Plus d'information seront indiquer plus tard mais on doit avoir l'objet principalement aussi donc d'indiquer de l'appel.
+Entretiens : Meme principe que candidature et le reste liste des entretiens avec etat des entretiens qui colore les cartes donc et on peut y voir le type de l'entretien, style, et nom entreprise et pour quel poste aussi avec date donc aussi. a modifier plus tard.
 
-La page de calendrier doit être un calendrier avec définition de plusieur vue de calendirer : Jour (1 jour), 3 jours (vue sur 3 jours), 1 semaine (5 jours), 2 semaines, 1 mois, Planning.
-on retrouvera les différent évenemetn donc créer, on peux filtre l'affichage aussi en voulant ne voir que candidature, entreitens, relances, appel, mais aussi evenement gérer via workflow automatiqe donc a savoir relances a faire programmer par la machine autimaique pour mis en avnt des etat bref a détaillé plus trd.
-Chahque type d'évènement a une couleur. Le calendrier doit ressemble en interface a du google calendar. Pour le moment l'utilisateur n'est pas autorisé a créer ces propres évènements mais plus tard il faut imaginer qu'il rajoute des evenement de type jobdating ou quoi qu'il trouve sur internet pour s'en rappeler.
+La page de calendrier doit etre un calendrier avec definition de plusieurs vue de calendrier : Jour (1 jour), 3 jours (vue sur 3 jours), 1 semaine (5 jours), 2 semaines, 1 mois, Planning.
+On retrouvera les differents evenements donc crees, on peut filtrer l'affichage aussi en voulant ne voir que candidature, entretiens, relances, appel, mais aussi evenement gere via workflow automatique donc a savoir relances a faire programmees par la machine automatique pour mis en avant des etats bref a detailler plus tard.
+Chaque type d'evenement a une couleur. Le calendrier doit ressembler en interface a du Google Calendar. Pour le moment l'utilisateur n'est pas autorise a creer ses propres evenements mais plus tard il faut imaginer qu'il rajoute des evenements de type jobdating ou quoi qu'il trouve sur internet pour s'en rappeler.
 
-Dans un drawer pésent dans l'application mobile. on devra retrouver les element suivant : Dashbaord (qui ammenera sur la page quoi de dashboard ou j'ai les sous page bottomsheet pour applications et calendrier ej crsoi ou quoi comme dis plus haut), En haut du drawer el profil utilisateur donc clicable et permet d'afficher les information et modifeir les information porfil utilisateur à améliorer j'ia plus les détail onv erra plus tard, En dessous un lien pour clique pour accèder au paramètre (on difinire plus tard aussi) qui concerneron reset password, modif mail, définition des paramètre de notifications, demande suppression complete données etc etc. De dashbaord dans ce drawer on retrouvera donc Archives pour voir les archives quoi, Corbeille, mê eprincipe que archive.
+Dans un drawer present dans l'application mobile. On devra retrouver les elements suivants : Dashboard (qui ammenera sur la page quoi de dashboard ou j'ai les sous page bottomsheet pour applications et calendrier), En haut du drawer le profil utilisateur donc cliquable et permet d'afficher les informations et modifier les informations profil utilisateur a ameliorer j'ai plus les details on verra plus tard, En dessous un lien pour cliquer pour acceder aux parametres (on definira plus tard aussi) qui concerneront reset password, modif mail, definition des parametres de notifications, demande suppression complete donnees etc etc. De dashboard dans ce drawer on retrouvera donc Archives pour voir les archives quoi, Corbeille, meme principe que archive.
 
+</details>
 

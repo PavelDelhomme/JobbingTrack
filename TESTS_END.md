@@ -150,9 +150,14 @@ L'adresse `test@example.invalid` vérifie la **réception réelle** des emails. 
 
 - [ ] **Tests unitaires (backend, frontend)** : harmoniser et compléter la couverture.
 - [ ] Tests unitaires passants
-- [x] Tests E2E Playwright sur parcours critiques (233 tests)
+- [x] Tests E2E Playwright sur parcours critiques (233+ tests frontend, 4 suites MailHog/CRUD/securite)
 - [ ] Tests d'accessibilité (a11y) sur les pages principales
 - [ ] Aucune régression majeure après modifications
+- [x] Tests Email Workflows : inscription + verification email, reset password complet (MailHog)
+- [x] Tests CRUD Donnees Admin : 7 entites (entreprise, contact, candidature, entretien, relance, appel, evenement) + archivage/restauration
+- [x] Tests CRUD Utilisateurs Admin : lister, creer, modifier role, desactiver
+- [x] Tests Securite Backoffice : firewall CRUD, IPs bloquees, menaces, WAF, logs securite
+- [ ] Tests E2E mobile : adapter les 7 fichiers mobile-*.spec.ts a la vision mobile finalisee (section 9 FONCTIONNALITES.md)
 
 **Après `make test-full`** : vérifier le rapport (`tests/results/.../report.html`). Chaque test affiche son badge utilisateur (ADMIN/USER/SYSTEM). Si EACCES : `sudo chown -R $(whoami) frontend/node_modules` puis relancer.
 
