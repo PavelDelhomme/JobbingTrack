@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -29,24 +31,23 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    debugPrint('[LOGIN] Tentative: ${_emailController.text} -> ${ApiService.baseUrl}');
+    setState(() { _isLoading = true; });
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.login(_emailController.text, _passwordController.text);
+      debugPrint('[LOGIN] Succès, navigation vers /home');
 
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
     } catch (e) {
-      _showSnackBar('Erreur de connexion: ${e.toString()}');
+      debugPrint('[LOGIN] Erreur: $e');
+      _showSnackBar('Erreur: ${e.toString().replaceAll('Exception: ', '')}');
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() { _isLoading = false; });
       }
     }
   }
@@ -294,7 +295,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
+
+                // Indicateur serveur (debug)
+                Text(
+                  'API: ${ApiService.baseUrl}',
+                  style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                ),
+
+                const SizedBox(height: 24),
               ],
             ),
           ),
