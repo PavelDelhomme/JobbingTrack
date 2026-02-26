@@ -63,6 +63,7 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+**/tests/e2e/.auth/
 
 # Uploads (le volume Docker gère cela)
 uploads/
