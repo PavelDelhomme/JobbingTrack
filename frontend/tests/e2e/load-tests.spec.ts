@@ -1,8 +1,11 @@
+// Tests de charge backoffice — utilise un administrateur (SUPER_ADMIN)
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './test-data-helper';
 
-test.describe('🔥 Tests de Charge et Performance Avancés', () => {
+test.describe('🔥 Tests de Charge et Performance Avancés (admin)', () => {
 
   test('devrait résister à une charge utilisateur intensive', async ({ page }) => {
+    await loginAsAdmin(page);
     await page.goto('/backoffice');
 
     // Simuler 50 utilisateurs simultanés

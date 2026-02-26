@@ -121,25 +121,23 @@ class OptimizationService {
       baseInclude.interviews = {
         select: {
           id: true,
-          type: true,
-          scheduledAt: true,
-          status: true,
-          feedback: true,
+          interviewDate: true,
+          statusId: true,
+          outcome: true,
           companyId: true
         },
-        orderBy: { scheduledAt: 'desc' }
+        orderBy: { interviewDate: 'desc' }
       };
 
       baseInclude.followUps = {
         select: {
           id: true,
-          type: true,
-          scheduledDate: true,
-          status: true,
+          followUpDate: true,
+          statusId: true,
           response: true,
           companyId: true
         },
-        orderBy: { scheduledDate: 'desc' }
+        orderBy: { followUpDate: 'desc' }
       };
     }
 

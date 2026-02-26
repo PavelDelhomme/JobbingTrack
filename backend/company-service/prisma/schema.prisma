@@ -122,6 +122,8 @@ model Company {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -313,6 +315,8 @@ model FollowUp {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -379,6 +383,8 @@ model Call {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -440,6 +446,8 @@ model Interview {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   deletedAt             DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -519,6 +527,8 @@ model Event {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
   
   // Relations
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -836,6 +846,7 @@ model InterviewStyle {
 model EventType {
   id                String              @id @default(cuid())
   userId            String?
+  code              String?
   name              String
   color             String?
   icon              String?
@@ -848,6 +859,7 @@ model EventType {
   
   @@unique([userId, name])
   @@index([userId])
+  @@index([code])
 }
 
 // Types d'appel (Sortant, Entrant, Manqué, etc.)

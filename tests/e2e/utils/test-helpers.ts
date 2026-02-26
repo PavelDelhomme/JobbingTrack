@@ -28,30 +28,32 @@ export interface TestApplication {
 }
 
 // Utilisateurs de test
+// ADMIN  : tests backoffice, administration, gestion utilisateurs
+// USER   : tests fonctionnels, app mobile, parcours candidat
 export const testUsers: Record<string, TestUser> = {
   admin: {
     email: 'admin@jobbingtrack.test',
-    password: 'admin123',
-    name: 'Admin Test',
+    password: 'password123',
+    name: 'Admin JobbingTrack',
     role: 'SUPER_ADMIN'
   },
   user: {
-    email: 'user@jobbingtrack.test',
-    password: 'user123',
-    name: 'User Test',
+    email: `user-e2e-${Date.now()}@jobbingtrack.test`,
+    password: 'TestPassword123!',
+    name: 'TestUser Fonctionnel',
     role: 'USER'
   },
   candidate: {
-    email: 'candidate@jobbingtrack.test',
-    password: 'candidate123',
-    name: 'Candidate Test',
-    role: 'CANDIDATE'
+    email: `candidate-e2e-${Date.now()}@jobbingtrack.test`,
+    password: 'TestPassword123!',
+    name: 'Candidat Test',
+    role: 'USER'
   },
   recruiter: {
-    email: 'recruiter@jobbingtrack.test',
-    password: 'recruiter123',
+    email: `recruiter-e2e-${Date.now()}@jobbingtrack.test`,
+    password: 'TestPassword123!',
     name: 'Recruiter Test',
-    role: 'RECRUITER'
+    role: 'USER'
   }
 };
 

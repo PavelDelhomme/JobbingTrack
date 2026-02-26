@@ -77,13 +77,20 @@ test_endpoint() {
     fi
 }
 
-# Obtenir un token (ne pas faire quitter le script si le login échoue)
+# Créer et obtenir un token utilisateur classique (rôle USER) pour tests fonctionnels
 get_token() {
-    echo -e "${YELLOW}Authentification...${NC}"
-    
-    LOGIN_DATA="{\"email\":\"admin@jobbingtrack.test\",\"password\":\"password123\"}"
-    test_endpoint "Login" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
-    
+    echo -e "${YELLOW}Authentification (utilisateur classique)...${NC}"
+
+    TEST_EMAIL="apitest-$(date +%s)@jobbingtrack.test"
+    TEST_PASSWORD="TestPassword123!"
+
+    # Inscription d'un utilisateur test
+    REGISTER_DATA="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\",\"firstName\":\"APITest\",\"lastName\":\"User\",\"phone\":\"+33600000000\"}"
+    curl -s -o /dev/null -X POST "$API_URL/api/v1/auth/register" -H "Content-Type: application/json" -d "$REGISTER_DATA" 2>/dev/null || true
+
+    LOGIN_DATA="{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
+    test_endpoint "Login utilisateur test" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
+
     if [ -f /tmp/response.txt ]; then
         if command -v node >/dev/null 2>&1; then
             TOKEN=$(node -e "try { const d=JSON.parse(require('fs').readFileSync('/tmp/response.txt','utf8')); process.stdout.write(d.token||''); } catch(e){}" 2>/dev/null)
@@ -91,7 +98,25 @@ get_token() {
         [ -z "$TOKEN" ] && TOKEN=$(python3 -c "import sys,json; print(json.load(open('/tmp/response.txt')).get('token',''), end='')" 2>/dev/null)
         [ -z "$TOKEN" ] && TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
         if [ -n "$TOKEN" ]; then
-            echo -e "${GREEN}   ✓ Token obtenu${NC}"
+            echo -e "${GREEN}   ✓ Token utilisateur test obtenu (rôle USER)${NC}"
+        fi
+    fi
+}
+
+# Obtenir un token admin (rôle SUPER_ADMIN) pour tests backoffice
+get_admin_token() {
+    echo -e "${YELLOW}Authentification admin...${NC}"
+    LOGIN_DATA="{\"email\":\"admin@jobbingtrack.test\",\"password\":\"password123\"}"
+    test_endpoint "Login admin" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200" "" || true
+
+    if [ -f /tmp/response.txt ]; then
+        if command -v node >/dev/null 2>&1; then
+            ADMIN_TOKEN=$(node -e "try { const d=JSON.parse(require('fs').readFileSync('/tmp/response.txt','utf8')); process.stdout.write(d.token||''); } catch(e){}" 2>/dev/null)
+        fi
+        [ -z "$ADMIN_TOKEN" ] && ADMIN_TOKEN=$(python3 -c "import sys,json; print(json.load(open('/tmp/response.txt')).get('token',''), end='')" 2>/dev/null)
+        [ -z "$ADMIN_TOKEN" ] && ADMIN_TOKEN=$(grep -o '"token":"[^"]*' /tmp/response.txt 2>/dev/null | cut -d'"' -f4)
+        if [ -n "$ADMIN_TOKEN" ]; then
+            echo -e "${GREEN}   ✓ Token admin obtenu (rôle SUPER_ADMIN)${NC}"
         fi
     fi
 }

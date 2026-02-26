@@ -1,0 +1,91 @@
+================================================================
+  RAPPORT DE TESTS - JobbingTrack
+  26/02/2026 16:19:34
+================================================================
+
+RESUME
+------
+  Categories  : 19
+  Total tests : 256
+  Reussis     : 249
+  Echoues     : 7
+  Ignores     : 1
+  Taux        : 97.3%
+
+DETAILS PAR CATEGORIE
+---------------------
+
+  Legende: [A]=Admin  [U]=User  [S]=System
+
+  [OK]   [U] User Journey (API) (2s)
+  [OK]   [S] Relations BDD (1s)
+  [OK]   [S] Enums (1s)
+  [OK]   [A] Email Logs (0s)
+  [FAIL] [S] Tests API Complets (Jest local) (5s)
+  [OK]   [S] Tests Backend Services (Jest local) (1s)
+  [OK]   [U] Tests API Backend (script - tous services) (2s)
+  [FAIL] [A] Playwright E2E Frontend (550s)
+  [OK]   [A] Playwright Emails MailHog (14s)
+  [FAIL] [U] Playwright Email Workflows (6s)
+  [FAIL] [A] Playwright CRUD Données (admin) (4s)
+  [FAIL] [A] Playwright CRUD Utilisateurs (admin) (4s)
+  [FAIL] [A] Playwright Sécurité Backoffice (admin) (3s)
+  [OK]   [S] Tests Frontend Jest (Unitaires) (3s)
+  [OK]   [U] Tests Performance (4s)
+  [OK]   [U] Tests Sécurité (1s)
+  [OK]   [U] Tests Intégration Système (3s)
+  [OK]   [S] Tests API Gateway Health (1s)
+  [OK]   [S] Tests Sécurité Firewall & WAF (API) (0s)
+
+TESTS ECHOUES
+-------------
+
+  --- Tests API Complets (Jest local) ---
+      console.error
+        > 187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+          189 |         expect(found).toBe(true);
+          at Object.error (api/test-bdd-relations.test.js:187:19)
+        Résultat entretien positif → OFFER_RECEIVED
+          ✓ mettre un résultat POSITIVE devrait passer la candidature en OFFER_RECEIVED (36 ms)
+    FAIL api/test-bdd-relations.test.js
+          ✕ supprimer la candidature devrait soft-delete les éléments liés (377 ms)
+        expect(received).toBe(expected) // Object.is equality
+        Expected: true
+        Received: false
+          187 |           console.error(`[BDD] Interview ${interviewId} non trouvé dans trash. Items: ${trashItems.map(i => i.id).join(', ')}`);
+        > 189 |         expect(found).toBe(true);
+    Test Suites: 1 failed, 5 passed, 6 total
+    Tests:       1 failed, 60 passed, 61 total
+
+  --- Playwright CRUD Données (admin) ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 500
+        Received array: [200, 201]
+        > 42 |     expect([200, 201]).toContain(res.status());
+          45 |     expect(companyId).toBeTruthy();
+      1 failed
+
+  --- Playwright Sécurité Backoffice (admin) ---
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 400
+        Received array: [200, 201]
+        > 55 |       expect([200, 201]).toContain(res.status());
+        Error: expect(received).toContain(expected) // indexOf
+        Expected value: 400
+        Received array: [200, 201]
+        > 121 |       expect([200, 201]).toContain(res.status());
+      2 failed
+
+  --- Playwright CRUD Utilisateurs (admin) ---
+        Error: expect(received).toBe(expected) // Object.is equality
+        Expected: 200
+        Received: 401
+        > 61 |     expect(res.status()).toBe(200);
+          63 |     expect(body.token).toBeTruthy();
+      1 failed
+
+================================================================
+  Rapports : tests/results/20260226-160924/
+  HTML     : report.html
+  Texte    : report.txt
+================================================================

@@ -1,10 +1,12 @@
+// Tests d'impersonation — utilise un administrateur (SUPER_ADMIN)
 import { test, expect } from '@playwright/test';
 import config from './test-config.js';
+import { loginAsAdmin } from './test-data-helper';
 
-test.describe('🎭 Tests d\'impersonnalisation - Interface Utilisateur', () => {
+test.describe('🎭 Tests d\'impersonnalisation - Interface Utilisateur (admin)', () => {
   test('👤 Création d\'utilisateur de test via interface', async ({ page }) => {
-    // Naviguer vers l'interface d'administration des tests
-    await page.goto('http://localhost:8080/backoffice/playwright-tests');
+    await loginAsAdmin(page);
+    await page.goto('/backoffice/playwright-tests');
 
     // Cliquer sur le bouton "Créer Utilisateur Test"
     await page.click('button:has-text("Créer Utilisateur Test")');
@@ -25,10 +27,9 @@ test.describe('🎭 Tests d\'impersonnalisation - Interface Utilisateur', () => 
   });
 
   test('🔄 Impersonnalisation utilisateur normal', async ({ page }) => {
-    // Naviguer vers l'interface d'administration des tests
-    await page.goto('http://localhost:8080/backoffice/playwright-tests');
+    await loginAsAdmin(page);
+    await page.goto('/backoffice/playwright-tests');
 
-    // Créer un utilisateur de test d'abord
     await page.click('button:has-text("Créer Utilisateur Test")');
     const testEmail = `testuser_${Date.now()}@jobbingtrack.test`;
     await page.fill('input[name="email"]', testEmail);

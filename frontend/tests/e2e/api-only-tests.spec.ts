@@ -7,7 +7,20 @@ const testHeaders = {
   'X-Test-Mode': 'true'
 };
 
+// Tests API fonctionnels — utilise un utilisateur classique (rôle USER)
 test.describe('🔗 Tests API uniquement - Fonctionnalités Backend', () => {
+  test.beforeAll(async ({ request }) => {
+    // Register the test user (regular USER) before running API tests
+    await request.post(`${config.apiUrl}/api/v1/auth/register`, {
+      data: {
+        email: config.testUser.email,
+        password: config.testUser.password,
+        firstName: config.testUser.firstName,
+        lastName: config.testUser.lastName,
+        phone: '+33600000000'
+      }
+    });
+  });
   test('📡 Authentification API', async ({ request }) => {
     // Test de l'API d'authentification
     const response = await request.post(`${config.apiUrl}/api/v1/auth/login`, {

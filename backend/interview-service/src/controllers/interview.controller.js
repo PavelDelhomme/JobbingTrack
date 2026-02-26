@@ -4,6 +4,48 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
+async function updateApplicationStatus(applicationId, statusCode, comment) {
+  try {
+    const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
+    if (!statusRow) return;
+    const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { statusId: true } });
+    if (!app || app.statusId === statusRow.id) return;
+    await prisma.applicationStatusHistory.create({
+      data: { applicationId, previousStatusId: app.statusId || null, newStatusId: statusRow.id, comment }
+    });
+    await prisma.application.update({ where: { id: applicationId }, data: { statusId: statusRow.id } });
+    logger.info(`Statut candidature ${applicationId} mis à jour → ${statusCode}`);
+  } catch (e) {
+    logger.warn(`Cascade statut candidature échouée (${statusCode}):`, e.message);
+  }
+}
+
+async function createAutoEvent(userId, data) {
+  try {
+    const eventType = await prisma.eventType.findFirst({ where: { code: data.typeCode || 'INTERVIEW' } })
+      ?? await prisma.eventType.findFirst();
+    await prisma.event.create({
+      data: {
+        userId,
+        title: data.title,
+        description: data.description || null,
+        startDate: data.startDate,
+        endDate: data.endDate || new Date(data.startDate.getTime() + 3600000),
+        allDay: false,
+        reminderEnabled: true,
+        reminderMinutes: data.reminderMinutes || 30,
+        applicationId: data.applicationId || null,
+        interviewId: data.interviewId || null,
+        eventTypeId: eventType?.id || null,
+        color: data.color || '#3B82F6'
+      }
+    });
+    logger.info(`Événement auto créé: ${data.title}`);
+  } catch (e) {
+    logger.warn('Auto-création événement échouée:', e.message);
+  }
+}
+
 const mapInterviewResponse = (interview) => ({
   ...interview,
   interviewDate: interview.interviewDate?.toISOString(),
@@ -90,6 +132,24 @@ const createInterview = async (req, res, next) => {
 
     logger.info(`Entretien ${interview.id} créé pour l'utilisateur ${userId}`);
 
+    await updateApplicationStatus(applicationId, 'INTERVIEW_PENDING', 'Entretien programmé automatiquement');
+
+    const interviewDateObj = new Date(interviewDate);
+    const companyName = interview.application?.company?.name || interview.company?.name || 'Entreprise';
+    await createAutoEvent(userId, {
+      title: `Entretien – ${companyName}`,
+      description: `Entretien prévu pour la candidature ${interview.application?.position || ''}`,
+      startDate: interviewDateObj,
+      endDate: req.body.estimatedDuration
+        ? new Date(interviewDateObj.getTime() + parseInt(req.body.estimatedDuration, 10) * 60000)
+        : new Date(interviewDateObj.getTime() + 3600000),
+      applicationId,
+      interviewId: interview.id,
+      typeCode: 'INTERVIEW',
+      reminderMinutes: 30,
+      color: '#3B82F6'
+    });
+
     res.status(201).json({
       success: true,
       interview: mapInterviewResponse(interview)
@@ -112,7 +172,7 @@ const getInterviews = async (req, res, next) => {
     try {
       [interviews, total] = await Promise.all([
         prisma.interview.findMany({
-          where: { userId },
+          where: { userId, deletedAt: null, isArchived: false },
           include: {
             application: {
               include: {
@@ -125,7 +185,7 @@ const getInterviews = async (req, res, next) => {
           skip,
           take: limitNum
         }),
-        prisma.interview.count({ where: { userId } })
+        prisma.interview.count({ where: { userId, deletedAt: null, isArchived: false } })
       ]);
     } catch (error) {
       // ✅ CORRECTION : Gérer les erreurs de colonne manquante (deletedAt, etc.)
@@ -177,7 +237,7 @@ const getInterview = async (req, res, next) => {
     const { id } = req.params;
 
     const interview = await prisma.interview.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null, isArchived: false },
       include: {
         application: {
           include: {
@@ -260,6 +320,43 @@ const updateInterview = async (req, res, next) => {
 
     logger.info(`Entretien ${id} mis à jour par ${userId}`);
 
+    if (statusId !== existingInterview.statusId) {
+      const newStatus = await prisma.interviewStatus.findUnique({ where: { id: statusId } });
+      if (newStatus) {
+        const code = newStatus.code?.toUpperCase();
+        if (code === 'COMPLETED') {
+          await updateApplicationStatus(
+            interview.applicationId || existingInterview.applicationId,
+            'INTERVIEW_DONE',
+            'Entretien terminé'
+          );
+        } else if (code === 'CANCELLED') {
+          await updateApplicationStatus(
+            interview.applicationId || existingInterview.applicationId,
+            'CANDIDATE_PENDING',
+            'Entretien annulé'
+          );
+        }
+      }
+    }
+
+    if (req.body.outcome) {
+      const outcome = req.body.outcome.toUpperCase();
+      if (outcome === 'POSITIVE') {
+        await updateApplicationStatus(
+          interview.applicationId || existingInterview.applicationId,
+          'OFFER_RECEIVED',
+          'Résultat entretien positif'
+        );
+      } else if (outcome === 'NEGATIVE') {
+        await updateApplicationStatus(
+          interview.applicationId || existingInterview.applicationId,
+          'REJECTED',
+          'Résultat entretien négatif'
+        );
+      }
+    }
+
     res.json({ success: true, interview: mapInterviewResponse(interview) });
   } catch (error) {
     logger.error('Erreur mise à jour entretien:', error);
@@ -272,17 +369,24 @@ const deleteInterview = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const existingInterview = await prisma.interview.findFirst({ where: { id, userId } });
+    const existingInterview = await prisma.interview.findFirst({ where: { id, userId, deletedAt: null } });
 
     if (!existingInterview) {
       return res.status(404).json({ success: false, error: 'Entretien non trouvé' });
     }
 
-    await prisma.interview.delete({ where: { id } });
+    const now = new Date();
+    await prisma.interview.update({ where: { id }, data: { deletedAt: now } });
 
-    logger.info(`Entretien ${id} supprimé pour l'utilisateur ${userId}`);
+    try {
+      await prisma.$executeRaw`UPDATE "Event" SET "deletedAt" = ${now} WHERE "interviewId" = ${id} AND "deletedAt" IS NULL`;
+    } catch (e) {
+      logger.warn('Cascade soft-delete événements échouée:', e.message);
+    }
 
-    res.json({ success: true, message: 'Entretien supprimé' });
+    logger.info(`Entretien ${id} mis à la corbeille par l'utilisateur ${userId}`);
+
+    res.json({ success: true, message: 'Entretien déplacé vers la corbeille' });
   } catch (error) {
     logger.error('Erreur suppression entretien:', error);
     next(error);

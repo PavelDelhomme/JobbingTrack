@@ -1,26 +1,26 @@
 {
   "admin": {
     "email": "admin@jobbingtrack.test",
-    "password": "admin123",
-    "name": "Admin Test",
-    "role": "admin"
+    "password": "password123",
+    "firstName": "Admin",
+    "lastName": "JobbingTrack",
+    "role": "SUPER_ADMIN",
+    "description": "Compte administrateur principal — tests backoffice uniquement"
   },
   "user": {
-    "email": "user@jobbingtrack.test",
-    "password": "user123",
-    "name": "User Test",
-    "role": "user"
+    "email": "user-test@jobbingtrack.test",
+    "password": "TestPassword123!",
+    "firstName": "TestUser",
+    "lastName": "Fonctionnel",
+    "role": "USER",
+    "description": "Utilisateur classique — tests fonctionnels (app mobile)"
   },
   "candidate": {
     "email": "candidate@jobbingtrack.test",
-    "password": "candidate123",
-    "name": "Candidate Test",
-    "role": "candidate"
-  },
-  "recruiter": {
-    "email": "recruiter@jobbingtrack.test",
-    "password": "recruiter123",
-    "name": "Recruiter Test",
-    "role": "recruiter"
+    "password": "TestPassword123!",
+    "firstName": "Candidat",
+    "lastName": "Test",
+    "role": "USER",
+    "description": "Candidat test — parcours complet candidature"
   }
 }

@@ -25,13 +25,21 @@ export async function POST(request: NextRequest) {
     const testScriptPath = join(projectRoot, 'tests', 'user-journey', 'test-custom-journey.js');
     const apiUrl = process.env.API_GATEWAY_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002';
 
+    const userMode = body.userMode || 'admin';
+
     const command = `cd "${projectRoot}" && node "${testScriptPath}" custom '${stepsJson}'`;
     const env: Record<string, string> = {
       ...process.env,
       API_URL: apiUrl,
       OUTPUT_JSON: 'true'
     };
-    if (token) env.TEST_TOKEN = token;
+
+    if (userMode === 'user') {
+      env.TEST_EMAIL = `testuser-journey-${Date.now()}@jobbingtrack.test`;
+      env.TEST_PASSWORD = 'TestPassword123!';
+    } else if (token) {
+      env.TEST_TOKEN = token;
+    }
 
     let stdout = '';
     let stderr = '';

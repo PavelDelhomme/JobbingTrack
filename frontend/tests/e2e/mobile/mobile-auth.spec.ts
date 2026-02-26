@@ -1,4 +1,6 @@
+// Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 import { test, expect, Page } from '@playwright/test';
+import { ensureTestUser } from '../test-data-helper';
 
 /**
  * Tests Mobile - Authentification
@@ -8,6 +10,12 @@ import { test, expect, Page } from '@playwright/test';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5003';
 
 test.describe('📱 Mobile - Authentification', () => {
+  let testCredentials: { email: string; password: string } | null = null;
+
+  test.beforeAll(async ({ request }) => {
+    testCredentials = await ensureTestUser(request);
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto(FRONTEND_URL);
@@ -30,8 +38,8 @@ test.describe('📱 Mobile - Authentification', () => {
     await page.goto('/login');
     
     // Remplir et soumettre
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
+    await page.fill('input[type="email"]', testCredentials?.email || 'admin@jobbingtrack.test');
+    await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
     
     // Vérifier la redirection
@@ -41,8 +49,8 @@ test.describe('📱 Mobile - Authentification', () => {
   test('Déconnexion - Mobile', async ({ page }) => {
     // Se connecter d'abord
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@jobbingtrack.test');
-    await page.fill('input[type="password"]', 'password123');
+    await page.fill('input[type="email"]', testCredentials?.email || 'admin@jobbingtrack.test');
+    await page.fill('input[type="password"]', testCredentials?.password || 'password123');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard**');
     

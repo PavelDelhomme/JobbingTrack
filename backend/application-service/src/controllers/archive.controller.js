@@ -178,26 +178,34 @@ const getArchivedApplications = async (req, res, next) => {
   }
 };
 
-// FONCTION POUR ARCHIVER LES ÉLÉMENTS LIÉS
-// Note: FollowUp, Interview, Call n'ont pas isArchived dans le schéma BDD partagé; seul Application.archived est utilisé.
+// Cascade : archiver tous les éléments liés à une candidature (isArchived)
 const archiveRelatedElements = async (applicationId, archivedBy, reason) => {
   try {
-    // Les activités restent visibles même si liées à une candidature archivée
-    logger.info(`Éléments liés archivés pour candidature: ${applicationId}`);
+    const now = new Date();
+    await Promise.all([
+      prisma.interview.updateMany({ where: { applicationId, isArchived: false }, data: { isArchived: true, archivedAt: now } }),
+      prisma.followUp.updateMany({ where: { applicationId, isArchived: false }, data: { isArchived: true, archivedAt: now } }),
+      prisma.call.updateMany({ where: { applicationId, isArchived: false }, data: { isArchived: true, archivedAt: now } }),
+      prisma.$executeRaw`UPDATE "Event" SET "isArchived" = true, "archivedAt" = ${now} WHERE "applicationId" = ${applicationId} AND "isArchived" = false`
+    ]);
+    logger.info(`Éléments liés archivés pour candidature: ${applicationId} (raison: ${reason || 'aucune'})`);
   } catch (error) {
-    logger.error('Erreur archivage éléments liés:', error);
-    throw error;
+    logger.warn('Cascade archivage partielle:', error.message);
   }
 };
 
-// FONCTION POUR RESTAURER LES ÉLÉMENTS LIÉS
-// Note: FollowUp, Interview, Call n'ont pas isArchived dans le schéma BDD partagé.
+// Cascade : désarchiver tous les éléments liés lors de la désarchivation
 const restoreRelatedElements = async (applicationId) => {
   try {
-    logger.info(`Éléments liés restaurés pour candidature: ${applicationId}`);
+    await Promise.all([
+      prisma.interview.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
+      prisma.followUp.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
+      prisma.call.updateMany({ where: { applicationId, isArchived: true }, data: { isArchived: false, archivedAt: null } }),
+      prisma.$executeRaw`UPDATE "Event" SET "isArchived" = false, "archivedAt" = NULL WHERE "applicationId" = ${applicationId} AND "isArchived" = true`
+    ]);
+    logger.info(`Éléments liés désarchivés pour candidature: ${applicationId}`);
   } catch (error) {
-    logger.error('Erreur restauration éléments liés:', error);
-    throw error;
+    logger.warn('Cascade désarchivage partielle:', error.message);
   }
 };
 
@@ -269,10 +277,131 @@ const deleteArchivedApplication = async (req, res, next) => {
   }
 };
 
+// --- CORBEILLE (soft delete via deletedAt) ---
+
+const getTrash = async (req, res, next) => {
+  try {
+    const items = await prisma.application.findMany({
+      where: {
+        userId: req.user.id,
+        deletedAt: { not: null }
+      },
+      include: {
+        company: true,
+        platform: true,
+        _count: { select: { interviews: true, followUps: true, calls: true } }
+      },
+      orderBy: { deletedAt: 'desc' }
+    });
+
+    res.json({ success: true, items, total: items.length });
+  } catch (error) {
+    logger.error('Erreur récupération corbeille candidatures:', error);
+    next(error);
+  }
+};
+
+const restoreFromTrash = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const item = await prisma.application.findFirst({
+      where: { id, userId: req.user.id, deletedAt: { not: null } }
+    });
+
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée dans la corbeille' });
+    }
+
+    await prisma.application.update({
+      where: { id },
+      data: { deletedAt: null }
+    });
+
+    // Cascade restore
+    await restoreRelatedElements(id);
+
+    logger.info(`Candidature ${id} restaurée depuis la corbeille par ${req.user.email}`);
+    res.json({ success: true, message: 'Candidature restaurée depuis la corbeille' });
+  } catch (error) {
+    logger.error('Erreur restauration candidature corbeille:', error);
+    next(error);
+  }
+};
+
+const permanentDeleteFromTrash = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const item = await prisma.application.findFirst({
+      where: { id, userId: req.user.id, deletedAt: { not: null } }
+    });
+
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Candidature non trouvée dans la corbeille' });
+    }
+
+    // Cascade: supprimer les événements liés
+    try {
+      await prisma.$executeRaw`DELETE FROM "Event" WHERE "applicationId" = ${id}`;
+    } catch (e) { logger.warn('Cascade événements:', e.message); }
+
+    await prisma.application.delete({ where: { id } });
+
+    logger.warn(`Candidature ${id} supprimée définitivement par ${req.user.email}`);
+    res.json({ success: true, message: 'Candidature supprimée définitivement' });
+  } catch (error) {
+    logger.error('Erreur suppression définitive candidature:', error);
+    next(error);
+  }
+};
+
+const emptyTrash = async (req, res, next) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trashedItems = await prisma.application.findMany({
+      where: {
+        userId: req.user.id,
+        deletedAt: { not: null, lt: thirtyDaysAgo }
+      },
+      select: { id: true }
+    });
+
+    for (const item of trashedItems) {
+      try {
+        await prisma.$executeRaw`DELETE FROM "Event" WHERE "applicationId" = ${item.id}`;
+      } catch (e) { /* ignore */ }
+    }
+
+    const result = await prisma.application.deleteMany({
+      where: {
+        userId: req.user.id,
+        deletedAt: { not: null, lt: thirtyDaysAgo }
+      }
+    });
+
+    logger.info(`Corbeille candidatures vidée: ${result.count} élément(s) par ${req.user.email}`);
+    res.json({
+      success: true,
+      deleted: result.count,
+      message: `${result.count} candidature(s) supprimée(s) définitivement`
+    });
+  } catch (error) {
+    logger.error('Erreur vidage corbeille candidatures:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   archiveApplication,
   restoreApplication,
   getArchivedApplications,
   getArchiveStats,
-  deleteArchivedApplication
+  deleteArchivedApplication,
+  getTrash,
+  restoreFromTrash,
+  permanentDeleteFromTrash,
+  emptyTrash
 };

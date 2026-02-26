@@ -106,21 +106,31 @@ if [ -f /tmp/response.txt ]; then
     fi
 fi
 
-# Login avec compte admin (pour avoir un SUPER_ADMIN)
-LOGIN_DATA="{\"email\":\"admin@jobbingtrack.test\",\"password\":\"password123\"}"
-test_endpoint "Login" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200"
+# Login avec l'utilisateur test créé ci-dessus (rôle USER — parcours fonctionnel)
+LOGIN_DATA="{\"email\":\"$REGISTER_EMAIL\",\"password\":\"Test123456\"}"
+test_endpoint "Login utilisateur test" "$API_URL/api/v1/auth/login" "POST" "$LOGIN_DATA" "200"
 
-# Extraction du token admin (plus robuste)
 if [ -f /tmp/response.txt ]; then
     TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
     if [ -z "$TOKEN" ]; then
-        echo -e "${YELLOW}   ⚠ Token non extrait, tentative avec grep...${NC}"
         TOKEN=$(cat /tmp/response.txt | grep -o '"token":"[^"]*' | cut -d'"' -f4)
     fi
     if [ -n "$TOKEN" ]; then
-        echo -e "${GREEN}   ✓ Token admin obtenu: ${TOKEN:0:20}...${NC}"
+        echo -e "${GREEN}   ✓ Token utilisateur test obtenu (rôle USER): ${TOKEN:0:20}...${NC}"
     else
         echo -e "${RED}   ✗ Impossible d'extraire le token${NC}"
+    fi
+fi
+
+# Login admin séparé (pour les tests qui nécessitent SUPER_ADMIN)
+ADMIN_TOKEN=""
+ADMIN_LOGIN_DATA="{\"email\":\"admin@jobbingtrack.test\",\"password\":\"password123\"}"
+test_endpoint "Login admin" "$API_URL/api/v1/auth/login" "POST" "$ADMIN_LOGIN_DATA" "200"
+if [ -f /tmp/response.txt ]; then
+    ADMIN_TOKEN=$(cat /tmp/response.txt | python3 -c "import sys, json; print(json.load(sys.stdin).get('token', ''))" 2>/dev/null || echo "")
+    [ -z "$ADMIN_TOKEN" ] && ADMIN_TOKEN=$(cat /tmp/response.txt | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+    if [ -n "$ADMIN_TOKEN" ]; then
+        echo -e "${GREEN}   ✓ Token admin obtenu (rôle SUPER_ADMIN): ${ADMIN_TOKEN:0:20}...${NC}"
     fi
 fi
 

@@ -38,6 +38,16 @@ SKIPPED=0
 
 # Marqueurs pour repérer facilement dans les logs (grep "[DB-PUSH-ALL]")
 echo "[DB-PUSH-ALL] Début — $(date '+%Y-%m-%dT%H:%M:%S%z')"
+
+# Nettoyage pré-push : supprimer les types enum résiduels qui entrent en conflit avec les tables
+echo "[DB-PUSH-ALL] Nettoyage types enum résiduels (FollowUpStatus)..."
+docker exec -i jobbingtrack-postgres psql -U "${POSTGRES_USER:-jobbingtrack}" -d "${POSTGRES_DB:-jobbingtrack}" -c "
+  DO \$\$ BEGIN
+    DROP TYPE IF EXISTS \"FollowUpStatus\" CASCADE;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END \$\$;
+" 2>/dev/null && echo "  OK (enum résiduel nettoyé ou absent)" || echo "  (ignoré)"
+echo ""
 echo ""
 echo "🛠️  db-push-all comporte 3 parties : (1) Prisma db push, (2) tables monitoring, (3) tables sécurité"
 echo ""
@@ -52,35 +62,49 @@ fi
 echo "✅ PostgreSQL est disponible"
 echo ""
 
-for service in "${SERVICES[@]}"; do
-  CONTAINER="jobbingtrack-${service}"
-  if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-    echo "  🔍 Vérification de ${service}..."
-    if docker exec "${CONTAINER}" test -f /app/prisma/schema.prisma 2>/dev/null; then
-      echo "  📦 Prisma db push sur ${service}..."
-      PUSH_OUTPUT=$(docker exec -w /app "${CONTAINER}" npx prisma db push --accept-data-loss 2>&1) || true
-      PUSH_EXIT=$?
-      if [ "$PUSH_EXIT" -eq 0 ] || echo "$PUSH_OUTPUT" | grep -q "already exists\|in sync\|Done in"; then
-        echo "  ✅ ${service} - Schéma synchronisé"
-        PUSHED=$((PUSHED + 1))
-      elif echo "$PUSH_OUTPUT" | grep -q "type.*already exists"; then
-        echo "  ⚠️  ${service} - Enums déjà existants (ignoré)"
-        PUSHED=$((PUSHED + 1))
-      else
-        echo "  ❌ ${service} - Échec de prisma db push"
-        echo "$PUSH_OUTPUT" | head -3 | sed 's/^/     /'
-        SKIPPED=$((SKIPPED + 1))
-      fi
+# ⚠️ IMPORTANT: Seul auth-service fait le db push car son schéma est le SUPERSET
+# de tous les modèles partagés (58 modèles). Pusher depuis d'autres services
+# avec --accept-data-loss DÉTRUIRAIT les tables qu'ils ne définissent pas
+# (ex: EmailLog, UserSession, SecurityLog, etc. seraient supprimées par
+# le push de company-service qui n'a que 27 modèles).
+PUSH_SERVICE="auth-service"
+PUSH_CONTAINER="jobbingtrack-${PUSH_SERVICE}"
+
+if docker ps --format '{{.Names}}' | grep -q "^${PUSH_CONTAINER}$"; then
+  echo "  🔍 Vérification de ${PUSH_SERVICE} (schéma maître, 58 modèles)..."
+  if docker exec "${PUSH_CONTAINER}" test -f /app/prisma/schema.prisma 2>/dev/null; then
+    echo "  📦 Prisma db push sur ${PUSH_SERVICE} (schéma complet)..."
+    PUSH_OUTPUT=$(docker exec -w /app "${PUSH_CONTAINER}" npx prisma db push --accept-data-loss 2>&1) || true
+    PUSH_EXIT=$?
+    if [ "$PUSH_EXIT" -eq 0 ] || echo "$PUSH_OUTPUT" | grep -q "already exists\|in sync\|Done in"; then
+      echo "  ✅ ${PUSH_SERVICE} - Schéma synchronisé (58 modèles)"
+      PUSHED=1
+    elif echo "$PUSH_OUTPUT" | grep -q "type.*already exists"; then
+      echo "  ⚠️  ${PUSH_SERVICE} - Enums déjà existants (ignoré)"
+      PUSHED=1
     else
-      echo "  ⏭️  ${service} - Pas de Prisma (ignoré)"
-      SKIPPED=$((SKIPPED + 1))
+      echo "  ❌ ${PUSH_SERVICE} - Échec de prisma db push"
+      echo "$PUSH_OUTPUT" | head -5 | sed 's/^/     /'
+      SKIPPED=1
     fi
   else
-    echo "  ⚠️  ${service} - Conteneur ${CONTAINER} non démarré (ignoré)"
-    SKIPPED=$((SKIPPED + 1))
+    echo "  ⏭️  ${PUSH_SERVICE} - Pas de Prisma (ignoré)"
+    SKIPPED=1
   fi
-  echo ""
+else
+  echo "  ⚠️  ${PUSH_SERVICE} - Conteneur ${PUSH_CONTAINER} non démarré (ignoré)"
+  SKIPPED=1
+fi
+echo ""
+
+# Les autres services ne font PAS de push — ils utilisent leur schema local
+# uniquement pour générer le client Prisma (fait au docker build).
+for service in "${SERVICES[@]}"; do
+  if [ "$service" != "$PUSH_SERVICE" ]; then
+    echo "  ⏭️  ${service} - Pas de push (schéma partiel, client généré au build)"
+  fi
 done
+echo ""
 
 # security-service, deployment-service et metrics-aggregator ne font PAS de db push ici :
 # leur schéma ne contient qu’une partie des tables ; un push supprimerait les autres.
@@ -153,8 +177,8 @@ fi
 
 echo "[DB-PUSH-ALL] Fin — $(date '+%Y-%m-%dT%H:%M:%S%z')"
 echo "✅ db-push-all terminé"
-echo "   📦 Prisma db push : $PUSHED service(s)"
-echo "   ⏭️  Ignorés / erreurs : $SKIPPED"
+echo "   📦 Prisma db push : auth-service uniquement (schéma maître, 58 modèles)"
+echo "   ⏭️  Autres services : client Prisma généré au build (pas de push destructif)"
 # Redémarrer metrics-aggregator pour qu'il recharge le schéma (évite « cached plan must not change result type » et « cache lookup failed for type »)
 if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-metrics-aggregator$'; then
   echo ""

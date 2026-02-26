@@ -275,13 +275,14 @@ const getApplications = async (req, res, next) => {
     let applications, total;
     try {
       const andArchived = includeArchived === 'true' ? '' : ' AND archived = false';
+      const andNotDeleted = ' AND "deletedAt" IS NULL';
       const countResult = await prisma.$queryRawUnsafe(
-        `SELECT COUNT(*)::int as count FROM "Application" WHERE "userId" = $1${andArchived}`,
+        `SELECT COUNT(*)::int as count FROM "Application" WHERE "userId" = $1${andArchived}${andNotDeleted}`,
         userId
       );
       total = Number(countResult?.[0]?.count ?? countResult?.[0]?.Count ?? 0);
       const applicationsRaw = await prisma.$queryRawUnsafe(
-        `SELECT * FROM "Application" WHERE "userId" = $1${andArchived} ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
+        `SELECT * FROM "Application" WHERE "userId" = $1${andArchived}${andNotDeleted} ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
         userId,
         parseInt(limit, 10) || 10,
         parseInt(offset, 10) || 0
@@ -419,14 +420,14 @@ const getApplication = async (req, res, next) => {
 
   try {
     const application = await prisma.application.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
       include: {
         company: true,
         platform: true,
         status: true,
-        interviews: { orderBy: { scheduledAt: 'asc' } },
-        followUps: { orderBy: { scheduledDate: 'desc' } },
-        activities: { orderBy: { createdAt: 'desc' }, take: 10 }
+        interviews: { where: { deletedAt: null }, orderBy: { interviewDate: 'asc' } },
+        followUps: { where: { deletedAt: null }, orderBy: { followUpDate: 'desc' } },
+        statusHistory: { orderBy: { changedAt: 'desc' }, take: 10 }
       }
     });
 
@@ -521,7 +522,7 @@ const deleteApplication = async (req, res, next) => {
     const { id } = req.params;
 
     const existingApplication = await prisma.application.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id, deletedAt: null }
     });
 
     if (!existingApplication) {
@@ -531,16 +532,30 @@ const deleteApplication = async (req, res, next) => {
       });
     }
 
-    await prisma.application.delete({
-      where: { id }
+    const now = new Date();
+    await prisma.application.update({
+      where: { id },
+      data: { deletedAt: now }
     });
+
+    // Cascade: soft-delete les éléments liés
+    try {
+      await Promise.all([
+        prisma.interview.updateMany({ where: { applicationId: id, deletedAt: null }, data: { deletedAt: now } }),
+        prisma.followUp.updateMany({ where: { applicationId: id, deletedAt: null }, data: { deletedAt: now } }),
+        prisma.call.updateMany({ where: { applicationId: id, deletedAt: null }, data: { deletedAt: now } }),
+        prisma.$executeRaw`UPDATE "Event" SET "deletedAt" = ${now} WHERE "applicationId" = ${id} AND "deletedAt" IS NULL`
+      ]);
+    } catch (e) {
+      logger.warn('Cascade soft-delete partielle:', e.message);
+    }
 
     res.json({
       success: true,
-      message: 'Candidature supprimée'
+      message: 'Candidature déplacée vers la corbeille'
     });
 
-    logger.info(`Candidature supprimée: ${id} par ${req.user.email}`);
+    logger.info(`Candidature ${id} mise à la corbeille par ${req.user.email}`);
   } catch (error) {
     logger.error('Erreur suppression candidature:', error);
     next(error);

@@ -40,6 +40,8 @@ const getTimeline = async (req, res, next) => {
 
     const where = {
       userId,
+      deletedAt: null,
+      isArchived: false,
       ...(entityType === 'application' && { applicationId: entityId }),
       ...(entityType === 'contact' && { contactId: entityId }),
       ...(entityType === 'followup' && { followUpId: entityId }),
@@ -74,12 +76,12 @@ const getAllEvents = async (req, res, next) => {
     try {
       [events, total] = await Promise.all([
         prisma.event.findMany({
-          where: { userId },
+          where: { userId, deletedAt: null, isArchived: false },
           orderBy: { startDate: 'desc' },
           skip,
           take: limitNum
         }),
-        prisma.event.count({ where: { userId } })
+        prisma.event.count({ where: { userId, deletedAt: null, isArchived: false } })
       ]);
     } catch (error) {
       const isTableMissing = error.code === 'P2021';
@@ -223,17 +225,17 @@ const deleteEvent = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const existingEvent = await prisma.event.findFirst({ where: { id, userId } });
+    const existingEvent = await prisma.event.findFirst({ where: { id, userId, deletedAt: null } });
 
     if (!existingEvent) {
       return res.status(404).json({ success: false, error: 'Événement non trouvé' });
     }
 
-    await prisma.event.delete({ where: { id } });
+    await prisma.event.update({ where: { id }, data: { deletedAt: new Date() } });
 
-    logger.info(`Événement ${id} supprimé pour l'utilisateur ${userId}`);
+    logger.info(`Événement ${id} mis à la corbeille par l'utilisateur ${userId}`);
 
-    res.json({ success: true, message: 'Événement supprimé' });
+    res.json({ success: true, message: 'Événement déplacé vers la corbeille' });
   } catch (error) {
     logger.error('Erreur suppression événement:', error);
     next(error);

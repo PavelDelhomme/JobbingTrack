@@ -69,6 +69,8 @@ type StepResult = {
   verifications?: Array<{ check: string; status: string; message: string }>;
 };
 
+type UserMode = 'admin' | 'user';
+
 export default function CustomJourneyPage() {
   const { token, isAuthenticated } = useAuth();
   const [steps, setSteps] = useState<CustomStep[]>([]);
@@ -76,6 +78,7 @@ export default function CustomJourneyPage() {
   const [results, setResults] = useState<StepResult[]>([]);
   const [journeyName, setJourneyName] = useState('Mon Parcours Personnalisé');
   const [reportSaved, setReportSaved] = useState(false);
+  const [userMode, setUserMode] = useState<UserMode>('user');
 
   const addStep = (stepId: string) => {
     const newStep: CustomStep = {
@@ -119,6 +122,7 @@ export default function CustomJourneyPage() {
         },
         body: JSON.stringify({
           name: journeyName,
+          userMode,
           steps: steps.map(s => ({
             step: s.stepId,
             options: s.options || {}
@@ -247,19 +251,61 @@ export default function CustomJourneyPage() {
           </div>
         </div>
 
-        {/* Nom du parcours */}
+        {/* Configuration : nom + type d'utilisateur */}
         <Card>
           <CardHeader>
-            <CardTitle>Nom du Parcours</CardTitle>
+            <CardTitle>Configuration du Parcours</CardTitle>
           </CardHeader>
-          <CardContent>
-            <input
-              type="text"
-              value={journeyName}
-              onChange={(e) => setJourneyName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Nom de votre parcours"
-            />
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom</label>
+              <input
+                type="text"
+                value={journeyName}
+                onChange={(e) => setJourneyName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Nom de votre parcours"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type d&apos;utilisateur</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setUserMode('user')}
+                  className={`p-3 rounded-lg border-2 text-left transition-all ${
+                    userMode === 'user'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👤</span>
+                    <span className="font-medium text-gray-900 dark:text-white">Utilisateur</span>
+                    {userMode === 'user' && <Badge className="ml-auto bg-blue-500">Actif</Badge>}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Crée un compte test (rôle USER). Simule l&apos;usage réel de l&apos;app mobile.
+                  </p>
+                </button>
+                <button
+                  onClick={() => setUserMode('admin')}
+                  className={`p-3 rounded-lg border-2 text-left transition-all ${
+                    userMode === 'admin'
+                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🛡️</span>
+                    <span className="font-medium text-gray-900 dark:text-white">Admin</span>
+                    {userMode === 'admin' && <Badge className="ml-auto bg-orange-500">Actif</Badge>}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Utilise le compte admin connecté. Pour tester le backoffice.
+                  </p>
+                </button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
