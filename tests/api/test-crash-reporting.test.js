@@ -1,6 +1,10 @@
 /**
  * Tests API pour le systeme de crash reporting
  * Couvre : envoi crash report, validation, lecture, anonymisation, email
+ *
+ * Email : le backend envoie l'email a CRASH_REPORT_EMAIL (env, defaut infos@example.invalid).
+ * Avec MailHog (SMTP localhost:1025), les emails sont visibles dans http://localhost:8025.
+ * Pour les tests utilisateur : CRASH_REPORT_EMAIL=candidatures@example.invalid dans .env si besoin.
  */
 
 const axios = require('axios');

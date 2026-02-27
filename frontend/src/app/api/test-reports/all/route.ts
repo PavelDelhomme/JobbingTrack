@@ -303,9 +303,11 @@ async function scanTestsResults(dir: string): Promise<TestReport[]> {
           totalFailed = vulns
         }
       }
-      // Cohérence globale : total = passed + failed (évite affichage "1 exécuté, 1 réussi, 2 échoués")
+      // Cohérence globale : si totalTests est 0 ou absent, utiliser passed+failed+skipped ; sinon garder totalTests du rapport (ex. 776 = 774+2)
       const sum = totalPassed + totalFailed
-      if (sum > 0 && totalTests !== sum) totalTests = sum
+      const sumWithSkipped = sum + totalSkipped
+      if (totalTests === 0 && sumWithSkipped > 0) totalTests = sumWithSkipped
+      if (totalTests === 0 && sum > 0) totalTests = sum
 
       // Déterminer le statut (éviter "unknown" : utiliser testResults[0].status si totalTests === 0)
       let status: 'success' | 'failed' | 'partial' | 'unknown' = 'partial'

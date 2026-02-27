@@ -133,6 +133,16 @@ export async function GET(request: NextRequest) {
 
     // Lire le contenu
     let content = await readFile(fullPath, 'utf-8')
+
+    // Sanitizer le HTML pour l’iframe : éviter "Uncaught SyntaxError: string literal contains an unescaped line break"
+    // en échappant les retours à la ligne uniquement dans les chaînes (guillemets) des scripts
+    content = content.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, body) => {
+      const escapedBody = body.replace(
+        /("(?:[^"\\]|\\.|[\r\n])*"|'(?:[^'\\]|\\.|[\r\n])*')/g,
+        (strLiteral: string) => strLiteral.replace(/\r\n?|\n/g, '\\n').replace(/\r/g, '')
+      )
+      return match.slice(0, match.indexOf('>') + 1) + escapedBody + '</script>'
+    })
     
     // Si c'est un JSON (rapport performance), générer un HTML
     if (fullPath.endsWith('.json')) {

@@ -62,8 +62,16 @@ test.describe('Workflows Email Complets', () => {
         const verifyLink = links.find((u) => /verify|confirm|email/i.test(u));
 
         if (verifyLink) {
-          const verifyRes = await request.get(verifyLink);
-          expect([200, 302]).toContain(verifyRes.status());
+          // Extraire le token (lien frontend: .../verify-email?token=xxx ou backend: .../verify-email/xxx)
+          const tokenMatch = verifyLink.match(/[?&]token=([a-zA-Z0-9_-]+)/) || verifyLink.match(/\/verify-email\/([a-zA-Z0-9_-]+)/);
+          const token = tokenMatch ? tokenMatch[1] : null;
+          if (token) {
+            const verifyRes = await request.get(`${GATEWAY_URL}/api/v1/auth/verify-email/${token}`);
+            expect([200, 302]).toContain(verifyRes.status());
+          } else {
+            const verifyRes = await request.get(verifyLink);
+            expect([200, 302]).toContain(verifyRes.status());
+          }
         }
       }
     });

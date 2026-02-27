@@ -38,19 +38,33 @@ class CronScheduler {
       await this.sendFollowupReminders();
     });
 
-    // ✅ Notifications "Penser à relancer" (candidatures > 7j sans réponse) à 9h30
+    // ✅ Notifications "Penser à relancer" (candidatures > 7j sans réponse) + transition auto → NO_RESPONSE à 9h30
     cron.schedule('30 9 * * *', async () => {
-      console.log('📋 Sending application reminders (no response > 7 days)...');
+      console.log('📋 Sending application reminders (no response > 7 days) + auto transition...');
       await this.sendApplicationReminders();
     });
 
-    console.log('⏰ Cron scheduler started with 6 jobs');
+    // ✅ 3.2b - Notification "Relance sans réponse" (> 5j après une relance) à 10h15
+    cron.schedule('15 10 * * *', async () => {
+      console.log('📧 Sending follow-up no-response reminders...');
+      await this.sendFollowUpNoResponseReminders();
+    });
+
+    // ✅ 3.2b - Notification "Retour entretien attendu" (entretien passé sans feedback) à 8h15
+    cron.schedule('15 8 * * *', async () => {
+      console.log('📅 Sending interview feedback reminders...');
+      await this.sendInterviewFeedbackReminders();
+    });
+
+    console.log('⏰ Cron scheduler started with 8 jobs');
     console.log('   - Pending workflow executions: every hour');
     console.log('   - Auto-followup check: daily at 9:00');
     console.log('   - Trash auto-clean: daily at 2:00');
     console.log('   - Interview reminders: daily at 8:00');
-    console.log('   - Application reminders (7d): daily at 9:00');
+    console.log('   - Application reminders (7d) + transition NO_RESPONSE: daily at 9:30');
     console.log('   - Followup reminders: daily at 10:00');
+    console.log('   - Follow-up no-response reminders: daily at 10:15');
+    console.log('   - Interview feedback reminders: daily at 8:15');
   }
 
   async processPendingExecutions() {
@@ -385,12 +399,14 @@ class CronScheduler {
 
   /**
    * Notifications "Penser à relancer" pour candidatures sans réponse > 7 jours.
+   * 3.2b : Transition automatique CANDIDATE_PENDING → NO_RESPONSE pour ces candidatures.
    */
   async sendApplicationReminders() {
     try {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const statusPending = await prisma.applicationStatus.findFirst({ where: { code: 'CANDIDATE_PENDING' } });
-      if (!statusPending) return;
+      const statusNoResponse = await prisma.applicationStatus.findFirst({ where: { code: 'NO_RESPONSE' } });
+      if (!statusPending || !statusNoResponse) return;
 
       const applications = await prisma.application.findMany({
         where: {
@@ -398,10 +414,11 @@ class CronScheduler {
           statusId: statusPending.id,
           applicationDate: { lt: sevenDaysAgo }
         },
-        select: { id: true, userId: true, position: true, company: { select: { name: true } } }
+        select: { id: true, userId: true, position: true, statusId: true, company: { select: { name: true } } }
       });
 
-      let created = 0;
+      let notificationsCreated = 0;
+      let transitionsCount = 0;
       for (const app of applications) {
         try {
           await prisma.notification.create({
@@ -414,14 +431,143 @@ class CronScheduler {
               entityId: app.id
             }
           });
-          created++;
+          notificationsCreated++;
+
+          // 3.2b - Transition automatique vers NO_RESPONSE
+          try {
+            await prisma.applicationStatusHistory.create({
+              data: {
+                applicationId: app.id,
+                previousStatusId: app.statusId,
+                newStatusId: statusNoResponse.id,
+                comment: 'Transition automatique (candidature sans réponse > 7 jours)'
+              }
+            });
+            await prisma.application.update({
+              where: { id: app.id },
+              data: { statusId: statusNoResponse.id }
+            });
+            transitionsCount++;
+          } catch (e) {
+            console.warn(`   Transition NO_RESPONSE pour ${app.id}:`, e.message);
+          }
         } catch (e) {
           console.warn('   Notification relance candidature:', e.message);
         }
       }
-      console.log(`   📋 ${created} notifications "Penser à relancer" créées`);
+      console.log(`   📋 ${notificationsCreated} notifications "Penser à relancer" créées, ${transitionsCount} transitions → NO_RESPONSE`);
     } catch (error) {
       console.error('❌ Erreur notifications candidatures:', error);
+    }
+  }
+
+  /**
+   * 3.2b - Notification "Relance sans réponse" : relance effectuée il y a > 5 jours, toujours pas de réponse.
+   */
+  async sendFollowUpNoResponseReminders() {
+    try {
+      const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+      const noResponseStatusCodes = ['CANDIDATE_PENDING', 'NO_RESPONSE', 'NO_RESPONSE_AFTER_FIRST_FOLLOWUP', 'NO_RESPONSE_AFTER_SECOND_FOLLOWUP'];
+      const statuses = await prisma.applicationStatus.findMany({
+        where: { code: { in: noResponseStatusCodes } },
+        select: { id: true }
+      });
+      const statusIds = statuses.map(s => s.id);
+      if (statusIds.length === 0) return;
+
+      // Candidatures dont la dernière relance date de plus de 5 jours et statut toujours "sans réponse"
+      const applications = await prisma.application.findMany({
+        where: {
+          deletedAt: null,
+          statusId: { in: statusIds },
+          followUps: {
+            some: {
+              deletedAt: null,
+              followUpDate: { lt: fiveDaysAgo }
+            }
+          }
+        },
+        include: {
+          company: { select: { name: true } },
+          followUps: {
+            where: { deletedAt: null },
+            orderBy: { followUpDate: 'desc' },
+            take: 1
+          }
+        }
+      });
+
+      let created = 0;
+      for (const app of applications) {
+        const lastFu = app.followUps?.[0];
+        if (!lastFu || lastFu.followUpDate >= fiveDaysAgo) continue;
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: app.userId,
+              type: 'REMINDER',
+              title: 'Relance sans réponse',
+              message: `Relance effectuée il y a plus de 5 jours pour "${app.position}" chez ${app.company?.name ?? '?'} — toujours pas de réponse.`,
+              entityType: 'Application',
+              entityId: app.id
+            }
+          });
+          created++;
+        } catch (e) {
+          console.warn('   Notification relance sans réponse:', e.message);
+        }
+      }
+      console.log(`   📧 ${created} notifications "Relance sans réponse" créées`);
+    } catch (error) {
+      console.error('❌ Erreur notifications relance sans réponse:', error);
+    }
+  }
+
+  /**
+   * 3.2b - Notification "Retour entretien attendu" : entretien passé, délai de retour dépassé (ou 7j) sans feedback.
+   */
+  async sendInterviewFeedbackReminders() {
+    try {
+      const now = new Date();
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+      const interviews = await prisma.interview.findMany({
+        where: {
+          deletedAt: null,
+          feedbackReceived: false,
+          OR: [
+            { feedbackExpectedTo: { lt: now } },
+            { interviewDate: { lt: new Date(now.getTime() - sevenDaysMs) } }
+          ]
+        },
+        include: {
+          application: { select: { userId: true, position: true }, include: { company: { select: { name: true } } } }
+        }
+      });
+
+      let created = 0;
+      for (const iv of interviews) {
+        const userId = iv.application?.userId;
+        if (!userId) continue;
+        try {
+          await prisma.notification.create({
+            data: {
+              userId,
+              type: 'REMINDER',
+              title: 'Retour entretien attendu',
+              message: `Retour attendu pour l'entretien "${iv.application?.position ?? 'candidature'}" (${iv.application?.company?.name ?? ''}) — délai dépassé.`,
+              entityType: 'Interview',
+              entityId: iv.id
+            }
+          });
+          created++;
+        } catch (e) {
+          console.warn('   Notification retour entretien:', e.message);
+        }
+      }
+      console.log(`   📅 ${created} notifications "Retour entretien attendu" créées`);
+    } catch (error) {
+      console.error('❌ Erreur notifications retour entretien:', error);
     }
   }
 
