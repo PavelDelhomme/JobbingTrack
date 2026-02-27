@@ -24,10 +24,14 @@ router.use(authenticate);
 router.post('/', createValidation, controller.createNotification);
 router.get('/', controller.getNotifications);
 router.get('/stats', controller.getStats);
-router.get('/:id', param('id').isString(), controller.getNotification);
-router.delete('/:id', param('id').isString(), controller.deleteNotification);
-router.put('/:id/mark-read', param('id').isString(), controller.markAsRead);
 router.put('/mark-all-read', controller.markAllAsRead);
+
+// Routes crash reporting (avant /:id pour eviter conflit)
+router.post('/crashes', [
+  body('crashType').notEmpty().withMessage('Type de crash requis'),
+  body('message').notEmpty().withMessage('Message requis')
+], controller.reportCrash);
+router.get('/crashes', controller.getCrashReports);
 
 // Routes emails
 router.get('/emails/logs', controller.getEmailLogs);
@@ -46,5 +50,10 @@ router.post('/reminders/automated', [
 ], controller.createAutomatedReminder);
 router.put('/reminders/automated/:id', param('id').isString(), controller.updateAutomatedReminder);
 router.delete('/reminders/automated/:id', param('id').isString(), controller.deleteAutomatedReminder);
+
+// Routes avec parametres dynamiques (en dernier)
+router.get('/:id', param('id').isString(), controller.getNotification);
+router.delete('/:id', param('id').isString(), controller.deleteNotification);
+router.put('/:id/mark-read', param('id').isString(), controller.markAsRead);
 
 module.exports = router;

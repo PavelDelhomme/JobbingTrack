@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
-import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/screens/application_form_screen.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -61,8 +61,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navigate to create application
+        onPressed: () async {
+          final result = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => const ApplicationFormScreen()),
+          );
+          if (result == true) _loadApplications();
         },
         backgroundColor: Colors.blue[600],
         child: const Icon(Icons.add),
@@ -191,14 +194,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      // Ouvrir les détails de la candidature
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ouverture des détails de ${application.position}'),
-                          duration: const Duration(seconds: 2),
+                    onTap: () async {
+                      final result = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => ApplicationFormScreen(application: application),
                         ),
                       );
+                      if (result == true) _loadApplications();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

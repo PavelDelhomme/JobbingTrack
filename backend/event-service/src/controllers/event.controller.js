@@ -183,8 +183,7 @@ const updateEvent = async (req, res, next) => {
     }
 
     try {
-      const application = await ensureApplicationOwnership(userId, req.body.applicationId);
-      await ensureContactOwnership(userId, req.body.contactId);
+      const application = req.body.applicationId ? await ensureApplicationOwnership(userId, req.body.applicationId) : null;
 
       const event = await prisma.event.update({
         where: { id },
@@ -197,8 +196,11 @@ const updateEvent = async (req, res, next) => {
           applicationId: req.body.applicationId ?? existingEvent.applicationId,
           interviewId: req.body.interviewId ?? existingEvent.interviewId,
           followUpId: req.body.followUpId ?? existingEvent.followUpId,
-          contactId: req.body.contactId ?? existingEvent.contactId,
-          companyId: application?.companyId ?? existingEvent.companyId
+          callId: req.body.callId ?? existingEvent.callId,
+          reminderEnabled: req.body.reminderEnabled !== undefined ? Boolean(req.body.reminderEnabled) : existingEvent.reminderEnabled,
+          reminderMinutes: req.body.reminderMinutes !== undefined ? (req.body.reminderMinutes != null ? parseInt(req.body.reminderMinutes, 10) : null) : existingEvent.reminderMinutes,
+          color: req.body.color ?? existingEvent.color,
+          eventTypeId: req.body.eventTypeId ?? existingEvent.eventTypeId
         }
       });
 

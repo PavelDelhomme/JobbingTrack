@@ -172,8 +172,8 @@ describe('Relations BDD & Intégrité (utilisateur classique)', () => {
       const delRes = await api('delete', `applications/${applicationId}`);
       expect(delRes.status).toBe(200);
 
-      // Petit délai pour laisser la cascade s'exécuter
-      await new Promise(r => setTimeout(r, 300));
+      // Délai pour laisser la cascade soft-delete s'exécuter (application-service → interview-service même BDD)
+      await new Promise(r => setTimeout(r, 500));
 
       const intRes = await api('get', 'interviews/trash');
       if (intRes.status !== 200) {

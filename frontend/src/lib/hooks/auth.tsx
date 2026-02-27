@@ -368,10 +368,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // API error
           errorMessage = error.response.data?.error || error.response.statusText || 'Server error';
           
-          // Authentication errors - no retry
+          // Authentication errors - no retry, use API message (e.g. "Invalid email or password")
           if (error.response.status === 401 || error.response.status === 403) {
             setLoading(false);
-            throw new Error('Invalid credentials');
+            throw new Error(errorMessage || 'Invalid credentials');
           }
           
           // Validation errors

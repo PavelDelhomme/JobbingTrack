@@ -323,7 +323,10 @@ const updateFollowup = async (req, res, next) => {
         companyId,
         followUpDate: dateValue ? new Date(dateValue) : existingFollowup.followUpDate,
         notes: req.body.notes ?? existingFollowup.notes,
-        statusId: statusIdToUse
+        response: req.body.response ?? existingFollowup.response,
+        statusId: statusIdToUse,
+        followUpTypeId: req.body.followUpTypeId ?? existingFollowup.followUpTypeId,
+        followUpMethodId: req.body.followUpMethodId ?? existingFollowup.followUpMethodId
       },
       include: {
         application: {

@@ -1,7 +1,9 @@
 // ============================================
-// SCHÉMA PRISMA PARTAGÉ - JobbingTrack (notification-service)
+// SCHÉMA PRISMA PARTAGÉ - JobbingTrack
 // ============================================
-// Modèle Notification complet aligné avec le schéma partagé (application-service, auth-service)
+// Ce schéma unique est utilisé par TOUS les services
+// Il n'y a qu'UNE SEULE base de données PostgreSQL
+// Pas de duplication, toutes les relations sont réelles
 
 generator client {
   provider = "prisma-client-js"
@@ -13,67 +15,1684 @@ datasource db {
 }
 
 // ============================================
-// 👤 USER (minimal pour relation Notification)
+// 👤 UTILISATEURS & AUTHENTIFICATION
 // ============================================
 
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
-  password String
-  firstName String
-  lastName  String
-  phone    String?
-  profilePicture String?
-  role     String  @default("USER")
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  firstName         String
+  lastName          String
+  phone             String?
+  profilePicture    String?
+  
+  // Authentification
+  authToken         String?
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  verificationToken String?   @unique
+  verificationTokenExpiry DateTime?
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+  
+  // Rôle et statut
+  role              UserRole  @default(USER)
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  loginCount        Int       @default(0)
+  
+  // Préférences
+  theme             String?   @default("light")
+  language          String?   @default("fr")
+  timezone          String?   @default("Europe/Paris")
+  notificationsEnabled Boolean @default(true)
 
-  notifications Notification[]
-
+  // Données de test (filtre données test cohérent)
+  isTestData Boolean @default(false)
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // Soft delete
+  
+  // Relations
+  profile           Profile?
+  applications      Application[]
+  companies         Company[]
+  contacts          Contact[]
+  followUps         FollowUp[]
+  calls             Call[]
+  interviews        Interview[]
+  events            Event[]
+  notifications     Notification[]
+  documents         Document[]
+  syncQueue         SyncQueue[]
+  emailLogs         EmailLog[]          // Logs des emails envoyés
+  
+  // Relations Analytics & Tracking
+  sessions          UserSession[]
+  userEvents        UserEvent[]
+  userErrors        UserError[]
+  userPerformances  UserPerformance[]
+  devices           DeviceInfo[]
+  
   @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@index([isTestData])
 }
 
 // ============================================
-// 🔔 NOTIFICATIONS (modèle partagé complet)
+// 👤 PROFIL UTILISATEUR (lié à User)
 // ============================================
 
-model Notification {
-  id     String @id @default(cuid())
-  userId String
+model Profile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  bio          String?
+  headline     String?
+  avatarUrl    String?
+  linkedinUrl  String?
+  githubUrl    String?
+  website      String?
+  preferences  Json?
 
-  // Contenu
-  title   String
-  message String
-  type    NotificationType
-
-  // État
-  read   Boolean   @default(false)
-  readAt DateTime?
-
-  // Lien vers entité
-  entityType String? // Application, Interview, etc.
-  entityId   String?
-  data       Json?   // Données supplémentaires
-
-  // Timestamps
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relation
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  TESTER
+}
+
+// ============================================
+// 🏢 ENTREPRISES
+// ============================================
+
+model Company {
+  id                String    @id @default(cuid())
+  userId            String
+  name              String
+  website           String?
+  industry          String?   // Secteur d'activité
+  size              CompanySize?
+  location          String?
+  address           String?
+  city              String?
+  postalCode        String?
+  country           String?   @default("France")
+  logoUrl           String?
+  description       String?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications      Application[]
+  contacts          ContactCompany[]  // Many-to-many
+  followUps         FollowUp[]
+  calls             Call[]
+  interviews        Interview[]
+  
+  @@index([userId])
+  @@index([name])
+}
+
+enum CompanySize {
+  STARTUP           // < 10
+  SMALL             // 10-50
+  MEDIUM            // 50-250
+  LARGE             // 250-1000
+  ENTERPRISE        // > 1000
+}
+
+// ============================================
+// 📄 CANDIDATURES
+// ============================================
+
+model Application {
+  id                    String              @id @default(cuid())
+  userId                String
+  companyId             String
+  platformId            String?             // Plateforme de candidature (personnalisable)
+  
+  // Informations de l'offre
+  position              String              // Intitulé du poste
+  description           String?             // Description du poste
+  jobUrl                String?             // URL de l'offre
+  location              String?             // Lieu du poste
+  contractType          ContractType        @default(CDI)
+  workMode              WorkMode?           // Présentiel/Distanciel/Hybride
+  
+  // Candidature
+  applicationDate       DateTime            @default(now())
+  applicationType       ApplicationType     @default(OFFRE) // Spontanée ou à une offre
+  statusId              String              // Relation vers ApplicationStatus (BDD)
+  
+  // Rémunération
+  salaryMin             Int?                // en euros/an
+  salaryMax             Int?                // en euros/an
+  salaryNegotiable      Boolean             @default(false)
+  
+  // Notes et suivi (colonne BDD : archived)
+  notes                 String?
+  isArchived            Boolean             @default(false) @map("archived")
+  archivedAt            DateTime?
+  
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  
+  // Relations
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company               Company             @relation(fields: [companyId], references: [id])
+  platform              Platform?           @relation(fields: [platformId], references: [id])
+  status                ApplicationStatus   @relation(fields: [statusId], references: [id])
+  
+  contacts              ContactApplication[] // Many-to-many
+  followUps             FollowUp[]
+  calls                 Call[]
+  interviews            Interview[]
+  events                Event[]
+  documents             Document[]
+  statusHistory         ApplicationStatusHistory[]
+  
+  @@index([userId])
+  @@index([companyId])
+  @@index([statusId])
+  @@index([applicationDate])
+}
+
+enum ContractType {
+  CDI                   // Contrat à Durée Indéterminée
+  CDD                   // Contrat à Durée Déterminée
+  ALTERNANCE            // Alternance
+  STAGE                 // Stage
+  FREELANCE             // Freelance
+  INTERIM               // Intérim
+  SAISONNIER            // Saisonnier
+}
+
+enum WorkMode {
+  ON_SITE               // Présentiel
+  REMOTE                // Distanciel
+  HYBRID                // Hybride
+}
+
+enum ApplicationType {
+  OFFRE                 // Candidature à une offre
+  SPONTANEE             // Candidature spontanée
+}
+
+// Table ApplicationStatus (aligné BDD – statusId sur Application)
+model ApplicationStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  applications            Application[]
+  previousStatusHistories ApplicationStatusHistory[] @relation("PreviousStatus")
+  newStatusHistories      ApplicationStatusHistory[] @relation("NewStatus")
+  @@index([code])
+}
+
+// ============================================
+// 👥 CONTACTS
+// ============================================
+
+model Contact {
+  id                String              @id @default(cuid())
+  userId            String
+  firstName         String
+  lastName          String
+  position          String?             // Fonction
+  email             String?
+  phone             String?
+  linkedinUrl       String?
+  notes             String?
+  
+  // Champs d'archivage
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  archivedReason    String?
+  
+  // Données de test et sync (filtre données test cohérent)
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  companies         ContactCompany[]        // Many-to-many avec Company
+  applications      ContactApplication[]    // Many-to-many avec Application
+  followUps         FollowUpContact[]       // Many-to-many avec FollowUp
+  interviews        InterviewContact[]      // Many-to-many avec Interview
+  calls             Call[]                  // One-to-many
+  
+  @@index([userId])
+  @@index([email])
+  @@index([lastName, firstName])
+  @@index([isTestData])
+}
+
+// ============================================
+// 🔄 RELANCES (FollowUps)
+// ============================================
+
+model FollowUp {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String
+  companyId         String
+  followUpTypeId    String?
+  followUpMethodId  String?
+  
+  followUpDate      DateTime
+  statusId          String              // Relation vers FollowUpStatus (table *Status)
+  response          String?
+  notes             String?
+  
+  // Données de test et sync
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company           Company             @relation(fields: [companyId], references: [id])
+  followUpType      FollowUpType?       @relation(fields: [followUpTypeId], references: [id])
+  followUpMethod    FollowUpMethod?     @relation(fields: [followUpMethodId], references: [id])
+  status            FollowUpStatus      @relation(fields: [statusId], references: [id])
+  
+  contacts          FollowUpContact[]   // Many-to-many
+  calls             Call[]
+  events            Event[]
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([statusId])
+  @@index([followUpDate])
+  @@index([isTestData])
+}
+
+// Table FollowUpStatus (statuts personnalisables, aligné BDD)
+model FollowUpStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  followUps   FollowUp[]
+  @@index([code])
+}
+
+// ============================================
+// 📞 APPELS
+// ============================================
+
+model Call {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String?
+  companyId         String?
+  followUpId        String?
+  contactId         String?
+  callTypeId        String?             // Type d'appel (personnalisable)
+  
+  // Informations de l'appel
+  callDate          DateTime
+  duration          Int?                // Durée en minutes
+  subject           String              // Objet de l'appel
+  notes             String?
+  status            CallStatus          @default(COMPLETED)
+  
+  // Données de test et sync
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  company           Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  followUp          FollowUp?           @relation(fields: [followUpId], references: [id], onDelete: SetNull)
+  contact           Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  callType          CallType?           @relation(fields: [callTypeId], references: [id])
+  
+  events            Event[]
+  
+  @@index([userId])
+  @@index([callDate])
+  @@index([status])
+  @@index([isTestData])
+}
+
+enum CallStatus {
+  SCHEDULED                 // Programmé
+  COMPLETED                 // Effectué
+  MISSED                    // Manqué
+  CANCELLED                 // Annulé
+}
+
+// ============================================
+// 💼 ENTRETIENS
+// ============================================
+
+model Interview {
+  id                    String              @id @default(cuid())
+  userId                String
+  applicationId         String
+  companyId             String
+  interviewTypeId       String?             // Type d'entretien (personnalisable)
+  interviewStyleId      String?             // Style d'entretien (personnalisable)
+  
+  // Informations de l'entretien
+  interviewDate         DateTime
+  estimatedDuration     Int?                // Durée estimée en minutes
+  location              String?             // Lieu physique
+  videoLink             String?             // Lien visio
+  statusId              String              // Relation vers InterviewStatus (BDD)
+  
+  // Retour attendu
+  feedbackExpectedFrom  DateTime?           // Début plage de retour
+  feedbackExpectedTo    DateTime?           // Fin plage de retour
+  feedbackReceived      Boolean             @default(false)
+  
+  // Résultat
+  outcome               InterviewOutcome?
+  notes                 String?
+  
+  // Données de test et sync
+  isTestData            Boolean             @default(false)
+  syncHash              String?
+  entityHash            String?
+  lastSyncAt            DateTime?
+  
+  // Timestamps
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  
+  // Relations
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application           Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  company               Company             @relation(fields: [companyId], references: [id])
+  interviewType         InterviewType?      @relation(fields: [interviewTypeId], references: [id])
+  interviewStyle        InterviewStyle?     @relation(fields: [interviewStyleId], references: [id])
+  status                InterviewStatus     @relation(fields: [statusId], references: [id])
+  
+  contacts              InterviewContact[]  // Many-to-many
+  events                Event[]
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([statusId])
+  @@index([interviewDate])
+  @@index([isTestData])
+}
+
+// Table InterviewStatus (aligné BDD – statusId sur Interview)
+model InterviewStatus {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  order       Int
+  color       String?
+  icon        String?
+  userId      String?
+  isPredefined Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  interviews  Interview[]
+  @@index([code])
+}
+
+enum InterviewOutcome {
+  POSITIVE                  // Retour positif
+  NEGATIVE                  // Retour négatif
+  NEUTRAL                   // Neutre
+  PENDING                   // En attente
+}
+
+// ============================================
+// 📅 ÉVÉNEMENTS / CALENDRIER
+// ============================================
+
+model Event {
+  id                String              @id @default(cuid())
+  userId            String
+  eventTypeId       String?             // Type d'événement (personnalisable)
+  
+  // Informations de l'événement
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime?
+  allDay            Boolean             @default(false)
+  
+  // Lien polymorphe (un seul lien actif)
+  applicationId     String?
+  interviewId       String?
+  followUpId        String?
+  callId            String?
+  
+  // Rappels
+  reminderEnabled   Boolean             @default(false)
+  reminderMinutes   Int?                // Minutes avant l'événement
+  
+  // Personnalisation
+  color             String?             @default("#3B82F6")
+  
+  // Données de test
+  isTestData        Boolean             @default(false)
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  isArchived        Boolean             @default(false)
+  archivedAt        DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType         EventType?          @relation(fields: [eventTypeId], references: [id])
+  
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interview         Interview?          @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  followUp          FollowUp?           @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  call              Call?               @relation(fields: [callId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([startDate])
+  @@index([applicationId])
+  @@index([interviewId])
+  @@index([isTestData])
+}
+
+// ============================================
+// 📝 HISTORIQUE DES STATUS
+// ============================================
+
+model ApplicationStatusHistory {
+  id                String              @id @default(cuid())
+  applicationId     String
+  previousStatusId  String?
+  newStatusId       String
+  comment           String?
+  changedAt         DateTime            @default(now())
+  
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus    ApplicationStatus?   @relation("PreviousStatus", fields: [previousStatusId], references: [id])
+  newStatus         ApplicationStatus   @relation("NewStatus", fields: [newStatusId], references: [id])
+  
+  @@index([applicationId])
+  @@index([changedAt])
+}
+
+// ============================================
+// 📎 DOCUMENTS
+// ============================================
+
+model Document {
+  id                String              @id @default(cuid())
+  userId            String
+  applicationId     String?
+  
+  // Informations du document
+  name              String
+  documentType      DocumentType
+  fileUrl           String
+  fileSize          Int                 // en bytes
+  mimeType          String
+  
+  // Données de test et sync
+  isTestData        Boolean             @default(false)
+  syncHash          String?
+  entityHash        String?
+  lastSyncAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([applicationId])
+  @@index([documentType])
+  @@index([isTestData])
+}
+
+enum DocumentType {
+  CV
+  COVER_LETTER              // Lettre de motivation
+  PORTFOLIO
+  CERTIFICATE               // Certificat
+  DIPLOMA                   // Diplôme
+  RECOMMENDATION            // Lettre de recommandation
+  OTHER
+}
+
+// ============================================
+// 🔔 NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id                String              @id @default(cuid())
+  userId            String
+  
+  // Contenu
+  title             String
+  message           String
+  type              NotificationType
+  
+  // État
+  read              Boolean             @default(false)
+  readAt            DateTime?
+  
+  // Lien vers entité
+  entityType        String?             // Application, Interview, etc.
+  entityId          String?
+  data              Json?               // Données supplémentaires
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  
+  // Relation
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
   @@index([read])
   @@index([createdAt])
-  @@map("notifications")
 }
 
 enum NotificationType {
-  REMINDER             // Rappel
-  APPLICATION_UPDATE   // Mise à jour candidature
-  INTERVIEW_SCHEDULED  // Entretien programmé
-  FOLLOWUP_DUE         // Relance à faire
-  DEADLINE             // Deadline
-  SYSTEM               // Système
+  REMINDER
+  APPLICATION_UPDATE
+  INTERVIEW_SCHEDULED
+  FOLLOWUP_DUE
+  DEADLINE
+  SYSTEM
+  CRASH_REPORT
+  ERROR_REPORT
+  STATUS_CHANGE
+}
+
+// ============================================
+// 🔄 QUEUE DE SYNCHRONISATION (Offline)
+// ============================================
+
+model SyncQueue {
+  id                String              @id @default(cuid())
+  userId            String
+  
+  // Action
+  action            SyncAction
+  entity            String              // Application, Interview, etc.
+  entityId          String?
+  payload           Json
+  
+  // État
+  synced            Boolean             @default(false)
+  attempts          Int                 @default(0)
+  lastAttempt       DateTime?
+  error             String?
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  syncedAt          DateTime?
+  
+  // Relation
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([synced])
+  @@index([createdAt])
+}
+
+enum SyncAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// ============================================
+// 🔗 TABLES DE JONCTION (Many-to-Many)
+// ============================================
+
+model ContactCompany {
+  id                String              @id @default(cuid())
+  contactId         String
+  companyId         String
+  createdAt         DateTime            @default(now())
+  
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@unique([contactId, companyId])
+  @@index([contactId])
+  @@index([companyId])
+}
+
+model ContactApplication {
+  id                String              @id @default(cuid())
+  contactId         String
+  applicationId     String
+  createdAt         DateTime            @default(now())
+  
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  application       Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@unique([contactId, applicationId])
+  @@index([contactId])
+  @@index([applicationId])
+}
+
+model FollowUpContact {
+  id                String              @id @default(cuid())
+  followUpId        String
+  contactId         String
+  createdAt         DateTime            @default(now())
+  
+  followUp          FollowUp            @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([followUpId, contactId])
+  @@index([followUpId])
+  @@index([contactId])
+}
+
+model InterviewContact {
+  id                String              @id @default(cuid())
+  interviewId       String
+  contactId         String
+  createdAt         DateTime            @default(now())
+  
+  interview         Interview           @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  contact           Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([interviewId, contactId])
+  @@index([interviewId])
+  @@index([contactId])
+}
+
+// ============================================
+// 🎨 LISTES PERSONNALISABLES PAR L'UTILISATEUR
+// ============================================
+
+// Plateformes de candidature (LinkedIn, Indeed, etc.)
+model Platform {
+  id                String              @id @default(cuid())
+  userId            String?             // null = plateforme par défaut système
+  name              String
+  icon              String?
+  url               String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  applications      Application[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types de relance (Email, Téléphone, LinkedIn, etc.)
+model FollowUpType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  followUps         FollowUp[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Moyens de relance (Email, Téléphone, Message, etc.)
+model FollowUpMethod {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  followUps         FollowUp[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types d'entretien (RH, Technique, Manager, etc.)
+model InterviewType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  interviews        Interview[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Styles d'entretien (Présentiel, Distanciel, Hybride)
+model InterviewStyle {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  interviews        Interview[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Types d'événement (Entretien, Relance, Deadline, etc.)
+model EventType {
+  id                String              @id @default(cuid())
+  userId            String?
+  code              String?
+  name              String
+  color             String?
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  events            Event[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([code])
+}
+
+// Types d'appel (Sortant, Entrant, Manqué, etc.)
+model CallType {
+  id                String              @id @default(cuid())
+  userId            String?
+  name              String
+  icon              String?
+  isPredefined      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  calls             Call[]
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// ============================================
+// 📊 LOGS & MONITORING
+// ============================================
+
+// Logs des conteneurs Docker (pour metrics-aggregator)
+model ContainerLog {
+  id                String              @id @default(cuid())
+  containerId       String              // ID Docker du conteneur
+  containerName     String              // Nom du conteneur (ex: jobbingtrack-api-gateway)
+  level             String              @default("info") // debug, info, warn, error
+  message           String              @db.Text
+  timestamp         DateTime            @default(now())
+  metadata          Json?               // Données additionnelles (stack trace, contexte, etc.)
+  
+  @@index([containerName, timestamp])
+  @@index([level, timestamp])
+  @@index([timestamp])
+}
+
+// ============================================
+// 📧 EMAILS
+// ============================================
+
+// Logs de tous les emails envoyés
+model EmailLog {
+  id                String              @id @default(cuid())
+  userId            String?             // Utilisateur concerné (peut être null pour emails système)
+  to                String              // Destinataire
+  from              String              // Expéditeur
+  subject           String              // Sujet
+  type              EmailType           // Type d'email
+  status            EmailStatus         @default(PENDING) // Statut d'envoi
+  sentAt            DateTime?           // Date d'envoi réussi
+  deliveredAt       DateTime?           // Date de livraison (si webhook disponible)
+  openedAt          DateTime?           // Date d'ouverture (pixel de tracking)
+  clickedAt         DateTime?           // Date de clic sur un lien
+  error             String?             @db.Text // Message d'erreur si échec
+  emailContent      String?             @db.Text // Contenu HTML de l'email
+  metadata          Json?               // Métadonnées additionnelles (resetToken, verificationUrl, etc.)
+  trackingId        String?             @unique // ID unique pour le tracking (pixel de tracking)
+  openCount         Int                 @default(0) // Nombre de fois que l'email a été ouvert
+  clickCount        Int                 @default(0) // Nombre de clics sur les liens
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([to])
+  @@index([type])
+  @@index([status])
+  @@index([sentAt])
+  @@index([createdAt])
+  @@index([trackingId])
+}
+
+enum EmailType {
+  WELCOME
+  VERIFICATION
+  RESET_PASSWORD
+  CONFIRMATION
+  NOTIFICATION
+  TEST
+}
+
+enum EmailStatus {
+  PENDING      // En attente d'envoi
+  SENT         // Envoyé avec succès au serveur SMTP
+  DELIVERED    // Livré dans la boîte mail du destinataire (si webhook disponible)
+  READ         // Lu par le destinataire (si tracking disponible)
+  FAILED       // Échec d'envoi
+  BOUNCED      // Email rejeté par le serveur destinataire
+}
+
+// Templates d'emails personnalisables
+model EmailTemplate {
+  id          String    @id @default(cuid())
+  type        EmailType @unique // WELCOME, VERIFICATION, RESET_PASSWORD, etc.
+  name        String    // Nom du template
+  subject     String    // Sujet de l'email (peut contenir des variables {{variableName}})
+  htmlContent String    @db.Text // Contenu HTML du template
+  textContent String?   @db.Text // Contenu texte du template (optionnel)
+  variables   String[]  // Variables détectées automatiquement (ex: ["firstName", "lastName", "resetUrl"])
+  isActive    Boolean   @default(true) // Si le template est actif (utilisé) ou non
+  version     Int       @default(1) // Version du template pour tracking
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([type])
+  @@index([isActive])
+}
+
+// ============================================
+// ⚙️ PRÉFÉRENCES UTILISATEUR
+// ============================================
+
+model UserCustomization {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  settings  Json     // Préférences utilisateur (refreshInterval, display, notifications, etc.)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// ============================================
+// 📊 TRACKING & ANALYTICS UTILISATEUR
+// ============================================
+
+// Sessions utilisateur (web et mobile)
+model UserSession {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String   @unique
+  deviceId        String?  // Identifiant unique de l'appareil
+  platform        String   // "web", "ios", "android"
+  userAgent       String?
+  ipAddress       String?
+  
+  // Informations appareil
+  deviceModel     String?  // iPhone 13, Samsung Galaxy S21, etc.
+  osName          String?  // iOS, Android, Windows, macOS, Linux
+  osVersion       String?  // 15.0, 12, etc.
+  browserName     String?  // Chrome, Safari, Firefox, etc.
+  browserVersion  String?  // 120.0, etc.
+  screenWidth     Int?
+  screenHeight    Int?
+  language        String?  // fr, en, etc.
+  timezone        String?  // Europe/Paris, etc.
+  
+  // Métadonnées session
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  duration        Int?     // secondes
+  isActive        Boolean  @default(true)
+  pageViews       Int      @default(0)
+  actions         Int      @default(0)
+  errors          Int      @default(0)
+  
+  // Relations
+  events          UserEvent[]
+  userErrors      UserError[]
+  performances    UserPerformance[]
+  
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([deviceId])
+  @@index([startTime])
+  @@index([platform])
+  @@index([isActive])
+  @@map("user_sessions")
+}
+
+// Événements utilisateur (clics, navigation, etc.)
+model UserEvent {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String
+  deviceId    String?
+  
+  // Type d'événement
+  eventType   String   // "click", "navigation", "form_submit", "notification_received", etc.
+  eventName   String   // "button_click", "page_view", "notification_relance", etc.
+  category    String?  // "ui", "navigation", "notification", "form", etc.
+  
+  // Détails
+  elementId   String?  // ID de l'élément cliqué
+  elementType String?  // "button", "link", "input", etc.
+  elementText String?  // Texte de l'élément
+  page        String?  // URL ou nom de la page
+  properties  Json?    // Propriétés additionnelles
+  
+  // Contexte
+  timestamp   DateTime @default(now())
+  platform    String   // "web", "ios", "android"
+  appVersion  String?  // Version de l'app
+  
+  // Relations
+  session     UserSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([eventName])
+  @@index([timestamp])
+  @@index([category])
+  @@map("user_events")
+}
+
+// Erreurs et logs utilisateur
+model UserError {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  deviceId    String?
+  
+  // Type d'erreur
+  errorType   String   // "javascript", "api", "network", "crash", etc.
+  errorName   String   // "TypeError", "NetworkError", etc.
+  errorMessage String
+  stackTrace  String?  // Stack trace (sanitized)
+  
+  // Contexte
+  page        String?  // URL ou nom de la page
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  platform    String   // "web", "ios", "android"
+  appVersion  String?
+  
+  // Métadonnées
+  severity    String   @default("error") // "error", "warning", "critical"
+  resolved    Boolean  @default(false)
+  properties  Json?    // Propriétés additionnelles
+  
+  // Relations
+  session     UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([errorType])
+  @@index([severity])
+  @@index([timestamp])
+  @@index([resolved])
+  @@map("user_errors")
+}
+
+// Métriques de performance
+model UserPerformance {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  deviceId        String?
+  
+  // Type de métrique
+  metricType      String   // "page_load", "api_call", "render", "memory", "battery", etc.
+  metricName      String   // Nom spécifique (ex: "load_applications", "api_get_users")
+  
+  // Valeurs
+  value           Float?   // Valeur principale
+  duration        Int?     // Durée en millisecondes
+  memoryUsage     Float?   // MB
+  cpuUsage        Float?   // pourcentage
+  networkLatency  Int?     // ms
+  networkType     String?  // "wifi", "4g", "5g", "ethernet"
+  
+  // Contexte
+  page            String?  // URL ou nom de la page
+  timestamp       DateTime @default(now())
+  platform        String   // "web", "ios", "android"
+  appVersion      String?
+  
+  // Relations
+  session         UserSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([metricType])
+  @@index([metricName])
+  @@index([timestamp])
+  @@map("user_performances")
+}
+
+// Informations appareil (pour tracking mobile)
+model DeviceInfo {
+  id              String   @id @default(cuid())
+  userId          String?
+  deviceId        String   @unique
+  
+  // Informations appareil
+  platform        String   // "ios", "android", "web"
+  deviceModel     String?  // iPhone 13, Samsung Galaxy S21, etc.
+  osName          String?  // iOS, Android
+  osVersion       String?  // 15.0, 12, etc.
+  appVersion      String?  // Version de l'application
+  
+  // Informations écran
+  screenWidth     Int?
+  screenHeight    Int?
+  screenDensity   Float?   // DPI
+  
+  // Informations système
+  language        String?
+  timezone        String?
+  batteryLevel    Int?     // pourcentage
+  isCharging      Boolean?
+  networkType     String?  // "wifi", "4g", "5g"
+  
+  // Métadonnées
+  firstSeen       DateTime @default(now())
+  lastSeen        DateTime @default(now())
+  totalSessions   Int      @default(0)
+  
+  // Relations
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([deviceId])
+  @@index([platform])
+  @@map("device_infos")
+}
+
+// ============================================
+// 🔒 SÉCURITÉ (security-service) - tables partagées
+// ============================================
+
+model SecurityLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  level        String   @db.VarChar(20)
+  category     String   @db.VarChar(50)
+  eventType    String   @db.VarChar(100)
+  message      String   @db.Text
+  sourceIP     String?  @db.VarChar(45)
+  userAgent    String?  @db.Text
+  userId       String?  @db.VarChar(100)
+  endpoint     String?  @db.VarChar(500)
+  method       String?  @db.VarChar(10)
+  statusCode   Int?
+  responseTime Int?
+  country      String?  @db.VarChar(2)
+  city         String?  @db.VarChar(100)
+  riskScore    Float?
+  isBlocked    Boolean  @default(false)
+  blockReason  String?  @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@map("security_logs")
+}
+
+model Vulnerability {
+  id                String    @id @default(cuid())
+  title             String    @db.VarChar(200)
+  description       String   @db.Text
+  severity          String   @db.VarChar(20)
+  cveId             String?  @db.VarChar(50)
+  cvssScore         Float?
+  affectedComponent String   @db.VarChar(100)
+  status            String   @db.VarChar(20)
+  discoveredAt      DateTime @default(now())
+  resolvedAt        DateTime?
+  assignedTo        String?  @db.VarChar(100)
+  remediation       String?  @db.Text
+  tags              String[]
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@map("vulnerabilities")
+}
+
+model IntrusionAttempt {
+  id             String   @id @default(cuid())
+  timestamp      DateTime @default(now())
+  sourceIP       String   @db.VarChar(45)
+  country        String?  @db.VarChar(2)
+  city           String?  @db.VarChar(100)
+  attackType     String   @db.VarChar(50)
+  targetEndpoint String   @db.VarChar(500)
+  method         String   @db.VarChar(10)
+  userAgent      String?  @db.Text
+  payload        String?  @db.Text
+  riskScore      Float
+  isBlocked      Boolean  @default(false)
+  blockReason    String?  @db.VarChar(200)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  @@map("intrusion_attempts")
+}
+
+model DDoSAttack {
+  id             String   @id @default(cuid())
+  timestamp      DateTime @default(now())
+  sourceIPs      String[]
+  countries      String[]
+  attackType     String   @db.VarChar(50)
+  targetEndpoint String   @db.VarChar(500)
+  duration       Int
+  totalRequests  Int
+  requestsPerSecond Float
+  isMitigated    Boolean  @default(false)
+  mitigationTime Int?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  @@map("ddos_attacks")
+}
+
+model SecurityAlert {
+  id             String    @id @default(cuid())
+  timestamp      DateTime  @default(now())
+  level          String    @db.VarChar(20)
+  title          String    @db.VarChar(200)
+  description    String   @db.Text
+  category       String   @db.VarChar(50)
+  source         String   @db.VarChar(100)
+  isAcknowledged Boolean   @default(false)
+  acknowledgedBy String?  @db.VarChar(100)
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@map("security_alerts")
+}
+
+model SecurityMetricTable {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  metricType String   @db.VarChar(50)
+  value      Float
+  unit       String   @db.VarChar(20)
+  period     String   @db.VarChar(20)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  @@map("security_metrics")
+}
+
+model FirewallRule {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(200)
+  description String?  @db.Text
+  sourceIp    String?  @db.VarChar(45)
+  destPort    Int?
+  protocol    String   @db.VarChar(10)
+  action      String   @db.VarChar(10)
+  priority    Int      @default(100)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("firewall_rules")
+}
+
+model NetworkThreat {
+  id         String   @id @default(cuid())
+  threatType String   @db.VarChar(50)
+  sourceIp   String   @db.VarChar(45)
+  destIp     String?  @db.VarChar(45)
+  destPort   Int?
+  severity   String   @db.VarChar(20)
+  detectedAt DateTime @default(now())
+  blocked    Boolean  @default(false)
+  metadata   Json?
+  createdAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@map("network_threats")
+}
+
+model NetworkConnection {
+  id            String   @id @default(cuid())
+  sourceIp      String   @db.VarChar(45)
+  destIp        String   @db.VarChar(45)
+  sourcePort    Int
+  destPort      Int
+  protocol      String   @db.VarChar(10)
+  state         String   @db.VarChar(20)
+  containerId   String?  @db.VarChar(100)
+  containerName String?  @db.VarChar(200)
+  bytesRx       BigInt   @default(0)
+  bytesTx       BigInt   @default(0)
+  packetsRx     Int      @default(0)
+  packetsTx     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@map("network_connections")
+}
+
+// ============================================
+// 🚀 DÉPLOIEMENT (deployment-service) - tables partagées
+// ============================================
+
+model Deployment {
+  id              String    @id @default(cuid())
+  version         String    @db.VarChar(50)
+  environment     String    @db.VarChar(20)
+  status          String    @db.VarChar(20)
+  startTime       DateTime  @db.Timestamp
+  endTime         DateTime? @db.Timestamp
+  duration        Int?
+  commitHash      String?   @db.VarChar(40)
+  branch          String?   @db.VarChar(100)
+  triggeredBy     String?   @db.VarChar(100)
+  rollbackFromId  String?
+  rollbackReason  String?   @db.Text
+  logs            Json?
+  metrics         Json?
+  buildTime       Int?
+  testTime        Int?
+  deployTime      Int?
+  downtimeDuration Int?
+  errorRate       Float?
+  responseTime    Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deploymentMetrics DeploymentMetricTable[]
+  rollbacks       RollbackEntry[]
+  @@map("deployments")
+}
+
+model DeploymentMetricTable {
+  id           String   @id @default(cuid())
+  deploymentId String
+  timestamp    DateTime @default(now())
+  metricType   String   @db.VarChar(50)
+  value        Float
+  unit         String   @db.VarChar(20)
+  metadata     Json?
+  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  @@map("deployment_metrics")
+}
+
+model RollbackEntry {
+  id                   String    @id @default(cuid())
+  deploymentId         String
+  previousDeploymentId String
+  reason               String   @db.Text
+  triggeredBy          String?  @db.VarChar(100)
+  status               String   @db.VarChar(20)
+  startTime            DateTime @default(now())
+  endTime              DateTime?
+  duration             Int?
+  deployment           Deployment @relation(fields: [deploymentId], references: [id])
+  @@map("rollbacks")
+}
+
+// ============================================
+// 📊 MÉTRIQUES (metrics-aggregator) - tables partagées
+// ============================================
+
+model SystemMetricsSnapshot {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  cpuUsagePercent   Float
+  cpuCores          Int
+  cpuLoadAverage1m  Float?
+  cpuLoadAverage5m  Float?
+  cpuLoadAverage15m Float?
+  memoryUsagePercent Float
+  memoryUsedBytes    BigInt
+  memoryTotalBytes   BigInt
+  memoryFreeBytes    BigInt
+  diskUsagePercent Float?
+  diskUsedBytes    BigInt?
+  diskTotalBytes   BigInt?
+  diskFreeBytes    BigInt?
+  networkRxBytes   BigInt?
+  networkTxBytes   BigInt?
+  availabilityPercent Float?
+  loadScore           Float?
+  errorCount          Int?
+  errorRate           Float?
+  responseTimeAvg     Float?
+  createdAt DateTime @default(now())
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("system_metrics_snapshots")
+}
+
+model ContainerMetricsSnapshot {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  containerName String
+  containerId   String?
+  status        String
+  cpuUsagePercent Float?
+  cpuUsageNano    BigInt?
+  memoryUsagePercent Float?
+  memoryUsageBytes   BigInt?
+  memoryLimitBytes   BigInt?
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+  blockReadBytes  BigInt?
+  blockWriteBytes BigInt?
+  image  String?
+  labels Json?
+  createdAt DateTime @default(now())
+  @@index([timestamp])
+  @@index([containerName])
+  @@index([createdAt])
+  @@map("container_metrics_snapshots")
+}
+
+enum SystemEventType {
+  CONTAINER_START
+  CONTAINER_STOP
+  CONTAINER_RESTART
+  CONTAINER_ERROR
+  SERVICE_START
+  SERVICE_STOP
+  SERVICE_ERROR
+  SYSTEM_BOOT
+  SYSTEM_SHUTDOWN
+  HIGH_CPU_USAGE
+  HIGH_MEMORY_USAGE
+  HIGH_DISK_USAGE
+  NETWORK_ERROR
+  DATABASE_ERROR
+  BACKUP_COMPLETED
+  BACKUP_FAILED
+  DEPLOYMENT_START
+  DEPLOYMENT_SUCCESS
+  DEPLOYMENT_FAILED
+  ALERT_TRIGGERED
+  ALERT_RESOLVED
+  OTHER
+}
+
+enum EventSeverity {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+model SystemEvent {
+  id          String          @id @default(cuid())
+  timestamp   DateTime        @default(now())
+  type        SystemEventType
+  severity    EventSeverity   @default(INFO)
+  source      String
+  title       String
+  description String?
+  metadata    Json?
+  isAlert     Boolean   @default(false)
+  isResolved  Boolean   @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  @@index([timestamp])
+  @@index([type])
+  @@index([severity])
+  @@index([source])
+  @@index([isAlert])
+  @@index([createdAt])
+  @@map("system_events")
+}
+
+model AggregatedLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  level       LogLevel @default(INFO)
+  message     String
+  metadata    Json?
+  stackTrace  String?
+  userId      String?
+  requestId   String?
+  createdAt   DateTime @default(now())
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([level])
+  @@index([userId])
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("aggregated_logs")
+}
+
+model MetricsContainerLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  containerName String
+  containerId   String?
+  stream        String   @default("stdout")
+  log           String   @db.Text
+  parsedLevel   LogLevel?
+  parsedMessage String?  @db.Text
+  createdAt     DateTime @default(now())
+  @@index([timestamp])
+  @@index([containerName])
+  @@index([containerId])
+  @@index([stream])
+  @@index([parsedLevel])
+  @@index([createdAt])
+  @@map("container_logs")
+}
+
+model ServiceNetworkHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  requestCount       Int      @default(0)
+  successCount       Int      @default(0)
+  errorCount         Int      @default(0)
+  avgResponseTimeMs  Float?
+  minResponseTimeMs  Float?
+  maxResponseTimeMs  Float?
+  p95ResponseTimeMs  Float?
+  p99ResponseTimeMs  Float?
+  bytesReceived   BigInt   @default(0)
+  bytesSent       BigInt   @default(0)
+  topEndpoints    Json?
+  createdAt DateTime @default(now())
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([createdAt])
+  @@map("service_network_history")
+}
+
+model ServiceAvailabilityHistory {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  serviceName String
+  isAvailable      Boolean
+  responseTimeMs   Int?
+  statusCode       Int?
+  errorMessage     String?
+  uptimePercent    Float?
+  createdAt DateTime @default(now())
+  @@index([timestamp])
+  @@index([serviceName])
+  @@index([isAvailable])
+  @@index([createdAt])
+  @@map("service_availability_history")
+}
+
+model SecurityMetricAggregated {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  failedLoginAttempts     Int      @default(0)
+  successfulLogins        Int      @default(0)
+  blockedIPs              Json?
+  suspiciousActivities    Int      @default(0)
+  potentialSqlInjections  Int      @default(0)
+  potentialXssAttempts    Int      @default(0)
+  rateLimitExceeded       Int      @default(0)
+  invalidTokenAttempts    Int      @default(0)
+  securityScore           Float?
+  activeSecurityAlerts    Int      @default(0)
+  createdAt DateTime @default(now())
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("security_metrics_aggregated")
+}
+
+model DailyStats {
+  id   String   @id @default(cuid())
+  date DateTime @unique @db.Date
+  avgCpuUsagePercent    Float
+  maxCpuUsagePercent    Float
+  avgMemoryUsagePercent Float
+  maxMemoryUsagePercent Float
+  avgDiskUsagePercent   Float?
+  totalContainers   Int
+  runningContainers Int
+  stoppedContainers Int
+  totalEvents      Int
+  totalAlerts      Int
+  unresolvedAlerts Int
+  totalLogs   Int
+  errorLogs   Int
+  warningLogs Int
+  totalNetworkRxBytes BigInt?
+  totalNetworkTxBytes BigInt?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([date])
+  @@map("daily_stats")
+}
+
+model AlertThreshold {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  metricType        String
+  warningThreshold  Float?
+  criticalThreshold Float?
+  targetType String  @default("system")
+  targetName String?
+  isEnabled Boolean @default(true)
+  notifyEmail Boolean @default(false)
+  notifySlack Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([metricType])
+  @@index([isEnabled])
+  @@map("alert_thresholds")
 }

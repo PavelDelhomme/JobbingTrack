@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
@@ -14,6 +16,7 @@ import 'package:jobbingtrack_mobile/screens/login_screen.dart';
 import 'package:jobbingtrack_mobile/screens/register_screen.dart';
 import 'package:jobbingtrack_mobile/screens/home_screen.dart';
 import 'package:jobbingtrack_mobile/screens/applications_screen.dart';
+import 'package:jobbingtrack_mobile/screens/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/companies_screen.dart';
 import 'package:jobbingtrack_mobile/screens/contacts_screen.dart';
 import 'package:jobbingtrack_mobile/screens/interviews_screen.dart';
@@ -40,7 +43,9 @@ void main() {
     DeviceOrientation.portraitDown,
   ]);
 
+  CrashReporter.initialize();
   debugPrint('[APP] Démarrage JobbingTrack Mobile');
+
   runApp(const JobbingTrackMobileApp());
 }
 
@@ -96,6 +101,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const HomeScreen(),
           '/applications': (context) => const ApplicationsScreen(),
+          '/application-form': (context) => const ApplicationFormScreen(),
           '/companies': (context) => const CompaniesScreen(),
           '/contacts': (context) => const ContactsScreen(),
           '/interviews': (context) => const InterviewsScreen(),

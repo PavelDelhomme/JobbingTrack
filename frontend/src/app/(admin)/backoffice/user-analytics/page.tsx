@@ -74,6 +74,7 @@ export default function UserAnalyticsPage() {
   const [selectedDays, setSelectedDays] = useState(7)
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'errors' | 'performance' | 'mobile'>('overview')
   const [versionsData, setVersionsData] = useState<VersionsData | null>(null)
+  const [eventsLoadError, setEventsLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -88,20 +89,29 @@ export default function UserAnalyticsPage() {
       const headers = { Authorization: `Bearer ${token}` }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002'
-      const [statsRes, eventsRes, errorsRes, versionsRes] = await Promise.all([
+      // Promise.allSettled pour ne pas faire échouer tout le chargement si une requête est bloquée (ex. uBlock sur /analytics/events)
+      const results = await Promise.allSettled([
         axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}?days=${selectedDays}`, { headers }),
         axios.get(`${apiUrl}/api/v1/analytics/events?limit=50`, { headers }),
         axios.get(`${apiUrl}/api/v1/analytics/errors?limit=50`, { headers }),
         axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}/versions?days=${selectedDays}`, { headers }).catch(() => ({ data: { success: false } }))
       ])
 
-      if (statsRes.data.success) {
+      const [statsRes, eventsRes, errorsRes, versionsRes] = results.map((r) => (r.status === 'fulfilled' ? r.value : null))
+
+      if (statsRes?.data?.success) {
         setStats(statsRes.data.data)
       }
-      if (eventsRes.data.success) {
+      if (eventsRes?.data?.success) {
         setEvents(eventsRes.data.data || [])
+        setEventsLoadError(null)
+      } else if (results[1]?.status === 'rejected') {
+        setEvents([])
+        setEventsLoadError('Événements non disponibles (requête bloquée par une extension ou erreur réseau). Désactivez les bloqueurs de publicité sur ce site si besoin.')
+      } else {
+        setEventsLoadError(null)
       }
-      if (errorsRes.data.success) {
+      if (errorsRes?.data?.success) {
         setErrors(errorsRes.data.data || [])
       }
       if (versionsRes?.data?.success && versionsRes.data?.data) {
@@ -285,6 +295,11 @@ export default function UserAnalyticsPage() {
                     Événements récents
                   </h3>
                 </div>
+                {eventsLoadError && (
+                  <div className="mx-6 mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
+                    {eventsLoadError}
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-900">

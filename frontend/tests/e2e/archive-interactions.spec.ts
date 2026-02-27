@@ -92,7 +92,34 @@ test.describe('🗄️ Archivage & Corbeille (admin)', () => {
     expect(restored).toBe(true);
   });
 
-  test('API : cascade archivage candidature → entretien archivé', async ({ request }) => {
+  test('API : restaurer une candidature de la corbeille restaure aussi entretiens/relances/appels/événements liés', async ({ request }) => {
+    test.skip(!applicationId || !interviewId, 'Données manquantes');
+    // Mettre la candidature en corbeille (cascade sur entretiens, relances, appels, événements)
+    const delRes = await request.delete(`${API_URL}/api/v1/applications/${applicationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(delRes.ok()).toBe(true);
+
+    const trashRes = await request.get(`${API_URL}/api/v1/applications/trash`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const trashBody = await trashRes.json();
+    expect(trashBody.items?.some((a: any) => a.id === applicationId)).toBe(true);
+
+    const restored = await apiRestore(request, token, 'applications', applicationId);
+    expect(restored).toBe(true);
+
+    const appRes = await request.get(`${API_URL}/api/v1/applications/${applicationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(appRes.ok(), 'Candidature visible après restauration').toBe(true);
+
+    const intRes = await request.get(`${API_URL}/api/v1/interviews/${interviewId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(intRes.ok(), 'Entretien lié visible après restauration cascade').toBe(true);
+  });
+  test('archiver candidature met en archive les entretiens liés (suite)', async ({ request }) => {
     test.skip(!applicationId || !interviewId, 'Données manquantes');
     const archived = await apiArchive(request, token, 'applications', applicationId);
     expect(archived).toBe(true);

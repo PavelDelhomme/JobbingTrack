@@ -299,6 +299,8 @@ const updateCall = async (req, res, next) => {
         applicationId,
         companyId,
         contactId: req.body.contactId ?? existingCall.contactId,
+        followUpId: req.body.followUpId ?? existingCall.followUpId,
+        callTypeId: req.body.callTypeId ?? existingCall.callTypeId,
         subject: req.body.subject ?? existingCall.subject,
         notes: req.body.notes ?? existingCall.notes,
         callDate: dateValue ? new Date(dateValue) : existingCall.callDate,

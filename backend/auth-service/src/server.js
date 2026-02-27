@@ -101,6 +101,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/preferences', preferencesRoutes);
+app.use('/api/v1/auth/preferences', preferencesRoutes); // alias pour tests et clients utilisant /auth/preferences
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/auth/users', usersRoutes); // ✅ Dupliquer pour compatibilité avec /api/v1/auth/users
 app.use('/api/v1/emails', emailRoutes);

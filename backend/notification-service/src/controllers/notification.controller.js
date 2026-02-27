@@ -570,6 +570,202 @@ const getStats = async (req, res, next) => {
   }
 };
 
+const CRASH_REPORT_EMAIL = process.env.CRASH_REPORT_EMAIL || 'infos@example.invalid';
+
+const reportCrash = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || 'anonymous';
+    const {
+      crashType,
+      message: crashMessage,
+      stackTrace,
+      deviceInfo,
+      appVersion,
+      sessionId,
+      screenName,
+      userActions,
+      metadata
+    } = req.body;
+
+    if (!crashType || !crashMessage) {
+      return res.status(400).json({
+        success: false,
+        error: 'crashType et message requis'
+      });
+    }
+
+    const anonymizedReport = {
+      crashType,
+      message: crashMessage,
+      stackTrace: stackTrace || null,
+      deviceInfo: deviceInfo ? {
+        platform: deviceInfo.platform,
+        osVersion: deviceInfo.osVersion,
+        appVersion: deviceInfo.appVersion || appVersion,
+        deviceModel: deviceInfo.deviceModel,
+        screenSize: deviceInfo.screenSize,
+        locale: deviceInfo.locale
+      } : null,
+      screenName: screenName || null,
+      userActions: userActions || [],
+      metadata: metadata || {},
+      sessionId: sessionId || null,
+      timestamp: new Date().toISOString(),
+      userId: userId !== 'anonymous' ? userId.substring(0, 8) + '...' : 'anonymous'
+    };
+
+    try {
+      let effectiveUserId = null;
+
+      if (userId !== 'anonymous') {
+        let existingUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true },
+        });
+
+        if (!existingUser && req.user?.email) {
+          existingUser = await prisma.user.findUnique({
+            where: { email: req.user.email },
+            select: { id: true },
+          });
+        }
+
+        if (existingUser) {
+          effectiveUserId = existingUser.id;
+        } else {
+          const email = req.user?.email || `crash-${userId}@unknown.local`;
+          try {
+            const newUser = await prisma.user.create({
+              data: {
+                id: userId,
+                email,
+                password: 'N/A',
+                firstName: req.user?.firstName || 'CrashReport',
+                lastName: req.user?.lastName || 'User',
+                role: req.user?.role || 'USER',
+                isActive: true,
+              },
+              select: { id: true },
+            });
+            effectiveUserId = newUser.id;
+          } catch (createError) {
+            if (createError.code === 'P2002') {
+              const fallback = await prisma.user.findFirst({
+                where: { OR: [{ id: userId }, { email }] },
+                select: { id: true },
+              });
+              effectiveUserId = fallback?.id || null;
+            } else {
+              throw createError;
+            }
+          }
+        }
+      }
+
+      if (effectiveUserId) {
+        await prisma.notification.create({
+          data: {
+            userId: effectiveUserId,
+            type: 'CRASH_REPORT',
+            title: `Crash: ${crashType}`,
+            message: crashMessage.substring(0, 500),
+            data: anonymizedReport
+          }
+        });
+      }
+    } catch (dbError) {
+      logger.warn('Sauvegarde crash en BDD echouee:', dbError.message?.slice(0, 120));
+    }
+
+    const emailSubject = `[JobbingTrack Crash] ${crashType} — ${new Date().toLocaleDateString('fr-FR')}`;
+    const emailBody = [
+      '=== RAPPORT DE CRASH JOBBINGTRACK ===',
+      '',
+      `Type: ${crashType}`,
+      `Message: ${crashMessage}`,
+      `Date: ${new Date().toLocaleString('fr-FR')}`,
+      `Ecran: ${screenName || 'inconnu'}`,
+      '',
+      '--- Appareil ---',
+      deviceInfo ? [
+        `Plateforme: ${deviceInfo.platform || 'N/A'}`,
+        `OS: ${deviceInfo.osVersion || 'N/A'}`,
+        `Modele: ${deviceInfo.deviceModel || 'N/A'}`,
+        `App version: ${deviceInfo.appVersion || appVersion || 'N/A'}`,
+      ].join('\n') : 'Infos appareil non disponibles',
+      '',
+      '--- Stack Trace ---',
+      stackTrace || '(non fournie)',
+      '',
+      '--- Actions utilisateur recentes ---',
+      userActions?.length > 0 ? userActions.join('\n') : '(aucune)',
+      '',
+      '--- Metadata ---',
+      JSON.stringify(metadata || {}, null, 2),
+      '',
+      `Session: ${sessionId || 'N/A'}`,
+      `User: ${anonymizedReport.userId}`,
+    ].join('\n');
+
+    try {
+      await emailService.sendEmail(CRASH_REPORT_EMAIL, emailSubject, emailBody);
+      logger.info(`Crash report envoye a ${CRASH_REPORT_EMAIL}: ${crashType}`);
+    } catch (emailError) {
+      logger.warn('Envoi email crash echoue:', emailError.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Rapport de crash enregistre',
+      reportId: `crash-${Date.now()}`
+    });
+  } catch (error) {
+    logger.error('Erreur report crash:', error);
+    next(error);
+  }
+};
+
+const getCrashReports = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    let reports = [];
+    let total = 0;
+
+    try {
+      [reports, total] = await Promise.all([
+        prisma.notification.findMany({
+          where: { type: 'CRASH_REPORT' },
+          orderBy: { createdAt: 'desc' },
+          skip: (pageNum - 1) * limitNum,
+          take: limitNum
+        }),
+        prisma.notification.count({ where: { type: 'CRASH_REPORT' } })
+      ]);
+    } catch (dbError) {
+      logger.warn('Lecture crash reports echouee:', dbError.message);
+    }
+
+    res.json({
+      success: true,
+      reports: reports.map(r => ({
+        id: r.id,
+        type: r.data?.crashType || r.title,
+        message: r.message,
+        timestamp: r.createdAt,
+        deviceInfo: r.data?.deviceInfo,
+        screenName: r.data?.screenName
+      })),
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) }
+    });
+  } catch (error) {
+    logger.error('Erreur lecture crash reports:', error);
+    next(error);
+  }
+};
+
 const getHealth = async (req, res) => {
   res.json({
     success: true,
@@ -593,5 +789,7 @@ module.exports = {
   updateAutomatedReminder,
   deleteAutomatedReminder,
   getStats,
+  reportCrash,
+  getCrashReports,
   getHealth
 };

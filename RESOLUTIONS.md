@@ -1,6 +1,48 @@
 # Resolutions appliquees
 
-**Derniere mise a jour** : 26 fevrier 2026
+**Derniere mise a jour** : 27 fevrier 2026
+
+---
+
+## 27 fevrier 2026 – Rapports de tests 404, Test inconnu, compression
+
+### Probleme
+- **Rapports user-journey 404** : la route view utilisait en Docker `/tmp/journey-reports` alors que la liste (all) et le volume utilisent `USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports` → les rapports Parcours utilisateur affichaient « Fichier non trouvé ».
+- **Anciens rapports 404** : des IDs (ex. 20260224-164723, 20251219-152341) apparaissaient dans la liste mais le fichier avait été supprimé ou déplacé → message d’erreur peu clair.
+- **Test inconnu** : certains fichiers JSON de résultats contenaient des guillemets non échappés dans le champ `command`, ce qui rendait le JSON invalide et faisait échouer jq → libellé « Test inconnu » et statistiques vides.
+- **Tests API Gateway Health** : en cas d’échec (ex. curl exit 7, gateway injoignable), les stats affichaient 0/0/0 au lieu de 1 échec.
+- **Espace disque** : logs, rapports et monitoring s’accumulent sans compression.
+
+### Solution
+1. **`frontend/src/app/api/test-reports/view/route.ts`** : utilisation de `process.env.USER_JOURNEY_REPORTS_DIR` pour le type user-journey (comme pour la liste), au lieu de `/tmp/journey-reports` en Docker.
+2. **`frontend/src/app/(admin)/backoffice/test-reports/page.tsx`** : en cas de 404 sur un rapport, message explicite « Rapport introuvable… Rafraîchissez la liste pour ne voir que les rapports disponibles ».
+3. **`scripts/run-all-tests-with-reports.sh`** : génération du JSON de résultat avec `jq -Rs .` pour `testName` et `command` (échappement correct) ; lorsque `exit_code != 0` et aucune stat extraite, forcer `total=1`, `failed=1` pour afficher 1 échec (ex. API Gateway Health).
+4. **`scripts/compress-old-reports.sh`** : nouveau script pour compresser en .tar.gz les rapports de plus de N jours (défaut 14) dans `tests/archived/`. Usage : `./scripts/compress-old-reports.sh [JOURS]`.
+
+### Note pour plus tard
+- **Rosenpath / WireGuard / logs** : mettre en place rosenpath pour la sécurité, WireGuard et une stratégie de rotation/archivage des logs (à documenter dans STATUS ou FONCTIONNALITES).
+- **Frontend Jest** : « Cannot find module 'next/jest' » → exécuter depuis le dossier frontend : `cd frontend && npm install && npm run test:unit`.
+- **Tests Intégration** : en cas de `SyntaxError` sur `test-full-system.js`, exécuter depuis la racine : `node tests/integration/test-full-system.js`.
+
+---
+
+## 27 fevrier 2026 – Analytics utilisateur et tests en echec
+
+### Probleme
+- **Page Analytics utilisateur** : la requete `GET /api/v1/analytics/events?limit=50` etait bloquee par uBlock Origin (ou erreur reseau), ce qui faisait echouer tout le `Promise.all` et affichait en console `[ANALYTICS] Erreur chargement donnees: Network Error`. La page ne chargeait pas les autres donnees (stats, errors, versions).
+- **Test Enums** : le script `scripts/test-enums.js` attendait 6 valeurs pour `NotificationType` alors que le schema Prisma en contient 9 (ajout de CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE) → echec « Valeurs manquantes ou incorrectes ».
+- **Test CRUD Donnees (admin)** : « creer une entreprise » envoyait `size: '11-50'` alors que l’enum `CompanySize` n’accepte que STARTUP, SMALL, MEDIUM, LARGE, ENTERPRISE → reponse 500.
+
+### Solution
+1. **`frontend/src/app/(admin)/backoffice/user-analytics/page.tsx`** : remplacement de `Promise.all` par `Promise.allSettled` pour que l’echec d’une requete (ex. events bloquee par uBlock) n’empêche pas le chargement des autres. Ajout d’un state `eventsLoadError` et affichage d’un message explicite sur l’onglet « Evenements » en cas d’echec (« Evenements non disponibles (requete bloquee par une extension ou erreur reseau)... »).
+2. **`scripts/test-enums.js`** : mise a jour de la liste attendue pour `NotificationType` pour inclure `CRASH_REPORT`, `ERROR_REPORT`, `STATUS_CHANGE`.
+3. **`tests/e2e/specs/admin-data-crud.spec.ts`** : creation entreprise avec `size: 'SMALL'` au lieu de `'11-50'` pour respecter l’enum CompanySize.
+
+### Non corrige (a investiguer si besoin)
+- **test-status-engine.test.js** : le test « desactiver auto-statut devrait empecher la cascade entretien → INTERVIEW_PENDING » attend CANDIDATE_PENDING apres creation d’un entretien avec auto-statut desactive, mais recoit INTERVIEW_PENDING. Le backend (interview-service) respecte deja `UserCustomization.settings.statusEngine.autoStatusEnabled` ; a verifier en environnement de test (meme BDD auth/interview, ordre des appels).
+- **Playwright CRUD Utilisateurs** : login 401 si identifiants admin non configures ou differents (TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD).
+- **Playwright Securite** : certains tests attendent 400 pour des payloads invalides ; les APIs peuvent renvoyer 200/201 si la validation est permissive.
+- **Playwright Email Workflows** : connexion nouvel utilisateur et reset password MailHog deja identifies comme flaky (delai email, tokens).
 
 ---
 
@@ -342,5 +384,51 @@
 - `backend/workflow-service/prisma/schema.prisma`
 - `scripts/db/db-push-all.sh`
 - `backend/init-db/01-init-critical-tables.sql` (cree)
+
+---
+
+## Fevrier 2026 – Schema BDD partagee (notification-service + monitoring-c)
+
+### Probleme 1 : `@@map("notifications")` dans notification-service
+- Le modele `Notification` utilisait `@@map("notifications")` (minuscule) alors que la table en BDD est `Notification` (majuscule).
+- Inserait dans table `notifications` inexistante → FK constraint violation.
+
+### Solution
+- Supprime `@@map("notifications")` du schema Prisma `notification-service`.
+- Le modele pointe maintenant sur la table `Notification` existante.
+
+### Probleme 2 : `User_email_key` duplicate key lors de `reportCrash`
+- L'upsert dans `reportCrash` tentait de creer un User avec `req.user?.email` (ex: `admin@jobbingtrack.test`) deja pris par un autre ID.
+
+### Solution
+- Logique reecrite : `findUnique` par ID d'abord, puis `findUnique` par email, creation uniquement si aucun match.
+- Plus de violation de contrainte unique.
+
+### Probleme 3 : Schema User simplifie dans notification-service
+- Le modele `User` utilisait `role: String` au lieu de `role: UserRole` enum.
+- Colonnes manquantes : `authToken`, `verificationToken`, `lastLoginAt`, etc.
+
+### Solution
+- Copie du modele `User` complet depuis auth-service (avec tous les champs et `UserRole` enum).
+- Enum `NotificationType` aligne dans les 10 schemas Prisma (CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE ajoutes).
+- `ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS` execute en SQL direct.
+
+### Probleme 4 : Tables `system_metrics` et `container_metrics` supprimees
+- `prisma db push --accept-data-loss` depuis auth-service a supprime ces tables (creees par monitoring-c en C, pas par Prisma).
+
+### Solution
+- Tables recreees manuellement via SQL avec le schema exact de `monitoring-c/src/storage.c`.
+- `container_metrics` inclut `system_metrics_id` (FK), `memory_mb`, `response_time_ms`, `http_status`.
+- Index recrees : `idx_system_metrics_timestamp`, `idx_container_metrics_*`.
+
+### Fichiers modifies
+- `backend/notification-service/prisma/schema.prisma` (User complet + @@map supprime)
+- `backend/notification-service/src/controllers/notification.controller.js` (reportCrash)
+- `backend/auth-service/prisma/schema.prisma` (enum NotificationType)
+- `backend/*/prisma/schema.prisma` (enum NotificationType dans 9 services)
+- `backend/workflow-service/prisma/schema.prisma` (enum aligne + default SYSTEM)
+- `mobile/lib/services/crash_reporter.dart` (monitoring memoire + tracking etendu)
+
+---
 
 Voir **STATUS.md** pour les taches restantes et **ERRORS.md** pour les erreurs non resolues.

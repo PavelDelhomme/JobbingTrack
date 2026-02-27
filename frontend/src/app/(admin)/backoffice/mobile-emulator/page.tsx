@@ -13,6 +13,8 @@ import {
   Loader2,
   Image as ImageIcon,
 } from 'lucide-react';
+import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES } from '@/lib/adb';
+import type { StepResult } from '@/lib/adb';
 
 const CONTROLLER_URL_DEFAULT =
   typeof window !== 'undefined'
@@ -266,18 +268,18 @@ export default function MobileEmulatorPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm dark:shadow-none dark:ring-1 dark:ring-gray-800 p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL du controleur</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">URL du controleur</label>
               <input type="text" value={controllerUrl} onChange={(e) => setControllerUrl(e.target.value)} placeholder="http://localhost:5055"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100 text-sm" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent transition" />
             </div>
             <div className="flex items-center gap-2">
-              {controllerOk === true && <Wifi className="h-5 w-5 text-green-600" />}
-              {controllerOk === false && <WifiOff className="h-5 w-5 text-red-600" />}
+              {controllerOk === true && <Wifi className="h-5 w-5 text-emerald-500" />}
+              {controllerOk === false && <WifiOff className="h-5 w-5 text-red-500" />}
               <button type="button" onClick={checkHealth} disabled={loading !== null}
-                className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-2">
+                className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-gray-300 dark:hover:bg-gray-700 transition">
                 <RefreshCw className="h-4 w-4" /> Verifier
               </button>
             </div>
@@ -287,35 +289,35 @@ export default function MobileEmulatorPage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AVD</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">AVD</label>
                   <select value={selectedAvd} onChange={(e) => setSelectedAvd(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm">
                     <option value="">-- Choisir un AVD --</option>
                     {avds.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
                   </select>
-                  <button type="button" onClick={loadAvds} disabled={loading === 'avds'} className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  <button type="button" onClick={loadAvds} disabled={loading === 'avds'} className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
                     {loading === 'avds' ? 'Chargement...' : 'Rafraichir AVD'}
                   </button>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Appareil ADB</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Appareil ADB</label>
                   <select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm">
                     <option value="">-- Choisir --</option>
                     {devices.map((d) => <option key={d.id} value={d.id}>{d.id} ({d.status})</option>)}
                   </select>
-                  <button type="button" onClick={loadDevices} disabled={loading === 'devices'} className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  <button type="button" onClick={loadDevices} disabled={loading === 'devices'} className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
                     {loading === 'devices' ? 'Chargement...' : 'Rafraichir'}
                   </button>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Appareil Flutter</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Appareil Flutter</label>
                   <select value={selectedFlutterDevice} onChange={(e) => setSelectedFlutterDevice(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100 text-sm">
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm">
                     <option value="">-- Meme ou choisir --</option>
                     {flutterDevices.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.id})</option>)}
                   </select>
-                  <button type="button" onClick={loadFlutterDevices} disabled={loading === 'flutter-devices'} className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  <button type="button" onClick={loadFlutterDevices} disabled={loading === 'flutter-devices'} className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
                     {loading === 'flutter-devices' ? 'Chargement...' : 'Rafraichir'}
                   </button>
                 </div>
@@ -363,45 +365,45 @@ export default function MobileEmulatorPage() {
         </div>
 
         {controllerOk && selectedDevice && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm dark:shadow-none dark:ring-1 dark:ring-gray-800 p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
-              <ImageIcon className="h-5 w-5" /> Rendu en direct
-              <span className="text-xs font-normal text-gray-500 ml-2">clic = tap | glisser = scroll/swipe</span>
+              <ImageIcon className="h-5 w-5 text-indigo-500" /> Rendu en direct
+              <span className="text-xs font-normal text-gray-500 dark:text-gray-500 ml-2">clic = tap | glisser = scroll/swipe</span>
             </h2>
-            <div className="rounded-xl border-2 border-gray-300 dark:border-gray-600 overflow-hidden bg-black inline-block max-w-full cursor-crosshair select-none"
+            <div className="rounded-2xl border-2 border-gray-300 dark:border-gray-700 overflow-hidden bg-black inline-block max-w-full cursor-crosshair select-none shadow-lg dark:shadow-black/50"
               onContextMenu={(e) => e.preventDefault()}>
               {screenshotUrl ? (
                 <img src={screenshotUrl} alt="Ecran appareil" className="block max-h-[70vh] w-auto object-contain select-none pointer-events-auto"
-                  style={{ imageRendering: 'pixelated' }} draggable={false}
+                  style={{ imageRendering: 'auto' }} draggable={false}
                   onMouseDown={onImgMouseDown} onMouseUp={onImgMouseUp} />
               ) : (
-                <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-500">Rafraichissement...</div>
+                <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-600">Rafraichissement...</div>
               )}
             </div>
             <div className="mt-3 flex gap-2">
               <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 4 }) }).catch(() => {})}
-                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Back</button>
+                className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition">Back</button>
               <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) }).catch(() => {})}
-                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Home</button>
+                className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition">Home</button>
               <button type="button" onClick={() => fetchJson('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 187 }) }).catch(() => {})}
-                className="px-3 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300">Recents</button>
+                className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition">Recents</button>
             </div>
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm dark:shadow-none dark:ring-1 dark:ring-gray-800 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2"><Monitor className="h-5 w-5" /> Logs</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2"><Monitor className="h-5 w-5 text-emerald-500" /> Logs</h2>
             <div className="flex items-center gap-3">
               <button type="button" onClick={async () => { if (logs.length === 0) return; try { await navigator.clipboard.writeText(logs.join('\n')); setLogsCopied(true); setTimeout(() => setLogsCopied(false), 2000); } catch {} }}
-                disabled={logs.length === 0} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 disabled:opacity-50">
+                disabled={logs.length === 0} className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 disabled:opacity-50 transition">
                 {logsCopied ? 'Copie !' : 'Copier'}
               </button>
-              <button type="button" onClick={() => setLogs([])} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900">Effacer</button>
+              <button type="button" onClick={() => setLogs([])} className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 transition">Effacer</button>
             </div>
           </div>
-          <div className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg h-48 overflow-y-auto select-text">
-            {logs.length === 0 ? <div className="text-gray-500">Aucun log.</div> : logs.map((log, i) => <div key={i} className="mb-0.5">{log}</div>)}
+          <div className="bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded-lg h-48 overflow-y-auto select-text ring-1 ring-gray-800">
+            {logs.length === 0 ? <div className="text-gray-600">Aucun log.</div> : logs.map((log, i) => <div key={i} className="mb-0.5">{log}</div>)}
           </div>
         </div>
 
@@ -412,132 +414,107 @@ export default function MobileEmulatorPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Parcours utilisateur mobile - interaction reelle via ADB           */
+/* Parcours utilisateur mobile - utilise @/lib/adb                    */
 /* ------------------------------------------------------------------ */
-
-const MOBILE_SCENARIOS: Record<string, { name: string; description: string; steps: string[] }> = {
-  mobile_registration: { name: 'Inscription complete', description: 'Ecran inscription -> remplir formulaire -> valider -> login', steps: ['go_to_register', 'fill_register_form', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui'] },
-  mobile_password_reset: { name: 'Reset mot de passe', description: 'Mot de passe oublie -> saisir email -> retour login', steps: ['go_to_login_screen', 'tap_forgot_password', 'fill_forgot_email', 'submit_forgot', 'go_back_to_login'] },
-  mobile_first_use: { name: 'Premiere utilisation', description: 'Login -> dashboard -> candidatures -> contacts -> calendrier', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_accueil'] },
-  mobile_daily_use: { name: 'Usage quotidien', description: 'Login -> navigation complete -> toutes les sections', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_profil', 'open_drawer', 'drawer_relances', 'nav_accueil', 'open_drawer', 'drawer_evenements'] },
-  mobile_archive_trash: { name: 'Archivage & corbeille', description: 'Login -> candidatures -> archiver -> corbeille', steps: ['go_to_login_screen', 'fill_login_form', 'submit_login', 'nav_candidatures', 'open_drawer', 'drawer_corbeille', 'nav_accueil'] },
-  mobile_complete: { name: 'Parcours complet', description: 'Toutes les fonctionnalites de A a Z dans l\'app', steps: ['go_to_register', 'fill_register_form', 'submit_register', 'go_to_login', 'fill_login_form', 'submit_login', 'view_dashboard_ui', 'nav_candidatures', 'nav_entreprises', 'nav_contacts', 'nav_entretiens', 'nav_profil', 'nav_accueil', 'open_drawer', 'drawer_relances', 'go_back', 'open_drawer', 'drawer_evenements', 'go_back', 'open_drawer', 'drawer_statistiques', 'go_back', 'open_drawer', 'drawer_corbeille', 'go_back', 'nav_accueil'] },
-};
-
-type JourneyStepResult = { id: string; name: string; status: 'pending' | 'running' | 'success' | 'error'; message?: string };
-
-interface AdbHelper {
-  tap: (text: string, index?: number) => Promise<string>;
-  typeInField: (hint: string, value: string) => Promise<string>;
-  keyevent: (code: number) => Promise<void>;
-  swipe: (x1: number, y1: number, x2: number, y2: number, dur?: number) => Promise<void>;
-  wait: (ms: number) => Promise<void>;
-  back: () => Promise<void>;
-}
-
-function createAdbHelper(controllerUrl: string, deviceId: string): AdbHelper {
-  const base = controllerUrl.replace(/\/$/, '');
-  const post = async (path: string, body: any) => {
-    const res = await fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    return res.json();
-  };
-
-  return {
-    tap: async (text: string, index = 0) => {
-      const r = await post('/find-and-tap', { deviceId, text, index });
-      if (!r.success) throw new Error(r.error || `Element "${text}" introuvable`);
-      return r.message;
-    },
-    typeInField: async (hint: string, value: string) => {
-      const r = await post('/tap-field-and-type', { deviceId, hint, text: value });
-      if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
-      return r.message;
-    },
-    keyevent: async (code: number) => {
-      await post('/input-keyevent', { deviceId, keycode: code });
-    },
-    swipe: async (x1: number, y1: number, x2: number, y2: number, dur = 300) => {
-      await post('/input-swipe', { deviceId, x1, y1, x2, y2, duration: dur });
-    },
-    wait: (ms: number) => new Promise((r) => setTimeout(r, ms)),
-    back: async () => {
-      await post('/input-keyevent', { deviceId, keycode: 4 });
-    },
-  };
-}
 
 function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: string) => void; controllerUrl: string; deviceId: string }) {
   const [selected, setSelected] = useState('mobile_complete');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [running, setRunning] = useState(false);
-  const [stepResults, setStepResults] = useState<JourneyStepResult[]>([]);
+  const [stepResults, setStepResults] = useState<StepResult[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const cancelRef = useRef(false);
+  const runnerRef = useRef<AdbRunner | null>(null);
 
   const scenario = MOBILE_SCENARIOS[selected];
+
+  const filteredScenarios = Object.entries(MOBILE_SCENARIOS).filter(([, s]) =>
+    categoryFilter === 'all' || s.category === categoryFilter
+  );
 
   const runJourney = async () => {
     if (!scenario || running) return;
     if (!deviceId) { addLog('Selectionnez un appareil ADB avant de lancer un parcours'); return; }
-    cancelRef.current = false;
+
+    const runner = new AdbRunner(controllerUrl, deviceId, addLog);
+    runnerRef.current = runner;
     setRunning(true);
-    const steps = scenario.steps;
-    setProgress({ current: 0, total: steps.length });
-    setStepResults(steps.map((id) => ({ id, name: STEP_LABELS[id] || id.replace(/_/g, ' '), status: 'pending' as const })));
-    addLog(`Parcours "${scenario.name}" demarre (${steps.length} etapes) [UI reelle]`);
+    setProgress({ current: 0, total: scenario.steps.length });
+    setStepResults(scenario.steps.map((id) => ({ id, name: STEP_LABELS[id] || id.replace(/_/g, ' '), status: 'pending' as const })));
 
-    const adb = createAdbHelper(controllerUrl, deviceId);
-
-    for (let i = 0; i < steps.length; i++) {
-      if (cancelRef.current) { addLog('Parcours annule'); break; }
-      const stepId = steps[i];
-      setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'running' as const } : s));
-      setProgress({ current: i + 1, total: steps.length });
-
-      try {
-        const msg = await executeUIStep(stepId, adb);
-        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'success' as const, message: msg } : s));
-        addLog(`  ✅ ${STEP_LABELS[stepId] || stepId}: ${msg}`);
-      } catch (e: any) {
-        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'error' as const, message: e.message } : s));
-        addLog(`  ❌ ${STEP_LABELS[stepId] || stepId}: ${e.message}`);
-      }
-    }
+    await runner.run(scenario, {
+      onStepStart: (i) => {
+        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'running' as const } : s));
+      },
+      onProgress: (current, total) => setProgress({ current, total }),
+      onStepEnd: (i, result) => {
+        setStepResults((prev) => prev.map((s, idx) => idx === i ? result : s));
+      },
+    });
 
     setRunning(false);
-    addLog(`Parcours "${scenario.name}" termine`);
+    runnerRef.current = null;
+  };
+
+  const catColors: Record<string, string> = {
+    auth: 'bg-indigo-500',
+    navigation: 'bg-blue-500',
+    crud: 'bg-emerald-500',
+    verification: 'bg-purple-500',
+    complet: 'bg-amber-500',
   };
 
   return (
-    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-6 text-sm">
-      <h3 className="font-semibold mb-3 text-indigo-900 dark:text-indigo-100 flex items-center gap-2">
-        <Smartphone className="h-4 w-4" /> Parcours utilisateur mobile (interaction UI reelle)
+    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl dark:ring-1 dark:ring-indigo-500/20 p-6 text-sm">
+      <h3 className="font-semibold mb-3 text-gray-900 dark:text-indigo-300 flex items-center gap-2">
+        <Smartphone className="h-4 w-4" /> Parcours utilisateur mobile
+        <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-indigo-200 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400">interaction UI reelle</span>
+        <span className="text-[10px] font-normal text-gray-500 dark:text-gray-500 ml-auto">{Object.keys(MOBILE_SCENARIOS).length} parcours</span>
       </h3>
 
       {!deviceId && (
-        <div className="mb-3 p-2 bg-amber-100 dark:bg-amber-900/30 rounded text-amber-800 dark:text-amber-200 text-xs">
+        <div className="mb-3 p-2.5 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-800 dark:text-amber-300 text-xs ring-1 ring-amber-300 dark:ring-amber-700/50">
           Selectionnez un appareil ADB ci-dessus pour activer les parcours.
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {Object.entries(MOBILE_SCENARIOS).map(([key, s]) => (
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        <button onClick={() => setCategoryFilter('all')}
+          className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${categoryFilter === 'all' ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'}`}>
+          Tous
+        </button>
+        {Object.entries(SCENARIO_CATEGORIES).map(([key, cat]) => (
+          <button key={key} onClick={() => setCategoryFilter(key)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${categoryFilter === key ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'}`}>
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-4 max-h-32 overflow-y-auto">
+        {filteredScenarios.map(([key, s]) => (
           <button key={key} onClick={() => !running && setSelected(key)} disabled={running}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${selected === key ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-400'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${selected === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-indigo-400 dark:hover:ring-indigo-500'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${catColors[s.category] || 'bg-gray-400'}`} />
             {s.name}
           </button>
         ))}
       </div>
 
       {scenario && (
-        <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 dark:border-indigo-700">
+        <div className="mb-4 p-3 bg-white dark:bg-gray-800/50 rounded-lg ring-1 ring-gray-200 dark:ring-gray-700/50">
           <div className="flex items-center justify-between mb-1">
-            <span className="font-medium text-indigo-900 dark:text-indigo-100">{scenario.name}</span>
-            <span className="text-xs text-gray-500">{scenario.steps.length} etapes</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{scenario.name}</span>
+            <div className="flex items-center gap-2">
+              <span className={`px-1.5 py-0.5 text-[10px] rounded-full text-white ${catColors[scenario.category] || 'bg-gray-500'}`}>
+                {SCENARIO_CATEGORIES[scenario.category]?.label || scenario.category}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-500">{scenario.steps.length} etapes</span>
+            </div>
           </div>
           <p className="text-xs text-gray-600 dark:text-gray-400">{scenario.description}</p>
           <div className="mt-2 flex flex-wrap gap-1">
             {scenario.steps.map((s, i) => (
-              <span key={i} className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded text-[10px]">
+              <span key={i} className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 rounded text-[10px]">
                 {STEP_LABELS[s] || s}
               </span>
             ))}
@@ -547,20 +524,20 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
 
       <div className="flex items-center gap-2 mb-4">
         <button onClick={runJourney} disabled={running || !deviceId}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700">
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {running ? 'En cours...' : 'Lancer le parcours'}
         </button>
         {running && (
-          <button onClick={() => { cancelRef.current = true; }}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-red-700">
+          <button onClick={() => { runnerRef.current?.cancel(); }}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-red-700 transition">
             <Square className="h-4 w-4" /> Annuler
           </button>
         )}
         <div className="flex gap-2 ml-auto">
-          <a href="/backoffice/user-journey" className="px-3 py-1.5 text-xs bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-md hover:bg-indigo-200">Tous les parcours</a>
-          <a href="/backoffice/user-journey/custom" className="px-3 py-1.5 text-xs bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-md hover:bg-indigo-200">Personnalise</a>
-          <a href="/backoffice/user-journey/reports" className="px-3 py-1.5 text-xs bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded-md hover:bg-indigo-200">Rapports</a>
+          <a href="/backoffice/user-journey" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Tous les parcours</a>
+          <a href="/backoffice/user-journey/custom" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Personnalise</a>
+          <a href="/backoffice/user-journey/reports" className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-700 transition">Rapports</a>
         </div>
       </div>
 
@@ -569,195 +546,27 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
           <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
             <span>Progression</span><span>{progress.current}/{progress.total}</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div className="bg-indigo-600 h-2 rounded-full transition-all" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
+          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+            <div className="bg-indigo-500 h-2 rounded-full transition-all" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
           </div>
         </div>
       )}
 
       {stepResults.length > 0 && (
-        <div className="max-h-64 overflow-y-auto space-y-1">
+        <div className="max-h-72 overflow-y-auto space-y-1">
           {stepResults.map((step, i) => (
-            <div key={i} className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
-              step.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200' :
-              step.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200' :
-              step.status === 'running' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200' : 'text-gray-500'
+            <div key={i} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
+              step.status === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800/50' :
+              step.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800/50' :
+              step.status === 'running' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800/50 animate-pulse' : 'text-gray-500 dark:text-gray-600'
             }`}>
               {step.status === 'success' ? '✅' : step.status === 'error' ? '❌' : step.status === 'running' ? '⏳' : '⬜'}
               <span className="font-medium">{step.name}</span>
-              {step.message && <span className="truncate text-gray-500 ml-auto max-w-[250px]">{step.message}</span>}
+              {step.message && <span className="truncate text-gray-500 dark:text-gray-500 ml-auto max-w-[300px]">{step.message}</span>}
             </div>
           ))}
         </div>
       )}
     </div>
   );
-}
-
-const STEP_LABELS: Record<string, string> = {
-  go_to_register: 'Aller a Inscription',
-  fill_register_form: 'Remplir formulaire inscription',
-  submit_register: 'Valider inscription',
-  go_to_login: 'Aller a Connexion',
-  go_to_login_screen: 'Ecran de connexion',
-  fill_login_form: 'Saisir identifiants',
-  submit_login: 'Se connecter',
-  view_dashboard_ui: 'Dashboard (verification)',
-  nav_candidatures: 'Nav -> Candidatures',
-  nav_entreprises: 'Nav -> Entreprises',
-  nav_contacts: 'Nav -> Contacts',
-  nav_entretiens: 'Nav -> Entretiens',
-  nav_profil: 'Nav -> Profil',
-  nav_accueil: 'Nav -> Accueil',
-  open_drawer: 'Ouvrir menu lateral',
-  drawer_relances: 'Menu -> Relances',
-  drawer_evenements: 'Menu -> Evenements',
-  drawer_statistiques: 'Menu -> Statistiques',
-  drawer_corbeille: 'Menu -> Corbeille',
-  tap_forgot_password: 'Tap Mot de passe oublie',
-  fill_forgot_email: 'Saisir email reset',
-  submit_forgot: 'Envoyer lien reset',
-  go_back_to_login: 'Retour connexion',
-  go_back: 'Retour (bouton back)',
-};
-
-async function executeUIStep(stepId: string, adb: AdbHelper): Promise<string> {
-  switch (stepId) {
-    case 'go_to_register': {
-      await adb.wait(500);
-      try { await adb.tap('inscrire'); } catch { await adb.swipe(540, 1800, 540, 800, 400); await adb.wait(500); await adb.tap('inscrire'); }
-      await adb.wait(1500);
-      return 'Ecran inscription affiche';
-    }
-    case 'fill_register_form': {
-      const ts = Date.now();
-      await adb.typeInField('pr', `Test${ts}`);
-      await adb.wait(400);
-      await adb.typeInField('Nom', `Mobile${ts}`);
-      await adb.wait(400);
-      await adb.typeInField('Email', `test-${ts}@example.com`);
-      await adb.wait(400);
-      await adb.typeInField('Minimum', `Test123!`);
-      await adb.wait(400);
-      await adb.typeInField('Retapez', `Test123!`);
-      await adb.wait(300);
-      await adb.keyevent(4);
-      await adb.wait(500);
-      try { await adb.tap('conditions'); } catch {}
-      await adb.wait(300);
-      return `Formulaire rempli (test-${ts}@example.com)`;
-    }
-    case 'submit_register': {
-      await adb.swipe(540, 1800, 540, 600, 400);
-      await adb.wait(500);
-      await adb.tap('inscrire');
-      await adb.wait(3000);
-      return 'Inscription soumise';
-    }
-    case 'go_to_login':
-    case 'go_to_login_screen': {
-      await adb.wait(500);
-      try { await adb.tap('connecter'); } catch { await adb.back(); await adb.wait(1000); }
-      await adb.wait(1500);
-      return 'Ecran connexion affiche';
-    }
-    case 'fill_login_form': {
-      await adb.typeInField('Email', 'admin@jobbingtrack.test');
-      await adb.wait(400);
-      await adb.typeInField('Mot de passe', 'password123');
-      await adb.wait(300);
-      await adb.keyevent(4);
-      await adb.wait(300);
-      return 'Identifiants saisis';
-    }
-    case 'submit_login': {
-      await adb.tap('connecter');
-      await adb.wait(3000);
-      return 'Connexion en cours...';
-    }
-    case 'view_dashboard_ui': {
-      await adb.wait(2000);
-      return 'Dashboard affiche';
-    }
-    case 'nav_candidatures': {
-      await adb.tap('Candidatures');
-      await adb.wait(2000);
-      return 'Page Candidatures';
-    }
-    case 'nav_entreprises': {
-      await adb.tap('Entreprises');
-      await adb.wait(2000);
-      return 'Page Entreprises';
-    }
-    case 'nav_contacts': {
-      await adb.tap('Contacts');
-      await adb.wait(2000);
-      return 'Page Contacts';
-    }
-    case 'nav_entretiens': {
-      await adb.tap('Entretiens');
-      await adb.wait(2000);
-      return 'Page Entretiens';
-    }
-    case 'nav_profil': {
-      await adb.tap('Profil');
-      await adb.wait(2000);
-      return 'Page Profil';
-    }
-    case 'nav_accueil': {
-      await adb.tap('Accueil');
-      await adb.wait(2000);
-      return 'Retour Accueil';
-    }
-    case 'open_drawer': {
-      await adb.swipe(10, 1170, 800, 1170, 300);
-      await adb.wait(1000);
-      return 'Menu lateral ouvert';
-    }
-    case 'drawer_relances': {
-      await adb.tap('Relances');
-      await adb.wait(2000);
-      return 'Page Relances';
-    }
-    case 'drawer_evenements': {
-      await adb.tap('Rappels');
-      await adb.wait(2000);
-      return 'Page Evenements';
-    }
-    case 'drawer_statistiques': {
-      await adb.tap('Statistiques');
-      await adb.wait(2000);
-      return 'Page Statistiques';
-    }
-    case 'drawer_corbeille': {
-      await adb.tap('Corbeille');
-      await adb.wait(2000);
-      return 'Page Corbeille';
-    }
-    case 'tap_forgot_password': {
-      await adb.tap('oubli');
-      await adb.wait(1500);
-      return 'Ecran mot de passe oublie';
-    }
-    case 'fill_forgot_email': {
-      await adb.typeInField('Email', 'admin@jobbingtrack.test');
-      await adb.wait(400);
-      await adb.keyevent(4);
-      await adb.wait(300);
-      return 'Email saisi';
-    }
-    case 'submit_forgot': {
-      await adb.tap('Envoyer');
-      await adb.wait(2000);
-      return 'Lien envoye';
-    }
-    case 'go_back_to_login':
-    case 'go_back': {
-      await adb.back();
-      await adb.wait(1500);
-      return 'Retour';
-    }
-    default:
-      return `Step "${stepId}" non implementee`;
-  }
 }

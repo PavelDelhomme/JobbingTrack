@@ -164,16 +164,20 @@ const getCompanies = async (req, res, next) => {
 const getCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
 
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
         applications: {
-          where: { userId: req.user.id },
+          where: userId ? { userId } : undefined,
           orderBy: { createdAt: 'desc' }
         },
         contacts: {
-          where: { userId: req.user.id },
+          include: { contact: true },
+          ...(userId
+            ? { where: { contact: { userId } } }
+            : {}),
           orderBy: { createdAt: 'desc' }
         }
       }
@@ -230,9 +234,25 @@ const getCompanyByName = async (req, res, next) => {
 const updateCompany = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const body = req.body;
 
-    // ✅ Récupérer l'entreprise avant mise à jour pour logging
+    // Champs autorisés (répercussion automatique via relations Prisma)
+    const allowed = [
+      'name', 'website', 'industry', 'size', 'location',
+      'address', 'city', 'postalCode', 'country', 'logoUrl', 'description'
+    ];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) updateData[key] = body[key];
+    }
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Aucun champ à mettre à jour'
+      });
+    }
+
+    // Récupérer l'entreprise avant mise à jour pour logging
     const oldCompany = await prisma.company.findUnique({
       where: { id },
       include: {
@@ -252,17 +272,14 @@ const updateCompany = async (req, res, next) => {
       });
     }
 
-    // ✅ Mettre à jour l'entreprise
     const company = await prisma.company.update({
       where: { id },
       data: updateData
     });
 
-    // ✅ Logger les changements importants (notamment le renommage)
     if (updateData.name && updateData.name !== oldCompany.name) {
       logger.info(`🏢 Entreprise renommée: "${oldCompany.name}" → "${updateData.name}"`);
       logger.info(`   ↳ Impact: ${oldCompany._count.applications} candidatures, ${oldCompany._count.contacts} contacts`);
-      logger.info(`   ℹ️  Les relations Prisma synchronisent automatiquement le nom via les JOINs`);
     }
 
     res.json({

@@ -8,12 +8,12 @@ const PROJECT_ROOT = process.env.PROJECT_ROOT
   || (process.cwd().includes('frontend') ? join(process.cwd(), '..') : process.cwd())
 const IS_DOCKER = process.cwd() === '/app' || process.env.DOCKER === 'true'
 
-// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR peut être /tmp/tests/results)
+// Dossiers de rapports (en Docker : TESTS_RESULTS_DIR = /app/tests/results pour utiliser le volume monté)
 const REPORT_DIRS = {
   'performance-backend': join(PROJECT_ROOT, 'backend-performance-reports'),
   'performance-frontend': join(PROJECT_ROOT, 'frontend', 'performance-reports'),
   'playwright': join(PROJECT_ROOT, 'frontend', 'playwright-report'),
-  'tests-results': join(PROJECT_ROOT, 'tests', 'results'),
+  'tests-results': process.env.TESTS_RESULTS_DIR || join(PROJECT_ROOT, 'tests', 'results'),
   'tests-results-tmp': process.env.TESTS_RESULTS_DIR && process.env.TESTS_RESULTS_DIR !== join(PROJECT_ROOT, 'tests', 'results') ? process.env.TESTS_RESULTS_DIR : '',
   'tests-reports': join(PROJECT_ROOT, 'tests', 'reports'),
   'coverage': join(PROJECT_ROOT, 'tests', 'coverage'),

@@ -1,6 +1,6 @@
 # Erreurs connues (non resolues)
 
-**Derniere mise a jour** : 26 fevrier 2026
+**Derniere mise a jour** : 23 fevrier 2026
 
 Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
@@ -15,7 +15,19 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | `type "FollowUpStatus" already exists` | Postgres (plusieurs services Prisma) | Bruit dans les logs | Ignorable. Plusieurs services definissent le meme enum |
 | API versioning 404 | dashboard-service | `GET /api/v1/analytics/stats/:userId/versions` retourne 404 | Implementer la route ou adapter le front |
 | Emulateur mobile build APK | flutter_local_notifications | Build APK echoue (bigLargeIcon ambiguous) | Mettre a jour la dependance flutter_local_notifications |
-| ~~Persistence stats HTTP 500~~ | ~~metrics-aggregator~~ | RESOLU | `safeCount()` avec fallback 0 si table absente |
+| Endpoint sync non implemente | sync mobile/API | SyncQueue existe en BDD mais aucun endpoint API | Creer POST /sync/push, GET /sync/pull, GET /sync/status |
+| Endpoint time-travel : transitions auto non implementees | tests temporels | Time-travel disponible (backdater entites) mais le moteur de statut ne declenche pas encore les transitions auto (NO_RESPONSE apres 7j) | Implementer le cron/worker qui execute les transitions temporelles |
+| Suppression auto corbeille > 30j | cron/worker | Les elements supprimes ne sont jamais purges automatiquement | Creer un cron job ou worker pour la suppression definitive |
+
+## A implementer (non-erreurs, fonctionnalites manquantes)
+
+| Fonctionnalite | Composant | Priorite | Detail |
+|----------------|-----------|----------|--------|
+| Moteur statut transitions temporelles | application-service | Haute | NO_RESPONSE apres 7j, suggestion rejet apres 3 relances |
+| Notifications auto moteur statut | notification-service | Haute | Rappel relance, date retour depassee, entretien < 24h |
+| Swipe actions mobile | flutter-mobile-app | Moyenne | Swipe gauche/droite sur toutes les listes |
+| CRUD forms mobile | flutter-mobile-app | Haute | Formulaires creation candidature, contact, entretien, relance |
+| Sync offline mobile | sync-service + flutter | Moyenne | Queue locale + replay a la reconnexion |
 
 ## Erreurs resolues recemment
 
@@ -53,6 +65,32 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 | `type "FollowUpStatus" already exists` | Aligne les 4 schemas (call, event, interview, workflow) de enum → model. Nettoyage pre-push dans `db-push-all.sh`. |
 | Hard delete sans possibilite de restauration | Soft delete (`deletedAt`) implementé dans 7 services + corbeille + cascade |
 
+## Erreurs resolues (Fevrier 2026 – Crash Reporting)
+
+| Erreur | Resolution |
+|--------|-----------|
+| `nodemailer.createTransporter is not a function` | Corrige en `createTransport()` dans `emailService.js` |
+| Logger corrompu (SyntaxError) | Reecrit `notification-service/utils/logger.js` |
+| `CRASH_REPORT` absent de l'enum `NotificationType` | Ajoute `CRASH_REPORT`, `ERROR_REPORT`, `STATUS_CHANGE` au schema Prisma |
+| Route `GET /crashes` interceptee par `GET /:id` | Reordonne les routes (specifiques avant parametres dynamiques) |
+| `notification-service` server.js mock | Remplace le server.js stub par le vrai routeur + controller |
+| User inexistant dans la table locale lors du crash report | Ajout `upsert` pour creer l'utilisateur avant le crash report |
+| JWT_SECRET manquant dans notification-service Docker | Ajout dans `docker-compose.yml` |
+| Tables droppees par `prisma db push` du notification-service | Repousse le schema maitre `auth-service` (58 modeles) + ajout enum values via SQL |
+| `CRASH_REPORT_EMAIL` = mauvaise adresse | Change `infos@example.invalid` (corrigé) |
+| Tracking limite a 30 actions | Mode dev = illimite, mode prod = 500 (FIFO) |
+
+## Erreurs resolues (Fevrier 2026 – Schema BDD partagée)
+
+| Erreur | Resolution |
+|--------|-----------|
+| `@@map("notifications")` notification-service pointait vers table inexistante | Supprime `@@map`, aligne le modele Prisma sur la table `Notification` (majuscule) existante |
+| `duplicate key User_email_key` lors de `reportCrash` upsert | Logique reecrite : findUnique par ID, puis findUnique par email, creation seulement si aucun match |
+| `User.authToken does not exist` / `verificationToken` | Schema `User` dans notification-service aligne sur le User complet (auth-service) avec UserRole enum |
+| `system_metrics` et `container_metrics` droppes par auth-service `db push --accept-data-loss` | Tables recrees manuellement via SQL avec le schema exact de monitoring-c |
+| Enum `NotificationType` manquant CRASH_REPORT, ERROR_REPORT, STATUS_CHANGE | Valeurs ajoutees via `ALTER TYPE ... ADD VALUE` dans PostgreSQL + schemas Prisma de TOUS les services |
+| `container_metrics` sans colonne `system_metrics_id` | Table recréée avec FK vers `system_metrics(id)` + colonnes correctes (memory_mb, response_time_ms, http_status) |
+
 ## Erreurs ignorables (bruit dans les logs)
 
 - `type "InterviewType" already exists` : normal si le type existe deja, non bloquant.
@@ -61,9 +99,38 @@ Pour les erreurs deja resolues, voir **RESOLUTIONS.md**.
 
 ---
 
+## Fonctionnalites implementees (Fevrier 2026 — Crash Reporting & Tests mobiles)
+
+| Fonctionnalite | Statut | Detail |
+|----------------|--------|--------|
+| Crash reporting backend | Implemente | `POST /notifications/crashes` — rapport anonymise + email auto |
+| Email crash reports | Implemente | Envoi auto a `infos@example.invalid` via SMTP |
+| Tracking pousse utilisateur | Implemente | Boutons, ecrans, swipes, API calls, durees, monitoring appareil — mode DEV illimite |
+| Diagnostic complet | Implemente | `collectFullDiagnostic()` — device + analytics + action log + pending reports |
+| Steps ADB notifications | Implemente | `open_notifications`, `verify_notifications`, `mark_all_notifications_read` |
+| Steps ADB parametres | Implemente | `go_to_parametres`, `verify_parametres`, `toggle_auto_status` |
+| Steps ADB evenements | Implemente | `go_to_evenements_via_drawer`, `verify_evenements`, `verify_calendar_events` |
+| Steps ADB email appareil | Implemente | `open_gmail`, `open_email_app`, `verify_email_received`, `return_to_app` |
+| Steps ADB statistiques | Implemente | `go_to_statistiques_via_drawer`, `verify_statistiques` |
+| ADB shell command | Implemente | Endpoint `/adb-shell` + methode `shellCommand()` dans client |
+| Scenarios manquants | Implemente | 6 nouveaux scenarios (notifications, parametres, evenements, statistiques, email, CRUD notif) |
+
+## A implementer
+
+| Fonctionnalite | Contexte | Detail |
+|----------------|----------|--------|
+| ~~Flutter crash handler~~ | ~~mobile~~ | ~~Implementer `FlutterError.onError` + `runZonedGuarded`~~ **FAIT** — `mobile/lib/services/crash_reporter.dart` |
+| Cron/worker transitions temporelles | backend | Executer transitions auto du moteur de statut (NO_RESPONSE 7j, etc.) |
+| Suppression auto corbeille > 30j | backend | Cron purge des elements soft-deleted > 30 jours |
+| Notifications push mobile | mobile | FCM ou equivalent pour push notifications |
+| Offline sync mobile | mobile + backend | Queue locale, replay, indicateur UI |
+
+---
+
 ## References
 
 - **RESOLUTIONS.md** : erreurs resolues avec detail des corrections.
 - **STATUS.md** : taches restantes.
+- **FONCTIONNALITES.md** : detail complet des fonctionnalites (sections 13: crash reporting).
 - **docs/troubleshooting/POSTGRES_MONITORING.md** : detail resolution erreurs Postgres/monitoring.
 - **docs/troubleshooting/README.md** : guide de depannage general.

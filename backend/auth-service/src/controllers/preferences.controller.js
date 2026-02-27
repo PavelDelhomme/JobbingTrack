@@ -19,12 +19,12 @@ const getUserPreferences = async (req, res) => {
     // Valeurs par défaut
     const defaultPreferences = {
       refreshInterval: {
-        logs: 30000,              // 30 secondes pour les logs de sécurité
-        analytics: 10000,         // 10 secondes pour analytics
-        metrics: 15000,           // 15 secondes pour les métriques
-        dashboard: 30000,         // 30 secondes pour le dashboard
-        services: 20000,          // 20 secondes pour les services
-        notifications: 60000     // 60 secondes pour les notifications
+        logs: 30000,
+        analytics: 10000,
+        metrics: 15000,
+        dashboard: 30000,
+        services: 20000,
+        notifications: 60000
       },
       display: {
         itemsPerPage: 20,
@@ -42,6 +42,14 @@ const getUserPreferences = async (req, res) => {
         followupReminders: true,
         deadlineAlerts: true,
         systemAlerts: true
+      },
+      statusEngine: {
+        autoStatusEnabled: true,
+        noResponseDays: 7,
+        followUpNoResponseDays: 5,
+        interviewFeedbackDays: 7,
+        maxFollowUpsBeforeReject: 3,
+        autoCreateReminders: true
       },
       theme: 'light',
       language: 'fr',
@@ -129,39 +137,7 @@ const getUserPreferences = async (req, res) => {
       logger.warn('Table UserCustomization non trouvée, mode développement. Exécutez: make db-push-all');
       return res.json({
         success: true,
-        preferences: {
-          refreshInterval: {
-            logs: 30000,
-            analytics: 10000,
-            metrics: 15000,
-            dashboard: 30000,
-            services: 20000,
-            notifications: 60000
-          },
-          display: {
-            itemsPerPage: 20,
-            compactMode: false,
-            showCharts: true,
-            showMetrics: true,
-            detailedMetrics: false
-          },
-          notifications: {
-            desktop: true,
-            sound: false,
-            highPriorityOnly: false,
-            applicationUpdates: true,
-            interviewReminders: true,
-            followupReminders: true,
-            deadlineAlerts: true,
-            systemAlerts: true
-          },
-          theme: 'light',
-          language: 'fr',
-          timezone: 'Europe/Paris',
-          metricsRetentionDays: 30,
-          logsRetentionDays: 30,
-          autoCleanupHistory: true
-        }
+        preferences: defaultPreferences
       });
     }
     res.status(500).json({
@@ -245,6 +221,10 @@ const updateUserPreferences = async (req, res) => {
         notifications: {
           ...(customization.settings?.notifications || {}),
           ...(preferences.notifications || {})
+        },
+        statusEngine: {
+          ...(customization.settings?.statusEngine || {}),
+          ...(preferences.statusEngine || {})
         }
       };
 
@@ -356,6 +336,14 @@ const resetUserPreferences = async (req, res) => {
         followupReminders: true,
         deadlineAlerts: true,
         systemAlerts: true
+      },
+      statusEngine: {
+        autoStatusEnabled: true,
+        noResponseDays: 7,
+        followUpNoResponseDays: 5,
+        interviewFeedbackDays: 7,
+        maxFollowUpsBeforeReject: 3,
+        autoCreateReminders: true
       },
       theme: 'light',
       language: 'fr',

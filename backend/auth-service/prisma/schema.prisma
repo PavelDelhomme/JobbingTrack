@@ -193,6 +193,7 @@ model Application {
   notes                 String?
   isArchived            Boolean             @default(false) @map("archived")
   archivedAt            DateTime?
+  statusEngineOptOut    Boolean             @default(false)
   
   // Timestamps
   createdAt             DateTime            @default(now())
@@ -669,12 +670,15 @@ model Notification {
 }
 
 enum NotificationType {
-  REMINDER                  // Rappel
-  APPLICATION_UPDATE        // Mise à jour candidature
-  INTERVIEW_SCHEDULED       // Entretien programmé
-  FOLLOWUP_DUE              // Relance à faire
-  DEADLINE                  // Deadline
-  SYSTEM                    // Système
+  REMINDER
+  APPLICATION_UPDATE
+  INTERVIEW_SCHEDULED
+  FOLLOWUP_DUE
+  DEADLINE
+  SYSTEM
+  CRASH_REPORT
+  ERROR_REPORT
+  STATUS_CHANGE
 }
 
 // ============================================

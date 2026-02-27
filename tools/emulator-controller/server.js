@@ -358,6 +358,7 @@ const routes = {
       const contentDesc = body && body.contentDesc;
       const className = body && body.className;
       const index = (body && body.index) || 0;
+      const preferClickable = body && body.preferClickable !== false;
       if (!deviceId || (!text && !contentDesc && !className)) {
         return send(res, 400, { success: false, error: 'Body { "deviceId", "text"? | "contentDesc"? | "className"?, "index"?: 0 } requis' });
       }
@@ -370,7 +371,8 @@ const routes = {
       while ((match = nodeRegex.exec(xml)) !== null) {
         const n = match[0];
         const getText = (attr) => { const m = n.match(new RegExp(`${attr}="([^"]*)"`)); return m ? m[1] : ''; };
-        nodes.push({ text: getText('text'), contentDesc: getText('content-desc'), className: getText('class'), bounds: getText('bounds'), resourceId: getText('resource-id') });
+        const clickable = /clickable="true"/.test(n);
+        nodes.push({ text: getText('text'), contentDesc: getText('content-desc'), className: getText('class'), bounds: getText('bounds'), resourceId: getText('resource-id'), clickable });
       }
 
       const matches = nodes.filter((n) => {
@@ -387,7 +389,13 @@ const routes = {
         return send(res, 200, { success: false, error: `Element not found: text="${text}" contentDesc="${contentDesc}"`, nodes: nodes.filter(n => n.text || n.contentDesc).slice(0, 30) });
       }
 
-      const target = matches[Math.min(index, matches.length - 1)];
+      let sorted = matches;
+      if (preferClickable && matches.length > 1) {
+        const clickableMatches = matches.filter(n => n.clickable);
+        if (clickableMatches.length > 0) sorted = clickableMatches;
+      }
+
+      const target = sorted[Math.min(index, sorted.length - 1)];
       const boundsMatch = target.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
       if (!boundsMatch) {
         return send(res, 200, { success: false, error: `Cannot parse bounds: ${target.bounds}` });
@@ -396,7 +404,7 @@ const routes = {
       const cy = Math.round((parseInt(boundsMatch[2]) + parseInt(boundsMatch[4])) / 2);
 
       await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
-      send(res, 200, { success: true, message: `Tapped "${target.text || target.contentDesc}" at (${cx}, ${cy})`, bounds: target.bounds });
+      send(res, 200, { success: true, message: `Tapped "${target.text || target.contentDesc}" at (${cx}, ${cy})`, bounds: target.bounds, clickable: target.clickable });
     } catch (e) {
       send(res, 200, { success: false, error: (e && e.message) || String(e) });
     }
@@ -472,6 +480,21 @@ const routes = {
     }
   },
 
+  async '/adb-shell'(req, res, body) {
+    try {
+      const deviceId = (body && body.deviceId) || '';
+      const command = (body && body.command) || '';
+      if (!command) {
+        return send(res, 400, { success: false, error: 'Body { "command": "am start ..." } requis' });
+      }
+      const deviceArg = deviceId ? `-s ${deviceId}` : '';
+      const { stdout, stderr } = await execPromise(`adb ${deviceArg} shell ${command}`, { timeout: 15000 });
+      send(res, 200, { success: true, stdout: (stdout || '').trim(), stderr: (stderr || '').trim() });
+    } catch (e) {
+      send(res, 200, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
   async '/health'(req, res) {
     send(res, 200, { ok: true, service: 'emulator-controller', mobilePath: MOBILE_PATH });
   },
@@ -496,7 +519,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

@@ -1,24 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AdminLayout } from '@/components/features';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/hooks/auth';
 import Link from 'next/link';
-import { 
-  Play, 
-  Plus, 
-  Trash2, 
-  ArrowUp, 
+import {
+  Play,
+  Plus,
+  Trash2,
+  ArrowUp,
   ArrowDown,
   CheckCircle,
   XCircle,
   Clock,
   Loader2,
-  FileText
+  FileText,
+  Smartphone,
+  Wifi,
+  WifiOff,
+  ChevronDown,
+  ChevronRight,
+  Settings2,
 } from 'lucide-react';
+import { AdbClient, MOBILE_ACTIONS, ACTION_CATEGORIES, executeMobileAction } from '@/lib/adb';
+import type { MobileAction } from '@/lib/adb';
 
 // Définition des étapes disponibles (alignées avec journey-builder.js)
 const AVAILABLE_STEPS = [
@@ -63,6 +71,7 @@ const AVAILABLE_STEPS = [
 type CustomStep = {
   id: string;
   stepId: string;
+  isMobile?: boolean;
   options?: Record<string, any>;
 };
 
@@ -78,6 +87,10 @@ type StepResult = {
 
 type UserMode = 'admin' | 'user';
 
+const CONTROLLER_URL_DEFAULT = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_EMULATOR_CONTROLLER_URL || 'http://localhost:5055')
+  : 'http://localhost:5055';
+
 export default function CustomJourneyPage() {
   const { token, isAuthenticated } = useAuth();
   const [steps, setSteps] = useState<CustomStep[]>([]);
@@ -87,12 +100,53 @@ export default function CustomJourneyPage() {
   const [reportSaved, setReportSaved] = useState(false);
   const [userMode, setUserMode] = useState<UserMode>('user');
 
-  const addStep = (stepId: string) => {
+  const [controllerUrl, setControllerUrl] = useState(CONTROLLER_URL_DEFAULT);
+  const [controllerOk, setControllerOk] = useState<boolean | null>(null);
+  const [adbDevices, setAdbDevices] = useState<{ id: string; status: string }[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState('');
+  const [showMobileSteps, setShowMobileSteps] = useState(false);
+  const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
+  const [mobileFilter, setMobileFilter] = useState<string>('all');
+
+  const hasMobileSteps = steps.some(s => s.isMobile);
+
+  useEffect(() => {
+    checkController();
+  }, [controllerUrl]);
+
+  const checkController = async () => {
+    try {
+      const res = await fetch(`${controllerUrl.replace(/\/$/, '')}/health`);
+      const data = await res.json();
+      setControllerOk(!!data.ok);
+      if (data.ok) {
+        const devRes = await fetch(`${controllerUrl.replace(/\/$/, '')}/devices`);
+        const devData = await devRes.json();
+        setAdbDevices(devData.devices || []);
+        if (devData.devices?.length === 1 && !selectedDevice) {
+          setSelectedDevice(devData.devices[0].id);
+        }
+      }
+    } catch {
+      setControllerOk(false);
+    }
+  };
+
+  const addStep = (stepId: string, isMobile = false) => {
     const newStep: CustomStep = {
-      id: `step-${Date.now()}`,
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       stepId,
-      options: {}
+      isMobile,
+      options: {},
     };
+    if (isMobile) {
+      const action = MOBILE_ACTIONS.find(a => a.id === stepId);
+      if (action) {
+        const defaults: Record<string, any> = {};
+        action.params.forEach(p => { if (p.default !== undefined) defaults[p.key] = p.default; });
+        newStep.options = defaults;
+      }
+    }
     setSteps([...steps, newStep]);
   };
 
@@ -114,82 +168,103 @@ export default function CustomJourneyPage() {
   };
 
   const executeJourney = async () => {
-    if (!token || steps.length === 0) return;
+    if (steps.length === 0) return;
+    if (hasMobileSteps && !selectedDevice) {
+      setResults([{ step: 'error', name: 'Configuration', status: 'error', message: 'Selectionnez un appareil ADB pour les etapes mobiles' }]);
+      return;
+    }
 
     setIsRunning(true);
     setResults([]);
     setReportSaved(false);
 
-    try {
-      const response = await fetch('/api/user-journey/custom', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: journeyName,
-          userMode,
-          steps: steps.map(s => ({
-            step: s.stepId,
-            options: s.options || {}
-          }))
-        })
-      });
+    const apiSteps = steps.filter(s => !s.isMobile);
+    const allResults: StepResult[] = [];
+    let adb: AdbClient | null = null;
 
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const resultsList = data.results || [];
-      setResults(resultsList);
-
-      // Sauvegarder automatiquement le rapport dans Rapports de Tests
-      if (resultsList.length > 0) {
-        try {
-          const reportData = {
-            journeyName: journeyName || 'Parcours Personnalisé',
-            timestamp: new Date().toISOString(),
-            summary: data.summary || {
-              totalSteps: resultsList.length,
-              successCount: resultsList.filter((r: StepResult) => r.status === 'success').length,
-              errorCount: resultsList.filter((r: StepResult) => r.status === 'error').length,
-              warningCount: resultsList.filter((r: StepResult) => r.status === 'warning').length,
-              skippedCount: resultsList.filter((r: StepResult) => r.status === 'skipped').length,
-              totalDuration: data.summary?.totalDuration || 0,
-              successRate: data.summary?.successRate || '0%'
-            },
-            results: resultsList,
-            context: data.context || {}
-          };
-          const saveRes = await fetch('/api/user-journey/save-report', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              reportData,
-              journeyName: journeyName || 'Parcours Personnalisé'
-            })
-          });
-          const saveData = await saveRes.json();
-          if (saveData.success) {
-            setReportSaved(true);
-          }
-        } catch (saveErr) {
-          console.warn('Avertissement: rapport non sauvegardé', saveErr);
-        }
-      }
-    } catch (error: any) {
-      console.error('Erreur exécution parcours:', error);
-      setResults([{
-        step: 'error',
-        name: 'Erreur',
-        status: 'error',
-        message: `Erreur: ${error.message}`
-      }]);
-    } finally {
-      setIsRunning(false);
+    if (hasMobileSteps) {
+      adb = new AdbClient(controllerUrl, selectedDevice);
     }
+
+    for (const step of steps) {
+      const stepDef = step.isMobile
+        ? MOBILE_ACTIONS.find(a => a.id === step.stepId)
+        : AVAILABLE_STEPS.find(s => s.id === step.stepId);
+
+      const result: StepResult = {
+        step: step.stepId,
+        name: stepDef?.name || step.stepId,
+        status: 'running',
+      };
+      setResults(prev => [...prev, result]);
+
+      const t0 = Date.now();
+      try {
+        if (step.isMobile && adb) {
+          const msg = await executeMobileAction(step.stepId, step.options || {}, adb);
+          result.status = 'success';
+          result.message = msg;
+        } else if (!step.isMobile && token) {
+          const response = await fetch('/api/user-journey/custom', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ name: journeyName, userMode, steps: [{ step: step.stepId, options: step.options || {} }] }),
+          });
+          const data = await response.json();
+          const r = data.results?.[0];
+          if (r) {
+            result.status = r.status;
+            result.message = r.message;
+            result.error = r.error;
+            result.verifications = r.verifications;
+          } else {
+            result.status = response.ok ? 'success' : 'error';
+            result.message = response.ok ? 'OK' : `HTTP ${response.status}`;
+          }
+        } else {
+          result.status = 'skipped';
+          result.message = step.isMobile ? 'Pas d\'appareil ADB' : 'Pas de token d\'authentification';
+        }
+      } catch (e: any) {
+        result.status = 'error';
+        result.error = e.message;
+      }
+
+      result.duration = Date.now() - t0;
+      allResults.push(result);
+      setResults([...allResults]);
+    }
+
+    if (allResults.length > 0) {
+      try {
+        const successCount = allResults.filter(r => r.status === 'success').length;
+        const reportData = {
+          journeyName: journeyName || 'Parcours Personnalise',
+          timestamp: new Date().toISOString(),
+          summary: {
+            totalSteps: allResults.length,
+            successCount,
+            errorCount: allResults.filter(r => r.status === 'error').length,
+            warningCount: allResults.filter(r => r.status === 'warning').length,
+            skippedCount: allResults.filter(r => r.status === 'skipped').length,
+            totalDuration: allResults.reduce((s, r) => s + (r.duration || 0), 0),
+            successRate: `${Math.round((successCount / allResults.length) * 100)}%`,
+          },
+          results: allResults,
+          hasMobileSteps,
+          deviceId: selectedDevice || undefined,
+        };
+        const saveRes = await fetch('/api/user-journey/save-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reportData, journeyName: journeyName || 'Parcours Personnalise' }),
+        });
+        const saveData = await saveRes.json();
+        if (saveData.success) setReportSaved(true);
+      } catch {}
+    }
+
+    setIsRunning(false);
   };
 
   const getStatusIcon = (status: StepResult['status']) => {
@@ -204,12 +279,12 @@ export default function CustomJourneyPage() {
 
   const getStatusBadge = (status: StepResult['status']) => {
     const colors = {
-      success: 'bg-green-100 text-green-800',
-      error: 'bg-red-100 text-red-800',
-      warning: 'bg-yellow-100 text-yellow-800',
-      running: 'bg-blue-100 text-blue-800',
-      pending: 'bg-gray-100 text-gray-800',
-      skipped: 'bg-gray-100 text-gray-500'
+      success: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300',
+      error: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+      warning: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+      running: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      pending: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400',
+      skipped: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500',
     };
     return <Badge className={colors[status] || colors.pending}>{status}</Badge>;
   };
@@ -316,95 +391,201 @@ export default function CustomJourneyPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Étapes disponibles */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Étapes Disponibles</CardTitle>
+        {/* Config mobile si besoin */}
+        {(hasMobileSteps || showMobileSteps) && (
+          <Card className="ring-1 ring-indigo-200 dark:ring-indigo-800/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
+                <Smartphone className="w-5 h-5" /> Configuration Mobile (ADB)
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {AVAILABLE_STEPS.map(step => (
-                <div
-                  key={step.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{step.icon}</span>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-white">{step.name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{step.description}</div>
-                    </div>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Controleur</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={controllerUrl} onChange={(e) => setControllerUrl(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm" />
+                    <button onClick={checkController} className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-sm">
+                      {controllerOk === true ? <Wifi className="w-4 h-4 text-emerald-500" /> : controllerOk === false ? <WifiOff className="w-4 h-4 text-red-500" /> : '...'}
+                    </button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => addStep(step.id)}
-                    disabled={isRunning}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Appareil ADB</label>
+                  <select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm">
+                    <option value="">-- Choisir --</option>
+                    {adbDevices.map(d => <option key={d.id} value={d.id}>{d.id} ({d.status})</option>)}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <div className={`px-3 py-2 rounded-lg text-sm ${controllerOk && selectedDevice ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
+                    {controllerOk && selectedDevice ? 'Pret pour les tests mobiles' : 'Configurez le controleur + appareil'}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Etapes disponibles */}
+          <div className="space-y-4">
+            {/* API Steps */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Etapes API</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                {AVAILABLE_STEPS.map(step => (
+                  <div key={step.id}
+                    className="flex items-center justify-between p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">{step.icon}</span>
+                      <div>
+                        <div className="font-medium text-sm text-gray-900 dark:text-white">{step.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">{step.description}</div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => addStep(step.id)} disabled={isRunning}>
+                      <Plus className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Mobile Steps */}
+            <Card className="ring-1 ring-indigo-200 dark:ring-indigo-800/30">
+              <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowMobileSteps(!showMobileSteps)}>
+                <CardTitle className="text-base flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
+                  <Smartphone className="w-4 h-4" /> Actions Mobiles (ADB)
+                  {showMobileSteps ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
+                </CardTitle>
+              </CardHeader>
+              {showMobileSteps && (
+                <CardContent className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    <button onClick={() => setMobileFilter('all')}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${mobileFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                      Tout
+                    </button>
+                    {Object.entries(ACTION_CATEGORIES).map(([key, cat]) => (
+                      <button key={key} onClick={() => setMobileFilter(key)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${mobileFilter === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5 max-h-[350px] overflow-y-auto">
+                    {MOBILE_ACTIONS.filter(a => mobileFilter === 'all' || a.category === mobileFilter).map(action => (
+                      <div key={action.id}
+                        className="flex items-center justify-between p-2.5 border border-indigo-200 dark:border-indigo-800/40 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-lg">{action.icon}</span>
+                          <div>
+                            <div className="font-medium text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                              {action.name}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                                {ACTION_CATEGORIES[action.category].label}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-500">{action.description}</div>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => addStep(action.id, true)} disabled={isRunning}
+                          className="border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400">
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </div>
 
           {/* Parcours construit */}
           <Card>
-            <CardHeader>
-              <CardTitle>Votre Parcours ({steps.length} étapes)</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Votre Parcours ({steps.length} etapes)</CardTitle>
             </CardHeader>
             <CardContent>
               {steps.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p>Aucune étape ajoutée</p>
-                  <p className="text-sm mt-2">Ajoutez des étapes depuis la colonne de gauche</p>
+                  <p>Aucune etape ajoutee</p>
+                  <p className="text-sm mt-2">Ajoutez des etapes API ou des actions mobiles depuis la colonne de gauche</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {steps.map((step, index) => {
-                    const stepDef = AVAILABLE_STEPS.find(s => s.id === step.stepId);
+                    const isM = step.isMobile;
+                    const stepDef = isM
+                      ? MOBILE_ACTIONS.find(a => a.id === step.stepId)
+                      : AVAILABLE_STEPS.find(s => s.id === step.stepId);
+                    const mobileAction = isM ? (stepDef as MobileAction) : null;
+                    const isExpanded = expandedStepId === step.id;
+
                     return (
-                      <div
-                        key={step.id}
-                        className="flex items-center gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-6">
-                            {index + 1}
-                          </span>
-                          <span className="text-xl">{stepDef?.icon}</span>
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {stepDef?.name}
+                      <div key={step.id}
+                        className={`p-3 border rounded-lg ${isM ? 'border-indigo-200 dark:border-indigo-800/40 bg-indigo-50/50 dark:bg-indigo-900/10' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'}`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-500 dark:text-gray-500 w-6">{index + 1}</span>
+                          <span className="text-lg">{stepDef?.icon || '?'}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                              {stepDef?.name || step.stepId}
+                              {isM && <span className="text-[10px] px-1 py-0.5 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-300">Mobile</span>}
                             </div>
                           </div>
+                          <div className="flex items-center gap-0.5">
+                            {isM && mobileAction && mobileAction.params.length > 0 && (
+                              <Button size="sm" variant="ghost" onClick={() => setExpandedStepId(isExpanded ? null : step.id)}>
+                                <Settings2 className="w-4 h-4 text-indigo-500" />
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={() => moveStep(index, 'up')} disabled={index === 0 || isRunning}>
+                              <ArrowUp className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => moveStep(index, 'down')} disabled={index === steps.length - 1 || isRunning}>
+                              <ArrowDown className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => removeStep(step.id)} disabled={isRunning}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => moveStep(index, 'up')}
-                            disabled={index === 0 || isRunning}
-                          >
-                            <ArrowUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => moveStep(index, 'down')}
-                            disabled={index === steps.length - 1 || isRunning}
-                          >
-                            <ArrowDown className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeStep(step.id)}
-                            disabled={isRunning}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
+                        {/* Params editing for mobile actions */}
+                        {isExpanded && mobileAction && mobileAction.params.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-indigo-200 dark:border-indigo-800/40 space-y-2">
+                            {mobileAction.params.map(param => (
+                              <div key={param.key} className="flex items-center gap-2">
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 w-28 shrink-0">{param.label}</label>
+                                {param.type === 'select' ? (
+                                  <select
+                                    value={String(step.options?.[param.key] ?? param.default ?? '')}
+                                    onChange={(e) => updateStepOptions(step.id, { [param.key]: e.target.value })}
+                                    className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 dark:text-gray-100">
+                                    {param.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                  </select>
+                                ) : param.type === 'boolean' ? (
+                                  <input type="checkbox"
+                                    checked={!!step.options?.[param.key]}
+                                    onChange={(e) => updateStepOptions(step.id, { [param.key]: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-700" />
+                                ) : (
+                                  <input
+                                    type={param.type === 'number' ? 'number' : 'text'}
+                                    value={String(step.options?.[param.key] ?? param.default ?? '')}
+                                    onChange={(e) => updateStepOptions(step.id, { [param.key]: param.type === 'number' ? Number(e.target.value) : e.target.value })}
+                                    placeholder={param.placeholder}
+                                    className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 dark:text-gray-100" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

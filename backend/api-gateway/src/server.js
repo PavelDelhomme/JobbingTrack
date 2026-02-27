@@ -116,9 +116,9 @@ app.use(cors({
 // ✅ Middleware de sécurité de base
 app.use(helmet());
 
-// ✅ Middleware de base
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// ✅ Middleware de base (limite payload 64 Ko pour rejeter overflow → 413, conforme test E2E sécurité)
+app.use(express.json({ limit: '64kb' }));
+app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
 // ✅ Middleware de sécurité personnalisés (ordre important)
 // 1. Détection d'intrusion (premier pour analyser toutes les requêtes)

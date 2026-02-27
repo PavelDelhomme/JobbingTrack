@@ -105,7 +105,7 @@ services:
       - HOSTNAME=0.0.0.0
       - PORT=3000
       - PROJECT_ROOT=/app
-      - TESTS_RESULTS_DIR=/tmp/tests/results
+      - TESTS_RESULTS_DIR=/app/tests/results
       - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
       - TZ=${TZ:-Europe/Paris}
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
@@ -251,6 +251,8 @@ services:
       - APP_URL=${APP_URL:-http://localhost:5003}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@jobbingtrack.test}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-password123}
     networks:
       - jobbingtrack-network
     depends_on:
@@ -554,6 +556,11 @@ services:
       - PORT=${NOTIFICATION_SERVICE_INTERNAL_PORT:-3008}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}
+      - SMTP_HOST=${SMTP_HOST:-mailhog}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_FROM=${SMTP_FROM:-noreply@jobbingtrack.test}
+      - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
     depends_on:
       postgres:
         condition: service_healthy
