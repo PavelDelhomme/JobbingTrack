@@ -199,16 +199,30 @@ run_test() {
     if [ -z "$passed" ] || ! [ "$passed" -ge 0 ] 2>/dev/null; then passed=0; fi
     if [ -z "$failed" ] || ! [ "$failed" -ge 0 ] 2>/dev/null; then failed=0; fi
     
+    # Si le test a échoué (exit_code != 0) mais qu'aucune stat n'a été extraite, compter 1 échec
+    if [ "$exit_code" -ne 0 ] && [ "$total" -eq 0 ]; then
+        total=1
+        passed=0
+        failed=1
+    fi
+    
     # Créer le JSON de résultat (avec fallback si jq n'est pas disponible)
     # Nettoyer les codes ANSI avant de créer le JSON
     local clean_output=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
     
+    # Échapper test_name et command pour JSON (évite "Test inconnu" et JSON invalide)
+    local test_name_escaped=""
+    local command_escaped=""
     if command -v jq > /dev/null 2>&1; then
         output_json=$(echo "$clean_output" | jq -Rs .)
+        test_name_escaped=$(printf '%s' "$test_name" | jq -Rs .)
+        command_escaped=$(printf '%s' "$test_command" | jq -Rs .)
     else
         # Fallback: échapper les caractères JSON manuellement
         output_json=$(echo "$clean_output" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
         output_json="\"$output_json\""
+        test_name_escaped="\"$(printf '%s' "$test_name" | sed 's/\\/\\\\/g; s/"/\\"/g')\""
+        command_escaped="\"$(printf '%s' "$test_command" | sed 's/\\/\\\\/g; s/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')\""
     fi
     
     # S'assurer que le répertoire parent existe
@@ -225,9 +239,9 @@ run_test() {
     
     cat > "$result_file" <<EOF
 {
-  "testName": "$test_name",
+  "testName": $test_name_escaped,
   "userType": "$user_type",
-  "command": "$test_command",
+  "command": $command_escaped,
   "timestamp": "$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')",
   "duration": $duration,
   "exitCode": $exit_code,
@@ -410,6 +424,7 @@ EOF
 fi
 
 # 5. Tests API complets (via make test-api qui utilise Jest dans conteneur)
+# Inclut : test-status-cascade.test.js, test-status-engine.test.js (moteur de statut + cascade), archive, BDD, etc.
 if docker ps | grep -q jobbingtrack-frontend; then
     run_test "Tests API Complets (Jest)" \
         "docker exec -w /app/tests jobbingtrack-frontend sh -c 'npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || docker exec -w /app jobbingtrack-frontend sh -c 'cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1' || (cd tests && npm test -- api/ --verbose --forceExit --no-coverage 2>&1)" \
@@ -475,7 +490,8 @@ elif [ -d "frontend/tests/e2e" ]; then
         "admin"
 else
     echo -e "${YELLOW}⚠️  Tests Playwright E2E non disponibles (frontend ou test:e2e manquant)${NC}"
-    printf '%s\n' '{"testName":"Playwright E2E Frontend","status":"skipped","reason":"frontend ou test:e2e manquant","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-e2e.json"
+    _ts=$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')
+    printf '%s\n' "{\"testName\":\"Playwright E2E Frontend\",\"status\":\"skipped\",\"reason\":\"frontend ou test:e2e manquant\",\"timestamp\":\"$_ts\"}" > "$REPORT_DIR/playwright-e2e.json"
     echo ""
 fi
 
@@ -522,7 +538,8 @@ fi
 
 # 8. Tests Mobile Playwright – exclus du pipeline E2E principal (pas d'émulateur mobile)
 echo -e "${YELLOW}⚠️  Tests Mobile exclus (émulateur mobile non lancé)${NC}"
-printf '%s\n' '{"testName":"Playwright Mobile","status":"skipped","reason":"Tests mobiles exclus du pipeline E2E (emulateur non lance)","timestamp":"'"$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')"'"}' > "$REPORT_DIR/playwright-mobile.json"
+_ts=$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S%z')
+printf '%s\n' "{\"testName\":\"Playwright Mobile\",\"status\":\"skipped\",\"reason\":\"Tests mobiles exclus du pipeline E2E (emulateur non lance)\",\"timestamp\":\"$_ts\"}" > "$REPORT_DIR/playwright-mobile.json"
 echo ""
 
 # 9. Tests Frontend Jest (unitaires – depuis frontend/ pour next/jest)
@@ -1115,6 +1132,8 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
             clean_output="Aucune sortie disponible pour ce test."
         fi
     fi
+    # Échapper pour inclusion HTML (éviter </script> et guillemets qui cassent le document dans l'iframe)
+    clean_output_escaped=$(echo "$clean_output" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
     
     # Détecter si l'erreur est liée à une table non trouvée (uniquement si le test a échoué)
     has_table_error=false
@@ -1137,7 +1156,7 @@ for result_file in $(ls -1 "$REPORT_DIR"/*.json 2>/dev/null | grep -v summary.js
         $([ "$has_table_error" = true ] && echo "$db_push_suggestion" || echo "")
         <details open>
             <summary>Voir les détails complets ($(echo "$clean_output" | wc -l | tr -d ' ') lignes)</summary>
-            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">$(echo "$clean_output")</pre>
+            <pre style="max-height: 800px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">$(echo "$clean_output_escaped")</pre>
         </details>
     </div>
 EOF

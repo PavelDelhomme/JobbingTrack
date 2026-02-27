@@ -38,11 +38,18 @@ class CronScheduler {
       await this.sendFollowupReminders();
     });
 
-    console.log('⏰ Cron scheduler started with 5 jobs');
+    // ✅ Notifications "Penser à relancer" (candidatures > 7j sans réponse) à 9h30
+    cron.schedule('30 9 * * *', async () => {
+      console.log('📋 Sending application reminders (no response > 7 days)...');
+      await this.sendApplicationReminders();
+    });
+
+    console.log('⏰ Cron scheduler started with 6 jobs');
     console.log('   - Pending workflow executions: every hour');
     console.log('   - Auto-followup check: daily at 9:00');
     console.log('   - Trash auto-clean: daily at 2:00');
     console.log('   - Interview reminders: daily at 8:00');
+    console.log('   - Application reminders (7d): daily at 9:00');
     console.log('   - Followup reminders: daily at 10:00');
   }
 
@@ -229,7 +236,60 @@ class CronScheduler {
       }
       console.log(`   ✅ ${deletedCalls.count} appels supprimés définitivement`);
 
-      const total = deletedApplications.count + deletedContacts.count + deletedInterviews.count + deletedFollowUps.count + deletedCalls.count;
+      // Supprimer les entreprises en corbeille depuis > 30 jours (sans applications liées)
+      let deletedCompanies = { count: 0 };
+      try {
+        const companiesToDelete = await prisma.company.findMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
+          },
+          select: { id: true },
+          take: 500
+        });
+        for (const c of companiesToDelete) {
+          try {
+            const appCount = await prisma.application.count({ where: { companyId: c.id } });
+            if (appCount === 0) {
+              await prisma.company.delete({ where: { id: c.id } });
+              deletedCompanies.count += 1;
+            }
+          } catch (e) {
+            // FK ou autre: ignorer cette entreprise
+          }
+        }
+      } catch (error) {
+        if (error.message?.includes('Unknown argument')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Company');
+        } else {
+          console.warn('   ⚠️ Erreur suppression entreprises:', error.message);
+        }
+      }
+      console.log(`   ✅ ${deletedCompanies.count} entreprises supprimées définitivement`);
+
+      // Supprimer les événements en corbeille depuis > 30 jours
+      let deletedEvents = { count: 0 };
+      try {
+        deletedEvents = await prisma.event.deleteMany({
+          where: {
+            deletedAt: {
+              lte: thirtyDaysAgo,
+              not: null
+            }
+          }
+        });
+      } catch (error) {
+        if (error.message?.includes('Unknown argument')) {
+          console.log('   ⚠️ Champ deletedAt non disponible dans le schéma Event');
+        } else {
+          console.warn('   ⚠️ Erreur suppression événements:', error.message);
+        }
+      }
+      console.log(`   ✅ ${deletedEvents.count} événements supprimés définitivement`);
+
+      const total = deletedApplications.count + deletedContacts.count + deletedInterviews.count + deletedFollowUps.count + deletedCalls.count + deletedCompanies.count + deletedEvents.count;
       console.log(`🎉 Nettoyage terminé: ${total} éléments supprimés au total`);
 
     } catch (error) {
@@ -238,87 +298,131 @@ class CronScheduler {
   }
 
   /**
-   * ✅ NOUVEAU - Envoie des rappels pour les entretiens à venir (dans les 24h)
+   * Rappels pour les entretiens dans les 24h (notification in-app).
    */
   async sendInterviewReminders() {
     try {
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const today = new Date();
+      const now = new Date();
+      const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      const upcomingInterviews = await prisma.interview.findMany({
+      const upcoming = await prisma.interview.findMany({
         where: {
-          scheduledAt: {
-            gte: today,
-            lte: tomorrow
-          },
-          status: { code: 'UPCOMING_ARRIVAL' } // Relation InterviewStatus (table)
+          deletedAt: null,
+          interviewDate: { gte: now, lte: in24h }
         },
         include: {
-          application: {
-            include: {
-              user: true,
-              company: true
-            }
-          }
+          application: { select: { userId: true, position: true }, include: { company: { select: { name: true } } } }
         }
       });
 
-      console.log(`📅 ${upcomingInterviews.length} entretiens à venir dans les 24h`);
-
-      // TODO: Appeler le notification-service pour envoyer les rappels
-      for (const interview of upcomingInterviews) {
-        console.log(`   📧 Rappel à envoyer pour entretien ${interview.id} (${interview.application.user.email})`);
-        // await axios.post(`${NOTIFICATION_SERVICE_URL}/api/v1/notifications/email`, { ... });
+      for (const iv of upcoming) {
+        const userId = iv.application?.userId;
+        if (!userId) continue;
+        try {
+          await prisma.notification.create({
+            data: {
+              userId,
+              type: 'REMINDER',
+              title: 'Rappel entretien',
+              message: `Entretien prévu pour ${iv.application?.position ?? 'candidature'} (${iv.application?.company?.name ?? ''})`,
+              entityType: 'Interview',
+              entityId: iv.id
+            }
+          });
+        } catch (e) {
+          console.warn('   Notification rappel entretien:', e.message);
+        }
       }
-
+      console.log(`   📅 ${upcoming.length} rappels entretien créés`);
     } catch (error) {
-      console.error('❌ Erreur envoi rappels entretiens:', error);
+      console.error('❌ Erreur rappels entretiens:', error);
     }
   }
 
   /**
-   * ✅ NOUVEAU - Envoie des rappels pour les relances à faire aujourd'hui
+   * Rappels pour les relances à faire (date = aujourd'hui, notification in-app).
    */
   async sendFollowupReminders() {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const todayFollowUps = await prisma.followUp.findMany({
+      const followUps = await prisma.followUp.findMany({
         where: {
-          scheduledDate: {
-            gte: today,
-            lt: tomorrow
-          },
-          completed: false,
-          deletedAt: null
+          deletedAt: null,
+          followUpDate: { gte: today, lt: tomorrow }
         },
         include: {
-          application: {
-            include: {
-              user: true,
-              company: true
-            }
-          },
-          contact: true
+          application: { select: { userId: true, position: true }, include: { company: { select: { name: true } } } }
         }
       });
 
-      console.log(`📧 ${todayFollowUps.length} relances prévues aujourd'hui`);
-
-      // TODO: Appeler le notification-service pour envoyer les rappels
-      for (const followUp of todayFollowUps) {
-        console.log(`   📧 Rappel à envoyer pour relance ${followUp.id} (${followUp.application.user.email})`);
-        // await axios.post(`${NOTIFICATION_SERVICE_URL}/api/v1/notifications/email`, { ... });
+      for (const fu of followUps) {
+        const userId = fu.application?.userId;
+        if (!userId) continue;
+        try {
+          await prisma.notification.create({
+            data: {
+              userId,
+              type: 'FOLLOWUP_DUE',
+              title: 'Relance à faire',
+              message: `Relance prévue pour ${fu.application?.position ?? 'candidature'} (${fu.application?.company?.name ?? ''})`,
+              entityType: 'FollowUp',
+              entityId: fu.id
+            }
+          });
+        } catch (e) {
+          console.warn('   Notification rappel relance:', e.message);
+        }
       }
-
+      console.log(`   📧 ${followUps.length} rappels relance créés`);
     } catch (error) {
-      console.error('❌ Erreur envoi rappels relances:', error);
+      console.error('❌ Erreur rappels relances:', error);
     }
   }
-}
+
+  /**
+   * Notifications "Penser à relancer" pour candidatures sans réponse > 7 jours.
+   */
+  async sendApplicationReminders() {
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const statusPending = await prisma.applicationStatus.findFirst({ where: { code: 'CANDIDATE_PENDING' } });
+      if (!statusPending) return;
+
+      const applications = await prisma.application.findMany({
+        where: {
+          deletedAt: null,
+          statusId: statusPending.id,
+          applicationDate: { lt: sevenDaysAgo }
+        },
+        select: { id: true, userId: true, position: true, company: { select: { name: true } } }
+      });
+
+      let created = 0;
+      for (const app of applications) {
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: app.userId,
+              type: 'REMINDER',
+              title: 'Penser à relancer',
+              message: `Candidature "${app.position}" chez ${app.company?.name ?? '?'} sans réponse depuis plus de 7 jours.`,
+              entityType: 'Application',
+              entityId: app.id
+            }
+          });
+          created++;
+        } catch (e) {
+          console.warn('   Notification relance candidature:', e.message);
+        }
+      }
+      console.log(`   📋 ${created} notifications "Penser à relancer" créées`);
+    } catch (error) {
+      console.error('❌ Erreur notifications candidatures:', error);
+    }
+  }
 
 module.exports = new CronScheduler();

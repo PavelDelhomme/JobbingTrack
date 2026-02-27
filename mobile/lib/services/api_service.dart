@@ -202,6 +202,47 @@ class ApiService {
     }
   }
 
+  /// Création candidature avec payload complet (tous les champs backend).
+  static Future<Application> createApplicationFromPayload(Map<String, dynamic> payload, {String? token}) async {
+    try {
+      final response = await _post(
+        '/api/v1/applications',
+        headers: _jsonHeaders(token),
+        body: jsonEncode(payload),
+      );
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return Application.fromJson(data['application'] ?? data);
+      } else {
+        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        throw Exception(body['message'] ?? body['error'] ?? 'Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Mise à jour candidature avec payload complet (champs autorisés backend).
+  static Future<Application> updateApplicationFromPayload(String id, Map<String, dynamic> payload, {String? token}) async {
+    try {
+      final response = await _put(
+        '/api/v1/applications/$id',
+        headers: _jsonHeaders(token),
+        body: jsonEncode(payload),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Application.fromJson(data['application'] ?? data);
+      } else {
+        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        throw Exception(body['message'] ?? body['error'] ?? 'Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
   static Future<Application> updateApplication(String id, Application application, {String? token}) async {
     try {
       final response = await _put(

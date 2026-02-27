@@ -209,6 +209,21 @@ const restoreRelatedElements = async (applicationId) => {
   }
 };
 
+// Cascade corbeille : remettre deletedAt à null sur les entités liées lors de la restauration
+const restoreRelatedFromTrash = async (applicationId) => {
+  try {
+    await Promise.all([
+      prisma.interview.updateMany({ where: { applicationId, deletedAt: { not: null } }, data: { deletedAt: null } }),
+      prisma.followUp.updateMany({ where: { applicationId, deletedAt: { not: null } }, data: { deletedAt: null } }),
+      prisma.call.updateMany({ where: { applicationId, deletedAt: { not: null } }, data: { deletedAt: null } }),
+      prisma.$executeRaw`UPDATE "Event" SET "deletedAt" = NULL WHERE "applicationId" = ${applicationId} AND "deletedAt" IS NOT NULL`
+    ]);
+    logger.info(`Éléments liés restaurés de la corbeille pour candidature: ${applicationId}`);
+  } catch (error) {
+    logger.warn('Cascade restauration corbeille partielle:', error.message);
+  }
+};
+
 // STATISTIQUES D'ARCHIVAGE
 const getArchiveStats = async (req, res, next) => {
   try {
@@ -318,7 +333,10 @@ const restoreFromTrash = async (req, res, next) => {
       data: { deletedAt: null }
     });
 
-    // Cascade restore
+    // Restaurer aussi les entretiens, relances, appels et événements liés (cascade corbeille)
+    await restoreRelatedFromTrash(id);
+
+    // Cascade restore (archivage)
     await restoreRelatedElements(id);
 
     logger.info(`Candidature ${id} restaurée depuis la corbeille par ${req.user.email}`);

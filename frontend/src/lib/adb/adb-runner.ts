@@ -1,0 +1,78 @@
+/**
+ * Orchestrateur de parcours : execute un scenario etape par etape,
+ * notifie l'appelant a chaque changement d'etat.
+ */
+import { AdbClient, LogFn } from './adb-client';
+import { MobileScenario, STEP_LABELS } from './adb-scenarios';
+import { executeStep } from './adb-steps';
+
+export type StepStatus = 'pending' | 'running' | 'success' | 'error';
+
+export interface StepResult {
+  id: string;
+  name: string;
+  status: StepStatus;
+  message?: string;
+  durationMs?: number;
+}
+
+export interface RunnerCallbacks {
+  onStepStart?: (index: number, stepId: string) => void;
+  onStepEnd?: (index: number, result: StepResult) => void;
+  onProgress?: (current: number, total: number) => void;
+  onComplete?: (results: StepResult[]) => void;
+}
+
+export class AdbRunner {
+  private adb: AdbClient;
+  private log: LogFn;
+  private cancelled = false;
+
+  constructor(controllerUrl: string, deviceId: string, log?: LogFn) {
+    this.log = log || (() => {});
+    this.adb = new AdbClient(controllerUrl, deviceId, this.log);
+  }
+
+  cancel() { this.cancelled = true; }
+  get isCancelled() { return this.cancelled; }
+
+  async run(scenario: MobileScenario, callbacks?: RunnerCallbacks): Promise<StepResult[]> {
+    this.cancelled = false;
+    const { steps } = scenario;
+    const results: StepResult[] = steps.map((id) => ({
+      id,
+      name: STEP_LABELS[id] || id.replace(/_/g, ' '),
+      status: 'pending' as const,
+    }));
+
+    this.log(`Parcours "${scenario.name}" demarre (${steps.length} etapes) [UI reelle]`);
+
+    for (let i = 0; i < steps.length; i++) {
+      if (this.cancelled) {
+        this.log('Parcours annule');
+        break;
+      }
+
+      const stepId = steps[i];
+      results[i].status = 'running';
+      callbacks?.onStepStart?.(i, stepId);
+      callbacks?.onProgress?.(i + 1, steps.length);
+
+      const t0 = Date.now();
+      try {
+        const msg = await executeStep(stepId, this.adb);
+        results[i] = { ...results[i], status: 'success', message: msg, durationMs: Date.now() - t0 };
+        this.log(`  ✅ ${results[i].name}: ${msg}`);
+      } catch (e: any) {
+        results[i] = { ...results[i], status: 'error', message: e.message, durationMs: Date.now() - t0 };
+        this.log(`  ❌ ${results[i].name}: ${e.message}`);
+      }
+
+      callbacks?.onStepEnd?.(i, results[i]);
+    }
+
+    this.log(`Parcours "${scenario.name}" termine`);
+    callbacks?.onComplete?.(results);
+    return results;
+  }
+}

@@ -8,9 +8,9 @@ export function getSystemTheme(): 'light' | 'dark' {
 }
 
 export function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'system'
+  if (typeof window === 'undefined') return 'dark'
   const stored = localStorage.getItem('theme')
-  return (stored as Theme) || 'system'
+  return (stored as Theme) || 'dark'
 }
 
 export function setStoredTheme(theme: Theme) {
@@ -54,8 +54,8 @@ export const ThemeContext = createContext<{
 } | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('system')
-  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<Theme>('dark')
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('dark')
 
   // Charger le thème initial
   useEffect(() => {

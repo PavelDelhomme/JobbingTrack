@@ -30,6 +30,86 @@ const stepApplicationDetail = require('./modules/step-application-detail');
 const stepArchiveRestore = require('./modules/step-archive-restore');
 const stepPasswordReset = require('./modules/step-password-reset');
 const stepUpdateProfileSettings = require('./modules/step-update-profile-settings');
+const stepStatusEngine = require('./modules/step-status-engine');
+const stepCrashReporting = require('./modules/step-crash-reporting');
+
+const adbLib = require('../../tools/adb-lib');
+
+// ─── Helpers ADB (client cache) ─────────────────────────────────
+let _adbClient = null;
+
+async function getAdbClient(opts = {}) {
+  if (_adbClient) return _adbClient;
+  try {
+    _adbClient = await adbLib.connect(opts.deviceId, opts);
+    return _adbClient;
+  } catch (err) {
+    throw new Error(`ADB non disponible: ${err.message}. Lancez: cd tools/emulator-controller && node server.js`);
+  }
+}
+
+async function mobileStep(actionId, opts = {}) {
+  const t0 = Date.now();
+  const result = { step: actionId, name: `[Mobile] ${actionId}`, status: 'pending', duration: 0, data: null, error: null };
+  try {
+    const adb = await getAdbClient(opts);
+    const msg = await adbLib.exec(actionId, opts, adb);
+    result.duration = Date.now() - t0;
+    result.status = 'success';
+    result.message = `✅ ${msg}`;
+    result.data = { actionId, params: opts, response: msg };
+  } catch (err) {
+    result.duration = Date.now() - t0;
+    result.status = 'error';
+    result.error = err.message;
+    result.message = `❌ [Mobile] ${actionId}: ${err.message}`;
+  }
+  return result;
+}
+
+async function mobileScenario(scenarioName, opts = {}) {
+  const t0 = Date.now();
+  const result = { step: `mob_scenario_${scenarioName}`, name: `[Mobile Scenario] ${scenarioName}`, status: 'pending', duration: 0, data: null, error: null };
+  try {
+    const adb = await getAdbClient(opts);
+    const r = new adbLib.Runner(adb);
+    const report = await r.scenario(scenarioName, opts);
+    result.duration = Date.now() - t0;
+    result.status = report.status;
+    result.message = report.status === 'success' ? `✅ Scenario "${scenarioName}" reussi` : `❌ Scenario "${scenarioName}": ${report.error}`;
+    result.data = report;
+  } catch (err) {
+    result.duration = Date.now() - t0;
+    result.status = 'error';
+    result.error = err.message;
+    result.message = `❌ Scenario "${scenarioName}": ${err.message}`;
+  }
+  return result;
+}
+
+async function mobileFlow(flowName, opts = {}) {
+  const t0 = Date.now();
+  const result = { step: `mob_flow_${flowName}`, name: `[Mobile Flow] ${flowName}`, status: 'pending', duration: 0, data: null, error: null };
+  try {
+    const adb = await getAdbClient(opts);
+    const fn = adbLib.flows[flowName];
+    if (!fn) throw new Error(`Flow "${flowName}" inconnu`);
+    const args = [];
+    if (flowName === 'loginFresh') args.push(opts.email, opts.password);
+    else if (flowName === 'visitDrawerItems') args.push(opts.items || ['Relances', { text: 'Statistiques', scroll: true }]);
+    const msg = await fn(adb, ...args);
+    result.duration = Date.now() - t0;
+    result.status = 'success';
+    result.message = `✅ Flow "${flowName}" reussi`;
+    result.data = { flowName, response: msg };
+  } catch (err) {
+    result.duration = Date.now() - t0;
+    result.status = 'error';
+    result.error = err.message;
+    result.message = `❌ Flow "${flowName}": ${err.message}`;
+  }
+  return result;
+}
 
 // Mapping des étapes disponibles
 const STEP_MODULES = {
@@ -60,7 +140,43 @@ const STEP_MODULES = {
   update_companies: stepUpdateCompanies?.stepUpdateCompanies,
   update_applications: stepUpdateApplications?.stepUpdateApplications,
   update_contacts: stepUpdateContacts?.stepUpdateContacts,
-  list_notifications: stepListNotifications?.stepListNotifications
+  list_notifications: stepListNotifications?.stepListNotifications,
+  status_engine: stepStatusEngine.stepStatusEngine,
+  crash_reporting: stepCrashReporting.stepCrashReporting,
+
+  // ─── Steps mobiles (ADB) ───────────────────────────────────
+  mob_ensure_logged_out: (opts) => mobileStep('mob_ensure_logged_out', opts),
+  mob_login: (opts) => mobileStep('mob_login', opts),
+  mob_logout: (opts) => mobileStep('mob_logout', opts),
+  mob_tap: (opts) => mobileStep('mob_tap', opts),
+  mob_tap_tab: (opts) => mobileStep('mob_tap_tab', opts),
+  mob_open_drawer: (opts) => mobileStep('mob_open_drawer', opts),
+  mob_drawer_item: (opts) => mobileStep('mob_drawer_item', opts),
+  mob_back: (opts) => mobileStep('mob_back', opts),
+  mob_home: (opts) => mobileStep('mob_home', opts),
+  mob_type_in_field: (opts) => mobileStep('mob_type_in_field', opts),
+  mob_close_keyboard: (opts) => mobileStep('mob_close_keyboard', opts),
+  mob_scroll_down: (opts) => mobileStep('mob_scroll_down', opts),
+  mob_scroll_up: (opts) => mobileStep('mob_scroll_up', opts),
+  mob_swipe: (opts) => mobileStep('mob_swipe', opts),
+  mob_tap_coords: (opts) => mobileStep('mob_tap_coords', opts),
+  mob_assert_text: (opts) => mobileStep('mob_assert_text', opts),
+  mob_assert_not_text: (opts) => mobileStep('mob_assert_not_text', opts),
+  mob_wait_for: (opts) => mobileStep('mob_wait_for', opts),
+  mob_wait: (opts) => mobileStep('mob_wait', opts),
+
+  // ─── Scenarios mobiles (ADB) ───────────────────────────────
+  mob_scenario_login: (opts) => mobileScenario('login_quick', opts),
+  mob_scenario_registration: (opts) => mobileScenario('registration', opts),
+  mob_scenario_password_reset: (opts) => mobileScenario('password_reset', opts),
+  mob_scenario_navigation: (opts) => mobileScenario('navigation_complete', opts),
+  mob_scenario_first_use: (opts) => mobileScenario('first_use', opts),
+  mob_scenario_complete: (opts) => mobileScenario('complete', opts),
+
+  // ─── Flows mobiles (ADB) ──────────────────────────────────
+  mob_flow_login_fresh: (opts) => mobileFlow('loginFresh', opts),
+  mob_flow_navigate_tabs: (opts) => mobileFlow('navigateAllTabs', opts),
+  mob_flow_visit_drawer: (opts) => mobileFlow('visitDrawerItems', opts),
 };
 
 // Noms des étapes pour l'affichage
@@ -92,7 +208,39 @@ const STEP_NAMES = {
   application_detail: 'Détail Candidature',
   archive_restore: 'Archivage & Restauration',
   password_reset: 'Réinitialisation Mot de Passe',
-  update_profile_settings: 'Profil & Paramètres'
+  update_profile_settings: 'Profil & Paramètres',
+  status_engine: 'Moteur de Statut Intelligent',
+  crash_reporting: 'Crash Reporting & Error Detection',
+
+  // Mobile (ADB)
+  mob_ensure_logged_out: '[Mobile] Deconnexion si necessaire',
+  mob_login: '[Mobile] Connexion',
+  mob_logout: '[Mobile] Deconnexion',
+  mob_tap: '[Mobile] Tap element',
+  mob_tap_tab: '[Mobile] Tap onglet',
+  mob_open_drawer: '[Mobile] Ouvrir drawer',
+  mob_drawer_item: '[Mobile] Tap item drawer',
+  mob_back: '[Mobile] Retour',
+  mob_home: '[Mobile] Home',
+  mob_type_in_field: '[Mobile] Saisir dans champ',
+  mob_close_keyboard: '[Mobile] Fermer clavier',
+  mob_scroll_down: '[Mobile] Scroll bas',
+  mob_scroll_up: '[Mobile] Scroll haut',
+  mob_swipe: '[Mobile] Swipe',
+  mob_tap_coords: '[Mobile] Tap coordonnees',
+  mob_assert_text: '[Mobile] Verifier texte present',
+  mob_assert_not_text: '[Mobile] Verifier texte absent',
+  mob_wait_for: '[Mobile] Attendre element',
+  mob_wait: '[Mobile] Pause',
+  mob_scenario_login: '[Mobile] Scenario Login',
+  mob_scenario_registration: '[Mobile] Scenario Inscription',
+  mob_scenario_password_reset: '[Mobile] Scenario Reset MDP',
+  mob_scenario_navigation: '[Mobile] Scenario Navigation',
+  mob_scenario_first_use: '[Mobile] Scenario Premiere utilisation',
+  mob_scenario_complete: '[Mobile] Scenario Complet',
+  mob_flow_login_fresh: '[Mobile] Flow Login Fresh',
+  mob_flow_navigate_tabs: '[Mobile] Flow Navigation Onglets',
+  mob_flow_visit_drawer: '[Mobile] Flow Visite Drawer',
 };
 
 /**
@@ -348,6 +496,45 @@ const PREDEFINED_JOURNEYS = {
     { step: 'search_hub' },
     { step: 'view_dashboard' },
     { step: 'view_statistics' }
+  ],
+
+  // Parcours moteur de statut : auto/manuel, cascade, historique, rejet
+  status_engine: [
+    { step: 'login' },
+    { step: 'application_with_company' },
+    { step: 'status_engine' }
+  ],
+
+  // Parcours statut complet avec entretien + relance + cascade
+  status_lifecycle: [
+    { step: 'login' },
+    { step: 'application_with_company' },
+    { step: 'interview' },
+    { step: 'application_status', options: { verifyStatus: true } },
+    { step: 'followup' },
+    { step: 'status_engine' },
+    { step: 'archive_restore' }
+  ],
+
+  // Parcours crash reporting : envoi, validation, lecture
+  crash_reporting: [
+    { step: 'login' },
+    { step: 'crash_reporting' }
+  ],
+
+  // Parcours complet avec crash reporting
+  full_with_crash: [
+    { step: 'register' },
+    { step: 'email_validation' },
+    { step: 'login' },
+    { step: 'view_dashboard' },
+    { step: 'application_with_company' },
+    { step: 'contact_to_application' },
+    { step: 'followup' },
+    { step: 'interview' },
+    { step: 'crash_reporting' },
+    { step: 'status_engine' },
+    { step: 'list_notifications' }
   ]
 };
 
@@ -355,6 +542,7 @@ module.exports = {
   executeJourney,
   STEP_MODULES,
   STEP_NAMES,
-  PREDEFINED_JOURNEYS
+  PREDEFINED_JOURNEYS,
+  getAdbClient,
 };
 

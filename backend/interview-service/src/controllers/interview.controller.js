@@ -4,12 +4,41 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
-async function updateApplicationStatus(applicationId, statusCode, comment) {
+async function isAutoStatusEnabled(userId) {
   try {
+    if (!userId) return true;
+    const customization = await prisma.userCustomization.findUnique({ where: { userId } });
+    if (!customization?.settings) return true;
+    return customization.settings.statusEngine?.autoStatusEnabled !== false;
+  } catch {
+    return true;
+  }
+}
+
+async function updateApplicationStatus(applicationId, statusCode, comment, userId) {
+  try {
+    if (userId) {
+      const autoEnabled = await isAutoStatusEnabled(userId);
+      if (!autoEnabled) {
+        logger.info(`Auto-statut désactivé pour user ${userId}, cascade ignorée (${statusCode})`);
+        return;
+      }
+    }
     const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
     if (!statusRow) return;
-    const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { statusId: true } });
+    const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { statusId: true, userId: true, statusEngineOptOut: true } });
     if (!app || app.statusId === statusRow.id) return;
+    if (app.statusEngineOptOut === true) {
+      logger.info(`Cascade ignorée pour candidature ${applicationId} (statusEngineOptOut=true)`);
+      return;
+    }
+    if (!userId && app.userId) {
+      const autoEnabled = await isAutoStatusEnabled(app.userId);
+      if (!autoEnabled) {
+        logger.info(`Auto-statut désactivé pour user ${app.userId}, cascade ignorée (${statusCode})`);
+        return;
+      }
+    }
     await prisma.applicationStatusHistory.create({
       data: { applicationId, previousStatusId: app.statusId || null, newStatusId: statusRow.id, comment }
     });
@@ -132,7 +161,7 @@ const createInterview = async (req, res, next) => {
 
     logger.info(`Entretien ${interview.id} créé pour l'utilisateur ${userId}`);
 
-    await updateApplicationStatus(applicationId, 'INTERVIEW_PENDING', 'Entretien programmé automatiquement');
+    await updateApplicationStatus(applicationId, 'INTERVIEW_PENDING', 'Entretien programmé automatiquement', userId);
 
     const interviewDateObj = new Date(interviewDate);
     const companyName = interview.application?.company?.name || interview.company?.name || 'Entreprise';
@@ -306,7 +335,13 @@ const updateInterview = async (req, res, next) => {
         location: req.body.location ?? existingInterview.location,
         videoLink: req.body.videoLink ?? existingInterview.videoLink,
         notes: req.body.notes ?? existingInterview.notes,
-        statusId
+        statusId,
+        feedbackExpectedFrom: req.body.feedbackExpectedFrom != null ? new Date(req.body.feedbackExpectedFrom) : existingInterview.feedbackExpectedFrom,
+        feedbackExpectedTo: req.body.feedbackExpectedTo != null ? new Date(req.body.feedbackExpectedTo) : existingInterview.feedbackExpectedTo,
+        feedbackReceived: req.body.feedbackReceived !== undefined ? Boolean(req.body.feedbackReceived) : existingInterview.feedbackReceived,
+        outcome: req.body.outcome != null ? req.body.outcome.toUpperCase() : existingInterview.outcome,
+        interviewTypeId: req.body.interviewTypeId ?? existingInterview.interviewTypeId,
+        interviewStyleId: req.body.interviewStyleId ?? existingInterview.interviewStyleId
       },
       include: {
         application: {
@@ -328,13 +363,15 @@ const updateInterview = async (req, res, next) => {
           await updateApplicationStatus(
             interview.applicationId || existingInterview.applicationId,
             'INTERVIEW_DONE',
-            'Entretien terminé'
+            'Entretien terminé',
+            userId
           );
         } else if (code === 'CANCELLED') {
           await updateApplicationStatus(
             interview.applicationId || existingInterview.applicationId,
             'CANDIDATE_PENDING',
-            'Entretien annulé'
+            'Entretien annulé',
+            userId
           );
         }
       }
@@ -346,13 +383,15 @@ const updateInterview = async (req, res, next) => {
         await updateApplicationStatus(
           interview.applicationId || existingInterview.applicationId,
           'OFFER_RECEIVED',
-          'Résultat entretien positif'
+          'Résultat entretien positif',
+          userId
         );
       } else if (outcome === 'NEGATIVE') {
         await updateApplicationStatus(
           interview.applicationId || existingInterview.applicationId,
           'REJECTED',
-          'Résultat entretien négatif'
+          'Résultat entretien négatif',
+          userId
         );
       }
     }

@@ -78,7 +78,7 @@ tests-help:
 	@echo ""
 	@echo "🎯 TEST COMPLET :"
 	@echo "  make test-all                 Exécute TOUS les tests avec rapports complets"
-	@echo "  make test-full                Stack (up-full) + npm install tests/frontend + test-all (tout-en-un)"
+	@echo "  make test-full                Rebuild + up-full + db-push-all + status + test-all (rapports dans tests/results/)"
 	@echo ""
 	@echo "💡 make logs-applicative suit les logs (ne termine jamais) → à lancer dans un autre terminal."
 	@echo ""
@@ -518,35 +518,43 @@ test-all: ## Exécute TOUS les tests disponibles avec rapports complets
 	@echo ""
 
 # ================================================================
-# 🚀 TEST FULL - Stack complète + install deps + test-all (une seule commande)
+# 🚀 TEST FULL - Rebuild + stack + BDD + status + tous les tests (une commande)
 # ================================================================
-# Équivalent : make up-full && cd tests && npm install && cd .. && cd frontend && npm install && cd .. && TEST_NOPROMPT=1 make test-all
+# Équivalent : make rebuild && make up-full && make db-push-all && make status && make tests
+# Génère les rapports dans tests/results/<timestamp>/
 # ================================================================
-test-full: ## Stack complète (up-full) + npm install tests + npm install frontend + test-all (commande tout-en-un)
+test-full: ## Rebuild + up-full + db-push-all + status + tous les tests (rapports dans tests/results/)
 	@echo "╔════════════════════════════════════════════════════════╗"
-	@echo "║     🚀 TEST FULL - Stack + deps + tous les tests      ║"
+	@echo "║     🚀 TEST FULL - Rebuild, stack, BDD, tests         ║"
 	@echo "╚════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "1/4 Démarrage de la stack (make up-full)..."
+	@echo "1/6 Rebuild des images (make rebuild)..."
+	@$(MAKE) rebuild
+	@echo ""
+	@echo "2/6 Démarrage de la stack (make up-full)..."
 	@$(MAKE) up-full
 	@echo ""
-	@echo "2/4 Installation des deps tests (cd tests && npm install)..."
-	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
+	@echo "3/6 Synchronisation BDD (make db-push-all)..."
+	@$(MAKE) db-push-all
 	@echo ""
-	@echo "3/4 Installation des deps frontend (cd frontend && npm install)..."
+	@echo "4/6 Vérification des services (make status)..."
+	@$(MAKE) status
+	@echo ""
+	@echo "5/6 Installation des deps (tests + frontend)..."
+	@(cd tests && npm install --no-audit --no-fund 2>/dev/null) || true
 	@(cd frontend && npm install --no-audit --no-fund 2>/dev/null) || true
 	@if [ ! -w frontend/node_modules 2>/dev/null ] && [ -d frontend/node_modules ]; then \
 		echo "   ⚠️  frontend/node_modules n'est pas writable (ex. créé par Docker en root)."; \
 		echo "   💡 Si Playwright/Jest échouent avec EACCES, exécutez: sudo chown -R $$(whoami) frontend/node_modules frontend/.next"; \
 	fi
-	@if [ -d frontend/.next ] && [ ! -w frontend/.next 2>/dev/null ]; then \
-		echo "   ⚠️  frontend/.next n'est pas writable (ex. créé par Docker en root)."; \
-		echo "   💡 Pour éviter EACCES sur .next/package.json, exécutez: sudo chown -R $$(whoami) frontend/.next"; \
-	fi
 	@echo ""
-	@echo "4/4 Lancement de tous les tests (TEST_NOPROMPT=1 make test-all)..."
-	@echo "   Chaque catégorie de test affichera son numéro d'étape ci-dessous (étape 1, 2, 3, …)."
+	@echo "6/6 Lancement de tous les tests avec rapports (make test-all)..."
+	@echo "   Rapports : tests/results/<timestamp>/"
 	@TEST_NOPROMPT=1 $(MAKE) test-all
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════╗"
+	@echo "║     ✅ TEST FULL TERMINÉ – Consulter tests/results/   ║"
+	@echo "╚════════════════════════════════════════════════════════╝"
 
 # ================================================================
 # 💾 TEST CACHE - Test système de cache

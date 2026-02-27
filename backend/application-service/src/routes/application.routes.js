@@ -43,6 +43,13 @@ router.get('/platforms/:id', idValidation, platformController.getPlatform);
 router.put('/platforms/:id', [idValidation], platformController.updatePlatform);
 router.delete('/platforms/:id', idValidation, platformController.deletePlatform);
 
+// Admin/Test : time-travel pour backdater les entités (tests temporels uniquement)
+router.put('/admin/test/time-travel', [
+  body('entityType').isIn(['application', 'interview', 'followup', 'call', 'event']).withMessage('entityType invalide'),
+  body('entityId').isString().notEmpty().withMessage('entityId requis'),
+  body('daysBack').isInt({ min: 1, max: 365 }).withMessage('daysBack requis (1-365)')
+], controller.timeTravelEntity);
+
 // Routes par ID (après les routes nommées)
 router.get('/:id', idValidation, controller.getApplication);
 router.put('/:id', updateValidation, controller.updateApplication);

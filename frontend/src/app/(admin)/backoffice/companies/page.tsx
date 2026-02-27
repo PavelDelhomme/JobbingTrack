@@ -450,12 +450,11 @@ function CreateCompanyModal({ onClose, onSuccess }: {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Sélectionner...</option>
-                <option value="1-10">1-10 employés</option>
-                <option value="11-50">11-50 employés</option>
-                <option value="51-200">51-200 employés</option>
-                <option value="201-500">201-500 employés</option>
-                <option value="501-1000">501-1000 employés</option>
-                <option value="1000+">1000+ employés</option>
+                <option value="STARTUP">STARTUP (&lt; 10)</option>
+                <option value="SMALL">SMALL (10-50)</option>
+                <option value="MEDIUM">MEDIUM (50-250)</option>
+                <option value="LARGE">LARGE (250-1000)</option>
+                <option value="ENTERPRISE">ENTERPRISE (&gt; 1000)</option>
               </select>
             </div>
             <div>

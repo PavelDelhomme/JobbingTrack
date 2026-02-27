@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransporter({
+    this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
       port: process.env.SMTP_PORT || 2525,
       secure: process.env.SMTP_SECURE === 'true',

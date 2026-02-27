@@ -471,7 +471,7 @@ const getApplication = async (req, res, next) => {
 const updateApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { companyName, companyData, ...updateData } = req.body;
+    const { companyName, companyData, ...body } = req.body;
 
     const existingApplication = await prisma.application.findFirst({
       where: { id, userId: req.user.id }
@@ -484,18 +484,31 @@ const updateApplication = async (req, res, next) => {
       });
     }
 
-    // ✅ LOGIQUE INTELLIGENTE : Gérer automatiquement l'entreprise si nom fourni
     if (companyName && companyName !== '') {
       logger.info(`🏢 Mise à jour automatique entreprise: ${companyName}`);
-      
       const finalCompanyId = await companyService.getOrCreateCompany(
         companyName,
         companyData || {},
         req.token
       );
+      body.companyId = finalCompanyId;
+    }
 
-      updateData.companyId = finalCompanyId;
-      logger.info(`✅ Entreprise traitée - ID: ${finalCompanyId}`);
+    const allowed = [
+      'position', 'description', 'jobUrl', 'location', 'contractType', 'workMode',
+      'applicationType', 'applicationDate', 'salaryMin', 'salaryMax', 'salaryNegotiable',
+      'notes', 'platformId', 'companyId', 'statusEngineOptOut'
+    ];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] === undefined) continue;
+      if (key === 'applicationDate') updateData[key] = new Date(body[key]);
+      else if (key === 'salaryMin' || key === 'salaryMax') updateData[key] = body[key] != null ? parseInt(body[key], 10) : null;
+      else if (key === 'salaryNegotiable' || key === 'statusEngineOptOut') updateData[key] = Boolean(body[key]);
+      else updateData[key] = body[key];
+    }
+    if (Object.keys(updateData).length === 0 && !(companyName && companyName !== '')) {
+      return res.status(400).json({ success: false, error: 'Aucun champ à mettre à jour' });
     }
 
     const application = await prisma.application.update({
@@ -723,6 +736,59 @@ const getHealth = async (req, res) => {
   });
 };
 
+const timeTravelEntity = async (req, res, next) => {
+  try {
+    if (process.env.ENABLE_TIME_TRAVEL !== 'true') {
+      return res.status(403).json({
+        success: false,
+        error: 'Time-travel désactivé. Ajoutez ENABLE_TIME_TRAVEL=true dans .env'
+      });
+    }
+
+    const { entityType, entityId, daysBack } = req.body;
+    if (!entityType || !entityId || !daysBack) {
+      return res.status(400).json({
+        success: false,
+        error: 'entityType, entityId et daysBack requis'
+      });
+    }
+
+    const targetDate = new Date(Date.now() - daysBack * 86400000);
+    const modelMap = {
+      application: 'application',
+      interview: 'interview',
+      followup: 'followUp',
+      call: 'call',
+      event: 'event'
+    };
+
+    const model = modelMap[entityType];
+    if (!model || !prisma[model]) {
+      return res.status(400).json({
+        success: false,
+        error: `Type d'entité inconnu: ${entityType}`
+      });
+    }
+
+    const updated = await prisma[model].update({
+      where: { id: entityId },
+      data: { createdAt: targetDate }
+    });
+
+    logger.info(`Time-travel: ${entityType} ${entityId} → ${targetDate.toISOString()} (${daysBack}j en arrière)`);
+
+    res.json({
+      success: true,
+      message: `${entityType} backdaté de ${daysBack} jours`,
+      entity: updated,
+      newDate: targetDate.toISOString()
+    });
+  } catch (error) {
+    logger.error('Erreur time-travel:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   createApplication,
   getApplications,
@@ -732,5 +798,6 @@ module.exports = {
   updateApplicationStatus,
   getApplicationStatusHistory,
   getApplicationContacts,
+  timeTravelEntity,
   getHealth
 };

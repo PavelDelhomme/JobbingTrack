@@ -144,6 +144,7 @@ const getContact = async (req, res, next) => {
 const updateContact = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const body = req.body;
 
     const existingContact = await prisma.contact.findFirst({
       where: { id, userId: req.user.id }
@@ -156,9 +157,18 @@ const updateContact = async (req, res, next) => {
       });
     }
 
+    const allowed = ['firstName', 'lastName', 'position', 'email', 'phone', 'linkedinUrl', 'notes'];
+    const updateData = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) updateData[key] = body[key];
+    }
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, error: 'Aucun champ à mettre à jour' });
+    }
+
     const contact = await prisma.contact.update({
       where: { id },
-      data: req.body
+      data: updateData
     });
 
     res.json({

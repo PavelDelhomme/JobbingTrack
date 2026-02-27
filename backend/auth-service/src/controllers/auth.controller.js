@@ -253,6 +253,25 @@ const login = async (req, res, next) => {
 
     // Vérifier l'utilisateur et le mot de passe
     if (!user) {
+      // En développement : accepter un utilisateur de secours si la base est vide (sans perte de données)
+      const fallbackEmail = (process.env.ADMIN_EMAIL || 'admin@jobbingtrack.com').toLowerCase();
+      const fallbackPassword = process.env.ADMIN_PASSWORD || 'password123';
+      if (process.env.NODE_ENV !== 'production' && email.toLowerCase() === fallbackEmail && password === fallbackPassword) {
+        logger.info('✅ Connexion avec utilisateur de secours (base vide ou aucun utilisateur trouvé)');
+        user = {
+          id: 'dev_fallback_1',
+          email: fallbackEmail,
+          password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+          firstName: 'Admin',
+          lastName: 'Backoffice',
+          role: 'SUPER_ADMIN',
+          isActive: true,
+          emailVerified: true
+        };
+      }
+    }
+
+    if (!user) {
       logger.warn(`⚠️ Utilisateur non trouvé pour ${email}`);
       await sendSecurityLog('warning', 'authentication', 'login_failure', 'Échec d\'authentification - utilisateur non trouvé', {
         sourceIP: clientIP,
@@ -272,8 +291,28 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Pour l'utilisateur mock, accepter directement le mot de passe "password123"
-    if (user.id === 'dev_user_1' && password === 'password123') {
+    // Refuser le login si l'email n'est pas encore vérifié (sauf mock/fallback)
+    if (user && user.id !== 'dev_user_1' && user.id !== 'dev_fallback_1' && user.emailVerified === false) {
+      logger.warn(`⚠️ Connexion refusée : email non vérifié pour ${email}`);
+      await sendSecurityLog('warning', 'authentication', 'login_email_not_verified', 'Tentative de connexion avec email non vérifié', {
+        sourceIP: clientIP,
+        endpoint: req.path,
+        method: req.method,
+        userAgent,
+        riskScore: 20,
+        metadata: { attemptedEmail: email }
+      });
+      return res.status(401).json({
+        success: false,
+        error: 'Veuillez vérifier votre email avant de vous connecter.',
+        code: 'EMAIL_NOT_VERIFIED'
+      });
+    }
+
+    // Pour l'utilisateur mock / fallback, mot de passe déjà vérifié
+    if (user.id === 'dev_fallback_1') {
+      logger.info('✅ Authentification réussie avec utilisateur de secours (dev_fallback_1)');
+    } else if (user.id === 'dev_user_1' && password === 'password123') {
       logger.info('✅ Authentification réussie avec utilisateur mock (dev_user_1)');
     } else {
       // Vérifier le mot de passe pour les utilisateurs réels
@@ -301,8 +340,8 @@ const login = async (req, res, next) => {
     }
 
     // ✅ Mettre à jour le lastLoginAt pour le tracking des sessions actives (si la table existe)
-    // Ne pas mettre à jour si c'est l'utilisateur mock
-    if (user.id !== 'dev_user_1' && prisma.user && typeof prisma.user.update === 'function') {
+    // Ne pas mettre à jour si c'est l'utilisateur mock ou de secours
+    if (user.id !== 'dev_user_1' && user.id !== 'dev_fallback_1' && prisma.user && typeof prisma.user.update === 'function') {
       try {
         await prisma.user.update({
           where: { id: user.id },

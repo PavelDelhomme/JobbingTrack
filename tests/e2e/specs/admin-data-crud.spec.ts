@@ -37,7 +37,7 @@ test.describe('CRUD Données Complet (admin)', () => {
   test('créer une entreprise', async ({ request }) => {
     const res = await request.post(`${GATEWAY_URL}/api/v1/companies`, {
       headers: h(),
-      data: { name: `${PREFIX} Corp ${Date.now()}`, industry: 'E2E Testing', location: 'Paris', size: '11-50' },
+      data: { name: `${PREFIX} Corp ${Date.now()}`, industry: 'E2E Testing', location: 'Paris', size: 'SMALL' },
     });
     expect([200, 201]).toContain(res.status());
     const body = await res.json();

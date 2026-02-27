@@ -45,11 +45,11 @@ test.describe('Sécurité Backoffice Complet (admin)', () => {
         headers: headers(),
         data: {
           name: `E2E-Rule-${Date.now()}`,
-          type: 'BLOCK',
-          source: '192.168.99.99',
+          description: 'E2E test rule',
+          sourceIp: '192.168.99.99',
+          protocol: 'TCP',
           action: 'DENY',
           priority: 100,
-          enabled: true,
         },
       });
       expect([200, 201]).toContain(res.status());
@@ -112,10 +112,10 @@ test.describe('Sécurité Backoffice Complet (admin)', () => {
       const res = await request.post(`${GATEWAY_URL}/api/v1/security/firewall/threats`, {
         headers: headers(),
         data: {
-          type: 'SUSPICIOUS_REQUEST',
-          source: '10.0.0.99',
+          threatType: 'SUSPICIOUS_REQUEST',
+          sourceIp: '10.0.0.99',
           severity: 'LOW',
-          description: 'E2E test threat',
+          metadata: { description: 'E2E test threat' },
         },
       });
       expect([200, 201]).toContain(res.status());
