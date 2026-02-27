@@ -1,6 +1,6 @@
 # JobbingTrack – Fonctionnalites completes
 
-**Derniere mise a jour** : 23 fevrier 2026
+**Derniere mise a jour** : 27 fevrier 2026
 
 Ce document decrit toutes les fonctionnalites de JobbingTrack : backoffice web, application mobile, interactions BDD, systeme d'archivage/corbeille, flux utilisateur, et roadmap d'implementation.
 
@@ -527,11 +527,15 @@ Utilisateur cree Entreprise (ou existante)
 
 ### Phase 5 : Emulateur et deploiement
 
-- [ ] Build APK depuis le backoffice
-- [ ] Selection appareil ADB
-- [ ] Logs logcat en temps reel
-- [ ] Installation APK sur appareil
-- [ ] Deploiement API + backoffice sur serveur
+- [x] **Liste des parcours mobiles** : dans l’émulateur backoffice (`/backoffice/mobile-emulator`), section « Parcours utilisateur mobile » :
+  - **Parcours principaux** (toujours visibles en tête) : Inscription complète, Reset mot de passe, Première utilisation, Usage quotidien, Archives & Corbeille, Parcours complet
+  - **Tous les parcours** : 30+ scénarios (auth, navigation, vérification, CRUD, parcours complets) filtrables par catégorie, sélection puis « Lancer le parcours » sur l’appareil ADB sélectionné
+  - Définitions : `frontend/src/lib/adb/adb-scenarios.ts` (`MOBILE_SCENARIOS`, `PRIMARY_MOBILE_JOURNEY_KEYS`)
+- [x] Sélection appareil ADB (AVD ou appareil physique)
+- [x] Build APK depuis le backoffice (bouton « Build APK »)
+- [x] Installation APK sur appareil + lancement (bouton « Installer et lancer ») — `adb install -r` met à jour l’app si déjà installée, puis lance l’activité principale
+- [ ] Logs logcat en temps réel (optionnel)
+- [ ] Déploiement API + backoffice sur serveur
 - [ ] CI/CD pipeline (GitHub Actions ou GitLab CI)
 
 ### Phase 6 : Ameliorations futures
@@ -1246,6 +1250,7 @@ Le module `CrashReporter` (Flutter) offre un tracking detaille pour le debug et 
 
 - Envoye automatiquement via le service email existant (SMTP)
 - Destinataire configurable via `CRASH_REPORT_EMAIL` (defaut: infos@example.invalid)
+- **Tests / parcours** : pour les tests utilisateur ou E2E, on peut configurer `CRASH_REPORT_EMAIL=candidatures@example.invalid` (ou autre boite accessible) pour recevoir les rapports de test
 - Sujet : `[JobbingTrack Crash] {crashType} — {date}`
 - Contient : type, message, stack trace, infos appareil, actions recentes
 

@@ -13,7 +13,7 @@ import {
   Loader2,
   Image as ImageIcon,
 } from 'lucide-react';
-import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES } from '@/lib/adb';
+import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, PRIMARY_MOBILE_JOURNEY_KEYS } from '@/lib/adb';
 import type { StepResult } from '@/lib/adb';
 
 const CONTROLLER_URL_DEFAULT =
@@ -477,6 +477,28 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
         </div>
       )}
 
+      {/* Parcours principaux : toujours visibles et lancables */}
+      <div className="mb-4">
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Parcours principaux</p>
+        <div className="flex flex-wrap gap-2">
+          {PRIMARY_MOBILE_JOURNEY_KEYS.map((key) => {
+            const s = MOBILE_SCENARIOS[key];
+            if (!s) return null;
+            return (
+              <button
+                key={key}
+                onClick={() => !running && setSelected(key)}
+                disabled={running}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${selected === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-700 hover:ring-indigo-400 dark:hover:ring-indigo-500'} ${running ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {s.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-1.5 mb-3">
         <button onClick={() => setCategoryFilter('all')}
           className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition ${categoryFilter === 'all' ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900' : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'}`}>
@@ -490,6 +512,7 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
         ))}
       </div>
 
+      <p className="text-[11px] text-gray-500 dark:text-gray-500 mb-2">Tous les parcours</p>
       <div className="flex flex-wrap gap-1.5 mb-4 max-h-32 overflow-y-auto">
         {filteredScenarios.map(([key, s]) => (
           <button key={key} onClick={() => !running && setSelected(key)} disabled={running}
