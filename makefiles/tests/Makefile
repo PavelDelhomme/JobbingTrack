@@ -163,12 +163,15 @@ tests-reset:
 		 echo "Essayez: make rebuild && make tests-reset" && exit 1)
 	@echo "✅ Table User existe"
 	@echo ""
-	@echo "👤 5/5 - Création utilisateur admin..."
-	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
-		"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"createdAt\", \"updatedAt\") \
-		VALUES (gen_random_uuid(), 'admin@jobbingtrack.com', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
-		'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, NOW(), NOW()) \
-		ON CONFLICT (email) DO NOTHING;"
+	@echo "👤 5/5 - Création/mise à jour utilisateur admin (emailVerified=true)..."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.com} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "✅ Admin créé ou mis à jour (seed auth)." || \
+		(echo "⚠️  Seed auth non exécuté, fallback INSERT SQL..."; \
+		 docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c \
+			"INSERT INTO \"User\" (id, email, password, \"firstName\", \"lastName\", phone, role, \"isActive\", \"emailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\") \
+			VALUES (gen_random_uuid(), 'admin@jobbingtrack.com', '\$$2a\$$10\$$IoX96wTcbU7t51e4T02MpemPhTDU/YZQkjhFMxNHV.HtH5vNL78P2', \
+			'Super', 'Admin', '0600000000', 'SUPER_ADMIN', true, true, NOW(), NOW(), NOW()) \
+			ON CONFLICT (email) DO UPDATE SET \"emailVerified\"=true, \"emailVerifiedAt\"=NOW(), \"updatedAt\"=NOW();")
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════╗"
 	@echo "║              ✅ SYSTÈME PRÊT POUR LES TESTS !          ║"
@@ -536,6 +539,13 @@ test-full: ## Rebuild + up-full + db-push-all + status + tous les tests (rapport
 	@echo ""
 	@echo "3/6 Synchronisation BDD (make db-push-all)..."
 	@$(MAKE) db-push-all
+	@echo ""
+	@echo "3b/6 Seed auth (admin emailVerified pour les tests)..."
+	@echo "   Exécution du seed Prisma dans auth-service pour créer/mettre à jour l'admin avec emailVerified=true."
+	@docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.com} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>/dev/null && \
+		echo "   ✅ Seed auth OK (admin prêt pour login)." || \
+		(echo "   ⚠️  Seed auth ignoré ou échoué (connexion au conteneur ou prisma.seed). Les tests admin peuvent échouer."; \
+		 echo "   💡 Si besoin : cd backend/auth-service && npx prisma db seed")
 	@echo ""
 	@echo "4/6 Vérification des services (make status)..."
 	@$(MAKE) status

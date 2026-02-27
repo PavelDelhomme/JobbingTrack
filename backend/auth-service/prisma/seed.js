@@ -1,5 +1,11 @@
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
+const path = require('path')
+
+const envPath = path.join(__dirname, '..', '.env')
+const rootEnvPath = path.join(__dirname, '..', '..', '..', '.env')
+require('dotenv').config({ path: envPath })
+require('dotenv').config({ path: rootEnvPath })
 
 const prisma = new PrismaClient()
 
@@ -28,7 +34,9 @@ async function main() {
       firstName: adminFirstName,
       lastName: adminLastName,
       phone: '+33123456789',
-      role: 'SUPER_ADMIN'
+      role: 'SUPER_ADMIN',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     },
     create: {
       email: adminEmail,
@@ -36,7 +44,9 @@ async function main() {
       firstName: adminFirstName,
       lastName: adminLastName,
       phone: '+33123456789',
-      role: 'SUPER_ADMIN'
+      role: 'SUPER_ADMIN',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     }
   })
 

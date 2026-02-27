@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Derniere mise a jour** : 27 fevrier 2026
+**Derniere mise a jour** : 28 fevrier 2026
 
 ---
 
@@ -65,18 +65,18 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 #### 3.2b Moteur de statut intelligent (voir FONCTIONNALITES.md 10.6)
 - [x] Preference utilisateur : mode auto (changements de statut automatiques) vs manuel (utilisateur gere tout)
 - [x] Champ `autoStatusEnabled` dans les preferences (`PUT/GET /api/v1/auth/preferences`, default: true)
-- [ ] **Transition auto** `CANDIDATE_PENDING` → `NO_RESPONSE` apres 7 jours sans action (cron ou job)
-- [ ] **Notification** apres relance sans reponse > 5 jours (« Relance sans réponse »)
-- [ ] **Notification** apres entretien passe sans retour > delai annonce (ou 7j) (« Retour entretien attendu »)
+- [x] **Transition auto** `CANDIDATE_PENDING` → `NO_RESPONSE` apres 7 jours sans action (cron 9h30, workflow-service)
+- [x] **Notification** apres relance sans reponse > 5 jours (« Relance sans réponse », cron 10h15)
+- [x] **Notification** apres entretien passe sans retour > delai annonce (ou 7j) (« Retour entretien attendu », cron 8h15)
 - [ ] **Suggestion** « Considerer comme rejetee ? » apres 3+ relances sans reponse (affichage UI + action possible)
 - [x] Action "Rejet recu" → passage immediat a `REJECTED` (PUT /applications/:id/status, commentaire)
-- [ ] Action "Email remerciement envoye" → reset compteur relance
+- [ ] Action "Email remerciement envoye" → reset compteur relance (à implémenter : champ ou logique côté application/frontend)
 - [x] Facteurs pris en compte : temps ecoule, nombre relances, entretiens passes, feedback (structure en place)
 - [x] Tests API : `tests/api/test-status-engine.test.js` + `tests/api/test-status-cascade.test.js`
 - [x] Tests E2E Playwright moteur statut : `frontend/tests/e2e/status-engine.spec.ts`
 - [x] Module parcours : `tests/user-journey/modules/step-status-engine.js` + parcours `status_engine` / `status_lifecycle`
 - [x] Option par candidature : champ `statusEngineOptOut` sur Application — desactiver le moteur auto pour une seule candidature (voir 10.6)
-- **À venir** : quand les transitions/notifications ci‑dessus seront implémentées, ajout de tests dédiés (API + E2E + parcours) et mise à jour des rapports.
+- **À venir** : suggestion « Considérer rejetée » (UI + API), action « Email remerciement envoyé » → reset compteur ; tests dédiés pour les nouveaux crons (optionnel).
 
 #### 3.3 Auto-creation d'evenements
 - [x] Creation candidature → cree evenement "Candidature envoyee"
@@ -139,6 +139,22 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 
 #### 3.14 CI/CD GitHub Actions — A FAIRE
 - [ ] Pipeline GitHub Actions pour les microservices (build + test)
+
+#### 3.15 Emails, backoffice et tests à compléter (suite)
+
+> Pas de contournement vérification email en test : flux normal avec **MailHog** (register → email reçu dans MailHog → clic lien verify-email → login). Playwright doit vérifier ce flux. Un **compte mail de test** existe pour tester comme un vrai utilisateur (`TEST_REAL_EMAIL` etc.).
+
+- [ ] **Auth / tests** : faire passer les 49 tests liés à l’auth via le flux réel (MailHog + verify-email) ou utilisateur pré-vérifié en BDD ; pas de bypass. **`make test-full`** exécute maintenant automatiquement le **seed auth** après `db-push-all` (étape 3b) : l’admin est créé/mis à jour avec `emailVerified: true` dans le conteneur auth-service. Aucune action manuelle requise pour un test complet. En cas d’échec du seed (conteneur non prêt, prisma.seed absent), un avertissement s’affiche et les tests s’exécutent quand même ; le rapport indiquera les échecs liés à l’auth. Pour un seed manuel (hôte) : `cd backend/auth-service && npx prisma db seed` (variables depuis `.env` racine ou `backend/auth-service/.env`).
+- [ ] **Backoffice — Gestion des emails / Dashboard** : s’assurer que les mails envoyés par l’app s’affichent correctement (liste, statuts).
+- [ ] **Backoffice — Email Monitor** : les mails envoyés doivent apparaître avec **statut / état** (envoyé, livré, lu, rejeté). Vérifier que l’on peut voir qu’un mail a été livré, lu, etc.
+- [ ] **Backoffice — Clic pour voir le contenu** : au clic sur un mail (dans la liste ou l’historique), **afficher vraiment le contenu** du mail (corps HTML/texte).
+- [ ] **Backoffice — Historique emails** : partie « Historique » (si distincte de Email Monitor) doit être un vrai historique, avec **rechargement** correct.
+- [ ] **Backoffice — Recherche** : pas encore testée. Comportement attendu : recherche **soit limitée à la page courante** (contexte), **soit globale** (tout le projet) ; après affichage des résultats, **retour en arrière** pour revenir où l’on était avant la recherche. Tests Playwright pour ce comportement.
+- [ ] **Templates d’emails** : permettre de **créer** des templates soi-même (pas seulement éditer les existants). Tester en backoffice : **édition**, **visualisation**, sauvegarde. Tests Playwright sur la page templates (`/backoffice/emails/templates`).
+- [ ] **Page test délivrabilité** (`/backoffice/emails/deliverability`) : tests Playwright **complets** (envoi test, affichage résultat, statuts, etc.).
+- [ ] **Page tests-emails** (`/backoffice/tests-emails`) : tests Playwright **complets** (liens, envoi test, liens vers MailHog / Monitor / Templates).
+- [ ] **Accès MailHog depuis l’interface** : vérifier que le backoffice permet d’accéder à MailHog (lien ou iframe) et que c’est documenté ici. Interface MailHog : http://localhost:8025 (ou port configuré).
+- [ ] **Compte mail de test** : utiliser le compte configuré (`TEST_REAL_EMAIL` etc.) pour les tests en conditions réelles (vérification, reset password, etc.).
 
 ### Phase 3.5 : Processus metier mobile (NOUVEAU)
 
@@ -234,6 +250,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [x] Parcours utilisateur : 6/6 (`tests/user-journey/modules/step-crash-reporting.js`)
 - [x] Parcours ADB test email sur appareil (`mobile_test_email`)
 - [x] Parcours predefini `crash_reporting` et `full_with_crash` dans journey-builder
+- [x] **CRASH_REPORT_EMAIL** : lu depuis l’env (defaut infos@delhomme.ovh), documenté dans `.env.example` ; avec MailHog les emails crash sont visibles dans l’interface MailHog (http://localhost:8025).
 
 #### 5.5 Parcours mobiles etendus (100+ steps)
 - [x] Notifications : `open_notifications`, `verify_notifications`, `mark_all_notifications_read`
