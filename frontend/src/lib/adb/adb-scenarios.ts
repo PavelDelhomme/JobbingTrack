@@ -427,6 +427,16 @@ export const SCENARIO_CATEGORIES = {
   complet: { label: 'Parcours complets', color: 'amber' },
 } as const;
 
+/** Clés des 6 parcours mobiles principaux (toujours affichés en premier dans l’émulateur). */
+export const PRIMARY_MOBILE_JOURNEY_KEYS: string[] = [
+  'mobile_registration',       // Inscription complète
+  'mobile_password_reset',    // Reset mot de passe
+  'mobile_first_use',         // Première utilisation
+  'mobile_daily_use',         // Usage quotidien
+  'mobile_crud_archive_corbeille', // Archives & Corbeille
+  'mobile_complete',          // Parcours complet
+];
+
 export const STEP_LABELS: Record<string, string> = {
   // Auth
   ensure_logged_out: 'Deconnexion si necessaire',
