@@ -1,0 +1,15 @@
+{
+  "testName": "Playwright Email Workflows",
+  "userType": "user",
+  "command": "timeout 120 bash -c 'cd tests && (npm install --no-audit --no-fund 2>/dev/null || true) && MAILHOG_WEB_URL=\"http://localhost:8025\" npx playwright test e2e/specs/email-workflows.spec.ts --config=e2e/playwright.mailhog.config.ts --reporter=list 2>&1'",
+  "timestamp": "2026-02-27T19:05:39+01:00",
+  "duration": 7,
+  "exitCode": 1,
+  "status": "failed",
+  "statistics": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "output": "\nup to date in 587ms\n\nRunning 5 tests using 3 workers\n\n  ✓  3 [chromium] › e2e/specs/email-workflows.spec.ts:128:9 › Workflows Email Complets › Reset password complet via MailHog › forgot-password envoie un email avec lien de reset (160ms)\n  ✓  2 [chromium] › e2e/specs/email-workflows.spec.ts:38:9 › Workflows Email Complets › Inscription avec vérification email › inscription crée un compte et envoie un email de vérification (3.6s)\n  ✓  1 [chromium] › e2e/specs/email-workflows.spec.ts:172:9 › Workflows Email Complets › Reset password via UI › page forgot-password est accessible et fonctionnelle (3.7s)\n  ✓  4 [chromium] › e2e/specs/email-workflows.spec.ts:79:9 › Workflows Email Complets › Inscription avec vérification email › sans vérification email, le login est refusé (401) (377ms)\n  ✘  5 [chromium] › e2e/specs/email-workflows.spec.ts:100:9 › Workflows Email Complets › Inscription avec vérification email › après vérification, le nouvel utilisateur peut se connecter (14ms)\n\n\n  1) [chromium] › e2e/specs/email-workflows.spec.ts:100:9 › Workflows Email Complets › Inscription avec vérification email › après vérification, le nouvel utilisateur peut se connecter \n\n    Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: 200\n    Received: 401\n\n      103 |       });\n      104 |\n    > 105 |       expect(loginRes.status()).toBe(200);\n          |                                 ^\n      106 |       const body = await loginRes.json();\n      107 |       expect(body.token || body.accessToken).toBeTruthy();\n      108 |     });\n        at /home/pactivisme/Documents/Dev/Perso/JobbingTrack/tests/e2e/specs/email-workflows.spec.ts:105:33\n\n  1 failed\n    [chromium] › e2e/specs/email-workflows.spec.ts:100:9 › Workflows Email Complets › Inscription avec vérification email › après vérification, le nouvel utilisateur peut se connecter \n  4 passed (5.0s)\n"
+}
