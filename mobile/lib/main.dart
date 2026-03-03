@@ -30,6 +30,7 @@ import 'package:jobbingtrack_mobile/screens/test_data_screen.dart';
 import 'package:jobbingtrack_mobile/screens/trash_screen.dart';
 import 'package:jobbingtrack_mobile/screens/users_screen.dart';
 import 'package:jobbingtrack_mobile/screens/followups_screen.dart';
+import 'package:jobbingtrack_mobile/screens/calls_screen.dart';
 import 'package:jobbingtrack_mobile/screens/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/forgot_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/reset_password_screen.dart';
@@ -115,6 +116,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/trash': (context) => const TrashScreen(),
           '/users': (context) => const UsersScreen(),
           '/followups': (context) => const FollowUpsScreen(),
+          '/calls': (context) => const CallsScreen(),
           '/events': (context) => const EventsScreen(),
           '/admin': (context) => const AdminScreen(),
         },

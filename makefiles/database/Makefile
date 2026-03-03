@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd
+.PHONY: db-migrate db-seed db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth
 
 # ============================================================================
 # AIDE
@@ -20,6 +20,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-migrate             - Appliquer migrations Prisma"
 	@echo "  make db-push-all            - Synchroniser schémas Prisma (db push)"
 	@echo "  make db-push-auth           - Créer tables auth (User, etc.) si erreur 'User does not exist'"
+	@echo "  make seed-auth             - Créer/mettre à jour l'admin avec email vérifié (après db-push-all, pour pouvoir se connecter)"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
 	@echo "  make db-init-system-metrics - Créer system_metrics/container_metrics (monitoring-c) si absentes"
 	@echo "  make db-push-security      - Créer tables security (security_logs, firewall_rules, etc.)"
@@ -169,6 +170,19 @@ db-push-auth: ## Prisma db push pour auth-service (tables User, Application, etc
 		if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi; \
 		export DATABASE_URL="$${DATABASE_URL:-postgresql://jobbingtrack:jobbingtrack123@localhost:5432/jobbingtrack?schema=public}"; \
 		cd backend/auth-service && (npm install 2>/dev/null || true) && npx prisma db push --accept-data-loss 2>&1 | head -15 && cd ../.. && echo "✅ auth-service : schéma synchronisé (local)"; \
+	fi
+
+# Créer/mettre à jour l'utilisateur admin avec emailVerified=true (nécessaire pour se connecter après up-full)
+# À lancer après make db-push-all si vous avez « Veuillez vérifier votre email avant de vous connecter »
+seed-auth: ## Créer ou mettre à jour l'admin (emailVerified=true) pour pouvoir se connecter au backoffice
+	@echo "🌱 Seed auth : création/mise à jour de l'utilisateur admin (emailVerified=true)..."
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full'." && exit 1)
+	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
+		docker exec -e ADMIN_EMAIL=$${ADMIN_EMAIL:-admin@jobbingtrack.test} -e ADMIN_PASSWORD=$${ADMIN_PASSWORD:-password123} jobbingtrack-auth-service npx prisma db seed 2>&1 && echo "✅ Admin prêt (admin@jobbingtrack.test / password123). Vous pouvez vous connecter." || \
+		(echo "⚠️  Seed auth échoué. Vérifiez que backend/auth-service/package.json contient \"prisma\":{\"seed\":\"node prisma/seed.js\"}."; exit 1); \
+	else \
+		echo "⚠️  Conteneur jobbingtrack-auth-service non démarré. Lancez 'make up-full' (profil full) puis réessayez."; \
+		exit 1; \
 	fi
 
 # Créer les tables security-service (security_logs, firewall_rules, network_connections, etc.)

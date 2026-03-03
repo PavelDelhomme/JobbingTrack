@@ -33,8 +33,8 @@ export default defineConfig({
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL: en Docker l'app tourne déjà sur 3000, sinon 8080 (ou 3000 selon dev). */
-    baseURL: inDocker ? 'http://localhost:3000' : 'http://localhost:8080',
+    /* Base URL: en Docker l'app tourne déjà sur 3000, sinon 3000 (Next.js dev par défaut). */
+    baseURL: inDocker ? 'http://localhost:3000' : 'http://localhost:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -102,20 +102,24 @@ export default defineConfig({
     : [
         {
           command: 'npm run dev',
-          url: 'http://localhost:8080',
-          reuseExistingServer: !process.env.CI,
+          url: 'http://localhost:3000',
+          reuseExistingServer: true,
           timeout: 120 * 1000,
           env: {
             WAF_ENABLED: 'false',
             RATE_LIMIT_ENABLED: 'false',
+            NEXT_PUBLIC_API_URL: 'http://localhost:5002',
+            NEXT_PUBLIC_AUTH_SERVICE_URL: 'http://localhost:5002',
           },
         },
-        {
-          command: 'npm run dev:mobile',
-          url: 'http://localhost:8090',
-          reuseExistingServer: !process.env.CI,
-          timeout: 120 * 1000,
-        },
+        ...(process.env.CI ? [] : [
+          {
+            command: 'npm run dev:mobile',
+            url: 'http://localhost:8090',
+            reuseExistingServer: true,
+            timeout: 120 * 1000,
+          },
+        ]),
       ],
 
   /* Global setup and teardown */

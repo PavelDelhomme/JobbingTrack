@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -26,14 +28,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
     
     await Future.wait([
       appProvider.loadApplications(),
-      interviewProvider.loadInterviews(),
-      followUpProvider.loadFollowUps(),
+      interviewProvider.loadInterviews(token: token),
+      followUpProvider.loadFollowUps(token: token),
     ]);
   }
 
@@ -73,7 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final followUps = followUpProvider.pendingFollowUps;
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      key: _scaffoldKey,
+      drawer: AppDrawer(),
       appBar: AppBar(
         title: Text('Bonjour ${user?.firstName ?? ''} 👋'),
         centerTitle: true,
@@ -83,7 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               await authProvider.logout();
               if (mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (Route<dynamic> route) => false,
+                );
               }
             },
             icon: const Icon(Icons.logout),
@@ -91,8 +99,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: DrawerBackScope(
+        scaffoldKey: _scaffoldKey,
+        child: SafeArea(
+          child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -220,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+        ),
         ),
       ),
 

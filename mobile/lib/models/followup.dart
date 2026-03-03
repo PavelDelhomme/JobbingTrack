@@ -24,12 +24,13 @@ class FollowUp {
   });
 
   factory FollowUp.fromJson(Map<String, dynamic> json) {
+    final dateStr = json['followUpDate'] ?? json['scheduledDate'];
     return FollowUp(
       id: json['id'] ?? '',
       applicationId: json['applicationId'] ?? '',
-      scheduledDate: DateTime.parse(json['scheduledDate']),
+      scheduledDate: dateStr != null ? DateTime.parse(dateStr.toString()) : DateTime.now(),
       type: json['type'] ?? 'EMAIL',
-      status: json['status'] ?? 'PENDING',
+      status: _readStatus(json['status']) ?? 'PENDING',
       notes: json['notes'],
       completedAt: json['completedAt'] != null 
           ? DateTime.parse(json['completedAt']) 
@@ -38,6 +39,13 @@ class FollowUp {
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
+  }
+
+  static String? _readStatus(dynamic v) {
+    if (v == null) return null;
+    if (v is String) return v;
+    if (v is Map && v['code'] != null) return v['code'] as String?;
+    return null;
   }
 
   Map<String, dynamic> toJson() {

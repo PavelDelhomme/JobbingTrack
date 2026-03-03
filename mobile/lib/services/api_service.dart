@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/models/interview.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 
 class ApiService {
   static const int _apiPort = 5002;
@@ -302,6 +305,207 @@ class ApiService {
         throw Exception('Erreur HTTP ${response.statusCode}');
       }
     } catch (e) {
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Contacts : liste
+  static Future<List<Map<String, dynamic>>> getContacts({String? token}) async {
+    try {
+      final response = await _get('/api/v1/contacts?limit=100', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['contacts'] != null) {
+          return List<Map<String, dynamic>>.from(
+            (data['contacts'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+        return [];
+      } else {
+        throw Exception('Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Relances : liste (optionnel applicationId) et création
+  static Future<List<FollowUp>> getFollowUps({String? applicationId, String? token}) async {
+    try {
+      String path = '/api/v1/followups?limit=100';
+      if (applicationId != null && applicationId.isNotEmpty) {
+        path += '&applicationId=${Uri.encodeComponent(applicationId)}';
+      }
+      final response = await _get(path, headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['followups'] != null) {
+          return (data['followups'] as List).map((j) => FollowUp.fromJson(Map<String, dynamic>.from(j))).toList();
+        }
+        return [];
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<FollowUp> createFollowUp({
+    required String applicationId,
+    required DateTime followUpDate,
+    String? notes,
+    String status = 'PENDING',
+    String? token,
+  }) async {
+    try {
+      final body = {
+        'applicationId': applicationId,
+        'followUpDate': followUpDate.toUtc().toIso8601String(),
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        'status': status,
+      };
+      final response = await _post('/api/v1/followups', headers: _jsonHeaders(token), body: jsonEncode(body));
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final raw = data['followup'];
+        if (raw != null) return FollowUp.fromJson(Map<String, dynamic>.from(raw));
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<FollowUp> completeFollowUp(String id, String response, {String? token}) async {
+    final res = await _put(
+      '/api/v1/followups/$id/complete',
+      headers: _jsonHeaders(token),
+      body: jsonEncode({'response': response}),
+    );
+    if (res.statusCode != 200) throw Exception('Erreur HTTP ${res.statusCode}');
+    final data = jsonDecode(res.body);
+    final raw = data['followup'];
+    if (raw != null) return FollowUp.fromJson(Map<String, dynamic>.from(raw));
+    throw Exception('Réponse invalide');
+  }
+
+  static Future<void> deleteFollowUp(String id, {String? token}) async {
+    final res = await _delete('/api/v1/followups/$id', headers: _jsonHeaders(token));
+    if (res.statusCode != 200) throw Exception('Erreur HTTP ${res.statusCode}');
+  }
+
+  /// Entretiens : liste et création
+  static Future<List<Interview>> getInterviews({String? applicationId, String? token}) async {
+    try {
+      final response = await _get('/api/v1/interviews?limit=100', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['interviews'] != null) {
+          var list = (data['interviews'] as List).map((j) => Interview.fromJson(Map<String, dynamic>.from(j))).toList();
+          if (applicationId != null && applicationId.isNotEmpty) {
+            list = list.where((i) => i.applicationId == applicationId).toList();
+          }
+          return list;
+        }
+        return [];
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Interview> createInterview({
+    required String applicationId,
+    required DateTime interviewDate,
+    String? location,
+    String? notes,
+    int? estimatedDuration,
+    String? token,
+  }) async {
+    try {
+      final body = {
+        'applicationId': applicationId,
+        'interviewDate': interviewDate.toUtc().toIso8601String(),
+        if (location != null && location.isNotEmpty) 'location': location,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (estimatedDuration != null) 'estimatedDuration': estimatedDuration,
+      };
+      final response = await _post('/api/v1/interviews', headers: _jsonHeaders(token), body: jsonEncode(body));
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final raw = data['interview'];
+        if (raw != null) return Interview.fromJson(Map<String, dynamic>.from(raw));
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Appels : liste globale et par candidature
+  static Future<List<Call>> getCalls({String? token}) async {
+    try {
+      final response = await _get('/api/v1/calls?limit=100', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['calls'] != null) {
+          return (data['calls'] as List).map((j) => Call.fromJson(Map<String, dynamic>.from(j))).toList();
+        }
+        return [];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<List<Call>> getCallsByApplication(String applicationId, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/calls/application/$applicationId', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['calls'] != null) {
+          return (data['calls'] as List).map((j) => Call.fromJson(Map<String, dynamic>.from(j))).toList();
+        }
+        return [];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<Call> createCall({
+    required String applicationId,
+    required DateTime callDate,
+    required String subject,
+    String? notes,
+    String? token,
+  }) async {
+    try {
+      final body = {
+        'applicationId': applicationId,
+        'callDate': callDate.toUtc().toIso8601String(),
+        'subject': subject,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      };
+      final response = await _post('/api/v1/calls', headers: _jsonHeaders(token), body: jsonEncode(body));
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final raw = data['call'];
+        if (raw != null) return Call.fromJson(Map<String, dynamic>.from(raw));
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');
     }
   }

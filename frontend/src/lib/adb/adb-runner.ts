@@ -6,6 +6,16 @@ import { AdbClient, LogFn } from './adb-client';
 import { MobileScenario, STEP_LABELS } from './adb-scenarios';
 import { executeStep } from './adb-steps';
 
+/** Étapes critiques : si l'une échoue, le parcours s'arrête immédiatement (pas de suite inutile). */
+const CRITICAL_STEP_IDS = new Set([
+  'ensure_logged_out',
+  'fill_login_form',
+  'fill_login_form_user1',
+  'submit_login',
+  'view_dashboard_ui',
+  'ensure_on_dashboard',
+]);
+
 export type StepStatus = 'pending' | 'running' | 'success' | 'error';
 
 export interface StepResult {
@@ -27,17 +37,25 @@ export class AdbRunner {
   private adb: AdbClient;
   private log: LogFn;
   private cancelled = false;
+  private abortController: AbortController | null = null;
 
   constructor(controllerUrl: string, deviceId: string, log?: LogFn) {
     this.log = log || (() => {});
     this.adb = new AdbClient(controllerUrl, deviceId, this.log);
   }
 
-  cancel() { this.cancelled = true; }
+  /** Annule le parcours et l'étape en cours (abort des requêtes fetch). */
+  cancel() {
+    this.cancelled = true;
+    if (this.abortController) this.abortController.abort();
+  }
   get isCancelled() { return this.cancelled; }
 
   async run(scenario: MobileScenario, callbacks?: RunnerCallbacks): Promise<StepResult[]> {
     this.cancelled = false;
+    this.abortController = new AbortController();
+    this.adb.setAbortSignal(this.abortController.signal);
+
     const { steps } = scenario;
     const results: StepResult[] = steps.map((id) => ({
       id,
@@ -66,11 +84,18 @@ export class AdbRunner {
       } catch (e: any) {
         results[i] = { ...results[i], status: 'error', message: e.message, durationMs: Date.now() - t0 };
         this.log(`  ❌ ${results[i].name}: ${e.message}`);
+        if (CRITICAL_STEP_IDS.has(stepId)) {
+          this.log(`  ⛔ Étape critique en échec — parcours arrêté.`);
+          callbacks?.onStepEnd?.(i, results[i]);
+          break;
+        }
       }
 
       callbacks?.onStepEnd?.(i, results[i]);
     }
 
+    this.adb.setAbortSignal(null);
+    this.abortController = null;
     this.log(`Parcours "${scenario.name}" termine`);
     callbacks?.onComplete?.(results);
     return results;

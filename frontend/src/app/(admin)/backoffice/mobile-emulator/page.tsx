@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/features';
+import { useAuth } from '@/lib/hooks/auth';
 import {
   Smartphone,
   RefreshCw,
@@ -13,7 +14,7 @@ import {
   Loader2,
   Image as ImageIcon,
 } from 'lucide-react';
-import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, PRIMARY_MOBILE_JOURNEY_KEYS } from '@/lib/adb';
+import { AdbRunner, MOBILE_SCENARIOS, STEP_LABELS, SCENARIO_CATEGORIES, PRIMARY_MOBILE_JOURNEY_KEYS, getMobileTestCredentials } from '@/lib/adb';
 import type { StepResult } from '@/lib/adb';
 
 const CONTROLLER_URL_DEFAULT =
@@ -30,6 +31,7 @@ type Device = { id: string; status: string };
 type FlutterDevice = { id: string; name: string; platform?: string };
 
 export default function MobileEmulatorPage() {
+  const { token } = useAuth();
   const [controllerUrl, setControllerUrl] = useState(CONTROLLER_URL_DEFAULT);
   const [avds, setAvds] = useState<Avd[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -44,6 +46,8 @@ export default function MobileEmulatorPage() {
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const [apkBuilt, setApkBuilt] = useState(false);
   const [appRunning, setAppRunning] = useState(false);
+  const [journeyRunning, setJourneyRunning] = useState(false);
+  const [liveViewOn, setLiveViewOn] = useState(false);
   const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
@@ -78,8 +82,10 @@ export default function MobileEmulatorPage() {
     setLoading('avds');
     try {
       const data = await fetchJson<{ avds: Avd[] }>('/avds');
-      setAvds(data.avds || []);
-      addLog(`AVD trouves : ${(data.avds || []).length}`);
+      const list = data.avds || [];
+      setAvds(list);
+      addLog(`AVD trouves : ${list.length}`);
+      if (list.length > 0 && !selectedAvd) setSelectedAvd(list[0].name);
     } catch (e) { addLog(`Erreur AVD: ${e}`); }
     finally { setLoading(null); }
   };
@@ -89,8 +95,10 @@ export default function MobileEmulatorPage() {
     setLoading('devices');
     try {
       const data = await fetchJson<{ devices: Device[] }>('/devices');
-      setDevices(data.devices || []);
-      addLog(`Appareils ADB : ${(data.devices || []).length}`);
+      const list = data.devices || [];
+      setDevices(list);
+      addLog(`Appareils ADB : ${list.length}`);
+      if (list.length > 0 && !selectedDevice) setSelectedDevice(list[0].id);
     } catch (e) { addLog(`Erreur appareils: ${e}`); }
     finally { setLoading(null); }
   };
@@ -131,16 +139,42 @@ export default function MobileEmulatorPage() {
 
   const buildApk = async () => {
     setLoading('build');
-    addLog('Build APK en cours... (peut prendre 1-2 min)');
+    addLog('Build APK en cours... (peut prendre 1-2 min, timeout 5 min)');
+    const BUILD_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
+    const abort = new AbortController();
+    const timeoutId = setTimeout(() => abort.abort(), BUILD_TIMEOUT_MS);
+    // Proxy same-origin ; on envoie l'URL du contrôleur (celle de l'UI) pour que le serveur l'utilise
+    const url = '/api/emulator-proxy/build-apk';
     try {
-      const res = await fetch(`${base()}/build-apk`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      const data = (await res.json()) as { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number };
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ controllerBaseUrl: base() }),
+        signal: abort.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = (await res.json()) as { success?: boolean; message?: string; error?: string; stdout?: string; stderr?: string; exitCode?: number; _triedUrl?: string };
       if (data.success) setApkBuilt(true);
       addLog(data.message || (data.success ? 'Build reussi.' : data.error || 'Build echoue.'));
+      if (!res.ok && data.error) addLog(`Erreur proxy: ${data.error}`);
+      if (!res.ok && data._triedUrl) {
+        addLog(`URL appelee: ${data._triedUrl}`);
+        addLog('Conseil : dans .env (cote serveur) definissez EMULATOR_CONTROLLER_URL puis redemarrez Next.');
+        addLog('  Dev local : EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055');
+        addLog('  Docker    : EMULATOR_CONTROLLER_URL=http://host.docker.internal:5055');
+      }
       if (!data.success && data.stderr) addLog(`stderr: ${data.stderr.slice(-800)}`);
       if (!data.success && data.stdout) addLog(`stdout: ${data.stdout.slice(-500)}`);
-    } catch (e) { addLog(`Erreur build: ${e instanceof Error ? e.message : String(e)}`); }
-    finally { setLoading(null); }
+    } catch (e) {
+      clearTimeout(timeoutId);
+      const msg = e instanceof Error ? e.message : String(e);
+      addLog(`Erreur build: ${msg}`);
+      if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('aborted')) {
+        addLog('Conseil : verifiez EMULATOR_CONTROLLER_URL (cote serveur) ou lancez : cd mobile && flutter build apk --debug');
+      }
+    } finally {
+      setLoading(null);
+    }
   };
 
   const installAndRun = async () => {
@@ -214,17 +248,48 @@ export default function MobileEmulatorPage() {
   const restartApp = async () => {
     if (!selectedDevice) return;
     setLoading('restart-app');
+    const baseUrl = base().replace(/\/$/, '');
+    const androidPackage = 'com.example.jobbingtrack_mobile';
     try {
-      const pkg = 'com.example.jobbingtrack_mobile';
-      await fetchJson<{ success?: boolean }>('/input-keyevent', { method: 'POST', body: JSON.stringify({ deviceId: selectedDevice, keycode: 3 }) });
-      await new Promise(r => setTimeout(r, 500));
-      const data = await fetchJson<{ success?: boolean; message?: string; error?: string }>('/install-run', {
-        method: 'POST', body: JSON.stringify({ deviceId: selectedDevice }),
+      const res = await fetch(`${baseUrl}/force-restart-app`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: selectedDevice }),
       });
-      setAppRunning(true);
-      addLog(data.message || 'Application relancee');
-    } catch (e) { addLog(`Erreur restart: ${e instanceof Error ? e.message : String(e)}`); }
-    finally { setLoading(null); }
+      if (res.status === 404) {
+        addLog('Relance via adb-shell (route force-restart-app absente)...');
+        await fetch(`${baseUrl}/adb-shell`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: selectedDevice, command: `am force-stop ${androidPackage}` }),
+        });
+        await new Promise((r) => setTimeout(r, 500));
+        const startRes = await fetch(`${baseUrl}/adb-shell`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: selectedDevice, command: `am start -n ${androidPackage}/.MainActivity` }),
+        });
+        const startData = await startRes.json().catch(() => ({}));
+        if (startData.success) {
+          setAppRunning(true);
+          addLog('Application fermée et relancée (adb-shell).');
+        } else {
+          addLog('Erreur am start: ' + (startData.error || ''));
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (data.success) {
+          setAppRunning(true);
+          addLog(data.message || 'Application fermée et relancée');
+        } else {
+          addLog(data.error || 'Erreur');
+        }
+      }
+    } catch (e) {
+      addLog(`Erreur restart: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setLoading(null);
+    }
   };
 
   const runFlutter = async () => {
@@ -249,11 +314,16 @@ export default function MobileEmulatorPage() {
       setScreenshotUrl(null);
       return;
     }
+    if (!journeyRunning && !liveViewOn) {
+      if (screenshotInterval.current) { clearInterval(screenshotInterval.current); screenshotInterval.current = null; }
+      setScreenshotUrl(null);
+      return;
+    }
     const url = `${base()}/screenshot?device=${encodeURIComponent(selectedDevice)}&t=`;
     setScreenshotUrl(url + Date.now());
     screenshotInterval.current = setInterval(() => { setScreenshotUrl(url + Date.now()); }, 1500);
     return () => { if (screenshotInterval.current) { clearInterval(screenshotInterval.current); screenshotInterval.current = null; } };
-  }, [selectedDevice, controllerOk, controllerUrl]);
+  }, [selectedDevice, controllerOk, controllerUrl, journeyRunning, liveViewOn]);
 
   return (
     <AdminLayout>
@@ -274,6 +344,7 @@ export default function MobileEmulatorPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">URL du controleur</label>
               <input type="text" value={controllerUrl} onChange={(e) => setControllerUrl(e.target.value)} placeholder="http://localhost:5055"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent transition" />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Même hôte que la page (ex. si vous ouvrez 127.0.0.1:5003, mettez 127.0.0.1:5055)</p>
             </div>
             <div className="flex items-center gap-2">
               {controllerOk === true && <Wifi className="h-5 w-5 text-emerald-500" />}
@@ -366,9 +437,13 @@ export default function MobileEmulatorPage() {
 
         {controllerOk && selectedDevice && (
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm dark:shadow-none dark:ring-1 dark:ring-gray-800 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3 flex-wrap">
               <ImageIcon className="h-5 w-5 text-indigo-500" /> Rendu en direct
               <span className="text-xs font-normal text-gray-500 dark:text-gray-500 ml-2">clic = tap | glisser = scroll/swipe</span>
+              <label className="ml-auto flex items-center gap-2 text-sm font-normal text-gray-600 dark:text-gray-400 cursor-pointer">
+                <input type="checkbox" checked={liveViewOn} onChange={(e) => setLiveViewOn(e.target.checked)} className="rounded border-gray-300 dark:border-gray-600" />
+                Aperçu continu (hors parcours)
+              </label>
             </h2>
             <div className="rounded-2xl border-2 border-gray-300 dark:border-gray-700 overflow-hidden bg-black inline-block max-w-full cursor-crosshair select-none shadow-lg dark:shadow-black/50"
               onContextMenu={(e) => e.preventDefault()}>
@@ -377,7 +452,9 @@ export default function MobileEmulatorPage() {
                   style={{ imageRendering: 'auto' }} draggable={false}
                   onMouseDown={onImgMouseDown} onMouseUp={onImgMouseUp} />
               ) : (
-                <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-600">Rafraichissement...</div>
+                <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-500 text-center px-4 text-sm">
+                  {journeyRunning ? 'Rafraichissement...' : 'Cochez « Aperçu continu » ou lancez un parcours pour afficher l’écran.'}
+                </div>
               )}
             </div>
             <div className="mt-3 flex gap-2">
@@ -405,9 +482,12 @@ export default function MobileEmulatorPage() {
           <div className="bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded-lg h-48 overflow-y-auto select-text ring-1 ring-gray-800">
             {logs.length === 0 ? <div className="text-gray-600">Aucun log.</div> : logs.map((log, i) => <div key={i} className="mb-0.5">{log}</div>)}
           </div>
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            En dev, la console navigateur peut afficher des avertissements CSS (layout.css), un preload font non utilisé, ou NS_BINDING_ABORTED sur les screenshots ; ils sont sans impact et le build APK / install-run fonctionnent normalement.
+          </p>
         </div>
 
-        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} />
+        <MobileJourneyPanel addLog={addLog} controllerUrl={controllerUrl} deviceId={selectedDevice} authToken={token} onJourneyRunningChange={setJourneyRunning} />
       </div>
     </AdminLayout>
   );
@@ -417,7 +497,13 @@ export default function MobileEmulatorPage() {
 /* Parcours utilisateur mobile - utilise @/lib/adb                    */
 /* ------------------------------------------------------------------ */
 
-function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: string) => void; controllerUrl: string; deviceId: string }) {
+function MobileJourneyPanel({ addLog, controllerUrl, deviceId, authToken, onJourneyRunningChange }: {
+  addLog: (m: string) => void;
+  controllerUrl: string;
+  deviceId: string;
+  authToken: string | null;
+  onJourneyRunningChange: (running: boolean) => void;
+}) {
   const [selected, setSelected] = useState('mobile_complete');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [running, setRunning] = useState(false);
@@ -434,6 +520,80 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
   const runJourney = async () => {
     if (!scenario || running) return;
     if (!deviceId) { addLog('Selectionnez un appareil ADB avant de lancer un parcours'); return; }
+    onJourneyRunningChange(true);
+
+    if (selected === 'mobile_complete_with_data') {
+      if (!authToken) {
+        addLog('Erreur: connectez-vous en tant qu\'admin pour generer les donnees avant de lancer ce parcours.');
+        onJourneyRunningChange(false);
+        return;
+      }
+      addLog(`Generation des donnees de test (preset mobile) pour ${getMobileTestCredentials().email}...`);
+      try {
+        const proxyUrl = '/api/emulator-proxy/generate-test-data';
+        const res = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ preset: 'mobile' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.success) {
+          addLog(`Donnees de test generees. Connexion en tant que ${getMobileTestCredentials().email} (${getMobileTestCredentials().password === 'password123' ? 'password123' : '***'})...`);
+        } else {
+          addLog('Erreur: generation des donnees echouee — ' + (data.error || 'reponse invalide') + '. Parcours annule.');
+          onJourneyRunningChange(false);
+          return;
+        }
+      } catch (e) {
+        addLog('Erreur: API generate-test-data — ' + (e instanceof Error ? e.message : String(e)) + '. Parcours annule.');
+        onJourneyRunningChange(false);
+        return;
+      }
+    }
+
+    const baseUrl = controllerUrl.replace(/\/$/, '');
+    const androidPackage = 'com.example.jobbingtrack_mobile';
+    addLog('Fermeture et relance de l\'app pour afficher le bon ecran...');
+    try {
+      const res = await fetch(`${baseUrl}/force-restart-app`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId }),
+      });
+      if (res.status === 404) {
+        addLog('Route /force-restart-app absente (controleur ancien) : relance via adb-shell...');
+        const stopRes = await fetch(`${baseUrl}/adb-shell`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, command: `am force-stop ${androidPackage}` }),
+        });
+        const stopData = await stopRes.json().catch(() => ({}));
+        if (!stopData.success) addLog('force-stop: ' + (stopData.error || 'erreur'));
+        await new Promise((r) => setTimeout(r, 800));
+        const startRes = await fetch(`${baseUrl}/adb-shell`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, command: `am start -n ${androidPackage}/.MainActivity` }),
+        });
+        const startData = await startRes.json().catch(() => ({}));
+        if (startData.success) {
+          addLog('App relancee via adb-shell, attente 6s (uiautomator)...');
+          await new Promise((r) => setTimeout(r, 6000));
+        } else {
+          addLog('Attention: ' + (startData.error || 'am start echoue') + ' - parcours lance quand meme.');
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (data.success) {
+          addLog('App relancee, attente 6s que l\'ecran et uiautomator soient prêts...');
+          await new Promise((r) => setTimeout(r, 6000));
+        } else {
+          addLog('Attention: ' + (data.error || 'relance app echouee') + ' - parcours lance quand meme.');
+        }
+      }
+    } catch (e) {
+      addLog('Relance app: ' + (e instanceof Error ? e.message : String(e)) + ' - parcours lance quand meme.');
+    }
 
     const runner = new AdbRunner(controllerUrl, deviceId, addLog);
     runnerRef.current = runner;
@@ -441,18 +601,21 @@ function MobileJourneyPanel({ addLog, controllerUrl, deviceId }: { addLog: (m: s
     setProgress({ current: 0, total: scenario.steps.length });
     setStepResults(scenario.steps.map((id) => ({ id, name: STEP_LABELS[id] || id.replace(/_/g, ' '), status: 'pending' as const })));
 
-    await runner.run(scenario, {
-      onStepStart: (i) => {
-        setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'running' as const } : s));
-      },
-      onProgress: (current, total) => setProgress({ current, total }),
-      onStepEnd: (i, result) => {
-        setStepResults((prev) => prev.map((s, idx) => idx === i ? result : s));
-      },
-    });
-
-    setRunning(false);
-    runnerRef.current = null;
+    try {
+      await runner.run(scenario, {
+        onStepStart: (i) => {
+          setStepResults((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'running' as const } : s));
+        },
+        onProgress: (current, total) => setProgress({ current, total }),
+        onStepEnd: (i, result) => {
+          setStepResults((prev) => prev.map((s, idx) => idx === i ? result : s));
+        },
+      });
+    } finally {
+      setRunning(false);
+      runnerRef.current = null;
+      onJourneyRunningChange(false);
+    }
   };
 
   const catColors: Record<string, string> = {

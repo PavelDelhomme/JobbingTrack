@@ -1,0 +1,24 @@
+# Build with context: backend (docker-compose build context: ./backend)
+# So COPY paths are relative to backend/
+
+FROM node:20.18.0-alpine
+
+WORKDIR /app
+
+RUN npm install -g npm@11.6.4
+RUN apk add --no-cache docker-cli curl netcat-openbsd wget
+
+# Dépendances api-gateway
+COPY api-gateway/package*.json ./
+RUN npm install
+
+# Code api-gateway + script génération données + schéma Prisma
+COPY api-gateway/ ./
+COPY prisma/ ./prisma/
+COPY generate-test-data.js ./
+
+# Générer le client Prisma pour le script generate-test-data.js
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
+EXPOSE 3000
+CMD ["npm", "start"]

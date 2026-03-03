@@ -45,6 +45,9 @@ include makefiles/help/Makefile          # système d'aide
 start: ## Alias de up-full - Démarrer TOUS les services (sans rebuild)
 	@$(MAKE) up-full
 
+up-all: ## Alias de up-full (même chose)
+	@$(MAKE) up-full
+
 # Rebuild complet : down + build + up-full + status (utilise docker compose build puis up, pas make dev)
 fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make down && make build && make up-full && make status)
 	@$(MAKE) down

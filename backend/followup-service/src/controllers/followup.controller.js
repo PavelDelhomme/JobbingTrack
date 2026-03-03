@@ -77,16 +77,17 @@ async function getApplicationForUser(applicationId, userId) {
 const getFollowups = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status, applicationId } = req.query;
     const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
+    const limitNum = Math.min(parseInt(limit, 10) || 100, 100);
     const skip = (pageNum - 1) * limitNum;
 
     const where = {
       userId,
       deletedAt: null,
       isArchived: false,
-      ...(status && { status: { code: sanitizeStatus(status) } })
+      ...(status && { status: { code: sanitizeStatus(status) } }),
+      ...(applicationId && applicationId.trim() && { applicationId: applicationId.trim() })
     };
 
     let followups, total, usedFallback = false;

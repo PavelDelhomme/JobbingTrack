@@ -42,6 +42,10 @@ export class AdbClient {
   private baseUrl: string;
   private deviceId: string;
   private log: LogFn;
+  /** Signal d'annulation (runner) — quand aborted, les fetch en cours lèvent. */
+  private abortSignal: AbortSignal | null = null;
+  /** Timeout des requêtes (ms) pour éviter blocage infini (ex: ui-dump lent). */
+  private requestTimeoutMs = 60000;
 
   constructor(controllerUrl: string, deviceId: string, log?: LogFn) {
     this.baseUrl = controllerUrl.replace(/\/$/, '');
@@ -49,13 +53,31 @@ export class AdbClient {
     this.log = log || (() => {});
   }
 
+  /** À appeler par le runner : annule les requêtes en cours quand l'utilisateur clique Annuler. */
+  setAbortSignal(signal: AbortSignal | null): void {
+    this.abortSignal = signal;
+  }
+
   get device() { return this.deviceId; }
+
+  private getFetchSignal(): AbortSignal {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), this.requestTimeoutMs);
+    if (this.abortSignal) {
+      this.abortSignal.addEventListener('abort', () => {
+        clearTimeout(tid);
+        ctrl.abort();
+      });
+    }
+    return ctrl.signal;
+  }
 
   private async post<T = any>(path: string, body: Record<string, any>): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceId: this.deviceId, ...body }),
+      signal: this.getFetchSignal(),
     });
     return res.json();
   }
@@ -63,7 +85,7 @@ export class AdbClient {
   private async get<T = any>(path: string, params?: Record<string, string>): Promise<T> {
     const url = new URL(`${this.baseUrl}${path}`);
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), { signal: this.getFetchSignal() });
     return res.json();
   }
 

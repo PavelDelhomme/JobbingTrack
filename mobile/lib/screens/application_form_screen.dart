@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
 class ApplicationFormScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class ApplicationFormScreen extends StatefulWidget {
 
 class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _saving = false;
   List<Company> _companies = [];
   String? _companyId;
@@ -56,8 +58,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   }
 
   Future<void> _loadCompanies() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
     final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
-    await companyProvider.loadCompanies();
+    await companyProvider.loadCompanies(token: auth.token);
     if (mounted) setState(() => _companies = companyProvider.companies);
   }
 
@@ -133,14 +136,17 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   Widget build(BuildContext context) {
     final isEdit = widget.application != null;
     return Scaffold(
-      drawer: const AppDrawer(),
+      key: _scaffoldKey,
+      drawer: AppDrawer(),
       appBar: AppBar(
         title: Text(isEdit ? 'Modifier la candidature' : 'Nouvelle candidature'),
         centerTitle: true,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
+      body: DrawerBackScope(
+        scaffoldKey: _scaffoldKey,
+        child: Form(
+          key: _formKey,
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             DropdownButtonFormField<String>(
@@ -242,6 +248,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               child: _saving ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Text(isEdit ? 'Enregistrer' : 'Créer'),
             ),
           ],
+        ),
         ),
       ),
     );

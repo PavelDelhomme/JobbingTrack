@@ -36,6 +36,7 @@
         "test:e2e:user-management": "./scripts/test-user-management.sh",
         "test:e2e:impersonation": "playwright test impersonation-tests.spec.ts",
         "test:e2e:admin": "./scripts/test-playwright-admin.sh",
+        "test:e2e:mobile-emulator": "playwright test tests/e2e/mobile-emulator.spec.ts --project=chromium",
         "dev:mobile": "cd ../flutter-mobile-app && flutter run -d web-server --web-port 8090",
         "test:a11y": "playwright test --grep @accessibility",
         "test:a11y:axe": "playwright test accessibility.spec.ts --reporter=json",

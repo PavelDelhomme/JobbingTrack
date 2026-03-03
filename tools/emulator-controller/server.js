@@ -125,6 +125,25 @@ function ensureWritableFlutterGradle() {
   return gradleCache;
 }
 
+/** Exécute uiautomator dump avec timeout et 2 tentatives (évite échec après redémarrage app). */
+async function uiaDumpWithRetry(deviceId, timeoutMs = 25000) {
+  const deviceArg = deviceId ? `-s ${deviceId}` : '';
+  const dumpCmd = `adb ${deviceArg} shell uiautomator dump /sdcard/ui_dump.xml`;
+  const catCmd = `adb ${deviceArg} shell cat /sdcard/ui_dump.xml`;
+  let lastErr;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await execPromise(dumpCmd, { timeout: timeoutMs });
+      const { stdout } = await execPromise(catCmd, { timeout: 10000 });
+      return stdout || '';
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  throw lastErr;
+}
+
 const routes = {
   async '/avds'(req, res) {
     try {
@@ -209,8 +228,28 @@ const routes = {
         } catch (_) { /* ignore si adb reverse échoue */ }
       }
       await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
       await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
-      send(res, 200, { success: true, message: 'App installée et lancée (adb reverse activé sur ports API)' });
+      send(res, 200, { success: true, message: 'App installée, fermée puis relancée (adb reverse activé sur ports API)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Ferme l'app (force-stop) puis la relance sans réinstaller. Délai avant retour pour laisser uiautomator prêt. */
+  async '/force-restart-app'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+      }
+      const execOpts = { cwd: MOBILE_PATH };
+      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
+      await new Promise(r => setTimeout(r, 800));
+      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+      // Délai pour que l'app et uiautomator soient prêts (évite "uiauto machine failed")
+      await new Promise(r => setTimeout(r, 5500));
+      send(res, 200, { success: true, message: 'App fermée puis relancée' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
@@ -342,10 +381,8 @@ const routes = {
   async '/ui-dump'(req, res, body) {
     try {
       const deviceId = (body && body.deviceId) || '';
-      const deviceArg = deviceId ? `-s ${deviceId}` : '';
-      await execPromise(`adb ${deviceArg} shell uiautomator dump /sdcard/ui_dump.xml`);
-      const { stdout } = await execPromise(`adb ${deviceArg} shell cat /sdcard/ui_dump.xml`);
-      send(res, 200, { success: true, xml: stdout });
+      const xml = await uiaDumpWithRetry(deviceId);
+      send(res, 200, { success: true, xml });
     } catch (e) {
       send(res, 200, { success: false, xml: '', error: (e && e.message) || String(e) });
     }
@@ -362,8 +399,7 @@ const routes = {
       if (!deviceId || (!text && !contentDesc && !className)) {
         return send(res, 400, { success: false, error: 'Body { "deviceId", "text"? | "contentDesc"? | "className"?, "index"?: 0 } requis' });
       }
-      await execPromise(`adb -s ${deviceId} shell uiautomator dump /sdcard/ui_dump.xml`);
-      const { stdout: xml } = await execPromise(`adb -s ${deviceId} shell cat /sdcard/ui_dump.xml`);
+      const xml = await uiaDumpWithRetry(deviceId);
 
       const nodes = [];
       const nodeRegex = /<node[^>]*>/g;
@@ -418,8 +454,7 @@ const routes = {
       if (!deviceId || !hint || typeof text !== 'string') {
         return send(res, 400, { success: false, error: 'Body { "deviceId", "hint": "Email", "text": "value" } requis' });
       }
-      await execPromise(`adb -s ${deviceId} shell uiautomator dump /sdcard/ui_dump.xml`);
-      const { stdout: xml } = await execPromise(`adb -s ${deviceId} shell cat /sdcard/ui_dump.xml`);
+      const xml = await uiaDumpWithRetry(deviceId);
       const nodeRegex = /<node[^>]*>/g;
       let match, target = null;
       while ((match = nodeRegex.exec(xml)) !== null) {
@@ -511,7 +546,7 @@ const server = http.createServer((req, res) => {
   }
 
   const url = req.url || '';
-  const pathname = url.split('?')[0];
+  const pathname = (url.split('?')[0] || '').replace(/\/$/, '') || '/';
   let body = null;
 
   const next = () => {
@@ -519,7 +554,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

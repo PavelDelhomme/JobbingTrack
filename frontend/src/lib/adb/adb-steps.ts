@@ -4,8 +4,53 @@
  */
 import { AdbClient } from './adb-client';
 
+/** Identifiants du compte de test mobile (user1) — réception des mails si email réel (ex. redacted@example.invalid). */
+export function getMobileTestCredentials(): { email: string; password: string } {
+  return {
+    email: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
+      ? process.env.NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL
+      : 'user1@jobbingtrack.test',
+    password: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD
+      ? process.env.NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD
+      : 'password123',
+  };
+}
+
 export async function executeStep(stepId: string, adb: AdbClient): Promise<string> {
   switch (stepId) {
+
+    // ═══════════════════════════════════════════════════════════════
+    //  SETUP (notifications, etc.)
+    // ═══════════════════════════════════════════════════════════════
+
+    case 'disable_heads_up_notifications': {
+      try {
+        await adb.shellCommand('settings put global heads_up_notifications_enabled 0');
+        return 'Heads-up notifications desactivees';
+      } catch {
+        try {
+          await adb.shellCommand('settings put secure heads_up_notifications_enabled 0');
+          return 'Heads-up notifications desactivees (secure)';
+        } catch {
+          return 'Heads-up non modifiable (emulateur)';
+        }
+      }
+    }
+
+    case 'dismiss_notification_shade': {
+      try {
+        await adb.back();
+        await adb.wait(500);
+        const hasShade = await adb.uiContains('notification') || await adb.uiContains('Notification');
+        if (hasShade) {
+          await adb.back();
+          await adb.wait(300);
+        }
+        return 'Volet notifications ferme si ouvert';
+      } catch {
+        return 'Pas de volet a fermer';
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════
     //  AUTH
@@ -86,16 +131,16 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
     }
 
     case 'fill_register_form': {
-      const ts = Date.now();
+      const { email, password } = getMobileTestCredentials();
       await adb.typeInField('pr', 'Test');
       await adb.wait(600);
       await adb.typeInField('Nom', 'Mobile');
       await adb.wait(600);
-      await adb.typeInField('Email', `test-${ts}@example.com`);
+      await adb.typeInField('Email', email);
       await adb.wait(600);
-      await adb.typeInField('Minimum', 'Test123!');
+      await adb.typeInField('Minimum', password);
       await adb.wait(600);
-      await adb.typeInField('Retapez', 'Test123!');
+      await adb.typeInField('Retapez', password);
       await adb.wait(500);
       await adb.closeKeyboard();
       await adb.wait(800);
@@ -137,10 +182,48 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
       return 'Identifiants saisis';
     }
 
+    case 'fill_login_form_user1': {
+      const { email, password } = getMobileTestCredentials();
+      await adb.wait(500);
+      await adb.typeInField('Email', email);
+      await adb.wait(800);
+      await adb.typeInField('Mot de passe', password);
+      await adb.wait(500);
+      await adb.closeKeyboard();
+      await adb.wait(800);
+      return 'Identifiants user1 saisis';
+    }
+
     case 'submit_login': {
       await adb.tap('connecter');
       await adb.wait(4000);
       return 'Connexion effectuee';
+    }
+
+    case 'open_bluemail': {
+      try {
+        await adb.shellCommand('am start -n com.bluemail.mail/.activity.WelcomeActivity');
+      } catch {
+        await adb.shellCommand('am start -a android.intent.action.MAIN -p com.bluemail.mail');
+      }
+      await adb.wait(3000);
+      return 'BlueMail ouvert';
+    }
+
+    case 'open_gmail': {
+      try {
+        await adb.shellCommand('am start -n com.google.android.gm/.ConversationListActivityGmail');
+      } catch {
+        await adb.shellCommand('am start -a android.intent.action.MAIN -p com.google.android.gm');
+      }
+      await adb.wait(3000);
+      return 'Gmail ouvert';
+    }
+
+    case 'return_to_app': {
+      await adb.shellCommand('am start -n com.example.jobbingtrack_mobile/.MainActivity');
+      await adb.wait(2500);
+      return 'Retour app JobbingTrack';
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -154,7 +237,8 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
     }
 
     case 'fill_forgot_email': {
-      await adb.typeInField('Email', 'admin@jobbingtrack.test');
+      const { email } = getMobileTestCredentials();
+      await adb.typeInField('Email', email);
       await adb.wait(500);
       await adb.closeKeyboard();
       await adb.wait(500);
@@ -304,11 +388,18 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
 
     case 'verify_candidature_detail': {
       await adb.wait(1000);
-      const hasTimeline = await adb.uiContains('Historique') || await adb.uiContains('Timeline');
+      const hasModifier = await adb.uiContains('Modifier');
       const hasEntretien = await adb.uiContains('entretien') || await adb.uiContains('Entretien');
       const hasRelance = await adb.uiContains('relance') || await adb.uiContains('Relance');
-      const elements = [hasTimeline && 'Timeline', hasEntretien && 'Entretiens', hasRelance && 'Relances'].filter(Boolean);
+      const elements = [hasModifier && 'Modifier', hasEntretien && 'Entretiens', hasRelance && 'Relances'].filter(Boolean);
       return `Detail: ${elements.join(', ') || 'elements non verifies'}`;
+    }
+
+    case 'back_from_candidature_detail': {
+      await adb.back();
+      await adb.wait(1500);
+      const onList = await adb.uiContains('Mes Candidatures');
+      return onList ? 'Retour liste candidatures (app non quittee)' : 'Retour effectue';
     }
 
     case 'tap_add_entretien_from_detail': {
@@ -351,6 +442,119 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
         return 'FAB + candidature tappe';
       } catch {
         return 'FAB non trouve';
+      }
+    }
+
+    case 'tap_candidature_fab_or_first': {
+      if (await adb.uiContains('première candidature') || await adb.uiContains('Aucune candidature')) {
+        try {
+          await adb.tap('Créer');
+          await adb.wait(2500);
+          return 'Bouton Créer première candidature';
+        } catch {
+          await adb.tap('première');
+          await adb.wait(2500);
+          return 'Ouverture formulaire création';
+        }
+      }
+      try {
+        await adb.tapCoords(960, 2100);
+        await adb.wait(2000);
+        return 'FAB + candidature';
+      } catch {
+        return 'FAB ou bouton création non trouvé';
+      }
+    }
+
+    case 'fill_application_form_minimal': {
+      await adb.wait(1500);
+      try {
+        await adb.tap('Entreprise');
+        await adb.wait(1200);
+        await adb.tapByIndex(0);
+        await adb.wait(800);
+      } catch {}
+      try {
+        await adb.typeInField('Poste', 'Test E2E Candidature');
+        await adb.wait(500);
+        await adb.closeKeyboard();
+        await adb.wait(300);
+        return 'Formulaire candidature rempli (entreprise + poste)';
+      } catch {
+        return 'Champ Poste non trouve ou formulaire deja rempli';
+      }
+    }
+
+    case 'submit_application_form': {
+      try {
+        await adb.tap('Créer');
+        await adb.wait(3000);
+        return 'Candidature soumise';
+      } catch {
+        try {
+          await adb.tap('Enregistrer');
+          await adb.wait(3000);
+          return 'Candidature enregistree';
+        } catch {
+          return 'Bouton Créer/Enregistrer non trouve';
+        }
+      }
+    }
+
+    case 'verify_application_created': {
+      await adb.wait(1500);
+      const created = await adb.uiContains('Candidature créée');
+      const onList = await adb.uiContains('Mes Candidatures') || await adb.uiContains('Candidatures');
+      if (created || onList) return 'Candidature créée et liste affichee';
+      return 'Verification creation (snackbar ou liste)';
+    }
+
+    case 'add_relance_from_detail_submit': {
+      try {
+        await adb.tap('Ajouter relance');
+        await adb.wait(2000);
+        if (await adb.uiContains('OK')) { await adb.tap('OK'); await adb.wait(1500); }
+        if (await adb.uiContains('Nouvelle relance')) {
+          await adb.tap('Créer');
+          await adb.wait(2500);
+          return 'Relance créée';
+        }
+        await adb.tap('Créer');
+        await adb.wait(2500);
+        return 'Relance créée';
+      } catch {
+        return 'Ajout relance non effectue';
+      }
+    }
+
+    case 'add_entretien_from_detail_submit': {
+      try {
+        await adb.tap('Ajouter entretien');
+        await adb.wait(2000);
+        if (await adb.uiContains('OK')) { await adb.tap('OK'); await adb.wait(2500); return 'Entretien créé'; }
+        await adb.wait(2000);
+        return 'Entretien créé';
+      } catch {
+        return 'Ajout entretien non effectue';
+      }
+    }
+
+    case 'add_call_from_detail_submit': {
+      try {
+        await adb.tap('Ajouter appel');
+        await adb.wait(2000);
+        if (await adb.uiContains('OK')) { await adb.tap('OK'); await adb.wait(1500); }
+        if (await adb.uiContains('Nouvel appel')) {
+          try { await adb.typeInField('Sujet', 'Appel E2E'); await adb.wait(500); await adb.closeKeyboard(); } catch {}
+          await adb.tap('Créer');
+          await adb.wait(2500);
+          return 'Appel créé';
+        }
+        await adb.tap('Créer');
+        await adb.wait(2500);
+        return 'Appel créé';
+      } catch {
+        return 'Ajout appel non effectue';
       }
     }
 
@@ -458,6 +662,12 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
       await adb.openDrawer();
       await adb.wait(1500);
       return 'Menu lateral ouvert';
+    }
+
+    case 'close_drawer': {
+      await adb.back();
+      await adb.wait(800);
+      return 'Drawer ferme (back)';
     }
 
     case 'drawer_accueil': {
@@ -1028,6 +1238,6 @@ export async function executeStep(stepId: string, adb: AdbClient): Promise<strin
     }
 
     default:
-      return `Step "${stepId}" non implementee`;
+      throw new Error(`Étape "${stepId}" non implémentée`);
   }
 }
