@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const util = require('util');
+const fs = require('fs');
 const execPromise = util.promisify(exec);
 const logger = require('../utils/logger');
 const path = require('path');
@@ -26,18 +27,29 @@ const generateTestData = async (req, res) => {
     const configOptions = {
       minimal: { users: 2, companies: 5, applications: 5, contacts: 5, interviews: 2, followups: 3, calls: 2, events: 5, deletedItems: 1, archivedItems: 1 },
       standard: { users: 3, companies: 10, applications: 20, contacts: 15, interviews: 8, followups: 12, calls: 10, events: 20, deletedItems: 5, archivedItems: 3 },
+      mobile: { users: 3, companies: 10, applications: 20, contacts: 12, interviews: 5, followups: 8, calls: 5, events: 10, deletedItems: 2, archivedItems: 2 },
       complete: { users: 5, companies: 20, applications: 50, contacts: 40, interviews: 20, followups: 30, calls: 25, events: 50, deletedItems: 10, archivedItems: 8 },
       demo: { users: 1, companies: 8, applications: 15, contacts: 12, interviews: 6, followups: 8, calls: 5, events: 15, deletedItems: 2, archivedItems: 2 }
     };
 
     const finalConfig = config.custom || configOptions[preset] || configOptions.standard;
     const configJson = JSON.stringify(finalConfig).replace(/"/g, '\\"');
-    
-    // Exécuter le script de génération de données
-    // Le script se trouve dans le répertoire parent du backend
-    const scriptPath = path.resolve(__dirname, '../../..', 'generate-test-data.js');
+
+    // Chemin du script : env, puis /app en Docker, puis relatif (local)
+    let scriptPath = process.env.GENERATE_TEST_DATA_SCRIPT;
+    if (!scriptPath) {
+      const inApp = '/app/generate-test-data.js';
+      const relative = path.resolve(__dirname, '../../..', 'generate-test-data.js');
+      scriptPath = fs.existsSync(inApp) ? inApp : relative;
+    }
+    if (!fs.existsSync(scriptPath)) {
+      logger.error('Script generate-test-data.js introuvable. Tente: /app/generate-test-data.js et ' + path.resolve(__dirname, '../../..', 'generate-test-data.js'));
+      return res.status(500).json({
+        success: false,
+        error: `Script introuvable (cherche: /app/generate-test-data.js). Rebuild l'image api-gateway (make rebuild-service SERVICE=api-gateway).`
+      });
+    }
     const command = `node "${scriptPath}" '${configJson}'`;
-    
     logger.info('📝 Exécution du script:', command);
     
     const { stdout, stderr } = await execPromise(command, {

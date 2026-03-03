@@ -235,6 +235,24 @@ diag-services: ## Diagnostic détaillé des services Docker en cours
 	@echo "  make diagnostic-fix          # Correction automatique"
 	@echo "  make logs                    # Logs en temps réel"
 	@echo "  make status                  # Statut des services"
+	@echo "  make verify-admin-routes     # Vérifier routes admin (generate-test-data, etc.)"
+
+# Vérifier que les routes admin de l'API Gateway répondent (generate-test-data, test-data/status)
+verify-admin-routes: ## Vérifier les routes admin sur la gateway (port 5002 ou API_GATEWAY_URL). Si 404 sur generate-test-data, redémarrer la gateway.
+	@echo "🔍 Vérification des routes admin..."
+	@GATEWAY_URL="$${API_GATEWAY_URL:-http://localhost:5002}"; \
+	if command -v curl >/dev/null 2>&1; then \
+		echo "   Gateway: $$GATEWAY_URL"; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 -H "Authorization: Bearer mock-jwt-token" "$$GATEWAY_URL/api/v1/admin/test"); \
+		if [ "$$code" = "200" ]; then echo "   ✅ GET /api/v1/admin/test → 200"; else echo "   ❌ GET /api/v1/admin/test → $$code"; fi; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST -H "Content-Type: application/json" -H "Authorization: Bearer mock-jwt-token" -d '{"preset":"minimal"}' "$$GATEWAY_URL/api/v1/admin/generate-test-data"); \
+		if [ "$$code" = "200" ]; then echo "   ✅ POST /api/v1/admin/generate-test-data → 200"; \
+		elif [ "$$code" = "404" ]; then echo "   ❌ POST /api/v1/admin/generate-test-data → 404 (redémarrez la gateway: make restart-service SERVICE=api-gateway)"; exit 1; \
+		else echo "   ⚠️ POST /api/v1/admin/generate-test-data → $$code (base peut être indisponible)"; fi; \
+	else \
+		node "$(ROOT_DIR)/tools/verify-admin-routes.js" "$${API_GATEWAY_URL:-http://localhost:5002}" || exit 1; \
+	fi
+	@echo "✅ Vérification terminée."
 
 # Diagnostic métriques vs hôte
 diagnostic-metrics: ## Collecter et comparer métriques Docker vs système hôte

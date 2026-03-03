@@ -181,7 +181,7 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
   },
   mobile_verify_all_screens: {
     name: 'Verification tous ecrans',
-    description: 'Ouvrir et verifier chaque ecran de l\'app',
+    description: 'Ouvrir et verifier chaque ecran (candidatures, recherche, calendrier, profil, relances, entretiens, appels, entreprises, contacts)',
     category: 'verification',
     steps: [
       'ensure_on_dashboard',
@@ -197,6 +197,29 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
       'go_to_contacts_via_drawer', 'verify_contacts_screen', 'go_back',
     ],
   },
+  mobile_verify_contacts_list: {
+    name: 'Verification liste contacts',
+    description: 'Ouvrir les contacts via drawer et verifier l\'ecran',
+    category: 'verification',
+    steps: [
+      'ensure_on_dashboard',
+      'go_to_contacts_via_drawer',
+      'verify_contacts_screen',
+      'go_back',
+    ],
+  },
+  mobile_creation_candidature: {
+    name: 'Creation candidature',
+    description: 'Aller aux candidatures -> FAB ou bouton premiere candidature -> formulaire (entreprise requise)',
+    category: 'crud',
+    steps: [
+      'ensure_on_dashboard',
+      'go_to_candidatures',
+      'verify_candidatures_list',
+      'tap_candidature_fab_or_first',
+      'go_back',
+    ],
+  },
 
   // ═══════════════════════════════════════════════════════════════
   //  CRUD / INTERACTIONS
@@ -204,7 +227,7 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
 
   mobile_crud_candidature: {
     name: 'CRUD Candidature',
-    description: 'Liste -> detail -> ajout entretien/relance/appel',
+    description: 'Liste -> détail candidature -> vérifier Modifier / Ajouter relance-entretien-appel -> retour',
     category: 'crud',
     steps: [
       'ensure_on_dashboard',
@@ -212,14 +235,13 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
       'verify_candidatures_list',
       'tap_first_candidature',
       'verify_candidature_detail',
-      'scroll_dashboard',
-      'tap_add_entretien_from_detail',
-      'go_back',
       'tap_add_relance_from_detail',
+      'go_back',
+      'tap_add_entretien_from_detail',
       'go_back',
       'tap_add_appel_from_detail',
       'go_back',
-      'go_back',
+      'back_from_candidature_detail',
     ],
   },
   mobile_crud_relance: {
@@ -257,6 +279,26 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
       'ensure_on_dashboard',
       'open_drawer', 'drawer_archives', 'go_back',
       'open_drawer', 'drawer_corbeille', 'go_back',
+    ],
+  },
+  mobile_crud_create: {
+    name: 'Création candidature + relance + entretien + appel',
+    description: 'Login -> créer candidature -> détail -> ajouter relance, entretien, appel',
+    category: 'crud',
+    steps: [
+      'disable_heads_up_notifications',
+      'ensure_logged_out', 'fill_login_form', 'submit_login', 'view_dashboard_ui',
+      'nav_tab_2',
+      'tap_candidature_fab_or_first',
+      'fill_application_form_minimal',
+      'submit_application_form',
+      'verify_application_created',
+      'tap_first_candidature',
+      'verify_candidature_detail',
+      'add_relance_from_detail_submit',
+      'add_entretien_from_detail_submit',
+      'add_call_from_detail_submit',
+      'go_back',
     ],
   },
   mobile_crud_notifications: {
@@ -380,6 +422,7 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
     description: 'Login -> dashboard -> candidatures -> recherche -> calendrier -> relances',
     category: 'complet',
     steps: [
+      'disable_heads_up_notifications',
       'ensure_logged_out', 'fill_login_form', 'submit_login',
       'view_dashboard_ui',
       'go_to_candidatures', 'scroll_candidatures', 'tap_first_candidature', 'verify_candidature_detail', 'go_back',
@@ -395,6 +438,7 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
     description: 'Login -> dashboard -> tous onglets -> drawer complet -> notifications -> parametres -> deconnexion',
     category: 'complet',
     steps: [
+      'disable_heads_up_notifications',
       'ensure_logged_out', 'fill_login_form', 'submit_login',
       'view_dashboard_ui', 'verify_dashboard_stats', 'scroll_dashboard',
       'nav_tab_2', 'verify_candidatures_list', 'scroll_candidatures', 'tap_first_candidature', 'go_back',
@@ -417,6 +461,35 @@ export const MOBILE_SCENARIOS: Record<string, MobileScenario> = {
       'nav_tab_1', 'logout',
     ],
   },
+  mobile_complete_with_data: {
+    name: 'Parcours complet (avec données)',
+    description: 'Génère données de test puis login user1 -> dashboard -> listes (candidatures, entreprises, contacts, relances, entretiens, appels) -> drawer admin (Analytics, Stats, Corbeille) -> déconnexion',
+    category: 'complet',
+    steps: [
+      'disable_heads_up_notifications',
+      'ensure_logged_out', 'fill_login_form_user1', 'submit_login',
+      'view_dashboard_ui', 'verify_dashboard_stats', 'scroll_dashboard',
+      'nav_tab_2', 'verify_candidatures_list', 'scroll_candidatures', 'tap_first_candidature', 'verify_candidature_detail', 'go_back',
+      'nav_tab_3', 'verify_search_tabs', 'search_tab_entreprises', 'search_tab_contacts', 'search_tab_entretiens', 'search_tab_relances',
+      'nav_tab_4', 'verify_calendrier', 'tap_charger_evenements', 'verify_calendar_events',
+      'nav_tab_5', 'verify_profil',
+      'nav_tab_1',
+      'open_drawer', 'drawer_candidatures', 'verify_candidatures_list', 'go_back',
+      'open_drawer', 'drawer_entreprises', 'verify_entreprises_screen', 'go_back',
+      'open_drawer', 'drawer_contacts', 'verify_contacts_screen', 'go_back',
+      'open_drawer', 'drawer_entretiens', 'verify_entretiens_screen', 'go_back',
+      'open_drawer', 'drawer_appels', 'verify_appels_screen', 'go_back',
+      'open_drawer', 'drawer_relances', 'verify_relances_tabs', 'go_back',
+      'open_drawer', 'drawer_evenements', 'verify_evenements', 'go_back',
+      'open_drawer', 'drawer_parametres', 'verify_parametres', 'go_back',
+      'open_drawer', 'drawer_statistiques', 'verify_statistiques', 'go_back',
+      'open_drawer', 'drawer_analytics', 'go_back',
+      'open_drawer', 'drawer_archives', 'go_back',
+      'open_drawer', 'drawer_corbeille', 'go_back',
+      'open_notifications', 'verify_notifications', 'go_back',
+      'nav_tab_1', 'logout',
+    ],
+  },
 };
 
 export const SCENARIO_CATEGORIES = {
@@ -433,11 +506,17 @@ export const PRIMARY_MOBILE_JOURNEY_KEYS: string[] = [
   'mobile_password_reset',    // Reset mot de passe
   'mobile_first_use',         // Première utilisation
   'mobile_daily_use',         // Usage quotidien
+  'mobile_complete_with_data', // Parcours complet avec données générées
+  'mobile_crud_create',       // Création candidature + relance + entretien + appel
   'mobile_crud_archive_corbeille', // Archives & Corbeille
-  'mobile_complete',          // Parcours complet
+  'mobile_complete',          // Parcours complet (admin)
 ];
 
 export const STEP_LABELS: Record<string, string> = {
+  // Setup
+  disable_heads_up_notifications: 'Desactiver bandeaux notifications',
+  dismiss_notification_shade: 'Fermer volet notifications',
+
   // Auth
   ensure_logged_out: 'Deconnexion si necessaire',
   ensure_on_dashboard: 'Retour dashboard',
@@ -453,7 +532,11 @@ export const STEP_LABELS: Record<string, string> = {
 
   // Login
   fill_login_form: 'Saisir email + mot de passe',
+  fill_login_form_user1: 'Saisir identifiants user1 (données de test)',
   submit_login: 'Tap Se connecter',
+  open_bluemail: 'Ouvrir BlueMail',
+  open_gmail: 'Ouvrir Gmail',
+  return_to_app: 'Retour app JobbingTrack',
 
   // Forgot password
   tap_forgot_password: 'Tap Mot de passe oublie',
@@ -484,10 +567,19 @@ export const STEP_LABELS: Record<string, string> = {
   scroll_candidatures: 'Scroll liste candidatures',
   tap_first_candidature: 'Ouvrir 1ere candidature',
   verify_candidature_detail: 'Verifier detail candidature',
+  back_from_candidature_detail: 'Retour liste candidatures',
   tap_add_entretien_from_detail: 'Ajouter entretien (depuis detail)',
   tap_add_relance_from_detail: 'Ajouter relance (depuis detail)',
   tap_add_appel_from_detail: 'Ajouter appel (depuis detail)',
   tap_candidature_fab: 'Tap FAB + candidature',
+  tap_candidature_fab_or_first: 'FAB ou Créer première candidature',
+  fill_application_form_minimal: 'Remplir formulaire (entreprise + poste)',
+  submit_application_form: 'Soumettre formulaire candidature',
+  verify_application_created: 'Vérifier candidature créée',
+  add_relance_from_detail_submit: 'Créer relance depuis détail',
+  add_entretien_from_detail_submit: 'Créer entretien depuis détail',
+  add_call_from_detail_submit: 'Créer appel depuis détail',
+  close_drawer: 'Fermer le drawer (back)',
 
   // Recherche
   go_to_recherche: 'Aller a Recherche',

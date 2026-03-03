@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
@@ -36,6 +37,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Future<void> _loadAll() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final token = auth.token;
     final companyProv = Provider.of<CompanyProvider>(context, listen: false);
     final contactProv = Provider.of<ContactProvider>(context, listen: false);
     final interviewProv = Provider.of<InterviewProvider>(context, listen: false);
@@ -43,8 +46,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     await Future.wait([
       companyProv.loadCompanies(),
       contactProv.loadContacts(),
-      interviewProv.loadInterviews(),
-      followUpProv.loadFollowUps(),
+      interviewProv.loadInterviews(token: token),
+      followUpProv.loadFollowUps(token: token),
     ]);
   }
 
@@ -199,9 +202,9 @@ class _InterviewsTab extends StatelessWidget {
     final prov = Provider.of<InterviewProvider>(context);
     final items = prov.interviews.where((iv) {
       if (query.isEmpty) return true;
-      final notes = (iv['notes'] ?? '').toString().toLowerCase();
-      final type = (iv['type'] ?? '').toString().toLowerCase();
-      return notes.contains(query) || type.contains(query);
+      final notes = (iv.notes ?? '').toLowerCase();
+      final location = (iv.location ?? '').toLowerCase();
+      return notes.contains(query) || location.contains(query);
     }).toList();
 
     if (prov.isLoading) return const Center(child: CircularProgressIndicator());
@@ -212,8 +215,8 @@ class _InterviewsTab extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (ctx, i) {
         final iv = items[i];
-        final type = (iv['type'] ?? 'Entretien').toString();
-        final notes = (iv['notes'] ?? '').toString();
+        final type = iv.location ?? 'Entretien';
+        final notes = (iv.notes ?? '').toString();
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(

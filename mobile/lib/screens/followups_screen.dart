@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:intl/intl.dart';
 
 class FollowUpsScreen extends StatefulWidget {
@@ -16,13 +18,15 @@ class FollowUpsScreen extends StatefulWidget {
 class _FollowUpsScreenState extends State<FollowUpsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadFollowUps();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: auth.token);
     });
   }
 
@@ -42,7 +46,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
     final provider = Provider.of<FollowUpProvider>(context);
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      key: _scaffoldKey,
+      drawer: AppDrawer(),
       appBar: AppBar(
         title: const Text('Mes Relances'),
         centerTitle: true,
@@ -63,15 +68,18 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
           ],
         ),
       ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFollowUpsList(provider.pendingFollowUps, isPending: true),
-                _buildFollowUpsList(provider.completedFollowUps, isPending: false),
-              ],
-            ),
+      body: DrawerBackScope(
+        scaffoldKey: _scaffoldKey,
+        child: provider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildFollowUpsList(provider.pendingFollowUps, isPending: true),
+                  _buildFollowUpsList(provider.completedFollowUps, isPending: false),
+                ],
+              ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddFollowUpDialog,
         backgroundColor: Colors.blue[600],
@@ -400,9 +408,10 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       ),
     );
 
-    if (result != null && mounted) {
+    if (result != null && result.isNotEmpty && mounted) {
       final provider = Provider.of<FollowUpProvider>(context, listen: false);
-      await provider.markAsCompleted(followUp.id, result);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await provider.markAsCompleted(followUp.id, result, token: auth.token);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -437,7 +446,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
 
     if (confirm == true && mounted) {
       final provider = Provider.of<FollowUpProvider>(context, listen: false);
-      await provider.deleteFollowUp(id);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await provider.deleteFollowUp(id, token: auth.token);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

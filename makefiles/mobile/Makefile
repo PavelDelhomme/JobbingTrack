@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop help-emulator test-emulator-controller
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller
 
 # Démarrer le contrôleur d'émulateur (foreground - garder le terminal ouvert)
 emulator-controller: ## Démarrer le contrôleur d'émulateur Android (port 5055). Démarre aussi automatiquement avec make up-full ; utilisez cette cible pour le lancer manuellement ou en 2e terminal
@@ -34,17 +34,43 @@ emulator-controller-bg: ## Démarrer le contrôleur d'émulateur en arrière-pla
 	@echo "   Logs: tail -f /tmp/emulator-controller.log"
 	@echo "   Arrêt: make emulator-controller-stop"
 
-# Arrêter le contrôleur (libère le port 5055 en tuant tout processus qui l'utilise)
+# Arrêter uniquement le processus qui ÉCOUTE sur 5055 (pas les clients : LibreWolf avec onglet mobile-emulator).
+# lsof -ti :5055 liste aussi les PIDs des clients → on utilise -sTCP:LISTEN pour ne cibler que le serveur Node.
 emulator-controller-stop: ## Arrêter le contrôleur d'émulateur (libère le port 5055)
 	@if command -v lsof >/dev/null 2>&1; then \
-		for p in $$(lsof -ti :5055 2>/dev/null); do kill -9 $$p 2>/dev/null || true; done; \
-		if lsof -ti :5055 >/dev/null 2>&1; then echo "⚠️  Port 5055 encore utilisé."; else echo "✅ Port 5055 libéré."; fi; \
-		sleep 2; \
+		pids=$$(lsof -i :5055 -sTCP:LISTEN -t 2>/dev/null); \
+		if [ -z "$$pids" ]; then \
+			pids=$$(lsof -i :5055 2>/dev/null | grep LISTEN | awk '{print $$2}' | sort -u); \
+		fi; \
+		for p in $$pids; do kill -9 $$p 2>/dev/null || true; done; \
+		sleep 1; \
+		if lsof -i :5055 -sTCP:LISTEN -t 2>/dev/null | grep -q .; then echo "⚠️  Port 5055 encore utilisé."; else echo "✅ Port 5055 libéré."; fi; \
+		sleep 1; \
 	elif command -v fuser >/dev/null 2>&1; then \
 		fuser -k 5055/tcp 2>/dev/null; sleep 2; echo "✅ Port 5055 libéré."; \
 	else \
-		pkill -f "node server.js" 2>/dev/null; sleep 2; echo "ℹ️  Si EADDRINUSE persiste : lsof -i :5055 puis kill -9 <PID>"; \
+		pkill -f "emulator-controller.*server.js\|tools/emulator-controller.*node.*server" 2>/dev/null; sleep 2; echo "ℹ️  Si EADDRINUSE : lsof -i :5055 puis kill -9 <PID> (celui en LISTEN)"; \
 	fi
+
+# Arrêter l'ancien processus puis relancer le contrôleur en arrière-plan (une seule commande)
+restart-emulator: ## Arrêter le contrôleur sur 5055 puis le relancer (pour prendre en compte les changements de server.js)
+	@echo "🔄 Redémarrage du contrôleur d'émulateur (port 5055)..."
+	@$(MAKE) -s emulator-controller-stop
+	@sleep 2
+	@$(MAKE) -s emulator-controller-bg
+	@echo "✅ Contrôleur redémarré. Logs: tail -f /tmp/emulator-controller.log"
+
+# Vérifier que tout est prêt pour les parcours mobile-emulator (contrôleur + routes force-restart, ui-dump)
+verify-mobile-emulator: ## Vérifier contrôleur (health, avds, devices, force-restart-app) — à lancer avant les parcours
+	@echo "📋 Vérification des prérequis pour Backoffice → Émulateur mobile..."
+	@$(MAKE) -s test-emulator-controller
+	@echo ""
+	@echo "💡 Si tout est vert : ouvrez http://localhost:5003/backoffice/mobile-emulator"
+	@echo "   Connectez-vous en admin, sélectionnez un appareil ADB, puis lancez un parcours."
+
+# Vérifier que tous les scénarios mobiles référencent des étapes implémentées (sans appareil)
+verify-mobile-scenarios: ## Vérifier cohérence parcours mobiles (adb-scenarios vs adb-steps)
+	@node "$(ROOT_DIR)/tools/emulator-controller/validate-mobile-scenarios.js"
 
 # Tester le contrôleur (doit être démarré sur le port 5055)
 test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, /avds, /devices, /flutter-devices). Lancez make emulator-controller avant.

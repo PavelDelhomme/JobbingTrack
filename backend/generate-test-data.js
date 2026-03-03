@@ -139,21 +139,21 @@ const PRESETS = {
 
 // Données de test réalistes
 const COMPANIES_DATA = [
-  { name: 'Google', website: 'https://google.com', industry: 'Technologie', size: '10000+', location: 'Mountain View, CA' },
-  { name: 'Microsoft', website: 'https://microsoft.com', industry: 'Technologie', size: '10000+', location: 'Redmond, WA' },
-  { name: 'Amazon', website: 'https://amazon.com', industry: 'E-commerce', size: '10000+', location: 'Seattle, WA' },
-  { name: 'Meta', website: 'https://meta.com', industry: 'Réseaux sociaux', size: '10000+', location: 'Menlo Park, CA' },
-  { name: 'Apple', website: 'https://apple.com', industry: 'Technologie', size: '10000+', location: 'Cupertino, CA' },
-  { name: 'Netflix', website: 'https://netflix.com', industry: 'Streaming', size: '1000-5000', location: 'Los Gatos, CA' },
-  { name: 'Spotify', website: 'https://spotify.com', industry: 'Musique', size: '1000-5000', location: 'Stockholm, Suède' },
-  { name: 'Airbnb', website: 'https://airbnb.com', industry: 'Voyage', size: '1000-5000', location: 'San Francisco, CA' },
-  { name: 'Stripe', website: 'https://stripe.com', industry: 'Fintech', size: '500-1000', location: 'San Francisco, CA' },
-  { name: 'Datadog', website: 'https://datadoghq.com', industry: 'Monitoring', size: '500-1000', location: 'New York, NY' },
-  { name: 'GitLab', website: 'https://gitlab.com', industry: 'DevOps', size: '500-1000', location: 'Remote' },
-  { name: 'Notion', website: 'https://notion.so', industry: 'Productivité', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Figma', website: 'https://figma.com', industry: 'Design', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Vercel', website: 'https://vercel.com', industry: 'Cloud', size: '100-500', location: 'San Francisco, CA' },
-  { name: 'Supabase', website: 'https://supabase.com', industry: 'Backend as a Service', size: '50-100', location: 'Remote' }
+  { name: 'Google', website: 'https://google.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Mountain View, CA' },
+  { name: 'Microsoft', website: 'https://microsoft.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Redmond, WA' },
+  { name: 'Amazon', website: 'https://amazon.com', industry: 'E-commerce', size: 'ENTERPRISE', location: 'Seattle, WA' },
+  { name: 'Meta', website: 'https://meta.com', industry: 'Réseaux sociaux', size: 'ENTERPRISE', location: 'Menlo Park, CA' },
+  { name: 'Apple', website: 'https://apple.com', industry: 'Technologie', size: 'ENTERPRISE', location: 'Cupertino, CA' },
+  { name: 'Netflix', website: 'https://netflix.com', industry: 'Streaming', size: 'LARGE', location: 'Los Gatos, CA' },
+  { name: 'Spotify', website: 'https://spotify.com', industry: 'Musique', size: 'LARGE', location: 'Stockholm, Suède' },
+  { name: 'Airbnb', website: 'https://airbnb.com', industry: 'Voyage', size: 'LARGE', location: 'San Francisco, CA' },
+  { name: 'Stripe', website: 'https://stripe.com', industry: 'Fintech', size: 'LARGE', location: 'San Francisco, CA' },
+  { name: 'Datadog', website: 'https://datadoghq.com', industry: 'Monitoring', size: 'LARGE', location: 'New York, NY' },
+  { name: 'GitLab', website: 'https://gitlab.com', industry: 'DevOps', size: 'LARGE', location: 'Remote' },
+  { name: 'Notion', website: 'https://notion.so', industry: 'Productivité', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Figma', website: 'https://figma.com', industry: 'Design', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Vercel', website: 'https://vercel.com', industry: 'Cloud', size: 'MEDIUM', location: 'San Francisco, CA' },
+  { name: 'Supabase', website: 'https://supabase.com', industry: 'Backend as a Service', size: 'SMALL', location: 'Remote' }
 ];
 
 const POSITIONS = [
@@ -193,11 +193,11 @@ async function cleanExistingData() {
   console.log('🧹 Suppression des données existantes...');
 
   try {
-    // Supprimer dans l'ordre inverse des dépendances
+    // Supprimer dans l'ordre inverse des dépendances (pas de Activity dans le schéma partagé)
     await prisma.followUp.deleteMany({});
     await prisma.call.deleteMany({});
     await prisma.interview.deleteMany({});
-    await prisma.activity.deleteMany({});
+    try { await prisma.activity.deleteMany({}); } catch (_) { /* Activity absent du schéma */ }
     await prisma.applicationContact.deleteMany({});
     await prisma.application.deleteMany({});
     await prisma.contact.deleteMany({});
@@ -261,15 +261,20 @@ async function main() {
     // 1. Créer les utilisateurs
     console.log('👥 Création des utilisateurs...');
     const hashedPassword = await bcrypt.hash('password123', 10);
+    const user1Email = process.env.TEST_USER_EMAIL || 'user1@jobbingtrack.com';
+    const user1Password = process.env.TEST_USER_PASSWORD || 'password123';
+    const user1HashedPassword = user1Password === 'password123' ? hashedPassword : await bcrypt.hash(user1Password, 10);
 
     const users = [];
     for (let i = 0; i < config.users; i++) {
+      const email = i === 0 ? user1Email : `user${i + 1}@jobbingtrack.com`;
+      const password = i === 0 ? user1HashedPassword : hashedPassword;
       const user = await prisma.user.upsert({
-        where: { email: `user${i + 1}@jobbingtrack.com` },
-        update: { isTestData: true },
+        where: { email },
+        update: { isTestData: true, ...(i === 0 ? { password: user1HashedPassword } : {}) },
         create: {
-          email: `user${i + 1}@jobbingtrack.com`,
-          password: hashedPassword,
+          email,
+          password,
           firstName: FIRST_NAMES[i % FIRST_NAMES.length],
           lastName: LAST_NAMES[i % LAST_NAMES.length],
           phone: `+3361234567${i}`,
@@ -279,22 +284,23 @@ async function main() {
       });
       users.push(user);
     }
-    console.log(`   ✅ ${users.length} utilisateurs créés`);
+    console.log(`   ✅ ${users.length} utilisateurs créés (user1: ${user1Email})`);
 
     // 2. Créer les entreprises
     console.log('🏢 Création des entreprises...');
     const companies = [];
     for (let i = 0; i < Math.min(config.companies, COMPANIES_DATA.length); i++) {
       const companyData = COMPANIES_DATA[i];
+      const { name, website, industry, size, location } = companyData;
       const company = await prisma.company.create({
         data: {
-          ...companyData,
+          name,
+          website,
+          industry,
+          size,
+          location,
           userId: users[i % users.length].id,
-          // Ajouter le tag dans la description ou un champ metadata si disponible
-          description: companyData.description 
-            ? `${companyData.description}\n[TEST_DATA_TAG:${testTag}]`
-            : `[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
+          description: `[TEST_DATA_TAG:${testTag}]`,
         }
       });
       companies.push(company);
@@ -337,6 +343,15 @@ async function main() {
     }
     console.log(`   ✅ ${contacts.length} contacts créés`);
 
+    // Récupérer ou créer un statut de candidature (ApplicationStatus)
+    let appStatus = await prisma.applicationStatus.findFirst({ where: { isActive: true } });
+    if (!appStatus) {
+      appStatus = await prisma.applicationStatus.create({
+        data: { code: 'DRAFT', name: 'Brouillon', order: 0, isPredefined: true, isActive: true }
+      });
+    }
+    const applicationStatusId = appStatus.id;
+
     // 4. Créer les candidatures
     console.log('📋 Création des candidatures...');
     const applications = [];
@@ -344,7 +359,6 @@ async function main() {
       const user = users[i % users.length];
       const company = companies[i % companies.length];
       const position = POSITIONS[i % POSITIONS.length];
-      const status = STATUSES[i % STATUSES.length];
       
       const applicationDate = new Date();
       applicationDate.setDate(applicationDate.getDate() - Math.floor(Math.random() * 60));
@@ -359,31 +373,32 @@ async function main() {
           contractType: ['CDI', 'CDD', 'STAGE', 'FREELANCE', 'CDI'][i % 5],
           applicationDate,
           applicationType: 'OFFRE',
-          status,
+          statusId: applicationStatusId,
           notes: `Candidature envoyée le ${applicationDate.toLocaleDateString('fr-FR')}. En attente de retour.\n[TEST_DATA_TAG:${testTag}]`,
-          isTestData: true
         }
       });
       applications.push(application);
 
-      // Créer des activités pour chaque candidature
-      await prisma.activity.create({
-        data: {
-          applicationId: application.id,
-          type: 'APPLICATION_CREATED',
-          description: `Candidature créée pour ${position} chez ${company.name}`
-        }
-      });
+      // Créer des activités pour chaque candidature (Activity n'existe peut-être pas dans le schéma partagé)
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: application.id,
+            type: 'APPLICATION_CREATED',
+            description: `Candidature créée pour ${position} chez ${company.name}`
+          }
+        });
+      } catch (_) { /* Activity peut être absent du schéma */ }
 
-      if (status !== 'DRAFT') {
+      try {
         await prisma.activity.create({
           data: {
             applicationId: application.id,
             type: 'STATUS_CHANGED',
-            description: `Statut changé vers ${status}`
+            description: `Statut initial`
           }
         });
-      }
+      } catch (_) { /* ignore */ }
     }
     console.log(`   ✅ ${applications.length} candidatures créées`);
 
@@ -407,6 +422,19 @@ async function main() {
     }
     console.log(`   ✅ ${linkedContacts} liaisons créées`);
 
+    // Récupérer ou créer les statuts d'entretien (InterviewStatus)
+    const interviewStatusCodes = ['SCHEDULED', 'COMPLETED', 'CANCELLED'];
+    const interviewStatusIds = {};
+    for (const code of interviewStatusCodes) {
+      let s = await prisma.interviewStatus.findFirst({ where: { code } });
+      if (!s) {
+        s = await prisma.interviewStatus.create({
+          data: { code, name: code.charAt(0) + code.slice(1).toLowerCase(), order: interviewStatusCodes.indexOf(code), isPredefined: true, isActive: true }
+        });
+      }
+      interviewStatusIds[code] = s.id;
+    }
+
     // 6. Créer des entretiens
     console.log('🎤 Création des entretiens...');
     const interviews = [];
@@ -425,22 +453,36 @@ async function main() {
           location: ['Visioconférence', 'Bureau Paris', 'Téléphone', 'Remote'][i % 4],
           videoLink: i % 2 === 0 ? 'https://meet.google.com/abc-defg-hij' : undefined,
           notes: `Entretien technique prévu\n[TEST_DATA_TAG:${testTag}]`,
-          status: ['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3],
+          statusId: interviewStatusIds[['SCHEDULED', 'COMPLETED', 'CANCELLED'][i % 3]],
           isTestData: true
         }
       });
       interviews.push(interview);
 
-      // Activité
-      await prisma.activity.create({
-        data: {
-          applicationId: application.id,
-          type: 'INTERVIEW_SCHEDULED',
-          description: `Entretien ${interview.type} planifié le ${scheduledDate.toLocaleDateString('fr-FR')}`
-        }
-      });
+      try {
+        await prisma.activity.create({
+          data: {
+            applicationId: application.id,
+            type: 'INTERVIEW_SCHEDULED',
+            description: `Entretien planifié le ${scheduledDate.toLocaleDateString('fr-FR')}`
+          }
+        });
+      } catch (_) { /* Activity absent du schéma */ }
     }
     console.log(`   ✅ ${interviews.length} entretiens créés`);
+
+    // Récupérer ou créer les statuts de relance (FollowUpStatus)
+    const followUpStatusCodes = ['PENDING', 'POSITIVE_RESPONSE'];
+    const followUpStatusIds = {};
+    for (const code of followUpStatusCodes) {
+      let s = await prisma.followUpStatus.findFirst({ where: { code } });
+      if (!s) {
+        s = await prisma.followUpStatus.create({
+          data: { code, name: code === 'PENDING' ? 'En attente' : 'Réponse positive', order: followUpStatusCodes.indexOf(code), isPredefined: true, isActive: true }
+        });
+      }
+      followUpStatusIds[code] = s.id;
+    }
 
     // 7. Créer des relances
     console.log('📧 Création des relances...');
@@ -457,7 +499,7 @@ async function main() {
           applicationId: application.id,
           companyId: application.companyId,
           followUpDate: scheduledDate,
-          status: i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING',
+          statusId: followUpStatusIds[i % 3 === 0 ? 'POSITIVE_RESPONSE' : 'PENDING'],
           response: i % 3 === 0 ? 'Réponse positive, entretien prévu' : null,
           notes: `Suivi candidature ${application.position}\nBonjour,\n\nJe me permets de revenir vers vous concernant ma candidature pour le poste de ${application.position}.\n\nCordialement\n[TEST_DATA_TAG:${testTag}]`,
           isTestData: true
@@ -666,10 +708,7 @@ async function main() {
       const app = applications[i];
       await prisma.application.update({
         where: { id: app.id },
-        data: { 
-          deletedAt: new Date(),
-          canRestore: true
-        }
+        data: { deletedAt: new Date() }
       });
       deletedCount++;
     }

@@ -43,12 +43,12 @@ services:
       - jobbingtrack-network
     restart: unless-stopped
 
-  # API Gateway (coeur du système)
+  # API Gateway (coeur du système). Contexte backend pour inclure generate-test-data.js + prisma.
   api-gateway:
     image: jobbingtrack-api-gateway
     build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile.backend-context
     container_name: jobbingtrack-api-gateway
     ports:
       - "${API_GATEWAY_PORT:-5002}:${API_GATEWAY_INTERNAL_PORT:-3000}"
@@ -65,6 +65,8 @@ services:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/package.json:/app/package.json:ro
+      # Script génération données de test (route admin generate-test-data)
+      - ./backend/generate-test-data.js:/app/generate-test-data.js:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - jobbingtrack-network
@@ -86,6 +88,9 @@ services:
       args:
         - NODE_ENV=development
     container_name: jobbingtrack-frontend
+    # Sous Linux, host.docker.internal n'existe pas par défaut → le proxy Build APK ne peut pas joindre le contrôleur sur l'hôte
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "0.0.0.0:${FRONTEND_PORT:-5003}:${FRONTEND_INTERNAL_PORT:-3000}"
     environment:
@@ -109,6 +114,7 @@ services:
       - USER_JOURNEY_REPORTS_DIR=/tmp/tests/user-journey-reports
       - TZ=${TZ:-Europe/Paris}
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
+      - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
     volumes:
       - ./frontend:/app
       - ./scripts:/app/scripts:ro

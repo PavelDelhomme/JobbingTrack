@@ -5,6 +5,7 @@ const adminController = require('../controllers/admin.controller');
 const archiveController = require('../controllers/archive.controller');
 const trashController = require('../controllers/trash.controller');
 const dataManagementController = require('../controllers/data-management.controller');
+const testdataController = require('../controllers/testdata.controller');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -71,6 +72,11 @@ router.get('/trash', authenticate, trashController.getAllDeletedItems);
 router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
 router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
 router.post('/trash/empty', authenticate, trashController.emptyTrash);
+
+// ✅ Génération / nettoyage données de test
+router.post('/generate-test-data', authenticate, testdataController.generateTestData);
+router.post('/test-data/clear', authenticate, testdataController.clearTestData);
+router.get('/test-data/status', authenticate, testdataController.getTestDataStatus);
 
 // ✅ Export / Import / Cleanup (gestion des données)
 // Type frontend : applications, companies, contacts, all -> tableName backend (Application, Company, Contact)

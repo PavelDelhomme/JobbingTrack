@@ -1,6 +1,6 @@
 # JobbingTrack - Statut du projet
 
-**Derniere mise a jour** : 28 fevrier 2026
+**Derniere mise a jour** : 3 mars 2026
 
 ---
 
@@ -17,7 +17,7 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - **Backoffice Analytics utilisateur** : page resilient si requete events bloquee (uBlock) : chargement partiel + message onglet Evenements.
 - **Rapports de tests** : view utilise `USER_JOURNEY_REPORTS_DIR` (aligné avec la liste) ; message 404 explicite ; JSON des résultats échappé (plus de « Test inconnu ») ; script `scripts/compress-old-reports.sh` pour compresser les rapports de plus de N jours.
 - **Backend CRUD** : mise à jour complète des champs pour candidature (whitelist), entretien (feedback, outcome, type/style), relance (response, type/method), appel (followUpId, callTypeId), événement (reminder, color, callId, eventTypeId), contact (whitelist).
-- **Mobile** : formulaire candidature complet (création + édition) avec tous les champs ; écrans entretien / relance / appel / événement / contact à compléter sur le même modèle.
+- **Mobile** : formulaire candidature complet (création + édition) ; écran détail candidature avec listes relances/entretiens/appels et création relance/entretien/appel depuis le détail ; écran Entretiens (liste API) ; FollowUpProvider et InterviewProvider branchés sur l’API ; retour arrière depuis le détail revient à la liste (pas de sortie d’app).
 - **Notifications auto** : cron workflow-service — rappel entretien &lt; 24h (8h), « Penser à relancer » candidatures &gt; 7j (9h30), rappels relances du jour (10h) ; notifications in-app créées en BDD.
 - **Tests mobiles** : tests E2E mobile existants (7 fichiers mobile-*.spec.ts). Module ADB avec 70+ steps couvrant navigation, verification ecrans, CRUD, relances, recherche.
 - **CI/CD** : pipeline GitHub Actions a implementer une fois la suite de tests stable.
@@ -169,12 +169,13 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 - [ ] Cascade suppression candidature → relances, entretiens, appels, evenements
 
 #### Creation et liaisons
-- [ ] Formulaire creation candidature (FAB + depuis liste)
+- [x] Formulaire creation candidature (FAB + depuis liste + bouton « Créer ma première candidature » si vide)
+- [x] Écran détail candidature (ApplicationDetailScreen) : infos, listes relances/entretiens/appels, boutons « Ajouter relance », « Ajouter entretien », « Ajouter appel », « Modifier » ; retour (back) revient à la liste sans quitter l’app
+- [x] Relance UNIQUEMENT depuis detail candidature (dialog date + notes, appel API POST /followups)
+- [x] Entretien UNIQUEMENT depuis detail candidature (date picker, appel API POST /interviews)
+- [x] Appel via candidature depuis détail (date + sujet, appel API POST /calls)
 - [ ] Auto-creation entreprise lors creation candidature ou contact
 - [ ] Contact standalone ou lie a candidature (3 cas)
-- [ ] Entretien UNIQUEMENT depuis detail candidature (jamais standalone)
-- [ ] Relance UNIQUEMENT depuis detail candidature
-- [ ] Appel via candidature (liaison correcte avec entreprise)
 - [ ] Contact inline lors creation entretien/relance/appel
 - [ ] Liaison auto contact ↔ entreprise via ContactCompany
 
@@ -321,7 +322,25 @@ Stack 21/21 services, 47 tables, Tests API 61 (archivage + cascade + BDD), Playw
 | Journey builder | `tests/user-journey/journey-builder.js` | 30+ steps integres (actions, scenarios, flows, moteur statut) |
 | Emulator controller | `tools/emulator-controller/server.js` | Build APK, install (-r), launch, shell command, screenshot, input |
 
-**Usage rapide** :
+---
+
+## Parcours mobile — Backoffice Emulateur (etat operationnel)
+
+**Page** : http://localhost:5003/backoffice/mobile-emulator (connexion admin requise).
+
+**Parcours principaux (8)** : Inscription complete, Reset mot de passe, Premiere utilisation, Usage quotidien, Parcours complet (avec donnees), Creation candidature + relance + entretien + appel, Archives & Corbeille, Parcours complet. Tous definis avec etapes implementees dans `adb-steps.ts`.
+
+**Comportement** : etape inconnue → erreur (throw) ; etapes critiques (login, view_dashboard_ui) en echec → parcours arrete ; bouton Annuler → interrompt l'etape en cours ; parcours « avec donnees » ne demarre pas si generation echouee ou non connecte admin. Controleur : route `/force-restart-app`, retry uiautomator dump.
+
+**Prerequis** : `make emulator-controller` ou `make restart-emulator` (5055), appareil ADB connecte. **Verifications** : `make verify-mobile-emulator` (sante controleur + force-restart-app), `make verify-mobile-scenarios` (coherence scenarios vs steps).
+
+**Compte test « avec donnees »** : apres generation (preset mobile), connexion dans l'app avec le compte **user1** : par defaut **user1@jobbingtrack.com** / **password123**. Pour recevoir les mails (inscription, reset) sur une vraie boite : definir **TEST_USER_EMAIL** et **TEST_USER_PASSWORD** (backend / api-gateway) et **NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL** / **NEXT_PUBLIC_MOBILE_TEST_USER_PASSWORD** (frontend), ex. **paul.delhomme@proton.me** ou **candidatures@alias.delhomme.ovh** (voir `.env.example`).
+
+**Usage reel** : necessite un appareil/emulateur Android connecte. Sans appareil, seules les cibles make verify-mobile-* et la coherence du code sont testables.
+
+**Tests E2E Playwright (page emulateur)** : `frontend/tests/e2e/mobile-emulator.spec.ts` — verifie le chargement de la page, les 8 parcours principaux, le bouton « Lancer le parcours », le message « Selectionnez un appareil » sans appareil, et la selection des parcours (dont « Parcours complet (avec donnees) »). Pour que les tests passent : **backend (API Gateway) sur 5002**, **frontend/.env** avec `NEXT_PUBLIC_API_URL=http://localhost:5002`, puis `npm run test:e2e:mobile-emulator` (projet chromium + auth admin). Si le frontend tourne deja, redémarrer après modification du .env pour que l’API 5002 soit prise en compte.
+
+**Usage rapide (scripts Node)** :
 ```bash
 # Depuis n'importe quel script Node.js
 const adb = require('../../tools/adb-lib');
@@ -440,8 +459,12 @@ Monitoring memoire (RSS/MaxRSS), tracking etendu (network_error, scroll, long_pr
 ## Demarrage rapide
 
 ```bash
-make rebuild && make up-full && make db-push-all && make status
+make rebuild && make up-full && make status
 ```
+
+(`make up-all` est un alias de `make up-full`.)
+
+Après `make up-full`, tu peux te **connecter** directement au backoffice : **admin@jobbingtrack.com** / **password123**. L’admin est créé ou mis à jour automatiquement avec email vérifié. Si besoin, `make seed-auth` force la création/mise à jour de l’admin avec `emailVerified=true`.
 
 ---
 
